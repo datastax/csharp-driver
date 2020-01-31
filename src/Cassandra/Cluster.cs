@@ -52,6 +52,7 @@ namespace Cassandra
 
         private readonly Metadata _metadata;
         private readonly IProtocolEventDebouncer _protocolEventDebouncer;
+        private IReadOnlyList<ILoadBalancingPolicy> _loadBalancingPolicies;
 
         /// <inheritdoc />
         public event Action<Host> HostAdded;
@@ -168,7 +169,7 @@ namespace Cassandra
                 TimeSpan.FromMilliseconds(configuration.MetadataSyncOptions.RefreshSchemaDelayIncrement),
                 TimeSpan.FromMilliseconds(configuration.MetadataSyncOptions.MaxTotalRefreshSchemaDelay));
 
-            _controlConnection = configuration.ControlConnectionFactory.Create(_protocolEventDebouncer, protocolVersion, Configuration, _metadata, contactPoints);
+            _controlConnection = configuration.ControlConnectionFactory.Create(this, _protocolEventDebouncer, protocolVersion, Configuration, _metadata, contactPoints);
 
             _metadata.ControlConnection = _controlConnection;
         }
@@ -199,12 +200,7 @@ namespace Cassandra
                 Cluster.Logger.Info("Connecting to cluster using {0}", GetAssemblyInfo());
                 try
                 {
-                    // Only abort the async operations when at least twice the time for ConnectTimeout per host passed
-                    var initialAbortTimeout = Configuration.SocketOptions.ConnectTimeoutMillis * 2 * _metadata.Hosts.Count;
-                    initialAbortTimeout = Math.Max(initialAbortTimeout, ControlConnection.MetadataAbortTimeout);
-                    await _controlConnection.InitAsync().WaitToCompleteAsync(initialAbortTimeout).ConfigureAwait(false);
-
-                    // Initialize policies
+                    // Collect all policies in collections
                     var loadBalancingPolicies = new HashSet<ILoadBalancingPolicy>(new ReferenceEqualityComparer<ILoadBalancingPolicy>());
                     var speculativeExecutionPolicies = new HashSet<ISpeculativeExecutionPolicy>(new ReferenceEqualityComparer<ISpeculativeExecutionPolicy>());
                     foreach (var options in Configuration.RequestOptions.Values)
@@ -212,7 +208,15 @@ namespace Cassandra
                         loadBalancingPolicies.Add(options.LoadBalancingPolicy);
                         speculativeExecutionPolicies.Add(options.SpeculativeExecutionPolicy);
                     }
+                    
+                    _loadBalancingPolicies = loadBalancingPolicies.ToList();
 
+                    // Only abort the async operations when at least twice the time for ConnectTimeout per host passed
+                    var initialAbortTimeout = Configuration.SocketOptions.ConnectTimeoutMillis * 2 * _metadata.Hosts.Count;
+                    initialAbortTimeout = Math.Max(initialAbortTimeout, ControlConnection.MetadataAbortTimeout);
+                    await _controlConnection.InitAsync().WaitToCompleteAsync(initialAbortTimeout).ConfigureAwait(false);
+                    
+                    // Initialize policies
                     foreach (var lbp in loadBalancingPolicies)
                     {
                         lbp.Initialize(this);
@@ -222,6 +226,8 @@ namespace Cassandra
                     {
                         sep.Initialize(this);
                     }
+
+                    InitializeHostDistances();
 
                     // Set metadata dependent options
                     SetMetadataDependentOptions();
@@ -260,6 +266,14 @@ namespace Cassandra
 
             Cluster.Logger.Info("Cluster [" + Metadata.ClusterName + "] has been initialized.");
             return;
+        }
+
+        private void InitializeHostDistances()
+        {
+            foreach (var host in AllHosts())
+            {
+                InternalRef.RetrieveAndSetDistance(host);
+            }
         }
 
         private static string GetAssemblyInfo()
@@ -496,13 +510,21 @@ namespace Cassandra
             return;
         }
 
-        /// <summary>
-        /// Helper method to retrieve the distance from LoadBalancingPolicy and set it at Host level.
-        /// Once ProfileManager is implemented, this logic will be part of it.
-        /// </summary>
-        internal static HostDistance RetrieveDistance(Host host, ILoadBalancingPolicy lbp)
+        /// <inheritdoc />
+        HostDistance IInternalCluster.RetrieveAndSetDistance(Host host)
         {
-            var distance = lbp.Distance(host);
+            var distance = _loadBalancingPolicies[0].Distance(host);
+
+            for (var i = 1; i < _loadBalancingPolicies.Count; i++)
+            {
+                var lbp = _loadBalancingPolicies[i];
+                var lbpDistance = lbp.Distance(host);
+                if (lbpDistance < distance)
+                {
+                    distance = lbpDistance;
+                }
+            }
+
             host.SetDistance(distance);
             return distance;
         }
@@ -512,7 +534,7 @@ namespace Cassandra
             IInternalSession session, ISerializer serializer, InternalPrepareRequest request)
         {
             var lbp = session.Cluster.Configuration.DefaultRequestOptions.LoadBalancingPolicy;
-            var handler = InternalRef.Configuration.PrepareHandlerFactory.Create(serializer);
+            var handler = InternalRef.Configuration.PrepareHandlerFactory.Create(serializer, this);
             var ps = await handler.Prepare(request, session, lbp.NewQueryPlan(session.Keyspace, null).GetEnumerator()).ConfigureAwait(false);
             var psAdded = InternalRef.PreparedQueries.GetOrAdd(ps.Id, ps);
             if (ps != psAdded)

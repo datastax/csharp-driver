@@ -14,14 +14,13 @@
 //   limitations under the License.
 //
 
-using System.Collections.Generic;
-using Cassandra.ExecutionProfiles;
 using Cassandra.Serialization;
+using Cassandra.SessionManagement;
 
 namespace Cassandra.Requests
 {
     internal interface IPrepareHandlerFactory
     {
-        IPrepareHandler Create(ISerializer serializer);
+        IPrepareHandler Create(ISerializer serializer, IInternalCluster cluster);
     }
 }

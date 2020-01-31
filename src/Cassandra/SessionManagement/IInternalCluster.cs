@@ -50,5 +50,10 @@ namespace Cassandra.SessionManagement
         Task<PreparedStatement> Prepare(IInternalSession session, ISerializer serializer, InternalPrepareRequest request);
         
         IReadOnlyDictionary<string, IEnumerable<IPEndPoint>> GetResolvedEndpoints();
+
+        /// <summary>
+        /// Helper method to retrieve the aggregate distance from all configured LoadBalancingPolicies and set it at Host level.
+        /// </summary>
+        HostDistance RetrieveAndSetDistance(Host host);
     }
 }

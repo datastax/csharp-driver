@@ -28,6 +28,7 @@ using Cassandra.Observers;
 using Cassandra.Requests;
 using Cassandra.Responses;
 using Cassandra.Serialization;
+using Cassandra.SessionManagement;
 using Cassandra.Tests.Connections;
 using Cassandra.Tests.Requests;
 
@@ -258,6 +259,7 @@ namespace Cassandra.Tests.ExecutionProfiles
             // create config
             var configBuilder = new TestConfigurationBuilder
             {
+                ControlConnectionFactory = new FakeControlConnectionFactory(),
                 ConnectionFactory = new FakeConnectionFactory(() => connection),
                 Policies = new Cassandra.Policies(new RoundRobinPolicy(), new ConstantReconnectionPolicy(100), new DefaultRetryPolicy())
             };
@@ -274,7 +276,7 @@ namespace Cassandra.Tests.ExecutionProfiles
 
             // create cluster
             var cluster = Cluster.BuildFrom(initializerMock, new List<string>());
-            config.Policies.LoadBalancingPolicy.Initialize(cluster);
+            cluster.Connect();
 
             // create session
             var session = new Session(cluster, config, null, SerializerManager.Default, null);
@@ -327,6 +329,13 @@ namespace Cassandra.Tests.ExecutionProfiles
                 .Returns(new ConnectionEndPoint(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9042), null));
 
             return mockResult;
+        }
+
+        private IInternalCluster MockCluster()
+        {
+            var cluster = Mock.Of<IInternalCluster>();
+            Mock.Get(cluster).Setup(c => c.RetrieveAndSetDistance(It.IsAny<Host>())).Returns(HostDistance.Local);
+            return cluster;
         }
 
         public enum RequestTypeTestCase

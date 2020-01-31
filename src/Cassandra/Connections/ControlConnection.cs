@@ -26,6 +26,7 @@ using Cassandra.ProtocolEvents;
 using Cassandra.Requests;
 using Cassandra.Responses;
 using Cassandra.Serialization;
+using Cassandra.SessionManagement;
 using Cassandra.Tasks;
 
 namespace Cassandra.Connections
@@ -39,6 +40,7 @@ namespace Cassandra.Connections
         private const CassandraEventType CassandraEventTypes = CassandraEventType.TopologyChange | CassandraEventType.StatusChange | CassandraEventType.SchemaChange;
         private static readonly IPAddress BindAllAddress = new IPAddress(new byte[4]);
 
+        private readonly IInternalCluster _cluster;
         private readonly Metadata _metadata;
         private volatile Host _host;
         private volatile IConnectionEndPoint _currentConnectionEndPoint;
@@ -79,12 +81,14 @@ namespace Cassandra.Connections
         public ISerializerManager Serializer => _serializer;
 
         internal ControlConnection(
+            IInternalCluster cluster,
             IProtocolEventDebouncer eventDebouncer,
             ProtocolVersion initialProtocolVersion,
             Configuration config,
             Metadata metadata,
             IEnumerable<object> contactPoints)
         {
+            _cluster = cluster;
             _metadata = metadata;
             _reconnectionPolicy = config.Policies.ReconnectionPolicy;
             _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
@@ -577,7 +581,7 @@ namespace Cassandra.Connections
                 ControlConnection._logger.Info("Received status change event for host {0} but it was not found", address);
                 return;
             }
-            var distance = Cluster.RetrieveDistance(host, _config.DefaultRequestOptions.LoadBalancingPolicy);
+            var distance = _cluster.RetrieveAndSetDistance(host);
             if (distance != HostDistance.Ignored)
             {
                 // We should not consider events for status changes

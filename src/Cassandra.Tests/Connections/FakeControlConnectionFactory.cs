@@ -18,10 +18,11 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
+
 using Cassandra.Connections;
 using Cassandra.ProtocolEvents;
 using Cassandra.Serialization;
-using Cassandra.Tasks;
+using Cassandra.SessionManagement;
 
 using Moq;
 
@@ -29,11 +30,19 @@ namespace Cassandra.Tests.Connections
 {
     internal class FakeControlConnectionFactory : IControlConnectionFactory
     {
-        public IControlConnection Create(IProtocolEventDebouncer protocolEventDebouncer, ProtocolVersion initialProtocolVersion, Configuration config, Metadata metadata, IEnumerable<object> contactPoints)
+        public IControlConnection Create(
+            IInternalCluster cluster,
+            IProtocolEventDebouncer protocolEventDebouncer,
+            ProtocolVersion initialProtocolVersion,
+            Configuration config,
+            Metadata metadata,
+            IEnumerable<object> contactPoints)
         {
             var cc = Mock.Of<IControlConnection>();
             Mock.Get(cc).Setup(c => c.InitAsync()).Returns(Task.Run(() =>
             {
+                var cps = new Dictionary<string, IEnumerable<IPEndPoint>>();
+
                 foreach (var cp in contactPoints)
                 {
                     if (cp is string cpStr && IPAddress.TryParse(cpStr, out var addr))
@@ -41,14 +50,17 @@ namespace Cassandra.Tests.Connections
                         var host = metadata.AddHost(new IPEndPoint(addr, config.ProtocolOptions.Port));
                         host.SetInfo(BuildRow());
                         Mock.Get(cc).Setup(c => c.Host).Returns(host);
+                        cps.Add(cpStr, new List<IPEndPoint> { host.Address });
                     }
                     else if (cp is IPEndPoint endpt)
                     {
                         var host = metadata.AddHost(endpt);
                         host.SetInfo(BuildRow());
                         Mock.Get(cc).Setup(c => c.Host).Returns(host);
+                        cps.Add(cp.ToString(), new List<IPEndPoint> { endpt });
                     }
                 }
+                metadata.SetResolvedContactPoints(cps);
             }));
             Mock.Get(cc).Setup(c => c.Serializer).Returns(new SerializerManager(ProtocolVersion.V3));
             return cc;

@@ -16,12 +16,14 @@
 
 using System.Collections.Generic;
 using Cassandra.ProtocolEvents;
+using Cassandra.SessionManagement;
 
 namespace Cassandra.Connections
 {
     internal class ControlConnectionFactory : IControlConnectionFactory
     {
         public IControlConnection Create(
+            IInternalCluster cluster,
             IProtocolEventDebouncer protocolEventDebouncer, 
             ProtocolVersion initialProtocolVersion, 
             Configuration config, 
@@ -29,6 +31,7 @@ namespace Cassandra.Connections
             IEnumerable<object> contactPoints)
         {
             return new ControlConnection(
+                cluster,
                 protocolEventDebouncer, 
                 initialProtocolVersion, 
                 config, 

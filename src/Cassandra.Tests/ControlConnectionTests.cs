@@ -46,7 +46,8 @@ namespace Cassandra.Tests
 
         private ControlConnection NewInstance(Configuration config, Metadata metadata)
         {
-            return new ControlConnection(GetEventDebouncer(config), ProtocolVersion.MaxSupported, config, metadata, new List<object> { "127.0.0.1" });
+            return new ControlConnection(
+                Mock.Of<IInternalCluster>(), GetEventDebouncer(config), ProtocolVersion.MaxSupported, config, metadata, new List<object> { "127.0.0.1" });
         }
 
         private ControlConnection NewInstance(Metadata metadata)
