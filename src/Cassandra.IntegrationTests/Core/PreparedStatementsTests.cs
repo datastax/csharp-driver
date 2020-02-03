@@ -1112,7 +1112,35 @@ namespace Cassandra.IntegrationTests.Core
                     session.Execute(new BatchStatement().Add(query).SetKeyspace(KeyspaceName)));
             }
         }
-        
+
+        /// <summary>
+        /// This test relies on CASSANDRA-15252 to reproduce the error condition. If it gets fixed in
+        /// Cassandra, we'll need to add a version restriction.
+        /// See https://issues.apache.org/jira/browse/CASSANDRA-15252.
+        /// </summary>
+        [Test]
+        public void Should_FailFast_When_PreparedStatementIdChangesOnReprepare()
+        {
+            var tableName = TestUtils.GetUniqueTableName();
+            using (var cluster = 
+                Cluster.Builder()
+                       .AddContactPoint(TestClusterManager.InitialContactPoint)
+                       .WithQueryTimeout(500000).Build())
+            {
+                var session = cluster.Connect();
+                session.Execute($"CREATE TABLE {KeyspaceName}.{tableName} (a int PRIMARY KEY, b int, c int)");
+                var ps = session.Prepare($"SELECT * FROM {KeyspaceName}.{tableName} WHERE a = ?");
+                session.ChangeKeyspace(KeyspaceName);
+                session.Execute($"DROP TABLE {tableName}");
+                session.Execute($"CREATE TABLE {tableName} (a int PRIMARY KEY, b int, c int)");
+                var ex = Assert.Throws<PreparedStatementIdMismatchException>(
+                    () => session.Execute(ps.Bind(1)));
+                Assert.IsTrue(ex.OriginalId.SequenceEqual(ps.Id));
+                Assert.IsTrue(ex.Message.Contains("ID mismatch while trying to reprepare"));
+                Assert.IsTrue(ex.Message.Contains($"expected {BitConverter.ToString(ps.Id).Replace("-", "")}"));
+            }
+        }
+
         public void InsertingSingleValuePrepared(Type tp, object value = null)
         {
             var cassandraDataTypeName = QueryTools.convertTypeNameToCassandraEquivalent(tp);
