@@ -1135,7 +1135,7 @@ namespace Cassandra.IntegrationTests.Core
                 session.Execute($"CREATE TABLE {tableName} (a int PRIMARY KEY, b int, c int)");
                 var ex = Assert.Throws<PreparedStatementIdMismatchException>(
                     () => session.Execute(ps.Bind(1)));
-                Assert.IsTrue(ex.OriginalId.SequenceEqual(ps.Id));
+                Assert.IsTrue(ex.Id.SequenceEqual(ps.Id));
                 Assert.IsTrue(ex.Message.Contains("ID mismatch while trying to reprepare"));
                 Assert.IsTrue(ex.Message.Contains($"expected {BitConverter.ToString(ps.Id).Replace("-", "")}"));
             }

@@ -23,7 +23,7 @@ namespace Cassandra
     /// </para>
     /// <para>
     /// When this exception is thrown, it means that the <see cref="PreparedStatement"/>
-    /// object with the ID that matches <see cref="OriginalId"/> should not be used anymore.
+    /// object with the ID that matches <see cref="Id"/> should not be used anymore.
     /// </para>
     /// </summary>
     public class PreparedStatementIdMismatchException : DriverException
@@ -31,9 +31,12 @@ namespace Cassandra
         public PreparedStatementIdMismatchException(byte[] id, string message) 
             : base(message)
         {
-            OriginalId = id;
+            Id = id;
         }
 
-        public byte[] OriginalId { get; }
+        /// <summary>
+        /// ID of the prepared statement that should not be used anymore.
+        /// </summary>
+        public byte[] Id { get; }
     }
 }
