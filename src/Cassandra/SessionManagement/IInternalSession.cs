@@ -60,8 +60,6 @@ namespace Cassandra.SessionManagement
 
         bool HasConnections(Host host);
 
-        void MarkAsDownAndScheduleReconnection(Host host, IHostConnectionPool pool);
-
         void OnAllConnectionClosed(Host host, IHostConnectionPool pool);
 
         /// <summary>

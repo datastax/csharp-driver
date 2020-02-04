@@ -334,53 +334,18 @@ namespace Cassandra.Requests
         internal static async Task<IConnection> GetConnectionFromHostAsync(
             Host host, HostDistance distance, IInternalSession session, IDictionary<IPEndPoint, Exception> triedHosts)
         {
-            IConnection c = null;
             var hostPool = session.GetOrCreateConnectionPool(host, distance);
+            
             try
             {
-                c = await hostPool.BorrowConnectionAsync().ConfigureAwait(false);
-            }
-            catch (UnsupportedProtocolVersionException ex)
-            {
-                // The version of the protocol is not supported on this host
-                // Most likely, we are using a higher protocol version than the host supports
-                RequestHandler.Logger.Error("Host {0} does not support protocol version {1}. You should use a fixed protocol " +
-                             "version during rolling upgrades of the cluster. Setting the host as DOWN to " +
-                             "avoid hitting this node as part of the query plan for a while", host.Address, ex.ProtocolVersion);
-                triedHosts[host.Address] = ex;
-                session.MarkAsDownAndScheduleReconnection(host, hostPool);
-            }
-            catch (BusyPoolException ex)
-            {
-                RequestHandler.Logger.Warning(
-                    "All connections to host {0} are busy ({1} requests are in-flight on {2} connection(s))," +
-                    " consider lowering the pressure or make more nodes available to the client", host.Address,
-                    ex.MaxRequestsPerConnection, ex.ConnectionLength);
-                triedHosts[host.Address] = ex;
-            }
-            catch (Exception ex)
-            {
-                // Probably a SocketException/AuthenticationException, move along
-                RequestHandler.Logger.Error("Exception while trying borrow a connection from a pool", ex);
-                triedHosts[host.Address] = ex;
-            }
-
-            if (c == null)
-            {
-                return null;
-            }
-            try
-            {
-                await c.SetKeyspace(session.Keyspace).ConfigureAwait(false);
+                return await hostPool.GetConnectionFromHostAsync(triedHosts, () => session.Keyspace).ConfigureAwait(false);
             }
             catch (SocketException)
             {
-                hostPool.Remove(c);
                 // A socket exception on the current connection does not mean that all the pool is closed:
                 // Retry on the same host
                 return await RequestHandler.GetConnectionFromHostAsync(host, distance, session, triedHosts).ConfigureAwait(false);
             }
-            return c;
         }
 
         public Task<RowSet> SendAsync()

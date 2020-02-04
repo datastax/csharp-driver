@@ -15,6 +15,8 @@
 //
 
 using System;
+using System.Collections.Generic;
+using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 
@@ -86,5 +88,10 @@ namespace Cassandra.Connections
         Task Warmup();
 
         void OnHostRemoved();
+
+        void MarkAsDownAndScheduleReconnection();
+
+        Task<IConnection> GetConnectionFromHostAsync(
+            IDictionary<IPEndPoint, Exception> triedHosts, Func<string> getKeyspaceFunc);
     }
 }

@@ -534,7 +534,7 @@ namespace Cassandra
             IInternalSession session, ISerializer serializer, InternalPrepareRequest request)
         {
             var lbp = session.Cluster.Configuration.DefaultRequestOptions.LoadBalancingPolicy;
-            var handler = InternalRef.Configuration.PrepareHandlerFactory.Create(serializer, this);
+            var handler = InternalRef.Configuration.PrepareHandlerFactory.CreatePrepareHandler(serializer, this);
             var ps = await handler.Prepare(request, session, lbp.NewQueryPlan(session.Keyspace, null).GetEnumerator()).ConfigureAwait(false);
             var psAdded = InternalRef.PreparedQueries.GetOrAdd(ps.Id, ps);
             if (ps != psAdded)
@@ -556,40 +556,36 @@ namespace Cassandra
             {
                 return;
             }
-            // Get the first connection for that host, in any of the existings connection pool
-            var connection = sessions.SelectMany(s => s.GetExistingPool(host.Address)?.ConnectionsSnapshot)
-                                     .FirstOrDefault();
-            if (connection == null)
+
+            // Get the first pool for that host (pools with open connections have priority)
+            var pools = sessions.Select(s => s.GetExistingPool(host.Address)).Where(p => p != null).ToList();
+            var poolWithConnections = pools.FirstOrDefault(p => p.HasConnections);
+            var pool = poolWithConnections ?? pools.FirstOrDefault();
+            if (pool == null)
             {
-                PrepareHandler.Logger.Info($"Could not re-prepare queries on {host.Address} as there wasn't an open connection to" +
+                PrepareHandler.Logger.Info($"Could not re-prepare queries on {host.Address} as there wasn't a connection pool associated with" +
                             " the node");
                 return;
             }
+
             PrepareHandler.Logger.Info($"Re-preparing {preparedQueries.Count} queries on {host.Address}");
             var tasks = new List<Task>(preparedQueries.Count);
+            var handler = InternalRef.Configuration.PrepareHandlerFactory.CreateReprepareHandler();
             using (var semaphore = new SemaphoreSlim(64, 64))
             {
                 foreach (var ps in preparedQueries)
                 {
                     var request = new InternalPrepareRequest(ps.Cql, ps.Keyspace);
+
                     await semaphore.WaitAsync().ConfigureAwait(false);
-
-                    async Task SendSingle()
-                    {
-                        try
-                        {
-                            await connection.Send(request).ConfigureAwait(false);
-                        }
-                        finally
-                        {
-                            // ReSharper disable once AccessToDisposedClosure
-                            // There is no risk of being disposed as the list of tasks is awaited upon below
-                            semaphore.Release();
-                        }
-                    }
-
-                    tasks.Add(Task.Run(SendSingle));
+                    tasks.Add(Task.Run(() => handler.ReprepareOnSingleNodeAsync(
+                        new KeyValuePair<Host, IHostConnectionPool>(host, pool), 
+                        ps, 
+                        request, 
+                        semaphore, 
+                        true)));
                 }
+
                 try
                 {
                     await Task.WhenAll(tasks).ConfigureAwait(false);
