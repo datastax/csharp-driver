@@ -435,7 +435,7 @@ namespace Cassandra
                 }
 
                 // We should prepare all current queries on the host
-                await PrepareAllQueries(h).ConfigureAwait(false);
+                await ReprepareAllQueries(h).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -547,7 +547,7 @@ namespace Cassandra
             return ps;
         }
 
-        private async Task PrepareAllQueries(Host host)
+        private async Task ReprepareAllQueries(Host host)
         {
             ICollection<PreparedStatement> preparedQueries = InternalRef.PreparedQueries.Values;
             IEnumerable<IInternalSession> sessions = _connectedSessions;
@@ -556,15 +556,12 @@ namespace Cassandra
             {
                 return;
             }
-
-            // Get the first pool for that host (pools with open connections have priority)
-            var pools = sessions.Select(s => s.GetExistingPool(host.Address)).Where(p => p != null).ToList();
-            var poolWithConnections = pools.FirstOrDefault(p => p.HasConnections);
-            var pool = poolWithConnections ?? pools.FirstOrDefault();
+            
+            // Get the first pool for that host that has open connections
+            var pool = sessions.Select(s => s.GetExistingPool(host.Address)).Where(p => p != null).FirstOrDefault(p => p.HasConnections);
             if (pool == null)
             {
-                PrepareHandler.Logger.Info($"Could not re-prepare queries on {host.Address} as there wasn't a connection pool associated with" +
-                            " the node");
+                PrepareHandler.Logger.Info($"Not re-preparing queries on {host.Address} as there wasn't an open connection to the node.");
                 return;
             }
 

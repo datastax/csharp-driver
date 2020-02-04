@@ -827,15 +827,35 @@ namespace Cassandra.Connections
                 ScheduleReconnection();
             }
         }
-
+        
         /// <inheritdoc />
-        public async Task<IConnection> GetConnectionFromHostAsync(
+        public Task<IConnection> GetConnectionFromHostAsync(
             IDictionary<IPEndPoint, Exception> triedHosts, Func<string> getKeyspaceFunc)
+        {
+            return GetConnectionFromHostAsync(triedHosts, getKeyspaceFunc, true);
+        }
+        
+        /// <inheritdoc />
+        public Task<IConnection> GetExistingConnectionFromHostAsync(
+            IDictionary<IPEndPoint, Exception> triedHosts, Func<string> getKeyspaceFunc)
+        {
+            return GetConnectionFromHostAsync(triedHosts, getKeyspaceFunc, false);
+        }
+        
+        private async Task<IConnection> GetConnectionFromHostAsync(
+            IDictionary<IPEndPoint, Exception> triedHosts, Func<string> getKeyspaceFunc, bool createIfNeeded)
         {
             IConnection c = null;
             try
             {
-                c = await BorrowConnectionAsync().ConfigureAwait(false);
+                if (createIfNeeded)
+                {
+                    c = await BorrowConnectionAsync().ConfigureAwait(false);
+                }
+                else
+                {
+                    c = BorrowExistingConnection();
+                }
             }
             catch (UnsupportedProtocolVersionException ex)
             {

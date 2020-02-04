@@ -73,7 +73,7 @@ namespace Cassandra.Requests
             try
             {
                 var triedHosts = new Dictionary<IPEndPoint, Exception>();
-                var connection = await poolKvp.Value.GetConnectionFromHostAsync(
+                var connection = await poolKvp.Value.GetExistingConnectionFromHostAsync(
                     triedHosts, () => ps.Keyspace).ConfigureAwait(false);
 
                 if (connection != null)
@@ -96,7 +96,7 @@ namespace Cassandra.Requests
                 LogOrThrow(
                     throwException, 
                     null, 
-                    "An error occured while attempting to prepare query on {0}.", 
+                    "Could not obtain an existing connection to prepare query on {0}.", 
                     poolKvp.Key);
             }
             catch (Exception ex)

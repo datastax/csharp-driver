@@ -93,5 +93,8 @@ namespace Cassandra.Connections
 
         Task<IConnection> GetConnectionFromHostAsync(
             IDictionary<IPEndPoint, Exception> triedHosts, Func<string> getKeyspaceFunc);
+        
+        Task<IConnection> GetExistingConnectionFromHostAsync(
+            IDictionary<IPEndPoint, Exception> triedHosts, Func<string> getKeyspaceFunc);
     }
 }

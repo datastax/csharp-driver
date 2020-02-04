@@ -100,6 +100,8 @@ namespace Cassandra.IntegrationTests.Core
         {
             var localCluster = GetNewTemporaryCluster();
             var localSession = localCluster.Connect();
+            localSession.CreateKeyspace(KeyspaceName, null, false);
+            localSession = localCluster.Connect();
             Assert.IsNull(localSession.Keyspace);
             localSession.ChangeKeyspace(KeyspaceName);
             Assert.IsNotNull(localSession.Keyspace);
