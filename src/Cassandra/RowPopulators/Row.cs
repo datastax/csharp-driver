@@ -327,8 +327,31 @@ namespace Cassandra
             // Other collections
             var childColumnInfo = ((ICollectionColumnInfo) columnInfo).GetChildType();
             var arr = Array.CreateInstance(childTargetType, source.Length);
+            bool? isNullable = null;
             for (var i = 0; i < source.Length; i++)
             {
+                var value = source.GetValue(i);
+                if (value == null)
+                {
+                    if (isNullable == null)
+                    {
+                        isNullable = !childTargetType.GetTypeInfo().IsValueType;
+                    }
+
+                    if (!isNullable.Value)
+                    {
+                        var nullableType = typeof(Nullable<>).MakeGenericType(childTargetType);
+                        var newResult = Array.CreateInstance(nullableType, source.Length);
+                        for (var j = 0; j < i; j++)
+                        {
+                            newResult.SetValue(arr.GetValue(j), j);
+                        }
+                        arr = newResult;
+                        childTargetType = nullableType;
+                        isNullable = true;
+                    }
+                }
+                
                 arr.SetValue(TryConvertToType(source.GetValue(i), childColumnInfo, childTargetType), i);
             }
             return arr;

@@ -223,6 +223,28 @@ namespace Cassandra.Mapping.TypeConversion
 
             Type dbType = typeof (TDatabase);
             Type pocoType = typeof (TPoco);
+            
+            if (typeof(TPoco) == typeof(TDatabase))
+            {
+                Func<TPoco, TPoco> func = d => d;
+                return func;
+            }
+            
+            if (pocoType.GetTypeInfo().IsGenericType && pocoType.GetGenericTypeDefinition() == typeof(Nullable<>))
+            {
+                var underlyingType = Nullable.GetUnderlyingType(pocoType);
+                if (underlyingType != null)
+                {
+                    var deleg = (Delegate)TypeConverter.FindFromDbConverterMethod.MakeGenericMethod(dbType, underlyingType).Invoke(this, null);
+                    if (deleg == null)
+                    {
+                        return null;
+                    }
+
+                    Func<TDatabase, TPoco> asd = d => d == null ? default(TPoco) : (TPoco)deleg.DynamicInvoke(d);
+                    return asd;
+                }
+            }
 
             // Allow strings from the database to be converted to an enum/nullable enum property on a POCO
             if (dbType == typeof(string))
@@ -336,6 +358,7 @@ namespace Cassandra.Mapping.TypeConversion
                     .MakeGenericMethod(sourceGenericArgs[0], targetGenericArgs[0], pocoType)
                     .CreateDelegateLocal(this);
             }
+
             if (targetGenericType == typeof(SortedSet<>) || targetGenericType == typeof(ISet<>))
             {
                 if (sourceGenericArgs[0] == targetGenericArgs[0])
@@ -346,6 +369,7 @@ namespace Cassandra.Mapping.TypeConversion
                 return ConvertToSortedSetFromDbMethod
                     .MakeGenericMethod(sourceGenericArgs[0], targetGenericArgs[0], pocoType).CreateDelegateLocal(this);
             }
+
             if (targetGenericType == typeof(HashSet<>))
             {
                 if (sourceGenericArgs[0] == targetGenericArgs[0])
@@ -356,6 +380,26 @@ namespace Cassandra.Mapping.TypeConversion
                 return ConvertToHashSetFromDbMethod
                     .MakeGenericMethod(sourceGenericArgs[0], targetGenericArgs[0]).CreateDelegateLocal(this);
             }
+
+            if (typeof(List<>)
+                .GetTypeInfo()
+                .GetInterfaces()
+                .Select(i => i.GetTypeInfo())
+                .Where(i => i.IsGenericType)
+                .Select(i => i.GetGenericTypeDefinition())
+                .Contains(targetGenericType))
+            {
+                if (sourceGenericArgs[0] == targetGenericArgs[0])
+                {
+                    return ConvertToListMethod
+                        .MakeGenericMethod(sourceGenericArgs)
+                        .CreateDelegateLocal();
+                }
+                return ConvertToListFromDbMethod
+                    .MakeGenericMethod(sourceGenericArgs[0], targetGenericArgs[0], pocoType)
+                    .CreateDelegateLocal(this);
+            }
+
             return null;
         }
 
@@ -374,6 +418,42 @@ namespace Cassandra.Mapping.TypeConversion
 
             Type pocoType = typeof (TPoco);
             Type dbType = typeof (TDatabase);
+
+            if (typeof(TPoco) == typeof(TDatabase))
+            {
+                Func<TPoco, TPoco> func = d => d;
+                return func;
+            }
+            
+            if (pocoType.GetTypeInfo().IsGenericType && pocoType.GetGenericTypeDefinition() == typeof(Nullable<>))
+            {
+                var underlyingType = Nullable.GetUnderlyingType(pocoType);
+                if (underlyingType != null)
+                {
+                    var deleg = (Delegate)TypeConverter.FindToDbConverterMethod.MakeGenericMethod(underlyingType, dbType).Invoke(this, null);
+                    if (deleg == null)
+                    {
+                        return null;
+                    }
+
+                    Func<TPoco, TDatabase> asd = d =>
+                    {
+                        if (d != null)
+                        {
+                            return (TDatabase) deleg.DynamicInvoke(d);
+                        }
+
+                        if (default(TDatabase) != null)
+                        {
+                            throw new InvalidCastException("Can not convert null value to type " + dbType.Name);
+                        }
+
+                        return default(TDatabase);
+
+                    };
+                    return asd;
+                }
+            }
 
             // Support enum/nullable enum => string conversion
             if (dbType == typeof (string))
@@ -461,6 +541,11 @@ namespace Cassandra.Mapping.TypeConversion
         private IDictionary<TResultKey, TResultValue> ConvertIDictionaryToDbType<TSourceKey, TSourceValue, TResultKey,
             TResultValue>(IDictionary<TSourceKey, TSourceValue> map)
         {
+            if (map == null)
+            {
+                return null;
+            }
+
             var keyConverter = TryFindToDbConverter<TSourceKey, TResultKey>();
             var valueConverter = TryFindToDbConverter<TSourceValue, TResultValue>();
             return map?.ToDictionary(kv => keyConverter(kv.Key), kv => valueConverter(kv.Value));
@@ -468,12 +553,22 @@ namespace Cassandra.Mapping.TypeConversion
 
         private static Dictionary<TKey, TValue> ConvertToDictionary<TKey, TValue>(IDictionary<TKey, TValue> map)
         {
+            if (map == null)
+            {
+                return null;
+            }
+
             return new Dictionary<TKey, TValue>(map);
         }
 
         private Dictionary<TKeyResult, TValueResult> ConvertToDictionaryFromDb<TKeySource, TValueSource, TKeyResult,
             TValueResult>(IDictionary<TKeySource, TValueSource> mapFromDatabase)
         {
+            if (mapFromDatabase == null)
+            {
+                return null;
+            }
+
             var keyConverter = TryGetFromDbConverter<TKeySource, TKeyResult>();
             var valueConverter = TryGetFromDbConverter<TValueSource, TValueResult>();
             var dictionary = new Dictionary<TKeyResult, TValueResult>(mapFromDatabase.Count);
@@ -488,6 +583,11 @@ namespace Cassandra.Mapping.TypeConversion
             <TKeySource, TValueSource, TKeyResult, TValueResult, TDictionaryResult>
             (IDictionary<TKeySource, TValueSource> mapFromDatabase)
         {
+            if (mapFromDatabase == null)
+            {
+                return default(TDictionaryResult);
+            }
+
             var keyConverter = TryGetFromDbConverter<TKeySource, TKeyResult>();
             var valueConverter = TryGetFromDbConverter<TValueSource, TValueResult>();
             var dictionary = new SortedDictionary<TKeyResult, TValueResult>();
@@ -500,16 +600,31 @@ namespace Cassandra.Mapping.TypeConversion
 
         private static HashSet<T> ConvertToHashSet<T>(IEnumerable<T> set)
         {
+            if (set == null)
+            {
+                return null;
+            }
+
             return new HashSet<T>(set);
         }
 
         private HashSet<TResult> ConvertToHashSetFromDb<TSource, TResult>(IEnumerable<TSource> setFromDatabase)
         {
+            if (setFromDatabase == null)
+            {
+                return null;
+            }
+
             return new HashSet<TResult>(setFromDatabase.Select(TryGetFromDbConverter<TSource, TResult>()));
         }
 
         private static SortedSet<T> ConvertToSortedSet<T>(IEnumerable<T> set)
         {
+            if (set == null)
+            {
+                return null;
+            }
+
             if (set is SortedSet<T>)
             {
                 return (SortedSet<T>) set;
@@ -520,12 +635,22 @@ namespace Cassandra.Mapping.TypeConversion
         private TSetResult ConvertToSortedSetFromDb<TSource, TResult, TSetResult>(
             IEnumerable<TSource> setFromDatabase)
         {
+            if (setFromDatabase == null && default(TSetResult) == null)
+            {
+                return default(TSetResult);
+            }
+
             return (TSetResult) (object) new SortedSet<TResult>(
                 setFromDatabase.Select(TryGetFromDbConverter<TSource, TResult>()));
         }
 
         private static List<T> ConvertToList<T>(IEnumerable<T> list)
         {
+            if (list == null)
+            {
+                return null;
+            }
+
             if (list is List<T>)
             {
                 return (List<T>) list;
@@ -535,12 +660,22 @@ namespace Cassandra.Mapping.TypeConversion
 
         private TListResult ConvertToListFromDb<TSource, TResult, TListResult>(IEnumerable<TSource> itemsDatabase)
         {
+            if (itemsDatabase == null)
+            {
+                return default(TListResult);
+            }
+
             return (TListResult) (object) new List<TResult>(
                 itemsDatabase.Select(TryGetFromDbConverter<TSource, TResult>()));
         }
         
         private TResult[] ConvertToArrayFromDb<TSource, TResult>(IEnumerable<TSource> listFromDatabase)
         {
+            if (listFromDatabase == null)
+            {
+                return null;
+            }
+
             return listFromDatabase.Select(TryGetFromDbConverter<TSource, TResult>()).ToArray();
         }
 
