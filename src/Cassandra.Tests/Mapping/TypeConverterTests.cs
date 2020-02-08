@@ -22,6 +22,7 @@ using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 using Cassandra.Mapping.TypeConversion;
+using Cassandra.Tests.TestAttributes;
 using NUnit.Framework;
 
 namespace Cassandra.Tests.Mapping
@@ -83,6 +84,87 @@ namespace Cassandra.Tests.Mapping
             Assert.AreEqual(value.First().Value, result.First().Value);
         }
 
+        private static object[] ListSourceData =>
+            new object[]
+            {
+                new object[]
+                {
+                    (IEnumerable<int>) new List<int> {1, 2, 3},
+                    new List<int> {1, 2, 3}
+                },
+                new object[]
+                {
+                    null,
+                    null
+                }
+            };
+
+        private static object[] ListSourceDataNullable =>
+            new object[]
+            {
+                new object[]
+                {
+                    (IEnumerable<int?>) new List<int?> {1, 2, null},
+                    new List<int?> {1, 2, null}
+                },
+                new object[]
+                {
+                    null,
+                    null
+                }
+            };
+
+        private static object[] ListSourceDataNullableToNonNullable =>
+            new object[]
+            {
+                new object[]
+                {
+                    (IEnumerable<int?>) new List<int?> {1, 2, null}
+                }
+            };
+
+        [Test]
+        [TestCaseSourceGeneric(nameof(ListSourceData), TypeArguments = new[] {typeof(IEnumerable<int>), typeof(List<int>)})]
+        [TestCaseSourceGeneric(nameof(ListSourceData), TypeArguments = new[] { typeof(IEnumerable<int>), typeof(IReadOnlyList<int>) })]
+        [TestCaseSourceGeneric(nameof(ListSourceData), TypeArguments = new[] { typeof(IEnumerable<int>), typeof(IList<int>) })]
+        [TestCaseSourceGeneric(nameof(ListSourceData), TypeArguments = new[] { typeof(IEnumerable<int>), typeof(ICollection<int>) })]
+        [TestCaseSourceGeneric(nameof(ListSourceData), TypeArguments = new[] { typeof(IEnumerable<int>), typeof(IEnumerable<int>) })]
+        [TestCaseSourceGeneric(nameof(ListSourceDataNullable), TypeArguments = new[] { typeof(IEnumerable<int?>), typeof(List<int?>) })]
+        [TestCaseSourceGeneric(nameof(ListSourceDataNullable), TypeArguments = new[] { typeof(IEnumerable<int?>), typeof(IReadOnlyList<int?>) })]
+        [TestCaseSourceGeneric(nameof(ListSourceDataNullable), TypeArguments = new[] { typeof(IEnumerable<int?>), typeof(IList<int?>) })]
+        [TestCaseSourceGeneric(nameof(ListSourceDataNullable), TypeArguments = new[] { typeof(IEnumerable<int?>), typeof(ICollection<int?>) })]
+        [TestCaseSourceGeneric(nameof(ListSourceDataNullable), TypeArguments = new[] { typeof(IEnumerable<int?>), typeof(IEnumerable<int?>) })]
+        public void GetFromDbConverter_Should_Convert_Collections<TSource, TResult>(TSource src, TResult expected) 
+            where TSource : IEnumerable where TResult : IEnumerable
+        {
+            var result = TestGetFromDbConverter<TSource, TResult>(src, false);
+            if (expected == null)
+            {
+                Assert.AreEqual(expected, result);
+            }
+            else
+            {
+                var expectedList = expected.Cast<object>().ToList();
+                var resultList = result.Cast<object>().ToList();
+                Assert.AreEqual(expectedList.Count, resultList.Count);
+                for (var i = 0; i < resultList.Count; i++)
+                {
+                    Assert.AreEqual(expectedList[i], resultList[i]);
+                }
+            }
+        }
+
+        [Test]
+        [TestCaseSourceGeneric(nameof(ListSourceDataNullableToNonNullable), TypeArguments = new[] { typeof(IEnumerable<int?>), typeof(List<int>) })]
+        [TestCaseSourceGeneric(nameof(ListSourceDataNullableToNonNullable), TypeArguments = new[] { typeof(IEnumerable<int?>), typeof(IReadOnlyList<int>) })]
+        [TestCaseSourceGeneric(nameof(ListSourceDataNullableToNonNullable), TypeArguments = new[] { typeof(IEnumerable<int?>), typeof(IList<int>) })]
+        [TestCaseSourceGeneric(nameof(ListSourceDataNullableToNonNullable), TypeArguments = new[] { typeof(IEnumerable<int?>), typeof(ICollection<int>) })]
+        [TestCaseSourceGeneric(nameof(ListSourceDataNullableToNonNullable), TypeArguments = new[] { typeof(IEnumerable<int?>), typeof(IEnumerable<int>) })]
+        public void GetFromDbConverter_Should_ThrowInvalidCastException_When_NullableCollectionToNonNullable<TSource, TResult>(TSource src)
+        {
+            Assert.Throws<InvalidCastException>(() => TestGetFromDbConverter<TSource, TResult>(src, false));
+        }
+
         private static TResult TestGetFromDbConverter<TSource, TResult>(TSource value, bool compare = true)
         {
             var converter = new DefaultTypeConverter();
@@ -96,7 +178,6 @@ namespace Cassandra.Tests.Mapping
             return convertedValue;
         }
     }
-
 
     public class LooseComparer : IComparer
     {

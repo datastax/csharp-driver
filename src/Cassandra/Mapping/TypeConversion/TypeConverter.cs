@@ -173,10 +173,11 @@ namespace Cassandra.Mapping.TypeConversion
                         {
                             return (TResult) (object) a;
                         }
-                        catch (InvalidCastException ex)
+                        catch (Exception ex)
                         {
                             throw new InvalidCastException(
-                                $"Specified cast is not valid: from {a.GetType()} to {typeof(TResult)}", ex);
+                                $"Specified cast is not valid: from " +
+                                $"{(a == null ? $"null ({typeof(TSource)})" : a.GetType().ToString())} to {typeof(TResult)}", ex);
                         }
                     }
 
@@ -230,7 +231,8 @@ namespace Cassandra.Mapping.TypeConversion
                 return func;
             }
             
-            if (pocoType.GetTypeInfo().IsGenericType && pocoType.GetGenericTypeDefinition() == typeof(Nullable<>))
+            if (pocoType.GetTypeInfo().IsGenericType 
+                && pocoType.GetGenericTypeDefinition() == typeof(Nullable<>))
             {
                 var underlyingType = Nullable.GetUnderlyingType(pocoType);
                 if (underlyingType != null)
@@ -241,8 +243,8 @@ namespace Cassandra.Mapping.TypeConversion
                         return null;
                     }
 
-                    Func<TDatabase, TPoco> asd = d => d == null ? default(TPoco) : (TPoco)deleg.DynamicInvoke(d);
-                    return asd;
+                    Func<TDatabase, TPoco> mapper = d => d == null ? default(TPoco) : (TPoco)deleg.DynamicInvoke(d);
+                    return mapper;
                 }
             }
 
@@ -425,7 +427,9 @@ namespace Cassandra.Mapping.TypeConversion
                 return func;
             }
             
-            if (pocoType.GetTypeInfo().IsGenericType && pocoType.GetGenericTypeDefinition() == typeof(Nullable<>))
+            if (pocoType.GetTypeInfo().IsGenericType 
+                && pocoType.GetGenericTypeDefinition() == typeof(Nullable<>)
+                && !dbType.GetTypeInfo().IsValueType)
             {
                 var underlyingType = Nullable.GetUnderlyingType(pocoType);
                 if (underlyingType != null)
@@ -436,7 +440,7 @@ namespace Cassandra.Mapping.TypeConversion
                         return null;
                     }
 
-                    Func<TPoco, TDatabase> asd = d =>
+                    Func<TPoco, TDatabase> mapper = d =>
                     {
                         if (d != null)
                         {
@@ -451,7 +455,7 @@ namespace Cassandra.Mapping.TypeConversion
                         return default(TDatabase);
 
                     };
-                    return asd;
+                    return mapper;
                 }
             }
 
@@ -523,10 +527,11 @@ namespace Cassandra.Mapping.TypeConversion
                 {
                     return (TDatabase) (object) a;
                 }
-                catch (InvalidCastException ex)
+                catch (Exception ex)
                 {
                     throw new InvalidCastException(
-                        $"Specified cast is not valid: from {a.GetType()} to {typeof(TDatabase)}", ex);
+                        $"Specified cast is not valid: from " +
+                        $"{(a == null ? $"null ({typeof(TPoco)})" : a.GetType().ToString())} to {typeof(TDatabase)}", ex);
                 }
             }
 
