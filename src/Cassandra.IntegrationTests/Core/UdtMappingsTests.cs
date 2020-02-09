@@ -33,6 +33,10 @@ namespace Cassandra.IntegrationTests.Core
         const string CqlTable1 = "CREATE TABLE users (id int PRIMARY KEY, main_phone frozen<phone>)";
         const string CqlTable2 = "CREATE TABLE users_contacts (id int PRIMARY KEY, contacts list<frozen<contact>>)";
 
+        const string CqlType3 = "CREATE TYPE udt_collections (Id int, NullableId int, IntEnumerable list<int>, IntEnumerableSet set<int>, NullableIntEnumerable list<int>, " +
+                                "NullableIntList list<int>, IntReadOnlyList list<int>, IntIList list<int>, IntList list<int>)";
+        const string CqlTable3 = "CREATE TABLE table_udt_collections (id int PRIMARY KEY, nullable_id int, udt frozen<udt_collections>, udt_list list<frozen<udt_collections>>)";
+
         public override void OneTimeSetUp()
         {
             if (TestClusterManager.CheckCassandraVersion(false, Version.Parse("2.1.0"), Comparison.LessThan))
@@ -42,8 +46,10 @@ namespace Cassandra.IntegrationTests.Core
 
             Session.Execute(UdtMappingsTests.CqlType1);
             Session.Execute(UdtMappingsTests.CqlType2);
+            Session.Execute(UdtMappingsTests.CqlType3);
             Session.Execute(UdtMappingsTests.CqlTable1);
             Session.Execute(UdtMappingsTests.CqlTable2);
+            Session.Execute(UdtMappingsTests.CqlTable3);
         }
 
         [Test]
@@ -337,7 +343,7 @@ namespace Cassandra.IntegrationTests.Core
 
         [Test]
         public void MappingEncodingSingleTest()
-    {
+        {
             var localSession = GetNewTemporarySession(KeyspaceName);
             localSession.UserDefinedTypes.Define(
                 UdtMap.For<Phone>("phone")
@@ -435,6 +441,104 @@ namespace Cassandra.IntegrationTests.Core
             Assert.Throws<InvalidTypeException>(() => localSession.Execute(statement));
         }
 
+        [Test]
+        public void Should_ExecuteSelectsAndInserts_When_UdtWithCollections()
+        {
+            var localSession = GetNewTemporarySession(KeyspaceName);
+            localSession.UserDefinedTypes.Define(UdtMap.For<UdtWithCollections>("udt_collections"));
+
+            var udtList = new List<UdtWithCollections>
+            {
+                // nulls
+                new UdtWithCollections
+                {
+                    Id = 1
+                },
+
+                // collections with elements
+                new UdtWithCollections
+                {
+                    Id = 2,
+                    NullableId = 4,
+                    IntEnumerable = new [] { 1, 10 },
+                    IntEnumerableSet = new [] { 2, 20 },
+                    IntIList = new List<int> { 3, 30 },
+                    IntList = new List<int> { 4, 40 },
+                    IntReadOnlyList = new List<int> { 5, 50 },
+                    NullableIntEnumerable = new int?[] { 6, 60 },
+                    NullableIntList = new List<int?> { 7, 70 }
+                },
+
+                // empty collections
+                new UdtWithCollections
+                {
+                    Id = 3,
+                    NullableId = 5,
+                    IntEnumerable = new int[0],
+                    IntEnumerableSet = new int[0],
+                    IntIList = new List<int>(),
+                    IntList = new List<int>(),
+                    IntReadOnlyList = new List<int>(),
+                    NullableIntEnumerable = new int?[0],
+                    NullableIntList = new List<int?>()
+                }
+            };
+
+            var insert = new SimpleStatement("INSERT INTO table_udt_collections (id, udt, udt_list, nullable_id) values (?, ?, ?, ?)", 1, udtList[0], udtList, 100);
+            localSession.Execute(insert);
+            insert = new SimpleStatement("INSERT INTO table_udt_collections (id, udt, udt_list) values (?, ?, ?)", 2, udtList[1], udtList);
+            localSession.Execute(insert);
+            insert = new SimpleStatement("INSERT INTO table_udt_collections (id, udt, udt_list) values (?, ?, ?)", 3, udtList[2], udtList);
+            localSession.Execute(insert);
+            insert = new SimpleStatement("INSERT INTO table_udt_collections (id, udt, udt_list) values (?, ?, ?)", 4, null, null);
+            localSession.Execute(insert);
+
+            var rs = localSession.Execute(new SimpleStatement("SELECT * FROM table_udt_collections WHERE id = ?", 1)).ToList();
+            CollectionAssert.AreEqual(udtList, rs.Single().GetValue<List<UdtWithCollections>>("udt_list"));
+            Assert.AreEqual(udtList[0], rs.Single().GetValue<UdtWithCollections>("udt"));
+            Assert.AreEqual(100, rs.Single().GetValue<int?>("nullable_id"));
+
+            var ps = localSession.Prepare("SELECT * FROM table_udt_collections WHERE id = ?");
+            rs = localSession.Execute(ps.Bind(2)).ToList();
+            CollectionAssert.AreEqual(udtList, rs.Single().GetValue<List<UdtWithCollections>>("udt_list"));
+            Assert.AreEqual(udtList[1], rs.Single().GetValue<UdtWithCollections>("udt"));
+            Assert.IsNull(rs.Single().GetValue<int?>("nullable_id"));
+
+            rs = localSession.Execute(ps.Bind(3)).ToList();
+            CollectionAssert.AreEqual(udtList, rs.Single().GetValue<List<UdtWithCollections>>("udt_list"));
+            Assert.AreEqual(udtList[2], rs.Single().GetValue<UdtWithCollections>("udt"));
+
+            rs = localSession.Execute(ps.Bind(4)).ToList();
+            Assert.IsNull(rs.Single().GetValue<List<UdtWithCollections>>("udt_list"));
+            Assert.IsNull(rs.Single().GetValue<UdtWithCollections>("udt"));
+        }
+
+        [Test]
+        public void Should_ThrowException_When_UdtWithCollectionsWithNullValues()
+        {
+            var localSession = GetNewTemporarySession(KeyspaceName);
+            localSession.UserDefinedTypes.Define(UdtMap.For<UdtWithCollections>("udt_collections"));
+
+            var udtList = new List<UdtWithCollections>
+            {
+                // collections with null elements
+                new UdtWithCollections
+                {
+                    Id = 1111,
+                    NullableId = 4444,
+                    NullableIntEnumerable = new int?[] { 6, null },
+                    NullableIntList = new List<int?> { 7, null }
+                },
+            };
+
+            var insert = new SimpleStatement("INSERT INTO table_udt_collections (id, udt, udt_list, nullable_id) values (?, ?, ?, ?)", 1111, null, udtList, 1000);
+            Assert.Throws<InvalidCastException>(() => localSession.Execute(insert));
+            insert = new SimpleStatement("INSERT INTO table_udt_collections (id, udt, udt_list) values (?, ?, ?)", 2222, udtList[0], null);
+            Assert.Throws<InvalidCastException>(() => localSession.Execute(insert));
+            insert = new SimpleStatement("INSERT INTO table_udt_collections (id, udt, udt_list) values (?, ?, ?)", 3333, null, new List<UdtWithCollections> {null});
+            Assert.Throws<ArgumentNullException>(() => localSession.Execute(insert));
+        }
+
         [Test, TestCassandraVersion(3, 0, Comparison.LessThan)]
         public void MappingOnLowerProtocolVersionTest()
         {
@@ -489,6 +593,82 @@ namespace Cassandra.IntegrationTests.Core
                 return $"{nameof(FirstName)}: {FirstName}, {nameof(LastName)}: {LastName}, {nameof(Birth)}: {Birth}, " +
                        $"{nameof(NotMappedProp)}: {NotMappedProp}, {nameof(Phones)}: {Phones}, " +
                        $"{nameof(Emails)}: {Emails}, {nameof(NullableLong)}: {NullableLong}";
+            }
+        }
+        
+        private class UdtWithCollections : IEquatable<UdtWithCollections>
+        {
+            public int Id { get; set; }
+
+            public int? NullableId { get; set; }
+
+            public IEnumerable<int> IntEnumerable { get; set; }
+
+            public IEnumerable<int> IntEnumerableSet { get; set; }
+
+            public IEnumerable<int?> NullableIntEnumerable { get; set; }
+
+            public List<int?> NullableIntList { get; set; }
+
+            public IReadOnlyList<int> IntReadOnlyList { get; set; }
+
+            public IList<int> IntIList { get; set; }
+
+            public List<int> IntList { get; set; }
+
+            public bool Equals(UdtWithCollections other)
+            {
+                if (ReferenceEquals(null, other)) return false;
+                if (ReferenceEquals(this, other)) return true;
+                return Id == other.Id 
+                       && NullableId == other.NullableId
+                       && CollectionEquals(IntEnumerable, other.IntEnumerable) 
+                       && CollectionEquals(IntEnumerableSet, other.IntEnumerableSet) 
+                       && CollectionEquals(NullableIntEnumerable, other.NullableIntEnumerable) 
+                       && CollectionEquals(NullableIntList, other.NullableIntList) 
+                       && CollectionEquals(IntReadOnlyList, other.IntReadOnlyList) 
+                       && CollectionEquals(IntIList, other.IntIList) 
+                       && CollectionEquals(IntList, other.IntList);
+            }
+
+            private static bool CollectionEquals<T>(IEnumerable<T> list1, IEnumerable<T> list2)
+            {
+                if (list1 == null)
+                {
+                    return list2 == null;
+                }
+
+                if (list2 == null)
+                {
+                    return false;
+                }
+
+                return list1.SequenceEqual(list2);
+            }
+
+            public override bool Equals(object obj)
+            {
+                if (ReferenceEquals(null, obj)) return false;
+                if (ReferenceEquals(this, obj)) return true;
+                if (obj.GetType() != this.GetType()) return false;
+                return Equals((UdtWithCollections) obj);
+            }
+
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    var hashCode = Id;
+                    hashCode = (hashCode * 397) ^ (NullableId != null ? NullableId.Value : 0);
+                    hashCode = (hashCode * 397) ^ (IntEnumerable != null ? IntEnumerable.GetHashCode() : 0);
+                    hashCode = (hashCode * 397) ^ (IntEnumerableSet != null ? IntEnumerableSet.GetHashCode() : 0);
+                    hashCode = (hashCode * 397) ^ (NullableIntEnumerable != null ? NullableIntEnumerable.GetHashCode() : 0);
+                    hashCode = (hashCode * 397) ^ (NullableIntList != null ? NullableIntList.GetHashCode() : 0);
+                    hashCode = (hashCode * 397) ^ (IntReadOnlyList != null ? IntReadOnlyList.GetHashCode() : 0);
+                    hashCode = (hashCode * 397) ^ (IntIList != null ? IntIList.GetHashCode() : 0);
+                    hashCode = (hashCode * 397) ^ (IntList != null ? IntList.GetHashCode() : 0);
+                    return hashCode;
+                }
             }
         }
 
