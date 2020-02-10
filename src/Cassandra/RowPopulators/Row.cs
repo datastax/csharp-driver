@@ -261,28 +261,30 @@ namespace Cassandra
             if (targetTypeInfo.IsArray)
             {
                 childTargetType = targetTypeInfo.GetElementType();
-                if (childTargetType.GetTypeInfo().IsAssignableFrom(childType))
-                {
-                    return value;
-                }
-                return GetArray((Array)value, childTargetType, column.TypeInfo);
+                return childTargetType == childType 
+                    ? value 
+                    : Row.GetArray((Array)value, childTargetType, column.TypeInfo);
             }
             if (Utils.IsIEnumerable(targetType, out childTargetType))
             {
                 var genericTargetType = targetType.GetGenericTypeDefinition();
                 // Is IEnumerable
-                if (!childTargetType.GetTypeInfo().IsAssignableFrom(childType))
+                if (childTargetType != childType)
                 {
                     // Conversion is needed
-                    value = GetArray((Array)value, childTargetType, column.TypeInfo);
+                    value = Row.GetArray((Array)value, childTargetType, column.TypeInfo);
                 }
                 if (genericTargetType == typeof(IEnumerable<>))
                 {
                     // The target type is an interface
                     return value;
                 }
-                if (column.TypeCode == ColumnTypeCode.List || genericTargetType == typeof(List<>) ||
-                    genericTargetType == typeof(IList<>))
+                if (column.TypeCode == ColumnTypeCode.List 
+                    || genericTargetType == typeof(List<>) 
+                    || genericTargetType == typeof(IList<>) 
+                    || genericTargetType == typeof(IReadOnlyList<>)
+                    || genericTargetType == typeof(ICollection<>) 
+                    || genericTargetType == typeof(IReadOnlyCollection<>))
                 {
                     // Use List<T> by default when a list is expected and the target type 
                     // is not an object or an array

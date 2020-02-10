@@ -22,6 +22,7 @@ using System.Text;
 using System.Linq;
 using System.Threading.Tasks;
 using Cassandra.IntegrationTests.TestBase;
+using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
@@ -101,6 +102,41 @@ namespace Cassandra.IntegrationTests.Core
             var map = new List<string> { "fruit", null };
             var stmt = insertQuery.Bind(id, map);
             Assert.Throws<ArgumentNullException>(() => localSession.Execute(stmt));
+        }
+
+        [Test]
+        [TestDseVersion(6, 7)] // https://issues.apache.org/jira/browse/CASSANDRA-8877
+        public void Decode_List_With_NullValue_Should_Return_Correct_Results()
+        {
+            var id = Guid.NewGuid();
+            var id2 = Guid.NewGuid();
+            var localSession = GetNewTemporarySession(KeyspaceName);
+            var insertQuery = localSession.Prepare(string.Format("INSERT INTO {0} (id, map_sample, set_sample, list_sample) VALUES (?, ?, ?, ?) USING TTL ?",
+                AllTypesTableName));
+            var list = new List<string> { "apple", "queen" };
+            var set = new List<string> { "fruit", "band" };
+            var map = new Dictionary<string,string> { { "fruit", "apple" }, { "band", "queen" } };
+            var stmt = insertQuery.Bind(id, map, set, list, 86400);
+            localSession.Execute(stmt);
+            insertQuery = localSession.Prepare(string.Format("INSERT INTO {0} (id, map_sample, set_sample, list_sample) VALUES (?, ?, ?, ?)",
+                AllTypesTableName));
+            stmt = insertQuery.Bind(id2, map, set, list);
+            localSession.Execute(stmt);
+            
+            var rowSet = localSession.Execute(
+                new SimpleStatement($"select ttl(list_sample), ttl(map_sample), ttl(set_sample) from {AllTypesTableName} where id=?",id2)).ToList();
+            
+            CollectionAssert.AreEqual(new int? [] { null, null }, rowSet.Single().GetValue<int?[]>(0));
+            CollectionAssert.AreEqual(new int? [] { null, null }, rowSet.Single().GetValue<IEnumerable<int?>>(1));
+            CollectionAssert.AreEqual(new int? [] { null, null }, rowSet.Single().GetValue<IEnumerable<int?>>(2));
+
+            rowSet = localSession.Execute(
+                new SimpleStatement($"select writetime(list_sample), writetime(map_sample), ttl(list_sample), ttl(map_sample), ttl(set_sample) from {AllTypesTableName} where id=?",id)).ToList();
+            Assert.IsTrue(rowSet.Single().GetValue<long?[]>(0).All(i => i > 0) && rowSet.Single().GetValue<long?[]>(0).Length == 2);
+            Assert.IsTrue(rowSet.Single().GetValue<long?[]>(1).All(i => i > 0) && rowSet.Single().GetValue<long?[]>(1).Length == 2);
+            CollectionAssert.AreEqual(new int? [] { 86400, 86400 }, rowSet.Single().GetValue<int?[]>(2));
+            CollectionAssert.AreEqual(new int? [] { 86400, 86400 }, rowSet.Single().GetValue<IEnumerable<int?>>(3));
+            CollectionAssert.AreEqual(new int? [] { 86400, 86400 }, rowSet.Single().GetValue<IEnumerable<int?>>(4));
         }
 
         public void CheckingOrderOfCollection(string CassandraCollectionType, Type TypeOfDataToBeInputed, Type TypeOfKeyForMap = null,string pendingMode = "")
