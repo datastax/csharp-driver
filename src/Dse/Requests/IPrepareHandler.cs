@@ -24,6 +24,7 @@ namespace Dse.Requests
 {
     internal interface IPrepareHandler
     {
-        Task<PreparedStatement> Prepare(InternalPrepareRequest request, IInternalSession session, IEnumerator<Host> queryPlan);
+        Task<PreparedStatement> Prepare(
+            InternalPrepareRequest request, IInternalSession session, IEnumerator<Host> queryPlan);
     }
 }

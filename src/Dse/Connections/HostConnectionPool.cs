@@ -15,7 +15,9 @@
 //
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
@@ -813,6 +815,89 @@ namespace Dse.Connections
             _expectedConnectionLength = _poolingOptions.GetCoreConnectionsPerHost(distance);
             _maxInflightThresholdToConsiderResizing =  _poolingOptions.GetMaxSimultaneousRequestsPerConnectionTreshold(distance);
             _maxConnectionLength = _poolingOptions.GetMaxConnectionPerHost(distance);
+        }
+
+        /// <inheritdoc />
+        public void MarkAsDownAndScheduleReconnection()
+        {
+            // By setting the host as down, all pools should cancel any outstanding reconnection attempt
+            if (_host.SetDown())
+            {
+                // Only attempt reconnection with 1 connection pool
+                ScheduleReconnection();
+            }
+        }
+        
+        /// <inheritdoc />
+        public Task<IConnection> GetConnectionFromHostAsync(
+            IDictionary<IPEndPoint, Exception> triedHosts, Func<string> getKeyspaceFunc)
+        {
+            return GetConnectionFromHostAsync(triedHosts, getKeyspaceFunc, true);
+        }
+        
+        /// <inheritdoc />
+        public Task<IConnection> GetExistingConnectionFromHostAsync(
+            IDictionary<IPEndPoint, Exception> triedHosts, Func<string> getKeyspaceFunc)
+        {
+            return GetConnectionFromHostAsync(triedHosts, getKeyspaceFunc, false);
+        }
+        
+        private async Task<IConnection> GetConnectionFromHostAsync(
+            IDictionary<IPEndPoint, Exception> triedHosts, Func<string> getKeyspaceFunc, bool createIfNeeded)
+        {
+            IConnection c = null;
+            try
+            {
+                if (createIfNeeded)
+                {
+                    c = await BorrowConnectionAsync().ConfigureAwait(false);
+                }
+                else
+                {
+                    c = BorrowExistingConnection();
+                }
+            }
+            catch (UnsupportedProtocolVersionException ex)
+            {
+                // The version of the protocol is not supported on this host
+                // Most likely, we are using a higher protocol version than the host supports
+                HostConnectionPool.Logger.Error("Host {0} does not support protocol version {1}. You should use a fixed protocol " +
+                             "version during rolling upgrades of the cluster. Setting the host as DOWN to " +
+                             "avoid hitting this node as part of the query plan for a while", _host.Address, ex.ProtocolVersion);
+                triedHosts[_host.Address] = ex;
+                MarkAsDownAndScheduleReconnection();
+            }
+            catch (BusyPoolException ex)
+            {
+                HostConnectionPool.Logger.Warning(
+                    "All connections to host {0} are busy ({1} requests are in-flight on {2} connection(s))," +
+                    " consider lowering the pressure or make more nodes available to the client", _host.Address,
+                    ex.MaxRequestsPerConnection, ex.ConnectionLength);
+                triedHosts[_host.Address] = ex;
+            }
+            catch (Exception ex)
+            {
+                // Probably a SocketException/AuthenticationException, move along
+                HostConnectionPool.Logger.Error("Exception while trying borrow a connection from a pool", ex);
+                triedHosts[_host.Address] = ex;
+            }
+
+            if (c == null)
+            {
+                return null;
+            }
+
+            try
+            {
+                await c.SetKeyspace(getKeyspaceFunc()).ConfigureAwait(false);
+            }
+            catch (SocketException)
+            {
+                Remove(c);
+                throw;
+            }
+
+            return c;
         }
 
         /// <summary>

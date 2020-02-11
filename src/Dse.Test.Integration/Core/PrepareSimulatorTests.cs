@@ -30,13 +30,26 @@ namespace Dse.Test.Integration.Core
     [TestFixture, Category("short")]
     public class PrepareSimulatorTests
     {
-        private const string Query = "SELECT * FROM ks1.prepare_table1";
+        private const string Keyspace = "ks1";
+        private static readonly string Query = $"SELECT * FROM {PrepareSimulatorTests.Keyspace}.prepare_table1";
+        
+        private static readonly string QueryWithoutKeyspace = $"SELECT * FROM prepare_table1";
 
         private static IPrimeRequest QueryPrime(int delay = 0)
         {
             return SimulacronBase
                    .PrimeBuilder()
                    .WhenQuery(PrepareSimulatorTests.Query)
+                   .ThenRowsSuccess(new[] { ("id", DataType.Uuid) }, rows => rows.WithRow(Guid.NewGuid()))
+                   .WithDelayInMs(delay)
+                   .BuildRequest();
+        }
+        
+        private static IPrimeRequest QueryWithoutKeyspacePrime(int delay = 0)
+        {
+            return SimulacronBase
+                   .PrimeBuilder()
+                   .WhenQuery(PrepareSimulatorTests.QueryWithoutKeyspace)
                    .ThenRowsSuccess(new[] { ("id", DataType.Uuid) }, rows => rows.WithRow(Guid.NewGuid()))
                    .WithDelayInMs(delay)
                    .BuildRequest();
@@ -205,6 +218,77 @@ namespace Dse.Test.Integration.Core
                 TestHelper.WaitUntil(() => node.GetQueries(Query, QueryType.Prepare).Count == 2);
                 // It should be prepared 2 times
                 Assert.AreEqual(2, node.GetQueries(Query, QueryType.Prepare).Count);
+            }
+        }
+        
+        [Test]
+        public async Task Should_ReprepareOnUpNodeAfterSetKeyspace_With_SessionKeyspace()
+        {
+            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" }))
+            using (var cluster = Cluster.Builder()
+                                        .AddContactPoint(simulacronCluster.InitialContactPoint)
+                                        .WithReconnectionPolicy(new ConstantReconnectionPolicy(500))
+                                        .WithLoadBalancingPolicy(new TestHelper.OrderedLoadBalancingPolicy()).Build())
+            {
+                var session = cluster.Connect(PrepareSimulatorTests.Keyspace);
+
+                simulacronCluster.Prime(PrepareSimulatorTests.QueryWithoutKeyspacePrime());
+                var ps = await session.PrepareAsync(PrepareSimulatorTests.QueryWithoutKeyspace).ConfigureAwait(false);
+                Assert.NotNull(ps);
+                ps = await session.PrepareAsync(PrepareSimulatorTests.Query).ConfigureAwait(false);
+                Assert.NotNull(ps);
+
+                foreach (var simNode in simulacronCluster.DataCenters.First().Nodes)
+                {
+                    Assert.AreEqual(1, simNode.GetQueries($"USE \"{PrepareSimulatorTests.Keyspace}\"").Count);
+                    Assert.AreEqual(1, simNode.GetQueries(PrepareSimulatorTests.QueryWithoutKeyspace, QueryType.Prepare).Count);
+                    Assert.AreEqual(1, simNode.GetQueries(PrepareSimulatorTests.Query, QueryType.Prepare).Count);
+                }
+
+                var node = simulacronCluster.GetNodes().Skip(1).First();
+                await node.Stop().ConfigureAwait(false);
+                await TestHelper.WaitUntilAsync(() => cluster.AllHosts().Any(h => !h.IsUp)).ConfigureAwait(false);
+                Assert.AreEqual(1, cluster.AllHosts().Count(h => !h.IsUp));
+                
+                // still only 1 USE and Prepare requests
+                Assert.AreEqual(1, node.GetQueries($"USE \"{PrepareSimulatorTests.Keyspace}\"").Count);
+                Assert.AreEqual(1, node.GetQueries(PrepareSimulatorTests.QueryWithoutKeyspace, QueryType.Prepare).Count);
+                Assert.AreEqual(1, node.GetQueries(PrepareSimulatorTests.QueryWithoutKeyspace, QueryType.Prepare).Count);
+
+                // restart node
+                await node.Start().ConfigureAwait(false);
+
+                // wait until node is up
+                await TestHelper.WaitUntilAsync(() => cluster.AllHosts().All(h => h.IsUp)).ConfigureAwait(false);
+                Assert.AreEqual(0, cluster.AllHosts().Count(h => !h.IsUp));
+
+                // wait until driver reprepares the statement
+                TestHelper.WaitUntil(() => 
+                    node.GetQueries(PrepareSimulatorTests.QueryWithoutKeyspace, QueryType.Prepare).Count == 2
+                    && node.GetQueries(PrepareSimulatorTests.Query, QueryType.Prepare).Count == 2);
+                
+                // It should be prepared 2 times
+                Assert.AreEqual(2, node.GetQueries(PrepareSimulatorTests.QueryWithoutKeyspace, QueryType.Prepare).Count);
+                Assert.AreEqual(2, node.GetQueries(PrepareSimulatorTests.Query, QueryType.Prepare).Count);
+                Assert.AreEqual(2, node.GetQueries($"USE \"{PrepareSimulatorTests.Keyspace}\"").Count);
+
+                // Assert that USE requests are sent **before** PREPARE requests
+                var relevantQueries = node.GetQueries(null, null).Where(log =>
+                    (log.Query == $"USE \"{PrepareSimulatorTests.Keyspace}\"" && log.Type == QueryType.Query)
+                    || (log.Query == PrepareSimulatorTests.QueryWithoutKeyspace && log.Type == QueryType.Prepare)
+                    || (log.Query == PrepareSimulatorTests.Query && log.Type == QueryType.Prepare)).ToList();
+                Assert.AreEqual(6, relevantQueries.Count);
+                Assert.AreEqual($"USE \"{PrepareSimulatorTests.Keyspace}\"", relevantQueries[0].Query);
+                Assert.AreEqual(PrepareSimulatorTests.QueryWithoutKeyspace, relevantQueries[1].Query);
+                Assert.AreEqual(PrepareSimulatorTests.Query, relevantQueries[2].Query);
+                Assert.AreEqual($"USE \"{PrepareSimulatorTests.Keyspace}\"", relevantQueries[3].Query);
+                CollectionAssert.AreEquivalent(
+                    new []
+                    {
+                        PrepareSimulatorTests.QueryWithoutKeyspace,
+                        PrepareSimulatorTests.Query
+                    }, 
+                    relevantQueries.Skip(4).Select(q => q.Query));
             }
         }
     }

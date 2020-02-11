@@ -33,10 +33,14 @@ namespace Dse.Requests
         internal static readonly Logger Logger = new Logger(typeof(PrepareHandler));
 
         private readonly ISerializer _serializer;
+        private readonly IInternalCluster _cluster;
+        private readonly IReprepareHandler _reprepareHandler;
 
-        public PrepareHandler(ISerializer serializer)
+        public PrepareHandler(ISerializer serializer, IInternalCluster cluster, IReprepareHandler reprepareHandler)
         {
             _serializer = serializer;
+            _cluster = cluster;
+            _reprepareHandler = reprepareHandler;
         }
 
         public async Task<PreparedStatement> Prepare(
@@ -46,7 +50,7 @@ namespace Dse.Requests
 
             if (session.Cluster.Configuration.QueryOptions.IsPrepareOnAllHosts())
             {
-                await SendRequestToAllNodesWithExistingConnections(session, request, prepareResult).ConfigureAwait(false);
+                await _reprepareHandler.ReprepareOnAllNodesWithExistingConnections(session, request, prepareResult).ConfigureAwait(false);
             }
 
             return prepareResult.PreparedStatement;
@@ -191,75 +195,6 @@ namespace Dse.Requests
                 Logger.Error("There was an error while trying to retrieve table metadata for {0}.{1}. {2}",
                     column.Keyspace, column.Table, ex.InnerException);
             }
-        }
-
-        /// <summary>
-        /// Sends the prepare request to all nodes have have an existing open connection. Will not attempt to send the request to hosts that were tried before (successfully or not).
-        /// </summary>
-        /// <param name="session"></param>
-        /// <param name="request"></param>
-        /// <param name="prepareResult">The result of the prepare request on the first node.</param>
-        /// <returns></returns>
-        private async Task SendRequestToAllNodesWithExistingConnections(IInternalSession session, InternalPrepareRequest request, PrepareResult prepareResult)
-        {
-            var pools = session.GetPools().ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-            if (pools.Count == 0)
-            {
-                PrepareHandler.Logger.Warning("Could not prepare query on all hosts because there are no connection pools.");
-                return;
-            }
-
-            using (var semaphore = new SemaphoreSlim(64, 64))
-            {
-                var tasks = new List<Task>(pools.Count);
-                foreach (var poolKvp in pools)
-                {
-                    if (poolKvp.Key.Equals(prepareResult.HostAddress))
-                    {
-                        continue;
-                    }
-
-                    if (prepareResult.TriedHosts.ContainsKey(poolKvp.Key))
-                    {
-                        PrepareHandler.Logger.Warning(
-                            $"An error occured while attempting to prepare query on {{0}}:{Environment.NewLine}{{1}}", 
-                            poolKvp.Key, 
-                            prepareResult.TriedHosts[poolKvp.Key]);
-                        continue;
-                    }
-
-                    await semaphore.WaitAsync().ConfigureAwait(false);
-                    tasks.Add(SendSingleRequest(poolKvp, request, semaphore));
-                }
-
-                await Task.WhenAll(tasks).ConfigureAwait(false);
-            }
-        }
-
-        private async Task SendSingleRequest(KeyValuePair<IPEndPoint, IHostConnectionPool> poolKvp, IRequest request, SemaphoreSlim sem)
-        {
-            try
-            {
-                var connection = poolKvp.Value.BorrowExistingConnection();
-                await connection.Send(request).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                PrepareHandler.Logger.Warning($"An error occured while attempting to prepare query on {{0}}:{Environment.NewLine}{{1}}", poolKvp.Key, ex);
-            }
-            finally
-            {
-                sem.Release();
-            }
-        }
-
-        private class PrepareResult
-        {
-            public PreparedStatement PreparedStatement { get; set; }
-
-            public IDictionary<IPEndPoint, Exception> TriedHosts { get; set; }
-
-            public IPEndPoint HostAddress { get; set; }
         }
     }
 }

@@ -79,12 +79,7 @@ namespace Dse
         {
             return _coreSession.HasConnections(host);
         }
-
-        public void MarkAsDownAndScheduleReconnection(Host host, IHostConnectionPool pool)
-        {
-            _coreSession.MarkAsDownAndScheduleReconnection(host, pool);
-        }
-
+        
         public void OnAllConnectionClosed(Host host, IHostConnectionPool pool)
         {
             _coreSession.OnAllConnectionClosed(host, pool);

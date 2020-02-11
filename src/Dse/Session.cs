@@ -361,18 +361,9 @@ namespace Dse
                 pool.ScheduleReconnection();
                 return;
             }
-            // There isn't any open connection to this host in any of the pools
-            InternalRef.MarkAsDownAndScheduleReconnection(host, pool);
-        }
 
-        void IInternalSession.MarkAsDownAndScheduleReconnection(Host host, IHostConnectionPool pool)
-        {
-            // By setting the host as down, all pools should cancel any outstanding reconnection attempt
-            if (host.SetDown())
-            {
-                // Only attempt reconnection with 1 connection pool
-                pool.ScheduleReconnection();
-            }
+            // There isn't any open connection to this host in any of the pools
+            pool.MarkAsDownAndScheduleReconnection();
         }
 
         /// <inheritdoc/>

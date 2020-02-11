@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,17 +13,19 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-//
 
-using Dse.Serialization;
-using Dse.SessionManagement;
+using System;
+using System.Collections.Generic;
+using System.Net;
 
 namespace Dse.Requests
 {
-    internal interface IPrepareHandlerFactory
+    internal class PrepareResult
     {
-        IPrepareHandler CreatePrepareHandler(ISerializer serializer, IInternalCluster cluster);
+        public PreparedStatement PreparedStatement { get; set; }
 
-        IReprepareHandler CreateReprepareHandler();
+        public IDictionary<IPEndPoint, Exception> TriedHosts { get; set; }
+
+        public IPEndPoint HostAddress { get; set; }
     }
 }

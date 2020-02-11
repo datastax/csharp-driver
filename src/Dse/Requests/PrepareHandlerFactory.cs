@@ -15,17 +15,22 @@
 //
 //
 
-using System.Collections.Generic;
-using Dse.ExecutionProfiles;
 using Dse.Serialization;
+using Dse.SessionManagement;
 
 namespace Dse.Requests
 {
     internal class PrepareHandlerFactory : IPrepareHandlerFactory
     {
-        public IPrepareHandler Create(ISerializer serializer)
+        public IPrepareHandler CreatePrepareHandler(
+            ISerializer serializer, IInternalCluster cluster)
         {
-            return new PrepareHandler(serializer);
+            return new PrepareHandler(serializer, cluster, CreateReprepareHandler());
+        }
+
+        public IReprepareHandler CreateReprepareHandler()
+        {
+            return new ReprepareHandler();
         }
     }
 }
