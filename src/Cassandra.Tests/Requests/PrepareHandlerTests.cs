@@ -478,7 +478,7 @@ namespace Cassandra.Tests.Requests
             var session = new Session(cluster, config, null, SerializerManager.Default, null);
 
             // create prepare handler
-            var prepareHandler = new PrepareHandler(new SerializerManager(ProtocolVersion.V3).GetCurrentSerializer(), cluster);
+            var prepareHandler = new PrepareHandler(new SerializerManager(ProtocolVersion.V3).GetCurrentSerializer(), cluster, new ReprepareHandler());
 
             // create mock result object
             var mockResult = new PrepareHandlerMockResult(prepareHandler, session, factory);

@@ -94,6 +94,19 @@ namespace Cassandra.IntegrationTests.Core
             var ex = Assert.Throws<InvalidQueryException>(() => localSession.ChangeKeyspace("THIS_KEYSPACE_DOES_NOT_EXIST_EITHER"));
             Assert.True(ex.Message.ToLower().Contains("keyspace"));
         }
+        
+        [Test]
+        public void ChangeKeyspace_SetsKeyspace()
+        {
+            var localCluster = GetNewTemporaryCluster();
+            var localSession = localCluster.Connect();
+            localSession.CreateKeyspace(KeyspaceName, null, false);
+            localSession = localCluster.Connect();
+            Assert.IsNull(localSession.Keyspace);
+            localSession.ChangeKeyspace(KeyspaceName);
+            Assert.IsNotNull(localSession.Keyspace);
+            Assert.AreEqual(KeyspaceName, localSession.Keyspace);
+        }
 
         [Test]
         public void Session_Keyspace_Connect_Case_Sensitive()
