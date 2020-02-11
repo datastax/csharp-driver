@@ -442,6 +442,54 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        public void MappingGetChildClassTest()
+        {
+            var localSession = GetNewTemporarySession(KeyspaceName);
+            var tableName = TestUtils.GetUniqueTableName().ToLowerInvariant();
+            localSession.Execute($"CREATE TABLE {tableName} (id uuid PRIMARY KEY, main_phone phone, phones list<frozen<phone>>)");
+            localSession.UserDefinedTypes.Define(
+                UdtMap.For<Phone2>("phone")
+                      .Map(v => v.Alias, "alias")
+                      .Map(v => v.CountryCode, "country_code")
+                      .Map(v => v.Number, "number")
+                      .Map(v => v.VerifiedAt, "verified_at")
+                      .Map(v => v.PhoneType, "phone_type"));
+            var id = Guid.NewGuid();
+            var date = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddMilliseconds(100000);
+            var phoneCql = "{alias: 'home phone', number: '123', country_code: 34, verified_at: '100000', phone_type: 'Home'}";
+            localSession.Execute($"INSERT INTO {tableName} (id, phones, main_phone) values ({id}, [{phoneCql}], {phoneCql})");
+            var rs = localSession.Execute(new SimpleStatement($"SELECT * FROM {tableName} WHERE id = ?", id));
+            var row = rs.First();
+
+            void AssertAct(Phone v)
+            {
+                Assert.AreEqual("home phone", v.Alias);
+                Assert.AreEqual("123", v.Number);
+                Assert.AreEqual(34, v.CountryCode);
+                Assert.AreEqual(date, v.VerifiedAt);
+                Assert.AreEqual(PhoneType.Home, v.PhoneType);
+            }
+
+            var value = row.GetValue<Phone>("main_phone");
+            Assert.NotNull(value);
+            AssertAct(value);
+            
+            var valueChild = row.GetValue<Phone2>("main_phone");
+            Assert.NotNull(valueChild);
+            AssertAct(valueChild);
+
+            var valueList = row.GetValue<IEnumerable<Phone>>("phones");
+            var valueInsideList = valueList.Single();
+            Assert.NotNull(valueInsideList);
+            AssertAct(valueInsideList);
+            
+            var valueListChild = row.GetValue<IEnumerable<Phone2>>("phones");
+            var valueInsideListChild = valueListChild.Single();
+            Assert.NotNull(valueInsideListChild);
+            AssertAct(value);
+        }
+
+        [Test]
         public void Should_ExecuteSelectsAndInserts_When_UdtWithCollections()
         {
             var localSession = GetNewTemporarySession(KeyspaceName);

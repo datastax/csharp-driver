@@ -31,6 +31,15 @@ namespace Cassandra.Mapping.TypeConversion
     /// </summary>
     public abstract class TypeConverter
     {
+        internal static readonly IReadOnlyCollection<Type> ListGenericInterfaces = 
+            (IReadOnlyCollection<Type>) new SortedSet<Type>(
+                typeof(List<>)
+                    .GetTypeInfo()
+                    .GetInterfaces()
+                    .Select(i => i.GetTypeInfo())
+                    .Where(i => i.IsGenericType)
+                    .Select(i => i.GetGenericTypeDefinition()));
+
         private const BindingFlags PrivateStatic = BindingFlags.NonPublic | BindingFlags.Static;
         private const BindingFlags PrivateInstance = BindingFlags.NonPublic | BindingFlags.Instance;
 
@@ -383,13 +392,7 @@ namespace Cassandra.Mapping.TypeConversion
                     .MakeGenericMethod(sourceGenericArgs[0], targetGenericArgs[0]).CreateDelegateLocal(this);
             }
 
-            if (typeof(List<>)
-                .GetTypeInfo()
-                .GetInterfaces()
-                .Select(i => i.GetTypeInfo())
-                .Where(i => i.IsGenericType)
-                .Select(i => i.GetGenericTypeDefinition())
-                .Contains(targetGenericType))
+            if (TypeConverter.ListGenericInterfaces.Contains(targetGenericType))
             {
                 if (sourceGenericArgs[0] == targetGenericArgs[0])
                 {

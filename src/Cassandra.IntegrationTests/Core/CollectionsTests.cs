@@ -105,6 +105,29 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        public void Decode_NestedList_And_Different_CollectionTypes_Should_Return_Correct_Results()
+        {
+            var id = Guid.NewGuid();
+            var localSession = GetNewTemporarySession(KeyspaceName);
+            var tableName = TestUtils.GetUniqueTableName().ToLowerInvariant();
+            var typeName = TestUtils.GetUniqueTableName().ToLowerInvariant();
+            localSession.Execute($"CREATE TYPE {typeName} (id uuid)");
+            localSession.Execute($"CREATE TABLE {tableName} (id uuid PRIMARY KEY, nested_list list<frozen<list<list<int>>>>, list list<int>)");
+            var insertQuery = localSession.Prepare($"INSERT INTO {tableName} (id, nested_list, list) VALUES (?, ?, ?)");
+            var list = new List<int> { 0, 1 };
+            var nestedList = new List<List<List<int>>> { new List<List<int>> { new List<int> { 3, 4 } } };
+            var stmt = insertQuery.Bind(id, nestedList, list);
+            localSession.Execute(stmt);
+            var rs = localSession.Execute(new SimpleStatement($"SELECT * FROM {tableName} WHERE id = ?", id)).ToList().Single();
+            CollectionAssert.AreEqual(nestedList.Single(), rs.GetValue<IEnumerable<IEnumerable<IEnumerable<int>>>>("nested_list").Single());
+            CollectionAssert.AreEqual(nestedList.Single(), rs.GetValue<IReadOnlyCollection<ICollection<IList<int>>>>("nested_list").Single());
+            CollectionAssert.AreEqual(list, rs.GetValue<IEnumerable<long>>("list"));
+            CollectionAssert.AreEqual(list, rs.GetValue<IEnumerable<int>>("list"));
+            CollectionAssert.AreEqual(list, rs.GetValue<IReadOnlyList<int>>("list"));
+            CollectionAssert.AreEqual(list, rs.GetValue<int[]>("list"));
+        }
+
+        [Test]
         [TestDseVersion(6, 7)] // https://issues.apache.org/jira/browse/CASSANDRA-8877
         public void Decode_List_With_NullValue_Should_Return_Correct_Results()
         {

@@ -588,8 +588,8 @@ namespace Cassandra.Mapping
                     return true;
                 }
 
-                // Handle ICollection<T>, IList<T>, and IEnumerable<T>
-                if (openGenericType == typeof (ICollection<>) || openGenericType == typeof (IList<>) || openGenericType == typeof (IEnumerable<>))
+                // Handle interfaces implemented by List<T>, like ICollection<T>, IList<T>, IReadOnlyList<T>, IReadOnlyCollection<T> and IEnumerable<T>
+                if (TypeConverter.ListGenericInterfaces.Contains(openGenericType))
                 {
                     // The driver uses List so we'll use that as well
                     Type listType = typeof (List<>).MakeGenericType(pocoDestType.GetTypeInfo().GetGenericArguments());

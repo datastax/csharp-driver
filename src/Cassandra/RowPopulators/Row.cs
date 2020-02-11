@@ -19,6 +19,7 @@ using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
+using Cassandra.Mapping.TypeConversion;
 
 // ReSharper disable once CheckNamespace
 namespace Cassandra
@@ -281,10 +282,7 @@ namespace Cassandra
                 }
                 if (column.TypeCode == ColumnTypeCode.List 
                     || genericTargetType == typeof(List<>) 
-                    || genericTargetType == typeof(IList<>) 
-                    || genericTargetType == typeof(IReadOnlyList<>)
-                    || genericTargetType == typeof(ICollection<>) 
-                    || genericTargetType == typeof(IReadOnlyCollection<>))
+                    || TypeConverter.ListGenericInterfaces.Contains(genericTargetType))
                 {
                     // Use List<T> by default when a list is expected and the target type 
                     // is not an object or an array
