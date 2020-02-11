@@ -32,7 +32,7 @@ namespace Cassandra.Mapping.TypeConversion
     public abstract class TypeConverter
     {
         internal static readonly IReadOnlyCollection<Type> ListGenericInterfaces = 
-            (IReadOnlyCollection<Type>) new SortedSet<Type>(
+            new List<Type>(
                 typeof(List<>)
                     .GetTypeInfo()
                     .GetInterfaces()
