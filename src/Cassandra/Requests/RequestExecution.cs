@@ -535,14 +535,9 @@ namespace Cassandra.Requests
 
                     if (!outputPrepared.QueryId.SequenceEqual(originalError.UnknownId))
                     {
-                        throw new PreparedStatementIdMismatchException(
-                            originalError.UnknownId,
-                            "ID mismatch while trying to reprepare (expected " 
-                            + $"{BitConverter.ToString(originalError.UnknownId).Replace("-", "")}, " 
-                            + $"got {BitConverter.ToString(outputPrepared.QueryId).Replace("-", "")}). " 
-                            + "This prepared statement won't work anymore. " 
-                            + "This usually happens when you run a 'USE...' query after " 
-                            + "the statement was prepared.");
+                        _parent.SetCompleted(new PreparedStatementIdMismatchException(
+                            originalError.UnknownId, outputPrepared.QueryId));
+                        return;
                     }
 
                     if (_parent.Statement is BoundStatement boundStatement)
