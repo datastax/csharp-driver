@@ -137,40 +137,25 @@ namespace Dse.Connections
                 Options.ConnectTimeoutMillis,
                 () => new SocketException((int)SocketError.TimedOut));
             var socketConnectTask = tcs.Task;
-            var eventArgs = new SocketAsyncEventArgs
-            {
-                RemoteEndPoint = EndPoint.SocketIpEndPoint
-            };
 
-            eventArgs.Completed += (sender, e) =>
+            using (var eventArgs = new SocketAsyncEventArgs { RemoteEndPoint = EndPoint.SocketIpEndPoint })
             {
-                if (e.SocketError != SocketError.Success)
+                eventArgs.Completed += (sender, e) => { OnConnectComplete(tcs, e); };
+                var willCompleteAsync = _socket.ConnectAsync(eventArgs);
+                if (!willCompleteAsync)
                 {
-                    tcs.TrySetException(new SocketException((int)e.SocketError));
-                    return;
+                    // Make the task complete asynchronously
+                    Task.Run(() => OnConnectComplete(tcs, eventArgs)).Forget();
                 }
-                tcs.TrySetResult(true);
-                e.Dispose();
-            };
 
-            var willCompleteAsync = _socket.ConnectAsync(eventArgs);
-            if (!willCompleteAsync)
-            {
-                // Make the task complete asynchronously
-                Task.Run(() => tcs.TrySetResult(true)).Forget();
-            }
-            try
-            {
                 await socketConnectTask.ConfigureAwait(false);
             }
-            finally
-            {
-                eventArgs.Dispose();
-            }
+
             if (SSLOptions != null)
             {
                 return await ConnectSsl().ConfigureAwait(false);
             }
+
             // Prepare read and write
             // There are 2 modes: using SocketAsyncEventArgs (most performant) and Stream mode
             if (Options.UseStreamMode)
@@ -190,6 +175,16 @@ namespace Dse.Connections
             _sendSocketEvent.Completed += OnSendCompleted;
             ReceiveAsync();
             return true;
+        }
+
+        private void OnConnectComplete(TaskCompletionSource<bool> tcs, SocketAsyncEventArgs e)
+        {
+            if (e.SocketError != SocketError.Success)
+            {
+                tcs.TrySetException(new SocketException((int)e.SocketError));
+                return;
+            }
+            tcs.TrySetResult(true);
         }
 
         private async Task<bool> ConnectSsl()
