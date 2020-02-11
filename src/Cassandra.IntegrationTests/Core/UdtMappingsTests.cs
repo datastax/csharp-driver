@@ -446,7 +446,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             var localSession = GetNewTemporarySession(KeyspaceName);
             var tableName = TestUtils.GetUniqueTableName().ToLowerInvariant();
-            localSession.Execute($"CREATE TABLE {tableName} (id uuid PRIMARY KEY, main_phone phone, phones list<frozen<phone>>)");
+            localSession.Execute($"CREATE TABLE {tableName} (id uuid PRIMARY KEY, main_phone frozen<phone>, phones list<frozen<phone>>)");
             localSession.UserDefinedTypes.Define(
                 UdtMap.For<Phone2>("phone")
                       .Map(v => v.Alias, "alias")
@@ -461,7 +461,7 @@ namespace Cassandra.IntegrationTests.Core
             var rs = localSession.Execute(new SimpleStatement($"SELECT * FROM {tableName} WHERE id = ?", id));
             var row = rs.First();
 
-            void AssertAct(Phone v)
+            void AssertAreEqualPhone(Phone v)
             {
                 Assert.AreEqual("home phone", v.Alias);
                 Assert.AreEqual("123", v.Number);
@@ -472,21 +472,21 @@ namespace Cassandra.IntegrationTests.Core
 
             var value = row.GetValue<Phone>("main_phone");
             Assert.NotNull(value);
-            AssertAct(value);
+            AssertAreEqualPhone(value);
             
             var valueChild = row.GetValue<Phone2>("main_phone");
             Assert.NotNull(valueChild);
-            AssertAct(valueChild);
+            AssertAreEqualPhone(valueChild);
 
             var valueList = row.GetValue<IEnumerable<Phone>>("phones");
             var valueInsideList = valueList.Single();
             Assert.NotNull(valueInsideList);
-            AssertAct(valueInsideList);
+            AssertAreEqualPhone(valueInsideList);
             
             var valueListChild = row.GetValue<IEnumerable<Phone2>>("phones");
             var valueInsideListChild = valueListChild.Single();
             Assert.NotNull(valueInsideListChild);
-            AssertAct(value);
+            AssertAreEqualPhone(value);
         }
 
         [Test]
