@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,16 +14,18 @@
 //   limitations under the License.
 //
 
+using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
-
-using Cassandra.SessionManagement;
+using System.Net;
 
 namespace Cassandra.Requests
 {
-    internal interface IPrepareHandler
+    internal class PrepareResult
     {
-        Task<PreparedStatement> Prepare(
-            InternalPrepareRequest request, IInternalSession session, IEnumerator<Host> queryPlan);
+        public PreparedStatement PreparedStatement { get; set; }
+
+        public IDictionary<IPEndPoint, Exception> TriedHosts { get; set; }
+
+        public IPEndPoint HostAddress { get; set; }
     }
 }
