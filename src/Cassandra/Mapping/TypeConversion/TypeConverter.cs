@@ -21,6 +21,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using Cassandra.Collections;
 
 namespace Cassandra.Mapping.TypeConversion
 {
@@ -32,13 +33,13 @@ namespace Cassandra.Mapping.TypeConversion
     public abstract class TypeConverter
     {
         internal static readonly IReadOnlyCollection<Type> ListGenericInterfaces = 
-            new List<Type>(
+            new ReadOnlyCollection<Type>(new HashSet<Type>(
                 typeof(List<>)
                     .GetTypeInfo()
                     .GetInterfaces()
                     .Select(i => i.GetTypeInfo())
                     .Where(i => i.IsGenericType)
-                    .Select(i => i.GetGenericTypeDefinition()));
+                    .Select(i => i.GetGenericTypeDefinition())));
 
         private const BindingFlags PrivateStatic = BindingFlags.NonPublic | BindingFlags.Static;
         private const BindingFlags PrivateInstance = BindingFlags.NonPublic | BindingFlags.Instance;
