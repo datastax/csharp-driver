@@ -338,7 +338,7 @@ namespace Cassandra.Requests
             if (ex is PreparedQueryNotFoundException foundException &&
                 (_parent.Statement is BoundStatement || _parent.Statement is BatchStatement))
             {
-                PrepareAndRetry(foundException.UnknownId, host);
+                PrepareAndRetry(foundException, host);
                 return;
             }
             if (ex is NoHostAvailableException exception)
@@ -467,10 +467,10 @@ namespace Cassandra.Requests
         /// <summary>
         /// Sends a prepare request before retrying the statement
         /// </summary>
-        private void PrepareAndRetry(byte[] id, Host host)
+        private void PrepareAndRetry(PreparedQueryNotFoundException ex, Host host)
         {
             RequestExecution.Logger.Info(
-                $"Query {BitConverter.ToString(id)} is not prepared on {_connection.EndPoint.EndpointFriendlyName}, preparing before retrying executing.");
+                $"Query {BitConverter.ToString(ex.UnknownId)} is not prepared on {_connection.EndPoint.EndpointFriendlyName}, preparing before retrying executing.");
             BoundStatement boundStatement = null;
             if (_parent.Statement is BoundStatement statement1)
             {
@@ -479,7 +479,7 @@ namespace Cassandra.Requests
             else if (_parent.Statement is BatchStatement batch)
             {
                 bool SearchBoundStatement(Statement s) =>
-                    s is BoundStatement statement && statement.PreparedStatement.Id.SequenceEqual(id);
+                    s is BoundStatement statement && statement.PreparedStatement.Id.SequenceEqual(ex.UnknownId);
                 boundStatement = (BoundStatement)batch.Queries.FirstOrDefault(SearchBoundStatement);
             }
             if (boundStatement == null)
@@ -501,47 +501,61 @@ namespace Cassandra.Requests
                     .SetKeyspace(preparedKeyspace)
                     .ContinueSync(_ =>
                     {
-                        Send(request, host, ReprepareResponseHandler);
+                        Send(request, host, NewReprepareResponseHandler(ex));
                         return true;
                     });
                 return;
             }
-            Send(request, host, ReprepareResponseHandler);
+            Send(request, host, NewReprepareResponseHandler(ex));
         }
 
         /// <summary>
         /// Handles the response of a (re)prepare request and retries to execute on the same connection
         /// </summary>
-        private void ReprepareResponseHandler(IRequestError error, Response response, Host host)
+        private Action<IRequestError, Response, Host> NewReprepareResponseHandler(
+            PreparedQueryNotFoundException originalError)
         {
-            try
+            void ResponseHandler(IRequestError error, Response response, Host host)
             {
-                if (error?.Exception != null)
+                try
                 {
-                    HandleRequestError(error, host);
-                    return;
-                }
-                RequestExecution.ValidateResult(response);
-                var output = ((ResultResponse)response).Output;
-                if (!(output is OutputPrepared outputPrepared))
-                {
-                    _parent.SetCompleted(
-                        new DriverInternalError("Expected prepared response, obtained " + output.GetType().FullName));
-                    return;
-                }
+                    if (error?.Exception != null)
+                    {
+                        HandleRequestError(error, host);
+                        return;
+                    }
 
-                if (_parent.Statement is BoundStatement boundStatement)
-                {
-                    // Use the latest result metadata id
-                    boundStatement.PreparedStatement.ResultMetadataId = outputPrepared.ResultMetadataId;
+                    RequestExecution.ValidateResult(response);
+                    var output = ((ResultResponse) response).Output;
+                    if (!(output is OutputPrepared outputPrepared))
+                    {
+                        _parent.SetCompleted(new DriverInternalError("Expected prepared response, obtained " + output.GetType().FullName));
+                        return;
+                    }
+
+                    if (!outputPrepared.QueryId.SequenceEqual(originalError.UnknownId))
+                    {
+                        _parent.SetCompleted(new PreparedStatementIdMismatchException(
+                            originalError.UnknownId, outputPrepared.QueryId));
+                        return;
+                    }
+
+                    if (_parent.Statement is BoundStatement boundStatement)
+                    {
+                        // Use the latest result metadata id
+                        boundStatement.PreparedStatement.ResultMetadataId = outputPrepared.ResultMetadataId;
+                    }
+
+                    Send(_request, host, HandleResponse);
                 }
-                Send(_request, host, HandleResponse);
+                catch (Exception exception)
+                {
+                    //There was an issue while sending
+                    _parent.SetCompleted(exception);
+                }
             }
-            catch (Exception exception)
-            {
-                //There was an issue while sending
-                _parent.SetCompleted(exception);
-            }
+
+            return ResponseHandler;
         }
 
         private static void ValidateResult(Response response)
