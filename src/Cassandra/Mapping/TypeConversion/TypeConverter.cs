@@ -144,6 +144,11 @@ namespace Cassandra.Mapping.TypeConversion
         /// </summary>
         internal object ConvertToUdtFieldFromDbValue(Type dbType, Type valueType, object value)
         {
+            if (dbType == valueType)
+            {
+                return value;
+            }
+
             var converter = TryGetFromDbConverter(dbType, valueType);
             if (converter == null)
             {
@@ -234,18 +239,18 @@ namespace Cassandra.Mapping.TypeConversion
             Type dbType = typeof (TDatabase);
             Type pocoType = typeof (TPoco);
             
-            if (typeof(TPoco) == typeof(TDatabase))
-            {
-                Func<TPoco, TPoco> func = d => d;
-                return func;
-            }
-            
             if (pocoType.GetTypeInfo().IsGenericType 
                 && pocoType.GetGenericTypeDefinition() == typeof(Nullable<>))
             {
                 var underlyingType = Nullable.GetUnderlyingType(pocoType);
                 if (underlyingType != null)
                 {
+                    if (underlyingType == dbType)
+                    {
+                        Func<TPoco, TPoco> sameTypeMapper = d => d == null ? default(TPoco) : d;
+                        return sameTypeMapper;
+                    }
+
                     var deleg = (Delegate)TypeConverter.FindFromDbConverterMethod.MakeGenericMethod(dbType, underlyingType).Invoke(this, null);
                     if (deleg == null)
                     {
