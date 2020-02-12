@@ -145,11 +145,6 @@ namespace Cassandra.Mapping.TypeConversion
         /// </summary>
         internal object ConvertToUdtFieldFromDbValue(Type dbType, Type valueType, object value)
         {
-            if (dbType == valueType)
-            {
-                return value;
-            }
-
             var converter = TryGetFromDbConverter(dbType, valueType);
             if (converter == null)
             {
@@ -175,40 +170,33 @@ namespace Cassandra.Mapping.TypeConversion
         /// </summary>
         private Func<TSource, TResult> TryGetFromDbConverter<TSource, TResult>()
         {
-            Delegate converter;
-            if (typeof(TSource) != typeof(TResult))
+            var converter = TryGetFromDbConverter(typeof(TSource), typeof(TResult));
+            if (converter == null)
             {
-                converter = TryGetFromDbConverter(typeof(TSource), typeof(TResult));
-                if (converter == null)
+                // Try cast
+                TResult ChangeType(TSource a)
                 {
-                    // Try cast
-                    TResult ChangeType(TSource a)
+                    try
                     {
-                        try
-                        {
-                            return (TResult) (object) a;
-                        }
-                        catch (Exception ex)
-                        {
-                            throw new InvalidCastException(
-                                $"Specified cast is not valid: from " +
-                                $"{(a == null ? $"null ({typeof(TSource)})" : a.GetType().ToString())} to {typeof(TResult)}", ex);
-                        }
+                        return (TResult)(object)a;
                     }
-
-                    return ChangeType;
+                    catch (Exception ex)
+                    {
+                        throw new InvalidCastException(
+                            $"Specified cast is not valid: from " +
+                            $"{(a == null ? $"null ({typeof(TSource)})" : a.GetType().ToString())} to {typeof(TResult)}", ex);
+                    }
                 }
+
+                return ChangeType;
             }
-            else
-            {
-                Func<TSource, TSource> identity = a => a;
-                converter = identity;
-            }
+
             if (converter == null)
             {
                 throw new InvalidOperationException(
                     $"No converter is available from Type {typeof(TSource).Name} to Type {typeof(TResult).Name}");
             }
+
             return (Func<TSource, TResult>) converter;
         }
 
@@ -239,6 +227,12 @@ namespace Cassandra.Mapping.TypeConversion
 
             Type dbType = typeof (TDatabase);
             Type pocoType = typeof (TPoco);
+
+            if (pocoType == dbType)
+            {
+                Func<TPoco, TPoco> func = d => d;
+                return func;
+            }
             
             if (pocoType.GetTypeInfo().IsGenericType 
                 && pocoType.GetGenericTypeDefinition() == typeof(Nullable<>))
@@ -246,12 +240,6 @@ namespace Cassandra.Mapping.TypeConversion
                 var underlyingType = Nullable.GetUnderlyingType(pocoType);
                 if (underlyingType != null)
                 {
-                    if (underlyingType == dbType)
-                    {
-                        Func<TPoco, TPoco> sameTypeMapper = d => d == null ? default(TPoco) : d;
-                        return sameTypeMapper;
-                    }
-
                     var deleg = (Delegate)TypeConverter.FindFromDbConverterMethod.MakeGenericMethod(dbType, underlyingType).Invoke(this, null);
                     if (deleg == null)
                     {
