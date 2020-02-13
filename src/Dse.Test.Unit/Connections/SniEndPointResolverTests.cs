@@ -356,6 +356,7 @@ namespace Dse.Test.Unit.Connections
         }
 
         [Test]
+        [Repeat(10)]
         public async Task Should_CycleThroughAddressesCorrectly_When_ConcurrentCalls()
         {
             var result = Create(name: "proxyMultiple");

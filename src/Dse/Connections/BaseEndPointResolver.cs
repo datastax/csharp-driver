@@ -37,8 +37,13 @@ namespace Dse.Connections
         /// <summary>
         /// This method makes sure that there are no concurrent refresh operations.
         /// </summary>
-        protected async Task SafeRefreshAsync(Func<Task> refreshFunc)
+        protected async Task SafeRefreshIfNeededAsync(Func<bool> refreshNeeded, Func<Task> refreshFunc)
         {
+            if (!refreshNeeded())
+            {
+                return;
+            }
+
             var task = _currentTask;
             if (task != null && !task.HasFinished())
             {
@@ -50,13 +55,26 @@ namespace Dse.Connections
             await RefreshSemaphoreSlim.WaitAsync().ConfigureAwait(false);
             try
             {
-                task = _currentTask;
+                if (!refreshNeeded())
+                {
+                    return;
+                }
 
-                if (task == null || task.HasFinished())
+                var newTask = _currentTask;
+
+                if ((newTask == null && task != null) 
+                    || (newTask != null && task == null)
+                    || (newTask != null && task != null && !object.ReferenceEquals(newTask, task)))
+                {
+                    // another thread refreshed
+                    task = newTask ?? TaskHelper.Completed;
+                }
+                else
                 {
                     task = refreshFunc();
                     _currentTask = task;
                 }
+
             }
             finally
             {

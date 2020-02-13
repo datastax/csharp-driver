@@ -489,7 +489,7 @@ namespace Dse.Test.Integration.Graph
         [Test]
         public void Should_Have_The_Different_ReadTimeout_Per_Statement()
         {
-            const int timeout = 2000;
+            const int timeout = 5000;
             using (var cluster = DseCluster.Builder()
                 .AddContactPoint(TestClusterManager.InitialContactPoint)
                 .WithGraphOptions(new GraphOptions().SetName(GraphName).SetReadTimeoutMillis(timeout))
@@ -497,18 +497,19 @@ namespace Dse.Test.Integration.Graph
             {
                 var session = cluster.Connect();
                 var stopwatch = new Stopwatch();
-                const int stmtTimeout = 500;
-                const int stmtTimeoutThreshold = stmtTimeout / 10; //10%
+                const int stmtTimeout = 1000;
+                const int stmtTimeoutThreshold = stmtTimeout / 4; //25%
                 try
                 {
                     stopwatch.Start();
-                    session.ExecuteGraph(new SimpleGraphStatement("java.util.concurrent.TimeUnit.MILLISECONDS.sleep(1000L);")
+                    session.ExecuteGraph(new SimpleGraphStatement("java.util.concurrent.TimeUnit.MILLISECONDS.sleep(2500L);")
                                             .SetReadTimeoutMillis(stmtTimeout));
                 }
                 catch
                 {
                     stopwatch.Stop();
                     Assert.GreaterOrEqual(stopwatch.ElapsedMilliseconds, stmtTimeout - stmtTimeoutThreshold);
+                    Assert.Less(stopwatch.ElapsedMilliseconds, stmtTimeout + stmtTimeoutThreshold);
                     Assert.Less(stopwatch.ElapsedMilliseconds, timeout);
                 }
             }

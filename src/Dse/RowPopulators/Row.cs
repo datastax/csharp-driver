@@ -10,6 +10,7 @@ using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
+using Dse.Mapping.TypeConversion;
 
 // ReSharper disable once CheckNamespace
 namespace Dse
@@ -252,28 +253,27 @@ namespace Dse
             if (targetTypeInfo.IsArray)
             {
                 childTargetType = targetTypeInfo.GetElementType();
-                if (childTargetType.GetTypeInfo().IsAssignableFrom(childType))
-                {
-                    return value;
-                }
-                return GetArray((Array)value, childTargetType, column.TypeInfo);
+                return childTargetType == childType 
+                    ? value 
+                    : Row.GetArray((Array)value, childTargetType, column.TypeInfo);
             }
             if (Utils.IsIEnumerable(targetType, out childTargetType))
             {
                 var genericTargetType = targetType.GetGenericTypeDefinition();
                 // Is IEnumerable
-                if (!childTargetType.GetTypeInfo().IsAssignableFrom(childType))
+                if (childTargetType != childType)
                 {
                     // Conversion is needed
-                    value = GetArray((Array)value, childTargetType, column.TypeInfo);
+                    value = Row.GetArray((Array)value, childTargetType, column.TypeInfo);
                 }
                 if (genericTargetType == typeof(IEnumerable<>))
                 {
                     // The target type is an interface
                     return value;
                 }
-                if (column.TypeCode == ColumnTypeCode.List || genericTargetType == typeof(List<>) ||
-                    genericTargetType == typeof(IList<>))
+                if (column.TypeCode == ColumnTypeCode.List 
+                    || genericTargetType == typeof(List<>) 
+                    || TypeConverter.ListGenericInterfaces.Contains(genericTargetType))
                 {
                     // Use List<T> by default when a list is expected and the target type 
                     // is not an object or an array
@@ -318,8 +318,31 @@ namespace Dse
             // Other collections
             var childColumnInfo = ((ICollectionColumnInfo) columnInfo).GetChildType();
             var arr = Array.CreateInstance(childTargetType, source.Length);
+            bool? isNullable = null;
             for (var i = 0; i < source.Length; i++)
             {
+                var value = source.GetValue(i);
+                if (value == null)
+                {
+                    if (isNullable == null)
+                    {
+                        isNullable = !childTargetType.GetTypeInfo().IsValueType;
+                    }
+
+                    if (!isNullable.Value)
+                    {
+                        var nullableType = typeof(Nullable<>).MakeGenericType(childTargetType);
+                        var newResult = Array.CreateInstance(nullableType, source.Length);
+                        for (var j = 0; j < i; j++)
+                        {
+                            newResult.SetValue(arr.GetValue(j), j);
+                        }
+                        arr = newResult;
+                        childTargetType = nullableType;
+                        isNullable = true;
+                    }
+                }
+                
                 arr.SetValue(TryConvertToType(source.GetValue(i), childColumnInfo, childTargetType), i);
             }
             return arr;

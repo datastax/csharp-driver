@@ -488,7 +488,13 @@ namespace Dse.Mapping
             {
                 // Invoke the converter function on getValueT (taking into account whether it's a static method):
                 //     converter(row.GetValue<T>(columnIndex));
-                convertedValue = Expression.Call(converter.Target == null ? null : Expression.Constant(converter.Target), GetMethod(converter), getValueT);
+                convertedValue = 
+                    Expression.Convert(
+                        Expression.Call(
+                            converter.Target == null ? null : Expression.Constant(converter.Target), 
+                            GetMethod(converter), 
+                            getValueT), 
+                        pocoDestType);
             }
             Expression defaultValue;
             // Cassandra will return null for empty collections, so make an effort to populate collection properties on the POCO with
@@ -573,8 +579,8 @@ namespace Dse.Mapping
                     return true;
                 }
 
-                // Handle ICollection<T>, IList<T>, and IEnumerable<T>
-                if (openGenericType == typeof (ICollection<>) || openGenericType == typeof (IList<>) || openGenericType == typeof (IEnumerable<>))
+                // Handle interfaces implemented by List<T>, like ICollection<T>, IList<T>, IReadOnlyList<T>, IReadOnlyCollection<T> and IEnumerable<T>
+                if (TypeConverter.ListGenericInterfaces.Contains(openGenericType))
                 {
                     // The driver uses List so we'll use that as well
                     Type listType = typeof (List<>).MakeGenericType(pocoDestType.GetTypeInfo().GetGenericArguments());

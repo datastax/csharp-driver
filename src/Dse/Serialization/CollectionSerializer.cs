@@ -8,6 +8,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Reflection;
 
 namespace Dse.Serialization
 {
@@ -45,11 +46,37 @@ namespace Dse.Serialization
             var count = DecodeCollectionLength((ProtocolVersion)protocolVersion, buffer, ref offset);
             var childType = GetClrType(childTypeCode.Value, childTypeInfo);
             var result = Array.CreateInstance(childType, count);
+            bool? isNullable = null;
             for (var i = 0; i < count; i++)
             {
                 var itemLength = DecodeCollectionLength((ProtocolVersion)protocolVersion, buffer, ref offset);
-                result.SetValue(DeserializeChild(protocolVersion, buffer, offset, itemLength, childTypeCode.Value, childTypeInfo), i);
-                offset += itemLength;
+                if (itemLength < 0)
+                {
+                    if (isNullable == null)
+                    {
+                        isNullable = !childType.GetTypeInfo().IsValueType;
+                    }
+
+                    if (!isNullable.Value)
+                    {
+                        var nullableType = typeof(Nullable<>).MakeGenericType(childType);
+                        var newResult = Array.CreateInstance(nullableType, count);
+                        for (var j = 0; j < i; j++)
+                        {
+                            newResult.SetValue(result.GetValue(j), j);
+                        }
+                        result = newResult;
+                        childType = nullableType;
+                        isNullable = true;
+                    }
+                    
+                    result.SetValue(null, i);
+                }
+                else
+                {
+                    result.SetValue(DeserializeChild(protocolVersion, buffer, offset, itemLength, childTypeCode.Value, childTypeInfo), i);
+                    offset += itemLength;
+                }
             }
             return result;
         }
