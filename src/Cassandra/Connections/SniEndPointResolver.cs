@@ -53,10 +53,9 @@ namespace Cassandra.Connections
 
         public override async Task<IConnectionEndPoint> GetConnectionEndPointAsync(Host host, bool refreshCache)
         {
-            if (refreshCache || (_endPoint == null && _resolvedProxyEndPoints == null))
-            {
-                await SafeRefreshAsync(RefreshProxyResolutionAsync).ConfigureAwait(false);
-            }
+            await SafeRefreshIfNeededAsync(
+                () => refreshCache || (_endPoint == null && _resolvedProxyEndPoints == null), 
+                RefreshProxyResolutionAsync).ConfigureAwait(false);
 
             return new SniConnectionEndPoint(await GetNextEndPointAsync().ConfigureAwait(false), host.Address, host.HostId.ToString("D"));
         }
@@ -76,7 +75,7 @@ namespace Cassandra.Connections
 
         public override Task RefreshContactPointCache()
         {
-            return SafeRefreshAsync(RefreshProxyResolutionAsync);
+            return SafeRefreshIfNeededAsync(() => true, RefreshProxyResolutionAsync);
         }
 
         public async Task<IPEndPoint> GetNextEndPointAsync()
@@ -85,11 +84,8 @@ namespace Cassandra.Connections
             {
                 return _endPoint;
             }
-
-            if (_resolvedProxyEndPoints == null)
-            {
-                await SafeRefreshAsync(RefreshProxyResolutionAsync).ConfigureAwait(false);
-            }
+            
+            await SafeRefreshIfNeededAsync(() => _resolvedProxyEndPoints == null, RefreshProxyResolutionAsync).ConfigureAwait(false);
 
             await base.RefreshSemaphoreSlim.WaitAsync().ConfigureAwait(false);
             try
