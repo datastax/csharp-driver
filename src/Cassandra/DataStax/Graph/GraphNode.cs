@@ -30,13 +30,8 @@ namespace Cassandra.DataStax.Graph
     /// <summary>
     /// Represents an item of a graph query result, it can be a vertex, an edge, a path or an scalar value.
     /// </summary>
-#if NET45
     [Serializable]
-#endif
-    public class GraphNode : DynamicObject, IEquatable<GraphNode>, IGraphNode
-#if NET45
-        , ISerializable
-#endif
+    public class GraphNode : DynamicObject, IEquatable<GraphNode>, IGraphNode, ISerializable
     {
         private readonly INode _node;
 
@@ -75,8 +70,7 @@ namespace Cassandra.DataStax.Graph
         {
             _node = node;
         }
-
-#if NET45
+        
         /// <summary>
         /// Creates a new instance of <see cref="GraphNode"/> using a serialization information.
         /// </summary>
@@ -107,7 +101,6 @@ namespace Cassandra.DataStax.Graph
                 _node = new GraphSON1Node(objectTree);   
             }
         }
-#endif
 
         /// <summary>
         /// Gets the typed value of a property of the result.
@@ -200,13 +193,11 @@ namespace Cassandra.DataStax.Graph
         /// </summary>
         public override int GetHashCode() => _node.GetHashCode();
 
-#if NET45
         /// <inheritdoc />
         public void GetObjectData(SerializationInfo info, StreamingContext context)
         {
             _node.GetObjectData(info, context);
         }
-#endif
 
         /// <summary>
         /// Gets the a dictionary of properties of this node.

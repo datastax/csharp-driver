@@ -78,7 +78,6 @@ namespace Cassandra.Data
             enumerRows = enumRows.GetEnumerator();
         }
 
-#if !NETCORE
         public override void Close()
         {
 
@@ -88,7 +87,6 @@ namespace Cassandra.Data
         {
             throw new NotSupportedException();
         }
-#endif
 
         /// <inheritdoc />
         public override bool GetBoolean(int ordinal)

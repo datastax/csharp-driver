@@ -446,7 +446,7 @@ namespace Cassandra.Connections
             }
             else if (Options.Compression == CompressionType.LZ4)
             {
-#if NET45
+#if NETFRAMEWORK
                 Compressor = new LZ4Compressor();
 #else
                 throw new NotSupportedException("Lz4 compression not supported under .NETCore");

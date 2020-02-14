@@ -23,19 +23,7 @@ namespace Cassandra.Tests
     [TestFixture]
     public class TargetTests
     {
-#if NETCORE
-        [Test]
-        public void Should_TargetNetstandard15_When_NetcoreIsDefined()
-        {
-            var framework = Assembly
-                            .GetAssembly(typeof(ISession))?
-                            .GetCustomAttribute<TargetFrameworkAttribute>()?
-                            .FrameworkName;
-
-            Assert.AreEqual(".NETStandard,Version=v1.5", framework);
-        }
-#endif
-#if NETCOREAPP2_0
+#if NETCOREAPP
         [Test]
         public void Should_TargetNetstandard15_When_TestsTargetNetcore20()
         {
@@ -44,7 +32,7 @@ namespace Cassandra.Tests
                             .GetCustomAttribute<TargetFrameworkAttribute>()?
                             .FrameworkName;
 
-            Assert.AreEqual(".NETStandard,Version=v1.5", framework);
+            Assert.AreEqual(".NETStandard,Version=v2.0", framework);
         }
 #elif NETFRAMEWORK
         [Test]
@@ -55,19 +43,7 @@ namespace Cassandra.Tests
                             .GetCustomAttribute<TargetFrameworkAttribute>()?
                             .FrameworkName;
 
-            Assert.AreEqual(".NETFramework,Version=v4.5", framework);
-        }
-
-#elif NETCOREAPP2_1
-        [Test]
-        public void Should_TargetNetstandard20_When_TestsTargetNetcore21()
-        {
-            var framework = Assembly
-                            .GetAssembly(typeof(ISession))?
-                            .GetCustomAttribute<TargetFrameworkAttribute>()?
-                            .FrameworkName;
-
-            Assert.AreEqual(".NETStandard,Version=v2.0", framework);
+            Assert.AreEqual(".NETFramework,Version=v4.5.2", framework);
         }
 #else
         [Test]

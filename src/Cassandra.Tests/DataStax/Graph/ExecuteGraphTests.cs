@@ -27,7 +27,6 @@ using Cassandra.Tests.Requests;
 using Cassandra.Tests.TestHelpers;
 using Moq;
 using NUnit.Framework;
-#if !NO_MOCKS
 
 using System;
 
@@ -408,5 +407,3 @@ namespace Cassandra.Tests.DataStax.Graph
         }
     }
 }
-
-#endif

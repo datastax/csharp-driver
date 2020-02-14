@@ -65,9 +65,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 process.StartInfo.RedirectStandardError = true;
                 //Hide the python window if possible
                 process.StartInfo.UseShellExecute = false;
-#if !NETCORE
                 process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-#endif
                 process.StartInfo.CreateNoWindow = true;
 
                 if (envVariables != null)

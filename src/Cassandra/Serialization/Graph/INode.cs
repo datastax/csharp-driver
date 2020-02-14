@@ -100,9 +100,7 @@ namespace Cassandra.Serialization.Graph
 
         void WriteJson(JsonWriter writer, JsonSerializer serializer);
         
-#if NET45
         void GetObjectData(System.Runtime.Serialization.SerializationInfo info,
                            System.Runtime.Serialization.StreamingContext context);
-#endif
     }
 }

@@ -44,11 +44,9 @@ namespace Cassandra.Tests.Geometry
                 var expected = string.Format("{{\"type\":\"Polygon\",\"coordinates\":[{0}]}}",
                     string.Join(",", polygon.Rings.Select(r =>
                         "[" + string.Join(",", r.Select(p => "[" + p.X.ToString(CultureInfo.InvariantCulture) + "," + p.Y.ToString(CultureInfo.InvariantCulture) + "]")) + "]")));
-#if NET452
                 // Default serialization to Json is GeoJson
                 var json = JsonConvert.SerializeObject(polygon);
                 Assert.AreEqual(expected, json);
-#endif
                 Assert.AreEqual(expected, polygon.ToGeoJson());
             }
         }

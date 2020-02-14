@@ -28,9 +28,7 @@ namespace Cassandra.Geometry
     /// Represents a zero-dimensional object that represents a specific (X,Y) location in a two-dimensional XY-Plane.
     /// In case of Geographic Coordinate Systems, the X coordinate is the longitude and the Y is the latitude.
     /// </summary>
-#if NET45
     [Serializable]
-#endif
     public class Point : GeometryBase
     {
         private static readonly Regex WktRegex = new Regex(
@@ -62,8 +60,7 @@ namespace Cassandra.Geometry
             X = x;
             Y = y;
         }
-
-#if NET45
+        
         /// <summary>
         /// Creates a new instance of <see cref="Point"/>.
         /// </summary>
@@ -73,7 +70,6 @@ namespace Cassandra.Geometry
             X = coordinates[0];
             Y = coordinates[1];
         }
-#endif
 
         /// <summary>
         /// Returns a value indicating whether this instance and a specified object represent the same value.

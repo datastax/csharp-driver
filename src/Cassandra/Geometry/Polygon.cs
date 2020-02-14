@@ -27,9 +27,7 @@ namespace Cassandra.Geometry
     /// Represents is a plane geometry figure that is bounded by a finite chain of straight line segments closing in a
     /// loop to form a closed chain or circuit.
     /// </summary>
-#if NET45
     [Serializable]
-#endif
     public class Polygon : GeometryBase
     {
         private static readonly Regex WktRegex = new Regex(
@@ -86,8 +84,7 @@ namespace Cassandra.Geometry
             }
             Rings = AsReadOnlyCollection(rings, r => AsReadOnlyCollection(r));
         }
-
-#if NET45
+        
         /// <summary>
         /// Creates a new instance of <see cref="Polygon"/> using serialization information.
         /// </summary>
@@ -98,7 +95,6 @@ namespace Cassandra.Geometry
                 .Select(r => (IList<Point>)r.Select(p => new Point(p[0], p[1])).ToList())
                 .ToList());
         }
-#endif
 
         /// <summary>
         /// Returns a value indicating whether this instance and a specified object represent the same value.

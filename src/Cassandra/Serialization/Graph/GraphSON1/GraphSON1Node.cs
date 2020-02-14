@@ -211,8 +211,7 @@ namespace Cassandra.Serialization.Graph.GraphSON1
         {
             return Comparer.GetHashCode(_token);
         }
-
-#if NET45
+        
         /// <inheritdoc />
         public void GetObjectData(SerializationInfo info, StreamingContext context)
         {
@@ -225,7 +224,6 @@ namespace Cassandra.Serialization.Graph.GraphSON1
                 info.AddValue(prop.Name, prop.Value);
             }
         }
-#endif
 
         /// <summary>
         /// Gets the a dictionary of properties of this node.

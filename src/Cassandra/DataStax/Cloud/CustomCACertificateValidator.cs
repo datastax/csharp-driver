@@ -52,16 +52,10 @@ namespace Cassandra.DataStax.Cloud
             // validate server certificate's CN against the provided hostname
             if ((errors & SslPolicyErrors.RemoteCertificateNameMismatch) != 0)
             {
-
-#if NETSTANDARD1_5
-                var cert2 = new X509Certificate2(cert.Export(X509ContentType.Cert));
-#else
                 var cert2 = new X509Certificate2(cert);
-#endif
-
                 var cn = cert2.GetNameInfo(X509NameType.SimpleName, false);
 
-#if NET45
+#if NET452
                 cert2.Reset();
 #else
                 cert2.Dispose();

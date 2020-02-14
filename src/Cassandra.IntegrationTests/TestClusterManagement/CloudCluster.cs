@@ -267,10 +267,8 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 //Hide the python window if possible
                 process.StartInfo.UseShellExecute = false;
                 process.StartInfo.CreateNoWindow = true;
-#if !NETCORE
                 process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-#endif
-                
+
                 if (envVariables != null)
                 {
                     foreach (var envVar in envVariables)

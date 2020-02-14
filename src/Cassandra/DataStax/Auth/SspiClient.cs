@@ -16,7 +16,7 @@
 
 using System;
 using System.Threading;
-#if !NETCORE
+
 using Cassandra.DataStax.Auth.Sspi;
 using Cassandra.DataStax.Auth.Sspi.Contexts;
 using Cassandra.DataStax.Auth.Sspi.Credentials;
@@ -121,4 +121,3 @@ namespace Cassandra.DataStax.Auth
         }
     }
 }
-#endif

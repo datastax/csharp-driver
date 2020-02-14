@@ -435,7 +435,6 @@ namespace Cassandra.Tests
         {
             get
             {
-#if !NETCORE
                 switch (Environment.OSVersion.Platform)
                 {
                     case PlatformID.Win32NT:
@@ -444,9 +443,6 @@ namespace Cassandra.Tests
                         return true;
                 }
                 return false;
-#else
-                return RuntimeEnvironment.OperatingSystemPlatform == Platform.Windows;
-#endif
             }
         }
 

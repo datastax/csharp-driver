@@ -28,10 +28,8 @@ namespace Cassandra.Helpers
 
         public static bool IsKerberosSupported()
         {
-#if NET45
+#if NETFRAMEWORK
             return true;
-#elif NETCORE
-            return false;
 #else
             return RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
 #endif
@@ -39,10 +37,8 @@ namespace Cassandra.Helpers
 
         public static string GetTargetFramework()
         {
-#if NETSTANDARD1_5
-            return ".NET Standard 1.5";
-#elif NET45
-            return ".NET Framework 4.5";
+#if NET452
+            return ".NET Framework 4.5.2";
 #elif NETSTANDARD2_0
             return ".NET Standard 2.0";
 #else
@@ -56,11 +52,7 @@ namespace Cassandra.Helpers
             {
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
-#if !NETSTANDARD1_5
                     return PlatformHelper.GetWmiCpuInfo();
-#else
-                    PlatformHelper.Logger.Info("GetCpuInfo is not supported on Windows when targeting NETStandard 1.5");
-#endif
                 }
 
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
@@ -88,8 +80,7 @@ namespace Cassandra.Helpers
                 Length = length;
             }
         }
-
-#if !NETSTANDARD1_5
+        
         public static CpuInfo GetWmiCpuInfo()
         {
             var count = 0;
@@ -110,7 +101,6 @@ namespace Cassandra.Helpers
 
             return new CpuInfo(firstCpuName, count);
         }
-#endif
 
         public static CpuInfo GetLinuxProcCpuInfo()
         {
@@ -128,7 +118,7 @@ namespace Cassandra.Helpers
             return new CpuInfo(null, Environment.ProcessorCount);
         }
 
-#if !NET45
+#if !NETFRAMEWORK
         public static bool RuntimeSupportsCloudTlsSettings()
         {
             var netCoreVersion = PlatformHelper.GetNetCoreVersion();

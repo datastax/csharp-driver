@@ -28,9 +28,7 @@ namespace Cassandra.Geometry
     /// <summary>
     /// Represents a one-dimensional object representing a sequence of points and the line segments connecting them.
     /// </summary>
-#if NET45
     [Serializable]
-#endif
     public class LineString : GeometryBase
     {
         private static readonly Regex WktRegex = new Regex(
@@ -54,8 +52,7 @@ namespace Cassandra.Geometry
         {
 
         }
-
-#if NET45
+        
         /// <summary>
         /// Creates a new instance of <see cref="LineString"/> using a serialization information.
         /// </summary>
@@ -64,7 +61,6 @@ namespace Cassandra.Geometry
             var coordinates = (double[][])info.GetValue("coordinates", typeof(double[][]));
             Points = AsReadOnlyCollection(coordinates.Select(arr => new Point(arr[0], arr[1])).ToArray());
         }
-#endif
 
         /// <summary>
         /// Creates a new instance of <see cref="LineString"/> using a list of points.

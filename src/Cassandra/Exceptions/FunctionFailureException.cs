@@ -50,11 +50,9 @@ namespace Cassandra
         public FunctionFailureException(string message, Exception innerException) : base(message, innerException)
         {
         }
-
-#if NET45
+        
         protected FunctionFailureException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
         }
-#endif
     }
 }

@@ -52,8 +52,6 @@ namespace Cassandra.Tests
             TimestampGeneratorLogAfterCooldownTest(generator, loggerHandler);
         }
 
-#if !NETCORE
-
         [Test, WinOnly(6, 2)]
         public void AtomicMonotonicWinApiTimestampGenerator_Next_Should_Return_Increasing_Monotonic_Values()
         {
@@ -85,8 +83,6 @@ namespace Cassandra.Tests
             var generator2 = new AtomicMonotonicWinApiTimestampGenerator();
             Assert.Less(Math.Abs(generator1.Next() - generator2.Next()), 20000);
         }
-
-#endif
 
         private static void TimestampGeneratorMonitonicityTest(ITimestampGenerator generator)
         {

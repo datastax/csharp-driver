@@ -74,8 +74,7 @@ namespace Cassandra.Helpers
             {
                 AssemblyHelpers.Logger.Info("Could not get entry assembly by the default method. Exception: {0}", ex.ToString());
             }
-
-#if !NETSTANDARD1_5
+            
             if (assembly == null)
             {
                 AssemblyHelpers.Logger.Verbose("Attempting to get entry assembly by main module.");
@@ -101,7 +100,6 @@ namespace Cassandra.Helpers
                     AssemblyHelpers.Logger.Info("Could not get entry assembly by stack trace. Exception: {0}", ex.ToString());
                 }
             }
-#endif
 
             if (assembly == null)
             {
@@ -110,8 +108,7 @@ namespace Cassandra.Helpers
 
             return assembly;
         }
-
-#if !NETSTANDARD1_5
+        
         private static Assembly GetEntryAssemblyByStacktrace()
         {
             var methodFrames = new StackTrace().GetFrames()?.Select(t => t.GetMethod()).ToArray();
@@ -168,6 +165,5 @@ namespace Cassandra.Helpers
                     .SingleOrDefault(assembly => assembly.Location == mainModule.FileName);
             return entryAssembly;
         }
-#endif
     }
 }

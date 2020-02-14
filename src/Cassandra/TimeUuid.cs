@@ -163,8 +163,7 @@ namespace Cassandra
         {
             return _value.ToString();
         }
-
-#if !NETCORE
+        
         /// <summary>
         /// Returns a string representation
         /// </summary>
@@ -172,7 +171,6 @@ namespace Cassandra
         {
             return _value.ToString(format, provider);
         }
-#endif
 
         /// <summary>
         /// Returns a string representation

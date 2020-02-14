@@ -101,18 +101,7 @@ namespace Cassandra.IntegrationTests.DataStax.Insights
                     Assert.AreEqual(InsightsIntegrationTests.clusterId.ToString(), message.Data.ClientId);
                     Assert.AreEqual(session.InternalSessionId.ToString(), message.Data.SessionId);
                     Assert.Greater(message.Data.PlatformInfo.CentralProcessingUnits.Length, 0);
-#if NETCORE
-                    if (TestHelper.IsWin)
-                    {
-                        Assert.IsNull(message.Data.PlatformInfo.CentralProcessingUnits.Model);
-                    }
-                    else
-                    {
-                        Assert.IsFalse(string.IsNullOrWhiteSpace(message.Data.PlatformInfo.CentralProcessingUnits.Model));
-                    }
-#else
                     Assert.IsFalse(string.IsNullOrWhiteSpace(message.Data.PlatformInfo.CentralProcessingUnits.Model));
-#endif
                     Assert.IsFalse(string.IsNullOrWhiteSpace(message.Data.PlatformInfo.OperatingSystem.Version));
                     Assert.IsFalse(string.IsNullOrWhiteSpace(message.Data.PlatformInfo.OperatingSystem.Arch));
                     Assert.IsFalse(string.IsNullOrWhiteSpace(message.Data.PlatformInfo.OperatingSystem.Name));

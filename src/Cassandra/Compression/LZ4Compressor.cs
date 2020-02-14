@@ -14,7 +14,7 @@
 //   limitations under the License.
 //
 
-#if NET45
+#if NETFRAMEWORK
 using System;
 using System.Collections.Generic;
 using System.IO;

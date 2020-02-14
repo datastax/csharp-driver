@@ -17,7 +17,6 @@
 using System.Net;
 using System.Text;
 using Cassandra.Helpers;
-#if !NETCORE
 using System;
 
 namespace Cassandra.DataStax.Auth
@@ -140,4 +139,3 @@ namespace Cassandra.DataStax.Auth
         }
     }
 }
-#endif

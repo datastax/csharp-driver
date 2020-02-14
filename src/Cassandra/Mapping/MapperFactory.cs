@@ -622,11 +622,7 @@ namespace Cassandra.Mapping
 
         private static MethodInfo GetMethod(Delegate deleg)
         {
-#if !NETCORE
             return deleg.Method;
-#else
-            return deleg.GetMethodInfo();
-#endif
         }
     }
 }

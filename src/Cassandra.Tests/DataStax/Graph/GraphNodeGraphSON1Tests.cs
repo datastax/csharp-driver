@@ -314,9 +314,7 @@ namespace Cassandra.Tests.DataStax.Graph
         }
 
         [Test, TestCase(true)]
-#if NET452
         [TestCase(false)]
-#endif
         public void GraphNode_Should_Be_Serializable(bool useConverter)
         {
             var settings = new JsonSerializerSettings();
@@ -571,8 +569,7 @@ namespace Cassandra.Tests.DataStax.Graph
             var path4 = result.To<IPath>();
             Assert.AreEqual(path.Objects.Count, path4.Objects.Count);
         }
-
-#if NET452
+        
         [Test]
         public void Should_Be_Serializable()
         {
@@ -588,7 +585,6 @@ namespace Cassandra.Tests.DataStax.Graph
             Assert.AreEqual(1D, objectTree.Get<double>("val"));
             Assert.AreEqual(json, JsonConvert.SerializeObject(result));
         }
-#endif
 
         private static GraphNode GetGraphNode(string json)
         {
