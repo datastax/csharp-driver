@@ -31,6 +31,7 @@ namespace Cassandra.DataStax.Graph
     /// Represents an item of a graph query result, it can be a vertex, an edge, a path or an scalar value.
     /// </summary>
     [Serializable]
+    [JsonConverter(typeof(GraphNodeConverter))]
     public class GraphNode : DynamicObject, IEquatable<GraphNode>, IGraphNode, ISerializable
     {
         private readonly INode _node;
@@ -92,6 +93,18 @@ namespace Cassandra.DataStax.Graph
                 }
                 objectTree.Add(field.Name, new JValue(field.Value));
             }
+            if (objectTree["@type"] != null)
+            {
+                _node = new GraphSON2Node(objectTree);
+            }
+            else
+            {
+                _node = new GraphSON1Node(objectTree);   
+            }
+        }
+
+        internal GraphNode(JObject objectTree)
+        {
             if (objectTree["@type"] != null)
             {
                 _node = new GraphSON2Node(objectTree);

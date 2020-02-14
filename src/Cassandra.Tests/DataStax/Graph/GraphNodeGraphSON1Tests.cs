@@ -323,11 +323,14 @@ namespace Cassandra.Tests.DataStax.Graph
                 settings = GraphSON1ContractResolver.Settings;
             }
             const string json = "{" +
-                "\"~type\":\"knows\"," +
-                "\"out_vertex\":{\"~label\":\"person\",\"community_id\":1368843392,\"member_id\":2}," +
-                "\"in_vertex\":{\"~label\":\"person\",\"community_id\":1368843392,\"member_id\":3}," +
-                "\"local_id\":\"ed37c460-b2f7-11e6-b394-2d62a0c6b98b\"}";
-            var node = new GraphNode("{\"result\":" + json + "}");
+                                "\"id\":{\"member_id\":0,\"community_id\":586910,\"~label\":\"vertex\",\"group_id\":2}," +
+                                "\"label\":\"vertex\"," +
+                                "\"type\":\"vertex\"," +
+                                "\"properties\":{" +
+                                "\"name\":[{\"id\":{\"local_id\":\"00000000-0000-8007-0000-000000000000\",\"~type\":\"name\",\"out_vertex\":{\"member_id\":0,\"community_id\":586910,\"~label\":\"vertex\",\"group_id\":2}},\"value\":\"j\",\"label\":\"name\"}]," +
+                                "\"age\":[{\"id\":{\"local_id\":\"00000000-0000-8008-0000-000000000000\",\"~type\":\"age\",\"out_vertex\":{\"member_id\":0,\"community_id\":586910,\"~label\":\"vertex\",\"group_id\":2}},\"value\":34,\"label\":\"age\"}]}" +
+                                "}";
+            IGraphNode node = new GraphNode("{\"result\":" + json + "}");
             var serialized = JsonConvert.SerializeObject(node, settings);
             Assert.AreEqual(json, serialized);
         }

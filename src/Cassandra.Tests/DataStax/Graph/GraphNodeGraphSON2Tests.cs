@@ -16,14 +16,18 @@
 
 using System;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Numerics;
 using System.Text;
 using Cassandra.DataStax.Graph;
 using Cassandra.Geometry;
+using Cassandra.Serialization.Graph.GraphSON1;
 using Cassandra.Serialization.Graph.GraphSON2;
+using Newtonsoft.Json;
 using NUnit.Framework;
+using Path = Cassandra.DataStax.Graph.Path;
 
 namespace Cassandra.Tests.DataStax.Graph
 {
@@ -305,6 +309,38 @@ namespace Cassandra.Tests.DataStax.Graph
             Assert.Null(node.To<IVertex>());
             Assert.Null(node.To<IEdge>());
             Assert.Null(node.To<IPath>());
+        }
+        
+        [Test]
+        public void GraphNode_Should_Be_Serializable_Json()
+        {
+            var settings = new JsonSerializerSettings();
+            const string json = "{\"@type\":\"g:Vertex\",\"@value\":{" +
+                                "\"id\":{\"@type\":\"g:Int32\",\"@value\":1368843392}," +
+                                "\"label\":\"user\"," +
+                                "\"properties\":{" +
+                                "\"name\":[{\"@type\":\"g:VertexProperty\",\"@value\":{\"id\":{\"@type\":\"g:Int64\",\"@value\":0},\"value\":\"jorge\"}}]," +
+                                "\"age\":[{\"@type\":\"g:VertexProperty\",\"@value\":{\"id\":{\"@type\":\"g:Int64\",\"@value\":1},\"value\":{\"@type\":\"g:Int32\",\"@value\":35}}}]}" +
+                                "}}";
+            IGraphNode node = new GraphNode("{\"result\":" + json + "}");
+            var serialized = JsonConvert.SerializeObject(node, settings);
+            Assert.AreEqual(json, serialized);
+        }
+
+        [Test]
+        public void GraphNode_Should_ThrowNotSupported_When_JsonSerializeWithGraphSON2Converter()
+        {
+            var settings = new JsonSerializerSettings();
+            settings = GraphSON2ContractResolver.Settings;
+            const string json = "{\"@type\":\"g:Vertex\",\"@value\":{" +
+                                "\"id\":{\"@type\":\"g:Int32\",\"@value\":1368843392}," +
+                                "\"label\":\"user\"," +
+                                "\"properties\":{" +
+                                "\"name\":[{\"@type\":\"g:VertexProperty\",\"@value\":{\"id\":{\"@type\":\"g:Int64\",\"@value\":0},\"value\":\"jorge\"}}]," +
+                                "\"age\":[{\"@type\":\"g:VertexProperty\",\"@value\":{\"id\":{\"@type\":\"g:Int64\",\"@value\":1},\"value\":{\"@type\":\"g:Int32\",\"@value\":35}}}]}" +
+                                "}}";
+            IGraphNode node = new GraphNode("{\"result\":" + json + "}");
+            Assert.Throws<NotSupportedException>(() => JsonConvert.SerializeObject(node, settings));
         }
 
         /// <summary>
