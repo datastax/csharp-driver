@@ -21,6 +21,8 @@ using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
 using System.Text.RegularExpressions;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Cassandra.Geometry
 {
@@ -29,6 +31,7 @@ namespace Cassandra.Geometry
     /// In case of Geographic Coordinate Systems, the X coordinate is the longitude and the Y is the latitude.
     /// </summary>
     [Serializable]
+    [JsonConverter(typeof(PointJsonConverter))]
     public class Point : GeometryBase
     {
         private static readonly Regex WktRegex = new Regex(
@@ -67,6 +70,13 @@ namespace Cassandra.Geometry
         protected Point(SerializationInfo info, StreamingContext context)
         {
             var coordinates = (double[])info.GetValue("coordinates", typeof(double[]));
+            X = coordinates[0];
+            Y = coordinates[1];
+        }
+
+        internal Point(JObject obj)
+        {
+            var coordinates = obj.GetValue("coordinates").ToObject<double[]>();
             X = coordinates[0];
             Y = coordinates[1];
         }

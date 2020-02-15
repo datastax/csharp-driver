@@ -20,6 +20,7 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
+using Cassandra.Tasks;
 using Cassandra.Tests;
 using NUnit.Framework;
 
@@ -109,7 +110,7 @@ namespace Cassandra.IntegrationTests.Core
                     {
                         await testCluster.GetNodes().Skip(nodeAsDown).First().DisableConnectionListener()
                                          .ConfigureAwait(false);
-                        var connections = testCluster.GetConnectedPorts();
+                        var connections = await testCluster.GetConnectedPortsAsync().ConfigureAwait(false);
                         for (var i = connections.Count - 3; i < connections.Count; i++)
                         {
                             try
@@ -123,11 +124,16 @@ namespace Cassandra.IntegrationTests.Core
                         }
                     }
 
-                    using (var cluster = builder.Build())
+                    ICluster cluster = null;
+                    try
                     {
+                        cluster = builder.Build();
                         await cluster.ConnectAsync().ConfigureAwait(false);
                     }
-
+                    finally
+                    {
+                        await (cluster?.ShutdownAsync() ?? TaskHelper.Completed).ConfigureAwait(false);
+                    }
 
                     return 0;
                 }, 60, 5).ConfigureAwait(false);

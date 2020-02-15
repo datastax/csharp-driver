@@ -48,6 +48,7 @@ namespace Cassandra.Tests.Geometry
                 var json = JsonConvert.SerializeObject(polygon);
                 Assert.AreEqual(expected, json);
                 Assert.AreEqual(expected, polygon.ToGeoJson());
+                Assert.AreEqual(expected, JsonConvert.DeserializeObject<Polygon>(json).ToGeoJson());
             }
         }
 

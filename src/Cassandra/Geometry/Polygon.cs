@@ -20,6 +20,8 @@ using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
 using System.Text.RegularExpressions;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Cassandra.Geometry
 {
@@ -28,6 +30,7 @@ namespace Cassandra.Geometry
     /// loop to form a closed chain or circuit.
     /// </summary>
     [Serializable]
+    [JsonConverter(typeof(PolygonJsonConverter))]
     public class Polygon : GeometryBase
     {
         private static readonly Regex WktRegex = new Regex(
@@ -94,6 +97,14 @@ namespace Cassandra.Geometry
             Rings = AsReadOnlyCollection(coordinates
                 .Select(r => (IList<Point>)r.Select(p => new Point(p[0], p[1])).ToList())
                 .ToList());
+        }
+        
+        internal Polygon(JObject obj)
+        {
+            var coordinates = obj.GetValue("coordinates").ToObject<double[][][]>();
+            Rings = AsReadOnlyCollection(coordinates
+                                         .Select(r => (IList<Point>)r.Select(p => new Point(p[0], p[1])).ToList())
+                                         .ToList());
         }
 
         /// <summary>

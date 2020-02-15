@@ -26,7 +26,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using Cassandra.Serialization;
-
+using Cassandra.Tasks;
 using Microsoft.DotNet.InternalAbstractions;
 using Moq;
 
@@ -484,15 +484,19 @@ namespace Cassandra.Tests
             {
                 return;
             }
-            var t1 = action();
-            t1.ContinueWith(t =>
+
+            Task.Run(async () =>
             {
-                if (t.Exception != null)
+                try
                 {
-                    // ReSharper disable once AssignNullToNotNullAttribute
-                    tcs.TrySetException(t.Exception.InnerException);
+                    await action().ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    tcs.TrySetException(ex);
                     return;
                 }
+                
                 var received = counter.IncrementReceived();
                 if (received == maxLength)
                 {
@@ -500,7 +504,7 @@ namespace Cassandra.Tests
                     return;
                 }
                 SendNew(action, tcs, counter, maxLength);
-            }, TaskContinuationOptions.ExecuteSynchronously);
+            }).Forget();
         }
 
         public static async Task<Exception> EatUpException(Task task)

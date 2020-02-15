@@ -44,6 +44,7 @@ namespace Cassandra.Tests.Geometry
                 var json = JsonConvert.SerializeObject(point);
                 Assert.AreEqual(expected, json);
                 Assert.AreEqual(expected, point.ToGeoJson());
+                Assert.AreEqual(expected, JsonConvert.DeserializeObject<Point>(json).ToGeoJson());
             }
         }
 
