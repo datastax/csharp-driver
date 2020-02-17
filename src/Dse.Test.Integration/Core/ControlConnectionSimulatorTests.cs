@@ -19,6 +19,7 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using Dse.Tasks;
 using Dse.Test.Integration.TestClusterManagement.Simulacron;
 using Dse.Test.Unit;
 using NUnit.Framework;

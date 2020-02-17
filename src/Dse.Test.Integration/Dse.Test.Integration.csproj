@@ -92,6 +92,9 @@
     <Reference Include="System" />
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net461' ">
+    <PackageReference Include="JetBrains.DotMemoryUnit" Version="2.3.20160517.113140" />
+  </ItemGroup>
   <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.1' ">
     <PackageReference Include="System.Net.NameResolution" Version="4.3.0" />
   </ItemGroup>
