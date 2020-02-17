@@ -17,12 +17,6 @@ var session =
            .Connect();
 ```
 
-## Supported platforms
-
-DataStax Apollo support on .NET Core requires **.NET Core Runtime 2.1 or later**.
-
-On .NET Framework there is no additional requirement.
-
 ## Configurable settings when using a secure connection bundle
 
 The following methods will throw an error when `.Build()` is called if the secure connection bundle is used:

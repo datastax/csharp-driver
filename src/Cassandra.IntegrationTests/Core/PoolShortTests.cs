@@ -635,9 +635,20 @@ namespace Cassandra.IntegrationTests.Core
                     connections = await simulacronNode.GetConnectionsAsync().ConfigureAwait(false);
                     Assert.AreEqual(1, connections.Count);
                 }, 100, 200).ConfigureAwait(false);
-
-                Assert.AreEqual(1, connections.Count);
+                
                 await testCluster.DropConnection(connections[0]).ConfigureAwait(false);
+                
+                await TestHelper.RetryAssertAsync(async () =>
+                {
+                    connections = await simulacronNode.GetConnectionsAsync().ConfigureAwait(false);
+                    Assert.AreEqual(0, connections.Count);
+                }, 100, 200).ConfigureAwait(false);
+
+                TestHelper.RetryAssert(() =>
+                {
+                    var openConnections = session.GetState().GetOpenConnections(session.Cluster.GetHost(simulacronNode.IpEndPoint));
+                    Assert.AreEqual(0, openConnections);
+                }, 100, 200);
 
                 // Drop connections to the host last host
                 await TestHelper.RetryAssertAsync(async () =>

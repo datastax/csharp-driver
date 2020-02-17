@@ -8,7 +8,7 @@ It also provides additional features for [DataStax Enterprise][dse]:
 - [DSE graph][dse-graph] integration.
 - Serializers for geospatial types which integrate seamlessly with the driver.
 
-The driver supports .NET Framework 4.5.2+ and .NET Standard 2.0+.
+The driver supports .NET Framework 4.5.2+ and .NET Core 2.1+ ([LTS](https://dotnet.microsoft.com/platform/support/policy/dotnet-core)).
 
 ## Installation
 
@@ -373,7 +373,7 @@ session.Execute(statement);
 
 - Apache Cassandra versions 2.0 and above.
 - DataStax Enterprise versions 4.8 and above.
-- .NET Framework versions 4.5.2 and above and .NET Standard versions 2.0 and above.
+- .NET Framework versions 4.5.2 and above and .NET Core versions 2.1 and above.
 
 Note: DataStax products do not support big-endian systems.
 
