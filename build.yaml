@@ -44,6 +44,8 @@ schedules:
       slack: csharp-driver-dev-bots
     branches:
       include: ["/((\\d+(\\.[\\dx]+)+)|master)/"]
+    matrix:
+      exclude:
 os:
   - ubuntu/bionic64/csharp-driver
 cassandra:
