@@ -109,7 +109,7 @@ namespace Dse.Test.Integration.Core
                     {
                         await testCluster.GetNodes().Skip(nodeAsDown).First().DisableConnectionListener()
                                          .ConfigureAwait(false);
-                        var connections = testCluster.GetConnectedPorts();
+                        var connections = await testCluster.GetConnectedPortsAsync().ConfigureAwait(false);
                         for (var i = connections.Count - 3; i < connections.Count; i++)
                         {
                             try
@@ -123,11 +123,16 @@ namespace Dse.Test.Integration.Core
                         }
                     }
 
-                    using (var cluster = builder.Build())
+                    ICluster cluster = null;
+                    try
                     {
+                        cluster = builder.Build();
                         await cluster.ConnectAsync().ConfigureAwait(false);
                     }
-
+                    finally
+                    {
+                        await (cluster?.ShutdownAsync() ?? TaskHelper.Completed).ConfigureAwait(false);
+                    }
 
                     return 0;
                 }, 60, 5).ConfigureAwait(false);

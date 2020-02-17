@@ -14,7 +14,7 @@
 //   limitations under the License.
 //
 
-#if NET452 && !LINUX
+#if NETFRAMEWORK && !LINUX
 using System;
 using System.Net.Sockets;
 using System.Threading;

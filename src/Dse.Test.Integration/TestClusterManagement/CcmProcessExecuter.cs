@@ -18,7 +18,7 @@ namespace Dse.Test.Integration.TestClusterManagement
         {
             var executable = GetExecutable(ref args);
             Trace.TraceInformation(executable + " " + args);
-            var output = ExecuteProcess(executable, args);
+            var output = ExecuteProcess(executable, args, GetDefaultTimeout());
             if (throwOnProcessError)
             {
                 ValidateOutput(output);
@@ -28,7 +28,7 @@ namespace Dse.Test.Integration.TestClusterManagement
 
         public virtual int GetDefaultTimeout()
         {
-            return 90000;
+            return 5 * 60 * 1000;
         }
 
         protected abstract string GetExecutable(ref string args);
@@ -44,7 +44,7 @@ namespace Dse.Test.Integration.TestClusterManagement
         /// <summary>
         /// Spawns a new process (platform independent)
         /// </summary>
-        public static ProcessOutput ExecuteProcess(string processName, string args, int timeout = 90000, IReadOnlyDictionary<string, string> envVariables = null, string workDir = null)
+        public static ProcessOutput ExecuteProcess(string processName, string args, int timeout, IReadOnlyDictionary<string, string> envVariables = null, string workDir = null)
         {
             var output = new ProcessOutput();
             using (var process = new Process())

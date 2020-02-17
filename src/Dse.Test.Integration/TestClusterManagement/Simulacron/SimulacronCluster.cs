@@ -111,10 +111,10 @@ namespace Dse.Test.Integration.TestClusterManagement.Simulacron
             return DropConnection(endpoint.Address.ToString(), endpoint.Port);
         }
 
-        public List<IPEndPoint> GetConnectedPorts()
+        public async Task<List<IPEndPoint>> GetConnectedPortsAsync()
         {
             var result = new List<IPEndPoint>();
-            var response = GetConnections();
+            var response = await GetConnectionsAsync().ConfigureAwait(false);
             var dcs = (JArray) response["data_centers"];
             foreach (var dc in dcs)
             {
@@ -158,7 +158,12 @@ namespace Dse.Test.Integration.TestClusterManagement.Simulacron
 
         public void Dispose()
         {
-            TaskHelper.WaitToComplete(RemoveAsync());
+            TaskHelper.WaitToComplete(Task.Run(ShutDownAsync), 60 * 1000);
+        }
+
+        public Task ShutDownAsync()
+        {
+            return RemoveAsync();
         }
     }
 }

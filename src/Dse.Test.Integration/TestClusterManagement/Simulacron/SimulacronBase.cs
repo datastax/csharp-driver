@@ -136,10 +136,10 @@ namespace Dse.Test.Integration.TestClusterManagement.Simulacron
         {
             return "/" + endpoint + "/" + Id;
         }
-
-        public dynamic GetConnections()
+        
+        public Task<dynamic> GetConnectionsAsync()
         {
-            return TaskHelper.WaitToComplete(SimulacronBase.Get<dynamic>(GetPath("connections")));
+            return SimulacronBase.Get<dynamic>(GetPath("connections"));
         }
 
         public Task DisableConnectionListener(int attempts = 0, string type = "unbind")

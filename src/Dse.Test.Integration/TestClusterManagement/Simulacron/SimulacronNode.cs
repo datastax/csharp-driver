@@ -61,13 +61,13 @@ namespace Dse.Test.Integration.TestClusterManagement.Simulacron
         {
             return Put($"/listener/{Id}", null);
         }
-
+        
         /// <summary>
         /// Gets the list of established connections to a node.
         /// </summary>
-        public new IList<IPEndPoint> GetConnections()
+        public new async Task<IList<IPEndPoint>> GetConnectionsAsync()
         {
-            var nodeInfo = base.GetConnections();
+            var nodeInfo = await base.GetConnectionsAsync().ConfigureAwait(false);
             IEnumerable connections = nodeInfo["data_centers"][0]["nodes"][0]["connections"];
 
             return (from object element in connections
