@@ -653,41 +653,43 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public async Task Connection_Close_Faults_AllPending_Tasks()
         {
-            var connection = CreateConnection();
-            await connection.Open().ConfigureAwait(false);
-            //Queue a lot of read and writes
-            var taskList = new List<Task<Response>>();
-            for (var i = 0; i < 1024; i++)
+            using (var connection = CreateConnection())
             {
-                taskList.Add(Query(connection, "SELECT * FROM system.local"));
-            }
-            for (var i = 0; i < 1000; i++)
-            {
-                if (connection.InFlight > 0)
+                await connection.Open().ConfigureAwait(false);
+                //Queue a lot of read and writes
+                var taskList = new List<Task<Response>>();
+                for (var i = 0; i < 1024; i++)
                 {
-                    Trace.TraceInformation("Inflight {0}", connection.InFlight);
-                    break;
+                    taskList.Add(Query(connection, "SELECT * FROM system.local"));
                 }
-                //Wait until there is an operation in flight
-                await Task.Delay(30).ConfigureAwait(false);
-            }
-            //Close the socket, this would trigger all pending ops to be called back
-            connection.Dispose();
-            try
-            {
-                await Task.WhenAll(taskList.ToArray()).ConfigureAwait(false);
-            }
-            catch (SocketException)
-            {
-                //Its alright, it will fail
-            }
+                for (var i = 0; i < 1000; i++)
+                {
+                    if (connection.InFlight > 0)
+                    {
+                        Trace.TraceInformation("Inflight {0}", connection.InFlight);
+                        break;
+                    }
+                    //Wait until there is an operation in flight
+                    await Task.Delay(30).ConfigureAwait(false);
+                }
+                //Close the socket, this would trigger all pending ops to be called back
+                connection.Dispose();
+                try
+                {
+                    await Task.WhenAll(taskList.ToArray()).ConfigureAwait(false);
+                }
+                catch (SocketException)
+                {
+                    //Its alright, it will fail
+                }
 
-            Assert.True(!taskList.Any(t => t.Status != TaskStatus.RanToCompletion && t.Status != TaskStatus.Faulted), "Must be only completed and faulted task");
+                Assert.True(!taskList.Any(t => t.Status != TaskStatus.RanToCompletion && t.Status != TaskStatus.Faulted), "Must be only completed and faulted task");
 
-            await Task.Delay(1000).ConfigureAwait(false);
+                await Task.Delay(1000).ConfigureAwait(false);
 
-            //A new call to write will be called back immediately with an exception
-            Assert.ThrowsAsync<SocketException>(async () => await Query(connection, "SELECT * FROM system.local").ConfigureAwait(false));
+                //A new call to write will be called back immediately with an exception
+                Assert.ThrowsAsync<SocketException>(async () => await Query(connection, "SELECT * FROM system.local").ConfigureAwait(false));
+            }
         }
 
         /// <summary>

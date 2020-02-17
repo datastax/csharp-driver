@@ -18,9 +18,7 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.Net;
-#if NET45
 using System.Runtime.Serialization;
-#endif
 using System.Text;
 
 namespace Cassandra
@@ -33,9 +31,7 @@ namespace Cassandra
     ///  purpose, the list of hosts that have been tried along with the failure cause
     ///  can be retrieved using the <link>#errors</link> method.
     /// </summary>
-#if NET45
     [Serializable]
-#endif
     public class NoHostAvailableException : DriverException
     {
         private const string StartMessage = "All hosts tried for query failed (tried ";
@@ -67,14 +63,12 @@ namespace Cassandra
         {
             Errors = new Dictionary<IPEndPoint, Exception>(0);
         }
-
-#if NET45
+        
         protected NoHostAvailableException(SerializationInfo info, StreamingContext context) :
             base(info, context)
         {
             
         }
-#endif
 
         private static string CreateMessage(Dictionary<IPEndPoint, Exception> errors)
         {

@@ -51,8 +51,7 @@ namespace Cassandra.Data
         {
             get { return _syncLock; }
         }
-
-#if !NETCORE
+        
         /// <summary>
         /// Specifies whether the collection is a fixed size.
         /// </summary>
@@ -79,7 +78,6 @@ namespace Cassandra.Data
         {
             get { return false; }
         }
-#endif
 
         /// <summary>
         /// Adds the specified <see cref="T:System.Data.Common.DbParameter" /> object

@@ -22,9 +22,7 @@ namespace Cassandra
     /// <summary>
     /// Top level class for exceptions thrown by the driver.
     /// </summary>
-#if NET45
     [Serializable]
-#endif
     public class DriverException : Exception
     {
         public DriverException(string message)
@@ -36,13 +34,11 @@ namespace Cassandra
             : base(message, innerException)
         {
         }
-
-#if NET45
+        
         protected DriverException(SerializationInfo info, StreamingContext context) :
             base(info, context)
         {
             
         }
-#endif    
     }
 }

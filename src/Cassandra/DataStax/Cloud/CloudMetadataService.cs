@@ -21,7 +21,7 @@ using System.Security.Authentication;
 using System.Threading.Tasks;
 using Cassandra.Helpers;
 using Newtonsoft.Json;
-#if NETSTANDARD1_5 || NETSTANDARD2_0
+#if NETSTANDARD
 using System.Linq.Expressions;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -36,7 +36,7 @@ namespace Cassandra.DataStax.Cloud
         public Task<CloudMetadataResult> GetClusterMetadataAsync(
             string url, SocketOptions socketOptions, SSLOptions sslOptions)
         {
-#if NET45
+#if NET452
             return GetWithWebRequestAsync(url, socketOptions, sslOptions);
 #else
             if (PlatformHelper.RuntimeSupportsCloudTlsSettings())
@@ -50,7 +50,7 @@ namespace Cassandra.DataStax.Cloud
 #endif
         }
 
-#if !NETSTANDARD1_5 && !NETSTANDARD2_0
+#if !NETSTANDARD
 
         private async Task<CloudMetadataResult> GetWithWebRequestAsync(
             string url, SocketOptions socketOptions, SSLOptions sslOptions)
@@ -126,7 +126,7 @@ namespace Cassandra.DataStax.Cloud
 
 #endif
 
-#if NETSTANDARD1_5 || NETSTANDARD2_0
+#if NETSTANDARD
         private async Task<CloudMetadataResult> GetWithHttpClientAsync(
             string url, SocketOptions socketOptions, SSLOptions sslOptions)
         {

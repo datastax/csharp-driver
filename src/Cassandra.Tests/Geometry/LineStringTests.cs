@@ -41,12 +41,11 @@ namespace Cassandra.Tests.Geometry
             {
                 var expected = string.Format("{{\"type\":\"LineString\",\"coordinates\":[{0}]}}",
                     string.Join(",", line.Points.Select(p => "[" + p.X.ToString(CultureInfo.InvariantCulture) + "," + p.Y.ToString(CultureInfo.InvariantCulture) + "]")));
-#if NET452
                 // Default serialization to JSON is GeoJson
                 var json = JsonConvert.SerializeObject(line);
                 Assert.AreEqual(expected, json);
-#endif
                 Assert.AreEqual(expected, line.ToGeoJson());
+                Assert.AreEqual(expected, JsonConvert.DeserializeObject<LineString>(json).ToGeoJson());
             }
         }
 

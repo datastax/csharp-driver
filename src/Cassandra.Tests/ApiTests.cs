@@ -31,9 +31,7 @@ namespace Cassandra.Tests
             CollectionAssert.AreEquivalent(
                 new[]
                 {
-#if !NETCORE
                     typeof(Cassandra.DataStax.Auth.Sspi.SspiException), typeof(DseGssapiAuthProvider),
-#endif
                     typeof(DsePlainTextAuthProvider)
                 },
                 types);
@@ -62,9 +60,7 @@ namespace Cassandra.Tests
                 "Cassandra.Data",
                 "Cassandra.Data.Linq",
                 "Cassandra.DataStax.Auth",
-#if !NETCORE
                 "Cassandra.DataStax.Auth.Sspi",
-#endif
                 "Cassandra.DataStax.Graph",
                 "Cassandra.DataStax.Search",
                 "Cassandra.Geometry",

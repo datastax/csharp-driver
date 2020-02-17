@@ -15,7 +15,7 @@ $data | foreach {
     echo "1: $v1 2: $v2"
     Set-Item "env:$v1" $v2
 }
-$env:CASS_VERSION_SNI='dse-6.7'
+$env:CASS_VERSION_SNI='3.11'
 
 $env:PATH += ";$env:JAVA_HOME\bin"
 $env:SIMULACRON_PATH="$env:HOME\simulacron.jar"

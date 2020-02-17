@@ -51,8 +51,7 @@ namespace Cassandra.Data
         {
             throw new NotSupportedException();
         }
-
-#if NET45
+        
         public override bool CanCreateDataSourceEnumerator
         {
             get { return false; }
@@ -73,6 +72,7 @@ namespace Cassandra.Data
             throw new NotSupportedException();
         }
 
+#if NETFRAMEWORK
         public override System.Security.CodeAccessPermission CreatePermission(System.Security.Permissions.PermissionState state)
         {
             throw new NotSupportedException();

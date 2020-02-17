@@ -56,9 +56,8 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             _simulacronProcess.StartInfo.CreateNoWindow = true;
             _simulacronProcess.StartInfo.RedirectStandardOutput = true;
             _simulacronProcess.StartInfo.RedirectStandardError = true;
-#if !NETCORE
             _simulacronProcess.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-#endif
+
             var eventWaitHandler = new AutoResetEvent(false);
             _simulacronProcess.OutputDataReceived += (sender, e) =>
             {

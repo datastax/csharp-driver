@@ -14,8 +14,6 @@
 //   limitations under the License.
 //
 
-
-#if !NETCORE
 using System.Linq;
 using System.Threading;
 using Cassandra.DataStax.Auth;
@@ -53,4 +51,3 @@ namespace Cassandra.IntegrationTests.DataStax.Auth
         }
     }
 }
-#endif

@@ -31,7 +31,7 @@ namespace Cassandra.DataStax.Auth.Sspi
     /// <summary>
     /// The exception that is thrown when a problem occurs hwen using the SSPI system.
     /// </summary>
-#if NET45
+#if NET452
     [Serializable]
 #endif
     public class SspiException : Exception
@@ -58,7 +58,7 @@ namespace Cassandra.DataStax.Auth.Sspi
             
         }
         
-#if NET45
+#if NET452
         /// <summary>
         /// Initializes a new instance of the SSPIException class from serialization data.
         /// </summary>

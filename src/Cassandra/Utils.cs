@@ -81,13 +81,7 @@ namespace Cassandra
          /// </summary>
         public static string GetPrimaryHostNameInfo(string address)
         {
-#if !NETCORE
             var hostEntry = Dns.GetHostEntry(address);
-#else
-            var hostEntryTask = Dns.GetHostEntryAsync(address);
-            hostEntryTask.Wait();
-            var hostEntry = hostEntryTask.Result;
-#endif
             return hostEntry.HostName;
         }
 

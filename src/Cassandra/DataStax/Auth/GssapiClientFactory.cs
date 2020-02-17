@@ -13,7 +13,6 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-#if !NETCORE
 
 namespace Cassandra.DataStax.Auth
 {
@@ -25,4 +24,3 @@ namespace Cassandra.DataStax.Auth
         }
     }
 }
-#endif

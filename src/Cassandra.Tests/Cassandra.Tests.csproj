@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFrameworks Condition="'$(BuildCoreOnly)' != 'True'">net452;netcoreapp2.0;netcoreapp2.1</TargetFrameworks>
-    <TargetFrameworks Condition="'$(BuildCoreOnly)' == 'True' And '$(NETCORE_RUNTIME)' != '2.0'">netcoreapp2.0;netcoreapp2.1</TargetFrameworks>
+    <TargetFramework Condition="'$(BuildCoreOnly)' == 'True' And '$(NETCORE_RUNTIME)' != '2.0'">netcoreapp2.1</TargetFramework>
     <TargetFramework Condition="'$(BuildCoreOnly)' == 'True' And '$(NETCORE_RUNTIME)' == '2.0'">netcoreapp2.0</TargetFramework>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <PublicSign>false</PublicSign>
@@ -11,9 +11,15 @@
     <PackageId>Cassandra.Tests</PackageId>
     <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
   </PropertyGroup>
+  <PropertyGroup Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('$(TargetFramework)', '^net\d'))">
+    <DefineConstants>$(DefineConstants);NETFRAMEWORK</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('$(TargetFramework)', '^netcoreapp\d'))">
+    <DefineConstants>$(DefineConstants);NETCOREAPP</DefineConstants>
+  </PropertyGroup>
   <ItemGroup Condition=" '$(TargetFramework)' == 'net452' ">
     <ProjectReference Include="..\Cassandra\Cassandra.csproj">
-      <SetTargetFramework>TargetFramework=net45</SetTargetFramework>
+      <SetTargetFramework>TargetFramework=net452</SetTargetFramework>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.1' ">
@@ -23,7 +29,7 @@
   </ItemGroup>
   <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.0' ">
     <ProjectReference Include="..\Cassandra\Cassandra.csproj">
-      <SetTargetFramework>TargetFramework=netstandard1.5</SetTargetFramework>
+      <SetTargetFramework>TargetFramework=netstandard2.0</SetTargetFramework>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
@@ -57,7 +63,4 @@
   <ItemGroup>
     <Service Include="{82a7f48d-3b50-4b1e-b82e-3ada8210c358}" />
   </ItemGroup>
-  <PropertyGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.0' ">
-    <DefineConstants>$(DefineConstants);NETCORE</DefineConstants>
-  </PropertyGroup>
 </Project>

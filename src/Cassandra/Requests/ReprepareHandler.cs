@@ -30,9 +30,13 @@ namespace Cassandra.Requests
         public async Task ReprepareOnAllNodesWithExistingConnections(
             IInternalSession session, InternalPrepareRequest request, PrepareResult prepareResult)
         {
-            var asd = session.GetPools();
+            var pools = session.GetPools();
             var hosts = session.InternalCluster.AllHosts();
-            var poolsByHosts = asd.Join(hosts, po => po.Key, h => h.Address, (pair, host) => new { host, pair.Value }).ToDictionary(k => k.host, k => k.Value);
+            var poolsByHosts = pools.Join(
+                hosts, po => po.Key, 
+                h => h.Address, 
+                (pair, host) => new { host, pair.Value }).ToDictionary(k => k.host, k => k.Value);
+
             if (poolsByHosts.Count == 0)
             {
                 PrepareHandler.Logger.Warning("Could not prepare query on all hosts because there are no connection pools.");

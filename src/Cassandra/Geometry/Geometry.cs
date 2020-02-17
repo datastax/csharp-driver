@@ -30,13 +30,8 @@ namespace Cassandra.Geometry
     /// <summary>
     /// The driver-side representation for a DSE geospatial type.
     /// </summary>
-#if NET45
     [Serializable]
-#endif
-    public abstract class GeometryBase
-#if NET45
-        : ISerializable
-#endif
+    public abstract class GeometryBase : ISerializable
     {
         private static readonly JsonSerializer DefaultJsonSerializer = JsonSerializer.CreateDefault();
 
@@ -99,15 +94,13 @@ namespace Cassandra.Geometry
             WriteJson(writer, DefaultJsonSerializer);
             return stringWriter.ToString();
         }
-
-#if NET45
+        
         /// <inheritdoc />
         public virtual void GetObjectData(SerializationInfo info, StreamingContext context)
         {
             info.AddValue("type", GeoJsonType);
             info.AddValue("coordinates", GeoCoordinates);
         }
-#endif
 
         internal virtual void WriteJson(JsonWriter writer, JsonSerializer serializer)
         {

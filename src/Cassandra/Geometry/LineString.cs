@@ -22,15 +22,16 @@ using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
 using System.Text.RegularExpressions;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Cassandra.Geometry
 {
     /// <summary>
     /// Represents a one-dimensional object representing a sequence of points and the line segments connecting them.
     /// </summary>
-#if NET45
     [Serializable]
-#endif
+    [JsonConverter(typeof(LineStringJsonConverter))]
     public class LineString : GeometryBase
     {
         private static readonly Regex WktRegex = new Regex(
@@ -54,8 +55,7 @@ namespace Cassandra.Geometry
         {
 
         }
-
-#if NET45
+        
         /// <summary>
         /// Creates a new instance of <see cref="LineString"/> using a serialization information.
         /// </summary>
@@ -64,7 +64,12 @@ namespace Cassandra.Geometry
             var coordinates = (double[][])info.GetValue("coordinates", typeof(double[][]));
             Points = AsReadOnlyCollection(coordinates.Select(arr => new Point(arr[0], arr[1])).ToArray());
         }
-#endif
+
+        internal LineString(JObject obj)
+        {
+            var coordinates = obj.GetValue("coordinates").ToObject<double[][]>();
+            Points = AsReadOnlyCollection(coordinates.Select(arr => new Point(arr[0], arr[1])).ToArray());
+        }
 
         /// <summary>
         /// Creates a new instance of <see cref="LineString"/> using a list of points.

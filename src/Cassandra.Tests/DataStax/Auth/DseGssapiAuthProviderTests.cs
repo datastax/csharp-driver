@@ -24,7 +24,7 @@ namespace Cassandra.Tests.DataStax.Auth
     [TestFixture]
     public class DseGssapiAuthProviderTests
     {
-#if NETCOREAPP2_1
+#if NETCOREAPP
         [WinOnly]
         [Test]
         public void When_NetStandard20AndWindows_Should_NotThrowException()
@@ -43,18 +43,18 @@ namespace Cassandra.Tests.DataStax.Auth
         }
 #endif
 
-#if NET452
+#if NETFRAMEWORK
 
         [WinOnly]
         [Test]
-        public void When_Net452AndWindows_Should_NotThrowException()
+        public void When_NetFrameworkAndWindows_Should_NotThrowException()
         {
             var provider = new DseGssapiAuthProvider();
         }
 
         [NotWindows]
         [Test]
-        public void When_Net452AndNotWindows_Should_NotThrowException()
+        public void When_NetFrameworkAndNotWindows_Should_NotThrowException()
         {
             Assert.Throws<NotSupportedException>(() =>
             {

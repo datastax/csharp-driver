@@ -283,9 +283,7 @@ namespace Cassandra.IntegrationTests.TestBase
                 //Hide the python window if possible
                 process.StartInfo.UseShellExecute = false;
                 process.StartInfo.CreateNoWindow = true;
-#if !NETCORE
                 process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-#endif
 
                 using (var outputWaitHandle = new AutoResetEvent(false))
                 using (var errorWaitHandle = new AutoResetEvent(false))

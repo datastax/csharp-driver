@@ -40,12 +40,11 @@ namespace Cassandra.Tests.Geometry
             foreach (var point in Values)
             {
                 var expected = string.Format("{{\"type\":\"Point\",\"coordinates\":[{0},{1}]}}", point.X.ToString(CultureInfo.InvariantCulture), point.Y.ToString(CultureInfo.InvariantCulture));
-#if NET452
                 // Default serialization to JSON is GeoJson
                 var json = JsonConvert.SerializeObject(point);
                 Assert.AreEqual(expected, json);
-#endif
                 Assert.AreEqual(expected, point.ToGeoJson());
+                Assert.AreEqual(expected, JsonConvert.DeserializeObject<Point>(json).ToGeoJson());
             }
         }
 
