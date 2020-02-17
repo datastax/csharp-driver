@@ -36,16 +36,12 @@ schedules:
       slack: csharp-driver-dev-bots
     branches:
       exclude: ["/((\\d+(\\.[\\dx]+)+)|master)/"]
-    matrix:
-      exclude:
   weekly:
     schedule: 0 10 * * 7
     notify:
       slack: csharp-driver-dev-bots
     branches:
       include: ["/((\\d+(\\.[\\dx]+)+)|master)/"]
-    matrix:
-      exclude:
 os:
   - ubuntu/bionic64/csharp-driver
 cassandra:
