@@ -57,7 +57,7 @@ dotnet:
 build:
   - script: |
       export CASS_VERSION_SNI='dse-6.7'
-      
+       
       # Set the Java paths (for CCM)
       export JAVA_HOME=$CCM_JAVA_HOME
       export PATH=$JAVA_HOME/bin:$PATH
