@@ -7,7 +7,7 @@ schedules:
     matrix:
       exclude:
       # dont build on windows (windows provisioning takes too long, run only on nightly and weekly schedules)
-        - os: 'win/cs'
+        - os: 'win/cs' 
       # on linux dont build net452 and net461
         - os: 'ubuntu/bionic64/csharp-driver'
           dotnet: ['net452', 'net461']
