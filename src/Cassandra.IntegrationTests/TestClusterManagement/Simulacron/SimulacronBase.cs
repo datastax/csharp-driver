@@ -73,7 +73,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
             return bodyStr;
         }
 
-        protected static async Task<JObject> Put(string url, object body)
+        protected static async Task<JObject> PutAsync(string url, object body)
         {
             var bodyStr = SimulacronBase.GetJsonFromObject(body);
             var content = new StringContent(bodyStr, Encoding.UTF8, "application/json");
@@ -92,7 +92,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
             }
         }
 
-        protected static async Task<T> Get<T>(string url)
+        protected static async Task<T> GetAsync<T>(string url)
         {
             using (var client = new HttpClient())
             {
@@ -130,7 +130,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
 
         public Task<SimulacronClusterLogs> GetLogsAsync()
         {
-            return SimulacronBase.Get<SimulacronClusterLogs>(GetPath("log"));
+            return SimulacronBase.GetAsync<SimulacronClusterLogs>(GetPath("log"));
         }
 
         public Task<JObject> PrimeAsync(IPrimeRequest request)
@@ -150,7 +150,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
         
         public Task<dynamic> GetConnectionsAsync()
         {
-            return SimulacronBase.Get<dynamic>(GetPath("connections"));
+            return SimulacronBase.GetAsync<dynamic>(GetPath("connections"));
         }
 
         public Task DisableConnectionListener(int attempts = 0, string type = "unbind")
@@ -160,7 +160,18 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
 
         public Task<JObject> EnableConnectionListener(int attempts = 0, string type = "unbind")
         {
-            return Put(GetPath("listener") + "?after=" + attempts + "&type=" + type, null);
+            return SimulacronBase.PutAsync(GetPath("listener") + "?after=" + attempts + "&type=" + type, null);
+        }
+
+        public Task PauseReadsAsync()
+        {
+            return SimulacronBase.PutAsync(GetPath("pause-reads"), null);
+        }
+        
+
+        public Task ResumeReadsAsync()
+        {
+            return SimulacronBase.DeleteAsync(GetPath("pause-reads"));
         }
 
         public IList<RequestLog> GetQueries(string query, QueryType? queryType = QueryType.Query)

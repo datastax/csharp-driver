@@ -59,6 +59,16 @@ namespace Cassandra.Connections
         IConnectionEndPoint EndPoint { get; }
 
         IPEndPoint LocalAddress { get; }
+        
+        /// <summary>
+        /// Length of the internal write queue (expensive operation!)
+        /// </summary>
+        int WriteQueueLength { get; }
+        
+        /// <summary>
+        /// Length of the internal write queue (expensive operation!)
+        /// </summary>
+        int PendingOperationsMapLength { get; }
 
         /// <summary>
         /// Determines the amount of operations that are not finished.

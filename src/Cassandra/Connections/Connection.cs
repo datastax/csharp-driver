@@ -120,6 +120,10 @@ namespace Cassandra.Connections
 
         public IPEndPoint LocalAddress => _tcpSocket.GetLocalIpEndPoint();
 
+        public int WriteQueueLength => _writeQueue.Count;
+        
+        public int PendingOperationsMapLength => _pendingOperations.Count;
+
         /// <summary>
         /// Determines the amount of operations that are not finished.
         /// </summary>
