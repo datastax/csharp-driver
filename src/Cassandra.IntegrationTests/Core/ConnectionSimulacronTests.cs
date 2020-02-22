@@ -250,31 +250,30 @@ namespace Cassandra.IntegrationTests.Core
             await TestCluster.PauseReadsAsync().ConfigureAwait(false);
 
             // send number of requests = max pending
-            var allRequests =
+            var requests =
                 Enumerable.Repeat(0, maxRequestsPerConnection * Session.Cluster.AllHosts().Count)
                           .Select(i => Session.ExecuteAsync(new SimpleStatement("INSERT INTO table1 (id) VALUES (?)", tenKbBuffer))).ToList();
 
-            var requests = allRequests.Where(t => !t.IsFaulted && !t.IsCompleted).ToList();
-            Assert.Greater(requests.Count, 1);
+            var failedRequests = requests.Where(t => !t.IsFaulted && !t.IsCompleted).ToList();
+            Assert.Greater(failedRequests.Count, 1);
+            
+            var pools = InternalSession.GetPools().ToList();
+            var connections = pools.SelectMany(kvp => kvp.Value.ConnectionsSnapshot).ToList();
 
+            await AssertRetryUntilWriteQueueStabilizesAsync(connections).ConfigureAwait(false);
+
+            Assert.IsTrue(connections.All(c => c.WriteQueueLength > 0));
+            Assert.AreEqual(failedRequests.Count, connections.Sum(c => c.InFlight));
+            Assert.IsTrue(failedRequests.All(t => !t.IsCompleted && !t.IsFaulted));
+            var writeQueueSizes = connections.ToDictionary(c => c, c => c.WriteQueueLength, ReferenceEqualityComparer<IConnection>.Instance);
+
+            // these should fail because we have hit max pending ops
+            var moreRequests =
+                Enumerable.Range(0, 100)
+                          .Select(i => Session.ExecuteAsync(new SimpleStatement("INSERT INTO table1 (id) VALUES (?)", tenKbBuffer)))
+                          .ToList();
             try
             {
-                var pools = InternalSession.GetPools().ToList();
-                var connections = pools.SelectMany(kvp => kvp.Value.ConnectionsSnapshot).ToList();
-
-                await AssertRetryUntilWriteQueueStabilizesAsync(connections).ConfigureAwait(false);
-
-                Assert.IsTrue(connections.All(c => c.WriteQueueLength > 0));
-                Assert.AreEqual(requests.Count, connections.Sum(c => c.InFlight));
-                Assert.IsTrue(requests.All(t => !t.IsCompleted && !t.IsFaulted));
-                var writeQueueSizes = connections.ToDictionary(c => c, c => c.WriteQueueLength, ReferenceEqualityComparer<IConnection>.Instance);
-
-                // these should fail because we have hit max pending ops
-                var moreRequests =
-                    Enumerable.Range(0, 100)
-                              .Select(i => Session.ExecuteAsync(new SimpleStatement("INSERT INTO table1 (id) VALUES (?)", tenKbBuffer)))
-                              .ToList();
-
                 try
                 {
                     await Task.WhenAny(Task.WhenAll(moreRequests), Task.Delay(5000)).ConfigureAwait(false);
@@ -284,10 +283,18 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     // ignored
                 }
+                
+                var moreFailedRequests = moreRequests.Where(t => t.IsFaulted).ToList();
+                Assert.IsTrue(failedRequests.All(t => !t.IsCompleted && !t.IsFaulted));
+                Assert.Greater(moreFailedRequests.Count, 1);
 
-                Assert.IsTrue(requests.All(t => !t.IsCompleted && !t.IsFaulted));
+                // in some cases (Linux) the first couple of requests complete successfully after pause-reads endpoint is invoked on simulacron
+                // so a couple of the requests in the moreRequests var will be pending and the remaining will get a busypoolexception
+                Assert.AreEqual(maxRequestsPerConnection * Session.Cluster.AllHosts().Count, failedRequests.Count + moreRequests.Count - moreFailedRequests.Count);
+                Assert.AreEqual(maxRequestsPerConnection * Session.Cluster.AllHosts().Count, connections.Sum(c => c.InFlight));
+                
                 // ReSharper disable once PossibleNullReferenceException
-                Assert.IsTrue(moreRequests.All(t => t.IsFaulted && ((NoHostAvailableException)t.Exception.InnerException).Errors.All(e => e.Value is BusyPoolException)));
+                Assert.IsTrue(moreFailedRequests.All(t => t.IsFaulted && ((NoHostAvailableException)t.Exception.InnerException).Errors.All(e => e.Value is BusyPoolException)));
                 var newWriteQueueSizes =
                     connections.ToDictionary(c => c, c => c.WriteQueueLength, ReferenceEqualityComparer<IConnection>.Instance);
 
@@ -296,14 +303,14 @@ namespace Cassandra.IntegrationTests.Core
                     Assert.AreEqual(newWriteQueueSizes[kvp.Key], kvp.Value);
                 }
 
-                Assert.AreEqual(requests.Count, connections.Sum(c => c.InFlight));
+                Assert.AreEqual(failedRequests.Count, connections.Sum(c => c.InFlight));
                 Assert.IsTrue(connections.All(c => c.WriteQueueLength >= 1));
             }
             finally
             {
                 await TestCluster.ResumeReadsAsync().ConfigureAwait(false);
-                await (await Task.WhenAny(Task.WhenAll(allRequests), Task.Delay(5000)).ConfigureAwait(false)).ConfigureAwait(false);
-                Assert.IsTrue(allRequests.All(t => t.IsCompleted && !t.IsFaulted && !t.IsCanceled));
+                await (await Task.WhenAny(Task.WhenAll(requests.Union(moreRequests.Where(t => !t.IsCompleted && !t.IsFaulted))), Task.Delay(5000)).ConfigureAwait(false)).ConfigureAwait(false);
+                Assert.IsTrue(requests.All(t => t.IsCompleted && !t.IsFaulted && !t.IsCanceled));
             }
         }
 
