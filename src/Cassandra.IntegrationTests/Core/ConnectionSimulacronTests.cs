@@ -15,8 +15,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
@@ -27,7 +25,7 @@ using Cassandra.Tasks;
 using Cassandra.Tests;
 
 using Castle.Core;
-using Newtonsoft.Json;
+
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
@@ -37,13 +35,13 @@ namespace Cassandra.IntegrationTests.Core
         public ConnectionSimulacronTests() : base(false, new SimulacronOptions { Nodes = "3" }, false)
         {
         }
-        
+
         [TestCase(false)]
         [TestCase(true)]
         [Test]
         public async Task Should_ThrowOperationTimedOut_When_ServerAppliesTcpBackPressure(bool streamMode)
         {
-            SetupNewSession(b => 
+            SetupNewSession(b =>
                 b.WithPoolingOptions(
                      new PoolingOptions()
                          .SetCoreConnectionsPerHost(HostDistance.Local, 1)
@@ -69,7 +67,6 @@ namespace Cassandra.IntegrationTests.Core
             try
             {
                 await (await Task.WhenAny(taskAll, Task.Delay(60000)).ConfigureAwait(false)).ConfigureAwait(false);
-                Trace.Flush();
                 Assert.Fail("Should time out.");
             }
             catch (NoHostAvailableException)
@@ -77,12 +74,15 @@ namespace Cassandra.IntegrationTests.Core
                 // ignored
             }
 
+            requests = requests.Where(t => t.IsFaulted).ToList();
+
+            Assert.Greater(requests.Count, 1);
+
             Assert.IsTrue(requests.All(
-                t => t.IsFaulted
-                     && ((NoHostAvailableException)t.Exception.InnerException)
+                t => ((NoHostAvailableException)t.Exception.InnerException)
                         .Errors.Any(e => e.Value is OperationTimedOutException)));
         }
-        
+
         [TestCase(false)]
         [TestCase(true)]
         [Test]
@@ -90,7 +90,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             var pausedNode = TestCluster.GetNode(2);
 
-            SetupNewSession(b => 
+            SetupNewSession(b =>
                 b.WithPoolingOptions(
                      new PoolingOptions()
                          .SetCoreConnectionsPerHost(HostDistance.Local, 1)
@@ -101,7 +101,7 @@ namespace Cassandra.IntegrationTests.Core
                          .SetStreamMode(streamMode)
                          .SetDefunctReadTimeoutThreshold(int.MaxValue)));
 
-            var maxRequestsPerConnection = 
+            var maxRequestsPerConnection =
                 Session.Cluster.Configuration
                        .GetOrCreatePoolingOptions(Session.Cluster.Metadata.ControlConnection.ProtocolVersion)
                        .GetMaxRequestsPerConnection();
@@ -140,7 +140,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.IsTrue(pausedNodeConnections.All(c => c.WriteQueueLength > 0));
             Assert.IsTrue(pausedNodeConnections.All(c => c.PendingOperationsMapLength > 0));
         }
-        
+
         [TestCase(false)]
         [TestCase(true)]
         [Test]
@@ -150,7 +150,7 @@ namespace Cassandra.IntegrationTests.Core
 
             const string profileName = "running-nodes";
 
-            SetupNewSession(b => 
+            SetupNewSession(b =>
                 b.WithPoolingOptions(
                      new PoolingOptions()
                          .SetCoreConnectionsPerHost(HostDistance.Local, 1)
@@ -165,7 +165,7 @@ namespace Cassandra.IntegrationTests.Core
                              new TestBlackListLbp(
                                  Cassandra.Policies.NewDefaultLoadBalancingPolicy("dc1"))))));
 
-            var maxRequestsPerConnection = 
+            var maxRequestsPerConnection =
                 Session.Cluster.Configuration
                        .GetOrCreatePoolingOptions(Session.Cluster.Metadata.ControlConnection.ProtocolVersion)
                        .GetMaxRequestsPerConnection();
@@ -203,7 +203,7 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.IsTrue(pausedNodeConnections.All(c => c.InFlight > 0));
                 Assert.IsTrue(pausedNodeConnections.All(c => c.WriteQueueLength > 0));
                 Assert.IsTrue(pausedNodeConnections.All(c => c.PendingOperationsMapLength > 0));
-                
+
                 var writeQueueLengths = pausedNodeConnections.Select(c => c.WriteQueueLength);
 
                 Assert.AreEqual(pausedNodeConnections.Sum(c => c.InFlight), requests.Count(t => !t.IsCompleted && !t.IsFaulted));
@@ -233,7 +233,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public async Task Should_KeepOperationsInWriteQueue_When_ServerAppliesTcpBackPressure(bool streamMode)
         {
-            SetupNewSession(b => 
+            SetupNewSession(b =>
                 b.WithPoolingOptions(
                      new PoolingOptions()
                          .SetCoreConnectionsPerHost(HostDistance.Local, 1)
@@ -250,9 +250,12 @@ namespace Cassandra.IntegrationTests.Core
             await TestCluster.PauseReadsAsync().ConfigureAwait(false);
 
             // send number of requests = max pending
-            var requests =
+            var allRequests =
                 Enumerable.Repeat(0, maxRequestsPerConnection * Session.Cluster.AllHosts().Count)
                           .Select(i => Session.ExecuteAsync(new SimpleStatement("INSERT INTO table1 (id) VALUES (?)", tenKbBuffer))).ToList();
+
+            var requests = allRequests.Where(t => !t.IsFaulted && !t.IsCompleted).ToList();
+            Assert.Greater(requests.Count, 1);
 
             try
             {
@@ -260,7 +263,7 @@ namespace Cassandra.IntegrationTests.Core
                 var connections = pools.SelectMany(kvp => kvp.Value.ConnectionsSnapshot).ToList();
 
                 await AssertRetryUntilWriteQueueStabilizesAsync(connections).ConfigureAwait(false);
-                
+
                 Assert.IsTrue(connections.All(c => c.WriteQueueLength > 0));
                 Assert.AreEqual(requests.Count, connections.Sum(c => c.InFlight));
                 Assert.IsTrue(requests.All(t => !t.IsCompleted && !t.IsFaulted));
@@ -284,7 +287,7 @@ namespace Cassandra.IntegrationTests.Core
 
                 Assert.IsTrue(requests.All(t => !t.IsCompleted && !t.IsFaulted));
                 // ReSharper disable once PossibleNullReferenceException
-                Assert.IsTrue(moreRequests.All(t => t.IsFaulted && ((NoHostAvailableException)t.Exception.InnerException).Errors.All( e => e.Value is BusyPoolException)));
+                Assert.IsTrue(moreRequests.All(t => t.IsFaulted && ((NoHostAvailableException)t.Exception.InnerException).Errors.All(e => e.Value is BusyPoolException)));
                 var newWriteQueueSizes =
                     connections.ToDictionary(c => c, c => c.WriteQueueLength, ReferenceEqualityComparer<IConnection>.Instance);
 
@@ -299,8 +302,8 @@ namespace Cassandra.IntegrationTests.Core
             finally
             {
                 await TestCluster.ResumeReadsAsync().ConfigureAwait(false);
-                await (await Task.WhenAny(Task.WhenAll(requests), Task.Delay(5000)).ConfigureAwait(false)).ConfigureAwait(false);
-                Assert.IsTrue(requests.All(t => t.IsCompleted && !t.IsFaulted && !t.IsCanceled));
+                await (await Task.WhenAny(Task.WhenAll(allRequests), Task.Delay(5000)).ConfigureAwait(false)).ConfigureAwait(false);
+                Assert.IsTrue(allRequests.All(t => t.IsCompleted && !t.IsFaulted && !t.IsCanceled));
             }
         }
 

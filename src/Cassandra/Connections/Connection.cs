@@ -804,8 +804,19 @@ namespace Cassandra.Connections
             
             if (state.TimeoutMillis > 0)
             {
-                var requestTimeout = Configuration.Timer.NewTimeout(OnTimeout, state, state.TimeoutMillis);
-                state.SetTimeout(requestTimeout);
+                // timer can be disposed while connection cancellation hasn't been invoked yet
+                try
+                {
+                    var requestTimeout = Configuration.Timer.NewTimeout(OnTimeout, state, state.TimeoutMillis);
+                    state.SetTimeout(requestTimeout);
+                }
+                catch (Exception ex)
+                {
+                    // Avoid calling back before returning
+                    Task.Factory.StartNew(() => callback(RequestError.CreateClientError(ex, true), null),
+                        CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
+                    return null;
+                }
             }
 
             RunWriteQueue();
