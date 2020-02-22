@@ -97,7 +97,7 @@ namespace Cassandra.IntegrationTests.Core
                          .SetMaxConnectionsPerHost(HostDistance.Local, 1))
                  .WithSocketOptions(
                      new SocketOptions()
-                         .SetReadTimeoutMillis(300)
+                         .SetReadTimeoutMillis(2000)
                          .SetStreamMode(streamMode)
                          .SetDefunctReadTimeoutThreshold(int.MaxValue)));
 
