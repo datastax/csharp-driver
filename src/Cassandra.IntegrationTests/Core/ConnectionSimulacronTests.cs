@@ -15,8 +15,11 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 
 using Cassandra.Connections;
@@ -239,95 +242,125 @@ namespace Cassandra.IntegrationTests.Core
                          .SetCoreConnectionsPerHost(HostDistance.Local, 1)
                          .SetMaxConnectionsPerHost(HostDistance.Local, 1))
                  .WithSocketOptions(new SocketOptions()
-                                    .SetReadTimeoutMillis(120000)
+                                    .SetReadTimeoutMillis(360000)
                                     .SetStreamMode(streamMode)));
 
             var maxRequestsPerConnection = Session.Cluster.Configuration
                                                   .GetOrCreatePoolingOptions(Session.Cluster.Metadata.ControlConnection.ProtocolVersion)
                                                   .GetMaxRequestsPerConnection();
+            
             var tenKbBuffer = new byte[10240];
 
             await TestCluster.PauseReadsAsync().ConfigureAwait(false);
-
-            // send number of requests = max pending
-            var requests =
-                Enumerable.Repeat(0, maxRequestsPerConnection * Session.Cluster.AllHosts().Count)
-                          .Select(i => Session.ExecuteAsync(new SimpleStatement("INSERT INTO table1 (id) VALUES (?)", tenKbBuffer))).ToList();
-
-            var failedRequests = requests.Where(t => !t.IsFaulted && !t.IsCompleted).ToList();
-            Assert.Greater(failedRequests.Count, 1);
             
             var pools = InternalSession.GetPools().ToList();
             var connections = pools.SelectMany(kvp => kvp.Value.ConnectionsSnapshot).ToList();
+            var requests = new List<Task>();
 
-            await AssertRetryUntilWriteQueueStabilizesAsync(connections).ConfigureAwait(false);
+            using (var cts = new CancellationTokenSource())
+            {
+                var task = Task.Run(
+                    async () =>
+                    {
+                        while (!cts.IsCancellationRequested)
+                        {
+                            requests.Add(Session.ExecuteAsync(new SimpleStatement("INSERT INTO table1 (id) VALUES (?)", tenKbBuffer)));
+                            await Task.Yield();
+                        }
+                    },
+                    cts.Token);
+
+                await AssertRetryUntilWriteQueueStabilizesAsync(connections, maxRequestsPerConnection).ConfigureAwait(false);
+                cts.Cancel();
+                await task.ConfigureAwait(false);
+            }
 
             Assert.IsTrue(connections.All(c => c.WriteQueueLength > 0));
-            Assert.AreEqual(failedRequests.Count, connections.Sum(c => c.InFlight));
-            Assert.IsTrue(failedRequests.All(t => !t.IsCompleted && !t.IsFaulted));
             var writeQueueSizes = connections.ToDictionary(c => c, c => c.WriteQueueLength, ReferenceEqualityComparer<IConnection>.Instance);
+            var pendingOps = connections.ToDictionary(c => c, c => c.PendingOperationsMapLength, ReferenceEqualityComparer<IConnection>.Instance);
 
             // these should fail because we have hit max pending ops
             var moreRequests =
                 Enumerable.Range(0, 100)
-                          .Select(i => Session.ExecuteAsync(new SimpleStatement("INSERT INTO table1 (id) VALUES (?)", tenKbBuffer)))
+                          .Select(i => Task.Run(() => Session.ExecuteAsync(new SimpleStatement("INSERT INTO table1 (id) VALUES (?)", tenKbBuffer))))
                           .ToList();
             try
             {
                 try
                 {
-                    await Task.WhenAny(Task.WhenAll(moreRequests), Task.Delay(5000)).ConfigureAwait(false);
+                    await (await Task.WhenAny(Task.WhenAll(moreRequests), Task.Delay(15000)).ConfigureAwait(false)).ConfigureAwait(false);
                     Assert.Fail("Should throw exception.");
                 }
-                catch
+                catch (NoHostAvailableException)
                 {
                     // ignored
                 }
-                
                 var moreFailedRequests = moreRequests.Where(t => t.IsFaulted).ToList();
-                Assert.IsTrue(failedRequests.All(t => !t.IsCompleted && !t.IsFaulted));
                 Assert.Greater(moreFailedRequests.Count, 1);
-
-                // in some cases (Linux) the first couple of requests complete successfully after pause-reads endpoint is invoked on simulacron
-                // so a couple of the requests in the moreRequests var will be pending and the remaining will get a busypoolexception
-                Assert.AreEqual(maxRequestsPerConnection * Session.Cluster.AllHosts().Count, failedRequests.Count + moreRequests.Count - moreFailedRequests.Count);
-                Assert.AreEqual(maxRequestsPerConnection * Session.Cluster.AllHosts().Count, connections.Sum(c => c.InFlight));
+                Assert.AreEqual(moreRequests.Count, moreFailedRequests.Count);
+                
+                Assert.GreaterOrEqual(connections.Sum(c => c.InFlight), maxRequestsPerConnection * Session.Cluster.AllHosts().Count);
                 
                 // ReSharper disable once PossibleNullReferenceException
                 Assert.IsTrue(moreFailedRequests.All(t => t.IsFaulted && ((NoHostAvailableException)t.Exception.InnerException).Errors.All(e => e.Value is BusyPoolException)));
                 var newWriteQueueSizes =
                     connections.ToDictionary(c => c, c => c.WriteQueueLength, ReferenceEqualityComparer<IConnection>.Instance);
+                var newPendingsOps =
+                    connections.ToDictionary(c => c, c => c.PendingOperationsMapLength, ReferenceEqualityComparer<IConnection>.Instance);
 
                 foreach (var kvp in writeQueueSizes)
                 {
-                    Assert.AreEqual(newWriteQueueSizes[kvp.Key], kvp.Value);
+                    Assert.GreaterOrEqual(newWriteQueueSizes[kvp.Key], kvp.Value);
+                    Assert.Greater(newWriteQueueSizes[kvp.Key], 1);
                 }
-
-                Assert.AreEqual(failedRequests.Count, connections.Sum(c => c.InFlight));
-                Assert.IsTrue(connections.All(c => c.WriteQueueLength >= 1));
+                
+                foreach (var kvp in pendingOps)
+                {
+                    Assert.AreEqual(newPendingsOps[kvp.Key], kvp.Value);
+                    Assert.Greater(newPendingsOps[kvp.Key], 1);
+                }
             }
             finally
             {
                 await TestCluster.ResumeReadsAsync().ConfigureAwait(false);
-                await (await Task.WhenAny(Task.WhenAll(requests.Union(moreRequests.Where(t => !t.IsCompleted && !t.IsFaulted))), Task.Delay(5000)).ConfigureAwait(false)).ConfigureAwait(false);
-                Assert.IsTrue(requests.All(t => t.IsCompleted && !t.IsFaulted && !t.IsCanceled));
+                try
+                {
+                    await (await Task.WhenAny(Task.WhenAll(requests), Task.Delay(15000)).ConfigureAwait(false)).ConfigureAwait(false);
+                }
+                catch (NoHostAvailableException)
+                {
+                }
+
+                Assert.AreEqual(
+                    requests.Count, 
+                    requests.Count(t => t.IsCompleted && !t.IsFaulted && !t.IsCanceled) 
+                    + requests.Count(t => t.IsFaulted && 
+                                          ((NoHostAvailableException)t.Exception.InnerException)
+                                          .Errors.All(e => e.Value is BusyPoolException)));
             }
         }
 
-        private async Task AssertRetryUntilWriteQueueStabilizesAsync(IEnumerable<IConnection> connections, int msPerRetry = 1000, int maxRetries = 60)
+        private async Task AssertRetryUntilWriteQueueStabilizesAsync(
+            IEnumerable<IConnection> connections, int? maxPerConnection = null, int msPerRetry = 1000, int maxRetries = 30)
         {
             foreach (var connection in connections)
             {
-                var lastValue = connection.WriteQueueLength;
+                var lastWriteQueueValue = connection.WriteQueueLength;
                 await Task.Delay(msPerRetry).ConfigureAwait(false);
                 await TestHelper.RetryAssertAsync(
                     () =>
                     {
                         var currentValue = connection.WriteQueueLength;
-                        var tempLastValue = lastValue;
-                        lastValue = currentValue;
+                        var tempLastValue = lastWriteQueueValue;
+                        lastWriteQueueValue = currentValue;
 
                         Assert.AreEqual(tempLastValue, currentValue);
+
+                        if (maxPerConnection.HasValue)
+                        {
+                            Assert.GreaterOrEqual(connection.InFlight, maxPerConnection);
+                        }
+
                         return TaskHelper.Completed;
                     },
                     msPerRetry,
