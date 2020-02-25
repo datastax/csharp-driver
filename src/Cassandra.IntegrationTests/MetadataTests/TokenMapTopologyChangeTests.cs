@@ -48,11 +48,13 @@ namespace Cassandra.IntegrationTests.MetadataTests
                 ClusterObjSync = Cluster.Builder()
                                         .AddContactPoint(TestCluster.InitialContactPoint)
                                         .WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(true))
+                                        .WithReconnectionPolicy(new ConstantReconnectionPolicy(5000))
                                         .Build();
 
                 ClusterObjNotSync = Cluster.Builder()
                                            .AddContactPoint(TestCluster.InitialContactPoint)
                                            .WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(false))
+                                           .WithReconnectionPolicy(new ConstantReconnectionPolicy(5000))
                                            .Build();
 
                 var sessionNotSync = ClusterObjNotSync.Connect();
@@ -84,9 +86,7 @@ namespace Cassandra.IntegrationTests.MetadataTests
 
                 var oldTokenMapNotSync = ClusterObjNotSync.Metadata.TokenToReplicasMap;
                 var oldTokenMapSync = ClusterObjSync.Metadata.TokenToReplicasMap;
-
-                this.TestCluster.Stop(1);
-
+                
                 if (TestClusterManager.SupportsDecommissionForcefully())
                 {
                     this.TestCluster.DecommissionNodeForcefully(1);
