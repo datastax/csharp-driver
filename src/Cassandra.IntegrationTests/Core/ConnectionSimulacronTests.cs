@@ -395,28 +395,5 @@ namespace Cassandra.IntegrationTests.Core
                 return plan.Where(h => !_blacklisted.Contains(h.Address));
             }
         }
-
-        private class NeverRetryPolicy : IExtendedRetryPolicy
-        {
-            public RetryDecision OnReadTimeout(IStatement query, ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved, int nbRetry)
-            {
-                return RetryDecision.Rethrow();
-            }
-
-            public RetryDecision OnWriteTimeout(IStatement query, ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry)
-            {
-                return RetryDecision.Rethrow();
-            }
-
-            public RetryDecision OnUnavailable(IStatement query, ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
-            {
-                return RetryDecision.Rethrow();
-            }
-
-            public RetryDecision OnRequestError(IStatement statement, Configuration config, Exception ex, int nbRetry)
-            {
-                return RetryDecision.Rethrow();
-            }
-        }
     }
 }

@@ -95,7 +95,7 @@ namespace Cassandra
 
         public bool CanBeWritten()
         {
-            return Interlocked.CompareExchange(ref _state, 0, 0) == OperationState.StateInit;
+            return Volatile.Read(ref _state) == OperationState.StateInit;
         }
 
         /// <summary>
