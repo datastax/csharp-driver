@@ -22,7 +22,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.DataStax.Auth
 {
-    [Category("short"), TestDseVersion(5, 1)]
+    [Category("short"), TestDseVersion(5, 1), Category("serverapi")]
     public class ProxyAuthenticationTests : TestGlobals
     {
         private ITestCluster _testCluster;

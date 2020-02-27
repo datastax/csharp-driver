@@ -29,7 +29,7 @@ using Cassandra.Tests;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [Category("short"), Category("realcluster")]
+    [Category("short"), Category("realcluster"), Category("serverapi")]
     public class PreparedStatementsTests : SharedClusterTest
     {
         private readonly string _tableName = "tbl" + Guid.NewGuid().ToString("N").ToLower();

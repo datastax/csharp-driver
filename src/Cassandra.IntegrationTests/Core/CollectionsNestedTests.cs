@@ -23,7 +23,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [Category("short"), Category("realcluster")]
+    [Category("short"), Category("realcluster"), Category("serverapi")]
     public class CollectionsNestedTests : SharedClusterTest
     {
         [Test, TestCassandraVersion(2, 1, 3)]

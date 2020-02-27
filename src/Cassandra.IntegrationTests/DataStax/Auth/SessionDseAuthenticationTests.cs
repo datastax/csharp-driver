@@ -28,7 +28,7 @@ namespace Cassandra.IntegrationTests.DataStax.Auth
     /// <summary>
     /// Test Cassandra Authentication.
     /// </summary>
-    [TestFixture, Category("short")]
+    [TestFixture, Category("short"), Category("serverapi")]
     public class SessionDseAuthenticationTests : TestGlobals
     {
         private Lazy<ITestCluster> _testClusterForDseAuthTesting;
