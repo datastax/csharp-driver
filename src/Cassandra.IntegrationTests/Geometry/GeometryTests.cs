@@ -23,7 +23,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Geometry
 {
-    [TestDseVersion(5, 0), Category("short")]
+    [TestDseVersion(5, 0), Category("short"), Category("serverapi")]
     public abstract class GeometryTests<T> : SharedClusterTest
     {
         protected abstract T[] Values { get; }

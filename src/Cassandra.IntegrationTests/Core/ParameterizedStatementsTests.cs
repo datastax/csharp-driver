@@ -25,7 +25,7 @@ using Cassandra.Serialization;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [Category("short"), Category("realcluster")]
+    [Category("short"), Category("realcluster"), Category("serverapi")]
     [TestCassandraVersion(2, 0)]
     public class ParameterizedStatementsTests : SharedClusterTest
     {

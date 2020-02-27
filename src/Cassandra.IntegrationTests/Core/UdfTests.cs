@@ -28,7 +28,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestFixture, Category("short"), Category("realcluster")]
+    [TestFixture, Category("short"), Category("realcluster"), Category("serverapi")]
     public class UdfTests : TestGlobals
     {
         private ITestCluster _testCluster;

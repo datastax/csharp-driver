@@ -24,7 +24,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.DataStax.Search
 {
-    [Category("short"), TestDseVersion(5, 1)]
+    [Category("short"), TestDseVersion(5, 1), Category("serverapi")]
     public class DateRangeTests : SharedClusterTest
     {
         private static readonly string[] Values = new[]

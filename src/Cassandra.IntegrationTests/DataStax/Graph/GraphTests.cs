@@ -30,7 +30,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.DataStax.Graph
 {
-    [TestFixture, TestDseVersion(5, 0), Category("short")]
+    [TestFixture, TestDseVersion(5, 0), Category("short"), Category("serverapi")]
     public class GraphTests : BaseIntegrationTest
     {
         private const string GraphName = "graph1";

@@ -25,7 +25,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [Category("short"), Category("realcluster")]
+    [Category("short"), Category("realcluster"), Category("serverapi")]
     public class TimeUuidSerializationTests : SharedClusterTest
     {
         private const string AllTypesTableName = "all_formats_table";

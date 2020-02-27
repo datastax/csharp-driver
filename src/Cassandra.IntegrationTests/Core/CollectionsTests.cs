@@ -27,7 +27,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [Category("short"), Category("realcluster")]
+    [Category("short"), Category("realcluster"), Category("serverapi")]
     public class CollectionsTests : SharedClusterTest
     {
         private const string AllTypesTableName = "all_types_table_collections";

@@ -27,7 +27,7 @@ using SortOrder = Cassandra.DataCollectionMetadata.SortOrder;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestFixture, Category("short"), Category("realcluster")]
+    [TestFixture, Category("short"), Category("realcluster"), Category("serverapi")]
     public class SchemaMetadataTests : SharedClusterTest
     {
         protected override string[] SetupQueries
