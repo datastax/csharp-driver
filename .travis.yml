@@ -14,7 +14,7 @@ matrix:
   include:
     - dotnet: 2.2.204
       env: TARGETF="netcoreapp2.1" BUILD_EXAMPLES="1" BuildCoreOnly=True NETCORE_RUNTIME="2.1"
-    - dotnet: 2.1.202
+    - dotnet: 2.1.804
       env: TARGETF="netcoreapp2.0" BUILD_EXAMPLES="0" BuildCoreOnly=True NETCORE_RUNTIME="2.0"
       
 
