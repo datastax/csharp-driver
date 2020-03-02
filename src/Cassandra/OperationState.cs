@@ -93,6 +93,11 @@ namespace Cassandra
             return frameLength;
         }
 
+        public bool CanBeWritten()
+        {
+            return Volatile.Read(ref _state) == OperationState.StateInit;
+        }
+
         /// <summary>
         /// Marks this operation as completed and returns the callback.
         /// Note that the returned callback might be a reference to <see cref="Noop"/>, as the original callback

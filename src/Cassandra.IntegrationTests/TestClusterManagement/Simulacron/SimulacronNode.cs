@@ -59,7 +59,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
 
         public Task Start()
         {
-            return Put($"/listener/{Id}", null);
+            return SimulacronBase.PutAsync($"/listener/{Id}", null);
         }
         
         /// <summary>

@@ -34,7 +34,7 @@ namespace Cassandra.IntegrationTests.Core
         private Cluster _cluster;
         private Session _session;
 
-        private const int MaxSchemaAgreementWaitSeconds = 5;
+        private const int MaxSchemaAgreementWaitSeconds = 10;
 
         public override void OneTimeSetUp()
         {

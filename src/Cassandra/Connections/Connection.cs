@@ -67,7 +67,7 @@ namespace Cassandra.Connections
         /// <summary> Contains the requests that were sent through the wire and that hasn't been received yet.</summary>
         private ConcurrentDictionary<short, OperationState> _pendingOperations;
 
-        /// <summary> It contains the requests that could not be written due to streamIds not available</summary>
+        /// <summary> It contains the requests that have a streamid and are waiting to be written</summary>
         private ConcurrentQueue<OperationState> _writeQueue;
 
         private volatile string _keyspace;
@@ -119,6 +119,10 @@ namespace Cassandra.Connections
         public IConnectionEndPoint EndPoint => _tcpSocket.EndPoint;
 
         public IPEndPoint LocalAddress => _tcpSocket.GetLocalIpEndPoint();
+
+        public int WriteQueueLength => _writeQueue.Count;
+        
+        public int PendingOperationsMapLength => _pendingOperations.Count;
 
         /// <summary>
         /// Determines the amount of operations that are not finished.
@@ -795,7 +799,26 @@ namespace Cassandra.Connections
                 timeoutMillis,
                 _connectionObserver.CreateOperationObserver()
             );
+
             _writeQueue.Enqueue(state);
+            
+            if (state.TimeoutMillis > 0)
+            {
+                // timer can be disposed while connection cancellation hasn't been invoked yet
+                try
+                {
+                    var requestTimeout = Configuration.Timer.NewTimeout(OnTimeout, state, state.TimeoutMillis);
+                    state.SetTimeout(requestTimeout);
+                }
+                catch (Exception ex)
+                {
+                    // Avoid calling back before returning
+                    Task.Factory.StartNew(() => callback(RequestError.CreateClientError(ex, true), null),
+                        CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
+                    return null;
+                }
+            }
+
             RunWriteQueue();
             return state;
         }
@@ -838,12 +861,24 @@ namespace Cassandra.Connections
             var timestamp = GetTimestamp();
             while (totalLength < Connection.CoalescingThreshold)
             {
-                OperationState state;
-                if (!_writeQueue.TryDequeue(out state))
+                OperationState state = null;
+                while (_writeQueue.TryDequeue(out var tempState))
+                {
+                    if (tempState.CanBeWritten())
+                    {
+                        state = tempState;
+                        break;
+                    }
+
+                    DecrementInFlight();
+                }
+
+                if (state == null)
                 {
                     //No more items in the write queue
                     break;
                 }
+
                 short streamId;
                 if (!_freeOperations.TryPop(out streamId))
                 {
@@ -856,6 +891,7 @@ namespace Cassandra.Connections
                 Connection.Logger.Verbose("Sending #{0} for {1} to {2}", streamId, state.Request.GetType().Name, EndPoint.EndpointFriendlyName);
                 if (_isCanceled)
                 {
+                    DecrementInFlight();
                     state.InvokeCallback(RequestError.CreateClientError(new SocketException((int)SocketError.NotConnected), true), timestamp);
                     break;
                 }
@@ -868,11 +904,6 @@ namespace Cassandra.Connections
                     var frameLength = state.WriteFrame(streamId, stream, Serializer, timestamp);
                     _connectionObserver.OnBytesSent(frameLength);
                     totalLength += frameLength;
-                    if (state.TimeoutMillis > 0)
-                    {
-                        var requestTimeout = Configuration.Timer.NewTimeout(OnTimeout, streamId, state.TimeoutMillis);
-                        state.SetTimeout(requestTimeout);
-                    }
                 }
                 catch (Exception ex)
                 {
@@ -979,11 +1010,7 @@ namespace Cassandra.Connections
 
         private void OnTimeout(object stateObj)
         {
-            var streamId = (short)stateObj;
-            if (!_pendingOperations.TryGetValue(streamId, out var state))
-            {
-                return;
-            }
+            var state = (OperationState)stateObj;
             var ex = new OperationTimedOutException(EndPoint, state.TimeoutMillis);
             //Invoke if it hasn't been invoked yet
             //Once the response is obtained, we decrement the timed out counter
