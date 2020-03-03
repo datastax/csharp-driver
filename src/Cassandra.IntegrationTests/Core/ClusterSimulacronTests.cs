@@ -159,52 +159,63 @@ namespace Cassandra.IntegrationTests.Core
             var cachedError = "An error occured during the initialization of the cluster instance. Further initialization attempts " +
                               "for this cluster instance will never succeed and will return this exception instead. The InnerException property holds " +
                               "a reference to the exception that originally caused the initialization error.";
-            using var cluster = Cluster.Builder()
-                                       .AddContactPoint(TestCluster.InitialContactPoint)
-                                       .WithSocketOptions(new SocketOptions()
-                                                          .SetConnectTimeoutMillis(1)
-                                                          .SetMetadataAbortTimeout(1))
-                                       .Build();
-            var ex = Assert.Throws<TimeoutException>(() => cluster.Connect());
-            Assert.AreEqual(timeoutMessage, ex.Message);
-            var ex2 = Assert.Throws<CachedInitErrorException>(() => cluster.Connect("sample_ks"));
-            Assert.AreEqual(cachedError, ex2.Message);
-            Assert.AreEqual(typeof(TimeoutException), ex2.InnerException.GetType());
-            Assert.AreEqual(timeoutMessage, ex2.InnerException.Message);
+            using (var cluster =
+                Cluster.Builder()
+                       .AddContactPoints(Enumerable.Repeat(TestCluster.InitialContactPoint, 100))
+                       .WithSocketOptions(
+                           new SocketOptions()
+                               .SetConnectTimeoutMillis(1)
+                               .SetMetadataAbortTimeout(1))
+                       .Build())
+            {
+                var ex = Assert.Throws<TimeoutException>(() => cluster.Connect());
+                Assert.AreEqual(timeoutMessage, ex.Message);
+                var ex2 = Assert.Throws<CachedInitErrorException>(() => cluster.Connect("sample_ks"));
+                Assert.AreEqual(cachedError, ex2.Message);
+                Assert.AreEqual(typeof(TimeoutException), ex2.InnerException.GetType());
+                Assert.AreEqual(timeoutMessage, ex2.InnerException.Message);
+            }
         }
 
         [Test]
         public void RepeatedClusterConnectCallsAfterTimeoutErrorEventuallyThrowNoHostException()
         {
             TestCluster.DisableConnectionListener(type: "reject_startup");
-            using var cluster = Cluster.Builder()
-                                 .AddContactPoint(TestCluster.InitialContactPoint)
-                                 .WithSocketOptions(new SocketOptions()
-                                                    .SetConnectTimeoutMillis(1)
-                                                    .SetMetadataAbortTimeout(1))
-                                 .Build();
-            Assert.Throws<TimeoutException>(() => cluster.Connect());
-            TestHelper.RetryAssert(
-                () =>
-                {
-                    var ex2 = Assert.Throws<CachedInitErrorException>(() => cluster.Connect("sample_ks"));
-                    Assert.AreEqual(typeof(NoHostAvailableException), ex2.InnerException.GetType());
-                },
-                1000,
-                30);
+            using (var cluster =
+                Cluster.Builder()
+                       .AddContactPoints(Enumerable.Repeat(TestCluster.InitialContactPoint, 100))
+                       .WithSocketOptions(
+                           new SocketOptions()
+                               .SetConnectTimeoutMillis(1)
+                               .SetMetadataAbortTimeout(1))
+                       .Build())
+            {
+                Assert.Throws<TimeoutException>(() => cluster.Connect());
+                TestHelper.RetryAssert(
+                    () =>
+                    {
+                        var ex2 = Assert.Throws<CachedInitErrorException>(() => cluster.Connect("sample_ks"));
+                        Assert.AreEqual(typeof(NoHostAvailableException), ex2.InnerException.GetType());
+                    },
+                    1000,
+                    30);
+            }
         }
 
         [Test]
         public void RepeatedClusterConnectCallsAfterNoHostErrorDontThrowCachedInitErrorException()
         {
             TestCluster.DisableConnectionListener(type: "reject_startup");
-            using var cluster = Cluster.Builder()
-                                 .AddContactPoint(TestCluster.InitialContactPoint)
-                                 .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(1).SetReadTimeoutMillis(1))
-                                 .Build();
-            var ex = Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
-            var ex2 = Assert.Throws<NoHostAvailableException>(() => cluster.Connect("sample_ks"));
-            Assert.AreNotSame(ex, ex2);
+            using (var cluster =
+                Cluster.Builder()
+                       .AddContactPoints(Enumerable.Repeat(TestCluster.InitialContactPoint, 100))
+                       .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(1).SetReadTimeoutMillis(1))
+                       .Build())
+            {
+                var ex = Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
+                var ex2 = Assert.Throws<NoHostAvailableException>(() => cluster.Connect("sample_ks"));
+                Assert.AreNotSame(ex, ex2);
+            }
         }
     }
 }

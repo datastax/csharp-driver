@@ -10,7 +10,6 @@
     <SignAssembly>true</SignAssembly>
     <PackageId>Cassandra.IntegrationTests</PackageId>
     <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
-    <LangVersion>latest</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('$(TargetFramework)', '^net\d'))">
     <DefineConstants>$(DefineConstants);NETFRAMEWORK</DefineConstants>
