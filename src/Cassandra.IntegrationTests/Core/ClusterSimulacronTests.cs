@@ -21,6 +21,7 @@ using System.Net;
 using System.Threading.Tasks;
 
 using Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.Then;
+using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using Cassandra.Tasks;
 using Cassandra.Tests;
 
@@ -30,6 +31,11 @@ namespace Cassandra.IntegrationTests.Core
 {
     public class ClusterSimulacronTests : SimulacronTest
     {
+        public ClusterSimulacronTests() : base(false, new SimulacronOptions() {Nodes = "3"})
+        {
+            
+        }
+
         [Test]
         public void Cluster_Should_Ignore_IpV6_Addresses_For_Not_Valid_Hosts()
         {
@@ -161,11 +167,11 @@ namespace Cassandra.IntegrationTests.Core
                               "a reference to the exception that originally caused the initialization error.";
             using (var cluster =
                 Cluster.Builder()
-                       .AddContactPoints(Enumerable.Repeat(TestCluster.InitialContactPoint, 100))
+                       .AddContactPoints(TestCluster.ContactPoints)
                        .WithSocketOptions(
                            new SocketOptions()
-                               .SetConnectTimeoutMillis(1)
-                               .SetMetadataAbortTimeout(1))
+                               .SetConnectTimeoutMillis(500)
+                               .SetMetadataAbortTimeout(500))
                        .Build())
             {
                 var ex = Assert.Throws<TimeoutException>(() => cluster.Connect());
@@ -183,11 +189,11 @@ namespace Cassandra.IntegrationTests.Core
             TestCluster.DisableConnectionListener(type: "reject_startup");
             using (var cluster =
                 Cluster.Builder()
-                       .AddContactPoints(Enumerable.Repeat(TestCluster.InitialContactPoint, 100))
+                       .AddContactPoints(TestCluster.ContactPoints)
                        .WithSocketOptions(
                            new SocketOptions()
-                               .SetConnectTimeoutMillis(1)
-                               .SetMetadataAbortTimeout(1))
+                               .SetConnectTimeoutMillis(500)
+                               .SetMetadataAbortTimeout(500))
                        .Build())
             {
                 Assert.Throws<TimeoutException>(() => cluster.Connect());
@@ -208,7 +214,7 @@ namespace Cassandra.IntegrationTests.Core
             TestCluster.DisableConnectionListener(type: "reject_startup");
             using (var cluster =
                 Cluster.Builder()
-                       .AddContactPoints(Enumerable.Repeat(TestCluster.InitialContactPoint, 100))
+                       .AddContactPoints(TestCluster.ContactPoints)
                        .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(1).SetReadTimeoutMillis(1))
                        .Build())
             {
