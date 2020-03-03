@@ -62,7 +62,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 var session = cluster.Connect();
                 session.Execute("select * from system.local");
-                Assert.That(cluster.AllHosts().Count, Is.EqualTo(1));
+                Assert.That(cluster.AllHosts().Count, Is.EqualTo(3));
             }
         }
 
