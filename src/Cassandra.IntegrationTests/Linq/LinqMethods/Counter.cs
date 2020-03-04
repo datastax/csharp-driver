@@ -352,6 +352,11 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
                 return WithParams(builder, parameters.Select(p => (p, this)).ToArray());
             }
 
+            public IWhenQueryBuilder WithParams(IWhenQueryBuilder builder)
+            {
+                return WithParams(builder, new string[0]);
+            }
+
             public RowsResult CreateRowsResult()
             {
                 return (RowsResult)AddRow(CounterEntityWithLinqAttributes.GetEmptyRowsResult());
