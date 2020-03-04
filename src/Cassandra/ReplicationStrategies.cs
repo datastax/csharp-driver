@@ -27,7 +27,10 @@ namespace Cassandra
         public const string NetworkTopologyStrategy = "NetworkTopologyStrategy";
         public const string SimpleStrategy = "SimpleStrategy";
 
-
+        // these two are internal because users shouldn't use these
+        internal const string EverywhereStrategy = "EverywhereStrategy";
+        internal const string LocalStrategy = "LocalStrategy";
+        
         /// <summary>
         ///  Returns replication property for SimpleStrategy.
         /// </summary>        
