@@ -174,7 +174,12 @@ namespace Cassandra.IntegrationTests.Core
                                .SetMetadataAbortTimeout(500))
                        .Build())
             {
-                var ex = Assert.Throws<TimeoutException>(() => cluster.Connect());
+                Exception ex = null;
+                TestHelper.RetryAssert(() =>
+                {
+                    ex = Assert.Catch<Exception>(() => cluster.Connect());
+                }, 100, 50);
+                Assert.AreEqual(typeof(TimeoutException), ex.GetType());
                 Assert.AreEqual(timeoutMessage, ex.Message);
                 var ex2 = Assert.Throws<CachedInitErrorException>(() => cluster.Connect("sample_ks"));
                 Assert.AreEqual(cachedError, ex2.Message);
@@ -196,7 +201,12 @@ namespace Cassandra.IntegrationTests.Core
                                .SetMetadataAbortTimeout(500))
                        .Build())
             {
-                Assert.Throws<TimeoutException>(() => cluster.Connect());
+                Exception ex = null;
+                TestHelper.RetryAssert(() =>
+                {
+                    ex = Assert.Catch<Exception>(() => cluster.Connect());
+                }, 100, 50);
+                Assert.AreEqual(typeof(TimeoutException), ex.GetType());
                 TestHelper.RetryAssert(
                     () =>
                     {
@@ -218,6 +228,7 @@ namespace Cassandra.IntegrationTests.Core
                        .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(1).SetReadTimeoutMillis(1))
                        .Build())
             {
+                TestHelper.RetryAssert(() => Assert.Throws<NoHostAvailableException>(() => cluster.Connect()), 100, 50);
                 var ex = Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
                 var ex2 = Assert.Throws<NoHostAvailableException>(() => cluster.Connect("sample_ks"));
                 Assert.AreNotSame(ex, ex2);
