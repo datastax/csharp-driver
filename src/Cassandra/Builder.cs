@@ -1212,10 +1212,19 @@ namespace Cassandra
             var sniOptions = new SniOptions(address, port, isIp ? null : ipOrName);
             
             var builder = this.SetContactPoints(clusterMetadata.ContactInfo.ContactPoints);
-            
-            if (!_addedAuth && bundle.Config.Password != null && bundle.Config.Username != null)
+
+            if (!_addedAuth)
             {
-                builder = builder.WithCredentials(bundle.Config.Username, bundle.Config.Password);
+                if (bundle.Config.Password != null && bundle.Config.Username != null)
+                {
+                    builder = builder.WithCredentials(bundle.Config.Username, bundle.Config.Password);
+                }
+                else
+                {
+                    throw new ArgumentException(
+                        "No credentials were provided. When using the secure connection bundle, " +
+                        "your cluster's credentials must be provided via the Builder.WithCredentials() method.");
+                }
             }
 
             if (!_addedLbp)
