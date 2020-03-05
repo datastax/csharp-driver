@@ -283,19 +283,17 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public void Query_Multiple_Async_Consume_All_StreamIds_Test()
+        public async Task Query_Multiple_Async_Consume_All_StreamIds_Test()
         {
             using (var connection = CreateConnection())
             {
-                connection.Open().Wait();
-                var createKeyspaceTask = Query(connection, "CREATE KEYSPACE ks_conn_consume WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1}");
-                TaskHelper.WaitToComplete(createKeyspaceTask, 3000);
-                var createTableTask = Query(connection, "CREATE TABLE ks_conn_consume.tbl1 (id uuid primary key)");
-                TaskHelper.WaitToComplete(createTableTask, 3000);
+                await connection.Open().ConfigureAwait(false);
+                await Query(connection, "CREATE KEYSPACE ks_conn_consume WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1}")
+                    .ConfigureAwait(false);
+
+                await Query(connection, "CREATE TABLE ks_conn_consume.tbl1 (id uuid primary key)").ConfigureAwait(false);
                 var id = Guid.NewGuid().ToString("D");
-                var insertTask = Query(connection, "INSERT INTO ks_conn_consume.tbl1 (id) VALUES (" + id + ")");
-                TaskHelper.WaitToComplete(insertTask, 3000);
-                Assert.AreEqual(TaskStatus.RanToCompletion, createTableTask.Status);
+                await Query(connection, "INSERT INTO ks_conn_consume.tbl1 (id) VALUES (" + id + ")").ConfigureAwait(false);
                 var taskList = new List<Task>();
                 //Run the query more times than the max allowed
                 var selectQuery = "SELECT id FROM ks_conn_consume.tbl1 WHERE id = " + id;
@@ -305,11 +303,13 @@ namespace Cassandra.IntegrationTests.Core
                 }
                 try
                 {
-                    Task.WaitAll(taskList.ToArray());
+                    await Task.WhenAll(taskList.ToArray()).ConfigureAwait(false);
                 }
-                catch (AggregateException)
+                catch (Exception)
                 {
+                    // ignored
                 }
+
                 Assert.True(taskList.All(t =>
                     t.Status == TaskStatus.RanToCompletion ||
                     (t.Exception != null && t.Exception.InnerException is ReadTimeoutException)), "Not all task completed");
