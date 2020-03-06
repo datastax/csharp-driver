@@ -85,12 +85,12 @@ namespace Cassandra.Metrics
 
             Gauges.ConnectedNodes
         };
-        
+
         /// <summary>
         /// A collection with all session metrics including Timers.
         /// </summary>
         public static readonly IEnumerable<SessionMetric> AllSessionMetrics =
-            SessionMetric.DefaultSessionMetrics.Union(new[] { SessionMetric.Timers.CqlRequests });
+            SessionMetric.DefaultSessionMetrics.Union(new[] { SessionMetric.Timers.CqlRequests }).ToList();
 
         public static class Timers
         {

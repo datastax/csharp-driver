@@ -113,7 +113,7 @@ namespace Cassandra.Metrics
         /// A collection with all node metrics including Timers.
         /// </summary>
         public static readonly IEnumerable<NodeMetric> AllNodeMetrics =
-            NodeMetric.DefaultNodeMetrics.Union(new[] { NodeMetric.Timers.CqlMessages });
+            NodeMetric.DefaultNodeMetrics.Union(new[] { NodeMetric.Timers.CqlMessages }).ToList();
 
         public static class Counters
         {

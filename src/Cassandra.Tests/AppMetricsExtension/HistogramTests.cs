@@ -13,7 +13,7 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-#if NETCOREAPP2_1
+#if !NET452
 using System;
 using System.Linq;
 using System.Threading;
