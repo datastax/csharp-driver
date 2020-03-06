@@ -25,6 +25,22 @@ namespace Cassandra.Metrics
     /// </summary>
     public sealed class SessionMetric : IEquatable<SessionMetric>, IEquatable<IMetric>, IMetric
     {
+        static SessionMetric()
+        {
+            SessionMetric.DefaultSessionMetrics = new[]
+            {
+                Meters.BytesSent,
+                Meters.BytesReceived,
+
+                Counters.CqlClientTimeouts,
+
+                Gauges.ConnectedNodes
+            };
+            
+            SessionMetric.AllSessionMetrics =
+                SessionMetric.DefaultSessionMetrics.Union(new[] { SessionMetric.Timers.CqlRequests }).ToList();
+        }
+
         private readonly int _hashCode;
 
         internal SessionMetric(string name)
@@ -72,25 +88,16 @@ namespace Cassandra.Metrics
         {
             return string.Equals(Name, other.Name);
         }
+        
+        /// <summary>
+        /// A collection with all session metrics including Timers.
+        /// </summary>
+        public static readonly IEnumerable<SessionMetric> AllSessionMetrics;
 
         /// <summary>
         /// A collection with all session metrics except Timers.
         /// </summary>
-        public static readonly IEnumerable<SessionMetric> DefaultSessionMetrics = new[]
-        {
-            Meters.BytesSent,
-            Meters.BytesReceived,
-
-            Counters.CqlClientTimeouts,
-
-            Gauges.ConnectedNodes
-        };
-
-        /// <summary>
-        /// A collection with all session metrics including Timers.
-        /// </summary>
-        public static readonly IEnumerable<SessionMetric> AllSessionMetrics =
-            SessionMetric.DefaultSessionMetrics.Union(new[] { SessionMetric.Timers.CqlRequests }).ToList();
+        public static readonly IEnumerable<SessionMetric> DefaultSessionMetrics;
 
         public static class Timers
         {
