@@ -199,8 +199,8 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Should_Use_Statement_ReadTimeout()
         {
-            const int generalReadTimeout = 100;
-            const int statementReadTimeout = 5000;
+            const int generalReadTimeout = 1000;
+            const int statementReadTimeout = 6000;
             _testCluster = SimulacronCluster.CreateNew(1);
             var socketOptions = new SocketOptions().SetReadTimeoutMillis(generalReadTimeout);
             var queryOptions = new QueryOptions().SetRetryOnTimeout(false);
@@ -225,8 +225,8 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.Throws<OperationTimedOutException>(() => session.Execute("SELECT key FROM system.local"));
                 stopWatch.Stop();
                 //precision of the timer is not guaranteed
-                Assert.Greater(stopWatch.ElapsedMilliseconds, generalReadTimeout - 4500);
-                Assert.Less(stopWatch.ElapsedMilliseconds, generalReadTimeout + 4500);
+                Assert.Greater(stopWatch.ElapsedMilliseconds, generalReadTimeout - 2000);
+                Assert.Less(stopWatch.ElapsedMilliseconds, generalReadTimeout + 2000);
 
                 //Try with an specified timeout at Statement level
                 var stmt = new SimpleStatement("SELECT key FROM system.local")
