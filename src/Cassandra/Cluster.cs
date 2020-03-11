@@ -227,12 +227,12 @@ namespace Cassandra
                             " between the client driver instance and the cluster. You can increase this timeout via " +
                             "the SocketOptions.ConnectTimeoutMillis config setting. This can also be related to deadlocks " +
                             "caused by mixing synchronous and asynchronous code.", ex);
-                        _initException = new CachedInitErrorException(newEx);
+                        _initException = new InitFatalErrorException(newEx);
                         initTask.ContinueWith(t =>
                         {
                             if (t.IsFaulted && t.Exception != null)
                             {
-                                _initException = new CachedInitErrorException(t.Exception.InnerException);
+                                _initException = new InitFatalErrorException(t.Exception.InnerException);
                             }
                         }, TaskContinuationOptions.ExecuteSynchronously).Forget();
                         throw newEx;
@@ -267,7 +267,7 @@ namespace Cassandra
                 {
                     //There was an error that the driver is not able to recover from
                     //Store the exception for the following times
-                    _initException = new CachedInitErrorException(ex);
+                    _initException = new InitFatalErrorException(ex);
                     //Throw the actual exception for the first time
                     throw;
                 }

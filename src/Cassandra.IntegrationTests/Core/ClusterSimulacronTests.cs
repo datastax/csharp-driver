@@ -181,7 +181,7 @@ namespace Cassandra.IntegrationTests.Core
                 }, 100, 50);
                 Assert.AreEqual(typeof(TimeoutException), ex.GetType());
                 Assert.AreEqual(timeoutMessage, ex.Message);
-                var ex2 = Assert.Throws<CachedInitErrorException>(() => cluster.Connect("sample_ks"));
+                var ex2 = Assert.Throws<InitFatalErrorException>(() => cluster.Connect("sample_ks"));
                 Assert.AreEqual(cachedError, ex2.Message);
                 Assert.AreEqual(typeof(TimeoutException), ex2.InnerException.GetType());
                 Assert.AreEqual(timeoutMessage, ex2.InnerException.Message);
@@ -210,7 +210,7 @@ namespace Cassandra.IntegrationTests.Core
                 TestHelper.RetryAssert(
                     () =>
                     {
-                        var ex2 = Assert.Throws<CachedInitErrorException>(() => cluster.Connect("sample_ks"));
+                        var ex2 = Assert.Throws<InitFatalErrorException>(() => cluster.Connect("sample_ks"));
                         Assert.AreEqual(typeof(NoHostAvailableException), ex2.InnerException.GetType());
                     },
                     1000,
