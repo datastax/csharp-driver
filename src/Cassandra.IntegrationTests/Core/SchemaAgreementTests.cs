@@ -74,7 +74,13 @@ namespace Cassandra.IntegrationTests.Core
                     $"CREATE TABLE {tableName} (id int PRIMARY KEY, description text)");
                 var rowSet = await _session.ExecuteAsync(cql).ConfigureAwait(false);
                 Assert.IsTrue(rowSet.Info.IsSchemaInAgreement, "is in agreement");
-                Assert.IsTrue(await _cluster.Metadata.CheckSchemaAgreementAsync().ConfigureAwait(false), "check");
+                TestHelper.RetryAssert(
+                    async () =>
+                    {
+                        Assert.IsTrue(await _cluster.Metadata.CheckSchemaAgreementAsync().ConfigureAwait(false), "check");
+                    },
+                    100,
+                    50);
             }
             catch (Exception ex)
             {
