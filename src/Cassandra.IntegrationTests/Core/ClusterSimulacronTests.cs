@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 
 using Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.Then;
@@ -165,16 +166,14 @@ namespace Cassandra.IntegrationTests.Core
             var cachedError = "An error occured during the initialization of the cluster instance. Further initialization attempts " +
                               "for this cluster instance will never succeed and will return this exception instead. The InnerException property holds " +
                               "a reference to the exception that originally caused the initialization error.";
-            using (var cluster =
-                Cluster.Builder()
-                       .AddContactPoints(TestCluster.ContactPoints)
-                       .WithSocketOptions(
-                           new SocketOptions()
-                               .SetConnectTimeoutMillis(500)
-                               .SetMetadataAbortTimeout(500))
-                       .Build())
+            using (var cluster = CreateClusterAndWaitUntilConnectException(
+                b => b
+                     .WithSocketOptions(
+                         new SocketOptions()
+                             .SetConnectTimeoutMillis(500)
+                             .SetMetadataAbortTimeout(500)),
+                out var ex))
             {
-                var ex = WaitUntilConnectException(cluster);
                 Assert.AreEqual(typeof(TimeoutException), ex.GetType());
                 Assert.AreEqual(timeoutMessage, ex.Message);
                 var ex2 = Assert.Throws<InitFatalErrorException>(() => cluster.Connect("sample_ks"));
@@ -188,16 +187,14 @@ namespace Cassandra.IntegrationTests.Core
         public void RepeatedClusterConnectCallsAfterTimeoutErrorEventuallyThrowNoHostException()
         {
             TestCluster.DisableConnectionListener(type: "reject_startup");
-            using (var cluster =
-                Cluster.Builder()
-                       .AddContactPoints(TestCluster.ContactPoints)
+            using (var cluster = CreateClusterAndWaitUntilConnectException(
+                b => b
                        .WithSocketOptions(
                            new SocketOptions()
                                .SetConnectTimeoutMillis(500)
-                               .SetMetadataAbortTimeout(500))
-                       .Build())
+                               .SetMetadataAbortTimeout(500)),
+                out var ex))
             {
-                var ex = WaitUntilConnectException(cluster);
                 Assert.AreEqual(typeof(TimeoutException), ex.GetType());
                 TestHelper.RetryAssert(
                     () =>
@@ -214,36 +211,43 @@ namespace Cassandra.IntegrationTests.Core
         public void RepeatedClusterConnectCallsAfterNoHostErrorDontThrowCachedInitErrorException()
         {
             TestCluster.DisableConnectionListener(type: "reject_startup");
-            using (var cluster =
-                Cluster.Builder()
-                       .AddContactPoints(TestCluster.ContactPoints)
-                       .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(1).SetReadTimeoutMillis(1))
-                       .Build())
+            using (var cluster = CreateClusterAndWaitUntilConnectException(
+                b => b.WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(1).SetReadTimeoutMillis(1)),
+                out _))
             {
-                WaitUntilConnectException(cluster);
                 var ex = Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
                 var ex2 = Assert.Throws<NoHostAvailableException>(() => cluster.Connect("sample_ks"));
                 Assert.AreNotSame(ex, ex2);
             }
         }
 
-        private Exception WaitUntilConnectException(ICluster cluster)
+        private ICluster CreateClusterAndWaitUntilConnectException(Action<Builder> b, out Exception ex)
         {
-            Exception ex = null;
+            Exception tempEx = null;
+            ICluster cluster = null;
             TestHelper.RetryAssert(
                 () =>
                 {
+                    var builder = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint);
+                    b(builder);
+                    cluster = builder.Build();
                     try
                     {
-                        ex = Assert.Catch<Exception>(() => cluster.Connect());
+                        tempEx = Assert.Catch<Exception>(() => cluster.Connect());
                     }
-                    finally
+                    catch (Exception)
                     {
-                        TestCluster.DisableConnectionListener(type: "unbind");
+                        cluster.Dispose();
+                        SetupNewTestCluster();
+                        Interlocked.MemoryBarrier();
                         TestCluster.DisableConnectionListener(type: "reject_startup");
+                        throw;
                     }
                 }, 500, 20);
-            return ex;
+
+            Interlocked.MemoryBarrier();
+            ex = tempEx;
+            return cluster;
         }
     }
 }
