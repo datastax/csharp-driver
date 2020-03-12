@@ -228,7 +228,7 @@ namespace Cassandra.IntegrationTests.Core
             TestHelper.RetryAssert(
                 () =>
                 {
-                    var builder = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint);
+                    var builder = Cluster.Builder().AddContactPoints(TestCluster.ContactPoints);
                     b(builder);
                     cluster = builder.Build();
                     try
