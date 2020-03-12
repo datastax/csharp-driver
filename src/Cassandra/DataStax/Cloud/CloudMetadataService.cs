@@ -198,7 +198,8 @@ namespace Cassandra.DataStax.Cloud
             var message =
                 isParsingError
                     ? $"There was an error while parsing the metadata service information from the Metadata Service ({url})."
-                    : $"There was an error fetching the metadata information from the Metadata Service ({url}).";
+                    : $"There was an error fetching the metadata information from the Cloud Metadata Service ({url}). " +
+                      "Please make sure your cluster is not parked or terminated.";
 
             if (statusCode.HasValue)
             {
