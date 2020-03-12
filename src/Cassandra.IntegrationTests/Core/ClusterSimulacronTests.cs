@@ -174,11 +174,7 @@ namespace Cassandra.IntegrationTests.Core
                                .SetMetadataAbortTimeout(500))
                        .Build())
             {
-                Exception ex = null;
-                TestHelper.RetryAssert(() =>
-                {
-                    ex = Assert.Catch<Exception>(() => cluster.Connect());
-                }, 100, 50);
+                var ex = WaitUntilConnectException(cluster);
                 Assert.AreEqual(typeof(TimeoutException), ex.GetType());
                 Assert.AreEqual(timeoutMessage, ex.Message);
                 var ex2 = Assert.Throws<InitFatalErrorException>(() => cluster.Connect("sample_ks"));
@@ -201,11 +197,7 @@ namespace Cassandra.IntegrationTests.Core
                                .SetMetadataAbortTimeout(500))
                        .Build())
             {
-                Exception ex = null;
-                TestHelper.RetryAssert(() =>
-                {
-                    ex = Assert.Catch<Exception>(() => cluster.Connect());
-                }, 100, 50);
+                var ex = WaitUntilConnectException(cluster);
                 Assert.AreEqual(typeof(TimeoutException), ex.GetType());
                 TestHelper.RetryAssert(
                     () =>
@@ -228,11 +220,30 @@ namespace Cassandra.IntegrationTests.Core
                        .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(1).SetReadTimeoutMillis(1))
                        .Build())
             {
-                TestHelper.RetryAssert(() => Assert.Throws<NoHostAvailableException>(() => cluster.Connect()), 100, 50);
+                WaitUntilConnectException(cluster);
                 var ex = Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
                 var ex2 = Assert.Throws<NoHostAvailableException>(() => cluster.Connect("sample_ks"));
                 Assert.AreNotSame(ex, ex2);
             }
+        }
+
+        private Exception WaitUntilConnectException(ICluster cluster)
+        {
+            Exception ex = null;
+            TestHelper.RetryAssert(
+                () =>
+                {
+                    try
+                    {
+                        ex = Assert.Catch<Exception>(() => cluster.Connect());
+                    }
+                    finally
+                    {
+                        TestCluster.DisableConnectionListener(type: "unbind");
+                        TestCluster.DisableConnectionListener(type: "reject_startup");
+                    }
+                }, 500, 20);
+            return ex;
         }
     }
 }
