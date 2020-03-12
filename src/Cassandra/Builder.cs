@@ -167,14 +167,6 @@ namespace Cassandra
             }
             
             var typeSerializerDefinitions = _typeSerializerDefinitions ?? new TypeSerializerDefinitions();
-
-            typeSerializerDefinitions
-                .DefineIfNotExists(new DateRangeSerializer())
-                .DefineIfNotExists(new DurationSerializer(true))
-                .DefineIfNotExists(new LineStringSerializer())
-                .DefineIfNotExists(new PointSerializer())
-                .DefineIfNotExists(new PolygonSerializer());
-
             var policies = GetPolicies();
             var graphOptions = GetGraphOptions();
             SetLegacySettingsFromDefaultProfile();
