@@ -1,5 +1,10 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Diagnostics;
+using System.Threading.Tasks;
+
 using Dse.Test.Integration.TestClusterManagement;
+using Dse.Test.Unit;
+
 using NUnit.Framework;
 
 namespace Dse.Test.Integration.Core
@@ -16,7 +21,7 @@ namespace Dse.Test.Integration.Core
         private Cluster _cluster;
         private Session _session;
 
-        private const int MaxSchemaAgreementWaitSeconds = 5;
+        private const int MaxSchemaAgreementWaitSeconds = 10;
 
         public override void OneTimeSetUp()
         {
@@ -36,19 +41,42 @@ namespace Dse.Test.Integration.Core
         [Test, Order(1)]
         public async Task Should_CheckSchemaAgreementReturnTrueAndSchemaInAgreementReturnTrue_When_AllNodesUp()
         {
-            if (_paused)
+            var listener = new TestTraceListener();
+            var level = Diagnostics.CassandraTraceSwitch.Level;
+            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;
+            Trace.Listeners.Add(listener);
+            try
             {
-                TestCluster.ResumeNode(2);
+                if (_paused)
+                {
+                    TestCluster.ResumeNode(2);
+                }
+
+                //// this test can't be done with simulacron because there's no support for schema_changed responses
+                var tableName = TestUtils.GetUniqueTableName().ToLower();
+
+                var cql = new SimpleStatement(
+                    $"CREATE TABLE {tableName} (id int PRIMARY KEY, description text)");
+                var rowSet = await _session.ExecuteAsync(cql).ConfigureAwait(false);
+                Assert.IsTrue(rowSet.Info.IsSchemaInAgreement, "is in agreement");
+                TestHelper.RetryAssert(
+                    async () =>
+                    {
+                        Assert.IsTrue(await _cluster.Metadata.CheckSchemaAgreementAsync().ConfigureAwait(false), "check");
+                    },
+                    100,
+                    50);
             }
-
-            //// this test can't be done with simulacron because there's no support for schema_changed responses
-            var tableName = TestUtils.GetUniqueTableName().ToLower();
-
-            var cql = new SimpleStatement(
-                $"CREATE TABLE {tableName} (id int PRIMARY KEY, description text)");
-            var rowSet = await _session.ExecuteAsync(cql).ConfigureAwait(false);
-            Assert.IsTrue(rowSet.Info.IsSchemaInAgreement);
-            Assert.IsTrue(await _cluster.Metadata.CheckSchemaAgreementAsync().ConfigureAwait(false));
+            catch (Exception ex)
+            {
+                Trace.Flush();
+                Assert.Fail("Exception: " + ex.ToString() + Environment.NewLine + string.Join(Environment.NewLine, listener.Queue.ToArray()));
+            }
+            finally
+            {
+                Trace.Listeners.Remove(listener);
+                Diagnostics.CassandraTraceSwitch.Level = level;
+            }
         }
 
         // ordering for efficiency, it's not required

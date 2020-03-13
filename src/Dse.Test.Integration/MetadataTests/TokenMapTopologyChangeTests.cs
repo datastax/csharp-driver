@@ -16,6 +16,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 
 using Dse.Test.Integration.TestClusterManagement;
@@ -35,92 +36,112 @@ namespace Dse.Test.Integration.MetadataTests
         [Test]
         public void TokenMap_Should_RebuildTokenMap_When_NodeIsDecommissioned()
         {
-            TestCluster = TestClusterManager.CreateNew(3, new TestClusterOptions { UseVNodes = true });
-            var keyspaceName = TestUtils.GetUniqueKeyspaceName().ToLower();
-            ClusterObjSync = Cluster.Builder()
-                                .AddContactPoint(TestCluster.InitialContactPoint)
-                                .WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(true))
-                                .Build();
-
-            ClusterObjNotSync = Cluster.Builder()
-                                .AddContactPoint(TestCluster.InitialContactPoint)
-                                .WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(false))
-                                .Build();
-
-            var sessionNotSync = ClusterObjNotSync.Connect();
-            var sessionSync = ClusterObjSync.Connect();
-
-            var createKeyspaceCql = $"CREATE KEYSPACE {keyspaceName} WITH replication = {{'class': 'SimpleStrategy', 'replication_factor' : 3}}";
-            sessionNotSync.Execute(createKeyspaceCql);
-
-            TestUtils.WaitForSchemaAgreement(ClusterObjNotSync);
-            TestUtils.WaitForSchemaAgreement(ClusterObjSync);
-
-            sessionNotSync.ChangeKeyspace(keyspaceName);
-            sessionSync.ChangeKeyspace(keyspaceName);
-
-            ICollection<Host> replicasSync = null;
-            ICollection<Host> replicasNotSync = null;
-
-            TestHelper.RetryAssert(() =>
+            var listener = new TestTraceListener();
+            var level = Diagnostics.CassandraTraceSwitch.Level;
+            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;
+            Trace.Listeners.Add(listener);
+            try
             {
-                Assert.AreEqual(3, ClusterObjSync.Metadata.Hosts.Count);
-                Assert.AreEqual(3, ClusterObjNotSync.Metadata.Hosts.Count);
+                TestCluster = TestClusterManager.CreateNew(3, new TestClusterOptions { UseVNodes = true });
+                var keyspaceName = TestUtils.GetUniqueKeyspaceName().ToLower();
+                ClusterObjSync = Cluster.Builder()
+                                        .AddContactPoint(TestCluster.InitialContactPoint)
+                                        .WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(true))
+                                        .WithReconnectionPolicy(new ConstantReconnectionPolicy(5000))
+                                        .Build();
 
-                replicasSync = ClusterObjSync.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123"));
-                replicasNotSync = ClusterObjNotSync.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123"));
+                ClusterObjNotSync = Cluster.Builder()
+                                           .AddContactPoint(TestCluster.InitialContactPoint)
+                                           .WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(false))
+                                           .WithReconnectionPolicy(new ConstantReconnectionPolicy(5000))
+                                           .Build();
 
-                Assert.AreEqual(3, replicasSync.Count);
-                Assert.AreEqual(1, replicasNotSync.Count);
-            }, 100, 150);
+                var sessionNotSync = ClusterObjNotSync.Connect();
+                var sessionSync = ClusterObjSync.Connect();
 
-            var oldTokenMapNotSync = ClusterObjNotSync.Metadata.TokenToReplicasMap;
-            var oldTokenMapSync = ClusterObjSync.Metadata.TokenToReplicasMap;
+                var createKeyspaceCql = $"CREATE KEYSPACE {keyspaceName} WITH replication = {{'class': 'SimpleStrategy', 'replication_factor' : 3}}";
+                sessionNotSync.Execute(createKeyspaceCql);
 
-            if (TestClusterManager.DseVersion >= Version.Parse("5.1.0"))
-            {
-                this.TestCluster.DecommissionNodeForcefully(1);
+                TestUtils.WaitForSchemaAgreement(ClusterObjNotSync);
+                TestUtils.WaitForSchemaAgreement(ClusterObjSync);
+
+                sessionNotSync.ChangeKeyspace(keyspaceName);
+                sessionSync.ChangeKeyspace(keyspaceName);
+
+                ICollection<Host> replicasSync = null;
+                ICollection<Host> replicasNotSync = null;
+
+                TestHelper.RetryAssert(() =>
+                {
+                    Assert.AreEqual(3, ClusterObjSync.Metadata.Hosts.Count);
+                    Assert.AreEqual(3, ClusterObjNotSync.Metadata.Hosts.Count);
+
+                    replicasSync = ClusterObjSync.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123"));
+                    replicasNotSync = ClusterObjNotSync.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123"));
+
+                    Assert.AreEqual(3, replicasSync.Count);
+                    Assert.AreEqual(1, replicasNotSync.Count);
+                }, 100, 150);
+
+                var oldTokenMapNotSync = ClusterObjNotSync.Metadata.TokenToReplicasMap;
+                var oldTokenMapSync = ClusterObjSync.Metadata.TokenToReplicasMap;
+                
+                if (TestClusterManager.DseVersion >= Version.Parse("5.1.0"))
+                {
+                    this.TestCluster.DecommissionNodeForcefully(1);
+                }
+                else
+                {
+                    this.TestCluster.DecommissionNode(1);
+                }
+
+                this.TestCluster.Remove(1);
+
+                TestHelper.RetryAssert(() =>
+                {
+                    Assert.AreEqual(2, ClusterObjSync.Metadata.Hosts.Count, "ClusterObjSync.Metadata.Hosts.Count");
+                    Assert.AreEqual(2, ClusterObjNotSync.Metadata.Hosts.Count, "ClusterObjNotSync.Metadata.Hosts.Count");
+
+                    replicasSync = ClusterObjSync.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123"));
+                    replicasNotSync = ClusterObjNotSync.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123"));
+
+                    Assert.AreEqual(2, replicasSync.Count, "replicasSync.Count");
+                    Assert.AreEqual(1, replicasNotSync.Count, "replicasNotSync.Count");
+
+                    Assert.IsFalse(object.ReferenceEquals(ClusterObjNotSync.Metadata.TokenToReplicasMap, oldTokenMapNotSync));
+                    Assert.IsFalse(object.ReferenceEquals(ClusterObjSync.Metadata.TokenToReplicasMap, oldTokenMapSync));
+                }, 1000, 360);
+
+                oldTokenMapNotSync = ClusterObjNotSync.Metadata.TokenToReplicasMap;
+                oldTokenMapSync = ClusterObjSync.Metadata.TokenToReplicasMap;
+
+                this.TestCluster.BootstrapNode(4);
+                TestHelper.RetryAssert(() =>
+                {
+                    Assert.AreEqual(3, ClusterObjSync.Metadata.Hosts.Count);
+                    Assert.AreEqual(3, ClusterObjNotSync.Metadata.Hosts.Count);
+
+                    replicasSync = ClusterObjSync.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123"));
+                    replicasNotSync = ClusterObjNotSync.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123"));
+
+                    Assert.AreEqual(3, replicasSync.Count);
+                    Assert.AreEqual(1, replicasNotSync.Count);
+
+                    Assert.IsFalse(object.ReferenceEquals(ClusterObjNotSync.Metadata.TokenToReplicasMap, oldTokenMapNotSync));
+                    Assert.IsFalse(object.ReferenceEquals(ClusterObjSync.Metadata.TokenToReplicasMap, oldTokenMapSync));
+                }, 1000, 360);
+
             }
-            else
+            catch (Exception ex)
             {
-                this.TestCluster.DecommissionNode(1);
+                Trace.Flush();
+                Assert.Fail("Exception: " + ex.ToString() + Environment.NewLine + string.Join(Environment.NewLine, listener.Queue.ToArray()));
             }
-
-            this.TestCluster.Remove(1);
-
-            TestHelper.RetryAssert(() =>
+            finally
             {
-                Assert.AreEqual(2, ClusterObjSync.Metadata.Hosts.Count);
-                Assert.AreEqual(2, ClusterObjNotSync.Metadata.Hosts.Count);
-
-                replicasSync = ClusterObjSync.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123"));
-                replicasNotSync = ClusterObjNotSync.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123"));
-
-                Assert.AreEqual(2, replicasSync.Count);
-                Assert.AreEqual(1, replicasNotSync.Count);
-
-                Assert.IsFalse(object.ReferenceEquals(ClusterObjNotSync.Metadata.TokenToReplicasMap, oldTokenMapNotSync));
-                Assert.IsFalse(object.ReferenceEquals(ClusterObjSync.Metadata.TokenToReplicasMap, oldTokenMapSync));
-            }, 1000, 360);
-
-            oldTokenMapNotSync = ClusterObjNotSync.Metadata.TokenToReplicasMap;
-            oldTokenMapSync = ClusterObjSync.Metadata.TokenToReplicasMap;
-
-            this.TestCluster.BootstrapNode(4);
-            TestHelper.RetryAssert(() =>
-            {
-                Assert.AreEqual(3, ClusterObjSync.Metadata.Hosts.Count);
-                Assert.AreEqual(3, ClusterObjNotSync.Metadata.Hosts.Count);
-
-                replicasSync = ClusterObjSync.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123"));
-                replicasNotSync = ClusterObjNotSync.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123"));
-
-                Assert.AreEqual(3, replicasSync.Count);
-                Assert.AreEqual(1, replicasNotSync.Count);
-
-                Assert.IsFalse(object.ReferenceEquals(ClusterObjNotSync.Metadata.TokenToReplicasMap, oldTokenMapNotSync));
-                Assert.IsFalse(object.ReferenceEquals(ClusterObjSync.Metadata.TokenToReplicasMap, oldTokenMapSync));
-            }, 1000, 360);
+                Trace.Listeners.Remove(listener);
+                Diagnostics.CassandraTraceSwitch.Level = level;
+            }
         }
 
         [TearDown]

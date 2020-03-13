@@ -14,6 +14,7 @@
 //   limitations under the License.
 // 
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -52,7 +53,7 @@ namespace Dse.Test.Integration.Core
                 {
                     // Protocol v2 and v1 not supported by simulacron but driver protocol downgrading worked
                     var ex = Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
-                    Assert.That(ex.Errors.Count, Is.EqualTo(2));
+                    Assert.That(ex.Errors.Count, Is.EqualTo(2), () => string.Join(Environment.NewLine, ex.Errors.Select(e => $"{e.Key} - {e.Value}")));
                     foreach (var err in ex.Errors.Values)
                     {
                         Assert.IsInstanceOf<UnsupportedProtocolVersionException>(err);

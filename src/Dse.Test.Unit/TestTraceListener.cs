@@ -17,7 +17,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 
 namespace Dse.Test.Unit
-{
+{    
     internal class TestTraceListener : TraceListener
     {
         public ConcurrentQueue<string> Queue = new ConcurrentQueue<string>();
