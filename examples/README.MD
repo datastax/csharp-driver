@@ -8,8 +8,8 @@ You should also visit the [Documentation][doc-index] and [FAQ][faq].
 
 - Concurrent execution
   - [Inserts multiple rows in a table limiting the amount of parallel requests](ConcurrentExecutions/ExecuteInLoop/Program.cs)
-- DataStax Apollo
-  - [Getting started with DataStax Apollo and the Secure Connection Bundle](SecureConnectionBundle/MinimalExample/Program.cs)
+- DataStax Astra
+  - [Getting started with DataStax Astra and the Secure Connection Bundle](SecureConnectionBundle/MinimalExample/Program.cs)
 - TLS/SSL
   - Server Auth
     - [Loading a root certificate in code](Ssl/SslServerAuthOnly/LoadingCertificateManuallyExample.cs)

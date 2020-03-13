@@ -1,12 +1,12 @@
-# Connecting to DataStax Apollo
+# Connecting to DataStax Astra
 
 ## Quickstart
 
-Use the `Builder.WithCloudSecureConnectionBundle(string path)` method to connect to your [DataStax Apollo database on Constellation] using your secure connection bundle (`secure-connect-DATABASE_NAME.zip`).
+Use the `Builder.WithCloudSecureConnectionBundle(string path)` method to connect to your [DataStax Astra database] using your secure connection bundle (`secure-connect-DATABASE_NAME.zip`).
 
 Also, use `Builder.WithCredentials(string username, string password)` to provide your [CQL credentials].
 
-Here is an example of the minimum configuration needed to connect to your DataStax Apollo database using the secure connection bundle:
+Here is an example of the minimum configuration needed to connect to your DataStax Astra database using the secure connection bundle:
 
 ```csharp
 var session = 
@@ -36,6 +36,6 @@ Every other method in the `Builder` class will have the same effect whether you 
 
 You can find a minimal .NET Core Console Application project in the examples folder of the driver's [Github Repository].
 
-[DataStax Apollo database on Constellation]: https://www.datastax.com/constellation
+[DataStax Astra database]: https://www.datastax.com/cloud/datastax-astra
 [CQL credentials]: http://cassandra.apache.org/doc/latest/cql/security.html#cql-roles
 [Github Repository]: https://github.com/datastax/csharp-driver/tree/master/examples/SecureConnectionBundle/MinimalExample
