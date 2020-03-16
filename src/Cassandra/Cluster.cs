@@ -213,8 +213,30 @@ namespace Cassandra
 
                     // Only abort the async operations when at least twice the time for ConnectTimeout per host passed
                     var initialAbortTimeout = Configuration.SocketOptions.ConnectTimeoutMillis * 2 * _metadata.Hosts.Count;
-                    initialAbortTimeout = Math.Max(initialAbortTimeout, ControlConnection.MetadataAbortTimeout);
-                    await _controlConnection.InitAsync().WaitToCompleteAsync(initialAbortTimeout).ConfigureAwait(false);
+                    initialAbortTimeout = Math.Max(initialAbortTimeout, Configuration.SocketOptions.MetadataAbortTimeout);
+                    var initTask = _controlConnection.InitAsync();
+                    try
+                    {
+                        await initTask.WaitToCompleteAsync(initialAbortTimeout).ConfigureAwait(false);
+                    }
+                    catch (TimeoutException ex)
+                    {
+                        var newEx = new TimeoutException(
+                            "Cluster initialization was aborted after timing out. This mechanism is put in place to" +
+                            " avoid blocking the calling thread forever. This usually caused by a networking issue" +
+                            " between the client driver instance and the cluster. You can increase this timeout via " +
+                            "the SocketOptions.ConnectTimeoutMillis config setting. This can also be related to deadlocks " +
+                            "caused by mixing synchronous and asynchronous code.", ex);
+                        _initException = new InitFatalErrorException(newEx);
+                        initTask.ContinueWith(t =>
+                        {
+                            if (t.IsFaulted && t.Exception != null)
+                            {
+                                _initException = new InitFatalErrorException(t.Exception.InnerException);
+                            }
+                        }, TaskContinuationOptions.ExecuteSynchronously).Forget();
+                        throw newEx;
+                    }
                     
                     // Initialize policies
                     foreach (var lbp in loadBalancingPolicies)
@@ -237,19 +259,15 @@ namespace Cassandra
                     //No host available now, maybe later it can recover from
                     throw;
                 }
-                catch (TimeoutException ex)
+                catch (TimeoutException)
                 {
-                    _initException = ex;
-                    throw new TimeoutException(
-                        "Cluster initialization was aborted after timing out. This mechanism is put in place to" +
-                        " avoid blocking the calling thread forever. This usually caused by a networking issue" +
-                        " between the client driver instance and the cluster.", ex);
+                    throw;
                 }
                 catch (Exception ex)
                 {
                     //There was an error that the driver is not able to recover from
                     //Store the exception for the following times
-                    _initException = ex;
+                    _initException = new InitFatalErrorException(ex);
                     //Throw the actual exception for the first time
                     throw;
                 }

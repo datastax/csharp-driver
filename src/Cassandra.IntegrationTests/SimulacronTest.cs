@@ -200,6 +200,14 @@ namespace Cassandra.IntegrationTests
             Session?.Cluster?.Dispose();
             TestCluster?.Dispose();
         }
+
+        protected void SetupNewTestCluster()
+        {
+            Dispose();
+            Session = null;
+            TestCluster = null;
+            Init();
+        }
         
         protected void SetupNewSession(Func<Builder, Builder> builderConfig)
         {

@@ -57,7 +57,6 @@ namespace Cassandra.Connections
         private int _refreshFlag;
         private Task<bool> _reconnectTask;
         private readonly ISerializerManager _serializer;
-        internal const int MetadataAbortTimeout = 5 * 60000;
         private readonly IProtocolEventDebouncer _eventDebouncer;
         private readonly IEnumerable<object> _contactPoints;
         private volatile IReadOnlyList<IConnectionEndPoint> _lastResolvedContactPoints = new List<IConnectionEndPoint>();
@@ -696,7 +695,7 @@ namespace Cassandra.Connections
         /// </summary>
         public IEnumerable<Row> Query(string cqlQuery, bool retry = false)
         {
-            return TaskHelper.WaitToComplete(QueryAsync(cqlQuery, retry), ControlConnection.MetadataAbortTimeout);
+            return TaskHelper.WaitToComplete(QueryAsync(cqlQuery, retry), _config.SocketOptions.MetadataAbortTimeout);
         }
 
         public async Task<IEnumerable<Row>> QueryAsync(string cqlQuery, bool retry = false)
