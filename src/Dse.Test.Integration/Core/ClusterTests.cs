@@ -200,6 +200,7 @@ namespace Dse.Test.Integration.Core
                     {
                         _realCluster.DecommissionNode(numberOfNodes);
                     }
+                    _realCluster.Stop(numberOfNodes);
                     Trace.TraceInformation("Node decommissioned");
                     string decommisionedNode = null;
                     TestHelper.RetryAssert(() =>
