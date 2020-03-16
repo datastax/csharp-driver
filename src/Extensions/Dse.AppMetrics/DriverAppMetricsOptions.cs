@@ -38,6 +38,11 @@ namespace Dse.AppMetrics
         /// See <see cref="SetTimersTimeUnit"/> for information about this property.
         /// </summary>
         public TimeUnit TimersTimeUnit { get; private set; } = TimeUnit.Nanoseconds;
+        
+        /// <summary>
+        /// See <see cref="SetRefreshIntervalMilliseconds"/> for information about this property.
+        /// </summary>
+        public int RefreshIntervalMilliseconds { get; private set; } = 10000;
 
         /// <summary>
         /// <para>
@@ -86,6 +91,35 @@ namespace Dse.AppMetrics
         public DriverAppMetricsOptions SetTimersTimeUnit(TimeUnit timeUnit)
         {
             TimersTimeUnit = timeUnit;
+            return this;
+        }
+
+        /// <summary>
+        /// <para>
+        /// The interval at which percentile data is refreshed.
+        /// </para>
+        /// <para>
+        /// The driver records latency data in a "live" histogram, and serves results from a cached
+        /// snapshot. Each time the snapshot gets older than the interval, the two are switched.
+        /// Note that this switch happens upon fetching the metrics, so if you never fetch the
+        /// recording interval might grow higher (that shouldn't be an issue in a production
+        /// environment because you would typically have a metrics reporter that exports to a
+        /// monitoring tool at a regular interval).
+        /// </para> 
+        /// <para>
+        /// In practice, this means that if you set this to 10 seconds, you're looking at data from a 
+        /// 10-second interval in the past, that is at most 10 seconds old. If you fetch the metrics 
+        /// at a faster pace, you will observe the same data for 10 seconds until the interval expires.
+        /// </para>
+        /// <para>
+        /// This property defaults to 10000 milliseconds, i.e., 10 seconds.
+        /// </para>
+        /// </summary>
+        /// <param name="refreshIntervalMilliseconds"></param>
+        /// <returns></returns>
+        public DriverAppMetricsOptions SetRefreshIntervalMilliseconds(int refreshIntervalMilliseconds)
+        {
+            RefreshIntervalMilliseconds = refreshIntervalMilliseconds;
             return this;
         }
     }

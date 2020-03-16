@@ -4,6 +4,9 @@
 // See LICENSE in the project root for license information:
 // https://github.com/alhardy/AppMetrics.Reservoirs/blob/3a1861386ac73b21b37e548c61575602eed67f89/LICENSE
 
+using System;
+using System.Diagnostics;
+using System.Threading;
 using App.Metrics.Concurrency;
 using App.Metrics.ReservoirSampling;
 
@@ -19,12 +22,14 @@ namespace Dse.AppMetrics.Implementations
     {
         private static readonly Logger Logger = new Logger(typeof(HdrHistogramReservoir));
 
+        private static readonly IReservoirSnapshot _emptySnapshot;
+
         private readonly long _highestTrackableValue;
+        private readonly long _refreshIntervalTicks;
         private readonly object _maxValueLock = new object();
         private readonly object _minValueLock = new object();
         private readonly Recorder _recorder;
 
-        private readonly HistogramBase _runningTotals;
         private HistogramBase _intervalHistogram;
         private string _maxUserValue;
 
@@ -33,37 +38,96 @@ namespace Dse.AppMetrics.Implementations
 
         private AtomicLong _minValue = new AtomicLong(long.MaxValue);
 
+        private volatile IReservoirSnapshot _cachedSnapshot;
+        private long _lastRefreshTicks;
+        private object _refreshLock = new object();
+
+        static HdrHistogramReservoir()
+        {
+            HdrHistogramReservoir._emptySnapshot = new HdrSnapshot(
+                HistogramFactory
+                    .With64BitBucketSize()
+                    .WithThreadSafeReads()
+                    .Create()
+                    .GetIntervalHistogram(),
+                0,
+                null,
+                0,
+                null);
+        }
+
         /// <summary>
         ///     Initializes a new instance of the <see cref="HdrHistogramReservoir" /> class.
         /// </summary>
-        public HdrHistogramReservoir(long lowestTrackableValue, long highestTrackableValue, int numberOfSignificantValueDigits)
+        public HdrHistogramReservoir(
+            long lowestTrackableValue, long highestTrackableValue, int numberOfSignificantValueDigits, long refreshIntervalMilliseconds)
         {
             _highestTrackableValue = highestTrackableValue;
+            _refreshIntervalTicks = TimeSpan.FromMilliseconds(refreshIntervalMilliseconds).Ticks;
 
             var recorder = HistogramFactory
-                .With64BitBucketSize()
-                .WithValuesFrom(lowestTrackableValue)
-                .WithValuesUpTo(highestTrackableValue)
-                .WithPrecisionOf(numberOfSignificantValueDigits)
-                .WithThreadSafeWrites()
-                .WithThreadSafeReads()
-                .Create();
+                           .With64BitBucketSize()
+                           .WithValuesFrom(lowestTrackableValue)
+                           .WithValuesUpTo(highestTrackableValue)
+                           .WithPrecisionOf(numberOfSignificantValueDigits)
+                           .WithThreadSafeWrites()
+                           .WithThreadSafeReads()
+                           .Create();
 
             _recorder = recorder;
-
             _intervalHistogram = recorder.GetIntervalHistogram();
-            _runningTotals = new LongHistogram(lowestTrackableValue, highestTrackableValue, _intervalHistogram.NumberOfSignificantValueDigits);
+            UnsafeRefresh(DateTime.UtcNow.Ticks, true);
+        }
+
+        private bool NeedsRefresh(long now)
+        {
+            return now - Interlocked.Read(ref _lastRefreshTicks) >= _refreshIntervalTicks;
+        }
+
+        private void RefreshIfNeeded()
+        {
+            var now = DateTime.UtcNow.Ticks;
+            if (NeedsRefresh(now))
+            {
+                lock (_refreshLock)
+                {
+                    // check again inside the critical section
+                    if (NeedsRefresh(now))
+                    {
+                        UnsafeRefresh(now, false);
+                    }
+                }
+            }
+        }
+
+        private void UnsafeRefresh(long nowTicks, bool empty)
+        {
+            // don't recycle the current histogram as it is being used by the cached snapshot
+            _intervalHistogram = _recorder.GetIntervalHistogram();
+            Interlocked.Exchange(ref _lastRefreshTicks, nowTicks);
+            _cachedSnapshot = BuildSnapshot(empty);
+        }
+
+        private IReservoirSnapshot BuildSnapshot(bool empty)
+        {
+            if (empty)
+            {
+                return HdrHistogramReservoir._emptySnapshot;
+            }
+
+            return new HdrSnapshot(
+                _intervalHistogram,
+                _minValue.GetValue(),
+                _minUserValue,
+                _maxValue.GetValue(),
+                _maxUserValue);
         }
 
         /// <inheritdoc cref="IReservoir" />
         public IReservoirSnapshot GetSnapshot(bool resetReservoir)
         {
-            var snapshot = new HdrSnapshot(
-                UpdateTotals(),
-                _minValue.GetValue(),
-                _minUserValue,
-                _maxValue.GetValue(),
-                _maxUserValue);
+            RefreshIfNeeded();
+            var snapshot = _cachedSnapshot;
 
             if (resetReservoir)
             {
@@ -80,8 +144,13 @@ namespace Dse.AppMetrics.Implementations
         public void Reset()
         {
             _recorder.Reset();
-            _runningTotals.Reset();
-            _intervalHistogram.Reset();
+            SetMinValue(long.MaxValue, null);
+            SetMaxValue(0, null);
+
+            lock (_refreshLock)
+            {
+                UnsafeRefresh(DateTime.UtcNow.Ticks, true);
+            }
         }
 
         /// <inheritdoc cref="IReservoir" />
@@ -157,16 +226,6 @@ namespace Dse.AppMetrics.Implementations
             if (value < _minValue.NonVolatileGetValue())
             {
                 SetMinValue(value, userValue);
-            }
-        }
-
-        private HistogramBase UpdateTotals()
-        {
-            lock (_runningTotals)
-            {
-                _intervalHistogram = _recorder.GetIntervalHistogram(_intervalHistogram);
-                _runningTotals.Add(_intervalHistogram);
-                return _runningTotals.Copy();
             }
         }
     }

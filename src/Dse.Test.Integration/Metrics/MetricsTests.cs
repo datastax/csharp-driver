@@ -18,10 +18,12 @@
 using System;
 using System.Linq;
 using System.Net;
+using System.Threading.Tasks;
 
 using App.Metrics;
 using App.Metrics.Gauge;
 
+using Dse.AppMetrics;
 using Dse.Metrics;
 using Dse.Test.Unit;
 
@@ -114,29 +116,29 @@ namespace Dse.Test.Integration.Metrics
             Assert.True(context.IsNotEmpty());
             Assert.AreEqual(2, context.Gauges.Count());
 
-                // remove host from cluster                
-                if (TestClusterManagement.TestClusterManager.DseVersion.Major < 5 ||
-                    (TestClusterManagement.TestClusterManager.DseVersion.Major == 5 && 
-                     TestClusterManagement.TestClusterManager.DseVersion.Minor < 1))
-                {
-                    TestCluster.DecommissionNode(2);
-                }
-                else
-                {
-                    TestCluster.DecommissionNodeForcefully(2);
-                }
+            // remove host from cluster
+            if (TestClusterManagement.TestClusterManager.DseVersion.Major < 5 ||
+                (TestClusterManagement.TestClusterManager.DseVersion.Major == 5 &&
+                 TestClusterManagement.TestClusterManager.DseVersion.Minor < 1))
+            {
+                TestCluster.DecommissionNode(2);
+            }
+            else
+            {
+                TestCluster.DecommissionNodeForcefully(2);
+            }
 
-                TestCluster.Stop(2);
-                try
-                {
-                    TestHelper.RetryAssert(() => { Assert.AreEqual(2, cluster.Metadata.Hosts.Count, "metadata hosts count failed"); }, 200, 50);
-                    TestHelper.RetryAssert(() => { Assert.AreEqual(2, metrics.NodeMetrics.Count, "Node metrics count failed"); }, 10, 500);
-                }
-                catch
-                {
-                    TestCluster.Start(2, "--jvm_arg=\"-Dcassandra.override_decommission=true\"");
-                    throw;
-                }
+            TestCluster.Stop(2);
+            try
+            {
+                TestHelper.RetryAssert(() => { Assert.AreEqual(2, cluster.Metadata.Hosts.Count, "metadata hosts count failed"); }, 200, 50);
+                TestHelper.RetryAssert(() => { Assert.AreEqual(2, metrics.NodeMetrics.Count, "Node metrics count failed"); }, 10, 500);
+            }
+            catch
+            {
+                TestCluster.Start(2, "--jvm_arg=\"-Dcassandra.override_decommission=true\"");
+                throw;
+            }
 
             // Check node's metrics were removed from app metrics registry
             context = _metricsRoot.Snapshot.GetForContext(gauge.Context);
@@ -169,7 +171,8 @@ namespace Dse.Test.Integration.Metrics
             _metricsRoot = new MetricsBuilder().Build();
             var cluster = GetNewTemporaryCluster(b =>
                 b.WithMetrics(
-                    _metricsRoot.CreateDriverMetricsProvider(),
+                    _metricsRoot.CreateDriverMetricsProvider(
+                        new DriverAppMetricsOptions().SetRefreshIntervalMilliseconds(1000)),
                     new DriverMetricsOptions()
                         .SetEnabledNodeMetrics(NodeMetric.AllNodeMetrics)
                         .SetEnabledSessionMetrics(SessionMetric.AllSessionMetrics)));
@@ -187,6 +190,7 @@ namespace Dse.Test.Integration.Metrics
                 session.Execute("SELECT * FROM system.local");
             }
 
+            var waitedForRefresh = false;
             var metrics = session.GetMetrics();
             foreach (var h in cluster.AllHosts())
             {
@@ -197,7 +201,15 @@ namespace Dse.Test.Integration.Metrics
 
                 Assert.AreEqual(2, MetricsTests.Gauges.Length);
                 Assert.AreEqual(0, metrics.GetNodeGauge(h, NodeMetric.Gauges.InFlight).GetValue());
-                Assert.Greater(metrics.GetNodeGauge(h, NodeMetric.Gauges.OpenConnections).GetValue(), 0);
+
+                if (!waitedForRefresh)
+                {
+                    waitedForRefresh = true;
+                    TestHelper.RetryAssert(
+                        () => { Assert.Greater(metrics.GetNodeGauge(h, NodeMetric.Gauges.OpenConnections).GetValue(), 0); },
+                        200,
+                        10);
+                }
 
                 Assert.Greater(metrics.GetNodeTimer(h, NodeMetric.Timers.CqlMessages).GetValue().Histogram.Max, 0);
 
@@ -266,7 +278,7 @@ namespace Dse.Test.Integration.Metrics
             try
             {
                 var cluster = GetNewTemporaryCluster(b => b.WithMetrics(
-                    _metricsRoot.CreateDriverMetricsProvider(),
+                    _metricsRoot.CreateDriverMetricsProvider(new DriverAppMetricsOptions().SetRefreshIntervalMilliseconds(1000)),
                     new DriverMetricsOptions()
                         .SetEnabledSessionMetrics(SessionMetric.AllSessionMetrics)
                         .SetEnabledNodeMetrics(NodeMetric.AllNodeMetrics)));
@@ -306,7 +318,10 @@ namespace Dse.Test.Integration.Metrics
                         Assert.AreEqual(0, metrics.GetNodeTimer(h, NodeMetric.Timers.CqlMessages).GetValue().Histogram.Mean);
                         Assert.AreEqual(0, metrics.GetNodeTimer(h, NodeMetric.Timers.CqlMessages).GetValue().Histogram.StdDev);
                         Assert.AreEqual(0, metrics.GetNodeTimer(h, NodeMetric.Timers.CqlMessages).GetValue().Histogram.Sum);
-                        Assert.Greater(metrics.GetNodeTimer(h, NodeMetric.Timers.CqlMessages).GetValue().Histogram.SampleSize, 0);
+                        TestHelper.RetryAssert(
+                            () => { Assert.Greater(metrics.GetNodeTimer(h, NodeMetric.Timers.CqlMessages).GetValue().Histogram.SampleSize, 0); },
+                            200,
+                            10);
                         Assert.AreEqual(0, metrics.GetNodeTimer(h, NodeMetric.Timers.CqlMessages).GetValue().Histogram.LastValue);
                         Assert.AreEqual(0, metrics.GetNodeTimer(h, NodeMetric.Timers.CqlMessages).GetValue().Histogram.Percentile999);
                         Assert.AreEqual(0, metrics.GetNodeTimer(h, NodeMetric.Timers.CqlMessages).GetValue().Histogram.Percentile75);
@@ -319,7 +334,10 @@ namespace Dse.Test.Integration.Metrics
                     else
                     {
                         Assert.Greater(metrics.GetNodeGauge(h, NodeMetric.Gauges.OpenConnections).GetValue(), 0);
-                        Assert.Greater(metrics.GetNodeTimer(h, NodeMetric.Timers.CqlMessages).GetValue().Histogram.Max, 0);
+                        TestHelper.RetryAssert(
+                            () => { Assert.Greater(metrics.GetNodeTimer(h, NodeMetric.Timers.CqlMessages).GetValue().Histogram.Max, 0); },
+                            200,
+                            10);
                         Assert.Greater(metrics.GetNodeTimer(h, NodeMetric.Timers.CqlMessages).GetValue().Histogram.Median, 0);
                         Assert.Greater(metrics.GetNodeTimer(h, NodeMetric.Timers.CqlMessages).GetValue().Histogram.Min, 0);
                         Assert.Greater(metrics.GetNodeTimer(h, NodeMetric.Timers.CqlMessages).GetValue().Histogram.Mean, 0);
