@@ -644,10 +644,10 @@ namespace Cassandra.IntegrationTests.Core
             using (var connection = 
                 new Connection(
                     new SerializerManager(GetProtocolVersion()).GetCurrentSerializer(), 
-                    config.EndPointResolver
-                          .GetOrResolveContactPointAsync(new IPEndPoint(new IPAddress(new byte[] { 1, 1, 1, 1 }), 9042))
-                          .Result
-                          .Single(), 
+                    new ConnectionEndPoint(
+                            new IPEndPoint(new IPAddress(new byte[] { 1, 1, 1, 1 }), 9042),
+                            config.ServerNameResolver,
+                            null),
                     config, 
                     new StartupRequestFactory(config.StartupOptionsFactory), 
                     NullConnectionObserver.Instance))
@@ -657,11 +657,11 @@ namespace Cassandra.IntegrationTests.Core
             }
             using (var connection = 
                 new Connection(
-                    new SerializerManager(GetProtocolVersion()).GetCurrentSerializer(), 
-                    config.EndPointResolver
-                          .GetOrResolveContactPointAsync(new IPEndPoint(new IPAddress(new byte[] { 255, 255, 255, 255 }), 9042))
-                          .Result
-                          .Single(), 
+                    new SerializerManager(GetProtocolVersion()).GetCurrentSerializer(),
+                    new ConnectionEndPoint(
+                        new IPEndPoint(new IPAddress(new byte[] { 255, 255, 255, 255 }), 9042),
+                        config.ServerNameResolver,
+                        null),
                     config, 
                     new StartupRequestFactory(config.StartupOptionsFactory), 
                     NullConnectionObserver.Instance))
@@ -831,7 +831,7 @@ namespace Cassandra.IntegrationTests.Core
                     tasks.Add(connection.Send(GetQueryRequest()));
                 }
 
-                Assert.That(connection.InFlight, Is.GreaterThan(5));
+                Assert.That(connection.InFlight, Is.GreaterThan(0));
 
                 var thrownException = await TestHelper.EatUpException(connection.Send(requestMock.Object)).ConfigureAwait(false);
                 Assert.AreSame(ex, thrownException);
@@ -869,9 +869,7 @@ namespace Cassandra.IntegrationTests.Core
             Trace.TraceInformation("Creating test connection using protocol v{0}", protocolVersion);
             return new Connection(
                 new SerializerManager(protocolVersion).GetCurrentSerializer(), 
-                config.EndPointResolver
-                      .GetOrResolveContactPointAsync(new IPEndPoint(IPAddress.Parse(_testCluster.InitialContactPoint), 9042))
-                      .Result.Single(), 
+                new ConnectionEndPoint(new IPEndPoint(IPAddress.Parse(_testCluster.InitialContactPoint), 9042), config.ServerNameResolver, null),
                 config, 
                 new StartupRequestFactory(config.StartupOptionsFactory), 
                 NullConnectionObserver.Instance);

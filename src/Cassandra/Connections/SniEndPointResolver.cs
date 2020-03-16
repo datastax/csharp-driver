@@ -24,7 +24,7 @@ using Cassandra.Helpers;
 
 namespace Cassandra.Connections
 {
-    internal class SniEndPointResolver : BaseEndPointResolver
+    internal class SniEndPointResolver : SingleThreadedResolver, ISniEndPointResolver
     {
         private static readonly Logger Logger = new Logger(typeof(SniEndPointResolver));
 
@@ -37,9 +37,9 @@ namespace Cassandra.Connections
 
         internal SniEndPointResolver(IDnsResolver dns, SniOptions sniOptions, IRandom rand)
         {
-            _dns = dns;
-            _sniOptions = sniOptions;
-            _random = rand;
+            _dns = dns ?? throw new ArgumentNullException(nameof(dns));
+            _sniOptions = sniOptions ?? throw new ArgumentNullException(nameof(sniOptions));
+            _random = rand ?? throw new ArgumentNullException(nameof(rand));
 
             if (sniOptions.IsIp)
             {
@@ -51,41 +51,30 @@ namespace Cassandra.Connections
         {
         }
 
-        public override async Task<IConnectionEndPoint> GetConnectionEndPointAsync(Host host, bool refreshCache)
-        {
-            await SafeRefreshIfNeededAsync(
-                () => refreshCache || (_endPoint == null && _resolvedProxyEndPoints == null), 
-                RefreshProxyResolutionAsync).ConfigureAwait(false);
+        public bool CanBeResolved => true;
 
-            return new SniConnectionEndPoint(await GetNextEndPointAsync().ConfigureAwait(false), host.Address, host.HostId.ToString("D"));
+        public SniOptions SniOptions => _sniOptions;
+
+        public async Task<IConnectionEndPoint> GetConnectionEndPointAsync(Host host, bool refreshCache)
+        {
+            return new SniConnectionEndPoint(await GetNextEndPointAsync(refreshCache).ConfigureAwait(false), host.Address, host.HostId.ToString("D"), host.ContactPoint);
         }
 
-        public override async Task<IEnumerable<IConnectionEndPoint>> GetOrResolveContactPointAsync(object contactPoint)
+        public Task RefreshProxyResolutionAsync()
         {
-            if (!(contactPoint is string contactPointText))
-            {
-                throw new InvalidOperationException("Contact points should be strings");
-            }
-
-            return new List<IConnectionEndPoint>
-            {
-                new SniConnectionEndPoint(await GetNextEndPointAsync().ConfigureAwait(false), contactPointText)
-            };
+            return SafeRefreshIfNeededAsync(() => true, UnsafeRefreshProxyResolutionAsync);
         }
 
-        public override Task RefreshContactPointCache()
-        {
-            return SafeRefreshIfNeededAsync(() => true, RefreshProxyResolutionAsync);
-        }
-
-        public async Task<IPEndPoint> GetNextEndPointAsync()
+        public async Task<IPEndPoint> GetNextEndPointAsync(bool refreshCache)
         {
             if (_endPoint != null)
             {
                 return _endPoint;
             }
-            
-            await SafeRefreshIfNeededAsync(() => _resolvedProxyEndPoints == null, RefreshProxyResolutionAsync).ConfigureAwait(false);
+
+            await SafeRefreshIfNeededAsync(
+                () => refreshCache || _resolvedProxyEndPoints == null, 
+                UnsafeRefreshProxyResolutionAsync).ConfigureAwait(false);
 
             await base.RefreshSemaphoreSlim.WaitAsync().ConfigureAwait(false);
             try
@@ -101,7 +90,7 @@ namespace Cassandra.Connections
             }
         }
 
-        private async Task RefreshProxyResolutionAsync()
+        private async Task UnsafeRefreshProxyResolutionAsync()
         {
             if (_endPoint != null)
             {
@@ -152,6 +141,41 @@ namespace Cassandra.Connections
                 : new DriverInternalError($"Could not resolve endpoint \"{_sniOptions.Name}\"", exception);
 
             throw error;
+        }
+
+        private bool TypedEquals(SniEndPointResolver other)
+        {
+            return object.Equals(_sniOptions, other._sniOptions);
+        }
+
+        public bool Equals(ISniEndPointResolver other)
+        {
+            return Equals((object)other);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            if (obj is SniEndPointResolver typedObj)
+            {
+                return TypedEquals(typedObj);
+            }
+
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            return _sniOptions.GetHashCode();
         }
     }
 }

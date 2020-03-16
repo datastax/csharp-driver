@@ -197,7 +197,7 @@ namespace Cassandra.Tests.DataStax.Insights
             var i = 1;
             foreach (var version in dseVersions)
             {
-                var host = new Host(new IPEndPoint(IPAddress.Parse($"127.0.0.{i++}"), 9042));
+                var host = new Host(new IPEndPoint(IPAddress.Parse($"127.0.0.{i++}"), 9042), contactPoint: null);
                 var row = Mock.Of<IRow>();
                 Mock.Get(row).Setup(r => r.ContainsColumn("dse_version")).Returns(true);
                 Mock.Get(row).Setup(r => r.GetValue<string>("dse_version")).Returns(version);

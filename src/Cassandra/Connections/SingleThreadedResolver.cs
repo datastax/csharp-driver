@@ -15,24 +15,18 @@
 //
 
 using System;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+
 using Cassandra.Tasks;
 
 namespace Cassandra.Connections
 {
-    internal abstract class BaseEndPointResolver : IEndPointResolver
+    internal abstract class SingleThreadedResolver
     {
         private volatile Task _currentTask;
 
         protected SemaphoreSlim RefreshSemaphoreSlim { get; } = new SemaphoreSlim(1, 1);
-
-        public abstract Task<IConnectionEndPoint> GetConnectionEndPointAsync(Host host, bool refreshCache);
-
-        public abstract Task<IEnumerable<IConnectionEndPoint>> GetOrResolveContactPointAsync(object contactPoint);
-
-        public abstract Task RefreshContactPointCache();
 
         /// <summary>
         /// This method makes sure that there are no concurrent refresh operations.
@@ -62,7 +56,7 @@ namespace Cassandra.Connections
 
                 var newTask = _currentTask;
 
-                if ((newTask == null && task != null) 
+                if ((newTask == null && task != null)
                     || (newTask != null && task == null)
                     || (newTask != null && task != null && !object.ReferenceEquals(newTask, task)))
                 {
@@ -74,7 +68,6 @@ namespace Cassandra.Connections
                     task = refreshFunc();
                     _currentTask = task;
                 }
-
             }
             finally
             {

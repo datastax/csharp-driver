@@ -53,7 +53,7 @@ namespace Cassandra.DataStax.Insights.MessageFactories
                 ApplicationNameWasGenerated = cluster.Configuration.ApplicationNameWasGenerated,
                 ContactPoints = 
                     cluster.Metadata.ResolvedContactPoints.ToDictionary(
-                        kvp => kvp.Key, kvp => kvp.Value.Select(ipEndPoint => ipEndPoint.ToString()).ToList()),
+                        kvp => kvp.Key.StringRepresentation, kvp => kvp.Value.Select(ipEndPoint => ipEndPoint.GetHostIpEndPointWithFallback().ToString()).ToList()),
                 DataCenters = _infoProviders.DataCentersInfoProvider.GetInformation(cluster, session),
                 InitialControlConnection = cluster.Metadata.ControlConnection.EndPoint?.GetHostIpEndPointWithFallback().ToString(),
                 LocalAddress = cluster.Metadata.ControlConnection.LocalAddress?.ToString(),

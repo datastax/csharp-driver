@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 
+using System;
 using System.Net;
 using System.Net.Security;
 using System.Threading.Tasks;
@@ -26,8 +27,13 @@ namespace Cassandra.Connections
     /// where a proxy is between the host and the driver. This abstraction makes the implementation of <see cref="IConnection"/>
     /// decoupled from the Host's IpEndPoint which can be obtained via DNS resolution or via system.peers queries.
     /// </summary>
-    internal interface IConnectionEndPoint
+    internal interface IConnectionEndPoint : IEquatable<IConnectionEndPoint>
     {
+        /// <summary>
+        /// ContactPoint from which this endpoint was resolved. It is null if it was parsed from system tables.
+        /// </summary>
+        IContactPoint ContactPoint { get; }
+
         /// <summary>
         /// IpEndPoint to which the driver will connect to (via <see cref="ITcpSocket"/>). This can never be null.
         /// </summary>

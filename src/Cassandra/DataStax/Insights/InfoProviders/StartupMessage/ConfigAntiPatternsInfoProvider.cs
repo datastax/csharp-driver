@@ -111,8 +111,19 @@ namespace Cassandra.DataStax.Insights.InfoProviders.StartupMessage
         {
             var antiPatterns = new Dictionary<string, string>();
 
-            var contactPoints = cluster.Metadata.ResolvedContactPoints.Values.SelectMany(endPoints => endPoints).ToList();
-            var contactPointsHosts = cluster.AllHosts().Where(host => contactPoints.Contains(host.Address)).ToList();
+            var resolvedContactPoints = cluster.Metadata.ResolvedContactPoints;
+
+            var contactPointsEndPoints = resolvedContactPoints
+                                         .Values
+                                         .SelectMany(endPoints => endPoints)
+                                         .Select(c => c.GetHostIpEndPointWithFallback())
+                                         .ToList();
+
+            var contactPointsHosts = cluster
+                                     .AllHosts()
+                                     .Where(host => (host.ContactPoint != null && resolvedContactPoints.ContainsKey(host.ContactPoint)) 
+                                                    || contactPointsEndPoints.Contains(host.Address))
+                                     .ToList();
 
             if (contactPointsHosts.Select(c => c.Datacenter).Where(dc => dc != null).Distinct().Count() > 1)
             {

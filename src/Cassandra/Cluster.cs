@@ -86,21 +86,21 @@ namespace Cassandra
             return BuildFrom(initializer, null, null);
         }
 
-        internal static Cluster BuildFrom(IInitializer initializer, IReadOnlyList<string> hostNames)
+        internal static Cluster BuildFrom(IInitializer initializer, IReadOnlyList<object> nonIpEndPointContactPoints)
         {
-            return BuildFrom(initializer, hostNames, null);
+            return BuildFrom(initializer, nonIpEndPointContactPoints, null);
         }
 
-        internal static Cluster BuildFrom(IInitializer initializer, IReadOnlyList<string> hostNames, Configuration config)
+        internal static Cluster BuildFrom(IInitializer initializer, IReadOnlyList<object> nonIpEndPointContactPoints, Configuration config)
         {
-            hostNames = hostNames ?? new string[0];
-            if (initializer.ContactPoints.Count == 0 && hostNames.Count == 0)
+            nonIpEndPointContactPoints = nonIpEndPointContactPoints ?? new object[0];
+            if (initializer.ContactPoints.Count == 0 && nonIpEndPointContactPoints.Count == 0)
             {
                 throw new ArgumentException("Cannot build a cluster without contact points");
             }
 
             return new Cluster(
-                initializer.ContactPoints.Cast<object>().Concat(hostNames),
+                initializer.ContactPoints.Concat(nonIpEndPointContactPoints),
                 config ?? initializer.GetConfiguration());
         }
 
@@ -169,7 +169,10 @@ namespace Cassandra
                 TimeSpan.FromMilliseconds(configuration.MetadataSyncOptions.RefreshSchemaDelayIncrement),
                 TimeSpan.FromMilliseconds(configuration.MetadataSyncOptions.MaxTotalRefreshSchemaDelay));
 
-            _controlConnection = configuration.ControlConnectionFactory.Create(this, _protocolEventDebouncer, protocolVersion, Configuration, _metadata, contactPoints);
+            var parsedContactPoints = configuration.ContactPointParser.ParseContactPoints(contactPoints);
+
+            _controlConnection = configuration.ControlConnectionFactory.Create(
+                this, _protocolEventDebouncer, protocolVersion, Configuration, _metadata, parsedContactPoints);
 
             _metadata.ControlConnection = _controlConnection;
         }
@@ -301,7 +304,7 @@ namespace Cassandra
             return $"{info.ProductName} v{info.FileVersion}";
         }
 
-        IReadOnlyDictionary<string, IEnumerable<IPEndPoint>> IInternalCluster.GetResolvedEndpoints()
+        IReadOnlyDictionary<IContactPoint, IEnumerable<IConnectionEndPoint>> IInternalCluster.GetResolvedEndpoints()
         {
             return _metadata.ResolvedContactPoints;
         }
