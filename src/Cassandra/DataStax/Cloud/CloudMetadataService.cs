@@ -44,7 +44,7 @@ namespace Cassandra.DataStax.Cloud
                 return GetWithHttpClientAsync(url, socketOptions, sslOptions);
             }
 
-            throw new NotSupportedException("DataStax Apollo support in .NET Core requires .NET Core 2.1 runtime or later. " +
+            throw new NotSupportedException("DataStax Astra support in .NET Core requires .NET Core 2.1 runtime or later. " +
                                             "The HTTPS implementation of .NET Core 2.0 and below don't work when some TLS settings are set. " +
                                             $"The runtime that is being used is: .NET Core {PlatformHelper.GetNetCoreVersion()}");
 #endif
