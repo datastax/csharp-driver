@@ -292,7 +292,7 @@ namespace Dse.Test.Unit.Mapping
             batch.Insert(testUsers[0]);
             batch.Insert(testUsers[1]);
             batch.Insert(testUsers[2]);
-            mapperAndSession.Mapper.ExecuteAsync(batch);
+            mapperAndSession.Mapper.ExecuteAsync(batch).Wait();
             Mock.Get(mapperAndSession.Session).Verify(s => s.ExecuteAsync(It.IsAny<IStatement>(), It.Is<string>(profile => profile != "default")), Times.Never);
             Mock.Get(mapperAndSession.Session).Verify(s => s.ExecuteAsync(It.IsAny<IStatement>(), It.Is<string>(profile => profile == "default")), Times.Once);
             Mock.Get(mapperAndSession.Session).Verify(s => s.ExecuteAsync(It.IsAny<IStatement>()), Times.Never);
