@@ -113,6 +113,11 @@ namespace Cassandra
         public IReadOnlyDictionary<string, IExecutionProfile> ExecutionProfiles { get; }
 
         /// <summary>
+        /// <see cref="Builder.WithUnresolvedContactPoints"/>
+        /// </summary>
+        public bool KeepContactPointsUnresolved { get; }
+
+        /// <summary>
         /// Shared reusable timer
         /// </summary>
         internal HashedWheelTimer Timer { get; private set; }
@@ -247,6 +252,10 @@ namespace Cassandra
                 new DriverInfoProvider(),
                 new HostnameInfoProvider());
 
+        internal IContactPointParser ContactPointParser { get; }
+
+        internal IServerNameResolver ServerNameResolver { get; }
+
         internal Configuration() :
             this(Policies.DefaultPolicies,
                  new ProtocolOptions(),
@@ -258,6 +267,7 @@ namespace Cassandra
                  new QueryOptions(),
                  new DefaultAddressTranslator(),
                  new Dictionary<string, IExecutionProfile>(),
+                 null,
                  null,
                  null,
                  null,
@@ -297,6 +307,7 @@ namespace Cassandra
                                string appName,
                                MonitorReportingOptions monitorReportingOptions,
                                TypeSerializerDefinitions typeSerializerDefinitions,
+                               bool? keepContactPointsUnresolved,
                                ISessionFactory sessionFactory = null,
                                IRequestOptionsMapper requestOptionsMapper = null,
                                IStartupOptionsFactory startupOptionsFactory = null,
@@ -309,7 +320,10 @@ namespace Cassandra
                                IPrepareHandlerFactory prepareHandlerFactory = null,
                                ITimerFactory timerFactory = null,
                                IObserverFactoryBuilder observerFactoryBuilder = null,
-                               IInsightsClientFactory insightsClientFactory = null)
+                               IInsightsClientFactory insightsClientFactory = null,
+                               IContactPointParser contactPointParser = null,
+                               IServerNameResolver serverNameResolver = null,
+                               IDnsResolver dnsResolver = null)
         {
             AddressTranslator = addressTranslator ?? throw new ArgumentNullException(nameof(addressTranslator));
             QueryOptions = queryOptions ?? throw new ArgumentNullException(nameof(queryOptions));
@@ -331,13 +345,13 @@ namespace Cassandra
             SessionFactory = sessionFactory ?? new SessionFactory();
             RequestOptionsMapper = requestOptionsMapper ?? new RequestOptionsMapper();
             MetadataSyncOptions = metadataSyncOptions?.Clone() ?? new MetadataSyncOptions();
-            DnsResolver = new DnsResolver();
-            EndPointResolver = endPointResolver ?? new EndPointResolver(DnsResolver, protocolOptions);
+            DnsResolver = dnsResolver ?? new DnsResolver();
             MetricsOptions = metricsOptions ?? new DriverMetricsOptions();
             MetricsProvider = driverMetricsProvider ?? new NullDriverMetricsProvider();
             SessionName = sessionName;
             MetricsEnabled = driverMetricsProvider != null;
             TypeSerializers = typeSerializerDefinitions?.Definitions;
+            KeepContactPointsUnresolved = keepContactPointsUnresolved ?? false;
             
             ObserverFactoryBuilder = observerFactoryBuilder ?? (MetricsEnabled ? (IObserverFactoryBuilder)new MetricsObserverFactoryBuilder() : new NullObserverFactoryBuilder());
             RequestHandlerFactory = requestHandlerFactory ?? new RequestHandlerFactory();
@@ -354,6 +368,9 @@ namespace Cassandra
             MonitorReportingOptions = monitorReportingOptions ?? new MonitorReportingOptions();
             InsightsSupportVerifier = insightsSupportVerifier ?? Configuration.DefaultInsightsSupportVerifier;
             InsightsClientFactory = insightsClientFactory ?? Configuration.DefaultInsightsClientFactory;
+            ServerNameResolver = serverNameResolver ?? new ServerNameResolver(ProtocolOptions);
+            EndPointResolver = endPointResolver ?? new EndPointResolver(ServerNameResolver);
+            ContactPointParser = contactPointParser ?? new ContactPointParser(DnsResolver, ProtocolOptions, ServerNameResolver, KeepContactPointsUnresolved);
 
             // Create the buffer pool with 16KB for small buffers and 256Kb for large buffers.
             // The pool does not eagerly reserve the buffers, so it doesn't take unnecessary memory

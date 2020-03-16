@@ -47,7 +47,17 @@ namespace Cassandra.Tests
         private ControlConnection NewInstance(Configuration config, Metadata metadata)
         {
             return new ControlConnection(
-                Mock.Of<IInternalCluster>(), GetEventDebouncer(config), ProtocolVersion.MaxSupported, config, metadata, new List<object> { "127.0.0.1" });
+                Mock.Of<IInternalCluster>(), 
+                GetEventDebouncer(config), 
+                ProtocolVersion.MaxSupported, 
+                config, metadata, 
+                new List<IContactPoint>
+                {
+                    new IpLiteralContactPoint(
+                        IPAddress.Parse("127.0.0.1"), 
+                        config.ProtocolOptions, 
+                        config.ServerNameResolver)
+                });
         }
 
         private ControlConnection NewInstance(Metadata metadata)
@@ -65,7 +75,8 @@ namespace Cassandra.Tests
             {
                 { "cluster_name", "ut-cluster" }, { "data_center", "ut-dc" }, { "rack", "ut-rack" }, {"tokens", null}, {"release_version", "2.2.1-SNAPSHOT"}
             });
-            cc.GetAndUpdateLocalHost(new ConnectionEndPoint(cc.Host.Address, null), row);
+            cc.GetAndUpdateLocalHost(new ConnectionEndPoint(
+                cc.Host.Address, new ServerNameResolver(new ProtocolOptions()), null), row);
             Assert.AreEqual("ut-cluster", metadata.ClusterName);
             Assert.AreEqual("ut-dc", cc.Host.Datacenter);
             Assert.AreEqual("ut-rack", cc.Host.Rack);

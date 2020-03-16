@@ -96,7 +96,15 @@ namespace Cassandra.IntegrationTests.Core
                 metadata.AddHost(new IPEndPoint(IPAddress.Parse(_testCluster.InitialContactPoint), ProtocolOptions.DefaultPort));
             }
             var cc = new ControlConnection(
-                Mock.Of<IInternalCluster>(), GetEventDebouncer(config), version, config, metadata, new List<object> { _testCluster.InitialContactPoint });
+                Mock.Of<IInternalCluster>(), 
+                GetEventDebouncer(config), 
+                version, 
+                config,
+                metadata, 
+                new List<IContactPoint>
+                {
+                    new IpLiteralContactPoint(IPAddress.Parse(_testCluster.InitialContactPoint), config.ProtocolOptions, config.ServerNameResolver )
+                });
             metadata.ControlConnection = cc;
             return cc;
         }

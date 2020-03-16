@@ -506,8 +506,8 @@ namespace Cassandra.Tests.DataStax.Insights
                 { host1, mockPool1 },
                 { host2, mockPool2 }
             };
-            Mock.Get(cluster).Setup(m => m.GetHost(host1)).Returns(new Host(host1));
-            Mock.Get(cluster).Setup(m => m.GetHost(host2)).Returns(new Host(host2));
+            Mock.Get(cluster).Setup(m => m.GetHost(host1)).Returns(new Host(host1, contactPoint: null));
+            Mock.Get(cluster).Setup(m => m.GetHost(host2)).Returns(new Host(host2, contactPoint: null));
             Mock.Get(session).Setup(s => s.GetPools()).Returns(pools.ToArray());
             Mock.Get(session).Setup(m => m.Cluster).Returns(cluster);
             Mock.Get(session).SetupGet(m => m.InternalSessionId).Returns(Guid.Parse("E21EAB96-D91E-4790-80BD-1D5FB5472258"));
@@ -523,13 +523,21 @@ namespace Cassandra.Tests.DataStax.Insights
                 ControlConnection = Mock.Of<IControlConnection>()
             };
             Mock.Get(metadata.ControlConnection).SetupGet(cc => cc.ProtocolVersion).Returns(ProtocolVersion.V4);
-            Mock.Get(metadata.ControlConnection).SetupGet(cc => cc.EndPoint).Returns(new ConnectionEndPoint(new IPEndPoint(IPAddress.Parse("10.10.10.10"), 9011), null));
+            Mock.Get(metadata.ControlConnection).SetupGet(cc => cc.EndPoint)
+                .Returns(new ConnectionEndPoint(new IPEndPoint(IPAddress.Parse("10.10.10.10"), 9011), config.ServerNameResolver, null));
             Mock.Get(metadata.ControlConnection).SetupGet(cc => cc.LocalAddress).Returns(new IPEndPoint(IPAddress.Parse("10.10.10.2"), 9015));
             var hostIp = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9042);
             var hostIp2 = new IPEndPoint(IPAddress.Parse("127.0.0.2"), 9042);
-            metadata.SetResolvedContactPoints(new Dictionary<string, IEnumerable<IPEndPoint>>
+            metadata.SetResolvedContactPoints(new Dictionary<IContactPoint, IEnumerable<IConnectionEndPoint>>
             {
-                { "localhost", new IPEndPoint[] { hostIp } }
+                { 
+                    new HostnameContactPoint(
+                        config.DnsResolver, 
+                        config.ProtocolOptions, 
+                        config.ServerNameResolver, 
+                        config.KeepContactPointsUnresolved, 
+                        "localhost"), 
+                    new[] { new ConnectionEndPoint(hostIp, config.ServerNameResolver, null) } }
             });
             metadata.AddHost(hostIp);
             metadata.AddHost(hostIp2);

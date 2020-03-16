@@ -447,7 +447,10 @@ namespace Cassandra.Tests
                 ProtocolVersion.V3, 
                 config, 
                 metadata,
-                new List<object> { "127.0.0.1" });
+                new List<IContactPoint>
+                {
+                    new IpLiteralContactPoint(IPAddress.Parse("127.0.0.1"), config.ProtocolOptions, config.ServerNameResolver)
+                });
             metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.1"), 9042));
             metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.2"), 9042));
             metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.3"), 9042));

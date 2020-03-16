@@ -16,6 +16,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 
@@ -36,28 +37,22 @@ namespace Cassandra.Tests.Connections
             ProtocolVersion initialProtocolVersion,
             Configuration config,
             Metadata metadata,
-            IEnumerable<object> contactPoints)
+            IEnumerable<IContactPoint> contactPoints)
         {
             var cc = Mock.Of<IControlConnection>();
-            Mock.Get(cc).Setup(c => c.InitAsync()).Returns(Task.Run(() =>
+            Mock.Get(cc).Setup(c => c.InitAsync()).Returns(Task.Run(async () =>
             {
-                var cps = new Dictionary<string, IEnumerable<IPEndPoint>>();
-
+                var cps = new Dictionary<IContactPoint, IEnumerable<IConnectionEndPoint>>();
                 foreach (var cp in contactPoints)
                 {
-                    if (cp is string cpStr && IPAddress.TryParse(cpStr, out var addr))
+                    var connectionEndpoints = (await cp.GetConnectionEndPointsAsync(true).ConfigureAwait(false)).ToList();
+                    cps.Add(cp, connectionEndpoints);
+                    foreach (var connectionEndpoint in connectionEndpoints)
                     {
-                        var host = metadata.AddHost(new IPEndPoint(addr, config.ProtocolOptions.Port));
+                        var endpt = connectionEndpoint.GetHostIpEndPointWithFallback();
+                        var host = metadata.AddHost(endpt, cp);
                         host.SetInfo(BuildRow());
                         Mock.Get(cc).Setup(c => c.Host).Returns(host);
-                        cps.Add(cpStr, new List<IPEndPoint> { host.Address });
-                    }
-                    else if (cp is IPEndPoint endpt)
-                    {
-                        var host = metadata.AddHost(endpt);
-                        host.SetInfo(BuildRow());
-                        Mock.Get(cc).Setup(c => c.Host).Returns(host);
-                        cps.Add(cp.ToString(), new List<IPEndPoint> { endpt });
                     }
                 }
                 metadata.SetResolvedContactPoints(cps);

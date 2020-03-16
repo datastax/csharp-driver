@@ -20,6 +20,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Linq;
 using Cassandra.Collections;
+using Cassandra.Connections;
 
 namespace Cassandra
 {
@@ -70,7 +71,15 @@ namespace Cassandra
         /// </summary>
         public Host Add(IPEndPoint key)
         {
-            var newHost = new Host(key);
+            return Add(key, null);
+        }
+        
+        /// <summary>
+        /// Adds the host if not exists
+        /// </summary>
+        public Host Add(IPEndPoint key, IContactPoint contactPoint)
+        {
+            var newHost = new Host(key, contactPoint);
             var host = _hosts.GetOrAdd(key, newHost);
             if (!ReferenceEquals(newHost, host))
             {

@@ -307,6 +307,22 @@ namespace Cassandra
         }
 
         /// <summary>
+        /// Combines the hash code based on the value of nullable items
+        /// </summary>
+        internal static int CombineHashCodeWithNulls<T>(IEnumerable<T> items)
+        {
+            unchecked
+            {
+                var hash = 17;
+                foreach (var item in items)
+                {
+                    hash = hash * 23 + (item?.GetHashCode() ?? 0);
+                }
+                return hash;
+            }
+        }
+
+        /// <summary>
         /// Returns true if the ConsistencyLevel is either <see cref="ConsistencyLevel.Serial"/> or <see cref="ConsistencyLevel.LocalSerial"/>,
         /// otherwise false.
         /// </summary>

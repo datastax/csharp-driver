@@ -28,7 +28,7 @@ namespace Cassandra.Connections
             ProtocolVersion initialProtocolVersion, 
             Configuration config, 
             Metadata metadata,
-            IEnumerable<object> contactPoints)
+            IEnumerable<IContactPoint> contactPoints)
         {
             return new ControlConnection(
                 cluster,
