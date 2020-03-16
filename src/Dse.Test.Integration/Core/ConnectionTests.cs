@@ -302,7 +302,8 @@ namespace Dse.Test.Integration.Core
 
                 Assert.True(taskList.All(t =>
                     t.Status == TaskStatus.RanToCompletion ||
-                    (t.Exception != null && t.Exception.InnerException is ReadTimeoutException)), "Not all task completed");
+                    (t.Exception != null && t.Exception.InnerException is ReadTimeoutException)), 
+                    string.Join(Environment.NewLine, taskList.Select(t => t.Exception?.ToString() ?? string.Empty)));
             }
         }
 
