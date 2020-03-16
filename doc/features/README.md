@@ -18,7 +18,7 @@ The DataStax Enterprise C# Driver is feature-rich and highly tunable C# client l
     - [Linq](components/linq)
     - [Mapper](components/mapper)
     - [ADO.NET](components/adonet)
-- [Connecting to DataStax Apollo database](cloud)
+- [Connecting to DataStax Astra](cloud)
 - [Connection heartbeat](connection-heartbeat)
 - [Connection pooling](connection-pooling)
 - [CQL data types to C# types](datatypes)

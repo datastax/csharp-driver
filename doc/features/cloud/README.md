@@ -1,12 +1,12 @@
-# Connecting to your DataStax Apollo database using a secure connection bundle
+# Connecting to DataStax Astra
 
 ## Quickstart
 
-Use the `DseClusterBuilder.WithCloudSecureConnectionBundle(string path)` method to connect to your [DataStax Apollo database on Constellation] using your secure connection bundle (`secure-connect-DATABASE_NAME.zip`).
+Use the `DseClusterBuilder.WithCloudSecureConnectionBundle(string path)` method to connect to your [DataStax Astra database] using your secure connection bundle (`secure-connect-DATABASE_NAME.zip`).
 
 Also, use `DseClusterBuilder.WithCredentials(string username, string password)` to provide your [CQL credentials].
 
-Here is an example of the minimum configuration needed to connect to your DataStax Apollo database using the secure connection bundle:
+Here is an example of the minimum configuration needed to connect to your DataStax Astra database using the secure connection bundle:
 
 ```csharp
 var session = 
@@ -19,7 +19,7 @@ var session =
 
 ## Supported platforms
 
-DataStax Apollo support on .NET Core requires **.NET Core Runtime 2.1 or later**.
+DataStax Astra support on .NET Core requires **.NET Core Runtime 2.1 or later**.
 
 For the remaining platforms supported by the driver, there is no additional requirement.
 
@@ -32,5 +32,5 @@ The following methods will throw an error when `.Build()` is called if the secur
 
 Every other method in the `DseClusterBuilder` class will have the same effect whether you are using a secure connection bundle or not.
 
-[DataStax Apollo database on Constellation]: https://www.datastax.com/constellation
+[DataStax Astra database]: https://www.datastax.com/cloud/datastax-astra
 [CQL credentials]: http://cassandra.apache.org/doc/latest/cql/security.html#cql-roles

@@ -32,7 +32,7 @@ Changelog for the DataStax Enterprise C# Driver.
 ### Features
 
 *   [[CSHARP-685](https://datastax-oss.atlassian.net/browse/CSHARP-685)] - Expose metrics
-*   [[CSHARP-754](https://datastax-oss.atlassian.net/browse/CSHARP-754)] - DataStax Apollo support
+*   [[CSHARP-754](https://datastax-oss.atlassian.net/browse/CSHARP-754)] - DataStax Astra support
 *   [[CSHARP-595](https://datastax-oss.atlassian.net/browse/CSHARP-595)] - DcAwareLoadBalancingPolicy: Warn when the local datacenter is not specified
 *   [[CSHARP-788](https://datastax-oss.atlassian.net/browse/CSHARP-788)] - Add list of reserved keywords and add double quotes when they are used as identifiers
 *   [[CSHARP-802](https://datastax-oss.atlassian.net/browse/CSHARP-802)] - Session.Warmup should mark host as down if no connection can be opened to that host

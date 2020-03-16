@@ -44,7 +44,7 @@ namespace Dse
         public String ClusterName { get; internal set; }
 
         /// <summary>
-        /// Determines whether the cluster is provided as a service (DataStax Apollo).
+        /// Determines whether the cluster is provided as a service (DataStax Astra).
         /// </summary>
         public bool IsDbaas { get; private set; } = false;
 
