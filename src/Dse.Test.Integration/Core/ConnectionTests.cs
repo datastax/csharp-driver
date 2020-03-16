@@ -847,7 +847,7 @@ namespace Dse.Test.Integration.Core
                     tasks.Add(connection.Send(GetQueryRequest()));
                 }
 
-                Assert.That(connection.InFlight, Is.GreaterThan(5));
+                Assert.That(connection.InFlight, Is.GreaterThan(0));
 
                 var thrownException = await TestHelper.EatUpException(connection.Send(requestMock.Object)).ConfigureAwait(false);
                 Assert.AreSame(ex, thrownException);

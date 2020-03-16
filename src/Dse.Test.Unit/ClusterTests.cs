@@ -6,10 +6,9 @@
 //
 
 using System;
-using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
-using System.Text;
 using NUnit.Framework;
 
 namespace Dse.Test.Unit
@@ -21,6 +20,39 @@ namespace Dse.Test.Unit
         public void OneTimeSetUp()
         {
             Diagnostics.CassandraTraceSwitch.Level = System.Diagnostics.TraceLevel.Verbose;
+        }
+
+        [Test]
+        public void DuplicateContactPointsShouldIgnore()
+        {
+            var listener = new TestTraceListener();
+            Trace.Listeners.Add(listener);
+            var originalLevel = Diagnostics.CassandraTraceSwitch.Level;
+            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Warning;
+            try
+            {
+                const string ip1 = "127.100.100.100";
+                const string singleUniqueIp = "127.100.100.101";
+                var ip2 = new IPEndPoint(IPAddress.Parse("127.100.100.100"), 9040);
+                var ip3 = IPAddress.Parse("127.100.100.100");
+                var cluster = Cluster.Builder()
+                                     .AddContactPoints(ip1, ip1, ip1)
+                                     .AddContactPoints(ip2, ip2, ip2)
+                                     // IPAddresses are converted to strings so these 3 will be equal to the previous 3
+                                     .AddContactPoints(ip3, ip3, ip3)
+                                     .AddContactPoint(singleUniqueIp)
+                                     .Build();
+
+                Assert.AreEqual(3, cluster.InternalRef.GetResolvedEndpoints().Count);
+                Trace.Flush();
+                Assert.AreEqual(5, listener.Queue.Count(msg => msg.Contains("Found duplicate contact point: 127.100.100.100. Ignoring it.")));
+                Assert.AreEqual(2, listener.Queue.Count(msg => msg.Contains("Found duplicate contact point: 127.100.100.100:9040. Ignoring it.")));
+            }
+            finally
+            {
+                Trace.Listeners.Remove(listener);
+                Diagnostics.CassandraTraceSwitch.Level = originalLevel;
+            }
         }
 
         [Test]

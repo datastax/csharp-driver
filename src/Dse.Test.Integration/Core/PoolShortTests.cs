@@ -405,7 +405,11 @@ namespace Dse.Test.Integration.Core
                     //coreConnectionLength + 1 (the control connection) 
                     Assert.AreEqual(4, serverConnections.Count, "2");
                 }, 100, 10).ConfigureAwait(false);
-                Assert.DoesNotThrowAsync(() => cluster.InternalRef.GetControlConnection().QueryAsync("SELECT * FROM system.local"));
+
+                TestHelper.RetryAssert(() =>
+                {
+                    Assert.DoesNotThrowAsync(() => cluster.InternalRef.GetControlConnection().QueryAsync("SELECT * FROM system.local"));
+                }, 100, 100);
             }
         }
 

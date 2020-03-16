@@ -15,6 +15,7 @@
 //
 
 using System;
+using System.CodeDom;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -91,7 +92,20 @@ namespace Dse.Connections
             _config = config;
             _serializer = new SerializerManager(initialProtocolVersion, config.TypeSerializers);
             _eventDebouncer = eventDebouncer;
-            _contactPoints = contactPoints;
+            
+            var duplicateContactPointsCountMap = contactPoints.GroupBy(kvp => kvp);
+            var uniqueContactPoints = new List<object>();
+            foreach (var kvp in duplicateContactPointsCountMap)
+            {
+                foreach (var _ in kvp.Skip(1))
+                {
+                    ControlConnection._logger.Warning("Found duplicate contact point: {0}. Ignoring it.", kvp.Key.ToString());
+                }
+
+                uniqueContactPoints.Add(kvp.Key);
+            }
+
+            _contactPoints = uniqueContactPoints;
 
             TaskHelper.WaitToComplete(ResolveContactPointsAsync());
         }
