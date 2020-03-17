@@ -184,34 +184,36 @@ namespace Cassandra.Tests
             }.Build();
             var cluster = Mock.Of<IInternalCluster>();
             var metadata = new Metadata(config);
-            var cc = NewInstance(cluster, config, metadata);
-            cc.Host = TestHelper.CreateHost("127.0.0.1");
-            metadata.AddHost(cc.Host.Address);
-            var hostAddress2 = IPAddress.Parse("127.0.0.2");
-            var hostAddress3 = IPAddress.Parse("127.0.0.3");
-            var hostAddress4 = IPAddress.Parse("127.0.0.4");
-            var rows = TestHelper.CreateRows(new List<Dictionary<string, object>>
+            using (var cc = NewInstance(cluster, config, metadata))
             {
-                new Dictionary<string, object>{{"rpc_address", hostAddress2}, {"peer", null}, { "data_center", "ut-dc2" }, { "rack", "ut-rack2" }, {"tokens", null}, {"release_version", "2.1.5"}},
-                new Dictionary<string, object>{{"rpc_address", IPAddress.Parse("0.0.0.0")}, {"peer", hostAddress3}, { "data_center", "ut-dc3" }, { "rack", "ut-rack3" }, {"tokens", null}, {"release_version", "2.1.5"}},
-                new Dictionary<string, object>{{"rpc_address", IPAddress.Parse("0.0.0.0")}, {"peer", hostAddress4}, { "data_center", "ut-dc3" }, { "rack", "ut-rack2" }, {"tokens", null}, {"release_version", "2.1.5"}}
-            });
-            cc.UpdatePeersInfo(rows, cc.Host);
-            Assert.AreEqual(4, metadata.AllHosts().Count);
-            var host2 = metadata.GetHost(new IPEndPoint(hostAddress2, ProtocolOptions.DefaultPort));
-            Assert.NotNull(host2);
-            host2.SetDown();
-            var host3 = metadata.GetHost(new IPEndPoint(hostAddress3, ProtocolOptions.DefaultPort));
-            Assert.NotNull(host3);
-            
-            Mock.Get(cluster)
-                .Setup(c => c.RetrieveAndSetDistance(It.IsAny<Host>()))
-                .Returns<Host>(h => config.Policies.LoadBalancingPolicy.Distance(h));
-            Mock.Get(cluster).Setup(c => c.AllHosts()).Returns(() => metadata.AllHosts());
-            config.Policies.LoadBalancingPolicy.Initialize(cluster);
+                cc.Host = TestHelper.CreateHost("127.0.0.1");
+                metadata.AddHost(cc.Host.Address);
+                var hostAddress2 = IPAddress.Parse("127.0.0.2");
+                var hostAddress3 = IPAddress.Parse("127.0.0.3");
+                var hostAddress4 = IPAddress.Parse("127.0.0.4");
+                var rows = TestHelper.CreateRows(new List<Dictionary<string, object>>
+                {
+                    new Dictionary<string, object>{{"rpc_address", hostAddress2}, {"peer", null}, { "data_center", "ut-dc2" }, { "rack", "ut-rack2" }, {"tokens", null}, {"release_version", "2.1.5"}},
+                    new Dictionary<string, object>{{"rpc_address", IPAddress.Parse("0.0.0.0")}, {"peer", hostAddress3}, { "data_center", "ut-dc3" }, { "rack", "ut-rack3" }, {"tokens", null}, {"release_version", "2.1.5"}},
+                    new Dictionary<string, object>{{"rpc_address", IPAddress.Parse("0.0.0.0")}, {"peer", hostAddress4}, { "data_center", "ut-dc3" }, { "rack", "ut-rack2" }, {"tokens", null}, {"release_version", "2.1.5"}}
+                });
+                cc.UpdatePeersInfo(rows, cc.Host);
+                Assert.AreEqual(4, metadata.AllHosts().Count);
+                var host2 = metadata.GetHost(new IPEndPoint(hostAddress2, ProtocolOptions.DefaultPort));
+                Assert.NotNull(host2);
+                host2.SetDown();
+                var host3 = metadata.GetHost(new IPEndPoint(hostAddress3, ProtocolOptions.DefaultPort));
+                Assert.NotNull(host3);
 
-            var ex = Assert.ThrowsAsync<NoHostAvailableException>(() => cc.Reconnect());
-            CollectionAssert.AreEquivalent(new [] { "127.0.0.1", "127.0.0.4" }, ex.Errors.Keys.Select(e => e.Address.ToString()));
+                Mock.Get(cluster)
+                    .Setup(c => c.RetrieveAndSetDistance(It.IsAny<Host>()))
+                    .Returns<Host>(h => config.Policies.LoadBalancingPolicy.Distance(h));
+                Mock.Get(cluster).Setup(c => c.AllHosts()).Returns(() => metadata.AllHosts());
+                config.Policies.LoadBalancingPolicy.Initialize(cluster);
+
+                var ex = Assert.ThrowsAsync<NoHostAvailableException>(() => cc.Reconnect());
+                CollectionAssert.AreEquivalent(new[] { "127.0.0.1", "127.0.0.4" }, ex.Errors.Keys.Select(e => e.Address.ToString()));
+            }
         }
     }
 }
