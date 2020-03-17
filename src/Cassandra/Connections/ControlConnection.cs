@@ -196,6 +196,11 @@ namespace Cassandra.Connections
             {
                 if (attemptedHosts.TryAdd(host, null))
                 {
+                    if (!IsHostValid(host, isInitializing))
+                    {
+                        continue;
+                    }
+
                     yield return ResolveHostContactPointOrConnectionEndpointAsync(attemptedContactPoints, host, isInitializing);
                 }
             }
@@ -210,9 +215,36 @@ namespace Cassandra.Connections
             {
                 if (attemptedHosts.TryAdd(host, null))
                 {
+                    if (!IsHostValid(host, isInitializing))
+                    {
+                        continue;
+                    }
+
                     yield return ResolveHostContactPointOrConnectionEndpointAsync(attemptedContactPoints, host, isInitializing);
                 }
             }
+        }
+
+        private bool IsHostValid(Host host, bool initializing)
+        {
+            if (initializing)
+            {
+                return true;
+            }
+
+            if (_cluster.RetrieveAndSetDistance(host) == HostDistance.Ignored)
+            {
+                ControlConnection._logger.Verbose("Skipping {0} because it is ignored.", host.Address.ToString());
+                return false;
+            }
+            
+            if (!host.IsUp)
+            {
+                ControlConnection._logger.Verbose("Skipping {0} because it is not UP.", host.Address.ToString());
+                return false;
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -257,6 +289,7 @@ namespace Cassandra.Connections
                 var endPoints = await endPointResolutionTask.ConfigureAwait(false);
                 foreach (var endPoint in endPoints)
                 {
+                    ControlConnection._logger.Verbose("Attempting to connect to {0}.", endPoint.EndpointFriendlyName);
                     var connection = _config.ConnectionFactory.CreateUnobserved(_serializer.GetCurrentSerializer(), endPoint, _config);
                     try
                     {
@@ -313,7 +346,6 @@ namespace Cassandra.Connections
                     catch (Exception ex)
                     {
                         // There was a socket or authentication exception or an unexpected error
-                        // NOTE: A host may appear twice iterating by design, see GetHostEnumerable()
                         triedHosts[endPoint.GetHostIpEndPointWithFallback()] = ex;
                         connection.Dispose();
                     }
