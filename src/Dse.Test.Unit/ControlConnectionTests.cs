@@ -7,6 +7,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using Dse.Connections;
 using Dse.ExecutionProfiles;
@@ -35,21 +36,17 @@ namespace Dse.Test.Unit
                 TimeSpan.FromMilliseconds(config.MetadataSyncOptions.MaxTotalRefreshSchemaDelay));
         }
 
-        private ControlConnection NewInstance(Configuration config, Metadata metadata)
+        private ControlConnection NewInstance(IInternalCluster cluster, Configuration config, Metadata metadata)
         {
             return new ControlConnection(GetEventDebouncer(config), ProtocolVersion.MaxSupported, config, metadata, new List<object> { "127.0.0.1" });
-        }
-
-        private ControlConnection NewInstance(Metadata metadata)
-        {
-            return NewInstance(new Configuration(), metadata);
         }
 
         [Test]
         public void UpdateLocalNodeInfoModifiesHost()
         {
-            var metadata = new Metadata(new Configuration());
-            var cc = NewInstance(metadata);
+            var config = new Configuration();
+            var metadata = new Metadata(config);
+            var cc = NewInstance(Mock.Of<IInternalCluster>(), config, metadata);
             cc.Host = TestHelper.CreateHost("127.0.0.1");
             var row = TestHelper.CreateRow(new Dictionary<string, object>
             {
@@ -65,8 +62,9 @@ namespace Dse.Test.Unit
         [Test]
         public void UpdatePeersInfoModifiesPool()
         {
-            var metadata = new Metadata(new Configuration());
-            var cc = NewInstance(metadata);
+            var config = new Configuration();
+            var metadata = new Metadata(config);
+            var cc = NewInstance(Mock.Of<IInternalCluster>(), config, metadata);
             cc.Host = TestHelper.CreateHost("127.0.0.1");
             metadata.AddHost(cc.Host.Address);
             var hostAddress2 = IPAddress.Parse("127.0.0.2");
@@ -94,8 +92,9 @@ namespace Dse.Test.Unit
         [Test]
         public void UpdatePeersInfoWithNullRpcIgnores()
         {
-            var metadata = new Metadata(new Configuration());
-            var cc = NewInstance(metadata);
+            var config = new Configuration();
+            var metadata = new Metadata(config);
+            var cc = NewInstance(Mock.Of<IInternalCluster>(), config, metadata);
             cc.Host = TestHelper.CreateHost("127.0.0.1");
             metadata.AddHost(cc.Host.Address);
             var rows = TestHelper.CreateRows(new List<Dictionary<string, object>>
@@ -118,25 +117,14 @@ namespace Dse.Test.Unit
                 .Returns<IPEndPoint>(e => e);
             const int portNumber = 9999;
             var metadata = new Metadata(new Configuration());
-            var config = new Configuration(Dse.Policies.DefaultPolicies,
-                 new ProtocolOptions(portNumber),
-                 null,
-                 new SocketOptions(),
-                 new ClientOptions(),
-                 NoneAuthProvider.Instance,
-                 null,
-                 new QueryOptions(),
-                 translatorMock.Object,
-                 Mock.Of<IStartupOptionsFactory>(),
-                 new SessionFactoryBuilder(),
-                 new Dictionary<string, IExecutionProfile>(),
-                 new RequestOptionsMapper(),
-                 null,
-                 null,
-                 null,
-                 null,
-                 null);
-            var cc = NewInstance(config, metadata);
+            var config =
+                new TestConfigurationBuilder
+                {
+                    ProtocolOptions = new ProtocolOptions(portNumber),
+                    AddressTranslator = translatorMock.Object,
+                    StartupOptionsFactory = Mock.Of<IStartupOptionsFactory>()
+                }.Build();
+            var cc = NewInstance(Mock.Of<IInternalCluster>(), config, metadata);
             cc.Host = TestHelper.CreateHost("127.0.0.1");
             metadata.AddHost(cc.Host.Address);
             var hostAddress2 = IPAddress.Parse("127.0.0.2");
@@ -153,6 +141,54 @@ namespace Dse.Test.Unit
             Assert.AreEqual(portNumber, invokedEndPoints[0].Port);
             Assert.AreEqual(hostAddress3, invokedEndPoints[1].Address);
             Assert.AreEqual(portNumber, invokedEndPoints[1].Port);
+        }
+        
+        [Test]
+        public void ShouldNotAttemptDownOrIgnoredHosts()
+        {
+            var config = new TestConfigurationBuilder()
+            {
+                SocketOptions = new SocketOptions().SetConnectTimeoutMillis(100).SetReadTimeoutMillis(100),
+                Policies = new Dse.Policies(
+                    new ClusterUnitTests.FakeHostDistanceLbp(new Dictionary<string, HostDistance>
+                    {
+                        {"127.0.0.1", HostDistance.Local},
+                        {"127.0.0.2", HostDistance.Local},
+                        {"127.0.0.3", HostDistance.Ignored},
+                        {"127.0.0.4", HostDistance.Local}
+                    }),
+                    new ConstantReconnectionPolicy(1000),
+                    new DefaultRetryPolicy())
+            }.Build();
+            var cluster = Mock.Of<IInternalCluster>();
+            var metadata = new Metadata(config);
+            using (var cc = NewInstance(cluster, config, metadata))
+            {
+                cc.Host = TestHelper.CreateHost("127.0.0.1");
+                metadata.AddHost(cc.Host.Address);
+                var hostAddress2 = IPAddress.Parse("127.0.0.2");
+                var hostAddress3 = IPAddress.Parse("127.0.0.3");
+                var hostAddress4 = IPAddress.Parse("127.0.0.4");
+                var rows = TestHelper.CreateRows(new List<Dictionary<string, object>>
+                {
+                    new Dictionary<string, object>{{"rpc_address", hostAddress2}, {"peer", null}, { "data_center", "ut-dc2" }, { "rack", "ut-rack2" }, {"tokens", null}, {"release_version", "2.1.5"}},
+                    new Dictionary<string, object>{{"rpc_address", IPAddress.Parse("0.0.0.0")}, {"peer", hostAddress3}, { "data_center", "ut-dc3" }, { "rack", "ut-rack3" }, {"tokens", null}, {"release_version", "2.1.5"}},
+                    new Dictionary<string, object>{{"rpc_address", IPAddress.Parse("0.0.0.0")}, {"peer", hostAddress4}, { "data_center", "ut-dc3" }, { "rack", "ut-rack2" }, {"tokens", null}, {"release_version", "2.1.5"}}
+                });
+                cc.UpdatePeersInfo(rows, cc.Host);
+                Assert.AreEqual(4, metadata.AllHosts().Count);
+                var host2 = metadata.GetHost(new IPEndPoint(hostAddress2, ProtocolOptions.DefaultPort));
+                Assert.NotNull(host2);
+                host2.SetDown();
+                var host3 = metadata.GetHost(new IPEndPoint(hostAddress3, ProtocolOptions.DefaultPort));
+                Assert.NotNull(host3);
+            
+                Mock.Get(cluster).Setup(c => c.AllHosts()).Returns(() => metadata.AllHosts());
+                config.Policies.LoadBalancingPolicy.Initialize(cluster);
+
+                var ex = Assert.ThrowsAsync<NoHostAvailableException>(() => cc.Reconnect());
+                CollectionAssert.AreEquivalent(new [] { "127.0.0.1", "127.0.0.4" }, ex.Errors.Keys.Select(e => e.Address.ToString()));
+            }
         }
     }
 }

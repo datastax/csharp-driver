@@ -157,6 +157,28 @@ namespace Dse.Connections
 
             return tasksDictionary.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Result);
         }
+        
+        private bool IsHostValid(Host host, bool initializing)
+        {
+            if (initializing)
+            {
+                return true;
+            }
+
+            if (Cluster.RetrieveAndSetDistance(host, _config.DefaultRequestOptions.LoadBalancingPolicy) == HostDistance.Ignored)
+            {
+                ControlConnection._logger.Verbose("Skipping {0} because it is ignored.", host.Address.ToString());
+                return false;
+            }
+            
+            if (!host.IsUp)
+            {
+                ControlConnection._logger.Verbose("Skipping {0} because it is not UP.", host.Address.ToString());
+                return false;
+            }
+
+            return true;
+        }
 
         /// <summary>
         /// Iterates through the query plan or hosts and tries to create a connection.
@@ -177,13 +199,17 @@ namespace Dse.Connections
                 endPointTasks =
                     lastResolvedContactPoints
                         .Select(Task.FromResult)
-                        .Concat(GetHostEnumerable().Select(h => _config.EndPointResolver.GetConnectionEndPointAsync(h, false)));
+                        .Concat(
+                            GetHostEnumerable()
+                                .Where(h => IsHostValid(h, true))
+                                .Select(h => _config.EndPointResolver.GetConnectionEndPointAsync(h, false)));
             }
             else
             {
                 endPointTasks =
                     _config.DefaultRequestOptions.LoadBalancingPolicy
                            .NewQueryPlan(null, null)
+                           .Where(h => IsHostValid(h, false))
                            .Select(h => _config.EndPointResolver.GetConnectionEndPointAsync(h, false));
             }
 
@@ -192,6 +218,7 @@ namespace Dse.Connections
             foreach (var endPointTask in endPointTasks)
             {
                 var endPoint = await endPointTask.ConfigureAwait(false);
+                ControlConnection._logger.Verbose("Attempting to connect to {0}.", endPoint.EndpointFriendlyName);
                 var connection = _config.ConnectionFactory.CreateUnobserved(_serializer.GetCurrentSerializer(), endPoint, _config);
                 try
                 {

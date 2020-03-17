@@ -6,6 +6,7 @@
 //
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
@@ -106,6 +107,32 @@ namespace Dse.Test.Unit
                 GC.Collect();
                 Assert.Less(GC.GetTotalMemory(true) / initialLength, 1.3M,
                     "Should not exceed a 20% (1.3) more than was previously allocated");
+            }
+        }
+
+        internal class FakeHostDistanceLbp : ILoadBalancingPolicy
+        {
+            private readonly IDictionary<string, HostDistance> _distances;
+            private ICluster _cluster;
+
+            public FakeHostDistanceLbp(IDictionary<string, HostDistance> distances)
+            {
+                _distances = distances;
+            }
+
+            public void Initialize(ICluster cluster)
+            {
+                _cluster = cluster;
+            }
+
+            public HostDistance Distance(Host host)
+            {
+                return _distances[host.Address.Address.ToString()];
+            }
+
+            public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
+            {
+                return _cluster.AllHosts().OrderBy(h => Guid.NewGuid().GetHashCode()).Take(_distances.Count);
             }
         }
     }
