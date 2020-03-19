@@ -15,7 +15,10 @@
 //
 
 using System;
+using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -57,10 +60,8 @@ namespace Cassandra.Connections
         private int _refreshFlag;
         private Task<bool> _reconnectTask;
         private readonly ISerializerManager _serializer;
-        internal const int MetadataAbortTimeout = 5 * 60000;
         private readonly IProtocolEventDebouncer _eventDebouncer;
-        private readonly IEnumerable<object> _contactPoints;
-        private volatile IReadOnlyList<IConnectionEndPoint> _lastResolvedContactPoints = new List<IConnectionEndPoint>();
+        private readonly IEnumerable<IContactPoint> _contactPoints;
 
         /// <summary>
         /// Gets the binary protocol version to be used for this cluster.
@@ -86,7 +87,7 @@ namespace Cassandra.Connections
             ProtocolVersion initialProtocolVersion,
             Configuration config,
             Metadata metadata,
-            IEnumerable<object> contactPoints)
+            IEnumerable<IContactPoint> contactPoints)
         {
             _cluster = cluster;
             _metadata = metadata;
@@ -98,7 +99,10 @@ namespace Cassandra.Connections
             _eventDebouncer = eventDebouncer;
             _contactPoints = contactPoints;
 
-            TaskHelper.WaitToComplete(ResolveContactPointsAsync());
+            if (!_config.KeepContactPointsUnresolved)
+            {
+                TaskHelper.WaitToComplete(InitialContactPointResolutionAsync());
+            }
         }
 
         public void Dispose()
@@ -112,41 +116,135 @@ namespace Cassandra.Connections
             _logger.Info("Trying to connect the ControlConnection");
             await Connect(true).ConfigureAwait(false);
         }
-
+        
         /// <summary>
         /// Resolves the contact points to a read only list of <see cref="IConnectionEndPoint"/> which will be used
-        /// during initialization. Also sets <see cref="_lastResolvedContactPoints"/>.
+        /// during initialization. Also sets <see cref="Metadata.SetResolvedContactPoints"/>.
         /// </summary>
-        private async Task<IReadOnlyList<IConnectionEndPoint>> ResolveContactPointsAsync()
+        private async Task InitialContactPointResolutionAsync()
         {
-            var tasksDictionary = await RefreshContactPointResolutionAsync().ConfigureAwait(false);
-            var lastResolvedContactPoints = tasksDictionary.Values.SelectMany(t => t).ToList();
-            _lastResolvedContactPoints = lastResolvedContactPoints;
-            return lastResolvedContactPoints;
-        }
+            var tasksDictionary = _contactPoints.ToDictionary(c => c, c => c.GetConnectionEndPointsAsync(true));
 
-        /// <summary>
-        /// Resolves all the original contact points to a list of <see cref="IConnectionEndPoint"/>.
-        /// </summary>
-        private async Task<IDictionary<object, IEnumerable<IConnectionEndPoint>>> RefreshContactPointResolutionAsync()
-        {
-            await _config.EndPointResolver.RefreshContactPointCache().ConfigureAwait(false);
-
-            var tasksDictionary = _contactPoints.ToDictionary(c => c, c => _config.EndPointResolver.GetOrResolveContactPointAsync(c));
             await Task.WhenAll(tasksDictionary.Values).ConfigureAwait(false);
 
-            var resolvedContactPoints =
-                tasksDictionary.ToDictionary(t => t.Key.ToString(), t => t.Value.Result.Select(ep => ep.GetHostIpEndPointWithFallback()));
+            var resolvedContactPoints = tasksDictionary.ToDictionary(t => t.Key, t => t.Value.Result);
 
             _metadata.SetResolvedContactPoints(resolvedContactPoints);
 
             if (!resolvedContactPoints.Any(kvp => kvp.Value.Any()))
             {
-                var hostNames = tasksDictionary.Where(kvp => kvp.Key is string c && !IPAddress.TryParse(c, out _)).Select(kvp => (string)kvp.Key);
+                var hostNames = tasksDictionary.Where(kvp => kvp.Key.CanBeResolved).Select(kvp => kvp.Key.StringRepresentation);
                 throw new NoHostAvailableException($"No host name could be resolved, attempted: {string.Join(", ", hostNames)}");
             }
+        }
 
-            return tasksDictionary.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Result);
+        private bool TotalConnectivityLoss()
+        {
+            var currentHosts = _metadata.AllHosts();
+            return currentHosts.Count(h => h.IsUp) == 0 || currentHosts.All(h => !_cluster.AnyOpenConnections(h));
+        }
+
+        private async Task<IEnumerable<IConnectionEndPoint>> ResolveContactPoint(IContactPoint contactPoint, bool isInitializing)
+        {
+            var connectivityLoss = !isInitializing && TotalConnectivityLoss();
+            if (connectivityLoss && contactPoint.CanBeResolved)
+            {
+                ControlConnection._logger.Warning(
+                    "Total connectivity loss detected due to the fact that there are no open connections, " +
+                    "re-resolving the following contact point: {0}", contactPoint.StringRepresentation);
+            }
+            
+            var endpoints = await contactPoint.GetConnectionEndPointsAsync(
+                _config.KeepContactPointsUnresolved || connectivityLoss).ConfigureAwait(false);
+            return _metadata.UpdateResolvedContactPoint(contactPoint, endpoints);
+        }
+
+        private async Task<IEnumerable<IConnectionEndPoint>> ResolveHostContactPointOrConnectionEndpointAsync(
+            ConcurrentDictionary<IContactPoint, object> attemptedContactPoints, Host host, bool isInitializing)
+        {
+            if (host.ContactPoint != null && attemptedContactPoints.TryAdd(host.ContactPoint, null))
+            {
+                return await ResolveContactPoint(host.ContactPoint, isInitializing).ConfigureAwait(false);
+            }
+            
+            var endpoint =
+                await _config
+                      .EndPointResolver
+                      .GetConnectionEndPointAsync(host, TotalConnectivityLoss())
+                      .ConfigureAwait(false);
+            return new List<IConnectionEndPoint> { endpoint };
+        }
+
+        private IEnumerable<Task<IEnumerable<IConnectionEndPoint>>> ContactPointResolutionTasksEnumerable(
+            ConcurrentDictionary<IContactPoint, object> attemptedContactPoints, bool isInitializing)
+        {
+            foreach (var contactPoint in _contactPoints)
+            {
+                if (attemptedContactPoints.TryAdd(contactPoint, null))
+                {
+                    yield return ResolveContactPoint(contactPoint, isInitializing);
+                }
+            }
+        }
+
+        private IEnumerable<Task<IEnumerable<IConnectionEndPoint>>> AllHostsEndPointResolutionTasksEnumerable(
+            ConcurrentDictionary<IContactPoint, object> attemptedContactPoints,
+            ConcurrentDictionary<Host, object> attemptedHosts,
+            bool isInitializing)
+        {
+            foreach (var host in GetHostEnumerable())
+            {
+                if (attemptedHosts.TryAdd(host, null))
+                {
+                    if (!IsHostValid(host, isInitializing))
+                    {
+                        continue;
+                    }
+
+                    yield return ResolveHostContactPointOrConnectionEndpointAsync(attemptedContactPoints, host, isInitializing);
+                }
+            }
+        }
+
+        private IEnumerable<Task<IEnumerable<IConnectionEndPoint>>> DefaultLbpHostsEnumerable(
+            ConcurrentDictionary<IContactPoint, object> attemptedContactPoints,
+            ConcurrentDictionary<Host, object> attemptedHosts,
+            bool isInitializing)
+        {
+            foreach (var host in _config.DefaultRequestOptions.LoadBalancingPolicy.NewQueryPlan(null, null))
+            {
+                if (attemptedHosts.TryAdd(host, null))
+                {
+                    if (!IsHostValid(host, isInitializing))
+                    {
+                        continue;
+                    }
+
+                    yield return ResolveHostContactPointOrConnectionEndpointAsync(attemptedContactPoints, host, isInitializing);
+                }
+            }
+        }
+
+        private bool IsHostValid(Host host, bool initializing)
+        {
+            if (initializing)
+            {
+                return true;
+            }
+
+            if (_cluster.RetrieveAndSetDistance(host) == HostDistance.Ignored)
+            {
+                ControlConnection._logger.Verbose("Skipping {0} because it is ignored.", host.Address.ToString());
+                return false;
+            }
+            
+            if (!host.IsUp)
+            {
+                ControlConnection._logger.Verbose("Skipping {0} because it is not UP.", host.Address.ToString());
+                return false;
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -161,87 +259,96 @@ namespace Cassandra.Connections
         /// <exception cref="DriverInternalError" />
         private async Task Connect(bool isInitializing)
         {
-            IEnumerable<Task<IConnectionEndPoint>> endPointTasks;
-            var lastResolvedContactPoints = _lastResolvedContactPoints;
+            // lazy iterator of endpoints to try for the control connection
+            IEnumerable<Task<IEnumerable<IConnectionEndPoint>>> endPointResolutionTasksLazyIterator = 
+                Enumerable.Empty<Task<IEnumerable<IConnectionEndPoint>>>();
+
+            var attemptedContactPoints = new ConcurrentDictionary<IContactPoint, object>();
+            var attemptedHosts = new ConcurrentDictionary<Host, object>();
+
+            // start with endpoints from the default LBP if it is already initialized
+            if (!isInitializing)
+            {
+                endPointResolutionTasksLazyIterator = DefaultLbpHostsEnumerable(attemptedContactPoints, attemptedHosts, isInitializing);
+            }
+
+            // add contact points next
+            endPointResolutionTasksLazyIterator = endPointResolutionTasksLazyIterator.Concat(
+                ContactPointResolutionTasksEnumerable(attemptedContactPoints, isInitializing));
+            
+            // finally add all hosts iterator, this will contain already tried hosts but we will check for it with the concurrent dictionary
             if (isInitializing)
             {
-                endPointTasks =
-                    lastResolvedContactPoints
-                        .Select(Task.FromResult)
-                        .Concat(GetHostEnumerable().Select(h => _config.EndPointResolver.GetConnectionEndPointAsync(h, false)));
-            }
-            else
-            {
-                endPointTasks =
-                    _config.DefaultRequestOptions.LoadBalancingPolicy
-                           .NewQueryPlan(null, null)
-                           .Select(h => _config.EndPointResolver.GetConnectionEndPointAsync(h, false));
+                endPointResolutionTasksLazyIterator = endPointResolutionTasksLazyIterator.Concat(
+                    AllHostsEndPointResolutionTasksEnumerable(attemptedContactPoints, attemptedHosts, isInitializing));
             }
 
             var triedHosts = new Dictionary<IPEndPoint, Exception>();
-
-            foreach (var endPointTask in endPointTasks)
+            foreach (var endPointResolutionTask in endPointResolutionTasksLazyIterator)
             {
-                var endPoint = await endPointTask.ConfigureAwait(false);
-                var connection = _config.ConnectionFactory.CreateUnobserved(_serializer.GetCurrentSerializer(), endPoint, _config);
-                try
+                var endPoints = await endPointResolutionTask.ConfigureAwait(false);
+                foreach (var endPoint in endPoints)
                 {
-                    var version = _serializer.CurrentProtocolVersion;
+                    ControlConnection._logger.Verbose("Attempting to connect to {0}.", endPoint.EndpointFriendlyName);
+                    var connection = _config.ConnectionFactory.CreateUnobserved(_serializer.GetCurrentSerializer(), endPoint, _config);
                     try
                     {
-                        await connection.Open().ConfigureAwait(false);
-                    }
-                    catch (UnsupportedProtocolVersionException ex)
-                    {
-                        if (!isInitializing)
+                        var version = _serializer.CurrentProtocolVersion;
+                        try
                         {
-                            // The version of the protocol is not supported on this host
-                            // Most likely, we are using a higher protocol version than the host supports
-                            ControlConnection._logger.Warning("Host {0} does not support protocol version {1}. You should use a fixed protocol " +
-                                                        "version during rolling upgrades of the cluster. " +
-                                                        "Skipping this host on the current attempt to open the control connection.", endPoint.EndpointFriendlyName, ex.ProtocolVersion);
-                            throw;
+                            await connection.Open().ConfigureAwait(false);
+                        }
+                        catch (UnsupportedProtocolVersionException ex)
+                        {
+                            if (!isInitializing)
+                            {
+                                // The version of the protocol is not supported on this host
+                                // Most likely, we are using a higher protocol version than the host supports
+                                ControlConnection._logger.Warning("Host {0} does not support protocol version {1}. You should use a fixed protocol " +
+                                                            "version during rolling upgrades of the cluster. " +
+                                                            "Skipping this host on the current attempt to open the control connection.", endPoint.EndpointFriendlyName, ex.ProtocolVersion);
+                                throw;
+                            }
+
+                            connection = await ChangeProtocolVersion(ex.ResponseProtocolVersion, connection, ex, version)
+                                .ConfigureAwait(false);
                         }
 
-                        connection = await ChangeProtocolVersion(ex.ResponseProtocolVersion, connection, ex, version)
-                            .ConfigureAwait(false);
-                    }
+                        ControlConnection._logger.Info($"Connection established to {connection.EndPoint.EndpointFriendlyName} using protocol " +
+                                     $"version {_serializer.CurrentProtocolVersion:D}");
+                        _connection = connection;
 
-                    ControlConnection._logger.Info($"Connection established to {connection.EndPoint.EndpointFriendlyName} using protocol " +
-                                 $"version {_serializer.CurrentProtocolVersion:D}");
-                    _connection = connection;
-
-                    if (isInitializing)
-                    {
-                        await ApplySupportedOptionsAsync().ConfigureAwait(false);
-                    }
-
-                    await RefreshNodeList(endPoint).ConfigureAwait(false);
-
-                    if (isInitializing)
-                    {
-                        var commonVersion = ProtocolVersion.GetHighestCommon(_metadata.Hosts);
-                        if (commonVersion != _serializer.CurrentProtocolVersion)
+                        if (isInitializing)
                         {
-                            // Current connection will be closed and reopened
-                            connection = await ChangeProtocolVersion(commonVersion, connection).ConfigureAwait(false);
-                            _connection = connection;
+                            await ApplySupportedOptionsAsync().ConfigureAwait(false);
                         }
+
+                        await RefreshNodeList(endPoint).ConfigureAwait(false);
+
+                        if (isInitializing)
+                        {
+                            var commonVersion = ProtocolVersion.GetHighestCommon(_metadata.Hosts);
+                            if (commonVersion != _serializer.CurrentProtocolVersion)
+                            {
+                                // Current connection will be closed and reopened
+                                connection = await ChangeProtocolVersion(commonVersion, connection).ConfigureAwait(false);
+                                _connection = connection;
+                            }
+                        }
+
+                        await SubscribeToServerEvents(connection).ConfigureAwait(false);
+                        await _metadata.RebuildTokenMapAsync(false, _config.MetadataSyncOptions.MetadataSyncEnabled).ConfigureAwait(false);
+
+                        _host.Down += OnHostDown;
+
+                        return;
                     }
-
-                    await SubscribeToServerEvents(connection).ConfigureAwait(false);
-                    await _metadata.RebuildTokenMapAsync(false, _config.MetadataSyncOptions.MetadataSyncEnabled).ConfigureAwait(false);
-
-                    _host.Down += OnHostDown;
-
-                    return;
-                }
-                catch (Exception ex)
-                {
-                    // There was a socket or authentication exception or an unexpected error
-                    // NOTE: A host may appear twice iterating by design, see GetHostEnumerable()
-                    triedHosts[endPoint.GetHostIpEndPointWithFallback()] = ex;
-                    connection.Dispose();
+                    catch (Exception ex)
+                    {
+                        // There was a socket or authentication exception or an unexpected error
+                        triedHosts[endPoint.GetHostIpEndPointWithFallback()] = ex;
+                        connection.Dispose();
+                    }
                 }
             }
             throw new NoHostAvailableException(triedHosts);
@@ -624,7 +731,7 @@ namespace Cassandra.Connections
         internal Host GetAndUpdateLocalHost(IConnectionEndPoint endPoint, Row row)
         {
             var hostIpEndPoint = endPoint.GetOrParseHostIpEndPoint(row, _config.AddressTranslator, _config.ProtocolOptions.Port);
-            var host = _metadata.GetHost(hostIpEndPoint) ?? _metadata.AddHost(hostIpEndPoint);
+            var host = _metadata.GetHost(hostIpEndPoint) ?? _metadata.AddHost(hostIpEndPoint, endPoint.ContactPoint);
 
             // Update cluster name, DC and rack for the one node we are connected to
             var clusterName = row.GetValue<string>("cluster_name");
@@ -696,7 +803,7 @@ namespace Cassandra.Connections
         /// </summary>
         public IEnumerable<Row> Query(string cqlQuery, bool retry = false)
         {
-            return TaskHelper.WaitToComplete(QueryAsync(cqlQuery, retry), ControlConnection.MetadataAbortTimeout);
+            return TaskHelper.WaitToComplete(QueryAsync(cqlQuery, retry), _config.SocketOptions.MetadataAbortTimeout);
         }
 
         public async Task<IEnumerable<Row>> QueryAsync(string cqlQuery, bool retry = false)

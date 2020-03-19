@@ -72,7 +72,10 @@ namespace Cassandra.Tests.Requests
                             new OutputPrepared(new byte[0], new RowSetMetadata { Columns = new CqlColumn[0] }));
                     });
             };
-            var queryPlan = mockResult.Session.InternalCluster.GetResolvedEndpoints().Select(x => new Host(x.Value.First())).ToList();
+            var queryPlan = mockResult.Session.InternalCluster
+                                      .GetResolvedEndpoints()
+                                      .Select(x => new Host(x.Value.First().GetHostIpEndPointWithFallback(), contactPoint: null))
+                                      .ToList();
             await mockResult.Session.GetOrCreateConnectionPool(queryPlan[0], HostDistance.Local).Warmup().ConfigureAwait(false);
             await mockResult.Session.GetOrCreateConnectionPool(queryPlan[2], HostDistance.Local).Warmup().ConfigureAwait(false);
             var pools = mockResult.Session.GetPools().ToList();
@@ -138,7 +141,10 @@ namespace Cassandra.Tests.Requests
                             new OutputPrepared(new byte[0], new RowSetMetadata { Columns = new CqlColumn[0] }));
                     });
             };
-            var queryPlan = mockResult.Session.InternalCluster.GetResolvedEndpoints().Select(x => new Host(x.Value.First())).ToList();
+            var queryPlan = mockResult.Session.InternalCluster
+                                      .GetResolvedEndpoints()
+                                      .Select(x => new Host(x.Value.First().GetHostIpEndPointWithFallback(), contactPoint: null))
+                                      .ToList();
             await mockResult.Session.GetOrCreateConnectionPool(queryPlan[0], HostDistance.Local).Warmup().ConfigureAwait(false);
             mockResult.Session.GetOrCreateConnectionPool(queryPlan[1], HostDistance.Local);
             await mockResult.Session.GetOrCreateConnectionPool(queryPlan[2], HostDistance.Local).Warmup().ConfigureAwait(false);
@@ -205,7 +211,10 @@ namespace Cassandra.Tests.Requests
                             new OutputPrepared(new byte[0], new RowSetMetadata { Columns = new CqlColumn[0] }));
                     });
             };
-            var queryPlan = mockResult.Session.InternalCluster.GetResolvedEndpoints().Select(x => new Host(x.Value.First())).ToList();
+            var queryPlan = mockResult.Session.InternalCluster
+                                      .GetResolvedEndpoints()
+                                      .Select(x => new Host(x.Value.First().GetHostIpEndPointWithFallback(), contactPoint: null))
+                                      .ToList();
             await mockResult.Session.GetOrCreateConnectionPool(queryPlan[0], HostDistance.Local).Warmup().ConfigureAwait(false);
             await mockResult.Session.GetOrCreateConnectionPool(queryPlan[1], HostDistance.Local).Warmup().ConfigureAwait(false);
             await mockResult.Session.GetOrCreateConnectionPool(queryPlan[2], HostDistance.Local).Warmup().ConfigureAwait(false);
@@ -274,7 +283,10 @@ namespace Cassandra.Tests.Requests
                             new OutputPrepared(new byte[0], new RowSetMetadata { Columns = new CqlColumn[0] }));
                     });
             };
-            var queryPlan = mockResult.Session.InternalCluster.GetResolvedEndpoints().Select(x => new Host(x.Value.First())).ToList();
+            var queryPlan = mockResult.Session.InternalCluster
+                                      .GetResolvedEndpoints()
+                                      .Select(x => new Host(x.Value.First().GetHostIpEndPointWithFallback(), contactPoint: null))
+                                      .ToList();
             await mockResult.Session.GetOrCreateConnectionPool(queryPlan[1], HostDistance.Local).Warmup().ConfigureAwait(false);
             await mockResult.Session.GetOrCreateConnectionPool(queryPlan[2], HostDistance.Local).Warmup().ConfigureAwait(false);
             var pools = mockResult.Session.GetPools().ToList();
@@ -341,7 +353,10 @@ namespace Cassandra.Tests.Requests
                             new OutputPrepared(new byte[0], new RowSetMetadata { Columns = new CqlColumn[0] }));
                     });
             };
-            var queryPlan = mockResult.Session.InternalCluster.GetResolvedEndpoints().Select(x => new Host(x.Value.First())).ToList();
+            var queryPlan = mockResult.Session.InternalCluster
+                                      .GetResolvedEndpoints()
+                                      .Select(x => new Host(x.Value.First().GetHostIpEndPointWithFallback(), contactPoint: null))
+                                      .ToList();
             await mockResult.Session.GetOrCreateConnectionPool(queryPlan[1], HostDistance.Local).Warmup().ConfigureAwait(false);
             await mockResult.Session.GetOrCreateConnectionPool(queryPlan[2], HostDistance.Local).Warmup().ConfigureAwait(false);
             var pools = mockResult.Session.GetPools().ToList();
@@ -409,7 +424,10 @@ namespace Cassandra.Tests.Requests
                             new OutputPrepared(new byte[0], new RowSetMetadata { Columns = new CqlColumn[0] }));
                     });
             };
-            var queryPlan = mockResult.Session.InternalCluster.GetResolvedEndpoints().Select(x => new Host(x.Value.First())).ToList();
+            var queryPlan = mockResult.Session.InternalCluster
+                                      .GetResolvedEndpoints()
+                                      .Select(x => new Host(x.Value.First().GetHostIpEndPointWithFallback(), contactPoint: null))
+                                      .ToList();
             await mockResult.Session.GetOrCreateConnectionPool(queryPlan[1], HostDistance.Local).Warmup().ConfigureAwait(false);
             await mockResult.Session.GetOrCreateConnectionPool(queryPlan[2], HostDistance.Local).Warmup().ConfigureAwait(false);
             var pools = mockResult.Session.GetPools().ToList();
@@ -492,7 +510,7 @@ namespace Cassandra.Tests.Requests
             
             Mock.Get(connection)
                 .SetupGet(c => c.EndPoint)
-                .Returns(new ConnectionEndPoint(endpoint, null));
+                .Returns(new ConnectionEndPoint(endpoint, new ServerNameResolver(new ProtocolOptions()), null));
 
             return connection;
         }

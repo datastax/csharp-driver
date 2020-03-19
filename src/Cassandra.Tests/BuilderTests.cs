@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using Cassandra.Connections;
 using Cassandra.DataStax.Graph;
 using NUnit.Framework;
 
@@ -107,14 +108,17 @@ namespace Cassandra.Tests
             var cluster = builder.Build();
             Assert.AreEqual(3, cluster.InternalRef.GetResolvedEndpoints().Count);
             CollectionAssert.AreEqual(
-                new[] { new IPEndPoint(IPAddress.Parse(host1), ProtocolOptions.DefaultPort) }, 
-                cluster.InternalRef.GetResolvedEndpoints()[host1]);
+                new[] { new ConnectionEndPoint(new IPEndPoint(IPAddress.Parse(host1), ProtocolOptions.DefaultPort), cluster.Configuration.ServerNameResolver, null) }, 
+                cluster.InternalRef.GetResolvedEndpoints().Single(kvp => kvp.Key.StringRepresentation == host1).Value);
             CollectionAssert.AreEqual(
-                new[] { new IPEndPoint(IPAddress.Parse(host2), ProtocolOptions.DefaultPort) }, 
-                cluster.InternalRef.GetResolvedEndpoints()[host2]);
+                new[] { new ConnectionEndPoint(new IPEndPoint(IPAddress.Parse(host2), ProtocolOptions.DefaultPort), cluster.Configuration.ServerNameResolver, null) }, 
+                cluster.InternalRef.GetResolvedEndpoints().Single(kvp => kvp.Key.StringRepresentation == host2).Value);
 
-            var localhostAddress = new IPEndPoint(IPAddress.Parse("127.0.0.1"), ProtocolOptions.DefaultPort);
-            Assert.Contains(localhostAddress, cluster.InternalRef.GetResolvedEndpoints()[host3].ToList());
+            var localhostAddress = new ConnectionEndPoint(new IPEndPoint(IPAddress.Parse("127.0.0.1"), ProtocolOptions.DefaultPort), cluster.Configuration.ServerNameResolver, null);
+            Assert.Contains(localhostAddress, cluster.InternalRef.GetResolvedEndpoints()
+                                                     .Single(kvp => kvp.Key.StringRepresentation == host3)
+                                                     .Value
+                                                     .ToList());
         }
 
         [Test]

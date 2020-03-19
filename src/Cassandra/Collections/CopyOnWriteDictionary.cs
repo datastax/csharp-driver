@@ -44,6 +44,11 @@ namespace Cassandra.Collections
 
         public ICollection<TValue> Values => _map.Values;
 
+        public CopyOnWriteDictionary(IDictionary<TKey, TValue> toCopy)
+        {
+            _map = new Dictionary<TKey, TValue>(toCopy);
+        }
+        
         public CopyOnWriteDictionary()
         {
             //Start with an instance without nodes

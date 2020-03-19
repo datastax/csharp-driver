@@ -53,7 +53,8 @@ namespace Cassandra.AppMetrics.Implementations
                         1, 
                         // timer records value in nanoseconds, convert limit value from ms to ns
                         ((long)_options.HighestLatencyMilliseconds)*1000*1000,
-                        _options.SignificantDigits)
+                        _options.SignificantDigits,
+                        _options.RefreshIntervalMilliseconds)
                 }),
                 bucket,
                 metric.Name);

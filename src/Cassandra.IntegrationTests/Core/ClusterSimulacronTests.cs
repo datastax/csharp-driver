@@ -15,22 +15,28 @@
 //
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Threading;
+using System.Threading.Tasks;
+
 using Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.Then;
+using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
+using Cassandra.Tasks;
+using Cassandra.Tests;
+
+using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Net;
-    using System.Threading.Tasks;
-
-    using Cassandra.IntegrationTests.TestClusterManagement;
-    using Cassandra.Tasks;
-
-    using NUnit.Framework;
-
-    public class ClusterSharedSingleNodeTests : SimulacronTest
+    public class ClusterSimulacronTests : SimulacronTest
     {
+        public ClusterSimulacronTests() : base(false, new SimulacronOptions() {Nodes = "3"})
+        {
+            
+        }
+
         [Test]
         public void Cluster_Should_Ignore_IpV6_Addresses_For_Not_Valid_Hosts()
         {
@@ -57,7 +63,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 var session = cluster.Connect();
                 session.Execute("select * from system.local");
-                Assert.That(cluster.AllHosts().Count, Is.EqualTo(1));
+                Assert.That(cluster.AllHosts().Count, Is.EqualTo(3));
             }
         }
 
@@ -138,7 +144,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     cluster.Connect("system");
                     Assert.IsTrue(
-                        cluster.AllHosts().Any(h => addressList.Contains(h.Address.Address)), 
+                        cluster.AllHosts().Any(h => addressList.Contains(h.Address.Address)),
                         string.Join(";", cluster.AllHosts().Select(h => h.Address.ToString())) + " | " + TestCluster.InitialContactPoint.Address);
                 }
                 catch (NoHostAvailableException ex)
@@ -146,6 +152,102 @@ namespace Cassandra.IntegrationTests.Core
                     Assert.IsTrue(ex.Errors.Keys.Select(k => k.Address).OrderBy(a => a.ToString()).SequenceEqual(addressList.OrderBy(a => a.ToString())));
                 }
             }
+        }
+
+        [Test]
+        public void RepeatedClusterConnectCallsAfterTimeoutErrorThrowCachedInitErrorException()
+        {
+            TestCluster.DisableConnectionListener(type: "reject_startup");
+            var timeoutMessage = "Cluster initialization was aborted after timing out. This mechanism is put in place to" +
+                                 " avoid blocking the calling thread forever. This usually caused by a networking issue" +
+                                 " between the client driver instance and the cluster. You can increase this timeout via " +
+                                 "the SocketOptions.ConnectTimeoutMillis config setting. This can also be related to deadlocks " +
+                                 "caused by mixing synchronous and asynchronous code.";
+            var cachedError = "An error occured during the initialization of the cluster instance. Further initialization attempts " +
+                              "for this cluster instance will never succeed and will return this exception instead. The InnerException property holds " +
+                              "a reference to the exception that originally caused the initialization error.";
+            using (var cluster = CreateClusterAndWaitUntilConnectException(
+                b => b
+                     .WithSocketOptions(
+                         new SocketOptions()
+                             .SetConnectTimeoutMillis(500)
+                             .SetMetadataAbortTimeout(500)),
+                out var ex))
+            {
+                Assert.AreEqual(typeof(TimeoutException), ex.GetType());
+                Assert.AreEqual(timeoutMessage, ex.Message);
+                var ex2 = Assert.Throws<InitFatalErrorException>(() => cluster.Connect("sample_ks"));
+                Assert.AreEqual(cachedError, ex2.Message);
+                Assert.AreEqual(typeof(TimeoutException), ex2.InnerException.GetType());
+                Assert.AreEqual(timeoutMessage, ex2.InnerException.Message);
+            }
+        }
+
+        [Test]
+        public void RepeatedClusterConnectCallsAfterTimeoutErrorEventuallyThrowNoHostException()
+        {
+            TestCluster.DisableConnectionListener(type: "reject_startup");
+            using (var cluster = CreateClusterAndWaitUntilConnectException(
+                b => b
+                       .WithSocketOptions(
+                           new SocketOptions()
+                               .SetConnectTimeoutMillis(500)
+                               .SetMetadataAbortTimeout(500)),
+                out var ex))
+            {
+                Assert.AreEqual(typeof(TimeoutException), ex.GetType());
+                TestHelper.RetryAssert(
+                    () =>
+                    {
+                        var ex2 = Assert.Throws<InitFatalErrorException>(() => cluster.Connect("sample_ks"));
+                        Assert.AreEqual(typeof(NoHostAvailableException), ex2.InnerException.GetType());
+                    },
+                    1000,
+                    30);
+            }
+        }
+
+        [Test]
+        public void RepeatedClusterConnectCallsAfterNoHostErrorDontThrowCachedInitErrorException()
+        {
+            TestCluster.DisableConnectionListener(type: "reject_startup");
+            using (var cluster = CreateClusterAndWaitUntilConnectException(
+                b => b.WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(1).SetReadTimeoutMillis(1)),
+                out _))
+            {
+                var ex = Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
+                var ex2 = Assert.Throws<NoHostAvailableException>(() => cluster.Connect("sample_ks"));
+                Assert.AreNotSame(ex, ex2);
+            }
+        }
+
+        private ICluster CreateClusterAndWaitUntilConnectException(Action<Builder> b, out Exception ex)
+        {
+            Exception tempEx = null;
+            ICluster cluster = null;
+            TestHelper.RetryAssert(
+                () =>
+                {
+                    var builder = Cluster.Builder().AddContactPoints(TestCluster.ContactPoints);
+                    b(builder);
+                    cluster = builder.Build();
+                    try
+                    {
+                        tempEx = Assert.Catch<Exception>(() => cluster.Connect());
+                    }
+                    catch (Exception)
+                    {
+                        cluster.Dispose();
+                        SetupNewTestCluster();
+                        Interlocked.MemoryBarrier();
+                        TestCluster.DisableConnectionListener(type: "reject_startup");
+                        throw;
+                    }
+                }, 500, 20);
+
+            Interlocked.MemoryBarrier();
+            ex = tempEx;
+            return cluster;
         }
     }
 }

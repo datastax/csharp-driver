@@ -44,8 +44,7 @@ namespace Cassandra
 
         private static readonly Logger Logger = new Logger(typeof(Builder));
 
-        private readonly List<IPEndPoint> _addresses = new List<IPEndPoint>();
-        private readonly List<string> _hostNames = new List<string>();
+        private readonly List<object> _contactPoints = new List<object>();
         private const int DefaultQueryAbortTimeout = 20000;
         private PoolingOptions _poolingOptions;
         private SocketOptions _socketOptions = new SocketOptions();
@@ -82,6 +81,7 @@ namespace Cassandra
         private bool _addedContactPoints;
         private bool _addedAuth;
         private bool _addedLbp;
+        private bool? _keepContactPointsUnresolved;
 
         public Builder()
         {
@@ -148,7 +148,7 @@ namespace Cassandra
         /// </summary>
         public ICollection<IPEndPoint> ContactPoints
         {
-            get { return _addresses; }
+            get { return _contactPoints.Select(c => c as IPEndPoint).Where(c => c != null).ToList(); }
         }
         
         /// <summary>
@@ -167,14 +167,6 @@ namespace Cassandra
             }
             
             var typeSerializerDefinitions = _typeSerializerDefinitions ?? new TypeSerializerDefinitions();
-
-            typeSerializerDefinitions
-                .DefineIfNotExists(new DateRangeSerializer())
-                .DefineIfNotExists(new DurationSerializer(true))
-                .DefineIfNotExists(new LineStringSerializer())
-                .DefineIfNotExists(new PointSerializer())
-                .DefineIfNotExists(new PolygonSerializer());
-
             var policies = GetPolicies();
             var graphOptions = GetGraphOptions();
             SetLegacySettingsFromDefaultProfile();
@@ -210,7 +202,8 @@ namespace Cassandra
                 ApplicationVersion,
                 ApplicationName,
                 _monitorReportingOptions,
-                typeSerializerDefinitions);
+                typeSerializerDefinitions,
+                _keepContactPointsUnresolved);
 
             return config;
         }
@@ -370,9 +363,12 @@ namespace Cassandra
         public Builder WithPort(int port)
         {
             _port = port;
-            foreach (var addr in _addresses)
+            foreach (var c in _contactPoints)
             {
-                addr.Port = port;
+                if (c is IPEndPoint ipEndPoint)
+                {
+                    ipEndPoint.Port = port;
+                }
             }
             return this;
         }
@@ -436,9 +432,7 @@ namespace Cassandra
         /// <returns>this Builder</returns>
         public Builder AddContactPoint(string address)
         {
-            _addedContactPoints = true;
-            _hostNames.Add(address ?? throw new ArgumentNullException(nameof(address)));
-            return this;
+            return AddSingleContactPointInternal(address);
         }
 
         /// <summary>
@@ -449,11 +443,9 @@ namespace Cassandra
         /// <returns>this Builder</returns>
         public Builder AddContactPoint(IPAddress address)
         {
-            _addedContactPoints = true;
             // Avoid creating IPEndPoint entries using the current port,
             // as the user might provide a different one by calling WithPort() after this call
-            AddContactPoint(address.ToString());
-            return this;
+            return AddSingleContactPointInternal(address);
         }
 
         /// <summary>
@@ -464,9 +456,7 @@ namespace Cassandra
         /// <returns>this Builder</returns>
         public Builder AddContactPoint(IPEndPoint address)
         {
-            _addedContactPoints = true;
-            _addresses.Add(address);
-            return this;
+            return AddSingleContactPointInternal(address);
         }
 
         /// <summary>
@@ -477,9 +467,7 @@ namespace Cassandra
         /// <returns>this Builder </returns>
         public Builder AddContactPoints(params string[] addresses)
         {
-            _addedContactPoints = true;
-            AddContactPoints(addresses.AsEnumerable());
-            return this;
+            return AddMultipleContactPointsInternal(addresses.AsEnumerable());
         }
 
         /// <summary>
@@ -490,12 +478,7 @@ namespace Cassandra
         /// <returns>this Builder</returns>
         public Builder AddContactPoints(IEnumerable<string> addresses)
         {
-            _addedContactPoints = true;
-            foreach (var address in addresses)
-            {
-                AddContactPoint(address);
-            }
-            return this;
+            return AddMultipleContactPointsInternal(addresses.AsEnumerable());
         }
 
         /// <summary>
@@ -506,9 +489,7 @@ namespace Cassandra
         /// <returns>this Builder</returns>
         public Builder AddContactPoints(params IPAddress[] addresses)
         {
-            _addedContactPoints = true;
-            AddContactPoints(addresses.AsEnumerable());
-            return this;
+            return AddMultipleContactPointsInternal(addresses.AsEnumerable());
         }
 
         /// <summary>
@@ -519,12 +500,7 @@ namespace Cassandra
         /// <returns>this Builder</returns>
         public Builder AddContactPoints(IEnumerable<IPAddress> addresses)
         {
-            _addedContactPoints = true;
-            foreach (var address in addresses)
-            {
-                AddContactPoint(address);
-            }
-            return this;
+            return AddMultipleContactPointsInternal(addresses);
         }
 
         /// <summary>
@@ -537,9 +513,7 @@ namespace Cassandra
         /// <returns>this Builder</returns>
         public Builder AddContactPoints(params IPEndPoint[] addresses)
         {
-            _addedContactPoints = true;
-            AddContactPoints(addresses.AsEnumerable());
-            return this;
+            return AddMultipleContactPointsInternal(addresses.AsEnumerable());
         }
 
         /// <summary>
@@ -552,8 +526,50 @@ namespace Cassandra
         /// <returns>this Builder</returns>
         public Builder AddContactPoints(IEnumerable<IPEndPoint> addresses)
         {
+            return AddMultipleContactPointsInternal(addresses);
+        }
+
+        private Builder AddMultipleContactPointsInternal(IEnumerable<object> contactPoints)
+        {
+            if (contactPoints == null)
+            {
+                throw new ArgumentNullException(nameof(contactPoints));
+            }
+
             _addedContactPoints = true;
-            _addresses.AddRange(addresses);
+            _contactPoints.AddRange(contactPoints);
+            return this;
+        }
+
+        private Builder AddSingleContactPointInternal(object contactPoint)
+        {
+            if (contactPoint == null)
+            {
+                throw new ArgumentNullException(nameof(contactPoint));
+            }
+
+            _addedContactPoints = true;
+            _contactPoints.Add(contactPoint);
+            return this;
+        }
+
+        /// <summary>
+        /// <para>
+        /// Whether to resolve hostname based contact points every time the driver attempts to use it to open a connection.
+        /// </para>
+        /// <para>
+        /// Note that not every contact point is usually added as a <see cref="Host"/> instance and only the <see cref="Host"/> instances
+        /// can be picked by the <see cref="ILoadBalancingPolicy"/> as coordinators for application requests.
+        /// The driver adds the node which is used for the control connection as a <see cref="Host"/> and then parses the remaining
+        /// hosts and their IP addresses from system tables, therefore ignoring the remaining contact points unless the control connection
+        /// needs to be reconnected.
+        /// </para>
+        /// </summary>
+        /// <param name="keepContactPointsUnresolved"></param>
+        /// <returns></returns>
+        public Builder WithUnresolvedContactPoints(bool keepContactPointsUnresolved)
+        {
+            _keepContactPointsUnresolved = keepContactPointsUnresolved;
             return this;
         }
 
@@ -1136,20 +1152,19 @@ namespace Cassandra
         /// <returns>the newly build Cluster instance. </returns>
         public Cluster Build()
         {
-            return Cluster.BuildFrom(this, HostNames, GetConfiguration());
-        }
+            // call GetConfiguration first in case it's a cloud cluster and this will set the contact points
+            var config = GetConfiguration();
 
-        internal IReadOnlyList<string> HostNames => _hostNames;
+            return Cluster.BuildFrom(this, _contactPoints.Where(c => !(c is IPEndPoint)).ToList(), config);
+        }
         
         /// <summary>
         /// Clear and set contact points.
         /// </summary>
-        private Builder SetContactPoints(IEnumerable<string> addresses)
+        private Builder SetContactPoints(IEnumerable<object> contactPoints)
         {
-            _hostNames.Clear();
-            _addresses.Clear();
-            AddContactPoints(addresses);
-            return this;
+            _contactPoints.Clear();
+            return AddMultipleContactPointsInternal(contactPoints);
         }
         
         private Builder ConfigureCloudCluster(string bundlePath)
@@ -1211,11 +1226,26 @@ namespace Cassandra
             var isIp = IPAddress.TryParse(ipOrName, out var address);
             var sniOptions = new SniOptions(address, port, isIp ? null : ipOrName);
             
-            var builder = this.SetContactPoints(clusterMetadata.ContactInfo.ContactPoints);
-            
-            if (!_addedAuth && bundle.Config.Password != null && bundle.Config.Username != null)
+            var sniEndPointResolver = new SniEndPointResolver(new DnsResolver(), sniOptions);
+            var builder = this.SetContactPoints(new List<object>
             {
-                builder = builder.WithCredentials(bundle.Config.Username, bundle.Config.Password);
+                new SniContactPoint(new SortedSet<string>(clusterMetadata.ContactInfo.ContactPoints), sniEndPointResolver)
+            });
+
+            builder = builder.WithEndPointResolver(sniEndPointResolver);
+
+            if (!_addedAuth)
+            {
+                if (bundle.Config.Password != null && bundle.Config.Username != null)
+                {
+                    builder = builder.WithCredentials(bundle.Config.Username, bundle.Config.Password);
+                }
+                else
+                {
+                    throw new ArgumentException(
+                        "No credentials were provided. When using the secure connection bundle, " +
+                        "your cluster's credentials must be provided via the Builder.WithCredentials() method.");
+                }
             }
 
             if (!_addedLbp)
@@ -1230,12 +1260,12 @@ namespace Cassandra
                 {
                     builder = builder.WithLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy(clusterMetadata.ContactInfo.LocalDc)));
                 }
-            } 
-            
-            builder = builder.WithSSL(sslOptions);
+            }
 
-            return builder
-                .WithEndPointResolver(new SniEndPointResolver(new DnsResolver(), sniOptions));
+            builder = builder.WithSSL(sslOptions)
+                             .WithUnresolvedContactPoints(true);
+
+            return builder;
         }
     }
 }

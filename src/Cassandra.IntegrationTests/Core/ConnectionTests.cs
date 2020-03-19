@@ -17,6 +17,7 @@
 using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -25,6 +26,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Cassandra.Collections;
 using Cassandra.Connections;
 using Cassandra.ExecutionProfiles;
 using Cassandra.IntegrationTests.TestBase;
@@ -37,6 +39,7 @@ using Cassandra.Serialization;
 using Cassandra.SessionManagement;
 
 using Moq;
+using Newtonsoft.Json;
 
 namespace Cassandra.IntegrationTests.Core
 {
@@ -280,19 +283,17 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public void Query_Multiple_Async_Consume_All_StreamIds_Test()
+        public async Task Query_Multiple_Async_Consume_All_StreamIds_Test()
         {
             using (var connection = CreateConnection())
             {
-                connection.Open().Wait();
-                var createKeyspaceTask = Query(connection, "CREATE KEYSPACE ks_conn_consume WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1}");
-                TaskHelper.WaitToComplete(createKeyspaceTask, 3000);
-                var createTableTask = Query(connection, "CREATE TABLE ks_conn_consume.tbl1 (id uuid primary key)");
-                TaskHelper.WaitToComplete(createTableTask, 3000);
+                await connection.Open().ConfigureAwait(false);
+                await Query(connection, "CREATE KEYSPACE ks_conn_consume WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1}")
+                    .ConfigureAwait(false);
+
+                await Query(connection, "CREATE TABLE ks_conn_consume.tbl1 (id uuid primary key)").ConfigureAwait(false);
                 var id = Guid.NewGuid().ToString("D");
-                var insertTask = Query(connection, "INSERT INTO ks_conn_consume.tbl1 (id) VALUES (" + id + ")");
-                TaskHelper.WaitToComplete(insertTask, 3000);
-                Assert.AreEqual(TaskStatus.RanToCompletion, createTableTask.Status);
+                await Query(connection, "INSERT INTO ks_conn_consume.tbl1 (id) VALUES (" + id + ")").ConfigureAwait(false);
                 var taskList = new List<Task>();
                 //Run the query more times than the max allowed
                 var selectQuery = "SELECT id FROM ks_conn_consume.tbl1 WHERE id = " + id;
@@ -302,14 +303,17 @@ namespace Cassandra.IntegrationTests.Core
                 }
                 try
                 {
-                    Task.WaitAll(taskList.ToArray());
+                    await Task.WhenAll(taskList.ToArray()).ConfigureAwait(false);
                 }
-                catch (AggregateException)
+                catch (Exception)
                 {
+                    // ignored
                 }
+
                 Assert.True(taskList.All(t =>
                     t.Status == TaskStatus.RanToCompletion ||
-                    (t.Exception != null && t.Exception.InnerException is ReadTimeoutException)), "Not all task completed");
+                    (t.Exception != null && t.Exception.InnerException is ReadTimeoutException)), 
+                    string.Join(Environment.NewLine, taskList.Select(t => t.Exception?.ToString() ?? string.Empty)));
             }
         }
 
@@ -333,8 +337,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Register_For_Events()
         {
-            var eventHandle = new AutoResetEvent(false);
-            CassandraEventArgs eventArgs = null;
+            var receivedEvents = new CopyOnWriteList<CassandraEventArgs>();
             using (var connection = CreateConnection())
             {
                 connection.Open().Wait();
@@ -345,37 +348,54 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.IsInstanceOf<ReadyResponse>(task.Result);
                 connection.CassandraEventResponse += (o, e) =>
                 {
-                    eventArgs = e;
-                    eventHandle.Set();
+                    receivedEvents.Add(e);
                 };
                 //create a keyspace and check if gets received as an event
                 Query(connection, String.Format(TestUtils.CreateKeyspaceSimpleFormat, "test_events_kp", 1)).Wait(1000);
-                eventHandle.WaitOne(2000);
-                Assert.IsNotNull(eventArgs);
-                Assert.IsInstanceOf<SchemaChangeEventArgs>(eventArgs);
-                Assert.AreEqual(SchemaChangeEventArgs.Reason.Created, (eventArgs as SchemaChangeEventArgs).What);
-                Assert.AreEqual("test_events_kp", (eventArgs as SchemaChangeEventArgs).Keyspace);
-                Assert.That((eventArgs as SchemaChangeEventArgs).Table, Is.Null.Or.Empty);
+
+                TestHelper.RetryAssert(
+                    () =>
+                    {
+                        Assert.Greater(receivedEvents.Count, 0);
+                        var evs = receivedEvents.Select(e => e as SchemaChangeEventArgs).Where(e => e != null);
+                        var createdEvent = evs.SingleOrDefault(
+                            e => e.What == SchemaChangeEventArgs.Reason.Created && e.Keyspace == "test_events_kp" &&
+                                 string.IsNullOrEmpty(e.Table));
+                        Assert.IsNotNull(createdEvent, JsonConvert.SerializeObject(receivedEvents.ToArray()));
+                    },
+                    100,
+                    50);
 
                 //create a table and check if gets received as an event
                 Query(connection, String.Format(TestUtils.CreateTableAllTypes, "test_events_kp.test_table", 1)).Wait(1000);
-                eventHandle.WaitOne(2000);
-                Assert.IsNotNull(eventArgs);
-                Assert.IsInstanceOf<SchemaChangeEventArgs>(eventArgs);
-
-                Assert.AreEqual(SchemaChangeEventArgs.Reason.Created, (eventArgs as SchemaChangeEventArgs).What);
-                Assert.AreEqual("test_events_kp", (eventArgs as SchemaChangeEventArgs).Keyspace);
-                Assert.AreEqual("test_table", (eventArgs as SchemaChangeEventArgs).Table);
+                TestHelper.RetryAssert(
+                    () =>
+                    {
+                        Assert.Greater(receivedEvents.Count, 0);
+                        var evs = receivedEvents.Select(e => e as SchemaChangeEventArgs).Where(e => e != null);
+                        var createdEvent = evs.SingleOrDefault(
+                            e => e.What == SchemaChangeEventArgs.Reason.Created && e.Keyspace == "test_events_kp" &&
+                                 e.Table == "test_table");
+                        Assert.IsNotNull(createdEvent, JsonConvert.SerializeObject(receivedEvents.ToArray()));
+                    },
+                    100,
+                    50);
 
                 if (TestClusterManager.CheckCassandraVersion(false, Version.Parse("2.1"), Comparison.GreaterThanOrEqualsTo))
                 {
                     Query(connection, "CREATE TYPE test_events_kp.test_type (street text, city text, zip int);").Wait(1000);
-                    eventHandle.WaitOne(2000);
-                    Assert.IsNotNull(eventArgs);
-                    Assert.IsInstanceOf<SchemaChangeEventArgs>(eventArgs);
-                    Assert.AreEqual(SchemaChangeEventArgs.Reason.Created, (eventArgs as SchemaChangeEventArgs).What);
-                    Assert.AreEqual("test_events_kp", (eventArgs as SchemaChangeEventArgs).Keyspace);
-                    Assert.AreEqual("test_type", (eventArgs as SchemaChangeEventArgs).Type);
+                    TestHelper.RetryAssert(
+                        () =>
+                        {
+                            Assert.Greater(receivedEvents.Count, 0);
+                            var evs = receivedEvents.Select(e => e as SchemaChangeEventArgs).Where(e => e != null);
+                            var createdEvent = evs.SingleOrDefault(
+                                e => e.What == SchemaChangeEventArgs.Reason.Created && e.Keyspace == "test_events_kp" &&
+                                     e.Type == "test_type");
+                            Assert.IsNotNull(createdEvent, JsonConvert.SerializeObject(receivedEvents.ToArray()));
+                        },
+                        100,
+                        50);
                 }
             }
         }
@@ -624,10 +644,10 @@ namespace Cassandra.IntegrationTests.Core
             using (var connection = 
                 new Connection(
                     new SerializerManager(GetProtocolVersion()).GetCurrentSerializer(), 
-                    config.EndPointResolver
-                          .GetOrResolveContactPointAsync(new IPEndPoint(new IPAddress(new byte[] { 1, 1, 1, 1 }), 9042))
-                          .Result
-                          .Single(), 
+                    new ConnectionEndPoint(
+                            new IPEndPoint(new IPAddress(new byte[] { 1, 1, 1, 1 }), 9042),
+                            config.ServerNameResolver,
+                            null),
                     config, 
                     new StartupRequestFactory(config.StartupOptionsFactory), 
                     NullConnectionObserver.Instance))
@@ -637,11 +657,11 @@ namespace Cassandra.IntegrationTests.Core
             }
             using (var connection = 
                 new Connection(
-                    new SerializerManager(GetProtocolVersion()).GetCurrentSerializer(), 
-                    config.EndPointResolver
-                          .GetOrResolveContactPointAsync(new IPEndPoint(new IPAddress(new byte[] { 255, 255, 255, 255 }), 9042))
-                          .Result
-                          .Single(), 
+                    new SerializerManager(GetProtocolVersion()).GetCurrentSerializer(),
+                    new ConnectionEndPoint(
+                        new IPEndPoint(new IPAddress(new byte[] { 255, 255, 255, 255 }), 9042),
+                        config.ServerNameResolver,
+                        null),
                     config, 
                     new StartupRequestFactory(config.StartupOptionsFactory), 
                     NullConnectionObserver.Instance))
@@ -811,7 +831,7 @@ namespace Cassandra.IntegrationTests.Core
                     tasks.Add(connection.Send(GetQueryRequest()));
                 }
 
-                Assert.That(connection.InFlight, Is.GreaterThan(5));
+                Assert.That(connection.InFlight, Is.GreaterThan(0));
 
                 var thrownException = await TestHelper.EatUpException(connection.Send(requestMock.Object)).ConfigureAwait(false);
                 Assert.AreSame(ex, thrownException);
@@ -849,9 +869,7 @@ namespace Cassandra.IntegrationTests.Core
             Trace.TraceInformation("Creating test connection using protocol v{0}", protocolVersion);
             return new Connection(
                 new SerializerManager(protocolVersion).GetCurrentSerializer(), 
-                config.EndPointResolver
-                      .GetOrResolveContactPointAsync(new IPEndPoint(IPAddress.Parse(_testCluster.InitialContactPoint), 9042))
-                      .Result.Single(), 
+                new ConnectionEndPoint(new IPEndPoint(IPAddress.Parse(_testCluster.InitialContactPoint), 9042), config.ServerNameResolver, null),
                 config, 
                 new StartupRequestFactory(config.StartupOptionsFactory), 
                 NullConnectionObserver.Instance);

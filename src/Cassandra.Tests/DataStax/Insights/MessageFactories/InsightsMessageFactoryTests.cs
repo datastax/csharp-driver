@@ -84,8 +84,8 @@ namespace Cassandra.Tests.DataStax.Insights.MessageFactories
                 { host1, mockPool1 },
                 { host2, mockPool2 }
             };
-            Mock.Get(cluster).Setup(m => m.GetHost(host1)).Returns(new Host(host1));
-            Mock.Get(cluster).Setup(m => m.GetHost(host2)).Returns(new Host(host2));
+            Mock.Get(cluster).Setup(m => m.GetHost(host1)).Returns(new Host(host1, contactPoint: null));
+            Mock.Get(cluster).Setup(m => m.GetHost(host2)).Returns(new Host(host2, contactPoint: null));
             Mock.Get(session).Setup(s => s.GetPools()).Returns(pools.ToArray());
             Mock.Get(session).Setup(m => m.Cluster).Returns(cluster);
             Mock.Get(session).SetupGet(m => m.InternalSessionId).Returns(Guid.Parse("E21EAB96-D91E-4790-80BD-1D5FB5472258"));
@@ -93,7 +93,7 @@ namespace Cassandra.Tests.DataStax.Insights.MessageFactories
 
             var act = target.CreateMessage(cluster, session);
 
-            Assert.AreEqual("10.10.10.10:9011", act.Data.ControlConnection);
+            Assert.AreEqual("127.0.0.1:9011", act.Data.ControlConnection);
             Assert.AreEqual("BECFE098-E462-47E7-B6A7-A21CD316D4C0", act.Data.ClientId.ToUpper());
             Assert.AreEqual("E21EAB96-D91E-4790-80BD-1D5FB5472258", act.Data.SessionId.ToUpper());
             Assert.AreEqual(2, act.Data.ConnectedNodes.Count);
@@ -125,7 +125,7 @@ namespace Cassandra.Tests.DataStax.Insights.MessageFactories
             Assert.IsFalse(string.IsNullOrWhiteSpace(act.Data.HostName));
             Assert.AreEqual(4, act.Data.ProtocolVersion);
             Assert.AreEqual(CompressionType.Snappy, act.Data.Compression);
-            Assert.AreEqual("10.10.10.10:9011", act.Data.InitialControlConnection);
+            Assert.AreEqual("127.0.0.1:9011", act.Data.InitialControlConnection);
             Assert.AreEqual("10.10.10.2:9015", act.Data.LocalAddress);
             Assert.AreEqual(10000, act.Data.HeartbeatInterval);
             Assert.AreEqual("E21EAB96-D91E-4790-80BD-1D5FB5472258", act.Data.SessionId.ToUpper());
@@ -162,7 +162,7 @@ namespace Cassandra.Tests.DataStax.Insights.MessageFactories
         {
             Assert.AreEqual(1, act.Data.ContactPoints.Count);
             Assert.AreEqual(1, act.Data.ContactPoints["localhost"].Count);
-            Assert.AreEqual("127.0.0.1:9042", act.Data.ContactPoints["localhost"][0]);
+            Assert.AreEqual("127.0.0.1:9011", act.Data.ContactPoints["localhost"][0]);
             Assert.AreEqual(1, act.Data.DataCenters.Count);
             Assert.AreEqual("dc123", act.Data.DataCenters.Single());
         }
@@ -227,13 +227,21 @@ namespace Cassandra.Tests.DataStax.Insights.MessageFactories
             {
                 ControlConnection = Mock.Of<IControlConnection>()
             };
+            var contactPoint = new HostnameContactPoint(
+                config.DnsResolver, 
+                config.ProtocolOptions, 
+                config.ServerNameResolver, 
+                config.KeepContactPointsUnresolved, 
+                "localhost");
+            var connectionEndPoint = new ConnectionEndPoint(
+                new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9011), config.ServerNameResolver, contactPoint);
             Mock.Get(metadata.ControlConnection).SetupGet(cc => cc.ProtocolVersion).Returns(ProtocolVersion.V4);
-            Mock.Get(metadata.ControlConnection).SetupGet(cc => cc.EndPoint).Returns(new ConnectionEndPoint(new IPEndPoint(IPAddress.Parse("10.10.10.10"), 9011), null));
+            Mock.Get(metadata.ControlConnection).SetupGet(cc => cc.EndPoint).Returns(connectionEndPoint);
             Mock.Get(metadata.ControlConnection).SetupGet(cc => cc.LocalAddress).Returns(new IPEndPoint(IPAddress.Parse("10.10.10.2"), 9015));
             var hostIp = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9042);
-            metadata.SetResolvedContactPoints(new Dictionary<string, IEnumerable<IPEndPoint>>
+            metadata.SetResolvedContactPoints(new Dictionary<IContactPoint, IEnumerable<IConnectionEndPoint>>
             {
-                { "localhost", new IPEndPoint[] {hostIp}}
+                { contactPoint, new [] { connectionEndPoint } }
             });
             metadata.AddHost(hostIp);
             metadata.Hosts.ToCollection().First().Datacenter = "dc123";

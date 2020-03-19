@@ -86,21 +86,21 @@ namespace Cassandra
             return BuildFrom(initializer, null, null);
         }
 
-        internal static Cluster BuildFrom(IInitializer initializer, IReadOnlyList<string> hostNames)
+        internal static Cluster BuildFrom(IInitializer initializer, IReadOnlyList<object> nonIpEndPointContactPoints)
         {
-            return BuildFrom(initializer, hostNames, null);
+            return BuildFrom(initializer, nonIpEndPointContactPoints, null);
         }
 
-        internal static Cluster BuildFrom(IInitializer initializer, IReadOnlyList<string> hostNames, Configuration config)
+        internal static Cluster BuildFrom(IInitializer initializer, IReadOnlyList<object> nonIpEndPointContactPoints, Configuration config)
         {
-            hostNames = hostNames ?? new string[0];
-            if (initializer.ContactPoints.Count == 0 && hostNames.Count == 0)
+            nonIpEndPointContactPoints = nonIpEndPointContactPoints ?? new object[0];
+            if (initializer.ContactPoints.Count == 0 && nonIpEndPointContactPoints.Count == 0)
             {
                 throw new ArgumentException("Cannot build a cluster without contact points");
             }
 
             return new Cluster(
-                initializer.ContactPoints.Cast<object>().Concat(hostNames),
+                initializer.ContactPoints.Concat(nonIpEndPointContactPoints),
                 config ?? initializer.GetConfiguration());
         }
 
@@ -169,7 +169,10 @@ namespace Cassandra
                 TimeSpan.FromMilliseconds(configuration.MetadataSyncOptions.RefreshSchemaDelayIncrement),
                 TimeSpan.FromMilliseconds(configuration.MetadataSyncOptions.MaxTotalRefreshSchemaDelay));
 
-            _controlConnection = configuration.ControlConnectionFactory.Create(this, _protocolEventDebouncer, protocolVersion, Configuration, _metadata, contactPoints);
+            var parsedContactPoints = configuration.ContactPointParser.ParseContactPoints(contactPoints);
+
+            _controlConnection = configuration.ControlConnectionFactory.Create(
+                this, _protocolEventDebouncer, protocolVersion, Configuration, _metadata, parsedContactPoints);
 
             _metadata.ControlConnection = _controlConnection;
         }
@@ -213,8 +216,30 @@ namespace Cassandra
 
                     // Only abort the async operations when at least twice the time for ConnectTimeout per host passed
                     var initialAbortTimeout = Configuration.SocketOptions.ConnectTimeoutMillis * 2 * _metadata.Hosts.Count;
-                    initialAbortTimeout = Math.Max(initialAbortTimeout, ControlConnection.MetadataAbortTimeout);
-                    await _controlConnection.InitAsync().WaitToCompleteAsync(initialAbortTimeout).ConfigureAwait(false);
+                    initialAbortTimeout = Math.Max(initialAbortTimeout, Configuration.SocketOptions.MetadataAbortTimeout);
+                    var initTask = _controlConnection.InitAsync();
+                    try
+                    {
+                        await initTask.WaitToCompleteAsync(initialAbortTimeout).ConfigureAwait(false);
+                    }
+                    catch (TimeoutException ex)
+                    {
+                        var newEx = new TimeoutException(
+                            "Cluster initialization was aborted after timing out. This mechanism is put in place to" +
+                            " avoid blocking the calling thread forever. This usually caused by a networking issue" +
+                            " between the client driver instance and the cluster. You can increase this timeout via " +
+                            "the SocketOptions.ConnectTimeoutMillis config setting. This can also be related to deadlocks " +
+                            "caused by mixing synchronous and asynchronous code.", ex);
+                        _initException = new InitFatalErrorException(newEx);
+                        initTask.ContinueWith(t =>
+                        {
+                            if (t.IsFaulted && t.Exception != null)
+                            {
+                                _initException = new InitFatalErrorException(t.Exception.InnerException);
+                            }
+                        }, TaskContinuationOptions.ExecuteSynchronously).Forget();
+                        throw newEx;
+                    }
                     
                     // Initialize policies
                     foreach (var lbp in loadBalancingPolicies)
@@ -237,19 +262,15 @@ namespace Cassandra
                     //No host available now, maybe later it can recover from
                     throw;
                 }
-                catch (TimeoutException ex)
+                catch (TimeoutException)
                 {
-                    _initException = ex;
-                    throw new TimeoutException(
-                        "Cluster initialization was aborted after timing out. This mechanism is put in place to" +
-                        " avoid blocking the calling thread forever. This usually caused by a networking issue" +
-                        " between the client driver instance and the cluster.", ex);
+                    throw;
                 }
                 catch (Exception ex)
                 {
                     //There was an error that the driver is not able to recover from
                     //Store the exception for the following times
-                    _initException = ex;
+                    _initException = new InitFatalErrorException(ex);
                     //Throw the actual exception for the first time
                     throw;
                 }
@@ -283,7 +304,7 @@ namespace Cassandra
             return $"{info.ProductName} v{info.FileVersion}";
         }
 
-        IReadOnlyDictionary<string, IEnumerable<IPEndPoint>> IInternalCluster.GetResolvedEndpoints()
+        IReadOnlyDictionary<IContactPoint, IEnumerable<IConnectionEndPoint>> IInternalCluster.GetResolvedEndpoints()
         {
             return _metadata.ResolvedContactPoints;
         }

@@ -47,6 +47,7 @@ namespace Cassandra.IntegrationTests.DataStax.Cloud
             var ex = Assert.ThrowsAsync<NoHostAvailableException>(() => CreateSessionAsync("creds-v1-unreachable.zip"));
             Assert.IsTrue(ex.Message.Contains("https://192.0.2.255:30443/metadata"), ex.Message);
             Assert.IsTrue(ex.Message.Contains("There was an error fetching the metadata information"), ex.Message);
+            Assert.IsTrue(ex.Message.Contains("Please make sure your cluster is not parked or terminated."), ex.Message);
         }
 
         [Test]
@@ -135,11 +136,13 @@ namespace Cassandra.IntegrationTests.DataStax.Cloud
         }
 
         [Test]
-        public void Should_SupportLeavingAuthProviderUnset_When_ConfigJsonDoesNotHaveCredentials()
+        public void Should_FailFast_When_ConfigJsonDoesNotHaveCredentialsAndUserDoesNotProvideCredentials()
         {
-            var cluster = CreateTemporaryCluster("creds-v1-wo-creds.zip");
-            Assert.AreEqual(typeof(NoneAuthProvider), cluster.Configuration.AuthProvider.GetType());
-            Assert.IsNull(cluster.Configuration.AuthInfoProvider);
+            var ex = Assert.Throws<ArgumentException>(() => CreateTemporaryCluster("creds-v1-wo-creds.zip"));
+            Assert.AreEqual(
+                ex.Message, 
+                "No credentials were provided. When using the secure connection bundle, " +
+                "your cluster's credentials must be provided via the Builder.WithCredentials() method.");
         }
 
         [Test]

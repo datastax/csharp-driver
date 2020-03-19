@@ -21,6 +21,7 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using Cassandra.Collections;
 using Cassandra.Connections;
 using Cassandra.MetadataHelpers;
 using Cassandra.Requests;
@@ -41,6 +42,8 @@ namespace Cassandra
         private volatile ConcurrentDictionary<string, KeyspaceMetadata> _keyspaces = new ConcurrentDictionary<string, KeyspaceMetadata>();
         private volatile SchemaParser _schemaParser;
         private readonly int _queryAbortTimeout;
+        private volatile CopyOnWriteDictionary<IContactPoint, IEnumerable<IConnectionEndPoint>> _resolvedContactPoints = 
+            new CopyOnWriteDictionary<IContactPoint, IEnumerable<IConnectionEndPoint>>();
 
         public event HostsEventHandler HostsEvent;
 
@@ -53,7 +56,7 @@ namespace Cassandra
         public String ClusterName { get; internal set; }
 
         /// <summary>
-        /// Determines whether the cluster is provided as a service (DataStax Apollo).
+        /// Determines whether the cluster is provided as a service (DataStax Astra).
         /// </summary>
         public bool IsDbaas { get; private set; } = false;
 
@@ -73,8 +76,7 @@ namespace Cassandra
 
         internal Hosts Hosts { get; private set; }
 
-        internal IReadOnlyDictionary<string, IEnumerable<IPEndPoint>> ResolvedContactPoints { get; private set; } =
-            new Dictionary<string, IEnumerable<IPEndPoint>>();
+        internal IReadOnlyDictionary<IContactPoint, IEnumerable<IConnectionEndPoint>> ResolvedContactPoints => _resolvedContactPoints;
 
         internal IReadOnlyTokenMap TokenToReplicasMap => _tokenMap;
 
@@ -97,9 +99,9 @@ namespace Cassandra
             ShutDown();
         }
 
-        internal void SetResolvedContactPoints(IReadOnlyDictionary<string, IEnumerable<IPEndPoint>> resolvedContactPoints)
+        internal void SetResolvedContactPoints(IDictionary<IContactPoint, IEnumerable<IConnectionEndPoint>> resolvedContactPoints)
         {
-            ResolvedContactPoints = resolvedContactPoints;
+            _resolvedContactPoints = new CopyOnWriteDictionary<IContactPoint, IEnumerable<IConnectionEndPoint>>(resolvedContactPoints);
         }
 
         public Host GetHost(IPEndPoint address)
@@ -112,6 +114,11 @@ namespace Cassandra
         internal Host AddHost(IPEndPoint address)
         {
             return Hosts.Add(address);
+        }
+
+        internal Host AddHost(IPEndPoint address, IContactPoint contactPoint)
+        {
+            return Hosts.Add(address, contactPoint);
         }
 
         internal void RemoveHost(IPEndPoint address)
@@ -646,6 +653,11 @@ namespace Cassandra
         internal void SetProductTypeAsDbaas()
         {
             IsDbaas = true;
+        }
+
+        internal IEnumerable<IConnectionEndPoint> UpdateResolvedContactPoint(IContactPoint contactPoint, IEnumerable<IConnectionEndPoint> endpoints)
+        {
+            return _resolvedContactPoints.AddOrUpdate(contactPoint, _ => endpoints, (_, __) => endpoints);
         }
     }
 }

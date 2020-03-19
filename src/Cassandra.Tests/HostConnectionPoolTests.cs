@@ -81,7 +81,7 @@ namespace Cassandra.Tests
             }
             return new Connection(
                 new SerializerManager(ProtocolVersion.MaxSupported).GetCurrentSerializer(), 
-                config.EndPointResolver.GetOrResolveContactPointAsync(GetIpEndPoint(lastIpByte)).Result.Single(), 
+                new ConnectionEndPoint(GetIpEndPoint(lastIpByte), config.ServerNameResolver, null), 
                 config,
                 new StartupRequestFactory(config.StartupOptionsFactory), 
                 NullConnectionObserver.Instance);
@@ -126,7 +126,7 @@ namespace Cassandra.Tests
             var connectionMock = new Mock<Connection>(
                 MockBehavior.Loose, 
                 new SerializerManager(ProtocolVersion.MaxSupported).GetCurrentSerializer(), 
-                new ConnectionEndPoint(HostConnectionPoolTests.Address, null), 
+                new ConnectionEndPoint(HostConnectionPoolTests.Address, config.ServerNameResolver, null), 
                 config, 
                 new StartupRequestFactory(config.StartupOptionsFactory),
                 NullConnectionObserver.Instance);

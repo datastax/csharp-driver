@@ -19,6 +19,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Reflection;
+using Cassandra.Serialization.Geometry;
+using Cassandra.Serialization.Search;
 
 namespace Cassandra.Serialization
 {
@@ -49,6 +51,15 @@ namespace Cassandra.Serialization
             { ColumnTypeCode.Uuid, TypeSerializer.PrimitiveGuidSerializer },
             { ColumnTypeCode.Varchar, TypeSerializer.PrimitiveStringSerializer },
             { ColumnTypeCode.Varint, TypeSerializer.PrimitiveBigIntegerSerializer }
+        };
+        
+        private readonly IEnumerable<ITypeSerializer> _defaultCustomTypeSerializers = new ITypeSerializer[]
+        {
+            new DateRangeSerializer(),
+            new DurationSerializer(true),
+            new LineStringSerializer(),
+            new PointSerializer(),
+            new PolygonSerializer(),
         };
 
         private readonly Dictionary<Type, ITypeSerializer> _primitiveSerializers = new Dictionary<Type, ITypeSerializer>();
@@ -385,8 +396,9 @@ namespace Cassandra.Serialization
         {
             if (typeSerializers == null)
             {
-                return;
+                typeSerializers = new List<ITypeSerializer>(0);
             }
+            
             var defined = new HashSet<ColumnTypeCode>();
             foreach (var ts in typeSerializers)
             {
@@ -420,6 +432,27 @@ namespace Cassandra.Serialization
                     continue;
                 }
                 throw new DriverInternalError($"TypeSerializer defined for unsupported CQL type {ts.CqlType}");
+            }
+
+            // add default custom serializers
+            foreach (var defaultCustomSerializer in _defaultCustomTypeSerializers)
+            {
+                if (defaultCustomSerializer.CqlType != ColumnTypeCode.Custom)
+                {
+                    throw new DriverInternalError("Expected custom type serializers only.");
+                }
+                
+                if (_customDeserializers.ContainsKey(defaultCustomSerializer.TypeInfo)
+                    || _customSerializers.ContainsKey(defaultCustomSerializer.Type))
+                {
+                    // user overrode default serializer, not logging anything because
+                    // it would be logged twice due to SerializerManager.Default and we also
+                    // don't log anything for the other default serializers
+                    continue;
+                }
+
+                _customDeserializers[defaultCustomSerializer.TypeInfo] = defaultCustomSerializer;
+                _customSerializers[defaultCustomSerializer.Type] = defaultCustomSerializer;
             }
         }
 

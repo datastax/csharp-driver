@@ -25,6 +25,44 @@ namespace Cassandra.Metrics
     /// </summary>
     public sealed class NodeMetric : IEquatable<NodeMetric>, IEquatable<IMetric>, IMetric
     {
+        static NodeMetric()
+        {
+            NodeMetric.DefaultNodeMetrics = new List<NodeMetric>
+            {
+                Meters.BytesSent,
+                Meters.BytesReceived,
+
+                Gauges.OpenConnections,
+                Gauges.InFlight,
+            
+                Counters.SpeculativeExecutions,
+                Counters.AuthenticationErrors,
+                Counters.ConnectionInitErrors,
+
+                Counters.AbortedRequests,
+                Counters.OtherErrors,
+                Counters.ReadTimeouts,
+                Counters.UnavailableErrors,
+                Counters.UnsentRequests,
+                Counters.WriteTimeouts,
+                Counters.ClientTimeouts,
+
+                Counters.RetriesOnUnavailable,
+                Counters.RetriesOnOtherError,
+                Counters.RetriesOnReadTimeout,
+                Counters.RetriesOnWriteTimeout,
+                Counters.Retries,
+
+                Counters.IgnoresOnReadTimeout,
+                Counters.IgnoresOnUnavailable,
+                Counters.IgnoresOnOtherError,
+                Counters.IgnoresOnWriteTimeout,
+                Counters.Ignores
+            };
+            
+            NodeMetric.AllNodeMetrics = NodeMetric.DefaultNodeMetrics.Union(new[] { NodeMetric.Timers.CqlMessages }).ToList();
+        }
+
         private readonly int _hashCode;
 
         internal NodeMetric(string name)
@@ -74,46 +112,14 @@ namespace Cassandra.Metrics
         }
 
         /// <summary>
-        /// A collection with all node metrics except Timers.
-        /// </summary>
-        public static readonly IEnumerable<NodeMetric> DefaultNodeMetrics = new List<NodeMetric>
-        {
-            Meters.BytesSent,
-            Meters.BytesReceived,
-
-            Gauges.OpenConnections,
-            Gauges.InFlight,
-            
-            Counters.SpeculativeExecutions,
-            Counters.AuthenticationErrors,
-            Counters.ConnectionInitErrors,
-
-            Counters.AbortedRequests,
-            Counters.OtherErrors,
-            Counters.ReadTimeouts,
-            Counters.UnavailableErrors,
-            Counters.UnsentRequests,
-            Counters.WriteTimeouts,
-            Counters.ClientTimeouts,
-
-            Counters.RetriesOnUnavailable,
-            Counters.RetriesOnOtherError,
-            Counters.RetriesOnReadTimeout,
-            Counters.RetriesOnWriteTimeout,
-            Counters.Retries,
-
-            Counters.IgnoresOnReadTimeout,
-            Counters.IgnoresOnUnavailable,
-            Counters.IgnoresOnOtherError,
-            Counters.IgnoresOnWriteTimeout,
-            Counters.Ignores
-        };
-
-        /// <summary>
         /// A collection with all node metrics including Timers.
         /// </summary>
-        public static readonly IEnumerable<NodeMetric> AllNodeMetrics =
-            NodeMetric.DefaultNodeMetrics.Union(new[] { NodeMetric.Timers.CqlMessages });
+        public static readonly IEnumerable<NodeMetric> AllNodeMetrics;
+
+        /// <summary>
+        /// A collection with all node metrics except Timers.
+        /// </summary>
+        public static readonly IEnumerable<NodeMetric> DefaultNodeMetrics;
 
         public static class Counters
         {

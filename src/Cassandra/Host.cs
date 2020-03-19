@@ -18,7 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading;
-
+using Cassandra.Connections;
 using Cassandra.SessionManagement;
 
 namespace Cassandra
@@ -131,19 +131,25 @@ namespace Cassandra
         /// This property might be null when using Apache Cassandra or legacy DSE server versions.
         /// </summary>
         public Version DseVersion { get; private set; }
+        
+        /// <summary>
+        /// ContactPoint from which this endpoint was resolved. It is null if it was parsed from system tables.
+        /// </summary>
+        internal IContactPoint ContactPoint { get; }
 
         /// <summary>
         /// Creates a new instance of <see cref="Host"/>.
         /// </summary>
         // ReSharper disable once UnusedParameter.Local : Part of the public API
-        public Host(IPEndPoint address, IReconnectionPolicy reconnectionPolicy) : this(address)
+        public Host(IPEndPoint address, IReconnectionPolicy reconnectionPolicy) : this(address, contactPoint: null)
         {
         }
 
-        internal Host(IPEndPoint address)
+        internal Host(IPEndPoint address, IContactPoint contactPoint)
         {
             Address = address ?? throw new ArgumentNullException(nameof(address));
             Workloads = WorkloadsDefault;
+            ContactPoint = contactPoint;
         }
 
         /// <summary>

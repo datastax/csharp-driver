@@ -44,7 +44,7 @@ namespace Cassandra.DataStax.Cloud
                 return GetWithHttpClientAsync(url, socketOptions, sslOptions);
             }
 
-            throw new NotSupportedException("DataStax Apollo support in .NET Core requires .NET Core 2.1 runtime or later. " +
+            throw new NotSupportedException("DataStax Astra support in .NET Core requires .NET Core 2.1 runtime or later. " +
                                             "The HTTPS implementation of .NET Core 2.0 and below don't work when some TLS settings are set. " +
                                             $"The runtime that is being used is: .NET Core {PlatformHelper.GetNetCoreVersion()}");
 #endif
@@ -198,7 +198,8 @@ namespace Cassandra.DataStax.Cloud
             var message =
                 isParsingError
                     ? $"There was an error while parsing the metadata service information from the Metadata Service ({url})."
-                    : $"There was an error fetching the metadata information from the Metadata Service ({url}).";
+                    : $"There was an error fetching the metadata information from the Cloud Metadata Service ({url}). " +
+                      "Please make sure your cluster is not parked or terminated.";
 
             if (statusCode.HasValue)
             {

@@ -43,7 +43,7 @@ namespace Cassandra.Tests
             return new Mock<Connection>(
                 MockBehavior.Loose, 
                 serializer?.GetCurrentSerializer() ?? new SerializerManager(ProtocolVersion.MaxSupported).GetCurrentSerializer(), 
-                new ConnectionEndPoint(ConnectionTests.Address, null), 
+                new ConnectionEndPoint(ConnectionTests.Address, config.ServerNameResolver, null), 
                 config, 
                 new StartupRequestFactory(config.StartupOptionsFactory),
                 NullConnectionObserver.Instance);

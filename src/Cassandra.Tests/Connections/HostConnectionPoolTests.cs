@@ -91,35 +91,36 @@ namespace Cassandra.Tests.Connections
 
         private IHostConnectionPool CreatePool(IEndPointResolver res = null)
         {
-            _host = new Host(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9042));
-            if (res == null)
+            _host = new Host(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9042), contactPoint: null);
+            _resolver = res ?? Mock.Of<IEndPointResolver>();
+
+            var config = new TestConfigurationBuilder
             {
-                _resolver = Mock.Of<IEndPointResolver>();
-                Mock.Get(_resolver).Setup(resolver => resolver.GetConnectionEndPointAsync(_host, It.IsAny<bool>()))
-                    .ReturnsAsync((Host h, bool b) => new ConnectionEndPoint(h.Address, null));
-            }
-            else
-            {
-                _resolver = res;
-            }
+                EndPointResolver = _resolver,
+                ConnectionFactory = new FakeConnectionFactory(),
+                Policies = new Cassandra.Policies(
+                    new RoundRobinPolicy(),
+                    new ConstantReconnectionPolicy(1),
+                    new DefaultRetryPolicy(),
+                    NoSpeculativeExecutionPolicy.Instance,
+                    new AtomicMonotonicTimestampGenerator()),
+                PoolingOptions = PoolingOptions.Create(ProtocolVersion.V4).SetCoreConnectionsPerHost(HostDistance.Local, 2)
+            }.Build();
+
             var pool = new HostConnectionPool(
                 _host, 
-                new TestConfigurationBuilder
-                {
-                    EndPointResolver = _resolver,
-                    ConnectionFactory = new FakeConnectionFactory(),
-                    Policies = new Cassandra.Policies(
-                        new RoundRobinPolicy(), 
-                        new ConstantReconnectionPolicy(1), 
-                        new DefaultRetryPolicy(), 
-                        NoSpeculativeExecutionPolicy.Instance, 
-                        new AtomicMonotonicTimestampGenerator()), 
-                    PoolingOptions = PoolingOptions.Create(ProtocolVersion.V4).SetCoreConnectionsPerHost(HostDistance.Local, 2)
-                }.Build(), 
+                config, 
                 SerializerManager.Default.GetCurrentSerializer(),
                 new MetricsObserverFactory(new MetricsManager(new NullDriverMetricsProvider(), new DriverMetricsOptions(), false, "s1"))
                 );
             pool.SetDistance(HostDistance.Local); // set expected connections length
+
+            if (res == null)
+            {
+                Mock.Get(_resolver).Setup(resolver => resolver.GetConnectionEndPointAsync(_host, It.IsAny<bool>()))
+                    .ReturnsAsync((Host h, bool b) => new ConnectionEndPoint(h.Address, config.ServerNameResolver, null));
+            }
+
             return pool;
         }
     }

@@ -74,7 +74,7 @@ namespace Cassandra.Tests
 
         public ITimerFactory TimerFactory { get; set; } = new TaskBasedTimerFactory();
 
-        public IEndPointResolver EndPointResolver { get; set; } = new EndPointResolver(new DnsResolver(), new ProtocolOptions());
+        public IEndPointResolver EndPointResolver { get; set; }
 
         public IObserverFactoryBuilder ObserverFactoryBuilder { get; set; } = new MetricsObserverFactoryBuilder();
 
@@ -89,7 +89,15 @@ namespace Cassandra.Tests
         public Guid ClusterId { get; set; } = Guid.NewGuid();
 
         public GraphOptions GraphOptions { get; set; } = new GraphOptions();
-        
+
+        public bool? KeepContactPointsUnresolved { get; set; }
+
+        public IContactPointParser ContactPointParser { get; set; }
+
+        public IServerNameResolver ServerNameResolver { get; set; }
+
+        public IDnsResolver DnsResolver { get; set; }
+
         public MonitorReportingOptions MonitorReportingOptions { get; set; } = new MonitorReportingOptions();
 
         public IInsightsSupportVerifier InsightsSupportVerifier { get; set; } = new InsightsSupportVerifier();
@@ -124,6 +132,7 @@ namespace Cassandra.Tests
                 ApplicationName,
                 MonitorReportingOptions,
                 TypeSerializerDefinitions,
+                KeepContactPointsUnresolved,
                 SessionFactory,
                 RequestOptionsMapper,
                 StartupOptionsFactory,
@@ -136,7 +145,10 @@ namespace Cassandra.Tests
                 PrepareHandlerFactory,
                 TimerFactory,
                 ObserverFactoryBuilder,
-                InsightsClientFactory);
+                InsightsClientFactory,
+                ContactPointParser,
+                ServerNameResolver,
+                DnsResolver);
         }
     }
 }

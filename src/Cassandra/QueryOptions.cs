@@ -30,7 +30,7 @@ namespace Cassandra
 
         /// <summary>
         /// The default consistency level for queries: <c>ConsistencyLevel.LocalOne</c>.
-        /// For DataStax Apollo, this constant should be ignored as the default is LocalQuorum.
+        /// For DataStax Astra, this constant should be ignored as the default is LocalQuorum.
         /// </summary>    
         public const ConsistencyLevel DefaultConsistencyLevel = ConsistencyLevel.LocalOne;
 

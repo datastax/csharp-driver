@@ -14,7 +14,7 @@
 //   limitations under the License.
 //
 
-using System.Collections.Generic;
+using System;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
@@ -27,16 +27,17 @@ namespace Cassandra.Connections
         private readonly string _serverName;
         private readonly IPEndPoint _hostIpEndPoint;
 
-        public SniConnectionEndPoint(IPEndPoint socketIpEndPoint, string serverName) : 
-            this(socketIpEndPoint, null, serverName)
+        public SniConnectionEndPoint(IPEndPoint socketIpEndPoint, string serverName, IContactPoint contactPoint) :
+            this(socketIpEndPoint, null, serverName, contactPoint)
         {
         }
 
-        public SniConnectionEndPoint(IPEndPoint socketIpEndPoint, IPEndPoint hostIpEndPoint, string serverName)
+        public SniConnectionEndPoint(IPEndPoint socketIpEndPoint, IPEndPoint hostIpEndPoint, string serverName, IContactPoint contactPoint)
         {
-            SocketIpEndPoint = socketIpEndPoint;
+            SocketIpEndPoint = socketIpEndPoint ?? throw new ArgumentNullException(nameof(socketIpEndPoint));
             _hostIpEndPoint = hostIpEndPoint;
             _serverName = serverName;
+            ContactPoint = contactPoint;
 
             var stringBuilder = new StringBuilder(hostIpEndPoint?.ToString() ?? socketIpEndPoint.ToString());
 
@@ -49,11 +50,15 @@ namespace Cassandra.Connections
         }
 
         /// <inheritdoc />
+        public IContactPoint ContactPoint { get; }
+
+        /// <inheritdoc />
         public IPEndPoint SocketIpEndPoint { get; }
 
         /// <inheritdoc />
         public string EndpointFriendlyName { get; }
-        
+
+        /// <inheritdoc />
         public override string ToString()
         {
             return EndpointFriendlyName;
@@ -88,6 +93,11 @@ namespace Cassandra.Connections
             return ipEndPoint;
         }
 
+        public bool Equals(IConnectionEndPoint other)
+        {
+            return Equals((object)other);
+        }
+
         public override bool Equals(object obj)
         {
             if (!(obj is SniConnectionEndPoint point))
@@ -95,41 +105,25 @@ namespace Cassandra.Connections
                 return false;
             }
 
-            if (_hostIpEndPoint != null)
-            {
-                if (point._hostIpEndPoint == null || !_hostIpEndPoint.Equals(point._hostIpEndPoint))
-                {
-                    return false;
-                }
-            }
-            else if (point._hostIpEndPoint != null)
+            if (!object.Equals(_hostIpEndPoint, point._hostIpEndPoint))
             {
                 return false;
             }
 
-            return _serverName == point._serverName && SocketIpEndPoint.Equals(point.SocketIpEndPoint);
+            if (!object.Equals(SocketIpEndPoint, point.SocketIpEndPoint))
+            {
+                return false;
+            }
+
+            return _serverName == point._serverName;
         }
 
         public override int GetHashCode()
         {
-            var objList = new List<object>();
-
-            if (_hostIpEndPoint != null)
+            return Utils.CombineHashCodeWithNulls(new object[]
             {
-                objList.Add(_hostIpEndPoint);
-            }
-
-            if (_serverName != null)
-            {
-                objList.Add(_serverName);
-            }
-
-            if (SocketIpEndPoint != null)
-            {
-                objList.Add(SocketIpEndPoint);
-            }
-
-            return Utils.CombineHashCode(objList);
+                _hostIpEndPoint, _serverName, SocketIpEndPoint
+            });
         }
     }
 }

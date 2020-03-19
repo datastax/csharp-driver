@@ -14,17 +14,18 @@
 //   limitations under the License.
 //
 
-using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Cassandra.Connections
 {
     /// <summary>
-    /// Builds instances of <see cref="IConnectionEndPoint"/> from <see cref="Host"/> or contact points.
+    /// Builds instances of <see cref="IConnectionEndPoint"/> from <see cref="Host"/> instances.
     /// The endpoints are used to create connections.
     /// </summary>
     internal interface IEndPointResolver
     {
+        bool CanBeResolved { get; }
+
         /// <summary>
         /// Gets an instance of <see cref="IConnectionEndPoint"/> to the provided host from the internal cache (if caching is supported by the implementation).
         /// </summary>
@@ -33,19 +34,5 @@ namespace Cassandra.Connections
         /// no round trip will occur.</param>
         /// <returns>Endpoint.</returns>
         Task<IConnectionEndPoint> GetConnectionEndPointAsync(Host host, bool refreshCache);
-
-        /// <summary>
-        /// Gets the endpoint for a previously resolved contact point from the internal cache. If it wasn't
-        /// resolved yet, then resolve it and add it to the cache.
-        /// </summary>
-        /// <param name="contactPoint"></param>
-        /// <returns></returns>
-        Task<IEnumerable<IConnectionEndPoint>> GetOrResolveContactPointAsync(object contactPoint);
-
-        /// <summary>
-        /// Refreshes the internal contact point cache.
-        /// </summary>
-        /// <returns></returns>
-        Task RefreshContactPointCache();
     }
 }

@@ -47,6 +47,16 @@ namespace Cassandra.MetadataHelpers
                 return new NetworkTopologyStrategy(replicationOptions);
             }
 
+            if (strategyClass.Equals(ReplicationStrategies.LocalStrategy, StringComparison.OrdinalIgnoreCase)) 
+            {
+                return LocalStrategy.Instance;
+            }
+
+            if (strategyClass.Equals(ReplicationStrategies.EverywhereStrategy, StringComparison.OrdinalIgnoreCase)) 
+            {
+                return EverywhereStrategy.Instance;
+            }
+
             ReplicationStrategyFactory.Logger.Info($"Replication Strategy class name not recognized: {strategyClass}");
 
             return null;

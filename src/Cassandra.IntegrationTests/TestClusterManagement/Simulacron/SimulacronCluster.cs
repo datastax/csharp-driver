@@ -41,6 +41,11 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
             }
         }
 
+        public IEnumerable<IPEndPoint> ContactPoints
+        {
+            get { return DataCenters.SelectMany(d => d.Nodes).Select(n => GetTupleFromContactPoint(n.ContactPoint)); }
+        }
+
         private IPEndPoint GetTupleFromContactPoint(string contact)
         {
             if (contact.Contains(":"))

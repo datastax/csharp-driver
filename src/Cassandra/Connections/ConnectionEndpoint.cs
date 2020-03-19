@@ -23,38 +23,29 @@ namespace Cassandra.Connections
     /// <inheritdoc />
     internal class ConnectionEndPoint : IConnectionEndPoint
     {
-        private readonly Func<IPEndPoint, string> _serverNameResolver;
-
-        public ConnectionEndPoint(IPEndPoint hostIpEndPoint, Func<IPEndPoint, string> serverNameResolver)
+        private readonly IServerNameResolver _serverNameResolver;
+        
+        public ConnectionEndPoint(IPEndPoint hostIpEndPoint, IServerNameResolver serverNameResolver, IContactPoint contactPoint)
         {
-            _serverNameResolver = serverNameResolver;
-            SocketIpEndPoint = hostIpEndPoint;
+            _serverNameResolver = serverNameResolver ?? throw new ArgumentNullException(nameof(serverNameResolver));
+            ContactPoint = contactPoint;
+            SocketIpEndPoint = hostIpEndPoint ?? throw new ArgumentNullException(nameof(hostIpEndPoint));
             EndpointFriendlyName = hostIpEndPoint.ToString();
         }
 
         /// <inheritdoc />
+        public IContactPoint ContactPoint { get; }
+
+        /// <inheritdoc />
         public IPEndPoint SocketIpEndPoint { get; }
-        
+
         /// <inheritdoc />
         public string EndpointFriendlyName { get; }
 
         /// <inheritdoc />
         public Task<string> GetServerNameAsync()
         {
-            return Task.Factory.StartNew(() => _serverNameResolver.Invoke(SocketIpEndPoint));
-        }
-
-        /// <inheritdoc />
-        public override bool Equals(object obj)
-        {
-            return obj is ConnectionEndPoint endpoint &&
-                   SocketIpEndPoint.Equals(endpoint.SocketIpEndPoint);
-        }
-
-        /// <inheritdoc />
-        public override int GetHashCode()
-        {
-            return SocketIpEndPoint.GetHashCode();
+            return Task.Factory.StartNew(() => _serverNameResolver.GetServerName(SocketIpEndPoint));
         }
 
         /// <inheritdoc />
@@ -73,6 +64,26 @@ namespace Cassandra.Connections
         public IPEndPoint GetOrParseHostIpEndPoint(Row row, IAddressTranslator translator, int port)
         {
             return SocketIpEndPoint;
+        }
+
+        public bool Equals(IConnectionEndPoint other)
+        {
+            return Equals((object)other);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (!(obj is ConnectionEndPoint point))
+            {
+                return false;
+            }
+
+            return object.Equals(SocketIpEndPoint, point.SocketIpEndPoint);
+        }
+
+        public override int GetHashCode()
+        {
+            return SocketIpEndPoint.GetHashCode();
         }
     }
 }
