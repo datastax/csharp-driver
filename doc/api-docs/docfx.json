@@ -30,12 +30,12 @@
 		"files": [ "index.md", "toc.yml" ]
 	  }
     ],
-    "dest": "output",
+    "dest": "api-docs",
     "globalMetadataFiles": [],
     "fileMetadataFiles": [],
     "template": [
       "statictoc",
-	  "templates/custom"
+	  "datastax-template"
     ],
 	"globalMetadata": {
       "_appTitle": "DataStax C# Driver API Documentation",

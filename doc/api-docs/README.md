@@ -8,3 +8,5 @@
 4. To preview the website you can **either**:
     - Open `output\index.html` on your browser
     - Or you can run `docfx serve output` which will spin up a web server on the `localhost`.
+	
+Note: if you don't have the `datastax-template`, docfx will still succeed but the generated website content will not have the DataStax theme and there won't be an `index.html` file at the root.
