@@ -2,9 +2,9 @@
 
 ## 3.14.0
 
-2020-03-23
+2020-03-24
 
-## Improvement
+## Features
 
 *   [[CSHARP-405](https://datastax-oss.atlassian.net/browse/CSHARP-405)] - Log exception when Cluster.Init() can not recover from
 *   [[CSHARP-806](https://datastax-oss.atlassian.net/browse/CSHARP-806)] - Drop support for .NET Standard 1.5 and bump net45 to net452
