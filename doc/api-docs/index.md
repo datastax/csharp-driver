@@ -1,5 +1,5 @@
 ---
-title: DocFX - static documentation generator
+project: Cassandra
 documentType: index
 ---
 <div></div>
