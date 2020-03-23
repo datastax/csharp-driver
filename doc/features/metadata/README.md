@@ -57,7 +57,7 @@ When metadata synchronization is enabled, table metadata is cached on the first 
 
 Schema changes need to be propagated to all nodes in the cluster. Once they have settled on a common version, we say that they are in agreement.
 
-The driver waits for schema agreement after executing a schema-altering query. This is to ensure that subsequent requests (which might get routed to different nodes) see an up-to-date version of the schema.
+The driver waits for schema agreement after executing a schema-altering query. This is to ensure that subsequent requests (which might get routed to different nodes) see an up-to-date version of the schema. **Note that this does not prevent race conditions from concurrent schema changes from different client application instances**. DDL queries should be sent sequentially from a single `ISession` instance.
 
 ```ditaa
  Application             Driver           Server
