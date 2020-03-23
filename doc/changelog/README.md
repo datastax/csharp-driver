@@ -2,6 +2,41 @@
 
 Changelog for the DataStax Enterprise C# Driver.
 
+## 2.10.1
+
+2020-03-24
+
+## Features
+
+*   [[CSHARP-862](https://datastax-oss.atlassian.net/browse/CSHARP-862)] - Update System.Net.Http to fix vulnerabilities
+*   [[CSHARP-863](https://datastax-oss.atlassian.net/browse/CSHARP-863)] - Update System.Net.Security to fix vulnerabilities
+
+### AppMetrics Extension
+
+*   [[CSHARP-851](https://datastax-oss.atlassian.net/browse/CSHARP-851)] - HistogramReservoir values should reset periodically (Timer metrics)
+
+## Bug fixes
+
+*   [[CSHARP-696](https://datastax-oss.atlassian.net/browse/CSHARP-696)] - HostConnectionPool incorrectly logs reconnection message after warmup
+*   [[CSHARP-697](https://datastax-oss.atlassian.net/browse/CSHARP-697)] - When socket.ConnectAsync() throws an error synchronously, SocketAsyncEventArgs is not disposed
+*   [[CSHARP-710](https://datastax-oss.atlassian.net/browse/CSHARP-710)] - Mapper cannot deserialize IList properties
+*   [[CSHARP-711](https://datastax-oss.atlassian.net/browse/CSHARP-711)] - Race condition: re-prepare on UP might not use the current keyspace
+*   [[CSHARP-786](https://datastax-oss.atlassian.net/browse/CSHARP-786)] - Support NULL in collection serializer
+*   [[CSHARP-798](https://datastax-oss.atlassian.net/browse/CSHARP-798)] - Handle prepared id mismatch when repreparing on the fly
+*   [[CSHARP-801](https://datastax-oss.atlassian.net/browse/CSHARP-801)] - Exception on UDT => CLR mapping of collection property which has null value
+*   [[CSHARP-816](https://datastax-oss.atlassian.net/browse/CSHARP-816)] - "Local datacenter is not specified" message is logged if user specifies it with the default execution profile
+*   [[CSHARP-821](https://datastax-oss.atlassian.net/browse/CSHARP-821)] - Policies.NewDefaultLoadBalancingPolicy and Policies.DefaultLoadBalancingPolicy return the default OSS default
+*   [[CSHARP-839](https://datastax-oss.atlassian.net/browse/CSHARP-839)] - Mapper and Linq2Cql causes re-prepare warnings in scenarios with high concurrency
+*   [[CSHARP-845](https://datastax-oss.atlassian.net/browse/CSHARP-845)] - When socket.ConnectAsync returns synchronously, driver assumes that it is connected
+*   [[CSHARP-875](https://datastax-oss.atlassian.net/browse/CSHARP-875)] - Duplicate contact points cause cluster initialization failure
+*   [[CSHARP-877](https://datastax-oss.atlassian.net/browse/CSHARP-877)] - NodeMetric.DefaultNodeMetrics and SessionMetric.DefaultSessionMetrics contain null values
+*   [[CSHARP-878](https://datastax-oss.atlassian.net/browse/CSHARP-878)] - ControlConnection attempts to connect to DOWN nodes
+
+## Documentation
+
+*   [[CSHARP-489](https://datastax-oss.atlassian.net/browse/CSHARP-489)] - Use docfx or doxygen to generate API docs
+*   [[CSHARP-847](https://datastax-oss.atlassian.net/browse/CSHARP-847)] - Doc: include a note about concurrent schema modifications
+
 ## 2.10.0
 
 2020-01-15
