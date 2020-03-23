@@ -1,5 +1,47 @@
 # ChangeLog - DataStax C# Driver
 
+## 3.14.0
+
+2020-03-23
+
+## Improvement
+
+*   [[CSHARP-405](https://datastax-oss.atlassian.net/browse/CSHARP-405)] - Log exception when Cluster.Init() can not recover from
+*   [[CSHARP-806](https://datastax-oss.atlassian.net/browse/CSHARP-806)] - Drop support for .NET Standard 1.5 and bump net45 to net452
+*   [[CSHARP-819](https://datastax-oss.atlassian.net/browse/CSHARP-819)] - Add option to keep contact points unresolved and always re-resolve when there's total connectivity loss
+*   [[CSHARP-829](https://datastax-oss.atlassian.net/browse/CSHARP-829)] - Refine connection errors for connecting to cloud instance that may have been parked
+*   [[CSHARP-841](https://datastax-oss.atlassian.net/browse/CSHARP-841)] - Gracefully handle TCP backpressure
+*   [[CSHARP-846](https://datastax-oss.atlassian.net/browse/CSHARP-846)] - Implement EverywhereReplicationStrategy and LocalReplicationStrategy
+*   [[CSHARP-850](https://datastax-oss.atlassian.net/browse/CSHARP-850)] - Host distance should be a computed aggregate of all configured LBPs
+*   [[CSHARP-876](https://datastax-oss.atlassian.net/browse/CSHARP-876)] - The builder should fail fast when no credentials are provided for Astra clusters
+*   [[CSHARP-862](https://datastax-oss.atlassian.net/browse/CSHARP-862)] - Update System.Net.Http to fix vulnerabilities
+*   [[CSHARP-863](https://datastax-oss.atlassian.net/browse/CSHARP-863)] - Update System.Net.Security to fix vulnerabilities
+
+### AppMetrics Extension
+
+*   [[CSHARP-851](https://datastax-oss.atlassian.net/browse/CSHARP-851)] - HistogramReservoir values should reset periodically (Timer metrics)
+
+## Bug fixes
+
+*   [[CSHARP-696](https://datastax-oss.atlassian.net/browse/CSHARP-696)] - HostConnectionPool incorrectly logs reconnection message after warmup
+*   [[CSHARP-697](https://datastax-oss.atlassian.net/browse/CSHARP-697)] - When socket.ConnectAsync() throws an error synchronously, SocketAsyncEventArgs is not disposed
+*   [[CSHARP-710](https://datastax-oss.atlassian.net/browse/CSHARP-710)] - Mapper cannot deserialize IList properties
+*   [[CSHARP-711](https://datastax-oss.atlassian.net/browse/CSHARP-711)] - Race condition: re-prepare on UP might not use the current keyspace
+*   [[CSHARP-786](https://datastax-oss.atlassian.net/browse/CSHARP-786)] - Support NULL in collection serializer
+*   [[CSHARP-798](https://datastax-oss.atlassian.net/browse/CSHARP-798)] - Handle prepared id mismatch when repreparing on the fly
+*   [[CSHARP-801](https://datastax-oss.atlassian.net/browse/CSHARP-801)] - Exception on UDT => CLR mapping of collection property which has null value
+*   [[CSHARP-816](https://datastax-oss.atlassian.net/browse/CSHARP-816)] - "Local datacenter is not specified" message is logged if user specifies it with the default execution profile
+*   [[CSHARP-839](https://datastax-oss.atlassian.net/browse/CSHARP-839)] - Mapper and Linq2Cql causes re-prepare warnings in scenarios with high concurrency
+*   [[CSHARP-845](https://datastax-oss.atlassian.net/browse/CSHARP-845)] - When socket.ConnectAsync returns synchronously, driver assumes that it is connected
+*   [[CSHARP-875](https://datastax-oss.atlassian.net/browse/CSHARP-875)] - Duplicate contact points cause cluster initialization failure
+*   [[CSHARP-877](https://datastax-oss.atlassian.net/browse/CSHARP-877)] - NodeMetric.DefaultNodeMetrics and SessionMetric.DefaultSessionMetrics contain null values
+*   [[CSHARP-878](https://datastax-oss.atlassian.net/browse/CSHARP-878)] - ControlConnection attempts to connect to DOWN nodes
+
+## Documentation
+
+*   [[CSHARP-489](https://datastax-oss.atlassian.net/browse/CSHARP-489)] - Use docfx or doxygen to generate API docs
+*   [[CSHARP-847](https://datastax-oss.atlassian.net/browse/CSHARP-847)] - Doc: include a note about concurrent schema modifications
+
 ## 3.13.0
 
 2020-01-15
