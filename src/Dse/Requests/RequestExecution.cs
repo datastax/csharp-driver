@@ -334,13 +334,19 @@ namespace Dse.Requests
         private void HandleRequestError(IRequestError error, Host host)
         {
             var ex = error.Exception;
-            RequestExecution.Logger.Info("RequestHandler received exception {0}", ex.ToString());
             if (ex is PreparedQueryNotFoundException foundException &&
                 (_parent.Statement is BoundStatement || _parent.Statement is BatchStatement))
             {
+                RequestExecution.Logger.Info(
+                    "Query {0} is not prepared on {1}, preparing before retrying the request.",
+                    BitConverter.ToString(foundException.UnknownId),
+                    _connection.EndPoint.EndpointFriendlyName);
                 PrepareAndRetry(foundException, host);
                 return;
             }
+
+            RequestExecution.Logger.Info("RequestHandler received exception {0}", ex.ToString());
+
             if (ex is NoHostAvailableException exception)
             {
                 //A NoHostAvailableException when trying to retrieve
@@ -469,8 +475,6 @@ namespace Dse.Requests
         /// </summary>
         private void PrepareAndRetry(PreparedQueryNotFoundException ex, Host host)
         {
-            RequestExecution.Logger.Info(
-                $"Query {BitConverter.ToString(ex.UnknownId)} is not prepared on {_connection.EndPoint.EndpointFriendlyName}, preparing before retrying executing.");
             BoundStatement boundStatement = null;
             if (_parent.Statement is BoundStatement statement1)
             {
