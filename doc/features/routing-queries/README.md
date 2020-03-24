@@ -43,7 +43,7 @@ If you want to enable routing for batch statements, you must specify the routing
 
 ```csharp
 var partitionKey = Guid.NewGuid();
-var batch = new Batch();
+var batch = new BatchStatement();
 // ... Add statements to the query
 // You must specify the values that compose the partition key
 batch.SetRoutingValues(partitionKey);
