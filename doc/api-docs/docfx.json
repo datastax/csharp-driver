@@ -38,7 +38,7 @@
 	  "datastax-template"
     ],
 	"globalMetadata": {
-      "_appTitle": "DataStax C# Driver API Documentation",
+      "_appTitle": "DataStax C# Driver for Apache Cassandra",
       "_enableSearch": true,
 	  "_disableContribution": true,
 	  "_appFooter": "© DataStax, All rights reserved."
