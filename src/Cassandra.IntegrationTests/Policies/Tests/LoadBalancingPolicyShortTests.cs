@@ -31,7 +31,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
     [TestFixture, Category("short"), Category("realcluster")]
     public class LoadBalancingPolicyShortTests : SharedClusterTest
     {
-        public LoadBalancingPolicyShortTests() : base(3, false, true, new TestClusterOptions { UseVNodes = true })
+        public LoadBalancingPolicyShortTests() : base(3, false, new TestClusterOptions { UseVNodes = true })
         {
         }
         

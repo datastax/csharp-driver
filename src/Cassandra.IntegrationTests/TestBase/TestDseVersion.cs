@@ -30,7 +30,7 @@ namespace Cassandra.IntegrationTests.TestBase
 
         public int Minor { get; set; }
 
-        public int Build { get; set; }
+        public int? Build { get; set; }
 
         public Comparison Comparison { get; set; }
 
@@ -45,7 +45,7 @@ namespace Cassandra.IntegrationTests.TestBase
         /// "equals to" = 0, "less than or equal to " = -1
         /// </param>
         public TestDseVersion(int major, int minor, Comparison comparison = Comparison.GreaterThanOrEqualsTo)
-            : this(major, minor, 0, comparison)
+            : this(major, minor, null, comparison)
         {
 
         }
@@ -61,7 +61,7 @@ namespace Cassandra.IntegrationTests.TestBase
         /// Determines if the DSE version required should be "greater or equals to" = 1,
         /// "equals to" = 0, "less than or equal to " = -1
         /// </param>
-        public TestDseVersion(int major, int minor, int build, Comparison comparison = Comparison.GreaterThanOrEqualsTo)
+        public TestDseVersion(int major, int minor, int? build, Comparison comparison = Comparison.GreaterThanOrEqualsTo)
         {
             Major = major;
             Minor = minor;
@@ -74,7 +74,7 @@ namespace Cassandra.IntegrationTests.TestBase
         /// </summary>
         protected virtual Version GetExpectedServerVersion()
         {
-            return new Version(Major, Minor, Build);
+            return Build.HasValue ? new Version(Major, Minor, Build.Value) : new Version(Major, Minor);
         }
 
         protected virtual bool IsDseRequired()
@@ -147,9 +147,10 @@ namespace Cassandra.IntegrationTests.TestBase
     {
         protected override Version GetExpectedServerVersion()
         {
+            var version = Build.HasValue ? new Version(Major, Minor, Build.Value) : new Version(Major, Minor);
             return TestClusterManager.IsDse
-                ? TestClusterManager.GetDseVersion(new Version(Major, Minor, Build))
-                : new Version(Major, Minor, Build);
+                ? TestClusterManager.GetDseVersion(version)
+                : version;
         }
 
         protected override bool IsDseRequired()

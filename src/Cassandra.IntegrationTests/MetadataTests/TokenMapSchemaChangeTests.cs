@@ -27,7 +27,7 @@ namespace Cassandra.IntegrationTests.MetadataTests
     [TestFixture, Category("short"), Category("realcluster")]
     public class TokenMapSchemaChangeTests : SharedClusterTest
     {
-        public TokenMapSchemaChangeTests() : base(3, true, true, new TestClusterOptions { UseVNodes = true })
+        public TokenMapSchemaChangeTests() : base(3, true, new TestClusterOptions { UseVNodes = true })
         {
         }
 

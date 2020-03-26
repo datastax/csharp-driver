@@ -32,8 +32,8 @@ namespace Cassandra.IntegrationTests
         protected new ICluster Cluster { get; set; }
 
         protected SharedCloudClusterTest(
-            bool createSession = true, bool reuse = true, bool sniCertValidation = true, bool clientCert = true) :
-            base(3, createSession, reuse)
+            bool createSession = true, bool sniCertValidation = true, bool clientCert = true) :
+            base(3, createSession)
         {
             _sniCertValidation = sniCertValidation;
             _clientCert = clientCert;
@@ -96,11 +96,6 @@ namespace Cassandra.IntegrationTests
         protected override ITestCluster CreateNew(int nodeLength, TestClusterOptions options, bool startCluster)
         {
             return TestCloudClusterManager.CreateNew(_sniCertValidation);
-        }
-        
-        protected override bool IsSimilarCluster(ITestCluster reusableInstance, TestClusterOptions options, int nodeLength)
-        {
-            return reusableInstance is CloudCluster c && c.SniCertificateValidation == _sniCertValidation;
         }
     }
 }

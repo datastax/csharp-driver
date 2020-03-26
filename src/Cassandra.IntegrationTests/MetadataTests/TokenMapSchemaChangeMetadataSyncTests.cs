@@ -32,7 +32,7 @@ namespace Cassandra.IntegrationTests.MetadataTests
         private Cluster _cluster;
         private ISession _session;
 
-        public TokenMapSchemaChangeMetadataSyncTests() : base(3, false, true, new TestClusterOptions { UseVNodes = true })
+        public TokenMapSchemaChangeMetadataSyncTests() : base(3, false, new TestClusterOptions { UseVNodes = true })
         {
         }
 

@@ -30,6 +30,17 @@ namespace Cassandra.IntegrationTests.Core
     [TestFixture, Category("short"), Category("realcluster"), Category("serverapi")]
     public class SchemaMetadataTests : SharedClusterTest
     {
+        public SchemaMetadataTests() : 
+            base(1, true, new TestClusterOptions
+            {
+                CassandraYaml = new[]
+                {
+                    "enable_materialized_views: true"
+                }
+            })
+        {
+        }
+
         protected override string[] SetupQueries
         {
             get

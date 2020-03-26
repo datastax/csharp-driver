@@ -101,7 +101,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
             if (sniPath.EndsWith(".ps1"))
             {
-                timeout = 12000000;
+                timeout = 1800000;
                 var oldSniPath = sniPath;
                 sniPath = @"powershell";
                 args = "-executionpolicy unrestricted \"& '" + oldSniPath + "'" + args + "\"";

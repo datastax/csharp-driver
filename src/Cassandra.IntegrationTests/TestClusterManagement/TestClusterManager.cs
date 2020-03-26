@@ -132,7 +132,8 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         public static bool SupportsDecommissionForcefully()
         {
-            return TestClusterManager.CheckDseVersion(new Version(5, 1), Comparison.GreaterThanOrEqualsTo);
+            return TestClusterManager.CheckDseVersion(new Version(5, 1), Comparison.GreaterThanOrEqualsTo) 
+                   || TestClusterManager.CheckCassandraVersion(true, new Version(4, 0), Comparison.GreaterThanOrEqualsTo);
         }
 
         public static bool SupportsNextGenGraph()

@@ -33,8 +33,6 @@ namespace Cassandra.IntegrationTests
     /// </summary>
     public abstract class SharedClusterTest : TestGlobals
     {
-        private static ITestCluster _reusableInstance;
-        private readonly bool _reuse;
         protected readonly List<ICluster> ClusterInstances = new List<ICluster>();
 
         /// <summary>
@@ -78,10 +76,8 @@ namespace Cassandra.IntegrationTests
 
         protected TestClusterOptions Options { get; set; }
 
-        protected SharedClusterTest(int amountOfNodes = 1, bool createSession = true, bool reuse = true, TestClusterOptions options = null)
+        protected SharedClusterTest(int amountOfNodes = 1, bool createSession = true, TestClusterOptions options = null)
         {
-            //only reuse single node clusters
-            _reuse = reuse && amountOfNodes == 1;
             AmountOfNodes = amountOfNodes;
             KeyspaceName = TestUtils.GetUniqueKeyspaceName().ToLowerInvariant();
             CreateSession = createSession;
@@ -92,41 +88,11 @@ namespace Cassandra.IntegrationTests
         {
             return TestClusterManager.CreateNew(nodeLength, options, startCluster);
         }
-
-        protected virtual bool IsSimilarCluster(ITestCluster reusableInstance, TestClusterOptions options, int nodeLength)
-        {
-            return ReferenceEquals(reusableInstance, TestClusterManager.LastInstance)
-                   && ((options != null && options.Equals(TestClusterManager.LastOptions)) ||
-                       (options == null && TestClusterManager.LastOptions == null))
-                   && nodeLength == TestClusterManager.LastAmountOfNodes;
-        }
-
+        
         [OneTimeSetUp]
         public virtual void OneTimeSetUp()
         {
-            CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
-            CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
-
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.InvariantCulture;
-            Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
-
-            if (_reuse && _reusableInstance != null && IsSimilarCluster(SharedClusterTest._reusableInstance, Options, AmountOfNodes))
-            {
-                Trace.WriteLine("Reusing ccm instance");
-                TestCluster = _reusableInstance;
-            }
-            else
-            {
-                TestCluster = CreateNew(AmountOfNodes, Options, true);
-                if (_reuse)
-                {
-                    _reusableInstance = TestCluster;
-                }
-                else
-                {
-                    _reusableInstance = null;
-                }
-            }
+            TestCluster = CreateNew(AmountOfNodes, Options, true);
             if (CreateSession)
             {
                 CreateCommonSession();
