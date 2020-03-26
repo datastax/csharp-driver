@@ -85,7 +85,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                     return Version4Dot0;
                 }
 
-                return new Version(TestClusterManager.CassandraVersionString);
+                return new Version(TestClusterManager.CassandraVersionString.Split('-')[0]);
             }
         }
 
@@ -127,7 +127,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         
         public static Version DseVersion
         {
-            get { return IsDse ? new Version(DseVersionString) : TestClusterManager.GetDseVersion(new Version(CassandraVersionString)); }
+            get { return IsDse ? new Version(DseVersionString.Split('-')[0]) : TestClusterManager.GetDseVersion(new Version(CassandraVersionString.Split('-')[0])); }
         }
 
         public static bool SupportsDecommissionForcefully()
