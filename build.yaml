@@ -14,11 +14,11 @@ schedules:
       # on linux with netcoreapp2.1 target 2.2, 3.0 and 3.11
         - os: 'ubuntu/bionic64/csharp-driver'
           dotnet: ['netcoreapp2.1']
-          cassandra: ['2.1', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.7', 'dse-6.8.0']
+          cassandra: ['2.1', '4.0', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.7', 'dse-6.8.0']
       # on linux with mono target 3.11
         - os: 'ubuntu/bionic64/csharp-driver'
           dotnet: ['mono']
-          cassandra: ['2.1', '2.2', '3.0', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.7', 'dse-6.8.0']
+          cassandra: ['2.1', '2.2', '3.0', '4.0', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.7', 'dse-6.8.0']
   commit-dse:
     # Run short suite on commit
     schedule: per_commit
@@ -34,11 +34,11 @@ schedules:
       # on linux with netcoreapp2.1 target dse-5.1, dse-6.8.0 and dse-6.7
         - os: 'ubuntu/bionic64/csharp-driver'
           dotnet: ['netcoreapp2.1']
-          cassandra: ['2.1', '2.2', '3.0', '3.11', 'dse-5.0', 'dse-6.0']
+          cassandra: ['2.1', '2.2', '3.0', '3.11', '4.0', 'dse-5.0', 'dse-6.0']
       # on linux with mono target dse-6.7
         - os: 'ubuntu/bionic64/csharp-driver'
           dotnet: ['mono']
-          cassandra: ['2.1', '2.2', '3.0', '3.11', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.8.0']
+          cassandra: ['2.1', '2.2', '3.0', '3.11', '4.0', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.8.0']
   nightly-oss-ubuntu:
     # nightly job for primary branches to run almost all configs on ubuntu.
     schedule: nightly
@@ -77,7 +77,7 @@ schedules:
           dotnet: ['net452', 'net461']
       # on linux dont build oss
         - os: 'ubuntu/bionic64/csharp-driver'
-          cassandra: ['2.1', '2.2', '3.0', '3.11']
+          cassandra: ['2.1', '2.2', '3.0', '3.11', '4.0']
       # on linux with netcoreapp2.1 target all dse
       # on linux with mono target dse-5.1 and dse-6.7
         - os: 'ubuntu/bionic64/csharp-driver'
@@ -154,6 +154,7 @@ cassandra:
   - '2.2'
   - '3.0'
   - '3.11'
+  - '4.0'
   - 'dse-5.0'
   - 'dse-5.1'
   - 'dse-6.0'
