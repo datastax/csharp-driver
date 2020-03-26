@@ -1,7 +1,27 @@
 schedules:
-  commit-oss:
+  cass4-test:
     # Run short suite on commit
     schedule: per_commit
+    notify:
+      slack: csharp-driver-dev-bots
+    matrix:
+      exclude:
+      # dont build on windows (windows provisioning takes too long, run only on nightly and weekly schedules)
+        - os: 'win/cs' 
+        - cassandra: ['2.1', '2.2', '3.0', '3.11', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.7', 'dse-6.8.0']
+  cass4-test-ubuntu:
+    # Run short suite on commit
+    schedule: per_commit
+    notify:
+      slack: csharp-driver-dev-bots
+    matrix:
+      exclude:
+      # dont build on windows (windows provisioning takes too long, run only on nightly and weekly schedules)
+        - os: 'ubuntu/bionic64/csharp-driver'
+        - cassandra: ['2.1', '2.2', '3.0', '3.11', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.7', 'dse-6.8.0']
+  commit-oss:
+    # Run short suite on commit
+    schedule: adhoc
     notify:
       slack: csharp-driver-dev-bots
     matrix:
@@ -21,7 +41,7 @@ schedules:
           cassandra: ['2.1', '2.2', '3.0', '4.0', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.7', 'dse-6.8.0']
   commit-dse:
     # Run short suite on commit
-    schedule: per_commit
+    schedule: adhoc
     notify:
       slack: csharp-driver-dev-bots
     matrix:
