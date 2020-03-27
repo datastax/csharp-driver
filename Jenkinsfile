@@ -167,6 +167,7 @@ ENVIRONMENT_EOF
 def installDependencies() {
   if (env.OS_VERSION.split('/')[0] == 'win') {
     powershell label: 'Download saxon', script: '''
+      [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
       mkdir saxon
       Invoke-WebRequest -OutFile saxon/saxon9he.jar -Uri https://repo1.maven.org/maven2/net/sf/saxon/Saxon-HE/9.8.0-12/Saxon-HE-9.8.0-12.jar
     '''
@@ -213,6 +214,7 @@ def executeTests() {
   if (env.OS_VERSION.split('/')[0] == 'win') {
     catchError {
       powershell label: "Execute tests for ${env.DOTNET_VERSION}", script: '''
+        . $env:HOME\\Documents\\WindowsPowerShell\\Microsoft.PowerShell_profile.ps1
         . $Env:HOME\\driver-environment.ps1
         dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -v n -f $Env:DOTNET_VERSION -c Release --filter "(TestCategory!=long)&(TestCategory!=memory)" --logger "xunit;LogFilePath=../../TestResult_xunit.xml" -- RunConfiguration.TargetPlatform=x64
       '''
