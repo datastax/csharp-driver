@@ -371,6 +371,7 @@ pipeline {
 
   // Global pipeline timeout
   options {
+    disableConcurrentBuilds()
     timeout(time: 10, unit: 'HOURS')
     buildDiscarder(logRotator(artifactNumToKeepStr: '10', // Keep only the last 10 artifacts
                               numToKeepStr: '50'))        // Keep only the last 50 build records
