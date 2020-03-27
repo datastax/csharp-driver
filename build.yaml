@@ -283,6 +283,10 @@ build:
           export DOTNET_CLI_TELEMETRY_OPTOUT=1
           dotnet --version
 
+          # work around nuget issue
+          mkdir -p /tmp/NuGetScratch
+          chmod -R ugo+rwx /tmp/NuGetScratch
+
           # Install the required packages
           dotnet restore src
 

@@ -203,6 +203,10 @@ def buildDriver() {
         msbuild /p:Configuration=Release /v:m /p:DynamicConstants=LINUX src/Cassandra.sln
       '''
     } else {
+      sh label: "Work around nuget issue", script: '''#!/bin/bash -le
+        mkdir -p /tmp/NuGetScratch
+        chmod -R ugo+rwx /tmp/NuGetScratch
+      '''
       sh label: "Install required packages and build the driver for ${env.DOTNET_VERSION}", script: '''#!/bin/bash -le
         dotnet restore src
       '''
