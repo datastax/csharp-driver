@@ -25,15 +25,13 @@ def initializeEnvironment() {
     '''
     
     powershell label: 'Download Apache Cassandra&reg; or DataStax Enterprise', script: '''
-      $Env:HOME="C:\Users\Admin"
-      $ENV:HOME_WSL="/mnt/c/Users/Admin"
-      rm $Env:HOME\environment.txt
-      rm $Env:HOME\driver-environment.ps1
+      rm $Env:HOME\\environment.txt
+      rm $Env:HOME\\driver-environment.ps1
 
       wsl bash --login -c "$Env:CCM_ENVIRONMENT_SHELL_WINDOWS $Env:SERVER_VERSION"
       wsl bash --login -c "cp ~/environment.txt $ENV:HOME_WSL"
       
-      $data = get-content "$Env:HOME\environment.txt"
+      $data = get-content "$Env:HOME\\environment.txt"
       $data = $data -replace "`n","`r`n"
       $newData = ""
 	    $data | foreach {
@@ -42,27 +40,27 @@ def initializeEnvironment() {
           $newData += "`r`n`$Env:$v1='$v2'"
       }
       $newData += "`r`n`$Env:CASSANDRA_VERSION=`$Env:CCM_CASSANDRA_VERSION"
-      "$newData" | Out-File -filepath $Env:HOME\driver-environment.ps1
+      "$newData" | Out-File -filepath $Env:HOME\\driver-environment.ps1
     '''
     
     if (env.SERVER_VERSION.split('-')[0] == 'dse') {
       powershell label: 'Update environment for DataStax Enterprise', script: '''
-          . $Env:HOME\driver-environment.ps1
+          . $Env:HOME\\driver-environment.ps1
 
           $newData = "`r`n`$Env:DSE_BRANCH=`"$Env:CCM_BRANCH`""
           $newData += "`r`n`$Env:DSE_VERSION=`"$Env:CCM_VERSION`""
           $newData += "`r`n`$Env:DSE_INITIAL_IPPREFIX=`"127.0.0.`""
           $newData += "`r`n`$Env:DSE_IN_REMOTE_SERVER=`"false`""
 
-          "$newData" | Out-File -filepath $Env:HOME\driver-environment.ps1 -append
+          "$newData" | Out-File -filepath $Env:HOME\\driver-environment.ps1 -append
       '''
 
       if (env.SERVER_VERSION.split('-')[1] == '6.0') {
         powershell label: 'Update environment for DataStax Enterprise v6.0.x', script: '''
-        . $Env:HOME\driver-environment.ps1
+        . $Env:HOME\\driver-environment.ps1
 
         echo "Setting DSE 6.0 install-dir"
-        "`r`n`$Env:DSE_PATH=`"$Env:CCM_INSTALL_DIR`"" | Out-File -filepath $Env:HOME\driver-environment.ps1 -append
+        "`r`n`$Env:DSE_PATH=`"$Env:CCM_INSTALL_DIR`"" | Out-File -filepath $Env:HOME\\driver-environment.ps1 -append
         '''
       }
     }
@@ -74,23 +72,23 @@ def initializeEnvironment() {
         $newData += "`r`n`$Env:SNI_CERTIFICATE_PATH=`"$Env:HOME/proxy/certs/client_key.pfx`""
         $newData += "`r`n`$Env:SNI_CA_PATH=`"$Env:HOME/proxy/certs/root.crt`""
 
-        "$newData" | Out-File -filepath $Env:HOME\driver-environment.ps1 -append
+        "$newData" | Out-File -filepath $Env:HOME\\driver-environment.ps1 -append
       '''
     }
 
     powershell label: 'Set additional environment variables for windows tests', script: '''
-      $newData = "`r`n`$Env:PATH+=`";$env:JAVA_HOME\bin`""
+      $newData = "`r`n`$Env:PATH+=`";$env:JAVA_HOME\\bin`""
       $newData += "`r`n`$Env:SIMULACRON_PATH=`"$Env:SIMULACRON_PATH_WINDOWS`""
       $newData += "`r`n`$Env:CCM_USE_WSL=`"true`""
       $newData += "`r`n`$Env:CCM_SSL_PATH=`"/root/ssl`""
 
-      "$newData" | Out-File -filepath $Env:HOME\driver-environment.ps1 -append
+      "$newData" | Out-File -filepath $Env:HOME\\driver-environment.ps1 -append
     '''
 
     powershell label: 'Display .NET and environment information', script: '''
       # Load CCM and driver configuration environment variables
-      cat $Env:HOME\driver-environment.ps1
-      . $Env:HOME\driver-environment.ps1
+      cat $Env:HOME\\driver-environment.ps1
+      . $Env:HOME\\driver-environment.ps1
 
       dotnet --version
 
@@ -215,7 +213,7 @@ def executeTests() {
   if (env.OS_VERSION.split('/')[0] == 'win') {
     catchError {
       powershell label: "Execute tests for ${env.DOTNET_VERSION}", script: '''
-        . $Env:HOME\driver-environment.ps1
+        . $Env:HOME\\driver-environment.ps1
         dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -v n -f $Env:DOTNET_VERSION -c Release --filter "(TestCategory!=long)&(TestCategory!=memory)" --logger "xunit;LogFilePath=../../TestResult_xunit.xml" -- RunConfiguration.TargetPlatform=x64
       '''
     }
