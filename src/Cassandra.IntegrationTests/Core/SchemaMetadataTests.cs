@@ -33,10 +33,9 @@ namespace Cassandra.IntegrationTests.Core
         public SchemaMetadataTests() : 
             base(1, true, new TestClusterOptions
             {
-                CassandraYaml = new[]
-                {
-                    "enable_materialized_views: true"
-                }
+                CassandraYaml = 
+                    TestClusterManager.CheckCassandraVersion(true, new Version(4, 0), Comparison.GreaterThanOrEqualsTo ) 
+                        ? new[] { "enable_materialized_views: true" } : new string[0]
             })
         {
         }
