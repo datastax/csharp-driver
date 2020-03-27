@@ -115,7 +115,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             get { return Environment.GetEnvironmentVariable("DSE_VERSION") ?? "6.7.7"; }
         }
 
-        private static string CassandraVersionString
+        public static string CassandraVersionString
         {
             get { return Environment.GetEnvironmentVariable("CASSANDRA_VERSION") ?? "3.11.2"; }
         }
@@ -128,6 +128,12 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         public static Version DseVersion
         {
             get { return IsDse ? new Version(DseVersionString.Split('-')[0]) : TestClusterManager.GetDseVersion(new Version(CassandraVersionString.Split('-')[0])); }
+        }
+
+        public static bool IsCassandraFourZeroPreRelease()
+        {
+            return TestClusterManager.CassandraVersion.Equals(new Version(4, 0))
+                   && TestClusterManager.CassandraVersionString.Any(c => c == '-');
         }
 
         public static bool SupportsDecommissionForcefully()

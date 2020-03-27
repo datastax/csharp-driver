@@ -30,7 +30,7 @@ namespace Cassandra.IntegrationTests.TestBase
 
         public int Minor { get; set; }
 
-        public int? Build { get; set; }
+        public int Build { get; set; }
 
         public Comparison Comparison { get; set; }
 
@@ -45,7 +45,7 @@ namespace Cassandra.IntegrationTests.TestBase
         /// "equals to" = 0, "less than or equal to " = -1
         /// </param>
         public TestDseVersion(int major, int minor, Comparison comparison = Comparison.GreaterThanOrEqualsTo)
-            : this(major, minor, null, comparison)
+            : this(major, minor, 0, comparison)
         {
 
         }
@@ -61,7 +61,7 @@ namespace Cassandra.IntegrationTests.TestBase
         /// Determines if the DSE version required should be "greater or equals to" = 1,
         /// "equals to" = 0, "less than or equal to " = -1
         /// </param>
-        public TestDseVersion(int major, int minor, int? build, Comparison comparison = Comparison.GreaterThanOrEqualsTo)
+        public TestDseVersion(int major, int minor, int build, Comparison comparison = Comparison.GreaterThanOrEqualsTo)
         {
             Major = major;
             Minor = minor;
@@ -74,7 +74,7 @@ namespace Cassandra.IntegrationTests.TestBase
         /// </summary>
         protected virtual Version GetExpectedServerVersion()
         {
-            return Build.HasValue ? new Version(Major, Minor, Build.Value) : new Version(Major, Minor);
+            return new Version(Major, Minor, Build);
         }
 
         protected virtual bool IsDseRequired()
@@ -110,15 +110,42 @@ namespace Cassandra.IntegrationTests.TestBase
 
         public static bool VersionMatch(Version expectedVersion, Version executingVersion, Comparison comparison)
         {
-            //Compare them as integers
-            //var expectedVersion = new Version(versionAttr.Major, versionAttr.Minor, versionAttr.Build);
-            var comparisonResult = (Comparison)executingVersion.CompareTo(expectedVersion);
+            expectedVersion = AdaptVersion(expectedVersion);
+            executingVersion = AdaptVersion(executingVersion);
 
+            var comparisonResult = (Comparison)executingVersion.CompareTo(expectedVersion);
+            
             if (comparisonResult >= Comparison.Equal && comparison == Comparison.GreaterThanOrEqualsTo)
             {
                 return true;
             }
             return comparisonResult == comparison;
+        }
+
+        /// <summary>
+        /// Replace -1 (undefined) with 0 on the version string.
+        /// </summary>
+        private static Version AdaptVersion(Version v)
+        {
+            var minor = v.Minor;
+            if (minor < 0)
+            {
+                minor = 0;
+            }
+
+            var build = v.Build;
+            if (build < 0)
+            {
+                build = 0;
+            }
+
+            var revision = v.Revision;
+            if (revision < 0)
+            {
+                revision = 0;
+            }
+
+            return new Version(v.Major, minor, build, revision);
         }
 
         private static string GetComparisonText(Comparison comparison)
@@ -147,7 +174,7 @@ namespace Cassandra.IntegrationTests.TestBase
     {
         protected override Version GetExpectedServerVersion()
         {
-            var version = Build.HasValue ? new Version(Major, Minor, Build.Value) : new Version(Major, Minor);
+            var version = new Version(Major, Minor, Build);
             return TestClusterManager.IsDse
                 ? TestClusterManager.GetDseVersion(version)
                 : version;

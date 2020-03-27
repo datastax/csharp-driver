@@ -26,6 +26,7 @@ using System.Collections;
 using System.Threading;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Tests;
+using NUnit.Framework.Internal;
 
 namespace Cassandra.IntegrationTests.Core
 {
@@ -828,6 +829,12 @@ namespace Cassandra.IntegrationTests.Core
         [TestCassandraVersion(4, 0)]
         public void Session_Prepare_With_Keyspace_Defined_On_Protocol_Greater_Than_4(bool usePayload)
         {
+            if (TestClusterManager.IsCassandraFourZeroPreRelease())
+            {
+                Assert.Ignore("test requires protocol >= 5 but cassandra 4.0 pre-release detected");
+                return;
+            }
+
             Assert.AreNotEqual("system", Session.Keyspace);
             PreparedStatement ps;
             if (!usePayload)
@@ -855,6 +862,12 @@ namespace Cassandra.IntegrationTests.Core
         [TestCassandraVersion(4, 0)]
         public async Task Session_PrepareAsync_With_Keyspace_Defined_On_Protocol_Greater_Than_4(bool usePayload)
         {
+            if (TestClusterManager.IsCassandraFourZeroPreRelease())
+            {
+                Assert.Ignore("test requires protocol >= 5 but cassandra 4.0 pre-release detected");
+                return;
+            }
+
             Assert.AreNotEqual("system", Session.Keyspace);
             PreparedStatement ps;
             if (!usePayload)
