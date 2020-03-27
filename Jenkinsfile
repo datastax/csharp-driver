@@ -551,7 +551,7 @@ pipeline {
   }
 
   stages {
-    stage('Per-Commit-OSS') {
+    stage('Per-Commit') {
       when {
         beforeAgent true
         allOf {
@@ -569,9 +569,12 @@ pipeline {
         axes {
           axis {
             name 'SERVER_VERSION'
-            values '2.2',     // Legacy Apache Cassandara�
-                   '3.0',    // latest 3.0.x Apache Cassandara�
-                   '3.11' // latest 3.11.x Apache Cassandara�
+            values '2.2',     // latest 2.2.x Apache Cassandara�
+                   '3.0',     // latest 3.0.x Apache Cassandara�
+                   '3.11',    // latest 3.11.x Apache Cassandara�
+                   'dse-5.1', // latest 5.1.x DataStax Enterprise
+                   'dse-6.7', // latest 6.7.x DataStax Enterprise
+                   'dse-6.8.0' // 6.8.0 current DataStax Enterprise
           }
           axis {
             name 'DOTNET_VERSION'
@@ -586,110 +589,7 @@ pipeline {
             }
             axis {
               name 'SERVER_VERSION'
-              values '2.2', '3.0'
-            }
-          }
-        }
-
-        agent {
-          label "${OS_VERSION}"
-        }
-
-        stages {
-          stage('Initialize-Environment') {
-            steps {
-              initializeEnvironment()
-              script {
-                if (env.BUILD_STATED_SLACK_NOTIFIED != 'true') {
-                  notifySlack()
-                }
-              }
-            }
-          }
-          stage('Describe-Build') {
-            steps {
-              describePerCommitStage()
-            }
-          }
-          stage('Install-Dependencies') {
-            steps {
-              installDependencies()
-            }
-          }
-          stage('Build-Driver') {
-            steps {
-              buildDriver()
-            }
-          }
-          stage('Execute-Tests') {
-            steps {
-              executeTests()
-            }
-            post {
-              always {
-                junit testResults: '**/TestResult.xml'
-              }
-            }
-          }
-        }
-      }
-      post {
-        always {
-          node('master') {
-            submitCIMetrics('commit')
-          }
-        }
-        aborted {
-          notifySlack('aborted')
-        }
-        success {
-          notifySlack('completed')
-        }
-        unstable {
-          notifySlack('unstable')
-        }
-        failure {
-          notifySlack('FAILED')
-        }
-      }
-    }
-
-    stage('Per-Commit-DSE') {
-      when {
-        beforeAgent true
-        allOf {
-          expression { params.ADHOC_BUILD_TYPE == 'BUILD' }
-          expression { params.CI_SCHEDULE == 'DO-NOT-CHANGE-THIS-SELECTION' }
-          not { buildingTag() }
-        }
-      }
-
-      environment {
-        OS_VERSION = 'ubuntu/bionic64/csharp-driver'
-      }
-
-      matrix {
-        axes {
-          axis {
-            name 'SERVER_VERSION'
-            values 'dse-5.1',
-                   'dse-6.7',
-                   'dse-6.8.0'
-          }
-          axis {
-            name 'DOTNET_VERSION'
-            values 'mono', 'netcoreapp2.1'
-          }
-        }
-        excludes {
-          exclude {
-            axis {
-              name 'DOTNET_VERSION'
-              values 'mono'
-            }
-            axis {
-              name 'SERVER_VERSION'
-              values 'dse-5.1', 'dse-6.8.0'
+              values '2.2', '3.0', 'dse-5.1', 'dse-6.8.0'
             }
           }
         }
