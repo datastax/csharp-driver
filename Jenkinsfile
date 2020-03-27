@@ -95,18 +95,18 @@ def initializeEnvironment() {
       gci env:* | sort-object name
     '''
   } else {
-    sh label: 'Copy SSL files', script: '''#!/bin/bash -lex
+    sh label: 'Copy SSL files', script: '''#!/bin/bash -le
       cp -r ${HOME}/ccm/ssl $HOME/ssl
     '''
 
-    sh label: 'Download Apache Cassandra&reg; or DataStax Enterprise', script: '''#!/bin/bash -lex
+    sh label: 'Download Apache Cassandra&reg; or DataStax Enterprise', script: '''#!/bin/bash -le
       . ${CCM_ENVIRONMENT_SHELL} ${SERVER_VERSION}
 
       echo "CASSANDRA_VERSION=${CCM_CASSANDRA_VERSION}" >> ${HOME}/environment.txt
     '''
 
     if (env.SERVER_VERSION.split('-')[0] == 'dse') {
-      sh label: 'Update environment for DataStax Enterprise', script: '''#!/bin/bash -lex
+      sh label: 'Update environment for DataStax Enterprise', script: '''#!/bin/bash -le
         # Load CCM environment variables
         set -o allexport
         . ${HOME}/environment.txt
@@ -121,7 +121,7 @@ ENVIRONMENT_EOF
       '''
 
       if (env.SERVER_VERSION.split('-')[1] == '6.0') {
-        sh label: 'Update environment for DataStax Enterprise v6.0.x', script: '''#!/bin/bash -lex
+        sh label: 'Update environment for DataStax Enterprise v6.0.x', script: '''#!/bin/bash -le
           # Load CCM and driver configuration environment variables
           set -o allexport
           . ${HOME}/environment.txt
@@ -133,7 +133,7 @@ ENVIRONMENT_EOF
     }
 
     if (env.SERVER_VERSION == env.SERVER_VERSION_SNI) {
-      sh label: 'Update environment for SNI proxy tests', script: '''#!/bin/bash -lex
+      sh label: 'Update environment for SNI proxy tests', script: '''#!/bin/bash -le
         # Load CCM and driver configuration environment variables
         set -o allexport
         . ${HOME}/environment.txt
@@ -171,13 +171,13 @@ def installDependencies() {
       Invoke-WebRequest -OutFile saxon/saxon9he.jar -Uri https://repo1.maven.org/maven2/net/sf/saxon/Saxon-HE/9.8.0-12/Saxon-HE-9.8.0-12.jar
     '''
   } else {
-    sh label: 'Download saxon', script: '''#!/bin/bash -lex
+    sh label: 'Download saxon', script: '''#!/bin/bash -le
       mkdir saxon
       curl -L -o saxon/saxon9he.jar https://repo1.maven.org/maven2/net/sf/saxon/Saxon-HE/9.8.0-12/Saxon-HE-9.8.0-12.jar
     '''
 
     if (env.DOTNET_VERSION == 'mono') {
-      sh label: 'Install required packages for mono builds', script: '''#!/bin/bash -lex
+      sh label: 'Install required packages for mono builds', script: '''#!/bin/bash -le
         # Define alias for Nuget
         nuget() {
           mono /usr/local/bin/nuget.exe "$@"
@@ -197,12 +197,12 @@ def buildDriver() {
       '''
   } else {
     if (env.DOTNET_VERSION == 'mono') {
-      sh label: 'Build the driver for mono', script: '''#!/bin/bash -lex
+      sh label: 'Build the driver for mono', script: '''#!/bin/bash -le
         msbuild /t:restore /v:m src/Cassandra.sln
         msbuild /p:Configuration=Release /v:m /p:DynamicConstants=LINUX src/Cassandra.sln
       '''
     } else {
-      sh label: "Install required packages and build the driver for ${env.DOTNET_VERSION}", script: '''#!/bin/bash -lex
+      sh label: "Install required packages and build the driver for ${env.DOTNET_VERSION}", script: '''#!/bin/bash -le
         dotnet restore src
       '''
     }
@@ -223,7 +223,7 @@ def executeTests() {
   } else {
     if (env.DOTNET_VERSION == 'mono') {
       catchError {
-        sh label: 'Execute tests for mono', script: '''#!/bin/bash -lex
+        sh label: 'Execute tests for mono', script: '''#!/bin/bash -le
           # Load CCM and driver configuration environment variables
           set -o allexport
           . ${HOME}/environment.txt
@@ -232,12 +232,12 @@ def executeTests() {
           mono ./testrunner/NUnit.ConsoleRunner.3.6.1/tools/nunit3-console.exe src/Cassandra.IntegrationTests/bin/Release/net452/Cassandra.IntegrationTests.dll --where "cat != long && cat != memory" --labels=All --result:"TestResult_nunit.xml"
         '''
       }
-      sh label: 'Convert the test results using saxon', script: '''#!/bin/bash -lex
+      sh label: 'Convert the test results using saxon', script: '''#!/bin/bash -le
         java -jar saxon/saxon9he.jar -o:TestResult.xml TestResult_nunit.xml tools/nunit3-junit.xslt
       '''
     } else {
       catchError {
-        sh label: "Execute tests for ${env.DOTNET_VERSION}", script: '''#!/bin/bash -lex
+        sh label: "Execute tests for ${env.DOTNET_VERSION}", script: '''#!/bin/bash -le
           # Load CCM and driver configuration environment variables
           set -o allexport
           . ${HOME}/environment.txt
@@ -246,7 +246,7 @@ def executeTests() {
           dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -v n -f ${DOTNET_VERSION} -c Release --filter "(TestCategory!=long)&(TestCategory!=memory)" --logger "xunit;LogFilePath=../../TestResult_xunit.xml"
         '''
       }
-      sh label: 'Convert the test results using saxon', script: '''#!/bin/bash -lex
+      sh label: 'Convert the test results using saxon', script: '''#!/bin/bash -le
         java -jar saxon/saxon9he.jar -o:TestResult.xml TestResult_xunit.xml tools/JUnitXml.xslt
       '''
     } 
@@ -297,7 +297,7 @@ def submitCIMetrics(buildType) {
     withCredentials([string(credentialsId: 'lab-grafana-address', variable: 'LAB_GRAFANA_ADDRESS'),
                      string(credentialsId: 'lab-grafana-port', variable: 'LAB_GRAFANA_PORT')]) {
       withEnv(["DURATION_METRIC=${durationMetric}"]) {
-        sh label: 'Send runtime metrics to labgrafana', script: '''#!/bin/bash -lex
+        sh label: 'Send runtime metrics to labgrafana', script: '''#!/bin/bash -le
           echo "${DURATION_METRIC}" | nc -q 5 ${LAB_GRAFANA_ADDRESS} ${LAB_GRAFANA_PORT}
         '''
       }
