@@ -220,7 +220,6 @@ def executeTests() {
     powershell label: 'Convert the test results using saxon', script: '''
       java -jar saxon/saxon9he.jar -o:TestResult.xml TestResult_xunit.xml tools/JUnitXml.xslt
     '''
-    }
   } else {
     if (env.DOTNET_VERSION == 'mono') {
       catchError {
