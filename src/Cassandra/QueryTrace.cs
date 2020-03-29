@@ -18,7 +18,6 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
-using Cassandra.SessionManagement;
 using Cassandra.Tasks;
 
 namespace Cassandra

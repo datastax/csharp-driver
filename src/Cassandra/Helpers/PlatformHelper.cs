@@ -52,17 +52,17 @@ namespace Cassandra.Helpers
             {
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
-                    return PlatformHelper.GetWmiCpuInfo();
+                    return GetWmiCpuInfo();
                 }
 
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
                 {
-                    return PlatformHelper.GetLinuxProcCpuInfo();
+                    return GetLinuxProcCpuInfo();
                 }
             }
             catch (Exception ex)
             {
-                PlatformHelper.Logger.Info("Could not get cpu name. Exception: {0}", ex.ToString());
+                Logger.Info("Could not get cpu name. Exception: {0}", ex.ToString());
             }
 
             return new CpuInfo(null, Environment.ProcessorCount);

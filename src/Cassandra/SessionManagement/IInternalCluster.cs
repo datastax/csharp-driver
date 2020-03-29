@@ -16,11 +16,8 @@
 
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Net;
-using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Connections;
-using Cassandra.ExecutionProfiles;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 

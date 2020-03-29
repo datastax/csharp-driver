@@ -15,7 +15,6 @@
 //
 
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -23,8 +22,6 @@ using Cassandra.Connections;
 using Cassandra.ExecutionProfiles;
 using Cassandra.Requests;
 using Cassandra.Serialization;
-using Cassandra.SessionManagement;
-using Moq;
 
 using NUnit.Framework;
 

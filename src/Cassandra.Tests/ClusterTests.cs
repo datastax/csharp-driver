@@ -19,7 +19,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
-using System.Text;
 using Cassandra.ExecutionProfiles;
 using Cassandra.Tests.Connections;
 using Moq;

@@ -16,14 +16,12 @@
 
 using System;
 using System.Collections.Concurrent;
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
-﻿using System.Net;
-﻿using NUnit.Framework;
+using NUnit.Framework;
 using Moq;
 using System.Threading.Tasks;
 using System.Threading;
-﻿using Cassandra.Requests;
 #pragma warning disable 618
 
 namespace Cassandra.Tests

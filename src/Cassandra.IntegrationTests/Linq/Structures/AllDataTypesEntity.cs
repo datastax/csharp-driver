@@ -23,7 +23,6 @@ using Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder;
 using Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.Then;
 using Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.When;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
-using NUnit.Framework;
 using Guid = System.Guid;
 
 #pragma warning disable 618
