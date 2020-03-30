@@ -56,10 +56,10 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(1, cluster.GetReplicas("ks2", new byte[] {0, 0, 0, 1}).Count);
 
             const string createKeyspaceQuery = "CREATE KEYSPACE {0} WITH replication = {{ 'class' : '{1}', {2} }}";
-            session.Execute(String.Format(createKeyspaceQuery, "ks1", "SimpleStrategy", "'replication_factor' : 1"));
-            session.Execute(String.Format(createKeyspaceQuery, "ks2", "SimpleStrategy", "'replication_factor' : 3"));
-            session.Execute(String.Format(createKeyspaceQuery, "ks3", "NetworkTopologyStrategy", "'dc1' : 1"));
-            session.Execute(String.Format(createKeyspaceQuery, "\"KS4\"", "SimpleStrategy", "'replication_factor' : 3"));
+            session.Execute(string.Format(createKeyspaceQuery, "ks1", "SimpleStrategy", "'replication_factor' : 1"));
+            session.Execute(string.Format(createKeyspaceQuery, "ks2", "SimpleStrategy", "'replication_factor' : 3"));
+            session.Execute(string.Format(createKeyspaceQuery, "ks3", "NetworkTopologyStrategy", "'dc1' : 1"));
+            session.Execute(string.Format(createKeyspaceQuery, "\"KS4\"", "SimpleStrategy", "'replication_factor' : 3"));
             //Let the magic happen
             Thread.Sleep(5000);
             Assert.Greater(cluster.Metadata.GetKeyspaces().Count, initialLength);
@@ -382,7 +382,7 @@ namespace Cassandra.IntegrationTests.Core
             session.CreateKeyspaceIfNotExists(keyspaceName);
             session.ChangeKeyspace(keyspaceName);
 
-            session.Execute(String.Format("CREATE TABLE {0} (" +
+            session.Execute(string.Format("CREATE TABLE {0} (" +
                                           "id uuid primary key, " +
                                           "map1 map<varchar, frozen<list<timeuuid>>>," +
                                           "map2 map<int, frozen<map<uuid, bigint>>>," +
@@ -441,7 +441,7 @@ namespace Cassandra.IntegrationTests.Core
             session.CreateKeyspaceIfNotExists(keyspaceName);
             session.ChangeKeyspace(keyspaceName);
 
-            session.Execute(String.Format("CREATE TABLE {0} (" +
+            session.Execute(string.Format("CREATE TABLE {0} (" +
                                           "id uuid primary key, " +
                                           "map1 map<smallint, date>," +
                                           "s smallint," +

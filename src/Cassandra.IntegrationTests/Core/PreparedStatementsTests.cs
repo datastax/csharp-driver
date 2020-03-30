@@ -50,7 +50,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Bound_AllSingleTypesDifferentValues()
         {
-            var insertQuery = String.Format(@"
+            var insertQuery = string.Format(@"
                 INSERT INTO {0} 
                 (id, text_sample, int_sample, bigint_sample, float_sample, double_sample, decimal_sample, 
                     blob_sample, boolean_sample, timestamp_sample, inet_sample) 
@@ -79,7 +79,7 @@ namespace Cassandra.IntegrationTests.Core
             Session.Execute(preparedStatement.Bind(secondRowValues));
             Session.Execute(preparedStatement.Bind(thirdRowValues));
 
-            var selectQuery = String.Format(@"
+            var selectQuery = string.Format(@"
             SELECT
                 id, text_sample, int_sample, bigint_sample, float_sample, double_sample, decimal_sample, 
                     blob_sample, boolean_sample, timestamp_sample, inet_sample
@@ -113,7 +113,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             const string columns = "id, text_sample, int_sample, bigint_sample, float_sample, double_sample, " +
                                    "decimal_sample, blob_sample, boolean_sample, timestamp_sample, inet_sample";
-            var insertQuery = String.Format(@"
+            var insertQuery = string.Format(@"
                 INSERT INTO {0} 
                 ({1}) 
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", AllTypesTableName, columns);
@@ -127,7 +127,7 @@ namespace Cassandra.IntegrationTests.Core
 
             Session.Execute(preparedStatement.Bind(nullRowValues));
 
-            var rs = Session.Execute(String.Format("SELECT * FROM {0} WHERE id = {1}", AllTypesTableName, nullRowValues[0]));
+            var rs = Session.Execute(string.Format("SELECT * FROM {0} WHERE id = {1}", AllTypesTableName, nullRowValues[0]));
             var row = rs.First();
             Assert.IsNotNull(row);
             Assert.AreEqual(1, row.Count(v => v != null));
@@ -138,7 +138,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Bound_String_Empty()
         {
             const string columns = "id, text_sample";
-            var insertQuery = String.Format(@"
+            var insertQuery = string.Format(@"
                 INSERT INTO {0} 
                 ({1}) 
                 VALUES (?, ?)", AllTypesTableName, columns);
@@ -152,7 +152,7 @@ namespace Cassandra.IntegrationTests.Core
 
             Session.Execute(preparedStatement.Bind(nullRowValues));
 
-            var rs = Session.Execute(String.Format("SELECT * FROM {0} WHERE id = {1}", AllTypesTableName, nullRowValues[0]));
+            var rs = Session.Execute(string.Format("SELECT * FROM {0} WHERE id = {1}", AllTypesTableName, nullRowValues[0]));
             var row = rs.First();
             Assert.IsNotNull(row);
             Assert.AreEqual("", row.GetValue<string>("text_sample"));
@@ -227,7 +227,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Bound_Unset_Specified_Tests()
         {
             const string columns = "id, text_sample, int_sample";
-            var insertQuery = String.Format(@"
+            var insertQuery = string.Format(@"
                 INSERT INTO {0} 
                 ({1}) 
                 VALUES (?, ?, ?)", AllTypesTableName, columns);
@@ -238,7 +238,7 @@ namespace Cassandra.IntegrationTests.Core
 
             Session.Execute(preparedStatement.Bind(id, Unset.Value, Unset.Value));
 
-            var rs = Session.Execute(String.Format("SELECT * FROM {0} WHERE id = {1}", AllTypesTableName, id));
+            var rs = Session.Execute(string.Format("SELECT * FROM {0} WHERE id = {1}", AllTypesTableName, id));
             var row = rs.First();
             Assert.IsNotNull(row);
             Assert.AreEqual(id, row.GetValue<Guid>("id"));
@@ -263,7 +263,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Bound_Unset_Not_Specified_Tests()
         {
             const string columns = "id, text_sample, int_sample";
-            var insertQuery = String.Format(@"
+            var insertQuery = string.Format(@"
                 INSERT INTO {0} 
                 ({1}) 
                 VALUES (?, ?, ?)", AllTypesTableName, columns);
@@ -332,7 +332,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Bound_CollectionTypes()
         {
-            var insertQuery = String.Format(@"
+            var insertQuery = string.Format(@"
                 INSERT INTO {0} 
                 (id, map_sample, list_sample, set_sample) 
                 VALUES (?, ?, ?, ?)", AllTypesTableName);
@@ -366,7 +366,7 @@ namespace Cassandra.IntegrationTests.Core
             Session.Execute(preparedStatement.Bind(secondRowValues));
             Session.Execute(preparedStatement.Bind(thirdRowValues));
 
-            var selectQuery = String.Format(@"
+            var selectQuery = string.Format(@"
                 SELECT
                     id, map_sample, list_sample, set_sample
                 FROM {0} WHERE id IN ({1}, {2}, {3})", AllTypesTableName, firstRowValues[0], secondRowValues[0], thirdRowValues[0]);
@@ -421,9 +421,9 @@ namespace Cassandra.IntegrationTests.Core
         {
             var timestamp = new DateTimeOffset(1999, 12, 31, 1, 2, 3, TimeSpan.Zero);
             var id = Guid.NewGuid();
-            var insertStatement = Session.Prepare(String.Format("INSERT INTO {0} (id, text_sample) VALUES (?, ?)", AllTypesTableName));
+            var insertStatement = Session.Prepare(string.Format("INSERT INTO {0} (id, text_sample) VALUES (?, ?)", AllTypesTableName));
             Session.Execute(insertStatement.Bind(id, "sample text").SetTimestamp(timestamp));
-            var row = Session.Execute(new SimpleStatement(String.Format("SELECT id, text_sample, writetime(text_sample) FROM {0} WHERE id = ?", AllTypesTableName), id)).First();
+            var row = Session.Execute(new SimpleStatement(string.Format("SELECT id, text_sample, writetime(text_sample) FROM {0} WHERE id = ?", AllTypesTableName), id)).First();
             Assert.NotNull(row.GetValue<string>("text_sample"));
         }
 
@@ -431,7 +431,7 @@ namespace Cassandra.IntegrationTests.Core
         [TestCassandraVersion(2, 0)]
         public void Bound_NamedParamsOrder()
         {
-            var query = String.Format("INSERT INTO {0} (text_sample, int_sample, bigint_sample, id) VALUES (:my_text, :my_int, :my_bigint, :my_id)", AllTypesTableName);
+            var query = string.Format("INSERT INTO {0} (text_sample, int_sample, bigint_sample, id) VALUES (:my_text, :my_int, :my_bigint, :my_id)", AllTypesTableName);
             var preparedStatement = Session.Prepare(query);
             if (TestClusterManager.CheckCassandraVersion(false, new Version(2, 2), Comparison.LessThan))
             {
@@ -446,7 +446,7 @@ namespace Cassandra.IntegrationTests.Core
         [TestCassandraVersion(2, 0)]
         public void Bound_NamedParameters()
         {
-            var insertQuery = String.Format("INSERT INTO {0} (text_sample, int_sample, bigint_sample, id) VALUES (:my_text, :my_int, :my_bigint, :id)", AllTypesTableName);
+            var insertQuery = string.Format("INSERT INTO {0} (text_sample, int_sample, bigint_sample, id) VALUES (:my_text, :my_int, :my_bigint, :id)", AllTypesTableName);
             var preparedStatement = Session.Prepare(insertQuery);
             CollectionAssert.AreEqual(new [] {3}, preparedStatement.RoutingIndexes);
             Assert.AreEqual(preparedStatement.Metadata.Columns.Length, 4);
@@ -457,7 +457,7 @@ namespace Cassandra.IntegrationTests.Core
                 preparedStatement.Bind(
                     new { my_int = 100, my_bigint = -500L, id = id, my_text = "named params ftw!" }));
 
-            var row = Session.Execute(String.Format("SELECT int_sample, bigint_sample, text_sample FROM {0} WHERE id = {1:D}", AllTypesTableName, id)).First();
+            var row = Session.Execute(string.Format("SELECT int_sample, bigint_sample, text_sample FROM {0} WHERE id = {1:D}", AllTypesTableName, id)).First();
 
             Assert.AreEqual(100, row.GetValue<int>("int_sample"));
             Assert.AreEqual(-500L, row.GetValue<long>("bigint_sample"));
@@ -468,7 +468,7 @@ namespace Cassandra.IntegrationTests.Core
         [TestCassandraVersion(2, 0)]
         public void Bound_NamedParameters_Nulls()
         {
-            var insertQuery = String.Format("INSERT INTO {0} (text_sample, int_sample, bigint_sample, id) VALUES (:my_text, :my_int, :my_bigint, :my_id)", AllTypesTableName);
+            var insertQuery = string.Format("INSERT INTO {0} (text_sample, int_sample, bigint_sample, id) VALUES (:my_text, :my_int, :my_bigint, :my_id)", AllTypesTableName);
             var preparedStatement = Session.Prepare(insertQuery);
 
             var id = Guid.NewGuid();
@@ -476,7 +476,7 @@ namespace Cassandra.IntegrationTests.Core
                 preparedStatement.Bind(
                     new {my_bigint = (long?)null,  my_int = 100, my_id = id}));
 
-            var row = Session.Execute(String.Format("SELECT int_sample, bigint_sample, text_sample FROM {0} WHERE id = {1:D}", AllTypesTableName, id)).First();
+            var row = Session.Execute(string.Format("SELECT int_sample, bigint_sample, text_sample FROM {0} WHERE id = {1:D}", AllTypesTableName, id)).First();
 
             Assert.AreEqual(100, row.GetValue<int>("int_sample"));
             Assert.IsNull(row.GetValue<long?>("bigint_sample"));
@@ -487,7 +487,7 @@ namespace Cassandra.IntegrationTests.Core
         [TestCassandraVersion(2, 0)]
         public void Bound_NamedParameters_CaseInsensitive()
         {
-            var insertQuery = String.Format("INSERT INTO {0} (text_sample, int_sample, bigint_sample, id) VALUES (:my_TeXt, :my_int, :my_bigint, :id)", AllTypesTableName);
+            var insertQuery = string.Format("INSERT INTO {0} (text_sample, int_sample, bigint_sample, id) VALUES (:my_TeXt, :my_int, :my_bigint, :id)", AllTypesTableName);
             var preparedStatement = Session.Prepare(insertQuery);
             //The routing key is at position 3
             CollectionAssert.AreEqual(new[] { 3 }, preparedStatement.RoutingIndexes);
@@ -497,7 +497,7 @@ namespace Cassandra.IntegrationTests.Core
                 preparedStatement.Bind(
                     new { MY_int = -100, MY_BigInt = 1511L, ID = id, MY_text = "yeah!" }));
 
-            var row = Session.Execute(String.Format("SELECT int_sample, bigint_sample, text_sample FROM {0} WHERE id = {1:D}", AllTypesTableName, id)).First();
+            var row = Session.Execute(string.Format("SELECT int_sample, bigint_sample, text_sample FROM {0} WHERE id = {1:D}", AllTypesTableName, id)).First();
 
             Assert.AreEqual(-100, row.GetValue<int>("int_sample"));
             Assert.AreEqual(1511L, row.GetValue<long>("bigint_sample"));
@@ -514,7 +514,7 @@ namespace Cassandra.IntegrationTests.Core
             Session.Execute(string.Format(TestUtils.CreateTableAllTypes, table));
             for (var i = 0; i < totalRowLength; i++)
             {
-                Session.Execute(String.Format("INSERT INTO {0} (id, text_sample) VALUES ({1}, '{2}')", table, Guid.NewGuid(), "value" + i));
+                Session.Execute(string.Format("INSERT INTO {0} (id, text_sample) VALUES ({1}, '{2}')", table, Guid.NewGuid(), "value" + i));
             }
 
             var rsWithoutPaging = Session.Execute("SELECT * FROM " + table, int.MaxValue);
@@ -539,12 +539,12 @@ namespace Cassandra.IntegrationTests.Core
             var pageSize = 25;
             var totalRowLength = 300;
             var table = "table" + Guid.NewGuid().ToString("N").ToLower();
-            Session.Execute(String.Format(TestUtils.CreateTableAllTypes, table));
+            Session.Execute(string.Format(TestUtils.CreateTableAllTypes, table));
             for (var i = 0; i < totalRowLength; i++)
             {
-                Session.Execute(String.Format("INSERT INTO {0} (id, text_sample) VALUES ({1}, '{2}')", table, Guid.NewGuid(), "value" + i));
+                Session.Execute(string.Format("INSERT INTO {0} (id, text_sample) VALUES ({1}, '{2}')", table, Guid.NewGuid(), "value" + i));
             }
-            var ps = Session.Prepare(String.Format("SELECT * FROM {0} LIMIT 10000", table));
+            var ps = Session.Prepare(string.Format("SELECT * FROM {0} LIMIT 10000", table));
             var rs = Session.Execute(ps.Bind().SetPageSize(pageSize));
             Assert.AreEqual(pageSize, rs.GetAvailableWithoutFetching());
             var counterList = new ConcurrentBag<int>();
@@ -569,13 +569,13 @@ namespace Cassandra.IntegrationTests.Core
             var totalRowLength = 300;
             var times = 10;
             var table = "table" + Guid.NewGuid().ToString("N").ToLower();
-            Session.Execute(String.Format(TestUtils.CreateTableAllTypes, table));
+            Session.Execute(string.Format(TestUtils.CreateTableAllTypes, table));
             for (var i = 0; i < totalRowLength; i++)
             {
-                Session.Execute(String.Format("INSERT INTO {0} (id, text_sample) VALUES ({1}, '{2}')", table, Guid.NewGuid(), "value" + i));
+                Session.Execute(string.Format("INSERT INTO {0} (id, text_sample) VALUES ({1}, '{2}')", table, Guid.NewGuid(), "value" + i));
             }
 
-            var ps = Session.Prepare(String.Format("SELECT * FROM {0} LIMIT 10000", table));
+            var ps = Session.Prepare(string.Format("SELECT * FROM {0} LIMIT 10000", table));
 
             var counter = 0;
             for (var i = 0; i < times; i++)
@@ -596,12 +596,12 @@ namespace Cassandra.IntegrationTests.Core
             const int pageSize = 15;
             const int totalRowLength = 20;
             var table = "tbl" + Guid.NewGuid().ToString("N").ToLower();
-            Session.Execute(String.Format(TestUtils.CreateTableAllTypes, table));
-            var insertPs = Session.Prepare(String.Format("INSERT INTO {0} (id) VALUES (?)", table));
+            Session.Execute(string.Format(TestUtils.CreateTableAllTypes, table));
+            var insertPs = Session.Prepare(string.Format("INSERT INTO {0} (id) VALUES (?)", table));
             //Insert the rows
             TestHelper.Invoke(() => Session.Execute(insertPs.Bind(Guid.NewGuid())), totalRowLength);
 
-            var ps = Session.Prepare(String.Format("SELECT * FROM {0} LIMIT 10000", table));
+            var ps = Session.Prepare(string.Format("SELECT * FROM {0} LIMIT 10000", table));
             var rs = Session.Execute(ps.Bind().SetAutoPage(false).SetPageSize(pageSize));
             Assert.False(rs.AutoPage);
             Assert.NotNull(rs.PagingState);
@@ -626,7 +626,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Bound_Int_Valids()
         {
-            var psInt32 = Session.Prepare(String.Format("INSERT INTO {0} (id, int_sample) VALUES (?, ?)", AllTypesTableName));
+            var psInt32 = Session.Prepare(string.Format("INSERT INTO {0} (id, int_sample) VALUES (?, ?)", AllTypesTableName));
 
             //Int: only int and blob valid
             AssertValid(Session, psInt32, 100);
@@ -636,7 +636,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Bound_Double_Valids()
         {
-            var psDouble = Session.Prepare(String.Format("INSERT INTO {0} (id, double_sample) VALUES (?, ?)", AllTypesTableName));
+            var psDouble = Session.Prepare(string.Format("INSERT INTO {0} (id, double_sample) VALUES (?, ?)", AllTypesTableName));
 
             //Double: Only doubles, longs and blobs (8 bytes)
             AssertValid(Session, psDouble, 1D);
@@ -647,7 +647,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Bound_Decimal_Valids()
         {
-            var psDecimal = Session.Prepare(String.Format("INSERT INTO {0} (id, decimal_sample) VALUES (?, ?)", AllTypesTableName));
+            var psDecimal = Session.Prepare(string.Format("INSERT INTO {0} (id, decimal_sample) VALUES (?, ?)", AllTypesTableName));
 
             //decimal: There is type conversion, all numeric types are valid
             AssertValid(Session, psDecimal, 1L);
@@ -661,7 +661,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Bound_Collections_List_Valids()
         {
             var session = GetNewTemporarySession(KeyspaceName);
-            PreparedStatement psList = session.Prepare(String.Format("INSERT INTO {0} (id, list_sample) VALUES (?, ?)", AllTypesTableName));
+            PreparedStatement psList = session.Prepare(string.Format("INSERT INTO {0} (id, list_sample) VALUES (?, ?)", AllTypesTableName));
 
             // Valid cases -- NOTE: Only types List and blob are valid
             AssertValid(session, psList, new List<string>(new[] { "one", "two", "three" })); // parameter type = List<string>
@@ -674,7 +674,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Bound_Collections_Map_Valid()
         {
             var session = GetNewTemporarySession(KeyspaceName);
-            PreparedStatement psMap = session.Prepare(String.Format("INSERT INTO {0} (id, map_sample) VALUES (?, ?)", AllTypesTableName));
+            PreparedStatement psMap = session.Prepare(string.Format("INSERT INTO {0} (id, map_sample) VALUES (?, ?)", AllTypesTableName));
             AssertValid(session, psMap, new Dictionary<string, string> { { "one", "1" }, { "two", "2" } });
         }
 
@@ -682,7 +682,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Bound_ExtraParameter()
         {
             var session = GetNewTemporarySession(KeyspaceName);
-            var ps = session.Prepare(String.Format("INSERT INTO {0} (id, list_sample, int_sample) VALUES (?, ?, ?)", AllTypesTableName));
+            var ps = session.Prepare(string.Format("INSERT INTO {0} (id, list_sample, int_sample) VALUES (?, ?, ?)", AllTypesTableName));
             Assert.Throws(Is
                 .InstanceOf<ArgumentException>().Or
                 .InstanceOf<InvalidQueryException>().Or

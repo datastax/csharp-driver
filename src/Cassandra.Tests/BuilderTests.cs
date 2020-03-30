@@ -30,18 +30,18 @@ namespace Cassandra.Tests
         public void WithConnectionStringCredentialsTest()
         {
             const string contactPoints = "127.0.0.1,127.0.0.2,127.0.0.3";
-            var builder = Cluster.Builder().WithConnectionString(String.Format("Contact Points={0}", contactPoints));
+            var builder = Cluster.Builder().WithConnectionString(string.Format("Contact Points={0}", contactPoints));
             var config = builder.GetConfiguration();
             Assert.IsInstanceOf<NoneAuthProvider>(config.AuthProvider);
             Assert.IsNull(config.AuthInfoProvider);
 
-            builder = Cluster.Builder().WithConnectionString(String.Format("Contact Points={0};Username=user1", contactPoints));
+            builder = Cluster.Builder().WithConnectionString(string.Format("Contact Points={0};Username=user1", contactPoints));
             config = builder.GetConfiguration();
             //As there is no password, auth provider should be empty
             Assert.IsInstanceOf<NoneAuthProvider>(config.AuthProvider);
             Assert.IsNull(config.AuthInfoProvider);
 
-            builder = Cluster.Builder().WithConnectionString(String.Format("Contact Points={0};Username=user1;Password=P@ssword!", contactPoints));
+            builder = Cluster.Builder().WithConnectionString(string.Format("Contact Points={0};Username=user1;Password=P@ssword!", contactPoints));
             config = builder.GetConfiguration();
             Assert.IsInstanceOf<PlainTextAuthProvider>(config.AuthProvider);
             Assert.IsInstanceOf<SimpleAuthInfoProvider>(config.AuthInfoProvider);
@@ -51,11 +51,11 @@ namespace Cassandra.Tests
         public void WithConnectionStringPortTest()
         {
             const string contactPoints = "127.0.0.1,127.0.0.2,127.0.0.3";
-            var builder = Cluster.Builder().WithConnectionString(String.Format("Contact Points={0}", contactPoints));
+            var builder = Cluster.Builder().WithConnectionString(string.Format("Contact Points={0}", contactPoints));
             var config = builder.GetConfiguration();
             Assert.AreEqual(config.ProtocolOptions.Port, ProtocolOptions.DefaultPort);
 
-            builder = Cluster.Builder().WithConnectionString(String.Format("Contact Points={0};Port=9000", contactPoints));
+            builder = Cluster.Builder().WithConnectionString(string.Format("Contact Points={0};Port=9000", contactPoints));
             config = builder.GetConfiguration();
             Assert.AreEqual(config.ProtocolOptions.Port, 9000);
         }
@@ -64,11 +64,11 @@ namespace Cassandra.Tests
         public void WithConnectionStringDefaultKeyspaceTest()
         {
             const string contactPoints = "127.0.0.1,127.0.0.2,127.0.0.3";
-            var builder = Cluster.Builder().WithConnectionString(String.Format("Contact Points={0}", contactPoints));
+            var builder = Cluster.Builder().WithConnectionString(string.Format("Contact Points={0}", contactPoints));
             var config = builder.GetConfiguration();
             Assert.IsNull(config.ClientOptions.DefaultKeyspace);
 
-            builder = Cluster.Builder().WithConnectionString(String.Format("Contact Points={0};Default Keyspace=ks1", contactPoints));
+            builder = Cluster.Builder().WithConnectionString(string.Format("Contact Points={0};Default Keyspace=ks1", contactPoints));
             config = builder.GetConfiguration();
             Assert.AreEqual(config.ClientOptions.DefaultKeyspace, "ks1");
         }

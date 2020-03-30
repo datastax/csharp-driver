@@ -31,7 +31,6 @@ namespace Cassandra.DataStax.Auth
         private delegate byte[] TransitionHandler(byte[] challenge);
         private const ContextAttrib ContextRequestAttributes = ContextAttrib.MutualAuth;
         private static readonly byte[] EmptyBuffer = new byte[0];
-
         private readonly TransitionHandler[] _transitions;
         private int _transitionIndex = -1;
         private volatile ClientCredential _credentials;
@@ -49,7 +48,7 @@ namespace Cassandra.DataStax.Auth
 
         public void Init(string service, string host)
         {
-            if (!String.IsNullOrEmpty(service))
+            if (!string.IsNullOrEmpty(service))
             {
                 //For the server principal: "dse/cassandra1.datastax.com@DATASTAX.COM"
                 //the expected Uri is: "dse/cassandra1.datastax.com"

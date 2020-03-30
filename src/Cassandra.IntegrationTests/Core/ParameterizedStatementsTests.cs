@@ -69,9 +69,9 @@ namespace Cassandra.IntegrationTests.Core
             var set = new List<string> { "set_1one", "set_2two" };
 
             var insertStatement = new SimpleStatement(
-                String.Format("INSERT INTO {0} (id, map_sample, list_sample, set_sample) VALUES (?, ?, ?, ?)", AllTypesTableName), id, map, list, set);
+                string.Format("INSERT INTO {0} (id, map_sample, list_sample, set_sample) VALUES (?, ?, ?, ?)", AllTypesTableName), id, map, list, set);
             Session.Execute(insertStatement);
-            var row = Session.Execute(new SimpleStatement(String.Format("SELECT * FROM {0} WHERE id = ?", AllTypesTableName), id)).First();
+            var row = Session.Execute(new SimpleStatement(string.Format("SELECT * FROM {0} WHERE id = ?", AllTypesTableName), id)).First();
             CollectionAssert.AreEquivalent(map, row.GetValue<IDictionary<string, string>>("map_sample"));
             CollectionAssert.AreEquivalent(list, row.GetValue<List<string>>("list_sample"));
             CollectionAssert.AreEquivalent(set, row.GetValue<List<string>>("set_sample"));
@@ -85,9 +85,9 @@ namespace Cassandra.IntegrationTests.Core
             var list = new List<string> { "one", "two" };
             var set = new List<string> { "set_1one", "set_2two" };
 
-            var insertStatement = new SimpleStatement(String.Format("INSERT INTO {0} (id, map_sample, list_sample, set_sample) VALUES (?, ?, ?, ?)", AllTypesTableName), id, map, list, set);
+            var insertStatement = new SimpleStatement(string.Format("INSERT INTO {0} (id, map_sample, list_sample, set_sample) VALUES (?, ?, ?, ?)", AllTypesTableName), id, map, list, set);
             Session.Execute(insertStatement);
-            var row = Session.Execute(new SimpleStatement(String.Format("SELECT * FROM {0} WHERE id = ?", AllTypesTableName), id)).First();
+            var row = Session.Execute(new SimpleStatement(string.Format("SELECT * FROM {0} WHERE id = ?", AllTypesTableName), id)).First();
             CollectionAssert.AreEquivalent(map, row.GetValue<IDictionary<string, string>>("map_sample"));
             CollectionAssert.AreEquivalent(list, row.GetValue<List<string>>("list_sample"));
             CollectionAssert.AreEquivalent(set, row.GetValue<List<string>>("set_sample"));
@@ -245,9 +245,9 @@ namespace Cassandra.IntegrationTests.Core
         {
             var timestamp = new DateTimeOffset(1999, 12, 31, 1, 2, 3, TimeSpan.Zero);
             var id = Guid.NewGuid();
-            var insertStatement = new SimpleStatement(String.Format("INSERT INTO {0} (id, text_sample) VALUES (?, ?)", AllTypesTableName), id, "sample text");
+            var insertStatement = new SimpleStatement(string.Format("INSERT INTO {0} (id, text_sample) VALUES (?, ?)", AllTypesTableName), id, "sample text");
             Session.Execute(insertStatement.SetTimestamp(timestamp));
-            var row = Session.Execute(new SimpleStatement(String.Format("SELECT id, text_sample, writetime(text_sample) FROM {0} WHERE id = ?", AllTypesTableName), id)).First();
+            var row = Session.Execute(new SimpleStatement(string.Format("SELECT id, text_sample, writetime(text_sample) FROM {0} WHERE id = ?", AllTypesTableName), id)).First();
             Assert.NotNull(row.GetValue<string>("text_sample"));
             Assert.AreEqual(TypeSerializer.SinceUnixEpoch(timestamp).Ticks / 10, row.GetValue<object>("writetime(text_sample)"));
         }
@@ -256,12 +256,12 @@ namespace Cassandra.IntegrationTests.Core
         [TestCassandraVersion(2, 1)]
         public void SimpleStatementNamedValues()
         {
-            var insertQuery = String.Format("INSERT INTO {0} (text_sample, int_sample, bigint_sample, id) VALUES (:my_text, :my_int, :my_bigint, :my_id)", AllTypesTableName);
+            var insertQuery = string.Format("INSERT INTO {0} (text_sample, int_sample, bigint_sample, id) VALUES (:my_text, :my_int, :my_bigint, :my_id)", AllTypesTableName);
             var id = Guid.NewGuid();
             var statement = new SimpleStatement(insertQuery, new { my_int = 100, my_bigint = -500L, my_id = id, my_text = "named params ftw again!" });
             Session.Execute(statement);
 
-            var row = Session.Execute(String.Format("SELECT int_sample, bigint_sample, text_sample FROM {0} WHERE id = {1:D}", AllTypesTableName, id)).First();
+            var row = Session.Execute(string.Format("SELECT int_sample, bigint_sample, text_sample FROM {0} WHERE id = {1:D}", AllTypesTableName, id)).First();
 
             Assert.AreEqual(100, row.GetValue<int>("int_sample"));
             Assert.AreEqual(-500L, row.GetValue<long>("bigint_sample"));
@@ -272,14 +272,14 @@ namespace Cassandra.IntegrationTests.Core
         [TestCassandraVersion(2, 1)]
         public void SimpleStatementNamedValuesBind()
         {
-            var insertQuery = String.Format("INSERT INTO {0} (text_sample, int_sample, bigint_sample, id) VALUES (:my_text, :my_int, :my_bigint, :my_id)", AllTypesTableName);
+            var insertQuery = string.Format("INSERT INTO {0} (text_sample, int_sample, bigint_sample, id) VALUES (:my_text, :my_int, :my_bigint, :my_id)", AllTypesTableName);
 
             var id = Guid.NewGuid();
             Session.Execute(
                 new SimpleStatement(insertQuery,
                     new { my_int = 100, my_bigint = -500L, my_id = id, my_text = "named params ftw again!" }));
 
-            var row = Session.Execute(String.Format("SELECT int_sample, bigint_sample, text_sample FROM {0} WHERE id = {1:D}", AllTypesTableName, id)).First();
+            var row = Session.Execute(string.Format("SELECT int_sample, bigint_sample, text_sample FROM {0} WHERE id = {1:D}", AllTypesTableName, id)).First();
 
             Assert.AreEqual(100, row.GetValue<int>("int_sample"));
             Assert.AreEqual(-500L, row.GetValue<long>("bigint_sample"));
@@ -290,14 +290,14 @@ namespace Cassandra.IntegrationTests.Core
         [TestCassandraVersion(2, 1)]
         public void SimpleStatementNamedValuesCaseInsensitivity()
         {
-            var insertQuery = String.Format("INSERT INTO {0} (id, \"text_sample\", int_sample) VALUES (:my_ID, :my_TEXT, :MY_INT)", AllTypesTableName);
+            var insertQuery = string.Format("INSERT INTO {0} (id, \"text_sample\", int_sample) VALUES (:my_ID, :my_TEXT, :MY_INT)", AllTypesTableName);
             var id = Guid.NewGuid();
             Session.Execute(
                 new SimpleStatement(
                     insertQuery,
                     new { my_INt = 1, my_TEXT = "WAT1", my_id = id}));
 
-            var row = Session.Execute(String.Format("SELECT * FROM {0} WHERE id = {1:D}", AllTypesTableName, id)).First();
+            var row = Session.Execute(string.Format("SELECT * FROM {0} WHERE id = {1:D}", AllTypesTableName, id)).First();
             Assert.AreEqual(1, row.GetValue<int>("int_sample"));
             Assert.AreEqual("WAT1", row.GetValue<string>("text_sample"));
         }
@@ -306,7 +306,7 @@ namespace Cassandra.IntegrationTests.Core
         [TestCassandraVersion(2, 1)]
         public void SimpleStatementNamedValuesNotSpecified()
         {
-            var insertQuery = String.Format("INSERT INTO {0} (float_sample, text_sample, bigint_sample, id) VALUES (:MY_float, :my_TexT, :my_BIGint, :id)", AllTypesTableName);
+            var insertQuery = string.Format("INSERT INTO {0} (float_sample, text_sample, bigint_sample, id) VALUES (:MY_float, :my_TexT, :my_BIGint, :id)", AllTypesTableName);
 
             Assert.Throws<InvalidQueryException>(() => Session.Execute(
                 new SimpleStatement(insertQuery, 
@@ -431,7 +431,7 @@ namespace Cassandra.IntegrationTests.Core
             };
             Session.Execute(new SimpleStatement(values, insertQuery));
 
-            var row = Session.Execute(String.Format("SELECT * FROM {0} WHERE id = {1:D}", AllTypesTableName, id)).First();
+            var row = Session.Execute(string.Format("SELECT * FROM {0} WHERE id = {1:D}", AllTypesTableName, id)).First();
             Assert.AreEqual(values["my_INT"], row.GetValue<int>("int_sample"));
             Assert.AreEqual(values["MY_text"], row.GetValue<string>("text_sample"));
         }
@@ -460,7 +460,7 @@ namespace Cassandra.IntegrationTests.Core
             };
             Session.Execute(new SimpleStatement(values, insertQuery));
 
-            var row = Session.Execute(String.Format("SELECT * FROM {0} WHERE id = {1:D}", AllTypesTableName, id)).First();
+            var row = Session.Execute(string.Format("SELECT * FROM {0} WHERE id = {1:D}", AllTypesTableName, id)).First();
             Assert.AreEqual(values["MY_INT"], row.GetValue<int>("int_sample"));
             Assert.AreEqual(values["MY_text"], row.GetValue<string>("text_sample"));
         }
@@ -511,7 +511,7 @@ namespace Cassandra.IntegrationTests.Core
             };
             Session.Execute(new SimpleStatement(values, insertQuery));
 
-            var row = Session.Execute(String.Format("SELECT * FROM {0} WHERE id = {1:D}", AllTypesTableName, id)).First();
+            var row = Session.Execute(string.Format("SELECT * FROM {0} WHERE id = {1:D}", AllTypesTableName, id)).First();
             Assert.AreEqual(values["my_INT"], row.GetValue<int>("int_sample"));
             Assert.AreEqual(values["MY_text"], row.GetValue<string>("text_sample"));
         }
@@ -672,14 +672,14 @@ namespace Cassandra.IntegrationTests.Core
             {
                 expectedValues.Add(bindValues);
                 CreateTable(tableName, "timestamp");
-                var statement = new SimpleStatement(String.Format("INSERT INTO {0} (id, val) VALUES (?, ?)", tableName), bindValues);
+                var statement = new SimpleStatement(string.Format("INSERT INTO {0} (id, val) VALUES (?, ?)", tableName), bindValues);
                 Session.Execute(statement);
 
                 // Verify results
                 RowSet rs = Session.Execute("SELECT * FROM " + tableName);
                 VerifyData(rs, expectedValues);
 
-                Session.Execute(String.Format("DROP TABLE {0}", tableName));
+                Session.Execute(string.Format("DROP TABLE {0}", tableName));
                 expectedValues.Clear();
             }
         }
@@ -695,7 +695,7 @@ namespace Cassandra.IntegrationTests.Core
 
             CreateTable(tableName, cassandraDataTypeName);
 
-            var statement = new SimpleStatement(String.Format("INSERT INTO {0} (id, val) VALUES (?, ?)", tableName), bindValues);
+            var statement = new SimpleStatement(string.Format("INSERT INTO {0} (id, val) VALUES (?, ?)", tableName), bindValues);
 
             if (testAsync)
             {
@@ -758,17 +758,17 @@ namespace Cassandra.IntegrationTests.Core
                             }
                             else
                             {
-                                Assert.AreEqual(FromUnixTime((long)objArr[y]), (DateTimeOffset)current, String.Format("Found difference between expected and actual row {0} != {1}", objArr[y].ToString(), current.ToString()));
+                                Assert.AreEqual(FromUnixTime((long)objArr[y]), (DateTimeOffset)current, string.Format("Found difference between expected and actual row {0} != {1}", objArr[y].ToString(), current.ToString()));
                             }
                         }
                         else
                         {
-                            Assert.AreEqual((DateTimeOffset)objArr[y], ((DateTimeOffset)current), String.Format("Found difference between expected and actual row {0} != {1}", objArr[y].ToString(), current.ToString()));
+                            Assert.AreEqual((DateTimeOffset)objArr[y], ((DateTimeOffset)current), string.Format("Found difference between expected and actual row {0} != {1}", objArr[y].ToString(), current.ToString()));
                         }
                     }
                     else
                     {
-                        Assert.True(objArr[y].Equals(current), String.Format("Found difference between expected and actual row {0} != {1}", objArr[y].ToString(), current.ToString()));
+                        Assert.True(objArr[y].Equals(current), string.Format("Found difference between expected and actual row {0} != {1}", objArr[y].ToString(), current.ToString()));
                     }
                     y++;
                 }

@@ -328,7 +328,7 @@ namespace Cassandra
         /// </summary>
         public static Duration Parse(string input)
         {
-            if (String.IsNullOrEmpty(input))
+            if (string.IsNullOrEmpty(input))
             {
                 throw new ArgumentNullException("input");
             }

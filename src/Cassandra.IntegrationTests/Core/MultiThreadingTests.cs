@@ -188,7 +188,7 @@ namespace Cassandra.IntegrationTests.Core
                 ISession localSession = localCluster.Connect();
                 localSession.CreateKeyspaceIfNotExists(keyspaceName);
                 localSession.ChangeKeyspace(keyspaceName);
-                localSession.Execute(String.Format(TestUtils.CreateTableAllTypes, "sampletable"));
+                localSession.Execute(string.Format(TestUtils.CreateTableAllTypes, "sampletable"));
                 var insertStatement = localSession.Prepare("INSERT INTO sampletable (id, blob_sample) VALUES (?, ?)");
                 var rowLength = 100;
                 var rnd = new Random();
