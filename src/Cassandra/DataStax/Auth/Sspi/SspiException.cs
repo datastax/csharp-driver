@@ -24,6 +24,7 @@
 //
 
 using System;
+using System.Runtime.Serialization;
 
 namespace Cassandra.DataStax.Auth.Sspi
 {

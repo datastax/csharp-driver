@@ -15,6 +15,9 @@
 //
 
 using System;
+using System.IO;
+using System.Net;
+using System.Security.Authentication;
 using System.Threading.Tasks;
 using Cassandra.Helpers;
 using Newtonsoft.Json;
