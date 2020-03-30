@@ -128,26 +128,17 @@ namespace Cassandra
 
         internal void FireSchemaChangedEvent(SchemaChangedEventArgs.Kind what, string keyspace, string table, object sender = null)
         {
-            if (SchemaChangedEvent != null)
-            {
-                SchemaChangedEvent(sender ?? this, new SchemaChangedEventArgs { Keyspace = keyspace, What = what, Table = table });
-            }
+            SchemaChangedEvent?.Invoke(sender ?? this, new SchemaChangedEventArgs { Keyspace = keyspace, What = what, Table = table });
         }
 
         private void OnHostDown(Host h)
         {
-            if (HostsEvent != null)
-            {
-                HostsEvent(this, new HostsEventArgs { Address = h.Address, What = HostsEventArgs.Kind.Down });
-            }
+            HostsEvent?.Invoke(this, new HostsEventArgs { Address = h.Address, What = HostsEventArgs.Kind.Down });
         }
 
         private void OnHostUp(Host h)
         {
-            if (HostsEvent != null)
-            {
-                HostsEvent(h, new HostsEventArgs { Address = h.Address, What = HostsEventArgs.Kind.Up });
-            }
+            HostsEvent?.Invoke(h, new HostsEventArgs { Address = h.Address, What = HostsEventArgs.Kind.Up });
         }
 
         /// <summary>

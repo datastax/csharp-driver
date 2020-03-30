@@ -88,27 +88,18 @@ namespace Cassandra
             //The node was added
             host.Down += OnHostDown;
             host.Up += OnHostUp;
-            if (Added != null)
-            {
-                Added(newHost);
-            }
+            Added?.Invoke(newHost);
             return host;
         }
 
         private void OnHostDown(Host sender)
         {
-            if (Down != null)
-            {
-                Down(sender);
-            }
+            Down?.Invoke(sender);
         }
 
         private void OnHostUp(Host sender)
         {
-            if (Up != null)
-            {
-                Up(sender);
-            }
+            Up?.Invoke(sender);
         }
 
         public void RemoveIfExists(IPEndPoint ep)
@@ -122,10 +113,7 @@ namespace Cassandra
             host.Down -= OnHostDown;
             host.Up -= OnHostUp;
             host.SetAsRemoved();
-            if (Removed != null)
-            {
-                Removed(host);
-            }
+            Removed?.Invoke(host);
         }
 
         public IEnumerable<IPEndPoint> AllEndPointsToCollection()
