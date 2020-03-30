@@ -18,11 +18,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
-using System.Linq;
 using System.Runtime.Serialization;
-using System.Text;
-using Cassandra.Serialization;
-using Cassandra.Serialization.Graph;
 using Newtonsoft.Json;
 
 namespace Cassandra.Geometry

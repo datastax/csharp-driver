@@ -27,11 +27,7 @@ using Cassandra.DataStax.Graph;
 using Cassandra.ExecutionProfiles;
 using Cassandra.Metrics;
 using Cassandra.Metrics.Abstractions;
-using Cassandra.Requests;
 using Cassandra.Serialization;
-using Cassandra.Serialization.Geometry;
-using Cassandra.Serialization.Search;
-using Cassandra.SessionManagement;
 
 namespace Cassandra
 {

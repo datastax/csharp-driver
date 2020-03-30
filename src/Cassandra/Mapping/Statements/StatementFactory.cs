@@ -20,7 +20,6 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using Cassandra.Collections;
-using Cassandra.Tasks;
 
 namespace Cassandra.Mapping.Statements
 {

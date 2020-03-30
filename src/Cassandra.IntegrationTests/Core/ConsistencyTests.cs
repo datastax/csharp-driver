@@ -14,13 +14,8 @@
 //   limitations under the License.
 //
 
-using System.Diagnostics;
 using Cassandra.Data.Linq;
-using Cassandra.IntegrationTests.Linq.Structures;
-using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
-using System;
-using System.Collections.Generic;
 using System.Linq;
 using Cassandra.IntegrationTests.SimulacronAPI.Models.Logs;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;

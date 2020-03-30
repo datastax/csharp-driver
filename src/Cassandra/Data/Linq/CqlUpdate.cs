@@ -14,7 +14,6 @@
 //   limitations under the License.
 //
 
-using System.Linq;
 using System.Linq.Expressions;
 using Cassandra.Mapping;
 using Cassandra.Mapping.Statements;

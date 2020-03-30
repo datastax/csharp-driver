@@ -14,7 +14,6 @@
 //   limitations under the License.
 //
 
-using System;
 using Cassandra.Mapping;
 
 namespace Cassandra.IntegrationTests.Mapping.Structures

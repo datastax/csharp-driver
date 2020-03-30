@@ -18,7 +18,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Runtime.InteropServices;
 using Cassandra.Connections;
 using Cassandra.DataStax.Graph;
 using Cassandra.DataStax.Insights.Schema;

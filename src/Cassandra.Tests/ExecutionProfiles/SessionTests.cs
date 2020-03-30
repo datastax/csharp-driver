@@ -22,8 +22,6 @@ using Cassandra.ExecutionProfiles;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
-using Cassandra.Tasks;
-using Cassandra.Tests.Connections;
 using Moq;
 
 using NUnit.Framework;

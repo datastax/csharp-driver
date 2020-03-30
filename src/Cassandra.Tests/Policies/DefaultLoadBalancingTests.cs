@@ -13,12 +13,8 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Text;
-using Cassandra;
 using NUnit.Framework;
 
 namespace Cassandra.Tests.Policies

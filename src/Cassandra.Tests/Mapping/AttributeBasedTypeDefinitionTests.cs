@@ -15,9 +15,6 @@
 //
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using Cassandra.Mapping;
 using Cassandra.Mapping.Attributes;
 using Cassandra.Tests.Mapping.Pocos;

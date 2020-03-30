@@ -16,7 +16,6 @@
 
 using System;
 using System.Collections;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -27,7 +26,6 @@ using System.Threading.Tasks;
 
 using Cassandra.Serialization;
 using Cassandra.Tasks;
-using Microsoft.DotNet.InternalAbstractions;
 using Moq;
 
 using NUnit.Framework;

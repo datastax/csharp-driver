@@ -17,7 +17,6 @@
 using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -28,7 +27,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Collections;
 using Cassandra.Connections;
-using Cassandra.ExecutionProfiles;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Observers;
 using Cassandra.Tasks;
@@ -36,7 +34,6 @@ using Cassandra.Tests;
 using Cassandra.Requests;
 using Cassandra.Responses;
 using Cassandra.Serialization;
-using Cassandra.SessionManagement;
 
 using Moq;
 using Newtonsoft.Json;

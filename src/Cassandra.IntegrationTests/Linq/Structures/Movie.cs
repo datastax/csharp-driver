@@ -16,7 +16,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.SimulacronAPI;

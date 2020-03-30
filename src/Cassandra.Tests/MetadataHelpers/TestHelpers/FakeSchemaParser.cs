@@ -18,7 +18,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Cassandra.Observers;
 
 namespace Cassandra.Tests.MetadataHelpers.TestHelpers
 {
