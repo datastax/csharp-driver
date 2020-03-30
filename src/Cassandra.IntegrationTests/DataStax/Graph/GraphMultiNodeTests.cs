@@ -31,7 +31,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.DataStax.Graph
 {
-    [TestFixture, Category(TestCategory.Short)]
+    [TestFixture, Category(TestCategory.Short), Category(TestCategory.RealClusterLong)]
     [TestDseVersion(5, 0)]
     class GraphMultiNodeTests : BaseIntegrationTest
     {

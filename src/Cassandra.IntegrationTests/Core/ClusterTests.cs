@@ -152,7 +152,7 @@ namespace Cassandra.IntegrationTests.Core
         /// Validates that the client adds the newly bootstrapped node and eventually queries from it
         /// </summary>
         [Test]
-        [Category(TestCategory.RealCluster)]
+        [Category(TestCategory.RealClusterLong)]
         public async Task Should_Add_And_Query_Newly_Bootstrapped_Node()
         {
             _realCluster = TestClusterManager.CreateNew();
@@ -191,7 +191,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        [Category(TestCategory.RealCluster)]
+        [Category(TestCategory.RealClusterLong)]
         public async Task Should_Remove_Decommissioned_Node()
         {
             const int numberOfNodes = 2;
