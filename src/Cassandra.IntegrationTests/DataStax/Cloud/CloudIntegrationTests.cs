@@ -38,7 +38,7 @@ namespace Cassandra.IntegrationTests.DataStax.Cloud
 {
     [SniEnabledOnly]
     [CloudSupported(Supported = true)]
-    [TestFixture, Category(TestCategory.Short), Category(TestCategory.Cloud), Category(TestCategory.RealCluster)]
+    [TestFixture, Category(TestCategory.Short), Category(TestCategory.Cloud), Category(TestCategory.RealClusterLong)]
     public class CloudIntegrationTests : SharedCloudClusterTest
     {
         [Test]
