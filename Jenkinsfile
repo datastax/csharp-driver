@@ -217,11 +217,11 @@ def buildDriver() {
 def executeTests(perCommitSchedule) {
   
   if (perCommitSchedule) {
-    env.DOTNET_TEST_FILTER = "(TestCategory!=long)&(TestCategory!=memory)&(TestCategory!=realcluster-long)"
-    env.MONO_TEST_FILTER = "cat != long && cat != memory && cat != realcluster-long"
+    env.DOTNET_TEST_FILTER = "\"(TestCategory!=long)&(TestCategory!=memory)&(TestCategory!=realcluster-long)\""
+    env.MONO_TEST_FILTER = "\"cat != long && cat != memory && cat != realcluster-long\""
   } else {
-    env.DOTNET_TEST_FILTER = "(TestCategory!=long)&(TestCategory!=memory)"
-    env.MONO_TEST_FILTER = "cat != long && cat != memory"    
+    env.DOTNET_TEST_FILTER = "\"(TestCategory!=long)&(TestCategory!=memory)\""
+    env.MONO_TEST_FILTER = "\"cat != long && cat != memory\""    
   }  
   
   if (env.OS_VERSION.split('/')[0] == 'win') {
