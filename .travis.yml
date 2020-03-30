@@ -26,6 +26,11 @@ script:
         dotnet restore examples
         dotnet build --no-restore examples/examples.sln -c Release
     fi
-  - dotnet restore src
-  - dotnet build src/Cassandra.Tests/Cassandra.Tests.csproj --no-restore -c Release
+  - dotnet restore src  
+  
+  # work around dotnet sdk concurrency issue
+  - dotnet build src/Cassandra.Tests/Cassandra.Tests.csproj --no-restore -c Release || true  
+  - sleep 5
+  
+  - dotnet build src/Cassandra.Tests/Cassandra.Tests.csproj --no-restore -c Release  
   - dotnet test src/Cassandra.Tests/Cassandra.Tests.csproj --no-restore --no-build -v n -c Release -f $TARGETF
