@@ -19,12 +19,13 @@ using System.Collections.Generic;
 using System.Linq;
 using Cassandra.DataStax.Search;
 using Cassandra.IntegrationTests.TestBase;
+using Cassandra.Tests;
 using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.DataStax.Search
 {
-    [Category("short"), TestDseVersion(5, 1), Category("serverapi")]
+    [Category(TestCategory.Short), TestDseVersion(5, 1), Category(TestCategory.ServerApi)]
     public class DateRangeTests : SharedClusterTest
     {
         private static readonly string[] Values = new[]

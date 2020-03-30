@@ -14,11 +14,12 @@
 //   limitations under the License.
 //
 
+using Cassandra.Tests;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [Category("short")]
+    [Category(TestCategory.Short)]
     internal class BuilderSimulacronTests : SharedSimulacronTests
     {
         public BuilderSimulacronTests() : base(1, false)

@@ -31,7 +31,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [Category("short")]
+    [Category(TestCategory.Short)]
     public class ReconnectionTests : TestGlobals
     {
         private SimulacronCluster _testCluster;
@@ -289,7 +289,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [Category("realcluster")]
+        [Category(TestCategory.RealCluster)]
         [Test]
         public void Should_UseNewHostInQueryPlans_When_HostIsDecommissionedAndJoinsAgain()
         {
@@ -375,7 +375,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [Category("realcluster")]
+        [Category(TestCategory.RealCluster)]
         [Test]
         public void Should_UpdateHosts_When_HostIpChanges()
         {

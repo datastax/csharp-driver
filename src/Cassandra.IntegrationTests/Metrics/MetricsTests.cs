@@ -33,7 +33,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Metrics
 {
-    [Category("short"), Category("realcluster")]
+    [Category(TestCategory.Short), Category(TestCategory.RealCluster)]
     public class MetricsTests : SharedClusterTest
     {
         private static readonly NodeMetric[] Counters = new[]

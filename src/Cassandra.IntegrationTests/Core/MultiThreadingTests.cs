@@ -24,10 +24,11 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.IntegrationTests.TestBase;
+using Cassandra.Tests;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestFixture, Category("long"), Ignore("tests that are not marked with 'short' need to be refactored/deleted")]
+    [TestFixture, Category(TestCategory.Long), Ignore("tests that are not marked with 'short' need to be refactored/deleted")]
     public class MultiThreadingTests : TestGlobals
     {
         Builder _builder;

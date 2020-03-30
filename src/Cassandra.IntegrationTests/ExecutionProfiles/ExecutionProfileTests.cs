@@ -18,13 +18,13 @@ using System.Linq;
 using System.Threading.Tasks;
 using Cassandra.IntegrationTests.SimulacronAPI;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
-
+using Cassandra.Tests;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.ExecutionProfiles
 {
     [TestFixture]
-    [Category("short")]
+    [Category(TestCategory.Short)]
     public class ExecutionProfileTests
     {
         private SimulacronCluster _simulacron;

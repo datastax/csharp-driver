@@ -22,6 +22,7 @@ using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Mapping.Structures;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
+using Cassandra.Tests;
 using Cassandra.Tests.Mapping.FluentMappings;
 using NUnit.Framework;
 
@@ -30,7 +31,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
     /// <summary>
     /// Use predefined classes that contain fluent mapping to manage Linq-mapped resources
     /// </summary>
-    [Category("short"), Category("realcluster")]
+    [Category(TestCategory.Short), Category(TestCategory.RealCluster)]
     public class FluentMappingPredefined : SharedClusterTest
     {
         [SetUp]

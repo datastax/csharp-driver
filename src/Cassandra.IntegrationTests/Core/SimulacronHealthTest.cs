@@ -19,12 +19,12 @@ using System.Linq;
 using Cassandra.IntegrationTests.SimulacronAPI;
 using Cassandra.IntegrationTests.SimulacronAPI.Models;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
-
+using Cassandra.Tests;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [Category("short"), TestFixture]
+    [Category(TestCategory.Short), TestFixture]
     public class SimulacronHealthTest
     {
         [Test]

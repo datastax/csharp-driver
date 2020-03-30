@@ -30,7 +30,7 @@ using NUnit.Framework.Internal;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [Category("short"), Category("realcluster"), Category("serverapi")]
+    [Category(TestCategory.Short), Category(TestCategory.RealCluster), Category(TestCategory.ServerApi)]
     public class PreparedStatementsTests : SharedClusterTest
     {
         private readonly string _tableName = "tbl" + Guid.NewGuid().ToString("N").ToLower();

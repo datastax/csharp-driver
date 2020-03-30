@@ -24,11 +24,12 @@ using Cassandra.IntegrationTests.Policies.Util;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.Serialization;
+using Cassandra.Tests;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Policies.Tests
 {
-    [TestFixture, Category("short"), Category("realcluster")]
+    [TestFixture, Category(TestCategory.Short), Category(TestCategory.RealCluster)]
     public class LoadBalancingPolicyShortTests : SharedClusterTest
     {
         public LoadBalancingPolicyShortTests() : base(3, false, new TestClusterOptions { UseVNodes = true })

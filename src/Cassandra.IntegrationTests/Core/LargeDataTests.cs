@@ -24,10 +24,11 @@ using System.Text;
 using System.Threading;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Serialization;
+using Cassandra.Tests;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestFixture, Category("long"), Ignore("tests that are not marked with 'short' need to be refactored/deleted")]
+    [TestFixture, Category(TestCategory.Long), Ignore("tests that are not marked with 'short' need to be refactored/deleted")]
     public class LargeDataTests : TestGlobals
     {
         private const int Key = 0;

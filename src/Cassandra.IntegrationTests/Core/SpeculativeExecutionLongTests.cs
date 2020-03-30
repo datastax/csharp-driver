@@ -30,7 +30,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestFixture, Category("long"), Ignore("tests that are not marked with 'short' need to be refactored/deleted")]
+    [TestFixture, Category(TestCategory.Long), Ignore("tests that are not marked with 'short' need to be refactored/deleted")]
     public class SpeculativeExecutionLongTests : TestGlobals
     {
         private const string QueryLocal = "SELECT key FROM system.local";

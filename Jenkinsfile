@@ -214,13 +214,22 @@ def buildDriver() {
   }
 }
 
-def executeTests() {
+def executeTests(perCommitSchedule) {
+  
+  if (perCommitSchedule) {
+    env.DOTNET_TEST_FILTER = "(TestCategory!=long)&(TestCategory!=memory)&(TestCategory!=realcluster-long)"
+    env.MONO_TEST_FILTER = "cat != long && cat != memory && cat != realcluster-long"
+  } else {
+    env.DOTNET_TEST_FILTER = "(TestCategory!=long)&(TestCategory!=memory)"
+    env.MONO_TEST_FILTER = "cat != long && cat != memory"    
+  }  
+  
   if (env.OS_VERSION.split('/')[0] == 'win') {
     catchError {
       powershell label: "Execute tests for ${env.DOTNET_VERSION}", script: '''
         . $env:HOME\\Documents\\WindowsPowerShell\\Microsoft.PowerShell_profile.ps1
         . $Env:HOME\\driver-environment.ps1
-        dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -v n -f $Env:DOTNET_VERSION -c Release --filter "(TestCategory!=long)&(TestCategory!=memory)" --logger "xunit;LogFilePath=../../TestResult_xunit.xml" -- RunConfiguration.TargetPlatform=x64
+        dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -v n -f $Env:DOTNET_VERSION -c Release --filter $Env:DOTNET_TEST_FILTER --logger "xunit;LogFilePath=../../TestResult_xunit.xml" -- RunConfiguration.TargetPlatform=x64
       '''
     }
     powershell label: 'Convert the test results using saxon', script: '''
@@ -235,7 +244,7 @@ def executeTests() {
           . ${HOME}/environment.txt
           set +o allexport
 
-          mono ./testrunner/NUnit.ConsoleRunner.3.6.1/tools/nunit3-console.exe src/Cassandra.IntegrationTests/bin/Release/net452/Cassandra.IntegrationTests.dll --where "cat != long && cat != memory" --labels=All --result:"TestResult_nunit.xml"
+          mono ./testrunner/NUnit.ConsoleRunner.3.6.1/tools/nunit3-console.exe src/Cassandra.IntegrationTests/bin/Release/net452/Cassandra.IntegrationTests.dll --where $MONO_TEST_FILTER --labels=All --result:"TestResult_nunit.xml"
         '''
       }
       sh label: 'Convert the test results using saxon', script: '''#!/bin/bash -le
@@ -249,7 +258,7 @@ def executeTests() {
           . ${HOME}/environment.txt
           set +o allexport
 
-          dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -v n -f ${DOTNET_VERSION} -c Release --filter "(TestCategory!=long)&(TestCategory!=memory)" --logger "xunit;LogFilePath=../../TestResult_xunit.xml"
+          dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -v n -f ${DOTNET_VERSION} -c Release --filter $DOTNET_TEST_FILTER --logger "xunit;LogFilePath=../../TestResult_xunit.xml"
         '''
       }
       sh label: 'Convert the test results using saxon', script: '''#!/bin/bash -le
@@ -633,7 +642,7 @@ pipeline {
           }
           stage('Execute-Tests') {
             steps {
-              executeTests()
+              executeTests(true)
             }
             post {
               always {
@@ -735,7 +744,7 @@ pipeline {
           }
           stage('Execute-Tests') {
             steps {
-              executeTests()
+              executeTests(false)
             }
             post {
               always {
@@ -829,7 +838,7 @@ pipeline {
           }
           stage('Execute-Tests') {
             steps {
-              executeTests()
+              executeTests(false)
             }
             post {
               always {

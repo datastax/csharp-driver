@@ -18,11 +18,12 @@ using System.Linq;
 using Cassandra.DataStax.Auth;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
+using Cassandra.Tests;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.DataStax.Auth
 {
-    [Category("short"), TestDseVersion(5, 1), Category("serverapi")]
+    [Category(TestCategory.Short), TestDseVersion(5, 1), Category(TestCategory.ServerApi)]
     public class ProxyAuthenticationTests : TestGlobals
     {
         private ITestCluster _testCluster;

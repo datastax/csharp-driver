@@ -28,12 +28,13 @@ using Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using Cassandra.IntegrationTests.TestClusterManagement;
+using Cassandra.Tests;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.ExecutionProfiles
 {
     [TestFixture]
-    [Category("short")]
+    [Category(TestCategory.Short)]
     public class LinqExecutionProfileTests
     {
         private ISession _session;

@@ -24,7 +24,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestFixture, Category("short"), Category("realcluster")]
+    [TestFixture, Category(TestCategory.Short), Category(TestCategory.RealCluster)]
     public class SchemaAgreementTests : SharedClusterTest
     {
         private volatile bool _paused = false;

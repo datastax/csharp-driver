@@ -26,11 +26,12 @@ using System.Threading;
 using Cassandra.DataStax.Graph;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
+using Cassandra.Tests;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.DataStax.Graph
 {
-    [TestFixture, NUnit.Framework.Category("short")]
+    [TestFixture, Category(TestCategory.Short)]
     [TestDseVersion(5, 0)]
     class GraphMultiNodeTests : BaseIntegrationTest
     {

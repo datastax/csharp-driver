@@ -23,13 +23,14 @@ using System.Numerics;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.Serialization;
+using Cassandra.Tests;
 using Cassandra.Tests.Extensions.Serializers;
 
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [Category("short"), Category("realcluster")]
+    [Category(TestCategory.Short), Category(TestCategory.RealCluster)]
     public class TypeSerializersTests : SharedClusterTest
     {
         private const string DecimalInsertQuery = "INSERT INTO tbl_decimal (id, text_value, value1, value2) VALUES (?, ?, ?, ?)";

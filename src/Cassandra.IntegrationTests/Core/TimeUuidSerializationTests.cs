@@ -21,11 +21,12 @@ using System.Text;
 using System.Threading.Tasks;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
+using Cassandra.Tests;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [Category("short"), Category("realcluster"), Category("serverapi")]
+    [Category(TestCategory.Short), Category(TestCategory.RealCluster), Category(TestCategory.ServerApi)]
     public class TimeUuidSerializationTests : SharedClusterTest
     {
         private const string AllTypesTableName = "all_formats_table";

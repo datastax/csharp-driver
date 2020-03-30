@@ -22,10 +22,11 @@ using System.Collections.Generic;
 using System.Numerics;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Serialization;
+using Cassandra.Tests;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [Category("short"), Category("realcluster"), Category("serverapi")]
+    [Category(TestCategory.Short), Category(TestCategory.RealCluster), Category(TestCategory.ServerApi)]
     [TestCassandraVersion(2, 0)]
     public class ParameterizedStatementsTests : SharedClusterTest
     {

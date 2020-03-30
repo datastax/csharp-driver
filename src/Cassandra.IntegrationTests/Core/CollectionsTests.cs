@@ -22,12 +22,13 @@ using System.Text;
 using System.Linq;
 using System.Threading.Tasks;
 using Cassandra.IntegrationTests.TestBase;
+using Cassandra.Tests;
 using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [Category("short"), Category("realcluster"), Category("serverapi")]
+    [Category(TestCategory.Short), Category(TestCategory.RealCluster), Category(TestCategory.ServerApi)]
     public class CollectionsTests : SharedClusterTest
     {
         private const string AllTypesTableName = "all_types_table_collections";

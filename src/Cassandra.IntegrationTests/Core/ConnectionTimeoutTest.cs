@@ -21,10 +21,11 @@ using System.Linq.Expressions;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using System.Threading.Tasks;
 using Cassandra.IntegrationTests.TestBase;
+using Cassandra.Tests;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestFixture, Category("short")]
+    [TestFixture, Category(TestCategory.Short)]
     public class ConnectionTimeoutTest : TestGlobals
     {
         [Test]

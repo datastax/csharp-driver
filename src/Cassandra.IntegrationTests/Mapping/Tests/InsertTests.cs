@@ -24,6 +24,7 @@ using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.Mapping;
 using Cassandra.Serialization;
+using Cassandra.Tests;
 using Cassandra.Tests.Mapping.Pocos;
 using NUnit.Framework;
 using HairColor = Cassandra.Tests.Mapping.Pocos.HairColor;
@@ -31,7 +32,7 @@ using HairColor = Cassandra.Tests.Mapping.Pocos.HairColor;
 
 namespace Cassandra.IntegrationTests.Mapping.Tests
 {
-    [Category("short"), Category("realcluster")]
+    [Category(TestCategory.Short), Category(TestCategory.RealCluster)]
     public class InsertTests : SharedClusterTest
     {
         private ISession _session;

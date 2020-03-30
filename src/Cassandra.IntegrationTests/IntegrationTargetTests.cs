@@ -19,7 +19,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests
 {
-    [Category("short")]
+    [Category(TestCategory.Short)]
     public class IntegrationTargetTests : TargetTests
     {
     }

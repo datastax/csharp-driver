@@ -32,7 +32,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.DataStax.Insights
 {
-    [TestFixture, Category("short")]
+    [TestFixture, Category(TestCategory.Short)]
     public class InsightsIntegrationTests
     {
         private static IPrimeRequest InsightsRpcPrime() =>

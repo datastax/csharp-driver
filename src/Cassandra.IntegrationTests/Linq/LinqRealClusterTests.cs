@@ -22,6 +22,7 @@ using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
+using Cassandra.Tests;
 using Cassandra.Tests.Mapping.Pocos;
 using NUnit.Framework;
 
@@ -30,7 +31,7 @@ namespace Cassandra.IntegrationTests.Linq
     /// <summary>
     /// No support for paging state and traces in simulacron yet. Also haven't implemented an abstraction to prime UDTs yet.
     /// </summary>
-    [Category("short"), Category("realcluster")]
+    [Category(TestCategory.Short), Category(TestCategory.RealCluster)]
     public class LinqRealClusterTests : SharedClusterTest
     {
         private ISession _session;

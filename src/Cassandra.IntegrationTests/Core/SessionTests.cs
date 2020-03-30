@@ -29,7 +29,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [Category("short"), Category("realcluster")]
+    [Category(TestCategory.Short), Category(TestCategory.RealCluster)]
     public class SessionTests : SharedClusterTest
     {
         public SessionTests() : base(3, false)
