@@ -87,7 +87,7 @@ namespace Cassandra.Mapping
             IEnumerable<IColumnDefinition> fieldsAndProperties = GetMappableFields(typeDefinition.PocoType)
                 .Select(typeDefinition.GetColumnDefinition)
                 .Union(GetMappableProperties(typeDefinition.PocoType).Select(typeDefinition.GetColumnDefinition))
-                .OrderBy(col => col?.ColumnName ?? col?.MemberInfo.Name ?? string.Empty);
+                .OrderBy(col => col?.ColumnName ?? col?.MemberInfo.Name ?? string.Empty, StringComparer.OrdinalIgnoreCase);
 
             // If explicit columns, only get column definitions that are explicitly defined, otherwise get all columns that aren't marked as Ignored
             IEnumerable<IColumnDefinition> columnDefinitions = typeDefinition.ExplicitColumns

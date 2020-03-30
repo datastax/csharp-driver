@@ -31,7 +31,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         private const string InsertCql = 
             "INSERT INTO \"allDataTypes\" (\"boolean_type\", \"date_time_offset_type\", " +
                 "\"date_time_type\", \"decimal_type\", \"double_type\", \"float_type\", " +
-                "\"guid_type\", \"int_type\", \"int64_type\", \"list_of_guids_type\", " +
+                "\"guid_type\", \"int64_type\", \"int_type\", \"list_of_guids_type\", " +
                 "\"list_of_strings_type\", \"map_type_string_long_type\", \"map_type_string_string_type\", " +
                 "\"nullable_date_time_type\", \"nullable_int_type\", \"nullable_time_uuid_type\", " +
                 "\"string_type\", \"time_uuid_type\") " + 
@@ -40,8 +40,8 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
 
         private const string SelectCql = 
             "SELECT \"boolean_type\", \"date_time_offset_type\", \"date_time_type\", " + 
-                "\"decimal_type\", \"double_type\", \"float_type\", \"guid_type\", \"int_type\", " + 
-                "\"int64_type\", \"list_of_guids_type\", \"list_of_strings_type\", \"map_type_string_long_type\"," + 
+                "\"decimal_type\", \"double_type\", \"float_type\", \"guid_type\", \"int64_type\", " + 
+                "\"int_type\", \"list_of_guids_type\", \"list_of_strings_type\", \"map_type_string_long_type\"," + 
                 " \"map_type_string_string_type\", \"nullable_date_time_type\", \"nullable_int_type\", " + 
                 "\"nullable_time_uuid_type\", \"string_type\", \"time_uuid_type\" FROM \"allDataTypes\" " + 
             "WHERE \"string_type\" = ? " + 
