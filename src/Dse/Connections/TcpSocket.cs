@@ -275,10 +275,7 @@ namespace Dse.Connections
 
         protected virtual void OnError(Exception ex, SocketError? socketError = null)
         {
-            if (Error != null)
-            {
-                Error(ex, socketError);
-            }
+            Error?.Invoke(ex, socketError);
         }
 
         /// <summary>
@@ -299,10 +296,7 @@ namespace Dse.Connections
             }
 
             //Emit event
-            if (Read != null)
-            {
-                Read(e.Buffer, e.BytesTransferred);
-            }
+            Read?.Invoke(e.Buffer, e.BytesTransferred);
 
             ReceiveAsync();
         }
@@ -327,10 +321,7 @@ namespace Dse.Connections
             //Emit event
             try
             {
-                if (Read != null)
-                {
-                    Read(_receiveBuffer, bytesRead);
-                }
+                Read?.Invoke(_receiveBuffer, bytesRead);
             }
             catch (Exception ex)
             {
@@ -374,10 +365,7 @@ namespace Dse.Connections
                 OnError(null, e.SocketError);
             }
             OnWriteFlushed();
-            if (WriteCompleted != null)
-            {
-                WriteCompleted();
-            }
+            WriteCompleted?.Invoke();
         }
 
         /// <summary>
@@ -392,19 +380,13 @@ namespace Dse.Connections
                 return;
             }
             OnWriteFlushed();
-            if (WriteCompleted != null)
-            {
-                WriteCompleted();
-            }
+            WriteCompleted?.Invoke();
         }
 
         protected void OnClosing()
         {
             _isClosing = true;
-            if (Closing != null)
-            {
-                Closing.Invoke();
-            }
+            Closing?.Invoke();
             if (_receiveSocketEvent != null)
             {
                 //It is safe to call SocketAsyncEventArgs.Dispose() more than once
@@ -421,11 +403,7 @@ namespace Dse.Connections
 
         private void OnWriteFlushed()
         {
-            var callback = Interlocked.Exchange(ref _writeFlushCallback, null);
-            if (callback != null)
-            {
-                callback();
-            }
+            Interlocked.Exchange(ref _writeFlushCallback, null)?.Invoke();
         }
 
         /// <summary>

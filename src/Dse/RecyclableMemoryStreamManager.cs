@@ -281,10 +281,7 @@ namespace Microsoft.IO
                 // (unless our free pool is too large)
                 block = new byte[this.BlockSize];
 
-                if (this.BlockCreated != null)
-                {
-                    this.BlockCreated();
-                }
+                this.BlockCreated?.Invoke();
             }
             else
             {
@@ -315,10 +312,7 @@ namespace Microsoft.IO
                 {
                     buffer = new byte[requiredSize];
 
-                    if (this.LargeBufferCreated != null)
-                    {
-                        this.LargeBufferCreated();
-                    }
+                    this.LargeBufferCreated?.Invoke();
                 }
                 else
                 {
@@ -342,10 +336,7 @@ namespace Microsoft.IO
                     callStack = Environment.StackTrace;
                 }
 
-                if (this.LargeBufferCreated != null)
-                {
-                    this.LargeBufferCreated();
-                }
+                this.LargeBufferCreated?.Invoke();
             }
 
             Interlocked.Add(ref this.largeBufferInUseSize[poolIndex], buffer.Length);
@@ -404,11 +395,8 @@ namespace Microsoft.IO
 
             Interlocked.Add(ref this.largeBufferInUseSize[poolIndex], -buffer.Length);
 
-            if (this.UsageReport != null)
-            {
-                this.UsageReport(this.smallPoolInUseSize, this.smallPoolFreeSize, this.LargePoolInUseSize,
-                                 this.LargePoolFreeSize);
-            }
+            this.UsageReport?.Invoke(this.smallPoolInUseSize, this.smallPoolFreeSize, this.LargePoolInUseSize,
+                 this.LargePoolFreeSize);
         }
 
         /// <summary>
@@ -445,59 +433,38 @@ namespace Microsoft.IO
                 }
                 else
                 {
-                    if (this.BlockDiscarded != null)
-                    {
-                        this.BlockDiscarded();
-                    }
+                    this.BlockDiscarded?.Invoke();
                     break;
                 }
             }
 
-            if (this.UsageReport != null)
-            {
-                this.UsageReport(this.smallPoolInUseSize, this.smallPoolFreeSize, this.LargePoolInUseSize,
-                                 this.LargePoolFreeSize);
-            }
+            this.UsageReport?.Invoke(this.smallPoolInUseSize, this.smallPoolFreeSize, this.LargePoolInUseSize,
+                 this.LargePoolFreeSize);
         }
 
         internal void ReportStreamCreated()
         {
-            if (this.StreamCreated != null)
-            {
-                this.StreamCreated();
-            }
+            this.StreamCreated?.Invoke();
         }
 
         internal void ReportStreamDisposed()
         {
-            if (this.StreamDisposed != null)
-            {
-                this.StreamDisposed();
-            }
+            this.StreamDisposed?.Invoke();
         }
 
         internal void ReportStreamFinalized()
         {
-            if (this.StreamFinalized != null)
-            {
-                this.StreamFinalized();
-            }
+            this.StreamFinalized?.Invoke();
         }
 
         internal void ReportStreamLength(long bytes)
         {
-            if (this.StreamLength != null)
-            {
-                this.StreamLength(bytes);
-            }
+            this.StreamLength?.Invoke(bytes);
         }
 
         internal void ReportStreamToArray()
         {
-            if (this.StreamConvertedToArray != null)
-            {
-                this.StreamConvertedToArray();
-            }
+            this.StreamConvertedToArray?.Invoke();
         }
 
         /// <summary>

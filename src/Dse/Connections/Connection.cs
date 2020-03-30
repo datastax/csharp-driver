@@ -294,10 +294,7 @@ namespace Dse.Connections
             var wasClosed = Interlocked.Exchange(ref _writeState, Connection.WriteStateClosed) == Connection.WriteStateClosed;
             if (!wasClosed)
             {
-                if (Closing != null)
-                {
-                    Closing(this);
-                }
+                Closing?.Invoke(this);
 
                 Connection.Logger.Info("Cancelling in Connection {0}, {1} pending operations and write queue {2}", EndPoint.EndpointFriendlyName,
                     InFlight, _writeQueue.Count);
@@ -384,10 +381,7 @@ namespace Dse.Connections
                 {
                     //If it was not manually disposed
                     Connection.Logger.Warning("Can not issue an heartbeat request as connection is closed");
-                    if (OnIdleRequestException != null)
-                    {
-                        OnIdleRequestException(new SocketException((int)SocketError.NotConnected));
-                    }
+                    OnIdleRequestException?.Invoke(new SocketException((int)SocketError.NotConnected));
                 }
                 return;
             }

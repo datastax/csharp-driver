@@ -147,10 +147,7 @@ namespace Dse
                 return false;
             }
             Logger.Warning("Host {0} considered as DOWN.", Address);
-            if (Down != null)
-            {
-                Down(this);
-            }
+            Down?.Invoke(this);
             return true;
         }
 
@@ -165,10 +162,7 @@ namespace Dse
                 return false;
             }
             Logger.Info("Host {0} is now UP", Address);
-            if (Up != null)
-            {
-                Up(this);
-            }
+            Up?.Invoke(this);
             return true;
         }
 
@@ -176,10 +170,7 @@ namespace Dse
         {
             Logger.Info("Decommissioning node {0}", Address);
             Interlocked.Exchange(ref _isUpNow, 0);
-            if (Remove != null)
-            {
-                Remove();
-            }
+            Remove?.Invoke();
         }
 
         /// <summary>

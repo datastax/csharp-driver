@@ -60,10 +60,7 @@ namespace Dse.Tasks
                     tcs.TrySetResult(task.Result);
                 }
 
-                if (callback != null)
-                {
-                    callback(tcs.Task);
-                }
+                callback?.Invoke(tcs.Task);
 
             }, TaskContinuationOptions.ExecuteSynchronously);
             return tcs.Task;

@@ -454,18 +454,12 @@ namespace Dse
 
         private void OnHostRemoved(Host h)
         {
-            if (HostRemoved != null)
-            {
-                HostRemoved(h);
-            }
+            HostRemoved?.Invoke(h);
         }
 
         private void OnHostAdded(Host h)
         {
-            if (HostAdded != null)
-            {
-                HostAdded(h);
-            }
+            HostAdded?.Invoke(h);
         }
 
         private async void OnHostUp(Host h)
