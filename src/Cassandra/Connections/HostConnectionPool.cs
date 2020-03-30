@@ -493,10 +493,7 @@ namespace Cassandra.Connections
                     {
                         c.Dispose();
                     }
-                    if (afterDrainHandler != null)
-                    {
-                        afterDrainHandler();
-                    }
+                    afterDrainHandler?.Invoke();
                 });
             }, null, 1000);
         }

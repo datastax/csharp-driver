@@ -317,10 +317,7 @@ namespace Cassandra.Tests
         public static async Task<T> DelayedTask<T>(T result, int dueTimeMs = 50, Action afterDelay = null)
         {
             await Task.Delay(dueTimeMs).ConfigureAwait(false);
-            if (afterDelay != null)
-            {
-                afterDelay();
-            }
+            afterDelay?.Invoke();
             return result;
         }
 
