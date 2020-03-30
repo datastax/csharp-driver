@@ -217,11 +217,11 @@ def buildDriver() {
 def executeTests(perCommitSchedule) {
   
   if (perCommitSchedule) {
-    env.DOTNET_TEST_FILTER = "\"(TestCategory!=long)&(TestCategory!=memory)&(TestCategory!=realcluster-long)\""
-    env.MONO_TEST_FILTER = "\"cat != long && cat != memory && cat != realcluster-long\""
+    env.DOTNET_TEST_FILTER = "(TestCategory!=long)&(TestCategory!=memory)&(TestCategory!=realcluster-long)"
+    env.MONO_TEST_FILTER = "cat != long && cat != memory && cat != realcluster-long"
   } else {
-    env.DOTNET_TEST_FILTER = "\"(TestCategory!=long)&(TestCategory!=memory)\""
-    env.MONO_TEST_FILTER = "\"cat != long && cat != memory\""    
+    env.DOTNET_TEST_FILTER = "(TestCategory!=long)&(TestCategory!=memory)"
+    env.MONO_TEST_FILTER = "cat != long && cat != memory"    
   }  
   
   if (env.OS_VERSION.split('/')[0] == 'win') {
@@ -244,7 +244,7 @@ def executeTests(perCommitSchedule) {
           . ${HOME}/environment.txt
           set +o allexport
 
-          mono ./testrunner/NUnit.ConsoleRunner.3.6.1/tools/nunit3-console.exe src/Cassandra.IntegrationTests/bin/Release/net452/Cassandra.IntegrationTests.dll --where $MONO_TEST_FILTER --labels=All --result:"TestResult_nunit.xml"
+          mono ./testrunner/NUnit.ConsoleRunner.3.6.1/tools/nunit3-console.exe src/Cassandra.IntegrationTests/bin/Release/net452/Cassandra.IntegrationTests.dll --where "$MONO_TEST_FILTER" --labels=All --result:"TestResult_nunit.xml"
         '''
       }
       sh label: 'Convert the test results using saxon', script: '''#!/bin/bash -le
