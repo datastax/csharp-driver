@@ -23,7 +23,6 @@ using Cassandra.Tests.Mapping.TestData;
 using Moq;
 
 using NUnit.Framework;
-using NUnit.Framework.Interfaces;
 
 namespace Cassandra.Tests.Mapping
 {

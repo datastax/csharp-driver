@@ -16,9 +16,6 @@
 
 using System;
 using System.Collections.Generic;
-using Cassandra.Data.Linq;
-using Cassandra.IntegrationTests.TestClusterManagement;
-using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq.Structures
 {

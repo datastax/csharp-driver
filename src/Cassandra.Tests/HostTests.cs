@@ -16,14 +16,8 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
 using System.Net;
-using System.Text;
 using System.Threading;
-using Cassandra.Metrics;
-using Cassandra.Metrics.Registries;
-using Cassandra.Observers;
 using NUnit.Framework;
 
 namespace Cassandra.Tests

@@ -19,7 +19,6 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Threading.Tasks;
-using Cassandra.IntegrationTests.TestClusterManagement;
 using System.Reflection;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.SimulacronAPI.Models.Logs;

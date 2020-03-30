@@ -15,19 +15,14 @@
 //
 
 using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using NUnit.Framework;
 using System.Linq;
 using System.Net;
 using System.Threading;
-using System.Threading.Tasks;
 using Cassandra.Compression;
 using Cassandra.Responses;
 using Cassandra.Serialization;
-using Cassandra.Tasks;
 using Microsoft.IO;
 
 namespace Cassandra.Tests

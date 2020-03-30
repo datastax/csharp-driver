@@ -15,7 +15,6 @@
 //
 
 using System;
-using Cassandra.Mapping;
 using Cassandra.Mapping.Attributes;
 
 namespace Cassandra.Tests.Mapping.Pocos

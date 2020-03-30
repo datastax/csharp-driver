@@ -23,7 +23,6 @@ using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
 using Cassandra.Tests;
 using NUnit.Framework;
-using NUnit.Framework.Constraints;
 
 namespace Cassandra.IntegrationTests.Mapping.Tests
 {

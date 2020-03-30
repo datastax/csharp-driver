@@ -20,10 +20,8 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
 using System.Linq;
-using System.Threading.Tasks;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Tests;
-using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core

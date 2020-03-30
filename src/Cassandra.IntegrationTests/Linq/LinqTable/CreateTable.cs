@@ -26,7 +26,6 @@ using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.Mapping;
 using Cassandra.Tests.Mapping.Pocos;
-using Newtonsoft.Json;
 using NUnit.Framework;
 #pragma warning disable 612
 #pragma warning disable 618

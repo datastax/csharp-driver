@@ -26,7 +26,6 @@ using System.Collections;
 using System.Threading;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Tests;
-using NUnit.Framework.Internal;
 
 namespace Cassandra.IntegrationTests.Core
 {

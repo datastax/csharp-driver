@@ -19,7 +19,6 @@ using System.Collections.Generic;
 using System.Dynamic;
 using Cassandra.DataStax.Graph;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace Cassandra.Serialization.Graph
 {

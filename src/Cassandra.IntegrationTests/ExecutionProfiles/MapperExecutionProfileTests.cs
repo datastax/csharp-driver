@@ -26,7 +26,6 @@ using Cassandra.IntegrationTests.SimulacronAPI.Models.Logs;
 using Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
-using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.Tests;
 using Cassandra.Tests.Mapping.Pocos;
 

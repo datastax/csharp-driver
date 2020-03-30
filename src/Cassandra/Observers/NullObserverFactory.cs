@@ -14,7 +14,6 @@
 //   limitations under the License.
 //
 
-using Cassandra.Metrics.Internal;
 using Cassandra.Observers.Abstractions;
 
 namespace Cassandra.Observers

@@ -19,7 +19,6 @@ using Cassandra.Serialization;
 
 namespace Cassandra
 {
-    using System.Linq;
     using System.Numerics;
 
     public class DecimalTypeAdapter : ITypeAdapter

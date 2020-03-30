@@ -15,14 +15,10 @@
 //
 
 using System;
-using System.IO;
-using System.Net;
-using System.Security.Authentication;
 using System.Threading.Tasks;
 using Cassandra.Helpers;
 using Newtonsoft.Json;
 #if NETSTANDARD
-using System.Linq.Expressions;
 using System.Net.Http;
 using System.Net.Http.Headers;
 #endif

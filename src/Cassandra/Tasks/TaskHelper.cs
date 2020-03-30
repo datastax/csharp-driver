@@ -20,7 +20,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Connections;
 using Cassandra.Metrics.Internal;
-using Cassandra.SessionManagement;
 
 namespace Cassandra.Tasks
 {

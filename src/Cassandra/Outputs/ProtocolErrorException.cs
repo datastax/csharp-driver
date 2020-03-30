@@ -14,8 +14,6 @@
 //   limitations under the License.
 //
 
-using System;
-
 namespace Cassandra
 {
     public class ProtocolErrorException : QueryValidationException

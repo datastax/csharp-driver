@@ -17,13 +17,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using Cassandra.Data.Linq;
-using Cassandra.IntegrationTests.Mapping.Structures;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
 using Cassandra.Tests;
-using Cassandra.Tests.Mapping.FluentMappings;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Mapping.Tests

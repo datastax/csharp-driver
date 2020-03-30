@@ -14,7 +14,6 @@
 //   limitations under the License.
 //
 
-using System;
 using Cassandra.Connections;
 using Cassandra.Observers.Abstractions;
 using Cassandra.Responses;
