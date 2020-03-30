@@ -374,7 +374,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [Category(TestCategory.RealCluster)]
+        [Category(TestCategory.RealClusterLong)]
         [Test]
         public void Should_UpdateHosts_When_HostIpChanges()
         {

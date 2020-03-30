@@ -1,29 +1,7 @@
 schedules:
-  cass4-test-ubuntu:
-    # Run short suite on commit
-    schedule: per_commit
-    notify:
-      slack: csharp-driver-dev-bots
-    matrix:
-      exclude:
-      # dont build on windows (windows provisioning takes too long, run only on nightly and weekly schedules)
-        - os: 'win/cs'
-        - dotnet: ['net452', 'net461']        
-        - cassandra: ['2.1', '2.2', '3.0', '3.11', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.7', 'dse-6.8.0']
-  cass4-test-windows:
-    # Run short suite on commit
-    schedule: per_commit
-    notify:
-      slack: csharp-driver-dev-bots
-    matrix:
-      exclude:
-      # dont build on ubuntu
-        - os: 'ubuntu/bionic64/csharp-driver'
-        - dotnet: ['mono']  
-        - cassandra: ['2.1', '2.2', '3.0', '3.11', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.7', 'dse-6.8.0']
   commit-oss:
     # Run short suite on commit
-    schedule: per_commit
+    schedule: adhoc
     notify:
       slack: csharp-driver-dev-bots
     matrix:
@@ -43,7 +21,7 @@ schedules:
           cassandra: ['2.1', '2.2', '3.0', '4.0', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.7', 'dse-6.8.0']
   commit-dse:
     # Run short suite on commit
-    schedule: per_commit
+    schedule: adhoc
     notify:
       slack: csharp-driver-dev-bots
     matrix:
@@ -63,7 +41,7 @@ schedules:
           cassandra: ['2.1', '2.2', '3.0', '3.11', '4.0', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.8.0']
   nightly-oss-ubuntu:
     # nightly job for primary branches to run almost all configs on ubuntu.
-    schedule: nightly
+    schedule: adhoc
     notify:
       slack: csharp-driver-dev-bots
     branches:
@@ -85,7 +63,7 @@ schedules:
           cassandra: ['2.1', '3.0']
   nightly-dse-ubuntu:
     # nightly job for primary branches to run almost all configs on ubuntu.
-    schedule: nightly
+    schedule: adhoc
     notify:
       slack: csharp-driver-dev-bots
     branches:
@@ -107,7 +85,7 @@ schedules:
           cassandra: ['dse-5.0', 'dse-6.0', 'dse-6.8.0']
   nightly-oss-windows:
     # nightly job for primary branches to run several configs on windows (windows builds are slow so it's less configs than the nightly ubuntu schedule).
-    schedule: nightly
+    schedule: adhoc
     notify:
       slack: csharp-driver-dev-bots
     branches:
@@ -151,7 +129,7 @@ schedules:
           dotnet: ['net452', 'net461']
       # on linux target all
   weekly:
-    schedule: 0 10 * * 7
+    schedule: adhoc
     notify:
       slack: csharp-driver-dev-bots
     branches:
