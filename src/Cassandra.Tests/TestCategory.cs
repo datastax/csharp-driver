@@ -39,7 +39,7 @@ namespace Cassandra.Tests
         /// <summary>
         /// These tests run in Jenkins nightly builds only.
         /// </summary>
-        public const string RealClusterLong = "realcluster-long";
+        public const string RealClusterLong = "realclusterlong";
         
         /// <summary>
         /// These tests run once in Jenkins per commit (not for the entire matrix).
