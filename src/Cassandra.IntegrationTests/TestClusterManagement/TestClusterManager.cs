@@ -129,7 +129,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         public static bool IsCassandraFourZeroPreRelease()
         {
             return TestClusterManager.CassandraVersion.Equals(new Version(4, 0))
-                   && TestClusterManager.CassandraVersionString.Any(c => c == '-');
+                   && TestClusterManager.CassandraVersionString.Contains("-");
         }
 
         public static bool SupportsDecommissionForcefully()
