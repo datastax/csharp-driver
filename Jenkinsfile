@@ -65,6 +65,8 @@ def initializeEnvironment() {
       }
     }
     
+    // sni tests disabled on windows
+    /*
     if (env.SERVER_VERSION == env.SERVER_VERSION_SNI_WINDOWS) {
       powershell label: 'Update environment for SNI proxy tests', script: '''
         $newData = "`r`n`$Env:SNI_ENABLED=`"true`""
@@ -75,6 +77,7 @@ def initializeEnvironment() {
         "$newData" | Out-File -filepath $Env:HOME\\driver-environment.ps1 -append
       '''
     }
+    */
 
     powershell label: 'Set additional environment variables for windows tests', script: '''
       $newData = "`r`n`$Env:PATH+=`";$env:JAVA_HOME\\bin`""
