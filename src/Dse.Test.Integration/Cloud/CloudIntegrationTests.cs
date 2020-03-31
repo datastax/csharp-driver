@@ -224,7 +224,7 @@ namespace Dse.Test.Integration.Cloud
             for (var i = 1; i < 10; i++)
             {
                 //The partition key is wrongly calculated
-                var statement = new SimpleStatement(String.Format("INSERT INTO " + policyTestTools.TableName + " (k, i) VALUES ({0}, {0})", i))
+                var statement = new SimpleStatement(string.Format("INSERT INTO " + policyTestTools.TableName + " (k, i) VALUES ({0}, {0})", i))
                                 .SetRoutingKey(new RoutingKey() { RawRoutingKey = new byte[] { 0, 0, 0, 0 } })
                                 .EnableTracing();
                 var rs = Session.Execute(statement);

@@ -497,7 +497,7 @@ namespace Dse.Requests
             if (!_parent.Serializer.ProtocolVersion.SupportsKeyspaceInRequest() &&
                 preparedKeyspace != null && _session.Keyspace != preparedKeyspace)
             {
-                Logger.Warning(String.Format("The statement was prepared using another keyspace, changing the keyspace temporarily to" +
+                Logger.Warning(string.Format("The statement was prepared using another keyspace, changing the keyspace temporarily to" +
                                               " {0} and back to {1}. Use keyspace and table identifiers in your queries and avoid switching keyspaces.",
                     preparedKeyspace, _session.Keyspace));
 

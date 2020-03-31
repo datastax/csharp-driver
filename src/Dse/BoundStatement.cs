@@ -143,7 +143,7 @@ namespace Dse
                 if (!_serializer.IsAssignableFrom(p, value))
                 {
                     throw new InvalidTypeException(
-                        String.Format("It is not possible to encode a value of type {0} to a CQL type {1}", value.GetType(), p.TypeCode));
+                        string.Format("It is not possible to encode a value of type {0} to a CQL type {1}", value.GetType(), p.TypeCode));
                 }
             }
             if (values.Length < paramsMetadata.Length && _serializer.ProtocolVersion.SupportsUnset())

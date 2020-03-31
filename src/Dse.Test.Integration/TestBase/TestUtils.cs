@@ -403,7 +403,7 @@ namespace Dse.Test.Integration.TestClusterManagement
                 return output;
             }
 
-            var ccmCommand = String.Format("create {0} -v {1}", clusterName, cassandraVersion);
+            var ccmCommand = string.Format("create {0} -v {1}", clusterName, cassandraVersion);
             //When creating a cluster, it could download the Cassandra binaries from the internet.
             //Give enough time = 3 minutes.
             var timeout = 180000;
@@ -414,7 +414,7 @@ namespace Dse.Test.Integration.TestClusterManagement
             }
             if (secondDcNodeLength > 0)
             {
-                ccmCommand = String.Format("populate -n {0}:{1}", nodeLength, secondDcNodeLength);
+                ccmCommand = string.Format("populate -n {0}:{1}", nodeLength, secondDcNodeLength);
             }
             else
             {
@@ -457,7 +457,7 @@ namespace Dse.Test.Integration.TestClusterManagement
                         while (sw.ElapsedMilliseconds < 180000)
                         {
                             var logFileText =
-                                TryReadAllTextNoLock(Path.Combine(ccmConfigDir, clusterName, String.Format("node{0}\\logs\\system.log", x)));
+                                TestUtils.TryReadAllTextNoLock(Path.Combine(ccmConfigDir, clusterName, string.Format("node{0}\\logs\\system.log", x)));
                             if (Regex.IsMatch(logFileText, "listening for CQL clients", RegexOptions.Multiline))
                             {
                                 foundText = true;
@@ -466,7 +466,7 @@ namespace Dse.Test.Integration.TestClusterManagement
                         }
                         if (!foundText)
                         {
-                            throw new TestInfrastructureException(String.Format("node{0} did not properly start", x));
+                            throw new TestInfrastructureException(string.Format("node{0} did not properly start", x));
                         }
                     }
                     allNodesAreUp = true;

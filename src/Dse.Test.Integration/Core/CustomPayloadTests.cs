@@ -34,8 +34,8 @@ namespace Dse.Test.Integration.Core
             var jvmArgs = new [] { "-Dcassandra.custom_query_handler_class=org.apache.cassandra.cql3.CustomPayloadMirroringQueryHandler" };
             var testCluster = TestClusterManager.GetTestCluster(1, 0, false, DefaultMaxClusterCreateRetries, true, true, 0, jvmArgs);
             Session = testCluster.Session;
-            Session.Execute(String.Format(TestUtils.CreateKeyspaceSimpleFormat, Keyspace, 1));
-            Session.Execute(String.Format(TestUtils.CreateTableSimpleFormat, Table));
+            Session.Execute(string.Format(TestUtils.CreateKeyspaceSimpleFormat, Keyspace, 1));
+            Session.Execute(string.Format(TestUtils.CreateTableSimpleFormat, Table));
         }
 
         [Test, TestCassandraVersion(2, 2)]
@@ -56,7 +56,7 @@ namespace Dse.Test.Integration.Core
         {
             var outgoing = new Dictionary<string, byte[]> { { "k1-batch", Encoding.UTF8.GetBytes("value1") }, { "k2-batch", Encoding.UTF8.GetBytes("value2") } };
             var stmt = new BatchStatement();
-            stmt.Add(new SimpleStatement(String.Format("INSERT INTO {0} (k, i) VALUES ('one', 1)", Table)));
+            stmt.Add(new SimpleStatement(string.Format("INSERT INTO {0} (k, i) VALUES ('one', 1)", Table)));
             stmt.SetOutgoingPayload(outgoing);
             var rs = Session.Execute(stmt);
             Assert.NotNull(rs.Info.IncomingPayload);

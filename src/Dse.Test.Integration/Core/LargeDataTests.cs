@@ -259,7 +259,7 @@ namespace Dse.Test.Integration.Core
         // Test a batch that writes a row of size
         private static void TestWideBatchRows(ISession session, string tableName)
         {
-            string cql = String.Format("CREATE TABLE {0} (i INT, str {1}, PRIMARY KEY(i,str))", tableName, "text");
+            string cql = string.Format("CREATE TABLE {0} (i INT, str {1}, PRIMARY KEY(i,str))", tableName, "text");
             session.Execute(cql);
 
             // Write data        
@@ -288,7 +288,7 @@ namespace Dse.Test.Integration.Core
         // Test a wide row consisting of a ByteBuffer
         private static void TestByteRows(ISession session, string tableName)
         {
-            session.Execute(String.Format("CREATE TABLE {0} (k INT, i {1}, PRIMARY KEY(k,i))", tableName, "BLOB"));
+            session.Execute(string.Format("CREATE TABLE {0} (k INT, i {1}, PRIMARY KEY(k,i))", tableName, "BLOB"));
 
             // Build small ByteBuffer sample
             var bw = new FrameWriter(new MemoryStream(), new SerializerManager(ProtocolVersion.V1).GetCurrentSerializer());
@@ -313,7 +313,7 @@ namespace Dse.Test.Integration.Core
         // Test a row with a single extra large text value
         private static void TestLargeText(ISession session, string tableName)
         {
-            session.Execute(String.Format("CREATE TABLE {0} (k INT, i {1}, PRIMARY KEY(k,i))", tableName, "text"));
+            session.Execute(string.Format("CREATE TABLE {0} (k INT, i {1}, PRIMARY KEY(k,i))", tableName, "text"));
 
             // Write data
             var b = new StringBuilder();
@@ -397,7 +397,7 @@ namespace Dse.Test.Integration.Core
             tableDeclaration.Append("k INT PRIMARY KEY");
             for (int i = 0; i < 330; ++i)
             {
-                tableDeclaration.Append(String.Format(", \"{0}\" INT", CreateColumnName(i)));
+                tableDeclaration.Append(string.Format(", \"{0}\" INT", CreateColumnName(i)));
             }
             tableDeclaration.Append(")");
             return tableDeclaration.ToString();

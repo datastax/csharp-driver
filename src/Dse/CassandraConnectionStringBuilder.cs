@@ -60,7 +60,7 @@ namespace Dse
         public Builder ApplyToBuilder(Builder builder)
         {
             builder.AddContactPoints(ContactPoints).WithPort(Port).WithDefaultKeyspace(DefaultKeyspace);
-            if (!String.IsNullOrEmpty(Username) && !String.IsNullOrEmpty(Password))
+            if (!string.IsNullOrEmpty(Username) && !string.IsNullOrEmpty(Password))
             {
                 //Make sure the credentials are not null
                 builder.WithCredentials(Username, Password);

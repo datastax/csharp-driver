@@ -721,7 +721,7 @@ namespace Dse.Connections
             if (ControlConnection.BindAllAddress.Equals(address) && !row.IsNull("peer"))
             {
                 address = row.GetValue<IPAddress>("peer");
-                ControlConnection._logger.Warning(String.Format("Found host with 0.0.0.0 as rpc_address, using listen_address ({0}) to contact it instead. If this is incorrect you should avoid the use of 0.0.0.0 server side.", address));
+                ControlConnection._logger.Warning(string.Format("Found host with 0.0.0.0 as rpc_address, using listen_address ({0}) to contact it instead. If this is incorrect you should avoid the use of 0.0.0.0 server side.", address));
             }
 
             return translator.Translate(new IPEndPoint(address, port));

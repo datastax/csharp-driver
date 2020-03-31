@@ -99,7 +99,7 @@ namespace Dse.Test.Integration.Policies.Tests
             for (var i = 0; i < 10; i++)
             {
                 var key = Guid.NewGuid();
-                var statement = new SimpleStatement(String.Format("INSERT INTO " + uniqueTableName + " (k, i) VALUES ({0}, {1})", key, i))
+                var statement = new SimpleStatement(string.Format("INSERT INTO " + uniqueTableName + " (k, i) VALUES ({0}, {1})", key, i))
                     .SetRoutingKey(
                         new RoutingKey() { RawRoutingKey = TypeSerializer.GuidShuffle(key.ToByteArray()) })
                     .EnableTracing();
@@ -136,7 +136,7 @@ namespace Dse.Test.Integration.Policies.Tests
             var traces = new List<QueryTrace>();
             for (var i = 0; i < 10; i++)
             {
-                var statement = new SimpleStatement(String.Format("INSERT INTO " + policyTestTools.TableName + " (k1, k2, i) VALUES ('{0}', {0}, {0})", i))
+                var statement = new SimpleStatement(string.Format("INSERT INTO " + policyTestTools.TableName + " (k1, k2, i) VALUES ('{0}', {0}, {0})", i))
                     .SetRoutingKey(
                         new RoutingKey() { RawRoutingKey = Encoding.UTF8.GetBytes(i.ToString()) },
                         new RoutingKey() { RawRoutingKey = BitConverter.GetBytes(i).Reverse().ToArray() })
@@ -286,7 +286,7 @@ namespace Dse.Test.Integration.Policies.Tests
             for (var i = 1; i < 10; i++)
             {
                 //The partition key is wrongly calculated
-                var statement = new SimpleStatement(String.Format("INSERT INTO " + policyTestTools.TableName + " (k, i) VALUES ({0}, {0})", i))
+                var statement = new SimpleStatement(string.Format("INSERT INTO " + policyTestTools.TableName + " (k, i) VALUES ({0}, {0})", i))
                     .SetRoutingKey(new RoutingKey() { RawRoutingKey = new byte[] { 0, 0, 0, 0 } })
                     .EnableTracing();
                 var rs = session.Execute(statement);

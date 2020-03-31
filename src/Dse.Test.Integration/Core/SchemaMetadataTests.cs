@@ -354,7 +354,7 @@ namespace Dse.Test.Integration.Core
             session.CreateKeyspaceIfNotExists(keyspaceName);
             session.ChangeKeyspace(keyspaceName);
 
-            session.Execute(String.Format(TestUtils.CreateTableAllTypes, tableName));
+            session.Execute(string.Format(TestUtils.CreateTableAllTypes, tableName));
 
             Assert.Null(cluster.Metadata
                                 .GetKeyspace(keyspaceName)
@@ -388,7 +388,7 @@ namespace Dse.Test.Integration.Core
 
             var columnLength = table.TableColumns.Length;
             //Alter table and check for changes
-            session.Execute(String.Format("ALTER TABLE {0} ADD added_col int", tableName));
+            session.Execute(string.Format("ALTER TABLE {0} ADD added_col int", tableName));
             Thread.Sleep(1000);
             table = cluster.Metadata
                             .GetKeyspace(keyspaceName)

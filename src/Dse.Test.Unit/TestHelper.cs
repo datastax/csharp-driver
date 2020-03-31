@@ -284,7 +284,7 @@ namespace Dse.Test.Unit
                 SimplifyValues(ref actualValue, ref expectedValue);
                 Assert.AreEqual(expectedValue, actualValue,
                     // ReSharper disable once PossibleNullReferenceException
-                    String.Format("Property {0}.{1} does not match. Expected: {2} but was: {3}", property.DeclaringType.Name, property.Name, expectedValue, actualValue));
+                    string.Format("Property {0}.{1} does not match. Expected: {2} but was: {3}", property.DeclaringType.Name, property.Name, expectedValue, actualValue));
             }
         }
 

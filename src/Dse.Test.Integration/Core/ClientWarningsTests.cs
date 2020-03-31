@@ -45,8 +45,8 @@ namespace Dse.Test.Integration.Core
             });
             _testCluster.InitClient();
             Session = _testCluster.Session;
-            Session.Execute(String.Format(TestUtils.CreateKeyspaceSimpleFormat, Keyspace, 1));
-            Session.Execute(String.Format(TestUtils.CreateTableSimpleFormat, Table));
+            Session.Execute(string.Format(TestUtils.CreateKeyspaceSimpleFormat, Keyspace, 1));
+            Session.Execute(string.Format(TestUtils.CreateTableSimpleFormat, Table));
         }
 
         [Test]
