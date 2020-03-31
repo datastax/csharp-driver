@@ -66,7 +66,7 @@ namespace Cassandra.Mapping
         private PocoData CreatePocoData(Type pocoType)
         {
             // Try to get mapping from predefined collection, otherwise fallback to using attributes
-            if (_predefinedTypeDefinitions.TryGetItem(pocoType, out ITypeDefinition typeDefinition) == false)
+            if (!_predefinedTypeDefinitions.TryGetItem(pocoType, out ITypeDefinition typeDefinition))
             {
                 typeDefinition = new AttributeBasedTypeDefinition(pocoType);
             }

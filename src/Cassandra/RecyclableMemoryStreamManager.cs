@@ -289,8 +289,9 @@ namespace Microsoft.IO
         /// will be at least the requiredSize and always be a multiple of largeBufferMultiple.
         /// </summary>
         /// <param name="requiredSize">The minimum length of the buffer</param>
+        /// <param name="tag">The tag of the stream returning this buffer, for logging if necessary.</param>
         /// <returns>A buffer of at least the required size.</returns>
-        internal byte[] GetLargeBuffer(int requiredSize)
+        internal byte[] GetLargeBuffer(int requiredSize, string tag)
         {
             requiredSize = this.RoundToLargeBufferMultiple(requiredSize);
 

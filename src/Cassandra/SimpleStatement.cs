@@ -160,10 +160,12 @@ namespace Cassandra
             {
                 throw new ArgumentNullException("valuesDictionary");
             }
+
+            _query = query ?? throw new ArgumentNullException("query");
+
             //The order of the keys and values is unspecified, but is guaranteed to be both in the same order.
             SetParameterNames(valuesDictionary.Keys);
             base.SetValues(valuesDictionary.Values.ToArray());
-            _query = query ?? throw new ArgumentNullException("query");
         }
 
         /// <summary>
