@@ -560,7 +560,7 @@ pipeline {
       H 8 * * 6 %CI_SCHEDULE=WEEKENDS;CI_SCHEDULE_DOTNET_VERSION=net452;CI_SCHEDULE_SERVER_VERSION=2.1 2.2 3.0 3.11 4.0;CI_SCHEDULE_OS_VERSION=win/cs
       H 8 * * 6 %CI_SCHEDULE=WEEKENDS;CI_SCHEDULE_DOTNET_VERSION=net461;CI_SCHEDULE_SERVER_VERSION=2.1 2.2 3.0 3.11 4.0;CI_SCHEDULE_OS_VERSION=win/cs
     """ : "")
-    cron(pattern.matcher("master").matches() ? """
+    cron(branchPatternCron.matcher("master").matches() ? """
       H/5 * * * * %CI_SCHEDULE=WEEKNIGHTS;CI_SCHEDULE_DOTNET_VERSION=mono;CI_SCHEDULE_SERVER_VERSION=2.2 3.11 dse-5.1 dse-6.7;CI_SCHEDULE_OS_VERSION=ubuntu/bionic64/csharp-driver
     """ : "")
   }
