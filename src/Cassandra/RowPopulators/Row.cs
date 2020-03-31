@@ -196,7 +196,7 @@ namespace Cassandra
             //A little overhead in case of misuse but improved Error message
             if (value == null && default(T) != null)
             {
-                throw new NullReferenceException(String.Format("Cannot convert null to {0} because it is a value type, try using Nullable<{0}>", type.Name));
+                throw new NullReferenceException(string.Format("Cannot convert null to {0} because it is a value type, try using Nullable<{0}>", type.Name));
             }
             return (T) value;
         }
@@ -212,7 +212,7 @@ namespace Cassandra
             //The method is marked virtual to allow to be mocked
             if (!ColumnIndexes.ContainsKey(name))
             {
-                throw new ArgumentException(String.Format("Column {0} not found", name));
+                throw new ArgumentException(string.Format("Column {0} not found", name));
             }
             return GetValue<T>(ColumnIndexes[name]);
         }

@@ -265,7 +265,7 @@ namespace Cassandra.Mapping
                 if (constructor == null)
                 {
                     throw new ArgumentException(
-                        String.Format("RowSet columns length is {0} but type {1} does not contain a constructor with the same amount of parameters", 
+                        string.Format("RowSet columns length is {0} but type {1} does not contain a constructor with the same amount of parameters", 
                         rows.Columns.Length,
                         pocoData.PocoType));
                 }
@@ -489,7 +489,7 @@ namespace Cassandra.Mapping
                 }
                 catch (InvalidOperationException ex)
                 {
-                    var message = String.Format("It is not possible to convert column `{0}` of type {1} to target type {2}", dbColumn.Name, dbColumn.TypeCode, pocoDestType.Name);
+                    var message = string.Format("It is not possible to convert column `{0}` of type {1} to target type {2}", dbColumn.Name, dbColumn.TypeCode, pocoDestType.Name);
                     throw new InvalidTypeException(message, ex);
                 }
             }

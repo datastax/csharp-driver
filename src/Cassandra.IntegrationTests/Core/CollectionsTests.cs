@@ -33,14 +33,14 @@ namespace Cassandra.IntegrationTests.Core
         public override void OneTimeSetUp()
         {
             base.OneTimeSetUp();
-            Session.Execute(String.Format(TestUtils.CreateTableAllTypes, AllTypesTableName));
+            Session.Execute(string.Format(TestUtils.CreateTableAllTypes, AllTypesTableName));
         }
 
         [Test]
         public void DecodeCollectionTest()
         {
             var id = "c9850ed4-c139-4b75-affe-098649f9de93";
-            var insertQuery = String.Format("INSERT INTO {0} (id, map_sample, list_sample, set_sample) VALUES ({1}, {2}, {3}, {4})", 
+            var insertQuery = string.Format("INSERT INTO {0} (id, map_sample, list_sample, set_sample) VALUES ({1}, {2}, {3}, {4})", 
                 AllTypesTableName, 
                 id, 
                 "{'fruit': 'apple', 'band': 'Beatles'}", 
@@ -48,7 +48,7 @@ namespace Cassandra.IntegrationTests.Core
                 "{'set_1one', 'set_2two'}");
 
             Session.Execute(insertQuery);
-            var row = Session.Execute(String.Format("SELECT * FROM {0} WHERE id = {1}", AllTypesTableName, id)).First();
+            var row = Session.Execute(string.Format("SELECT * FROM {0} WHERE id = {1}", AllTypesTableName, id)).First();
             var expectedMap = new SortedDictionary<string, string> { { "fruit", "apple" }, { "band", "Beatles" } };
             var expectedList = new List<string> { "one", "two" };
             var expectedSet = new List<string> { "set_1one", "set_2two" };

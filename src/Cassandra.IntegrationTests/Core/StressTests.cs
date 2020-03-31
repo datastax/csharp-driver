@@ -56,11 +56,11 @@ namespace Cassandra.IntegrationTests.Core
                 session.ChangeKeyspace(uniqueKsName);
 
                 var tableName = "table_" + Guid.NewGuid().ToString("N").ToLower();
-                session.Execute(String.Format(TestUtils.CREATE_TABLE_TIME_SERIES, tableName));
+                session.Execute(string.Format(TestUtils.CREATE_TABLE_TIME_SERIES, tableName));
 
-                var insertQuery = String.Format("INSERT INTO {0} (id, event_time, text_sample) VALUES (?, ?, ?)", tableName);
+                var insertQuery = string.Format("INSERT INTO {0} (id, event_time, text_sample) VALUES (?, ?, ?)", tableName);
                 var insertQueryPrepared = session.Prepare(insertQuery);
-                var selectQuery = String.Format("SELECT * FROM {0} LIMIT 10000", tableName);
+                var selectQuery = string.Format("SELECT * FROM {0} LIMIT 10000", tableName);
 
                 const int rowsPerId = 1000;
                 object insertQueryStatement = new SimpleStatement(insertQuery);
@@ -113,11 +113,11 @@ namespace Cassandra.IntegrationTests.Core
                 session.ChangeKeyspace(uniqueKsName);
 
                 var tableName = "table_" + Guid.NewGuid().ToString("N").ToLower();
-                session.Execute(String.Format(TestUtils.CREATE_TABLE_TIME_SERIES, tableName));
+                session.Execute(string.Format(TestUtils.CREATE_TABLE_TIME_SERIES, tableName));
 
-                var insertQuery = String.Format("INSERT INTO {0} (id, event_time, text_sample) VALUES (?, ?, ?)", tableName);
+                var insertQuery = string.Format("INSERT INTO {0} (id, event_time, text_sample) VALUES (?, ?, ?)", tableName);
                 var insertQueryPrepared = session.Prepare(insertQuery);
-                var selectQuery = String.Format("SELECT * FROM {0} LIMIT 10000", tableName);
+                var selectQuery = string.Format("SELECT * FROM {0} LIMIT 10000", tableName);
 
                 const int rowsPerId = 100;
                 object insertQueryStatement = new SimpleStatement(insertQuery);

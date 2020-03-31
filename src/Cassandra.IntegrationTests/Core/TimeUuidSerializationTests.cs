@@ -35,7 +35,7 @@ namespace Cassandra.IntegrationTests.Core
         protected override string[] SetupQueries => new[]
         {
             $"CREATE TABLE {MinMaxTimeUuidTable} (id uuid, timeuuid_sample timeuuid, PRIMARY KEY((id), timeuuid_sample))",
-            String.Format(TestUtils.CreateTableAllTypes, AllTypesTableName)
+            string.Format(TestUtils.CreateTableAllTypes, AllTypesTableName)
         };
         
         public override void OneTimeSetUp()
