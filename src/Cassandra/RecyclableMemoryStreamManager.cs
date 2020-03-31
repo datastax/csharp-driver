@@ -508,7 +508,7 @@ namespace Microsoft.IO
                 return this.GetStream(tag, requiredSize);
             }
 
-            return new RecyclableMemoryStream(this, tag, requiredSize, this.GetLargeBuffer(requiredSize));
+            return new RecyclableMemoryStream(this, tag, requiredSize, this.GetLargeBuffer(requiredSize, tag));
         }
 
         /// <summary>
