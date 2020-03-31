@@ -133,7 +133,7 @@ namespace Cassandra
         /// </summary>
         public CqlColumn GetColumn(string name)
         {
-            return !ColumnIndexes.TryGetValue(name, out var index)
+            return ColumnIndexes.TryGetValue(name, out var index)
                 ? Columns[index]
                 : null;
         }
