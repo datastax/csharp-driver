@@ -385,7 +385,7 @@ def describeAdhocTestingStage() {
 }
 
 // branch pattern for cron
-def branchPatternCron = ~"((\\d+(\\.[\\dx]+)+)|master)"
+def branchPatternCron = ~"(master)"
 
 pipeline {
   agent none
