@@ -524,14 +524,13 @@ pipeline {
   }
 
   triggers {
-    parameterizedCron(branchPatternCron.matcher("master").matches() ? """
+    parameterizedCron(branchPatternCron.matcher(env.BRANCH_NAME).matches() ? """
       # Every weeknight (Monday - Friday) around 12:00 and 1:00 AM
       ##
       # Building on Linux
       #   - Do not build using net452 and net461
       #   - Target all Apache Cassandara� and DataStax Enterprise versions for netcoreapp2.1
       ##
-      H/45 * * * * %CI_SCHEDULE=WEEKNIGHTS;CI_SCHEDULE_DOTNET_VERSION=mono;CI_SCHEDULE_SERVER_VERSION=2.2 3.11 dse-5.1 dse-6.7;CI_SCHEDULE_OS_VERSION=ubuntu/bionic64/csharp-driver
       H 0 * * 1-5 %CI_SCHEDULE=WEEKNIGHTS;CI_SCHEDULE_DOTNET_VERSION=mono;CI_SCHEDULE_SERVER_VERSION=2.2 3.11 dse-5.1 dse-6.7;CI_SCHEDULE_OS_VERSION=ubuntu/bionic64/csharp-driver
       H 1 * * 1-5 %CI_SCHEDULE=WEEKNIGHTS;CI_SCHEDULE_DOTNET_VERSION=netcoreapp2.1;CI_SCHEDULE_SERVER_VERSION=ALL;CI_SCHEDULE_OS_VERSION=ubuntu/bionic64/csharp-driver
       ##
