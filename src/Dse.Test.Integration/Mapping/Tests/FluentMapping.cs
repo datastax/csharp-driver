@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Cassandra.Tests;
 using Dse.Data.Linq;
 using Dse.Test.Integration.Mapping.Structures;
 using Dse.Test.Integration.TestClusterManagement;
@@ -21,7 +22,7 @@ namespace Dse.Test.Integration.Mapping.Tests
     /// <summary>
     /// Use predefined classes that contain fluent mapping to manage Linq-mapped resources
     /// </summary>
-    [Category("short"), Category("realcluster")]
+    [Category(TestCategory.Short), Category(TestCategory.RealCluster)]
     public class FluentMappingPredefined : SharedClusterTest
     {
         [SetUp]

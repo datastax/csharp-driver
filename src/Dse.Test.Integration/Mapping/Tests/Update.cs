@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
+using Cassandra.Tests;
 using Dse.Data.Linq;
 using Dse.Test.Integration.Linq.Structures;
 using Dse.Test.Integration.TestClusterManagement;
@@ -18,7 +19,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Mapping.Tests
 {
-    [Category("short"), Category("realcluster")]
+    [Category(TestCategory.Short), Category(TestCategory.RealCluster)]
     public class Update : SharedClusterTest
     {
         ISession _session;

@@ -12,12 +12,13 @@ using System.Reflection;
 using System.Text;
 using System.Linq;
 using System.Threading.Tasks;
+using Cassandra.Tests;
 using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;
 
 namespace Dse.Test.Integration.Core
 {
-    [Category("short"), Category("realcluster")]
+    [Category(TestCategory.Short), Category(TestCategory.RealCluster), Category(TestCategory.ServerApi)]
     public class CollectionsTests : SharedClusterTest
     {
         private const string AllTypesTableName = "all_types_table_collections";

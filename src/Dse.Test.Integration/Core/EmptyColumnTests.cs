@@ -18,7 +18,7 @@
 using System;
 using System.Linq;
 using System.Text;
-
+using Cassandra.Tests;
 using Dse.Data.Linq;
 using Dse.Mapping;
 using Dse.Test.Integration.SimulacronAPI;
@@ -31,7 +31,7 @@ using NUnit.Framework;
 namespace Dse.Test.Integration.Core
 {
     [TestFixture]
-    [Category("short")]
+    [Category(TestCategory.Short)]
     public class EmptyColumnTests : TestGlobals
     {
         [Test]

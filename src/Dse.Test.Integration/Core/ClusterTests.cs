@@ -12,6 +12,7 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using Cassandra.Tests;
 using Dse.SessionManagement;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Test.Integration.TestClusterManagement.Simulacron;
@@ -20,7 +21,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Core
 {
-    [TestFixture, Category("short")]
+    [TestFixture, Category(TestCategory.Short)]
     public class ClusterTests : TestGlobals
     {
         private SimulacronCluster _testCluster;
@@ -143,7 +144,7 @@ namespace Dse.Test.Integration.Core
         /// Validates that the client adds the newly bootstrapped node and eventually queries from it
         /// </summary>
         [Test]
-        [Category("realcluster")]
+        [Category(TestCategory.RealClusterLong)]
         public async Task Should_Add_And_Query_Newly_Bootstrapped_Node()
         {
             _realCluster = TestClusterManager.CreateNew();
@@ -182,7 +183,7 @@ namespace Dse.Test.Integration.Core
         }
 
         [Test]
-        [Category("realcluster")]
+        [Category(TestCategory.RealClusterLong)]
         public async Task Should_Remove_Decommissioned_Node()
         {
             const int numberOfNodes = 2;

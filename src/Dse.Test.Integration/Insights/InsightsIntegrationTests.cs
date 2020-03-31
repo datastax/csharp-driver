@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Cassandra.Tests;
 using Dse.Insights.Schema;
 using Dse.Insights.Schema.StartupMessage;
 using Dse.Insights.Schema.StatusMessage;
@@ -24,7 +25,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Insights
 {
-    [TestFixture, Category("short")]
+    [TestFixture, Category(TestCategory.Short)]
     public class InsightsIntegrationTests
     {
         private static IPrimeRequest InsightsRpcPrime() =>

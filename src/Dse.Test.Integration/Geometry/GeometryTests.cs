@@ -9,13 +9,14 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Cassandra.Tests;
 using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;
 
 namespace Dse.Test.Integration.Geometry
 {
-    [TestDseVersion(5, 0), Category("short")]
-    public abstract class GeometryTests<T> : SharedDseClusterTest
+    [TestDseVersion(5, 0), Category(TestCategory.Short), Category(TestCategory.ServerApi)]
+    public abstract class GeometryTests<T> : SharedClusterTest
     {
         protected abstract T[] Values { get; }
         protected abstract string TypeName { get; }

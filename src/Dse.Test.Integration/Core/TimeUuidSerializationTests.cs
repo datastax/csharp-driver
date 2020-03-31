@@ -10,12 +10,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Cassandra.Tests;
 using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;
 
 namespace Dse.Test.Integration.Core
 {
-    [Category("short"), Category("realcluster")]
+    [Category(TestCategory.Short), Category(TestCategory.RealCluster), Category(TestCategory.ServerApi)]
     public class TimeUuidSerializationTests : SharedClusterTest
     {
         private const string AllTypesTableName = "all_formats_table";

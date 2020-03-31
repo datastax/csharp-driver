@@ -17,6 +17,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using Cassandra.Tests;
 using Dse.Test.Integration.SimulacronAPI.Models.Logs;
 using Dse.Test.Integration.SimulacronAPI.SystemTables;
 using Dse.Test.Integration.TestClusterManagement;
@@ -25,7 +26,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration
 {
-    [TestFixture, Category("short")]
+    [TestFixture, Category(TestCategory.Short)]
     public abstract class SimulacronTest
     {
         private readonly bool _shared;

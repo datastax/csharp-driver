@@ -18,6 +18,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Threading;
+using Cassandra.Tests;
 using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;
 
@@ -26,7 +27,7 @@ namespace Dse.Test.Integration.Core
     /// <summary>
     /// Validates that the Session.GetRequest (called within ExecuteAsync) method uses the paging size under different scenarios
     /// </summary>
-    [Category("short"), Category("realcluster")]
+    [Category(TestCategory.Short), Category(TestCategory.RealCluster), Category(TestCategory.ServerApi)]
     public class PagingTests : SharedClusterTest
     {
         public override void OneTimeSetUp()

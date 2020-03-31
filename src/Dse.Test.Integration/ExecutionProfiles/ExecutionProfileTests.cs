@@ -17,6 +17,7 @@
 
 using System.Linq;
 using System.Threading.Tasks;
+using Cassandra.Tests;
 using Dse.Test.Integration.SimulacronAPI;
 using Dse.Test.Integration.TestClusterManagement.Simulacron;
 
@@ -25,7 +26,7 @@ using NUnit.Framework;
 namespace Dse.Test.Integration.ExecutionProfiles
 {
     [TestFixture]
-    [Category("short")]
+    [Category(TestCategory.Short)]
     public class ExecutionProfileTests
     {
         private SimulacronCluster _simulacron;

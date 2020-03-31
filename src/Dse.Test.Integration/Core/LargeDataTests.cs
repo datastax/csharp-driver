@@ -13,11 +13,12 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using Cassandra.Tests;
 using Dse.Serialization;
 
 namespace Dse.Test.Integration.Core
 {
-    [TestFixture, Category("long"), Ignore("tests that are not marked with 'short' need to be refactored/deleted")]
+    [TestFixture, Category(TestCategory.Long), Ignore("tests that are not marked with 'short' need to be refactored/deleted")]
     public class LargeDataTests : TestGlobals
     {
         private const int Key = 0;

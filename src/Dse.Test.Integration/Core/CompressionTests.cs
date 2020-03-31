@@ -10,13 +10,14 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Cassandra.Tests;
 using Dse.Test.Integration;
 using Dse.Test.Unit;
 using NUnit.Framework;
 
 namespace Dse.Test.Integration.Core
 {
-    [Category("short"), Category("realcluster")]
+    [Category(TestCategory.Short), Category(TestCategory.RealCluster)]
     public class CompressionTests : SharedClusterTest
     {
         [Test, TestTimeout(120000)]

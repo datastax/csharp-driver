@@ -18,6 +18,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Cassandra.Tests;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Test.Unit;
 
@@ -25,13 +26,13 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.MetadataTests
 {
-    [TestFixture, Category("short"), Category("realcluster")]
+    [TestFixture, Category(TestCategory.Short), Category(TestCategory.RealClusterLong)]
     public class TokenMapSchemaChangeMetadataSyncTests : SharedClusterTest
     {
         private Cluster _cluster;
         private ISession _session;
 
-        public TokenMapSchemaChangeMetadataSyncTests() : base(3, false, true, new TestClusterOptions { UseVNodes = true })
+        public TokenMapSchemaChangeMetadataSyncTests() : base(3, false, new TestClusterOptions { UseVNodes = true })
         {
         }
 

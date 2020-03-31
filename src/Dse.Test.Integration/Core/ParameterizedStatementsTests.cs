@@ -11,11 +11,12 @@ using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
-﻿using Dse.Serialization;
+using Cassandra.Tests;
+using Dse.Serialization;
 
 namespace Dse.Test.Integration.Core
 {
-    [Category("short"), Category("realcluster")]
+    [Category(TestCategory.Short), Category(TestCategory.RealCluster), Category(TestCategory.ServerApi)]
     [TestCassandraVersion(2, 0)]
     public class ParameterizedStatementsTests : SharedClusterTest
     {

@@ -18,7 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
-
+using Cassandra.Tests;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Test.Unit;
 
@@ -26,7 +26,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.MetadataTests
 {
-    [TestFixture, Category("short"), Category("realcluster")]
+    [TestFixture, Category(TestCategory.Short), Category(TestCategory.RealClusterLong)]
     public class TokenMapTopologyChangeTests
     {
         private ITestCluster TestCluster { get; set; }

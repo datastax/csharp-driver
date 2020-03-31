@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Cassandra.Tests;
 using Dse.SessionManagement;
 using Dse.Test.Integration.Policies.Util;
 using Dse.Test.Integration.SimulacronAPI;
@@ -21,7 +22,7 @@ using Dse.Test.Unit;
 
 namespace Dse.Test.Integration.Core
 {
-    [TestFixture, Category("short")]
+    [TestFixture, Category(TestCategory.Short)]
     public class PoolShortTests : TestGlobals
     {
         [TearDown]
@@ -215,7 +216,7 @@ namespace Dse.Test.Integration.Core
             }
         }
 
-        [Test, Category("realcluster")]
+        [Test, Category(TestCategory.RealCluster)]
         public void Connect_With_Ssl_Test()
         {
             try

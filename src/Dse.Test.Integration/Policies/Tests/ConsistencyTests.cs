@@ -8,6 +8,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Cassandra.Tests;
 using Dse.Test.Integration.Policies.Util;
 using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;
@@ -15,7 +16,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Policies.Tests
 {
-    [TestFixture, Category("long"), Ignore("tests that are not marked with 'short' need to be refactored/deleted")]
+    [TestFixture, Category(TestCategory.Long), Ignore("tests that are not marked with 'short' need to be refactored/deleted")]
     public class ConsistencyTests : TestGlobals
     {
         private PolicyTestTools _policyTestTools = null;

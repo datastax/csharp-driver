@@ -799,7 +799,7 @@ namespace Dse.Test.Integration.Mapping.Tests
             table.Create();
 
             VerifyQuery(
-                "CREATE TABLE SimplePocoWithColumnLabel_CustomColumnName (some_column_label_thats_different int, someCaseSensitivePartitionKey text, " +
+                "CREATE TABLE SimplePocoWithColumnLabel_CustomColumnName (someCaseSensitivePartitionKey text, some_column_label_thats_different int, " +
                 "PRIMARY KEY (someCaseSensitivePartitionKey))",
                 1);
 
@@ -808,11 +808,11 @@ namespace Dse.Test.Integration.Mapping.Tests
             mapper.Insert(defaultInstance);
 
             VerifyBoundStatement(
-                "INSERT INTO SimplePocoWithColumnLabel_CustomColumnName (some_column_label_thats_different, someCaseSensitivePartitionKey) " +
+                "INSERT INTO SimplePocoWithColumnLabel_CustomColumnName (someCaseSensitivePartitionKey, some_column_label_thats_different) " +
                     "VALUES (?, ?)",
                 1,
-                defaultInstance.SomeColumn,
-                defaultInstance.SomePartitionKey);
+                defaultInstance.SomePartitionKey,
+                defaultInstance.SomeColumn);
 
             // Validate using mapped Fetch
             var cqlSelect =

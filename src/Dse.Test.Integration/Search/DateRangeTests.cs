@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Cassandra.Tests;
 using Dse.Search;
 using Dse.Test.Integration.Core;
 using Dse.Test.Integration.TestClusterManagement;
@@ -13,8 +14,8 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Search
 {
-    [Category("short"), TestDseVersion(5, 1)]
-    public class DateRangeTests : SharedDseClusterTest
+    [Category(TestCategory.Short), TestDseVersion(5, 1), Category(TestCategory.ServerApi)]
+    public class DateRangeTests : SharedClusterTest
     {
         private static readonly string[] Values = new[]
         {

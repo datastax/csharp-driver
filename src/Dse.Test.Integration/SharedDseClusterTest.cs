@@ -23,8 +23,8 @@ namespace Dse.Test.Integration
         /// </summary>
         protected virtual DseClusterBuilder BuilderInstance { get { return DseCluster.Builder(); } }
 
-        protected SharedDseClusterTest(int amountOfNodes = 1, bool createSession = true, bool reuse = true)
-            : base(amountOfNodes, createSession, reuse)
+        protected SharedDseClusterTest(int amountOfNodes = 1, bool createSession = true)
+            : base(amountOfNodes, createSession)
         {
             
         }

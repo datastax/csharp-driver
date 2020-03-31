@@ -18,6 +18,7 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using Cassandra.Tests;
 using Dse.Test.Integration.SimulacronAPI;
 using Dse.Test.Integration.SimulacronAPI.Models.Logs;
 using Dse.Test.Integration.SimulacronAPI.PrimeBuilder;
@@ -27,7 +28,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Core
 {
-    [TestFixture, Category("short")]
+    [TestFixture, Category(TestCategory.Short)]
     public class PrepareSimulatorTests
     {
         private const string Keyspace = "ks1";

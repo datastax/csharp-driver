@@ -10,12 +10,13 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using Cassandra.Tests;
 using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;
 
 namespace Dse.Test.Integration.Core
 {
-    [TestFixture, Category("short"), Category("realcluster")]
+    [TestFixture, Category(TestCategory.Short), Category(TestCategory.RealCluster), Category(TestCategory.ServerApi)]
     public class CustomPayloadTests : TestGlobals
     {
         public ISession Session { get; set; }

@@ -8,13 +8,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Cassandra.Tests;
 using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;
 
 namespace Dse.Test.Integration
 {
-    [Category("short"), TestDseVersion(5, 1)]
-    public class DurationTests : SharedDseClusterTest
+    [Category(TestCategory.Short), TestDseVersion(5, 1)]
+    public class DurationTests : SharedClusterTest
     {
         public static readonly string[] Values = 
         {

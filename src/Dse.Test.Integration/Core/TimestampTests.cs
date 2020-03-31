@@ -20,13 +20,14 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Cassandra.Tests;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Test.Unit;
 using NUnit.Framework;
 
 namespace Dse.Test.Integration.Core
 {
-    [Category("short"), Category("realcluster")]
+    [Category(TestCategory.Short), Category(TestCategory.RealCluster)]
     public class TimestampTests : SharedClusterTest
     {
         public TimestampTests() : base(1, false)

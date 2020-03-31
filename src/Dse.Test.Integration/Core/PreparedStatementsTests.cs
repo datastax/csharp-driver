@@ -15,11 +15,12 @@ using NUnit.Framework;
 using System.Net;
 using System.Collections;
 using System.Threading;
+using Cassandra.Tests;
 using Dse.Test.Unit;
 
 namespace Dse.Test.Integration.Core
 {
-    [Category("short"), Category("realcluster")]
+    [Category(TestCategory.Short), Category(TestCategory.RealCluster), Category(TestCategory.ServerApi)]
     public class PreparedStatementsTests : SharedClusterTest
     {
         private readonly string _tableName = "tbl" + Guid.NewGuid().ToString("N").ToLower();
@@ -818,6 +819,12 @@ namespace Dse.Test.Integration.Core
         [TestCassandraVersion(4, 0)]
         public void Session_Prepare_With_Keyspace_Defined_On_Protocol_Greater_Than_4(bool usePayload)
         {
+            if (TestClusterManager.IsCassandraFourZeroPreRelease())
+            {
+                Assert.Ignore("test requires protocol >= 5 but cassandra 4.0 pre-release detected");
+                return;
+            }
+
             Assert.AreNotEqual("system", Session.Keyspace);
             PreparedStatement ps;
             if (!usePayload)
@@ -845,6 +852,12 @@ namespace Dse.Test.Integration.Core
         [TestCassandraVersion(4, 0)]
         public async Task Session_PrepareAsync_With_Keyspace_Defined_On_Protocol_Greater_Than_4(bool usePayload)
         {
+            if (TestClusterManager.IsCassandraFourZeroPreRelease())
+            {
+                Assert.Ignore("test requires protocol >= 5 but cassandra 4.0 pre-release detected");
+                return;
+            }
+
             Assert.AreNotEqual("system", Session.Keyspace);
             PreparedStatement ps;
             if (!usePayload)

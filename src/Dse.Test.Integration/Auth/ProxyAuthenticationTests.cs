@@ -7,13 +7,14 @@
 
 using System;
 using System.Linq;
+using Cassandra.Tests;
 using Dse.Auth;
 using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;
 
 namespace Dse.Test.Integration.Auth
 {
-    [Category("short"), TestDseVersion(5, 1)]
+    [Category(TestCategory.Short), TestDseVersion(5, 1), Category(TestCategory.ServerApi)]
     public class ProxyAuthenticationTests : TestGlobals
     {
         private ITestCluster _testCluster;

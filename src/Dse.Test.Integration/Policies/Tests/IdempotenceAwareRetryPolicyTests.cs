@@ -11,13 +11,14 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using Cassandra.Tests;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Test.Integration.TestClusterManagement.Simulacron;
 using NUnit.Framework;
 
 namespace Dse.Test.Integration.Policies.Tests
 {
-    [TestFixture, Category("short")]
+    [TestFixture, Category(TestCategory.Short)]
     public class IdempotenceAwareRetryPolicyTests : TestGlobals
     {
 

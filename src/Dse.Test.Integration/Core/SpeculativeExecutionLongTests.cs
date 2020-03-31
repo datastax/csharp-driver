@@ -12,6 +12,7 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Cassandra.Tests;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Tasks;
 using Dse.Test.Unit;
@@ -20,7 +21,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Core
 {
-    [TestFixture, Category("long"), Ignore("tests that are not marked with 'short' need to be refactored/deleted")]
+    [TestFixture, Category(TestCategory.Long), Ignore("tests that are not marked with 'short' need to be refactored/deleted")]
     public class SpeculativeExecutionLongTests : TestGlobals
     {
         private const string QueryLocal = "SELECT key FROM system.local";

@@ -1,7 +1,7 @@
 schedules:
   commit-dse:
     # Run short suite on commit
-    schedule: per_commit
+    schedule: adhoc
     notify:
       slack: csharp-driver-dev-bots
     matrix:
@@ -16,7 +16,7 @@ schedules:
           cassandra: ['dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.8.0']
   nightly-dse-ubuntu:
     # nightly job for primary branches to run almost all configs on ubuntu.
-    schedule: nightly
+    schedule: adhoc
     notify:
       slack: csharp-driver-dev-bots
     branches:
@@ -37,7 +37,7 @@ schedules:
     branches:
       exclude: ["/((\\d+(\\.[\\dx]+)+)|master)/"]
   weekly:
-    schedule: 0 10 * * 7
+    schedule: adhoc
     notify:
       slack: csharp-driver-dev-bots
     branches:
@@ -140,6 +140,10 @@ build:
           echo "========== Starting .NET Core Build =========="
           export DOTNET_CLI_TELEMETRY_OPTOUT=1
           dotnet --version
+
+          # work around nuget issue
+          mkdir -p /tmp/NuGetScratch
+          chmod -R ugo+rwx /tmp/NuGetScratch
 
           # Install the required packages
           dotnet restore src

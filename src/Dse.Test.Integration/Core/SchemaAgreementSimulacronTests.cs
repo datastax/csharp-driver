@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Cassandra.Tests;
 using Dse.Test.Integration.SimulacronAPI;
 using Dse.Test.Integration.SimulacronAPI.PrimeBuilder;
 using Dse.Test.Integration.TestClusterManagement;
@@ -10,7 +11,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Core
 {
-    [TestFixture, Category("short")]
+    [TestFixture, Category(TestCategory.Short)]
     public class SchemaAgreementSimulacronTests
     {
         private const int MaxSchemaAgreementWaitSeconds = 10;

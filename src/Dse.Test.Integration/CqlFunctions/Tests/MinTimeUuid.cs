@@ -8,6 +8,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Cassandra.Tests;
 using Dse.Data.Linq;
 using Dse.Test.Integration.CqlFunctions.Structures;
 using Dse.Test.Integration.TestClusterManagement;
@@ -17,7 +18,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.CqlFunctions.Tests
 {
-    [Category("short"), Category("realcluster")]
+    [Category(TestCategory.Short), Category(TestCategory.RealCluster)]
     public class MinTimeUuid : SharedClusterTest
     {
         private ISession _session = null;

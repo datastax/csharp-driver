@@ -11,6 +11,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading;
+using Cassandra.Tests;
 using Dse.Test.Integration.Auth;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Test.Unit;
@@ -21,7 +22,7 @@ namespace Dse.Test.Integration.Core
     /// <summary>
     /// Test Cassandra Authentication.
     /// </summary>
-    [TestFixture, Category("short"), Category("realcluster")]
+    [TestFixture, Category(TestCategory.Short), Category(TestCategory.RealCluster), Category(TestCategory.ServerApi)]
     public class SessionAuthenticationTests : TestGlobals
     {
         // Test cluster object to be shared by tests in this class only

@@ -20,6 +20,7 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using Cassandra.Tests;
 using Dse.Tasks;
 using Dse.Test.Integration.TestClusterManagement.Simulacron;
 using Dse.Test.Unit;
@@ -27,7 +28,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Core
 {
-    [TestFixture, Category("short")]
+    [TestFixture, Category(TestCategory.Short)]
     public class ControlConnectionSimulatorTests
     {
         [TestCase(ProtocolVersion.V3, "3.0.13", "2.1.17")]

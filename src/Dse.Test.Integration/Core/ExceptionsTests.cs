@@ -11,13 +11,14 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Net;
+using Cassandra.Tests;
 using Dse.Test.Integration.SimulacronAPI;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Test.Integration.TestClusterManagement.Simulacron;
 
 namespace Dse.Test.Integration.Core
 {
-    [TestFixture, Category("short")]
+    [TestFixture, Category(TestCategory.Short)]
     public class ExceptionsTests : TestGlobals
     {
         private ISession _session;

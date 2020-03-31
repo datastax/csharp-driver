@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using Cassandra.Tests;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Tasks;
 using Dse.Test.Unit;
@@ -17,9 +18,19 @@ using SortOrder = Dse.DataCollectionMetadata.SortOrder;
 
 namespace Dse.Test.Integration.Core
 {
-    [TestFixture, Category("short"), Category("realcluster")]
+    [TestFixture, Category(TestCategory.Short), Category(TestCategory.RealCluster), Category(TestCategory.ServerApi)]
     public class SchemaMetadataTests : SharedClusterTest
     {
+        public SchemaMetadataTests() : 
+            base(1, true, new TestClusterOptions
+            {
+                CassandraYaml = 
+                    TestClusterManager.CheckCassandraVersion(true, new Version(4, 0), Comparison.GreaterThanOrEqualsTo ) 
+                        ? new[] { "enable_materialized_views: true" } : new string[0]
+            })
+        {
+        }
+
         protected override string[] SetupQueries
         {
             get

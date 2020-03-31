@@ -19,7 +19,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-
+using Cassandra.Tests;
 using Dse.Mapping;
 using Dse.Test.Integration.Linq.Structures;
 using Dse.Test.Integration.SimulacronAPI;
@@ -34,7 +34,7 @@ using NUnit.Framework;
 namespace Dse.Test.Integration.ExecutionProfiles
 {
     [TestFixture]
-    [Category("short")]
+    [Category(TestCategory.Short)]
     public class MapperExecutionProfileTests
     {
         private ISession _session;

@@ -11,11 +11,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Cassandra.Tests;
 using Dse.Test.Unit;
 
 namespace Dse.Test.Integration.Core
 {
-    [Category("short"), Category("realcluster")]
+    [Category(TestCategory.Short), Category(TestCategory.RealCluster), Category(TestCategory.ServerApi)]
     public class UdtMappingsTests : SharedClusterTest
     {
         const string CqlType1 = "CREATE TYPE phone (alias text, number text, country_code int, verified_at timestamp, phone_type text)";

@@ -8,13 +8,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Cassandra.Tests;
 using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;
 #pragma warning disable 618
 
 namespace Dse.Test.Integration.Core
 {
-    [Category("short"), Category("realcluster")]
+    [Category(TestCategory.Short), Category(TestCategory.RealCluster), Category(TestCategory.ServerApi)]
     public class CollectionsNestedTests : SharedClusterTest
     {
         [Test, TestCassandraVersion(2, 1, 3)]

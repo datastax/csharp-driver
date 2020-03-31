@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Cassandra.Tests;
 using Dse.Test.Integration.SimulacronAPI;
 using Dse.Test.Integration.SimulacronAPI.PrimeBuilder.Then;
 using Dse.Test.Integration.TestClusterManagement;
@@ -29,7 +30,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Policies.Tests
 {
-    [TestFixture, Category("short")]
+    [TestFixture, Category(TestCategory.Short)]
     public class RetryPolicyShortTests : TestGlobals
     {
         public static object[] RetryPolicyExtendedData =

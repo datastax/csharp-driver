@@ -14,11 +14,12 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using Cassandra.Tests;
 using SortOrder = Dse.DataCollectionMetadata.SortOrder;
 
 namespace Dse.Test.Integration.Core
 {
-    [TestFixture, Category("long"), Ignore("tests that are not marked with 'short' need to be refactored/deleted")]
+    [TestFixture, Category(TestCategory.Long), Ignore("tests that are not marked with 'short' need to be refactored/deleted")]
     public class MetadataTests : TestGlobals
     {
         private const int DefaultNodeCount = 1;

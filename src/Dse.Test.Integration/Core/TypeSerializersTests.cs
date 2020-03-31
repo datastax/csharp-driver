@@ -11,6 +11,7 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Text;
+using Cassandra.Tests;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Serialization;
 using Dse.Test.Unit;
@@ -19,7 +20,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Core
 {
-    [Category("short"), Category("realcluster")]
+    [Category(TestCategory.Short), Category(TestCategory.RealCluster)]
     public class TypeSerializersTests : SharedClusterTest
     {
         private const string DecimalInsertQuery = "INSERT INTO tbl_decimal (id, text_value, value1, value2) VALUES (?, ?, ?, ?)";

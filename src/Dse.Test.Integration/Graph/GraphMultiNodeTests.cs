@@ -6,7 +6,6 @@
 //
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
@@ -14,6 +13,7 @@ using System.Net.Http;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
+using Cassandra.Tests;
 using Dse;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Graph;
@@ -21,7 +21,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Graph
 {
-    [TestFixture, NUnit.Framework.Category("short")]
+    [TestFixture, Category(TestCategory.Short), Category(TestCategory.RealClusterLong)]
     [TestDseVersion(5, 0)]
     class GraphMultiNodeTests : BaseIntegrationTest
     {

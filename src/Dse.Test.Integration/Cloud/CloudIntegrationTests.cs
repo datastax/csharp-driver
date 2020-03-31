@@ -22,6 +22,7 @@ using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Cassandra.Tests;
 using Dse.Auth;
 using Dse.Cloud;
 using Dse.Data.Linq;
@@ -39,13 +40,13 @@ namespace Dse.Test.Integration.Cloud
 {
     [SniEnabledOnly]
     [CloudSupported(Supported = true)]
-    [TestFixture, Category("short"), Category("cloud"), Category("realcluster")]
+    [TestFixture, Category(TestCategory.Short), Category(TestCategory.Cloud), Category(TestCategory.RealClusterLong)]
     public class CloudIntegrationTests : SharedCloudClusterTest
     {
         [Test]
         public void Should_ThrowNoHostAvailable_When_MetadataServiceIsUnreachable()
         {
-            var ex = Assert.ThrowsAsync<NoHostAvailableException>(() => CreateSessionAsync("creds-v1-unreachable.zip"));
+            var ex = Assert.ThrowsAsync<NoHostAvailableException>(() => CreateSessionAsync("creds-v1-unreachable.zip", retries: 1));
             Assert.IsTrue(ex.Message.Contains("https://192.0.2.255:30443/metadata"), ex.Message);
             Assert.IsTrue(ex.Message.Contains("There was an error fetching the metadata information"), ex.Message);
         }
@@ -109,7 +110,11 @@ namespace Dse.Test.Integration.Cloud
                                     return;
                                 }
 
-                                await session.ExecuteAsync(new SimpleStatement("SELECT key FROM system.local")).ConfigureAwait(false);
+                                try
+                                {
+                                    await session.ExecuteAsync(new SimpleStatement("SELECT key FROM system.local")).ConfigureAwait(false);
+                                }
+                                catch (QueryTimeoutException){}
                             }
                         }));
                     }
@@ -262,14 +267,14 @@ namespace Dse.Test.Integration.Cloud
         [Test]
         public void Should_ThrowSslException_When_ClientCertIsNotProvided()
         {
-            var ex = Assert.ThrowsAsync<NoHostAvailableException>(() => CreateSessionAsync("creds-v1-wo-cert.zip"));
+            var ex = Assert.ThrowsAsync<NoHostAvailableException>(() => CreateSessionAsync("creds-v1-wo-cert.zip", retries: 1));
             AssertIsSslError(ex);
         }
 
         [Test]
         public void Should_ThrowSslException_When_CaMismatch()
         {
-            var ex = Assert.ThrowsAsync<NoHostAvailableException>(() => CreateSessionAsync("creds-v1-invalid-ca.zip"));
+            var ex = Assert.ThrowsAsync<NoHostAvailableException>(() => CreateSessionAsync("creds-v1-invalid-ca.zip", retries: 1));
             AssertCaMismatchSslError(ex);
         }
 
@@ -317,28 +322,32 @@ namespace Dse.Test.Integration.Cloud
                 () => Assert.IsTrue(session.Cluster.Metadata.CheckSchemaAgreementAsync().Result),
                 1000, 60);
             var table = new Table<Author>(session, MappingConfiguration.Global, "author", ks);
-            table.CreateIfNotExists();
-            RowSet rs = null;
-            Assert.Throws<InvalidQueryException>(() =>
+            TestHelper.RetryAssert(() =>
             {
-                rs = session.Execute($"INSERT INTO {ks}.author(authorid) VALUES ('auth')");
-            });
+                try
+                {
+                    table.CreateIfNotExists();
+                    RowSet rs = null;
+                    Assert.Throws<InvalidQueryException>(() => { rs = session.Execute($"INSERT INTO {ks}.author(authorid) VALUES ('auth')"); });
 
-            Assert.Throws<InvalidQueryException>(() =>
-            {
-                rs = session.Execute($"INSERT INTO {ks}.author(authorid) VALUES ('auth')", "profile");
-            });
+                    Assert.Throws<InvalidQueryException>(() =>
+                    {
+                        rs = session.Execute($"INSERT INTO {ks}.author(authorid) VALUES ('auth')", "profile");
+                    });
 
-            rs = session.Execute($"INSERT INTO {ks}.author(authorid) VALUES ('auth')", "derived");
-            Assert.AreEqual(ConsistencyLevel.LocalQuorum, rs.Info.AchievedConsistency);
+                    rs = session.Execute($"INSERT INTO {ks}.author(authorid) VALUES ('auth')", "derived");
+                    Assert.AreEqual(ConsistencyLevel.LocalQuorum, rs.Info.AchievedConsistency);
 
-            rs = session.Execute($"INSERT INTO {ks}.author(authorid) VALUES ('auth') IF NOT EXISTS", "derived");
-            Assert.IsTrue(string.Compare(rs.First()["[applied]"].ToString(), "false", StringComparison.OrdinalIgnoreCase) == 0);
+                    rs = session.Execute($"INSERT INTO {ks}.author(authorid) VALUES ('auth') IF NOT EXISTS", "derived");
+                    Assert.IsTrue(string.Compare(rs.First()["[applied]"].ToString(), "false", StringComparison.OrdinalIgnoreCase) == 0);
 
-            rs = session.Execute($"SELECT authorid FROM {ks}.author WHERE authorid = 'auth'", "derived");
-            var row = rs.First();
-            Assert.AreEqual(ConsistencyLevel.LocalQuorum, rs.Info.AchievedConsistency);
-            Assert.AreEqual("auth", row["authorid"].ToString());
+                    rs = session.Execute($"SELECT authorid FROM {ks}.author WHERE authorid = 'auth'", "derived");
+                    var row = rs.First();
+                    Assert.AreEqual(ConsistencyLevel.LocalQuorum, rs.Info.AchievedConsistency);
+                    Assert.AreEqual("auth", row["authorid"].ToString());
+                }
+                catch (QueryTimeoutException) {}
+            }, 1000, 10);
         }
 
         private void AssertCaMismatchSslError(NoHostAvailableException ex)

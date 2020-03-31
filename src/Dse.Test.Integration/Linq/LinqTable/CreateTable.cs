@@ -32,8 +32,8 @@ namespace Dse.Test.Integration.Linq.LinqTable
             "\"double_type\" double, " +
             "\"float_type\" float, " +
             "\"guid_type\" uuid, " +
-            "\"int_type\" int, " +
             "\"int64_type\" bigint, " +
+            "\"int_type\" int, " +
             "\"list_of_guids_type\" list<uuid>, " +
             "\"list_of_strings_type\" list<text>, " +
             "\"map_type_string_long_type\" map<text, bigint>, " +

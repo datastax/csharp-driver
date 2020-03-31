@@ -8,6 +8,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Cassandra.Tests;
 using Dse.Test.Integration.SimulacronAPI;
 using Dse.Test.Integration.SimulacronAPI.Models;
 using Dse.Test.Integration.TestClusterManagement.Simulacron;
@@ -15,7 +16,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Core
 {
-    [Category("short"), TestFixture]
+    [Category(TestCategory.Short), TestFixture]
     public class SimulacronHealthTest
     {
         [Test]

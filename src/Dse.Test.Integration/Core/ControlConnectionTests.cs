@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Text;
+using Cassandra.Tests;
 using Dse.Connections;
 using Dse.ProtocolEvents;
 using NUnit.Framework;
@@ -16,7 +17,7 @@ using Dse.Test.Integration.TestClusterManagement;
 
 namespace Dse.Test.Integration.Core
 {
-    [Category("short"), Category("realcluster")]
+    [Category(TestCategory.Short), Category(TestCategory.RealCluster)]
     public class ControlConnectionTests : TestGlobals
     {
         private const int InitTimeout = 2000;

@@ -11,10 +11,11 @@ using System.Diagnostics;
 using System.Linq.Expressions;
 using Dse.Test.Integration.TestClusterManagement;
 using System.Threading.Tasks;
+using Cassandra.Tests;
 
 namespace Dse.Test.Integration.Core
 {
-    [TestFixture, Category("short")]
+    [TestFixture, Category(TestCategory.Short)]
     public class ConnectionTimeoutTest : TestGlobals
     {
         [Test]

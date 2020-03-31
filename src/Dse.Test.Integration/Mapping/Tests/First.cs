@@ -8,6 +8,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Cassandra.Tests;
 using Dse.Data.Linq;
 using Dse.Test.Integration.Linq.Structures;
 using Dse.Test.Integration.TestClusterManagement;
@@ -17,7 +18,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Mapping.Tests
 {
-    [Category("short"), Category("realcluster")]
+    [Category(TestCategory.Short), Category(TestCategory.RealCluster)]
     public class First : SharedClusterTest
     {
         ISession _session;

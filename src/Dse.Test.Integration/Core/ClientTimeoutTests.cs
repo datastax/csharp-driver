@@ -11,6 +11,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Cassandra.Tests;
 using Dse.Test.Integration.SimulacronAPI;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Test.Integration.TestClusterManagement.Simulacron;
@@ -20,7 +21,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Core
 {
-    [TestFixture, Category("short")]
+    [TestFixture, Category(TestCategory.Short)]
     public class ClientTimeoutTests : TestGlobals
     {
         private SimulacronCluster _testCluster;

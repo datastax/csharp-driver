@@ -17,6 +17,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Cassandra.Tests;
 using Dse.Collections;
 using Dse.Connections;
 using Dse.ExecutionProfiles;
@@ -33,7 +34,7 @@ using Newtonsoft.Json;
 
 namespace Dse.Test.Integration.Core
 {
-    [TestTimeout(600000), Category("short"), Category("realcluster")]
+    [TestTimeout(600000), Category(TestCategory.Short), Category(TestCategory.RealCluster)]
     public class ConnectionTests : TestGlobals
     {
         private const string BasicQuery = "SELECT key FROM system.local";

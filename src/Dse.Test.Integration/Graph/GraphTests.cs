@@ -13,6 +13,7 @@ using System.Net;
 using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
+using Cassandra.Tests;
 using Dse.Geometry;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Graph;
@@ -20,7 +21,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Graph
 {
-    [TestFixture, TestDseVersion(5, 0), Category("short")]
+    [TestFixture, TestDseVersion(5, 0), Category(TestCategory.Short), Category(TestCategory.ServerApi), Category(TestCategory.RealCluster)]
     public class GraphTests : BaseIntegrationTest
     {
         private const string GraphName = "graph1";

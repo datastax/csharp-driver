@@ -18,7 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-
+using Cassandra.Tests;
 using Dse.Data.Linq;
 using Dse.Mapping;
 using Dse.Test.Integration.Linq.Structures;
@@ -32,7 +32,7 @@ namespace Dse.Test.Integration.Linq
     /// <summary>
     /// No support for paging state and traces in simulacron yet. Also haven't implemented an abstraction to prime UDTs yet.
     /// </summary>
-    [Category("short"), Category("realcluster")]
+    [Category(TestCategory.Short), Category(TestCategory.RealCluster)]
     public class LinqRealClusterTests : SharedClusterTest
     {
         private ISession _session;

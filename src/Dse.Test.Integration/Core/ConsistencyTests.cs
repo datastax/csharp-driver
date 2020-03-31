@@ -13,6 +13,7 @@ using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Cassandra.Tests;
 using Dse.Mapping;
 using Dse.Mapping.Statements;
 using Dse.Test.Integration.SimulacronAPI.Models.Logs;
@@ -20,7 +21,7 @@ using Dse.Test.Integration.TestClusterManagement.Simulacron;
 
 namespace Dse.Test.Integration.Core
 {
-    [TestFixture, Category("short")]
+    [TestFixture, Category(TestCategory.Short)]
     public class ConsistencyTests
     {
         private const string Query = "SELECT id, value from verifyconsistency";

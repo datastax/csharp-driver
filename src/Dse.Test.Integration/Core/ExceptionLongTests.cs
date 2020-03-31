@@ -7,13 +7,14 @@
 
 using System.Threading;
 using System.Threading.Tasks;
+using Cassandra.Tests;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Test.Unit;
 using NUnit.Framework;
 
 namespace Dse.Test.Integration.Core
 {
-    [TestFixture, Category("long"), TestCassandraVersion(3, 0)]
+    [TestFixture, Category(TestCategory.Long), TestCassandraVersion(3, 0)]
     public class ExceptionLongTests : TestGlobals
     {
         private ITestCluster _testCluster;

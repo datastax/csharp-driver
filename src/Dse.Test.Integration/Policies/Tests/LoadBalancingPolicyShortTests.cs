@@ -11,6 +11,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading;
+using Cassandra.Tests;
 using Dse.Test.Integration.Policies.Util;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Serialization;
@@ -18,10 +19,10 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Policies.Tests
 {
-    [TestFixture, Category("short"), Category("realcluster")]
+    [TestFixture, Category(TestCategory.Short), Category(TestCategory.RealCluster)]
     public class LoadBalancingPolicyShortTests : SharedClusterTest
     {
-        public LoadBalancingPolicyShortTests() : base(3, false, true, new TestClusterOptions { UseVNodes = true })
+        public LoadBalancingPolicyShortTests() : base(3, false, new TestClusterOptions { UseVNodes = true })
         {
         }
         

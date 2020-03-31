@@ -7,7 +7,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -140,20 +139,10 @@ namespace Dse.Test.Unit
         [TestCase("en-US")]
         public void LocalTime_ToString_Output_As_Input_For_Parse_Should_Return_An_Equal_LocalTime(string culture)
         {
-            var currentCulture = Thread.CurrentThread.CurrentCulture;
-
-            try
-            {
-                Thread.CurrentThread.CurrentCulture = new CultureInfo(culture);
-                var localTime = new LocalTime(15, 21, 50, 1);
-                var localTimeStr = localTime.ToString();
-                var act = LocalTime.Parse(localTimeStr);
-                Assert.AreEqual(localTime, act);
-            }
-            finally
-            {
-                Thread.CurrentThread.CurrentCulture = currentCulture;
-            }
+            var localTime = new LocalTime(15, 21, 50, 1);
+            var localTimeStr = localTime.ToString();
+            var act = LocalTime.Parse(localTimeStr);
+            Assert.AreEqual(localTime, act);
         }
 
         private static LocalTime GetLocalTime(Tuple<int, int, int, int, long, string> v)

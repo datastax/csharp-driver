@@ -13,6 +13,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading;
+using Cassandra.Tests;
 using Dse.SessionManagement;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Test.Integration.TestClusterManagement.Simulacron;
@@ -21,7 +22,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Core
 {
-    [Category("short")]
+    [Category(TestCategory.Short)]
     public class ReconnectionTests : TestGlobals
     {
         private SimulacronCluster _testCluster;
@@ -279,7 +280,7 @@ namespace Dse.Test.Integration.Core
             }
         }
 
-        [Category("realcluster")]
+        [Category(TestCategory.RealClusterLong)]
         [Test]
         public void Should_UseNewHostInQueryPlans_When_HostIsDecommissionedAndJoinsAgain()
         {
@@ -366,7 +367,7 @@ namespace Dse.Test.Integration.Core
             }
         }
 
-        [Category("realcluster")]
+        [Category(TestCategory.RealClusterLong)]
         [Test]
         public void Should_UpdateHosts_When_HostIpChanges()
         {

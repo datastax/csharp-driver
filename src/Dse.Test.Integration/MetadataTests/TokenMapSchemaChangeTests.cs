@@ -17,16 +17,17 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Cassandra.Tests;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Test.Unit;
 using NUnit.Framework;
 
 namespace Dse.Test.Integration.MetadataTests
 {
-    [TestFixture, Category("short"), Category("realcluster")]
+    [TestFixture, Category(TestCategory.Short), Category(TestCategory.RealCluster)]
     public class TokenMapSchemaChangeTests : SharedClusterTest
     {
-        public TokenMapSchemaChangeTests() : base(3, true, true, new TestClusterOptions { UseVNodes = true })
+        public TokenMapSchemaChangeTests() : base(3, true, new TestClusterOptions { UseVNodes = true })
         {
         }
 

@@ -8,6 +8,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Cassandra.Tests;
 using Dse.Data.Linq;
 using Dse.Test.Integration.Mapping.Structures;
 using Dse.Test.Integration.TestClusterManagement;
@@ -19,7 +20,7 @@ using HairColor = Dse.Test.Unit.Mapping.Pocos.HairColor;
 
 namespace Dse.Test.Integration.Mapping.Tests
 {
-    [Category("short"), Category("realcluster")]
+    [Category(TestCategory.Short), Category(TestCategory.RealCluster)]
     public class Fetch : SharedClusterTest
     {
         ISession _session;

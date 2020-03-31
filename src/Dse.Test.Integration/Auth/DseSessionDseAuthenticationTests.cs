@@ -18,6 +18,7 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+using Cassandra.Tests;
 using Dse.Test.Integration.TestBase;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Test.Unit;
@@ -28,7 +29,7 @@ namespace Dse.Test.Integration.Auth
     /// <summary>
     /// Test Cassandra Authentication.
     /// </summary>
-    [TestFixture, Category("short")]
+    [TestFixture, Category(TestCategory.Short), Category(TestCategory.ServerApi)]
     public class DseSessionDseAuthenticationTests : TestGlobals
     {
         private Lazy<ITestCluster> _testClusterForDseAuthTesting;

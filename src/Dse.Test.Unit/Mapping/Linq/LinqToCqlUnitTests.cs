@@ -595,8 +595,8 @@ APPLY BATCH".Replace("\r", ""));
             var ids = new []{ 1, 2, 3};
             var query = table.Where(t => ids.Contains(t.IntValue) && t.Int64Value == 10);
             Assert.AreEqual(
-                "SELECT \"boolean_VALUE\", \"datetime_VALUE\", \"decimal_VALUE\", \"double_VALUE\", \"int_VALUE\"," +
-                " \"int64_VALUE\", \"string_VALUE\", \"timeuuid_VALUE\", \"uuid_VALUE\" FROM \"atd\" WHERE" +
+                "SELECT \"boolean_VALUE\", \"datetime_VALUE\", \"decimal_VALUE\", \"double_VALUE\", \"int64_VALUE\"," +
+                " \"int_VALUE\", \"string_VALUE\", \"timeuuid_VALUE\", \"uuid_VALUE\" FROM \"atd\" WHERE" +
                 " \"int_VALUE\" IN ? AND \"int64_VALUE\" = ?",
                 query.ToString());
         }
