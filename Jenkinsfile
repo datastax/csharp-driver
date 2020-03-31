@@ -388,7 +388,7 @@ def describeAdhocTestingStage() {
 def branchPatternCron = ~"(master)"
 
 pipeline {
-  agent { label 'master' }
+  agent none
 
   // Global pipeline timeout
   options {
