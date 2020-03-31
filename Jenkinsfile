@@ -520,8 +520,11 @@ pipeline {
       description: 'CI testing operating system version to utilize for scheduled test runs of the driver (<strong>DO NOT CHANGE THIS SELECTION</strong>)')
   }
 
+  // branch pattern for cron
+  def pattern = ~"((\\d+(\\.[\\dx]+)+)|master)"
+
   triggers {
-    parameterizedCron("""
+    parameterizedCron(pattern.matcher(env.BRANCH_NAME).matches() ? """
       # Every weeknight (Monday - Friday) around 12:00 and 1:00 AM
       ##
       # Building on Linux
@@ -537,9 +540,9 @@ pipeline {
       #   - Target Apache Cassandara� v2.1.x, v2.2.x, v3.11.x for net452
       #   - Target Apache Cassandara� v2.2.x, v3.11.x for net461
       ##
-#      H 2 * * 1-5 %CI_SCHEDULE=WEEKNIGHTS;CI_SCHEDULE_DOTNET_VERSION=netcoreapp2.1;CI_SCHEDULE_SERVER_VERSION=3.11;CI_SCHEDULE_OS_VERSION=win/cs
-#      H 2 * * 1-5 %CI_SCHEDULE=WEEKNIGHTS;CI_SCHEDULE_DOTNET_VERSION=net452;CI_SCHEDULE_SERVER_VERSION=2.1 2.2 3.11;CI_SCHEDULE_OS_VERSION=win/cs
-#      H 2 * * 1-5 %CI_SCHEDULE=WEEKNIGHTS;CI_SCHEDULE_DOTNET_VERSION=net461;CI_SCHEDULE_SERVER_VERSION=2.2 3.11;CI_SCHEDULE_OS_VERSION=win/cs
+      H 2 * * 1-5 %CI_SCHEDULE=WEEKNIGHTS;CI_SCHEDULE_DOTNET_VERSION=netcoreapp2.1;CI_SCHEDULE_SERVER_VERSION=3.11;CI_SCHEDULE_OS_VERSION=win/cs
+      H 2 * * 1-5 %CI_SCHEDULE=WEEKNIGHTS;CI_SCHEDULE_DOTNET_VERSION=net452;CI_SCHEDULE_SERVER_VERSION=2.1 2.2 3.11;CI_SCHEDULE_OS_VERSION=win/cs
+      H 2 * * 1-5 %CI_SCHEDULE=WEEKNIGHTS;CI_SCHEDULE_DOTNET_VERSION=net461;CI_SCHEDULE_SERVER_VERSION=2.2 3.11;CI_SCHEDULE_OS_VERSION=win/cs
 
       # Every Saturday around 4:00 and 8:00 AM
       ##
@@ -553,10 +556,13 @@ pipeline {
       #   - Do not build using mono
       #   - Target all Apache Cassandara� versions for netcoreapp2.1, net452 and net461
       ##
-#      H 8 * * 6 %CI_SCHEDULE=WEEKENDS;CI_SCHEDULE_DOTNET_VERSION=netcoreapp2.1;CI_SCHEDULE_SERVER_VERSION=2.1 2.2 3.0 3.11 4.0;CI_SCHEDULE_OS_VERSION=win/cs
-#      H 8 * * 6 %CI_SCHEDULE=WEEKENDS;CI_SCHEDULE_DOTNET_VERSION=net452;CI_SCHEDULE_SERVER_VERSION=2.1 2.2 3.0 3.11 4.0;CI_SCHEDULE_OS_VERSION=win/cs
-#      H 8 * * 6 %CI_SCHEDULE=WEEKENDS;CI_SCHEDULE_DOTNET_VERSION=net461;CI_SCHEDULE_SERVER_VERSION=2.1 2.2 3.0 3.11 4.0;CI_SCHEDULE_OS_VERSION=win/cs
-    """)
+      H 8 * * 6 %CI_SCHEDULE=WEEKENDS;CI_SCHEDULE_DOTNET_VERSION=netcoreapp2.1;CI_SCHEDULE_SERVER_VERSION=2.1 2.2 3.0 3.11 4.0;CI_SCHEDULE_OS_VERSION=win/cs
+      H 8 * * 6 %CI_SCHEDULE=WEEKENDS;CI_SCHEDULE_DOTNET_VERSION=net452;CI_SCHEDULE_SERVER_VERSION=2.1 2.2 3.0 3.11 4.0;CI_SCHEDULE_OS_VERSION=win/cs
+      H 8 * * 6 %CI_SCHEDULE=WEEKENDS;CI_SCHEDULE_DOTNET_VERSION=net461;CI_SCHEDULE_SERVER_VERSION=2.1 2.2 3.0 3.11 4.0;CI_SCHEDULE_OS_VERSION=win/cs
+    """ : "")
+    parameterizedCron(pattern.matcher("master").matches() ? """
+      H/5 * * * * %CI_SCHEDULE=WEEKNIGHTS;CI_SCHEDULE_DOTNET_VERSION=mono;CI_SCHEDULE_SERVER_VERSION=2.2 3.11 dse-5.1 dse-6.7;CI_SCHEDULE_OS_VERSION=ubuntu/bionic64/csharp-driver
+    """ : "")
   }
 
   environment {
@@ -679,7 +685,6 @@ pipeline {
     stage('Scheduled-Testing') {
       when {
         beforeAgent true
-        branch pattern: '((\\d+(\\.[\\dx]+)+)|master)', comparator: 'REGEXP'
         allOf {
           expression { params.ADHOC_BUILD_TYPE == 'BUILD' }
           expression { params.CI_SCHEDULE != 'DO-NOT-CHANGE-THIS-SELECTION' }
