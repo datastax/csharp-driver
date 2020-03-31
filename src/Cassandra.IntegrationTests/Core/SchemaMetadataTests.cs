@@ -27,9 +27,19 @@ using SortOrder = Cassandra.DataCollectionMetadata.SortOrder;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestFixture, Category("short"), Category("realcluster"), Category("serverapi")]
+    [TestFixture, Category(TestCategory.Short), Category(TestCategory.RealCluster), Category(TestCategory.ServerApi)]
     public class SchemaMetadataTests : SharedClusterTest
     {
+        public SchemaMetadataTests() : 
+            base(1, true, new TestClusterOptions
+            {
+                CassandraYaml = 
+                    TestClusterManager.CheckCassandraVersion(true, new Version(4, 0), Comparison.GreaterThanOrEqualsTo ) 
+                        ? new[] { "enable_materialized_views: true" } : new string[0]
+            })
+        {
+        }
+
         protected override string[] SetupQueries
         {
             get

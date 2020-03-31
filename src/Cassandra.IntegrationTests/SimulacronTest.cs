@@ -21,11 +21,12 @@ using Cassandra.IntegrationTests.SimulacronAPI.SystemTables;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using Cassandra.SessionManagement;
+using Cassandra.Tests;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests
 {
-    [TestFixture, Category("short")]
+    [TestFixture, Category(TestCategory.Short)]
     public abstract class SimulacronTest
     {
         private readonly bool _shared;

@@ -22,7 +22,6 @@ using System.Threading.Tasks;
 using Cassandra.Helpers;
 using Newtonsoft.Json;
 #if NETSTANDARD
-using System.Linq.Expressions;
 using System.Net.Http;
 using System.Net.Http.Headers;
 #endif

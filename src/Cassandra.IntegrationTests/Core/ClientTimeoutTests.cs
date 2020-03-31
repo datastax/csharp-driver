@@ -29,7 +29,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestFixture, Category("short")]
+    [TestFixture, Category(TestCategory.Short)]
     public class ClientTimeoutTests : TestGlobals
     {
         private SimulacronCluster _testCluster;

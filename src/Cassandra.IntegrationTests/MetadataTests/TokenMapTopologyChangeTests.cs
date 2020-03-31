@@ -27,7 +27,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.MetadataTests
 {
-    [TestFixture, Category("short"), Category("realcluster")]
+    [TestFixture, Category(TestCategory.Short), Category(TestCategory.RealClusterLong)]
     public class TokenMapTopologyChangeTests
     {
         private ITestCluster TestCluster { get; set; }

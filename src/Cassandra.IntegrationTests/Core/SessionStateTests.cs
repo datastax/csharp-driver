@@ -26,7 +26,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestFixture, Category("short")]
+    [TestFixture, Category(TestCategory.Short)]
     public class SessionStateTests
     {
         private SimulacronCluster _testCluster;

@@ -14,15 +14,15 @@
 //   limitations under the License.
 //
 
-using Cassandra.Data.Linq;
 using NUnit.Framework;
 using System.Linq;
 using Cassandra.IntegrationTests.SimulacronAPI.Models.Logs;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
+using Cassandra.Tests;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestFixture, Category("short")]
+    [TestFixture, Category(TestCategory.Short)]
     public class ConsistencyTests
     {
         private const string Query = "SELECT id, value from verifyconsistency";

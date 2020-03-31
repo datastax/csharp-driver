@@ -20,11 +20,12 @@ using System.Diagnostics;
 using System.Text;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
+using Cassandra.Tests;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestFixture, Category("short"), Category("realcluster"), Category("serverapi")]
+    [TestFixture, Category(TestCategory.Short), Category(TestCategory.RealCluster), Category(TestCategory.ServerApi)]
     public class CustomPayloadTests : TestGlobals
     {
         public ISession Session { get; set; }

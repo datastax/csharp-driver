@@ -29,7 +29,7 @@ using Cassandra.Tests;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [Category("short"), Category("realcluster"), Category("serverapi")]
+    [Category(TestCategory.Short), Category(TestCategory.RealCluster), Category(TestCategory.ServerApi)]
     public class PreparedStatementsTests : SharedClusterTest
     {
         private readonly string _tableName = "tbl" + Guid.NewGuid().ToString("N").ToLower();
@@ -828,6 +828,12 @@ namespace Cassandra.IntegrationTests.Core
         [TestCassandraVersion(4, 0)]
         public void Session_Prepare_With_Keyspace_Defined_On_Protocol_Greater_Than_4(bool usePayload)
         {
+            if (TestClusterManager.IsCassandraFourZeroPreRelease())
+            {
+                Assert.Ignore("test requires protocol >= 5 but cassandra 4.0 pre-release detected");
+                return;
+            }
+
             Assert.AreNotEqual("system", Session.Keyspace);
             PreparedStatement ps;
             if (!usePayload)
@@ -855,6 +861,12 @@ namespace Cassandra.IntegrationTests.Core
         [TestCassandraVersion(4, 0)]
         public async Task Session_PrepareAsync_With_Keyspace_Defined_On_Protocol_Greater_Than_4(bool usePayload)
         {
+            if (TestClusterManager.IsCassandraFourZeroPreRelease())
+            {
+                Assert.Ignore("test requires protocol >= 5 but cassandra 4.0 pre-release detected");
+                return;
+            }
+
             Assert.AreNotEqual("system", Session.Keyspace);
             PreparedStatement ps;
             if (!usePayload)

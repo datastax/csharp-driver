@@ -21,11 +21,12 @@ using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
+using Cassandra.Tests;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Mapping.Tests
 {
-    [Category("short"), Category("realcluster")]
+    [Category(TestCategory.Short), Category(TestCategory.RealCluster)]
     public class Single : SharedClusterTest
     {
         ISession _session = null;

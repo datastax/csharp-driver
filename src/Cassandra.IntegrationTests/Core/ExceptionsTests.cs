@@ -23,10 +23,11 @@ using Cassandra.IntegrationTests.SimulacronAPI;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
+using Cassandra.Tests;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestFixture, Category("short")]
+    [TestFixture, Category(TestCategory.Short)]
     public class ExceptionsTests : TestGlobals
     {
         private ISession _session;

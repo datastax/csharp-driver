@@ -24,10 +24,10 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.MetadataTests
 {
-    [TestFixture, Category("short"), Category("realcluster")]
+    [TestFixture, Category(TestCategory.Short), Category(TestCategory.RealCluster)]
     public class TokenMapSchemaChangeTests : SharedClusterTest
     {
-        public TokenMapSchemaChangeTests() : base(3, true, true, new TestClusterOptions { UseVNodes = true })
+        public TokenMapSchemaChangeTests() : base(3, true, new TestClusterOptions { UseVNodes = true })
         {
         }
 

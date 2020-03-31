@@ -31,7 +31,7 @@ using Cassandra.Tests;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestFixture, Category("short")]
+    [TestFixture, Category(TestCategory.Short)]
     public class PoolShortTests : TestGlobals
     {
         [TearDown]
@@ -225,7 +225,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [Test, Category("realcluster")]
+        [Test, Category(TestCategory.RealCluster)]
         public void Connect_With_Ssl_Test()
         {
             try

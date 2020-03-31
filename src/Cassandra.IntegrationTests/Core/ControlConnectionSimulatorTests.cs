@@ -26,7 +26,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestFixture, Category("short")]
+    [TestFixture, Category(TestCategory.Short)]
     public class ControlConnectionSimulatorTests
     {
         [TestCase(ProtocolVersion.V3, "3.0.13", "2.1.17")]

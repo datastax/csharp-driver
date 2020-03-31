@@ -21,12 +21,13 @@ using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.CqlFunctions.Structures;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
+using Cassandra.Tests;
 using NUnit.Framework;
 #pragma warning disable 612
 
 namespace Cassandra.IntegrationTests.CqlFunctions.Tests
 {
-    [Category("short"), Category("realcluster")]
+    [Category(TestCategory.Short), Category(TestCategory.RealCluster)]
     public class MaxTimeUuid : SharedClusterTest
     {
         private ISession _session = null;

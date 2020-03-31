@@ -40,7 +40,7 @@ using Newtonsoft.Json;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestTimeout(600000), Category("short"), Category("realcluster")]
+    [TestTimeout(600000), Category(TestCategory.Short), Category(TestCategory.RealCluster)]
     public class ConnectionTests : TestGlobals
     {
         private const string BasicQuery = "SELECT key FROM system.local";

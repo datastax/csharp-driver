@@ -25,10 +25,6 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
     /// </summary>
     public static class TestClusterManager
     {
-        public static ITestCluster LastInstance { get; private set; }
-        public static TestClusterOptions LastOptions { get; private set; }
-
-        public static int LastAmountOfNodes { get; private set; }
         public const string DefaultKeyspaceName = "test_cluster_keyspace";
         private static ICcmProcessExecuter _executor;
 
@@ -82,7 +78,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                     return Version4Dot0;
                 }
 
-                return new Version(TestClusterManager.CassandraVersionString);
+                return new Version(TestClusterManager.CassandraVersionString.Split('-')[0]);
             }
         }
 
@@ -112,7 +108,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             get { return Environment.GetEnvironmentVariable("DSE_VERSION") ?? "6.7.7"; }
         }
 
-        private static string CassandraVersionString
+        public static string CassandraVersionString
         {
             get { return Environment.GetEnvironmentVariable("CASSANDRA_VERSION") ?? "3.11.2"; }
         }
@@ -124,12 +120,19 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         
         public static Version DseVersion
         {
-            get { return IsDse ? new Version(DseVersionString) : TestClusterManager.GetDseVersion(new Version(CassandraVersionString)); }
+            get { return IsDse ? new Version(DseVersionString.Split('-')[0]) : TestClusterManager.GetDseVersion(new Version(CassandraVersionString.Split('-')[0])); }
+        }
+
+        public static bool IsCassandraFourZeroPreRelease()
+        {
+            return TestClusterManager.CassandraVersion.Equals(new Version(4, 0))
+                   && TestClusterManager.CassandraVersionString.Contains("-");
         }
 
         public static bool SupportsDecommissionForcefully()
         {
-            return TestClusterManager.CheckDseVersion(new Version(5, 1), Comparison.GreaterThanOrEqualsTo);
+            return TestClusterManager.CheckDseVersion(new Version(5, 1), Comparison.GreaterThanOrEqualsTo) 
+                   || TestClusterManager.CheckCassandraVersion(true, new Version(4, 0), Comparison.GreaterThanOrEqualsTo);
         }
 
         public static bool SupportsNextGenGraph()
@@ -244,9 +247,6 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             {
                 testCluster.Start(options.JvmArgs);
             }
-            LastInstance = testCluster;
-            LastAmountOfNodes = nodeLength;
-            LastOptions = options;
             return testCluster;
         }
 

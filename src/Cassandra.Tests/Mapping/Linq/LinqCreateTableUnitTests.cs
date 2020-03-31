@@ -44,7 +44,7 @@ namespace Cassandra.Tests.Mapping.Linq
             table.Create();
             Assert.AreEqual("CREATE TABLE AllTypesDecorated " +
                             "(BooleanValue boolean, DateTimeValue timestamp, DecimalValue decimal, DoubleValue double, " +
-                            "int_value int, Int64Value bigint, StringValue text, TimeUuidValue timeuuid, UuidValue uuid, " +
+                            "Int64Value bigint, int_value int, StringValue text, TimeUuidValue timeuuid, UuidValue uuid, " +
                             "PRIMARY KEY ((StringValue, TimeUuidValue)))", createQuery);
         }
 
@@ -66,7 +66,7 @@ namespace Cassandra.Tests.Mapping.Linq
             table.Create();
             Assert.AreEqual("CREATE TABLE AllTypesDecorated " +
                             "(BooleanValue boolean, DateTimeValue timestamp, DecimalValue decimal, DoubleValue double, " +
-                            "int_value int, Int64Value bigint, StringValue text, TimeUuidValue timeuuid, UuidValue uuid, " +
+                            "Int64Value bigint, int_value int, StringValue text, TimeUuidValue timeuuid, UuidValue uuid, " +
                             "PRIMARY KEY ((StringValue, int_value), DateTimeValue))", createQuery);
         }
 

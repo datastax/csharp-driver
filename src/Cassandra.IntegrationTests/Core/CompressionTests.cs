@@ -19,13 +19,12 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Cassandra.IntegrationTests;
 using Cassandra.Tests;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [Category("short"), Category("realcluster")]
+    [Category(TestCategory.Short), Category(TestCategory.RealCluster)]
     public class CompressionTests : SharedClusterTest
     {
         [Test, TestTimeout(120000)]

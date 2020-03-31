@@ -19,6 +19,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Threading;
 using Cassandra.IntegrationTests.TestBase;
+using Cassandra.Tests;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
@@ -26,7 +27,7 @@ namespace Cassandra.IntegrationTests.Core
     /// <summary>
     /// Validates that the Session.GetRequest (called within ExecuteAsync) method uses the paging size under different scenarios
     /// </summary>
-    [Category("short"), Category("realcluster"), Category("serverapi")]
+    [Category(TestCategory.Short), Category(TestCategory.RealCluster), Category(TestCategory.ServerApi)]
     public class PagingTests : SharedClusterTest
     {
         public override void OneTimeSetUp()

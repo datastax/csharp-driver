@@ -20,12 +20,13 @@ using System.Linq;
 using Cassandra.IntegrationTests.Policies.Util;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
+using Cassandra.Tests;
 using NUnit.Framework;
 #pragma warning disable 618
 
 namespace Cassandra.IntegrationTests.Policies.Tests
 {
-    [TestFixture, Category("long"), Ignore("tests that are not marked with 'short' need to be refactored/deleted")]
+    [TestFixture, Category(TestCategory.Long), Ignore("tests that are not marked with 'short' need to be refactored/deleted")]
     public class ConsistencyTests : TestGlobals
     {
         private PolicyTestTools _policyTestTools = null;

@@ -23,11 +23,12 @@ using Cassandra.ProtocolEvents;
 using NUnit.Framework;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.SessionManagement;
+using Cassandra.Tests;
 using Moq;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [Category("short"), Category("realcluster")]
+    [Category(TestCategory.Short), Category(TestCategory.RealCluster)]
     public class ControlConnectionTests : TestGlobals
     {
         private const int InitTimeout = 2000;

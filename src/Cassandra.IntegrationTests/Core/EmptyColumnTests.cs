@@ -22,13 +22,13 @@ using Cassandra.IntegrationTests.SimulacronAPI.SystemTables;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
-
+using Cassandra.Tests;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
     [TestFixture]
-    [Category("short")]
+    [Category(TestCategory.Short)]
     public class EmptyColumnTests : TestGlobals
     {
         [Test]

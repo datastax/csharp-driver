@@ -20,11 +20,12 @@ using System.Linq;
 using System.Threading;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
+using Cassandra.Tests;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.FoundBugs
 {
-    [TestFixture, Category("long"), Ignore("tests that are not marked with 'short' need to be refactored/deleted")]
+    [TestFixture, Category(TestCategory.Long), Ignore("tests that are not marked with 'short' need to be refactored/deleted")]
     public class FoundBugTests : TestGlobals
     {
         [Test]

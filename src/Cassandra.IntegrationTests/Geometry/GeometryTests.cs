@@ -19,11 +19,12 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Cassandra.IntegrationTests.TestBase;
+using Cassandra.Tests;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Geometry
 {
-    [TestDseVersion(5, 0), Category("short"), Category("serverapi")]
+    [TestDseVersion(5, 0), Category(TestCategory.Short), Category(TestCategory.ServerApi)]
     public abstract class GeometryTests<T> : SharedClusterTest
     {
         protected abstract T[] Values { get; }

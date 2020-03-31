@@ -26,11 +26,12 @@ using Cassandra.DataStax.Graph;
 using Cassandra.Geometry;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
+using Cassandra.Tests;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.DataStax.Graph
 {
-    [TestFixture, TestDseVersion(5, 0), Category("short"), Category("serverapi")]
+    [TestFixture, TestDseVersion(5, 0), Category(TestCategory.Short), Category(TestCategory.ServerApi), Category(TestCategory.RealCluster)]
     public class GraphTests : BaseIntegrationTest
     {
         private const string GraphName = "graph1";

@@ -110,15 +110,42 @@ namespace Cassandra.IntegrationTests.TestBase
 
         public static bool VersionMatch(Version expectedVersion, Version executingVersion, Comparison comparison)
         {
-            //Compare them as integers
-            //var expectedVersion = new Version(versionAttr.Major, versionAttr.Minor, versionAttr.Build);
-            var comparisonResult = (Comparison)executingVersion.CompareTo(expectedVersion);
+            expectedVersion = AdaptVersion(expectedVersion);
+            executingVersion = AdaptVersion(executingVersion);
 
+            var comparisonResult = (Comparison)executingVersion.CompareTo(expectedVersion);
+            
             if (comparisonResult >= Comparison.Equal && comparison == Comparison.GreaterThanOrEqualsTo)
             {
                 return true;
             }
             return comparisonResult == comparison;
+        }
+
+        /// <summary>
+        /// Replace -1 (undefined) with 0 on the version string.
+        /// </summary>
+        private static Version AdaptVersion(Version v)
+        {
+            var minor = v.Minor;
+            if (minor < 0)
+            {
+                minor = 0;
+            }
+
+            var build = v.Build;
+            if (build < 0)
+            {
+                build = 0;
+            }
+
+            var revision = v.Revision;
+            if (revision < 0)
+            {
+                revision = 0;
+            }
+
+            return new Version(v.Major, minor, build, revision);
         }
 
         private static string GetComparisonText(Comparison comparison)
@@ -147,9 +174,10 @@ namespace Cassandra.IntegrationTests.TestBase
     {
         protected override Version GetExpectedServerVersion()
         {
+            var version = new Version(Major, Minor, Build);
             return TestClusterManager.IsDse
-                ? TestClusterManager.GetDseVersion(new Version(Major, Minor, Build))
-                : new Version(Major, Minor, Build);
+                ? TestClusterManager.GetDseVersion(version)
+                : version;
         }
 
         protected override bool IsDseRequired()

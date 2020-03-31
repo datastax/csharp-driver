@@ -18,12 +18,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Cassandra.IntegrationTests.TestBase;
+using Cassandra.Tests;
 using NUnit.Framework;
 #pragma warning disable 618
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [Category("short"), Category("realcluster"), Category("serverapi")]
+    [Category(TestCategory.Short), Category(TestCategory.RealCluster), Category(TestCategory.ServerApi)]
     public class CollectionsNestedTests : SharedClusterTest
     {
         [Test, TestCassandraVersion(2, 1, 3)]

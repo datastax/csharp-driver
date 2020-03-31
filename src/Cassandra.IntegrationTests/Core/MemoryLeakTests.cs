@@ -17,7 +17,6 @@
 #if NETFRAMEWORK && !LINUX
 using System;
 using System.Net.Sockets;
-using System.Threading;
 using Cassandra.Tests;
 using JetBrains.dotMemoryUnit;
 using NUnit.Framework;

@@ -23,14 +23,14 @@ using Cassandra.IntegrationTests.SimulacronAPI;
 using Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.Then;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
-
+using Cassandra.Tests;
 using Newtonsoft.Json;
 
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Policies.Tests
 {
-    [TestFixture, Category("short")]
+    [TestFixture, Category(TestCategory.Short)]
     public class RetryPolicyShortTests : TestGlobals
     {
         public static object[] RetryPolicyExtendedData =

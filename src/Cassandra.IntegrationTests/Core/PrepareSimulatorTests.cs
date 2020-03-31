@@ -28,7 +28,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestFixture, Category("short")]
+    [TestFixture, Category(TestCategory.Short)]
     public class PrepareSimulatorTests
     {
         private const string Keyspace = "ks1";

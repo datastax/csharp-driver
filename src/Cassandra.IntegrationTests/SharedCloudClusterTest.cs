@@ -23,7 +23,7 @@ namespace Cassandra.IntegrationTests
 {
     public abstract class SharedCloudClusterTest : SharedClusterTest
     {
-        private const int MaxRetries = 20;
+        private const int MaxRetries = 10;
 
         private readonly bool _sniCertValidation;
         private readonly bool _clientCert;
@@ -32,8 +32,8 @@ namespace Cassandra.IntegrationTests
         protected new ICluster Cluster { get; set; }
 
         protected SharedCloudClusterTest(
-            bool createSession = true, bool reuse = true, bool sniCertValidation = true, bool clientCert = true) :
-            base(3, createSession, reuse)
+            bool createSession = true, bool sniCertValidation = true, bool clientCert = true) :
+            base(3, createSession)
         {
             _sniCertValidation = sniCertValidation;
             _clientCert = clientCert;
@@ -61,7 +61,16 @@ namespace Cassandra.IntegrationTests
                     SetBaseSession(Cluster.Connect());
                     return;
                 }
-                catch (Exception ex) { last = ex; Task.Delay(1000).GetAwaiter().GetResult(); }
+                catch (Exception ex)
+                {
+                    last = ex; 
+                    Task.Delay(1000).GetAwaiter().GetResult();
+                    if (Cluster != null)
+                    {
+                        Cluster.Dispose();
+                        Cluster = null;
+                    }
+                }
             }
             throw last;
         }
@@ -88,19 +97,35 @@ namespace Cassandra.IntegrationTests
             return cluster;
         }
         
-        protected Task<ISession> CreateSessionAsync(string creds = "creds-v1.zip", Action<Builder> act = null)
+        protected async Task<ISession> CreateSessionAsync(
+            string creds = "creds-v1.zip", int retries = SharedCloudClusterTest.MaxRetries, Action<Builder> act = null)
         {
-            return CreateTemporaryCluster(creds, act).ConnectAsync();
+            Exception last = null;
+            ICluster cluster = null;
+            for (var i = 0; i < SharedCloudClusterTest.MaxRetries; i++)
+            {
+                try
+                {
+                    cluster = CreateTemporaryCluster(creds, act);
+                    return await cluster.ConnectAsync().ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    last = ex;
+                    Task.Delay(1000).GetAwaiter().GetResult();
+                    if (cluster != null)
+                    {
+                        cluster.Dispose();
+                        cluster = null;
+                    }
+                }
+            }
+            throw last;
         }
 
         protected override ITestCluster CreateNew(int nodeLength, TestClusterOptions options, bool startCluster)
         {
             return TestCloudClusterManager.CreateNew(_sniCertValidation);
-        }
-        
-        protected override bool IsSimilarCluster(ITestCluster reusableInstance, TestClusterOptions options, int nodeLength)
-        {
-            return reusableInstance is CloudCluster c && c.SniCertificateValidation == _sniCertValidation;
         }
     }
 }
