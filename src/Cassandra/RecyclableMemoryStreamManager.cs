@@ -267,8 +267,7 @@ namespace Microsoft.IO
         /// <returns>A byte[] array</returns>
         internal byte[] GetBlock()
         {
-            byte[] block;
-            if (!this.smallPool.TryPop(out block))
+            if (!this.smallPool.TryPop(out byte[] block))
             {
                 // We'll add this back to the pool when the stream is disposed
                 // (unless our free pool is too large)
@@ -290,9 +289,8 @@ namespace Microsoft.IO
         /// will be at least the requiredSize and always be a multiple of largeBufferMultiple.
         /// </summary>
         /// <param name="requiredSize">The minimum length of the buffer</param>
-        /// <param name="tag">The tag of the stream returning this buffer, for logging if necessary.</param>
         /// <returns>A buffer of at least the required size.</returns>
-        internal byte[] GetLargeBuffer(int requiredSize, string tag)
+        internal byte[] GetLargeBuffer(int requiredSize)
         {
             requiredSize = this.RoundToLargeBufferMultiple(requiredSize);
 
@@ -509,7 +507,7 @@ namespace Microsoft.IO
                 return this.GetStream(tag, requiredSize);
             }
 
-            return new RecyclableMemoryStream(this, tag, requiredSize, this.GetLargeBuffer(requiredSize, tag));
+            return new RecyclableMemoryStream(this, tag, requiredSize, this.GetLargeBuffer(requiredSize));
         }
 
         /// <summary>

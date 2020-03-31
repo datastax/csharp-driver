@@ -40,8 +40,7 @@ namespace Cassandra.Mapping
         /// </summary>
         public Map<TPoco> For<TPoco>()
         {
-            ITypeDefinition map;
-            if (Definitions.TryGetItem(typeof (TPoco), out map) == false)
+            if (Definitions.TryGetItem(typeof(TPoco), out ITypeDefinition map) == false)
             {
                 map = new Map<TPoco>();
                 Definitions.Add(map);

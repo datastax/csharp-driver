@@ -66,8 +66,7 @@ namespace Cassandra
             if (source != "{}")
                 foreach (string elem in elements)
                 {
-                    int value;
-                    if (int.TryParse(elem.Split(':')[1].Replace("\"", ""), out value))
+                    if (int.TryParse(elem.Split(':')[1].Replace("\"", ""), out int value))
                         map.Add(elem.Split(':')[0].Replace("\"", ""), value);
                     else
                         throw new FormatException("Value of keyspace strategy option is in invalid format!");
@@ -95,8 +94,7 @@ namespace Cassandra
 
             foreach (KeyValuePair<TKey, TValue> kvp in dict1)
             {
-                TValue value2;
-                if (!dict2.TryGetValue(kvp.Key, out value2))
+                if (!dict2.TryGetValue(kvp.Key, out TValue value2))
                     return false;
                 if (!comp.Equals(kvp.Value, value2))
                     return false;

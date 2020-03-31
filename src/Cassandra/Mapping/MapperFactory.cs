@@ -76,10 +76,8 @@ namespace Cassandra.Mapping
 
         public MapperFactory(TypeConverter typeConverter, PocoDataFactory pocoDataFactory)
         {
-            if (typeConverter == null) throw new ArgumentNullException("typeConverter");
-            if (pocoDataFactory == null) throw new ArgumentNullException("pocoDataFactory");
-            _typeConverter = typeConverter;
-            _pocoDataFactory = pocoDataFactory;
+            _typeConverter = typeConverter ?? throw new ArgumentNullException("typeConverter");
+            _pocoDataFactory = pocoDataFactory ?? throw new ArgumentNullException("pocoDataFactory");
 
             _mapperFuncCache = new ConcurrentDictionary<Tuple<Type, string, string>, Delegate>();
             _valueCollectorFuncCache = new ConcurrentDictionary<Tuple<Type, string>, Delegate>();
@@ -287,8 +285,7 @@ namespace Cassandra.Mapping
             foreach (var dbColumn in rows.Columns)
             {
                 // Try to find a corresponding column on the POCO and if not found, don't map that column from the RowSet
-                PocoColumn pocoColumn;
-                if (pocoData.Columns.TryGetItem(dbColumn.Name, out pocoColumn) == false)
+                if (pocoData.Columns.TryGetItem(dbColumn.Name, out PocoColumn pocoColumn) == false)
                     continue;
 
                 // Figure out if we're going to need to do any casting/conversion when we call Row.GetValue<T>(columnIndex)
@@ -302,8 +299,7 @@ namespace Cassandra.Mapping
 
                 // Cassandra will return null for empty collections, so make an effort to populate collection properties on the POCO with
                 // empty collections instead of null in those cases
-                Expression createEmptyCollection;
-                if (TryGetCreateEmptyCollectionExpression(dbColumn, pocoColumn.MemberInfoType, out createEmptyCollection))
+                if (TryGetCreateEmptyCollectionExpression(dbColumn, pocoColumn.MemberInfoType, out Expression createEmptyCollection))
                 {
                     // poco.SomeFieldOrProp = ... createEmptyCollection ...
                     ifRowValueIsNull = Expression.Assign(Expression.MakeMemberAccess(poco, pocoColumn.MemberInfo), createEmptyCollection);
@@ -380,8 +376,7 @@ namespace Cassandra.Mapping
                 // Start with an expression that does nothing if the row is null
                 Expression ifRowValueIsNull = Expression.Empty();
                 // For collections, make an effort to return an empty collection instead of null
-                Expression createEmptyCollection;
-                if (TryGetCreateEmptyCollectionExpression(c, memberType, out createEmptyCollection))
+                if (TryGetCreateEmptyCollectionExpression(c, memberType, out Expression createEmptyCollection))
                 {
                     // poco.SomeFieldOrProp = ... createEmptyCollection ...
                     ifRowValueIsNull = Expression.Assign(Expression.MakeMemberAccess(poco, member), createEmptyCollection);
@@ -505,10 +500,9 @@ namespace Cassandra.Mapping
                             getValueT), 
                         pocoDestType);
             }
-            Expression defaultValue;
             // Cassandra will return null for empty collections, so make an effort to populate collection properties on the POCO with
             // empty collections instead of null in those cases
-            if (!TryGetCreateEmptyCollectionExpression(dbColumn, pocoDestType, out defaultValue))
+            if (!TryGetCreateEmptyCollectionExpression(dbColumn, pocoDestType, out Expression defaultValue))
             {
                 // poco.SomeFieldOrProp = ... createEmptyCollection ...
                 defaultValue = Expression.Default(pocoDestType);

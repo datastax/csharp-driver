@@ -147,8 +147,6 @@ namespace Cassandra.DataStax.Auth.Sspi.Contexts
             SecureBufferAdapter adapter;
 
             SecurityStatus status = SecurityStatus.InvalidHandle;
-            byte[] result;
-
             CheckLifecycle();
 
             sizes = QueryBufferSizes();
@@ -177,7 +175,7 @@ namespace Cassandra.DataStax.Auth.Sspi.Contexts
             int position = 0;
             
             // Return 1 buffer with the 3 buffers joined
-            result = new byte[trailerBuffer.Length + dataBuffer.Length + paddingBuffer.Length];
+            var result = new byte[trailerBuffer.Length + dataBuffer.Length + paddingBuffer.Length];
 
             Array.Copy( trailerBuffer.Buffer, 0, result, position, trailerBuffer.Length );
             position += trailerBuffer.Length;

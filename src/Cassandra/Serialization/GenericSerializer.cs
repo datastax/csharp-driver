@@ -86,8 +86,7 @@ namespace Cassandra.Serialization
 
         public object Deserialize(ProtocolVersion version, byte[] buffer, int offset, int length, ColumnTypeCode typeCode, IColumnInfo typeInfo)
         {
-            ITypeSerializer typeSerializer;
-            if (_primitiveDeserializers.TryGetValue(typeCode, out typeSerializer))
+            if (_primitiveDeserializers.TryGetValue(typeCode, out ITypeSerializer typeSerializer))
             {
                 return typeSerializer.Deserialize((byte)version, buffer, offset, length, typeInfo);
             }
@@ -118,8 +117,7 @@ namespace Cassandra.Serialization
 
         public Type GetClrType(ColumnTypeCode typeCode, IColumnInfo typeInfo)
         {
-            Func<IColumnInfo, Type> clrTypeHandler;
-            if (!_defaultTypes.TryGetValue(typeCode, out clrTypeHandler))
+            if (!_defaultTypes.TryGetValue(typeCode, out Func<IColumnInfo, Type> clrTypeHandler))
             {
                 throw new ArgumentException($"No handler defined for type {typeCode}");
             }
@@ -131,8 +129,7 @@ namespace Cassandra.Serialization
             var customTypeInfo = (CustomColumnInfo)typeInfo;
             if (customTypeInfo.CustomTypeName == null || !customTypeInfo.CustomTypeName.StartsWith(DataTypeParser.UdtTypeName))
             {
-                ITypeSerializer serializer;
-                if (_customDeserializers.TryGetValue(customTypeInfo, out serializer))
+                if (_customDeserializers.TryGetValue(customTypeInfo, out ITypeSerializer serializer))
                 {
                     return serializer.Type;
                 }
@@ -150,8 +147,7 @@ namespace Cassandra.Serialization
         public ColumnTypeCode GetCqlType(Type type, out IColumnInfo typeInfo)
         {
             typeInfo = null;
-            ITypeSerializer typeSerializer;
-            if (_primitiveSerializers.TryGetValue(type, out typeSerializer))
+            if (_primitiveSerializers.TryGetValue(type, out ITypeSerializer typeSerializer))
             {
                 return typeSerializer.CqlType;
             }
@@ -162,8 +158,7 @@ namespace Cassandra.Serialization
             }
             if (type.IsArray)
             {
-                IColumnInfo valueTypeInfo;
-                ColumnTypeCode valueTypeCode = GetCqlType(type.GetElementType(), out valueTypeInfo);
+                ColumnTypeCode valueTypeCode = GetCqlType(type.GetElementType(), out IColumnInfo valueTypeInfo);
                 typeInfo = new ListColumnInfo
                 {
                     ValueTypeCode = valueTypeCode,
@@ -185,8 +180,7 @@ namespace Cassandra.Serialization
                     if (typeof(IDictionary).GetTypeInfo().IsAssignableFrom(type) && 
                         interfaces.Any(t => IntrospectionExtensions.GetTypeInfo(t).IsGenericType && t.GetGenericTypeDefinition() == typeof(IDictionary<,>)))
                     {
-                        IColumnInfo keyTypeInfo;
-                        var keyTypeCode = GetCqlType(type.GetTypeInfo().GetGenericArguments()[0], out keyTypeInfo);
+                        var keyTypeCode = GetCqlType(type.GetTypeInfo().GetGenericArguments()[0], out IColumnInfo keyTypeInfo);
                         valueTypeCode = GetCqlType(type.GetTypeInfo().GetGenericArguments()[1], out valueTypeInfo);
                         typeInfo = new MapColumnInfo
                         {
@@ -199,8 +193,7 @@ namespace Cassandra.Serialization
                     }
                     if (interfaces.Any(t => t.GetTypeInfo().IsGenericType && t.GetGenericTypeDefinition() == typeof(ISet<>)))
                     {
-                        IColumnInfo keyTypeInfo;
-                        var keyTypeCode = GetCqlType(type.GetTypeInfo().GetGenericArguments()[0], out keyTypeInfo);
+                        var keyTypeCode = GetCqlType(type.GetTypeInfo().GetGenericArguments()[0], out IColumnInfo keyTypeInfo);
                         typeInfo = new SetColumnInfo
                         {
                             KeyTypeCode = keyTypeCode,
@@ -222,10 +215,9 @@ namespace Cassandra.Serialization
                     {
                         Elements = type.GetTypeInfo().GetGenericArguments().Select(t =>
                         {
-                            IColumnInfo tupleSubTypeInfo;
                             var dataType = new ColumnDesc
                             {
-                                TypeCode = GetCqlType(t, out tupleSubTypeInfo),
+                                TypeCode = GetCqlType(t, out IColumnInfo tupleSubTypeInfo),
                                 TypeInfo = tupleSubTypeInfo
                             };
                             return dataType;
@@ -307,8 +299,7 @@ namespace Cassandra.Serialization
                 return true;
             }
             var type = value.GetType();
-            ITypeSerializer typeSerializer;
-            if (_primitiveSerializers.TryGetValue(type, out typeSerializer))
+            if (_primitiveSerializers.TryGetValue(type, out ITypeSerializer typeSerializer))
             {
                 var cqlType = typeSerializer.CqlType;
                 //Its a single type, if the types match -> go ahead
@@ -360,8 +351,7 @@ namespace Cassandra.Serialization
                 return null;
             }
             var type = value.GetType();
-            ITypeSerializer typeSerializer;
-            if (_primitiveSerializers.TryGetValue(type, out typeSerializer))
+            if (_primitiveSerializers.TryGetValue(type, out ITypeSerializer typeSerializer))
             {
                 return typeSerializer.Serialize((byte)version, value);
             }

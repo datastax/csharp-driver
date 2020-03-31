@@ -179,8 +179,7 @@ namespace Cassandra.Tasks
         /// </summary>
         private void AddPending()
         {
-            Tuple<TimeoutItem, long> pending;
-            while (_pendingToAdd.TryDequeue(out pending))
+            while (_pendingToAdd.TryDequeue(out Tuple<TimeoutItem, long> pending))
             {
                 AddTimeout(pending.Item1, pending.Item2);
             }
@@ -212,8 +211,7 @@ namespace Cassandra.Tasks
         /// </summary>
         private void RemoveCancelled()
         {
-            TimeoutItem timeout;
-            while (_cancelledTimeouts.TryDequeue(out timeout))
+            while (_cancelledTimeouts.TryDequeue(out TimeoutItem timeout))
             {
                 try
                 {

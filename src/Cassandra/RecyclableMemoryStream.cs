@@ -423,7 +423,7 @@ namespace Microsoft.IO
             // it's possible that people will manipulate the buffer directly
             // and set the length afterward. Capacity sets the expectation
             // for the size of the buffer.
-            var newBuffer = this.memoryManager.GetLargeBuffer(this.Capacity, this.tag);
+            var newBuffer = this.memoryManager.GetLargeBuffer(this.Capacity);
 
             // InternalRead will check for existence of largeBuffer, so make sure we
             // don't set it until after we've copied the data.
@@ -789,7 +789,7 @@ namespace Microsoft.IO
             {
                 if (newCapacity > this.largeBuffer.Length)
                 {
-                    var newBuffer = this.memoryManager.GetLargeBuffer(newCapacity, this.tag);
+                    var newBuffer = this.memoryManager.GetLargeBuffer(newCapacity);
                     this.InternalRead(newBuffer, 0, this.length, 0);
                     this.ReleaseLargeBuffer();
                     this.largeBuffer = newBuffer;

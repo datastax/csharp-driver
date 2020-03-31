@@ -873,8 +873,7 @@ namespace Cassandra.Connections
                     break;
                 }
 
-                short streamId;
-                if (!_freeOperations.TryPop(out streamId))
+                if (!_freeOperations.TryPop(out short streamId))
                 {
                     //Queue it up for later.
                     _writeQueue.Enqueue(state);

@@ -133,12 +133,9 @@ namespace Cassandra
         /// </summary>
         public CqlColumn GetColumn(string name)
         {
-            int index;
-            if (!ColumnIndexes.TryGetValue(name, out index))
-            {
-                return null;
-            }
-            return Columns[index];
+            return !ColumnIndexes.TryGetValue(name, out var index) 
+                ? null 
+                : Columns[index];
         }
 
         /// <summary>
@@ -364,9 +361,7 @@ namespace Cassandra
                 return value;
             }
             var mapColumnInfo = (MapColumnInfo)column.TypeInfo;
-            Type childTargetKeyType;
-            Type childTargetValueType;
-            if (!Utils.IsIDictionary(targetType, out childTargetKeyType, out childTargetValueType))
+            if (!Utils.IsIDictionary(targetType, out Type childTargetKeyType, out Type childTargetValueType))
             {
                 throw new InvalidCastException(string.Format("Unable to cast object of type '{0}' to type '{1}'",
                     value.GetType(), targetType));

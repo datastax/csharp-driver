@@ -95,8 +95,7 @@ namespace Cassandra.Requests
             IInternalSession session, IEnumerator<Host> queryPlan, Dictionary<IPEndPoint, Exception> triedHosts)
         {
             Host host;
-            HostDistance distance;
-            while ((host = GetNextHost(queryPlan, out distance)) != null)
+            while ((host = GetNextHost(queryPlan, out HostDistance distance)) != null)
             {
                 var connection = await RequestHandler.GetConnectionFromHostAsync(host, distance, session, triedHosts).ConfigureAwait(false);
                 if (connection != null)
