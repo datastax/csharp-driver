@@ -131,8 +131,7 @@ namespace Cassandra.Data.Linq
             
             SetAutoPage(false);
             var visitor = new CqlExpressionVisitor(PocoData, Table.Name, Table.KeyspaceName);
-            object[] values;
-            var cql = visitor.GetSelect(Expression, out values);
+            var cql = visitor.GetSelect(Expression, out object[] values);
             var rs = await InternalExecuteWithProfileAsync(executionProfile, cql, values).ConfigureAwait(false);
             var mapper = MapperFactory.GetMapper<TEntity>(cql, rs);
             return new Page<TEntity>(rs.Select(mapper), PagingState, rs.PagingState);

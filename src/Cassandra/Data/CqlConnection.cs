@@ -98,7 +98,7 @@ namespace Cassandra.Data
         {
             get
             {
-                return _connectionStringBuilder == null ? null : _connectionStringBuilder.ConnectionString;
+                return _connectionStringBuilder?.ConnectionString;
             }
             set
             {
@@ -126,7 +126,7 @@ namespace Cassandra.Data
         /// </summary>
         public override string Database
         {
-            get { return ManagedConnection == null ? null : ManagedConnection.Keyspace; }
+            get { return ManagedConnection?.Keyspace; }
         }
 
         protected override DbProviderFactory DbProviderFactory { get { return CqlProviderFactory.Instance; } }
@@ -163,8 +163,7 @@ namespace Cassandra.Data
         /// <returns></returns>
         protected virtual Cluster CreateCluster(CassandraConnectionStringBuilder connectionStringBuilder)
         {
-            Cluster cluster;
-            if (!_clusters.TryGetValue(_connectionStringBuilder.ClusterName, out cluster))
+            if (!_clusters.TryGetValue(_connectionStringBuilder.ClusterName, out Cluster cluster))
             {
                 var builder = _connectionStringBuilder.MakeClusterBuilder();
                 OnBuildingCluster(builder);

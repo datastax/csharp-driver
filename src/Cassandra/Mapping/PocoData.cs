@@ -80,14 +80,11 @@ namespace Cassandra.Mapping
         public PocoData(Type pocoType, string tableName, string keyspaceName, LookupKeyedCollection<string, PocoColumn> columns,
                         string[] partitionkeys, Tuple<string, SortOrder>[] clusteringKeys, bool caseSensitive, bool compact, bool allowFiltering)
         {
-            if (pocoType == null) throw new ArgumentNullException("pocoType");
-            if (tableName == null) throw new ArgumentNullException("tableName");
-            if (columns == null) throw new ArgumentNullException("columns");
             if (partitionkeys == null) throw new ArgumentNullException("partitionkeys");
             if (clusteringKeys == null) throw new ArgumentNullException("clusteringKeys");
-            PocoType = pocoType;
-            TableName = tableName;
-            Columns = columns;
+            PocoType = pocoType ?? throw new ArgumentNullException("pocoType");
+            TableName = tableName ?? throw new ArgumentNullException("tableName");
+            Columns = columns ?? throw new ArgumentNullException("columns");
             CaseSensitive = caseSensitive;
             CompactStorage = compact;
             AllowFiltering = allowFiltering;
@@ -133,8 +130,7 @@ namespace Cassandra.Mapping
         /// </summary>
         public PocoColumn GetColumnByMemberName(string memberName)
         {
-            PocoColumn column;
-            _columnsByMemberName.TryGetValue(memberName, out column);
+            _columnsByMemberName.TryGetValue(memberName, out PocoColumn column);
             return column;
         }
 
@@ -144,7 +140,7 @@ namespace Cassandra.Mapping
         public string GetColumnNameByMemberName(string memberName)
         {
             var column = GetColumnByMemberName(memberName);
-            return column != null ? column.ColumnName : null;
+            return column?.ColumnName;
         }
 
         /// <summary>
@@ -153,7 +149,7 @@ namespace Cassandra.Mapping
         public string GetColumnName(MemberInfo member)
         {
             var column = GetColumnByMemberName(member.Name);
-            return column != null ? column.ColumnName : null;
+            return column?.ColumnName;
         }
     }
 }

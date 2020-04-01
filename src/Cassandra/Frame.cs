@@ -52,22 +52,9 @@ namespace Cassandra
 
         public Frame(FrameHeader header, Stream body, ISerializer serializer)
         {
-            if (header == null)
-            {
-                throw new ArgumentNullException("header");
-            }
-            if (body == null)
-            {
-                throw new ArgumentNullException("body");
-            }
-            if (serializer == null)
-            {
-                throw new ArgumentNullException("serializer");
-            }
-
-            _header = header;
-            _body = body;
-            _serializer = serializer;
+            _header = header ?? throw new ArgumentNullException("header");
+            _body = body ?? throw new ArgumentNullException("body");
+            _serializer = serializer ?? throw new ArgumentNullException("serializer");
         }
     }
 }

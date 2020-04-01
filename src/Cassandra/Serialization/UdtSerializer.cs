@@ -45,15 +45,13 @@ namespace Cassandra.Serialization
 
         protected internal virtual UdtMap GetUdtMap(string name)
         {
-            UdtMap map;
-            _udtMapsByName.TryGetValue(name, out map);
+            _udtMapsByName.TryGetValue(name, out UdtMap map);
             return map;
         }
 
         protected internal virtual UdtMap GetUdtMap(Type type)
         {
-            UdtMap map;
-            _udtMapsByClrType.TryGetValue(type, out map);
+            _udtMapsByClrType.TryGetValue(type, out UdtMap map);
             return map;
         }
 

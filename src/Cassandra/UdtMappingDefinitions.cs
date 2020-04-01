@@ -110,8 +110,7 @@ namespace Cassandra
 
         internal UdtMap GetUdtMap(string keyspace, Type netType)
         {
-            UdtMap map;
-            return _udtByNetType.TryGetValue(netType, out map) ? map : null;
+            return _udtByNetType.TryGetValue(netType, out UdtMap map) ? map : null;
         }
     }
 }

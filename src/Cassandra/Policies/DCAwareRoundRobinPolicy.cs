@@ -226,9 +226,8 @@ namespace Cassandra
             var dcHosts = new Dictionary<string, int>();
             foreach (var h in remoteHosts)
             {
-                int hostYieldedByDc;
                 var dc = GetDatacenter(h);
-                dcHosts.TryGetValue(dc, out hostYieldedByDc);
+                dcHosts.TryGetValue(dc, out int hostYieldedByDc);
                 if (hostYieldedByDc >= _usedHostsPerRemoteDc)
                 {
                     //We already returned the amount of remotes nodes required
