@@ -198,6 +198,7 @@ def buildDriver() {
   if (env.OS_VERSION.split('/')[0] == 'win') {
     powershell label: "Install required packages and build the driver for ${env.DOTNET_VERSION}", script: '''
         dotnet restore src
+        dotnet restore src
       '''
   } else {
     if (env.DOTNET_VERSION == 'mono') {
@@ -211,6 +212,7 @@ def buildDriver() {
         chmod -R ugo+rwx /tmp/NuGetScratch
       '''
       sh label: "Install required packages and build the driver for ${env.DOTNET_VERSION}", script: '''#!/bin/bash -le
+        dotnet restore src
         dotnet restore src
       '''
     }
@@ -275,25 +277,30 @@ def notifySlack(status = 'started') {
   // Set the global pipeline scoped environment (this is above each matrix)
   env.BUILD_STATED_SLACK_NOTIFIED = 'true'
 
-  def buildType = 'Commit'
-  if (params.CI_SCHEDULE != 'DO-NOT-CHANGE-THIS-SELECTION') {
-    buildType = "${params.CI_SCHEDULE.toLowerCase().capitalize()}"
+  def osVersionDescription = 'Ubuntu'
+  if (params.CI_SCHEDULE_OS_VERSION == 'win/cs') {
+    osVersionDescription = 'Windows'
+  }
+
+  def buildType = 'Per-Commit'
+  if (params.CI_SCHEDULE != 'DEFAULT-PER-COMMIT') {
+    buildType = "${params.CI_SCHEDULE.toLowerCase().capitalize()}-${osVersionDescription}"
   }
 
   def color = 'good' // Green
   if (status.equalsIgnoreCase('aborted')) {
-    color = '808080' // Grey
+    color = '#808080' // Grey
   } else if (status.equalsIgnoreCase('unstable')) {
     color = 'warning' // Orange
   } else if (status.equalsIgnoreCase('failed')) {
     color = 'danger' // Red
+  } else if (status.equalsIgnoreCase("started")) {
+    color = '#fde93f' // Yellow
   }
 
-  def message = """Build ${status} for ${env.DRIVER_DISPLAY_NAME} [${buildType}]
-<${env.GITHUB_BRANCH_URL}|${env.BRANCH_NAME}> - <${env.RUN_DISPLAY_URL}|#${env.BUILD_NUMBER}> - <${env.GITHUB_COMMIT_URL}|${env.GIT_SHA}>"""
-  if (params.CI_SCHEDULE != 'DO-NOT-CHANGE-THIS-SELECTION') {
-    message += " - ${params.CI_SCHEDULE_DOTNET_VERSION} - ${env.OS_VERSION}"
-  }
+  def message = """<${env.RUN_DISPLAY_URL}|Build #${env.BUILD_NUMBER}> ${status} for ${env.DRIVER_DISPLAY_NAME}
+[${buildType}] <${env.GITHUB_BRANCH_URL}|${env.BRANCH_NAME}> <${env.GITHUB_COMMIT_URL}|${env.GIT_SHA}>"""
+
   if (!status.equalsIgnoreCase('Started')) {
     message += """
 ${status} after ${currentBuild.durationString - ' and counting'}"""
@@ -323,64 +330,37 @@ def submitCIMetrics(buildType) {
   }
 }
 
+@NonCPS
+def getChangeLog() {
+    def log = ""
+    def changeLogSets = currentBuild.changeSets
+    for (int i = 0; i < changeLogSets.size(); i++) {
+        def entries = changeLogSets[i].items
+        for (int j = 0; j < entries.length; j++) {
+            def entry = entries[j]
+            log += "  * ${entry.msg} by ${entry.author} <br>"
+        }
+    }
+    return log;
+  }
+
 def describePerCommitStage() {
   script {
-    currentBuild.displayName = "Per-Commit"
-    currentBuild.description = '''Per-Commit build and testing of against mono, netcoreapp2.0, and netcoreapp2.1 (Linux only)
-<ul>
-  <li>mono/netcoreapp2.0 - Apache Cassandara&reg; v3.11.x and DataStax Enterprise v6.7.x</li>
-  <li>netcoreapp2.1 - Apache Cassandara&reg; v2.2.x, v3.11.x and DataStax Enterprise v5.1.x, v6.7.x</li>
-</ul>'''
+    currentBuild.displayName = "#${env.BUILD_NUMBER} - Per-Commit (${env.GIT_SHA})"
+    currentBuild.description = "Changelog:<br>${getChangeLog()}".take(250)
   }
 }
 
 def describeScheduledTestingStage() {
   script {
     def type = params.CI_SCHEDULE.toLowerCase().capitalize()
-    currentBuild.displayName = "${type} schedule (${env.DOTNET_VERSION} | ${env.OS_VERSION})"
-
-    def serverVersionDescription = "${params.CI_SCHEDULE_SERVER_VERSION.replaceAll(' ', ', ')} server version(s) in the matrix"
+    def serverVersionDescription = "almost all server version(s) in the matrix"
     def osVersionDescription = 'Ubuntu 18.04 LTS'
     if (env.OS_VERSION == 'win/cs') {
       osVersionDescription = 'Windows 10'
-    }
-    currentBuild.description = "${type} scheduled testing for, ${serverVersionDescription} against ${env.DOTNET_VERSION} .NET version on ${osVersionDescription}"
-  }
-}
-
-def describeAdhocTestingStage() {
-  script {
-    def serverType = params.ADHOC_BUILD_AND_EXECUTE_TESTS_SERVER_VERSION.split('-')[0]
-    def serverDisplayName = 'Apache Cassandara&reg;'
-    def serverVersion = " v${serverType}"
-    if (serverType == 'ALL') {
-      serverDisplayName = "all ${serverDisplayName} and DataStax Enterprise server versions"
-      serverVersion = ''
-    } else {
-      try {
-        serverVersion = " v${env.ADHOC_BUILD_AND_EXECUTE_TESTS_SERVER_VERSION.split('-')[1]}"
-      } catch (e) {
-        ;; // no-op
-      }
-      if (serverType == 'ddac') {
-        serverDisplayName = "DataStax Distribution of ${serverDisplayName}"
-      } else if (serverType == 'dse') {
-        serverDisplayName = 'DataStax Enterprise'
-      }
-    }
-
-    def netVersionInformation = ".NET ${params.ADHOC_BUILD_AND_EXECUTE_TESTS_DOTNET_VERSION}"
-    if (params.ADHOC_BUILD_AND_EXECUTE_TESTS_NODEJS_VERSION == 'ALL') {
-      netVersionInformation = 'all .NET versions'
-    }
-
-    def osInformation = 'Ubuntu 18.04 LTS'
-    if (params.ADHOC_BUILD_AND_EXECUTE_TESTS_OS_VERSION.split('/')[0] == 'win') {
-      osInformation = 'Windows 10'
-    }
-
-    currentBuild.displayName = "${params.ADHOC_BUILD_AND_EXECUTE_TESTS_SERVER_VERSION} against ${netVersionInformation} on ${osInformation}"
-    currentBuild.description = "Testing ${serverDisplayName} ${serverVersion} against ${netVersionInformation} on ${osInformation}"
+    }    
+    currentBuild.displayName = "#${env.BUILD_NUMBER} - ${type} (${osVersionDescription})"
+    currentBuild.description = "${type} scheduled testing for ${serverVersionDescription} on ${osVersionDescription}"
   }
 }
 
@@ -400,96 +380,9 @@ pipeline {
 
   parameters {
     choice(
-      name: 'ADHOC_BUILD_TYPE',
-      choices: ['BUILD', 'BUILD-AND-EXECUTE-TESTS'],
-      description: '''<p>Perform a adhoc build operation</p>
-                      <table style="width:100%">
-                        <col width="25%">
-                        <col width="75%">
-                        <tr>
-                          <th align="left">Choice</th>
-                          <th align="left">Description</th>
-                        </tr>
-                        <tr>
-                          <td><strong>BUILD</strong></td>
-                          <td>Performs a <b>Per-Commit</b> build</td>
-                        </tr>
-                        <tr>
-                          <td><strong>BUILD-AND-EXECUTE-TESTS</strong></td>
-                          <td>Performs a build and executes the integration and unit tests</td>
-                        </tr>
-                      </table>''')
-    choice(
-      name: 'ADHOC_BUILD_AND_EXECUTE_TESTS_DOTNET_VERSION',
-      choices: ['mono', 'netcoreapp2.0', 'netcoreapp2.1', 'net452', 'net461'],
-      description: '.NET version to use for adhoc <b>BUILD-AND-EXECUTE-TESTS</b> <strong>ONLY!</strong>')
-    choice(
-      name: 'ADHOC_BUILD_AND_EXECUTE_TESTS_SERVER_VERSION',
-      choices: ['2.1',       // Legacy Apache Cassandara�
-                '2.2',       // Legacy Apache Cassandara�
-                '3.0',       // Previous Apache Cassandara�
-                '3.11',      // Current Apache Cassandara�
-                '4.0',       // Development Apache Cassandara�
-                'dse-5.1',   // Legacy DataStax Enterprise
-                'dse-6.0',   // Previous DataStax Enterprise
-                'dse-6.7',   // Current DataStax Enterprise
-                'dse-6.8', // Development DataStax Enterprise
-                'dse-6.8.0', // Current DataStax Enterprise
-                'ALL'],
-      description: '''Apache Cassandara&reg; and DataStax Enterprise server version to use for adhoc <b>BUILD-AND-EXECUTE-TESTS</b> <strong>ONLY!</strong>
-                      <table style="width:100%">
-                        <col width="15%">
-                        <col width="85%">
-                        <tr>
-                          <th align="left">Choice</th>
-                          <th align="left">Description</th>
-                        </tr>
-                        <tr>
-                          <td><strong>2.1</strong></td>
-                          <td>Apache Cassandara&reg; v2.1.x</td>
-                        </tr>
-                        <tr>
-                          <td><strong>2.2</strong></td>
-                          <td>Apache Cassandara&reg; v2.2.x</td>
-                        </tr>
-                        <tr>
-                          <td><strong>3.0</strong></td>
-                          <td>Apache Cassandara&reg; v3.0.x</td>
-                        </tr>
-                        <tr>
-                          <td><strong>3.11</strong></td>
-                          <td>Apache Cassandara&reg; v3.11.x</td>
-                        </tr>
-                        <tr>
-                          <td><strong>4.0</strong></td>
-                          <td>Apache Cassandara&reg; v4.x (<b>CURRENTLY UNDER DEVELOPMENT</b>)</td>
-                        </tr>
-                        <tr>
-                          <td><strong>dse-5.1</strong></td>
-                          <td>DataStax Enterprise v5.1.x</td>
-                        </tr>
-                        <tr>
-                          <td><strong>dse-6.0</strong></td>
-                          <td>DataStax Enterprise v6.0.x</td>
-                        </tr>
-                        <tr>
-                          <td><strong>dse-6.7</strong></td>
-                          <td>DataStax Enterprise v6.7.x</td>
-                        </tr>
-                        <tr>
-                          <td><strong>dse-6.8</strong></td>
-                          <td>DataStax Enterprise v6.8.x (<b>CURRENTLY UNDER DEVELOPMENT</b>)</td>
-                        </tr>
-                        <tr>
-                          <td><strong>dse-6.8.0</strong></td>
-                          <td>DataStax Enterprise v6.8.0 </td>
-                        </tr>
-                      </table>''')
-    choice(
-      name: 'ADHOC_BUILD_AND_EXECUTE_TESTS_OS_VERSION',
-      choices: ['ubuntu/bionic64/csharp-driver', 'win/cs'],
-      description: '''<p>Operating system to use for adhoc <b>BUILD-AND-EXECUTE-TESTS</b> <strong>ONLY!</strong></p>
-                      <table style="width:100%">
+      name: 'CI_SCHEDULE',
+      choices: ['DEFAULT-PER-COMMIT', 'NIGHTLY', 'WEEKLY'],
+      description: '''<table style="width:100%">
                         <col width="20%">
                         <col width="80%">
                         <tr>
@@ -506,59 +399,20 @@ pipeline {
                         </tr>
                       </table>''')
     choice(
-      name: 'CI_SCHEDULE',
-      choices: ['DO-NOT-CHANGE-THIS-SELECTION', 'WEEKNIGHTS', 'WEEKENDS'],
-      description: 'CI testing schedule to execute periodically scheduled builds and tests of the driver (<strong>DO NOT CHANGE THIS SELECTION</strong>)')
-    choice(
-      name: 'CI_SCHEDULE_DOTNET_VERSION',
-      choices: ['DO-NOT-CHANGE-THIS-SELECTION', 'mono', 'netcoreapp2.0', 'netcoreapp2.1', 'net452', 'net461'],
-      description: 'CI testing .NET version to utilize for scheduled test runs of the driver (<strong>DO NOT CHANGE THIS SELECTION</strong>)')
-    string(
-      name: 'CI_SCHEDULE_SERVER_VERSION',
-      defaultValue: 'DO-NOT-CHANGE-THIS-SELECTION',
-      description: 'CI testing server version to utilize for scheduled test runs of the driver (<strong>DO NOT CHANGE THIS SELECTION</strong>)')
-    choice(
       name: 'CI_SCHEDULE_OS_VERSION',
-      choices: ['DO-NOT-CHANGE-THIS-SELECTION', 'ubuntu/bionic64/csharp-driver', 'win/cs'],
-      description: 'CI testing operating system version to utilize for scheduled test runs of the driver (<strong>DO NOT CHANGE THIS SELECTION</strong>)')
+      choices: ['DEFAULT-PER-COMMIT', 'ubuntu/bionic64/csharp-driver', 'win/cs'],
+      description: 'CI testing operating system version to utilize')
   }
 
   triggers {
     parameterizedCron(branchPatternCron.matcher(env.BRANCH_NAME).matches() ? """
-      # Every weeknight (Monday - Friday) around 12:00 and 1:00 AM
-      ##
-      # Building on Linux
-      #   - Do not build using net452 and net461
-      #   - Target all Apache Cassandara� and DataStax Enterprise versions for netcoreapp2.1
-      ##
-      H 0 * * 1-5 %CI_SCHEDULE=WEEKNIGHTS;CI_SCHEDULE_DOTNET_VERSION=mono;CI_SCHEDULE_SERVER_VERSION=2.2 3.11 dse-5.1 dse-6.7;CI_SCHEDULE_OS_VERSION=ubuntu/bionic64/csharp-driver
-      H 1 * * 1-5 %CI_SCHEDULE=WEEKNIGHTS;CI_SCHEDULE_DOTNET_VERSION=netcoreapp2.1;CI_SCHEDULE_SERVER_VERSION=ALL;CI_SCHEDULE_OS_VERSION=ubuntu/bionic64/csharp-driver
-      ##
-      # Building on Windows
-      #   - Do not build using mono
-      #   - Target Apache Cassandara� v3.11.x for netcoreapp2.1
-      #   - Target Apache Cassandara� v2.1.x, v2.2.x, v3.11.x for net452
-      #   - Target Apache Cassandara� v2.2.x, v3.11.x for net461
-      ##
-      H 2 * * 1-5 %CI_SCHEDULE=WEEKNIGHTS;CI_SCHEDULE_DOTNET_VERSION=netcoreapp2.1;CI_SCHEDULE_SERVER_VERSION=3.11;CI_SCHEDULE_OS_VERSION=win/cs
-      H 2 * * 1-5 %CI_SCHEDULE=WEEKNIGHTS;CI_SCHEDULE_DOTNET_VERSION=net452;CI_SCHEDULE_SERVER_VERSION=2.1 2.2 3.11;CI_SCHEDULE_OS_VERSION=win/cs
-      H 2 * * 1-5 %CI_SCHEDULE=WEEKNIGHTS;CI_SCHEDULE_DOTNET_VERSION=net461;CI_SCHEDULE_SERVER_VERSION=2.2 3.11;CI_SCHEDULE_OS_VERSION=win/cs
+      # Every weeknight (Monday - Friday) around 12:00 and 2:00 AM
+      H 0 * * 1-5 %CI_SCHEDULE=NIGHTLY;CI_SCHEDULE_OS_VERSION=ubuntu/bionic64/csharp-driver
+      H 2 * * 1-5 %CI_SCHEDULE=NIGHTLY;CI_SCHEDULE_OS_VERSION=win/cs
 
       # Every Saturday around 4:00 and 8:00 AM
-      ##
-      # Building on Linux
-      #   - Do not build using net452 and net461
-      #   - Target all Apache Cassandara� and DataStax Enterprise versions for mono and netcoreapp2.1
-      ##
-      H 4 * * 6 %CI_SCHEDULE=WEEKENDS;CI_SCHEDULE_DOTNET_VERSION=mono;CI_SCHEDULE_SERVER_VERSION=ALL;CI_SCHEDULE_OS_VERSION=ubuntu/bionic64/csharp-driver
-      H 4 * * 6 %CI_SCHEDULE=WEEKENDS;CI_SCHEDULE_DOTNET_VERSION=netcoreapp2.1;CI_SCHEDULE_SERVER_VERSION=ALL;CI_SCHEDULE_OS_VERSION=ubuntu/bionic64/csharp-driver
-      # Building on Windows
-      #   - Do not build using mono
-      #   - Target all Apache Cassandara� versions for netcoreapp2.1, net452 and net461
-      ##
-      H 8 * * 6 %CI_SCHEDULE=WEEKENDS;CI_SCHEDULE_DOTNET_VERSION=netcoreapp2.1;CI_SCHEDULE_SERVER_VERSION=2.1 2.2 3.0 3.11 4.0;CI_SCHEDULE_OS_VERSION=win/cs
-      H 8 * * 6 %CI_SCHEDULE=WEEKENDS;CI_SCHEDULE_DOTNET_VERSION=net452;CI_SCHEDULE_SERVER_VERSION=2.1 2.2 3.0 3.11 4.0;CI_SCHEDULE_OS_VERSION=win/cs
-      H 8 * * 6 %CI_SCHEDULE=WEEKENDS;CI_SCHEDULE_DOTNET_VERSION=net461;CI_SCHEDULE_SERVER_VERSION=2.1 2.2 3.0 3.11 4.0;CI_SCHEDULE_OS_VERSION=win/cs
+      H 4 * * 6 %CI_SCHEDULE=WEEKLY;CI_SCHEDULE_OS_VERSION=ubuntu/bionic64/csharp-driver
+      H 8 * * 6 %CI_SCHEDULE=WEEKLY;CI_SCHEDULE_OS_VERSION=win/cs
     """ : "")
   }
 
@@ -577,8 +431,7 @@ pipeline {
       when {
         beforeAgent true
         allOf {
-          expression { params.ADHOC_BUILD_TYPE == 'BUILD' }
-          expression { params.CI_SCHEDULE == 'DO-NOT-CHANGE-THIS-SELECTION' }
+          expression { params.CI_SCHEDULE == 'DEFAULT-PER-COMMIT' }
           not { buildingTag() }
         }
       }
@@ -592,11 +445,11 @@ pipeline {
           axis {
             name 'SERVER_VERSION'
             values '2.2',     // latest 2.2.x Apache Cassandara�
-                   '3.0',     // latest 3.0.x Apache Cassandara�
-                   '3.11',    // latest 3.11.x Apache Cassandara�
-                   'dse-5.1', // latest 5.1.x DataStax Enterprise
-                   'dse-6.7', // latest 6.7.x DataStax Enterprise
-                   'dse-6.8.0' // 6.8.0 current DataStax Enterprise
+                  '3.0',     // latest 3.0.x Apache Cassandara�
+                  '3.11',    // latest 3.11.x Apache Cassandara�
+                  'dse-5.1', // latest 5.1.x DataStax Enterprise
+                  'dse-6.7', // latest 6.7.x DataStax Enterprise
+                  'dse-6.8.0' // 6.8.0 current DataStax Enterprise
           }
           axis {
             name 'DOTNET_VERSION'
@@ -679,41 +532,58 @@ pipeline {
       }
     }
 
-    stage('Scheduled-Testing') {
+    stage('Nightly-Ubuntu') {
       when {
         beforeAgent true
         allOf {
-          expression { params.ADHOC_BUILD_TYPE == 'BUILD' }
-          expression { params.CI_SCHEDULE != 'DO-NOT-CHANGE-THIS-SELECTION' }
+          expression { params.CI_SCHEDULE == 'NIGHTLY' }
+          expression { params.CI_SCHEDULE_OS_VERSION == 'ubuntu/bionic64/csharp-driver' }
           not { buildingTag() }
         }
       }
 
       environment {
-        DOTNET_VERSION = "${params.CI_SCHEDULE_DOTNET_VERSION}"
         OS_VERSION = "${params.CI_SCHEDULE_OS_VERSION}"
       }
 
+      // ##
+      // # Building on Linux
+      // #   - Do not build using net452 and net461
+      // #   - Target all Apache Cassandara� and DataStax Enterprise versions for netcoreapp2.1
+      // ##
+      // H 0 * * 1-5 %CI_SCHEDULE=NIGHTLY;CI_SCHEDULE_DOTNET_VERSION=ALL;CI_SCHEDULE_SERVER_VERSION=2.2 3.11 dse-5.1 dse-6.7;CI_SCHEDULE_OS_VERSION=ubuntu/bionic64/csharp-driver
+      // H 1 * * 1-5 %CI_SCHEDULE=NIGHTLY;CI_SCHEDULE_DOTNET_VERSION=netcoreapp2.1;CI_SCHEDULE_SERVER_VERSION=ALL;CI_SCHEDULE_OS_VERSION=ubuntu/bionic64/csharp-driver
       matrix {
         axes {
           axis {
             name 'SERVER_VERSION'
             values '2.1',     // Legacy Apache Cassandara�
-                   '2.2',     // Legacy Apache Cassandara�
-                   '3.0',     // Previous Apache Cassandara�
-                   '3.11',    // Current Apache Cassandara�
-                   '4.0',     // Development Apache Cassandara�
-                   'dse-5.1', // Legacy DataStax Enterprise
-                   'dse-6.0', // Previous DataStax Enterprise
-                   'dse-6.7', // Current DataStax Enterprise
-                   'dse-6.8',  // Development DataStax Enterprise
-                   'dse-6.8.0'  // Current DataStax Enterprise
+                  '2.2',     // Legacy Apache Cassandara�
+                  '3.0',     // Previous Apache Cassandara�
+                  '3.11',    // Current Apache Cassandara�
+                  '4.0',     // Development Apache Cassandara�
+                  'dse-5.0', // Legacy DataStax Enterprise
+                  'dse-5.1', // Legacy DataStax Enterprise
+                  'dse-6.0', // Previous DataStax Enterprise
+                  'dse-6.7', // Current DataStax Enterprise
+                  'dse-6.8',  // Development DataStax Enterprise
+                  'dse-6.8.0'  // Current DataStax Enterprise
+          }
+          axis {
+            name 'DOTNET_VERSION'
+            values 'mono', 'netcoreapp2.1'
           }
         }
-        when {
-          beforeAgent true
-          allOf {
-            expression { return params.CI_SCHEDULE_SERVER_VERSION.split(' ').any { it =~ /(ALL|${env.SERVER_VERSION})/ } }
+        excludes {
+          exclude {
+            axis {
+              name 'DOTNET_VERSION'
+              values 'mono'
+            }
+            axis {
+              name 'SERVER_VERSION'
+              values '2.1', '3.0', 'dse-5.0', 'dse-6.0', 'dse-6.8.0'
+            }
           }
         }
 
@@ -775,44 +645,70 @@ pipeline {
       }
     }
 
-    stage('Adhoc-Testing') {
+    stage('Nightly-Windows') {
       when {
         beforeAgent true
         allOf {
-          expression { params.ADHOC_BUILD_TYPE == 'BUILD-AND-EXECUTE-TESTS' }
-          expression { (params.ADHOC_BUILD_AND_EXECUTE_TESTS_OS_VERSION == 'ubuntu/bionic64/csharp-driver' &&
-                        params.ADHOC_BUILD_AND_EXECUTE_TESTS_DOTNET_VERSION != 'net452' &&
-                        params.ADHOC_BUILD_AND_EXECUTE_TESTS_DOTNET_VERSION != 'net461') ||
-                       (params.ADHOC_BUILD_AND_EXECUTE_TESTS_OS_VERSION == 'win/cs' &&
-                        params.ADHOC_BUILD_AND_EXECUTE_TESTS_DOTNET_VERSION != 'mono') }
+          expression { params.CI_SCHEDULE == 'NIGHTLY' }
+          expression { params.CI_SCHEDULE_OS_VERSION == 'win/cs' }
           not { buildingTag() }
         }
       }
 
-        environment {
-          DOTNET_VERSION = "${ADHOC_BUILD_AND_EXECUTE_TESTS_DOTNET_VERSION}"
-          OS_VERSION = "${params.ADHOC_BUILD_AND_EXECUTE_TESTS_OS_VERSION}"
-        }
-
+      environment {
+        OS_VERSION = "${params.CI_SCHEDULE_OS_VERSION}"
+      }
+      
+      // # Building on Windows
+      // #   - Do not build using mono
+      // #   - Target Apache Cassandara� v3.11.x for netcoreapp2.1
+      // #   - Target Apache Cassandara� v2.1.x, v2.2.x, v3.11.x for net452
+      // #   - Target Apache Cassandara� v2.2.x, v3.11.x for net461
+      // ##
+      // H 2 * * 1-5 %CI_SCHEDULE=NIGHTLY;CI_SCHEDULE_DOTNET_VERSION=netcoreapp2.1;CI_SCHEDULE_SERVER_VERSION=3.11;CI_SCHEDULE_OS_VERSION=win/cs
+      // H 2 * * 1-5 %CI_SCHEDULE=NIGHTLY;CI_SCHEDULE_DOTNET_VERSION=net452;CI_SCHEDULE_SERVER_VERSION=2.1 2.2 3.11;CI_SCHEDULE_OS_VERSION=win/cs
+      // H 2 * * 1-5 %CI_SCHEDULE=NIGHTLY;CI_SCHEDULE_DOTNET_VERSION=net461;CI_SCHEDULE_SERVER_VERSION=2.2 3.11;CI_SCHEDULE_OS_VERSION=win/cs
       matrix {
         axes {
           axis {
             name 'SERVER_VERSION'
             values '2.1',     // Legacy Apache Cassandara�
-                   '2.2',     // Legacy Apache Cassandara�
-                   '3.0',     // Previous Apache Cassandara�
-                   '3.11',    // Current Apache Cassandara�
-                   '4.0',     // Development Apache Cassandara�
-                   'dse-5.1', // Legacy DataStax Enterprise
-                   'dse-6.0', // Previous DataStax Enterprise
-                   'dse-6.7', // Current DataStax Enterprise
-                   'dse-6.8'  // Development DataStax Enterprise
+                  '2.2',     // Legacy Apache Cassandara�
+                  '3.0',     // Previous Apache Cassandara�
+                  '3.11',    // Current Apache Cassandara�
+                  '4.0',     // Development Apache Cassandara�
+                  'dse-5.0', // Legacy DataStax Enterprise
+                  'dse-5.1', // Legacy DataStax Enterprise
+                  'dse-6.0', // Previous DataStax Enterprise
+                  'dse-6.7', // Current DataStax Enterprise
+                  'dse-6.8',  // Development DataStax Enterprise
+                  'dse-6.8.0'  // Current DataStax Enterprise
+          }
+          axis {
+            name 'DOTNET_VERSION'
+            values 'netcoreapp2.1', 'net452', 'net461'
           }
         }
-        when {
-          beforeAgent true
-          allOf {
-            expression { params.ADHOC_BUILD_AND_EXECUTE_TESTS_SERVER_VERSION ==~ /(ALL|${env.SERVER_VERSION})/ }
+        excludes {
+          exclude {
+            axis {
+              name 'DOTNET_VERSION'
+              values 'net461'
+            }
+            axis {
+              name 'SERVER_VERSION'
+              values '2.1'
+            }
+          }
+          exclude {
+            axis {
+              name 'DOTNET_VERSION'
+              values 'netcoreapp2.1'
+            }
+            axis {
+              name 'SERVER_VERSION'
+              values '2.1', '2.2'
+            }
           }
         }
 
@@ -821,14 +717,19 @@ pipeline {
         }
 
         stages {
-          stage('Describe-Build') {
-            steps {
-              describeAdhocTestingStage()
-            }
-          }
           stage('Initialize-Environment') {
             steps {
               initializeEnvironment()
+              script {
+                if (env.BUILD_STATED_SLACK_NOTIFIED != 'true') {
+                  notifySlack()
+                }
+              }
+            }
+          }
+          stage('Describe-Build') {
+            steps {
+              describeScheduledTestingStage()
             }
           }
           stage('Install-Dependencies') {
@@ -851,6 +752,208 @@ pipeline {
               }
             }
           }
+        }
+      }
+      post {
+        aborted {
+          notifySlack('aborted')
+        }
+        success {
+          notifySlack('completed')
+        }
+        unstable {
+          notifySlack('unstable')
+        }
+        failure {
+          notifySlack('FAILED')
+        }
+      }
+    }
+    
+    stage('Weekly-Ubuntu') {
+      when {
+        beforeAgent true
+        allOf {
+          expression { params.CI_SCHEDULE == 'WEEKLY' }
+          expression { params.CI_SCHEDULE_OS_VERSION == 'ubuntu/bionic64/csharp-driver' }
+          not { buildingTag() }
+        }
+      }
+
+      environment {
+        OS_VERSION = "${params.CI_SCHEDULE_OS_VERSION}"
+      }
+
+      matrix {
+        axes {
+          axis {
+            name 'SERVER_VERSION'
+            values '2.1',     // Legacy Apache Cassandara�
+                  '2.2',     // Legacy Apache Cassandara�
+                  '3.0',     // Previous Apache Cassandara�
+                  '3.11',    // Current Apache Cassandara�
+                  '4.0',     // Development Apache Cassandara�
+                  'dse-5.0', // Legacy DataStax Enterprise
+                  'dse-5.1', // Legacy DataStax Enterprise
+                  'dse-6.0', // Previous DataStax Enterprise
+                  'dse-6.7', // Current DataStax Enterprise
+                  'dse-6.8',  // Development DataStax Enterprise
+                  'dse-6.8.0'  // Current DataStax Enterprise
+          }
+          axis {
+            name 'DOTNET_VERSION'
+            values 'mono', 'netcoreapp2.1'
+          }
+        }
+
+        agent {
+          label "${OS_VERSION}"
+        }
+
+        stages {
+          stage('Initialize-Environment') {
+            steps {
+              initializeEnvironment()
+              script {
+                if (env.BUILD_STATED_SLACK_NOTIFIED != 'true') {
+                  notifySlack()
+                }
+              }
+            }
+          }
+          stage('Describe-Build') {
+            steps {
+              describeScheduledTestingStage()
+            }
+          }
+          stage('Install-Dependencies') {
+            steps {
+              installDependencies()
+            }
+          }
+          stage('Build-Driver') {
+            steps {
+              buildDriver()
+            }
+          }
+          stage('Execute-Tests') {
+            steps {
+              executeTests(false)
+            }
+            post {
+              always {
+                junit testResults: '**/TestResult.xml'
+              }
+            }
+          }
+        }
+      }
+      post {
+        aborted {
+          notifySlack('aborted')
+        }
+        success {
+          notifySlack('completed')
+        }
+        unstable {
+          notifySlack('unstable')
+        }
+        failure {
+          notifySlack('FAILED')
+        }
+      }
+    }
+    
+    stage('Weekly-Windows') {
+      when {
+        beforeAgent true
+        allOf {
+          expression { params.CI_SCHEDULE == 'WEEKLY' }
+          expression { params.CI_SCHEDULE_OS_VERSION == 'win/cs' }
+          not { buildingTag() }
+        }
+      }
+
+      environment {
+        OS_VERSION = "${params.CI_SCHEDULE_OS_VERSION}"
+      }
+
+      matrix {
+        axes {
+          axis {
+            name 'SERVER_VERSION'
+            values '2.1',     // Legacy Apache Cassandara�
+                  '2.2',     // Legacy Apache Cassandara�
+                  '3.0',     // Previous Apache Cassandara�
+                  '3.11',    // Current Apache Cassandara�
+                  '4.0',     // Development Apache Cassandara�
+                  'dse-5.0', // Legacy DataStax Enterprise
+                  'dse-5.1', // Legacy DataStax Enterprise
+                  'dse-6.0', // Previous DataStax Enterprise
+                  'dse-6.7', // Current DataStax Enterprise
+                  'dse-6.8',  // Development DataStax Enterprise
+                  'dse-6.8.0'  // Current DataStax Enterprise
+          }
+          axis {
+            name 'DOTNET_VERSION'
+            values 'netcoreapp2.1', 'net452', 'net461'
+          }
+        }
+        
+        agent {
+          label "${OS_VERSION}"
+        }
+
+        stages {
+          stage('Initialize-Environment') {
+            steps {
+              initializeEnvironment()
+              script {
+                if (env.BUILD_STATED_SLACK_NOTIFIED != 'true') {
+                  notifySlack()
+                }
+              }
+            }
+          }
+          stage('Describe-Build') {
+            steps {
+              describeScheduledTestingStage()
+            }
+          }
+          stage('Install-Dependencies') {
+            steps {
+              installDependencies()
+            }
+          }
+          stage('Build-Driver') {
+            steps {
+              buildDriver()
+            }
+          }
+          stage('Execute-Tests') {
+            steps {
+              executeTests(false)
+            }
+            post {
+              always {
+                junit testResults: '**/TestResult.xml'
+              }
+            }
+          }
+        }
+      }
+      post {
+        aborted {
+          notifySlack('aborted')
+        }
+        success {
+          notifySlack('completed')
+        }
+        unstable {
+          notifySlack('unstable')
+        }
+        failure {
+          notifySlack('FAILED')
         }
       }
     }
