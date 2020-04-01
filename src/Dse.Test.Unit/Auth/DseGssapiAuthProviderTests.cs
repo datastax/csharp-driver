@@ -1,8 +1,6 @@
 ﻿using System;
-
 using Dse.Auth;
 using Dse.Test.Unit.TestAttributes;
-
 using NUnit.Framework;
 
 namespace Dse.Test.Unit.Auth

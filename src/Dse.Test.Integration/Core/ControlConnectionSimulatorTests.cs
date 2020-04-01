@@ -20,10 +20,9 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using Cassandra.Tests;
+using Dse.Test.Unit;
 using Dse.Tasks;
 using Dse.Test.Integration.TestClusterManagement.Simulacron;
-using Dse.Test.Unit;
 using NUnit.Framework;
 
 namespace Dse.Test.Integration.Core

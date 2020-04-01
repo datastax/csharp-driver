@@ -12,7 +12,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
-using Cassandra.Tests;
 using Dse.Test.Integration.Policies.Util;
 
 namespace Dse.Test.Integration.Core

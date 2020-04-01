@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Cassandra.Tests;
+using Dse.Test.Unit;
 using Dse.Search;
 using Dse.Test.Integration.TestClusterManagement;
 using Newtonsoft.Json;

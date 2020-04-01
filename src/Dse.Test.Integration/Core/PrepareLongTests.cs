@@ -15,9 +15,8 @@
 // 
 
 using System.Linq;
-using Cassandra.Tests;
-using Dse.Test.Integration.TestClusterManagement;
 using Dse.Test.Unit;
+using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;
 
 namespace Dse.Test.Integration.Core

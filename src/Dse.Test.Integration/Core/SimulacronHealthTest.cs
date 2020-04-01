@@ -7,7 +7,7 @@
 
 using System;
 using System.Linq;
-using Cassandra.Tests;
+using Dse.Test.Unit;
 using Dse.Test.Integration.SimulacronAPI;
 using Dse.Test.Integration.SimulacronAPI.Models;
 using Dse.Test.Integration.TestClusterManagement.Simulacron;

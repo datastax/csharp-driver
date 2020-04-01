@@ -6,7 +6,7 @@
 //
 
 using System.Threading;
-using Cassandra.Tests;
+using Dse.Test.Unit;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Test.Integration.TestClusterManagement.Simulacron;
 using NUnit.Framework;

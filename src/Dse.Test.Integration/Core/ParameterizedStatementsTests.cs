@@ -11,7 +11,7 @@ using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
-using Cassandra.Tests;
+using Dse.Test.Unit;
 using Dse.Serialization;
 
 namespace Dse.Test.Integration.Core

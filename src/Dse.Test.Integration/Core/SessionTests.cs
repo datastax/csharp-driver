@@ -11,11 +11,9 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Cassandra.Tests;
+using Dse.Test.Unit;
 using Dse.SessionManagement;
 using Dse.Test.Integration.TestClusterManagement;
-using Dse.Test.Unit;
-
 using NUnit.Framework;
 
 namespace Dse.Test.Integration.Core

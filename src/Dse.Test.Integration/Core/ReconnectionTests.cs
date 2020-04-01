@@ -12,11 +12,10 @@ using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Threading;
-using Cassandra.Tests;
+using Dse.Test.Unit;
 using Dse.SessionManagement;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Test.Integration.TestClusterManagement.Simulacron;
-using Dse.Test.Unit;
 using NUnit.Framework;
 
 namespace Dse.Test.Integration.Core

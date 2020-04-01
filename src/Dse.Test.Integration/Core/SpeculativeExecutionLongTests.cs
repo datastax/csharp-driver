@@ -11,10 +11,9 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using Cassandra.Tests;
+using Dse.Test.Unit;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Tasks;
-using Dse.Test.Unit;
 using NUnit.Framework;
 #pragma warning disable 618
 

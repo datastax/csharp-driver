@@ -18,10 +18,8 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
-using Cassandra.Tests;
-using Dse.Test.Integration.TestClusterManagement;
 using Dse.Test.Unit;
-
+using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;
 
 namespace Dse.Test.Integration.MetadataTests

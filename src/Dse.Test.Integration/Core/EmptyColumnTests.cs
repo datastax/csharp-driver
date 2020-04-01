@@ -16,7 +16,7 @@
 //
 
 using System.Linq;
-using Cassandra.Tests;
+using Dse.Test.Unit;
 using Dse.Data.Linq;
 using Dse.Mapping;
 using Dse.Test.Integration.SimulacronAPI;

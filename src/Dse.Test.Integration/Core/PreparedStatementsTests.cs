@@ -15,7 +15,6 @@ using NUnit.Framework;
 using System.Net;
 using System.Collections;
 using System.Threading;
-using Cassandra.Tests;
 using Dse.Test.Unit;
 
 namespace Dse.Test.Integration.Core

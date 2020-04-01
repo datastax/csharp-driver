@@ -10,7 +10,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
-using Cassandra.Tests;
+using Dse.Test.Unit;
 using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;
 

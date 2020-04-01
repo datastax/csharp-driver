@@ -12,7 +12,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using Cassandra.Tests;
+using Dse.Test.Unit;
 using Dse.Serialization;
 
 namespace Dse.Test.Integration.Core

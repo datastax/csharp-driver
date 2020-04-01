@@ -8,7 +8,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Cassandra.Tests;
+using Dse.Test.Unit;
 using Dse.Data.Linq;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Mapping;

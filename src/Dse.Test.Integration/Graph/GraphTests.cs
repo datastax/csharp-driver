@@ -13,7 +13,7 @@ using System.Net;
 using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
-using Cassandra.Tests;
+using Dse.Test.Unit;
 using Dse.Geometry;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Graph;

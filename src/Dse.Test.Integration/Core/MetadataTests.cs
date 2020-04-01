@@ -14,7 +14,6 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using Cassandra.Tests;
 using SortOrder = Dse.DataCollectionMetadata.SortOrder;
 
 namespace Dse.Test.Integration.Core

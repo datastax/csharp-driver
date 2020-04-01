@@ -9,7 +9,7 @@ using NUnit.Framework;
 using System.Diagnostics;
 using Dse.Test.Integration.TestClusterManagement;
 using System.Threading.Tasks;
-using Cassandra.Tests;
+using Dse.Test.Unit;
 
 namespace Dse.Test.Integration.Core
 {

@@ -9,10 +9,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using Cassandra.Tests;
+using Dse.Test.Unit;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Tasks;
-using Dse.Test.Unit;
 using NUnit.Framework;
 using SortOrder = Dse.DataCollectionMetadata.SortOrder;
 

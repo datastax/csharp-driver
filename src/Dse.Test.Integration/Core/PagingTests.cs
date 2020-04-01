@@ -18,7 +18,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Threading;
-using Cassandra.Tests;
+using Dse.Test.Unit;
 using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;
 

@@ -13,7 +13,7 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-namespace Cassandra.Tests
+namespace Dse.Test.Unit
 {
     /// <summary>
     /// Test categories to specify which tests should run in each CI platform / schedule.

@@ -9,7 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Cassandra.Tests;
+using Dse.Test.Unit;
 using Dse.Insights.Schema;
 using Dse.Insights.Schema.StartupMessage;
 using Dse.Insights.Schema.StatusMessage;
@@ -18,7 +18,6 @@ using Dse.Test.Integration.SimulacronAPI.Models.Logs;
 using Dse.Test.Integration.SimulacronAPI.PrimeBuilder;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Test.Integration.TestClusterManagement.Simulacron;
-using Dse.Test.Unit;
 using Newtonsoft.Json;
 using NUnit.Framework;
 

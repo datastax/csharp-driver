@@ -20,11 +20,9 @@ using System.Linq;
 using System.Net;
 using App.Metrics;
 using App.Metrics.Gauge;
-using Cassandra.Tests;
+using Dse.Test.Unit;
 using Dse.AppMetrics;
 using Dse.Metrics;
-using Dse.Test.Unit;
-
 using NUnit.Framework;
 
 namespace Dse.Test.Integration.Metrics

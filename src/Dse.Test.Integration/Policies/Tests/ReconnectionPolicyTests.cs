@@ -8,7 +8,7 @@
 using System;
 using System.Diagnostics;
 using System.Threading;
-using Cassandra.Tests;
+using Dse.Test.Unit;
 using Dse.Test.Integration.Policies.Util;
 using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;

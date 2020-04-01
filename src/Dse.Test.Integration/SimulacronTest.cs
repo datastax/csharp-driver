@@ -16,7 +16,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Cassandra.Tests;
+using Dse.Test.Unit;
 using Dse.Test.Integration.SimulacronAPI.Models.Logs;
 using Dse.Test.Integration.SimulacronAPI.SystemTables;
 using Dse.Test.Integration.TestClusterManagement;

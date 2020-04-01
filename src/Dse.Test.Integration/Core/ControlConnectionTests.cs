@@ -8,7 +8,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
-using Cassandra.Tests;
+using Dse.Test.Unit;
 using Dse.Connections;
 using Dse.ProtocolEvents;
 using NUnit.Framework;

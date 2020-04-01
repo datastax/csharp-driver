@@ -17,14 +17,11 @@
 using System;
 using System.IO;
 using System.Net;
-
+using System.Security.Authentication;
 #if NETSTANDARD1_5 || NETSTANDARD2_0
-using System.Linq.Expressions;
 using System.Net.Http;
 using System.Net.Http.Headers;
 #endif
-
-using System.Security.Authentication;
 using System.Threading.Tasks;
 using Dse.Helpers;
 using Newtonsoft.Json;

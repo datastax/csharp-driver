@@ -7,9 +7,8 @@
 
 using System.Threading;
 using System.Threading.Tasks;
-using Cassandra.Tests;
-using Dse.Test.Integration.TestClusterManagement;
 using Dse.Test.Unit;
+using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;
 
 namespace Dse.Test.Integration.Core

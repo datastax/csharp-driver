@@ -6,7 +6,7 @@
 //
 
 using System.Linq;
-using Cassandra.Tests;
+using Dse.Test.Unit;
 using Dse.Auth;
 using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;

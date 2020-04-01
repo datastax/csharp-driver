@@ -22,7 +22,7 @@ using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using Cassandra.Tests;
+using Dse.Test.Unit;
 using Dse.Auth;
 using Dse.Cloud;
 using Dse.Data.Linq;
@@ -31,7 +31,6 @@ using Dse.Test.Integration.Policies.Util;
 using Dse.Test.Integration.TestAttributes;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Mapping;
-using Dse.Test.Unit;
 using Dse.Test.Unit.TestAttributes;
 
 using NUnit.Framework;

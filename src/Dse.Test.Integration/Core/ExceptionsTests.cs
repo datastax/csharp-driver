@@ -10,7 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using Cassandra.Tests;
+using Dse.Test.Unit;
 using Dse.Test.Integration.SimulacronAPI;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Test.Integration.TestClusterManagement.Simulacron;
