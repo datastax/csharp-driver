@@ -8,7 +8,6 @@
 using System;
 using System.Diagnostics;
 using System.Linq;
-using Dse.Test.Integration.TestBase;
 
 namespace Dse.Test.Integration.TestClusterManagement
 {

@@ -7,9 +7,6 @@
 
 using System;
 using System.Collections.Generic;
-using Dse.Data.Linq;
-using Dse.Test.Integration.TestClusterManagement;
-using NUnit.Framework;
 
 namespace Dse.Test.Integration.Linq.Structures
 {

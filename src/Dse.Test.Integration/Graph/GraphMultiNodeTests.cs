@@ -14,7 +14,6 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using Cassandra.Tests;
-using Dse;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Graph;
 using NUnit.Framework;

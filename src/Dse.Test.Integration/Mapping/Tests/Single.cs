@@ -14,7 +14,6 @@ using Dse.Test.Integration.Linq.Structures;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Mapping;
 using NUnit.Framework;
-using NUnit.Framework.Constraints;
 
 namespace Dse.Test.Integration.Mapping.Tests
 {

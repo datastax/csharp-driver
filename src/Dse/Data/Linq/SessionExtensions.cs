@@ -5,9 +5,7 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-using System;
 using Dse.Mapping;
-using Dse.SessionManagement;
 
 namespace Dse.Data.Linq
 {

@@ -6,19 +6,14 @@
 //
 
 using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using NUnit.Framework;
 using System.Linq;
 using System.Net;
 using System.Threading;
-using System.Threading.Tasks;
 using Dse.Compression;
 using Dse.Responses;
 using Dse.Serialization;
-using Dse.Tasks;
 using Microsoft.IO;
 
 namespace Dse.Test.Unit

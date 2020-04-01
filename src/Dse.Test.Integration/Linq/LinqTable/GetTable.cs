@@ -6,11 +6,8 @@
 //
 
 using System.Linq;
-using System.Text;
 using Dse.Data.Linq;
 using Dse.Test.Integration.Linq.Structures;
-using Dse.Test.Integration.TestClusterManagement;
-using Dse.Mapping;
 using Dse.Test.Integration.SimulacronAPI.Models.Logs;
 using NUnit.Framework;
 

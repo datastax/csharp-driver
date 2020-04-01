@@ -7,7 +7,6 @@
 
 using System;
 using System.Collections.Generic;
-using Dse.Mapping;
 using Dse.Mapping.Attributes;
 
 namespace Dse.Test.Unit.Mapping.Pocos

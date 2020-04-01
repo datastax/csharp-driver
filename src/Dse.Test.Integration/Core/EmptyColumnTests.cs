@@ -15,9 +15,7 @@
 //
 //
 
-using System;
 using System.Linq;
-using System.Text;
 using Cassandra.Tests;
 using Dse.Data.Linq;
 using Dse.Mapping;

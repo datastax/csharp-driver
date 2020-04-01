@@ -8,11 +8,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
-using System.Threading.Tasks;
 using Dse.Mapping;
 using Dse.Tasks;
-using Dse.Test.Unit.Mapping.FluentMappings;
 using Dse.Test.Unit.Mapping.Pocos;
 using Dse.Test.Unit.Mapping.TestData;
 using Moq;

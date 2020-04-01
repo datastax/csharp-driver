@@ -14,7 +14,6 @@ using Dse.Test.Integration.SimulacronAPI.PrimeBuilder;
 using Dse.Test.Integration.SimulacronAPI.PrimeBuilder.Then;
 using Dse.Test.Integration.SimulacronAPI.PrimeBuilder.When;
 using Dse.Test.Integration.TestClusterManagement.Simulacron;
-using NUnit.Framework;
 using Guid = System.Guid;
 
 #pragma warning disable 618

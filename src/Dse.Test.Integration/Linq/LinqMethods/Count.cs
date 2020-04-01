@@ -6,7 +6,6 @@
 //
 
 using System.Collections.Generic;
-using System.Linq;
 using Dse.Data.Linq;
 using Dse.Test.Integration.Linq.Structures;
 using Dse.Test.Integration.TestClusterManagement;

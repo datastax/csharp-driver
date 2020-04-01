@@ -9,7 +9,6 @@ using System;
 using System.Linq;
 using Dse.Data.Linq;
 using Dse.Test.Integration.Mapping.Structures;
-using Dse.Test.Integration.TestClusterManagement;
 using Dse.Mapping;
 using Dse.Test.Integration.SimulacronAPI.PrimeBuilder.Then;
 using NUnit.Framework;

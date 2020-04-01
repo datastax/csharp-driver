@@ -5,8 +5,6 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-using Dse.Serialization;
-
 namespace Dse.Serialization.Geometry
 {
     internal abstract class GeometrySerializer<T> : TypeSerializer<T>

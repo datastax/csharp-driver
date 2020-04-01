@@ -10,7 +10,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using Dse.Connections;
-using Dse.ExecutionProfiles;
 using Dse.ProtocolEvents;
 using Dse.Requests;
 using Dse.SessionManagement;

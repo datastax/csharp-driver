@@ -5,7 +5,6 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-using System;
 using Dse.Mapping;
 
 namespace Dse.Test.Integration.Mapping.Structures

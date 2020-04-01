@@ -6,7 +6,6 @@
 //
 
 using System;
-using System.Collections.Generic;
 using Dse.Search;
 
 namespace Dse.Serialization.Search

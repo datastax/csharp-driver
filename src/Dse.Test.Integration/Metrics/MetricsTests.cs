@@ -18,8 +18,6 @@
 using System;
 using System.Linq;
 using System.Net;
-using System.Threading.Tasks;
-
 using App.Metrics;
 using App.Metrics.Gauge;
 using Cassandra.Tests;

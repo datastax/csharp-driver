@@ -23,8 +23,6 @@ using Dse.ExecutionProfiles;
 using Dse.Requests;
 using Dse.Serialization;
 using Dse.SessionManagement;
-using Dse.Tasks;
-using Dse.Test.Unit.Connections;
 using Moq;
 
 using NUnit.Framework;

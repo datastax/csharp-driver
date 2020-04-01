@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Dse.Search
+﻿namespace Dse.Search
 {
     /// <summary>
     /// Defines the possible values of date range precision.

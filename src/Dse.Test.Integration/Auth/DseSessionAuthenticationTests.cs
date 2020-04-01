@@ -10,10 +10,8 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using Cassandra.Tests;
-using Dse.Auth;
 using Dse.Test.Integration.Core;
 using Dse.Test.Integration.TestClusterManagement;
-using Dse.Test.Unit;
 using NUnit.Framework;
 
 namespace Dse.Test.Integration.Auth

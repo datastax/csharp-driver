@@ -6,7 +6,6 @@
 //
 
 using System;
-using Dse.Mapping;
 using Dse.Mapping.Attributes;
 
 namespace Dse.Test.Unit.Mapping.Pocos

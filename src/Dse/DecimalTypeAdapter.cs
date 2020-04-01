@@ -10,7 +10,6 @@ using Dse.Serialization;
 
 namespace Dse
 {
-    using System.Linq;
     using System.Numerics;
 
     public class DecimalTypeAdapter : ITypeAdapter

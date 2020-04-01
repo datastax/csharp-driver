@@ -6,8 +6,7 @@
 //
 
 using System;
-using Dse.Data.Linq;
-using System.Diagnostics;
+
 #pragma warning disable 618
 
 namespace Dse.Test.Integration.Linq.Structures

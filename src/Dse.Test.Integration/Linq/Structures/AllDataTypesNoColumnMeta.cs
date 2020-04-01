@@ -8,8 +8,7 @@
 using System;
 using System.Collections.Generic;
 using Dse.Data.Linq;
-using Dse.Test.Integration.TestClusterManagement;
-using NUnit.Framework;
+
 #pragma warning disable 618
 
 namespace Dse.Test.Integration.Linq.Structures

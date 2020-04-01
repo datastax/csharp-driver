@@ -11,7 +11,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Dse.Connections;
 using Dse.Metrics.Internal;
-using Dse.SessionManagement;
 
 namespace Dse.Tasks
 {

@@ -1,13 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Cassandra.Tests;
 using Dse.Search;
-using Dse.Test.Integration.Core;
 using Dse.Test.Integration.TestClusterManagement;
 using Newtonsoft.Json;
 using NUnit.Framework;

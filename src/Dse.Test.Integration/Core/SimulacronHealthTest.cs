@@ -6,7 +6,6 @@
 //
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using Cassandra.Tests;
 using Dse.Test.Integration.SimulacronAPI;

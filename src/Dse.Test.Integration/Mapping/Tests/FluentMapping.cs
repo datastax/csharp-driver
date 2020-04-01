@@ -8,13 +8,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using Cassandra.Tests;
 using Dse.Data.Linq;
-using Dse.Test.Integration.Mapping.Structures;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Mapping;
-using Dse.Test.Unit.Mapping.FluentMappings;
 using NUnit.Framework;
 
 namespace Dse.Test.Integration.Mapping.Tests

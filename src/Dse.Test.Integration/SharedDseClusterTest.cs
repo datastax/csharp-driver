@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Dse.Test.Integration
+﻿namespace Dse.Test.Integration
 {
     /// <summary>
     /// Represents a test fixture that on setup, it creates a dse test cluster available for all tests in the fixture.

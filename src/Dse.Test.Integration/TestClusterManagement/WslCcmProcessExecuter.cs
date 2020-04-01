@@ -15,8 +15,6 @@
 //
 using System;
 
-using Dse.Test.Integration.TestBase;
-
 namespace Dse.Test.Integration.TestClusterManagement
 {
     public class WslCcmProcessExecuter : CcmProcessExecuter

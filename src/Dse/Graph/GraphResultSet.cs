@@ -9,10 +9,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Dse.Serialization.Graph;
 using Dse.Serialization.Graph.GraphSON1;
 using Dse.Serialization.Graph.GraphSON2;
-using Newtonsoft.Json;
 
 namespace Dse.Graph
 {

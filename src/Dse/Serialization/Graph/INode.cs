@@ -10,7 +10,6 @@ using System.Collections.Generic;
 using System.Dynamic;
 using Dse.Graph;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace Dse.Serialization.Graph
 {

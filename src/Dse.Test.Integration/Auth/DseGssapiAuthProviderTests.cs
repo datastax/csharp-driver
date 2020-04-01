@@ -6,12 +6,8 @@
 //
 
 #if !NETCORE
-using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
-using Dse;
 using Dse.Auth;
 using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;

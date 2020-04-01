@@ -11,7 +11,6 @@ using Dse.Data.Linq;
 using Dse.Test.Integration.Linq.Structures;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Mapping;
-using Dse.Mapping.Attributes;
 using NUnit.Framework;
 
 #pragma warning disable 612

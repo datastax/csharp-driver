@@ -6,11 +6,6 @@
 //
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Dse;
-using Dse.Serialization;
-using Dse.Serialization.Graph;
 using Dse.Serialization.Graph.GraphSON1;
 using Newtonsoft.Json;
 

@@ -9,7 +9,6 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
-using Dse.SessionManagement;
 using Dse.Tasks;
 
 namespace Dse

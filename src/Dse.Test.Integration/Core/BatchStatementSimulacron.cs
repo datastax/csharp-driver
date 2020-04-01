@@ -17,7 +17,6 @@
 using System;
 using System.Linq;
 using Dse.Test.Integration.SimulacronAPI.Models.Logs;
-using Dse.Test.Integration.TestBase;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Test.Integration.TestClusterManagement.Simulacron;
 

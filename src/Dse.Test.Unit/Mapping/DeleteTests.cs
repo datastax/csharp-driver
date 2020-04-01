@@ -6,9 +6,6 @@
 //
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using Dse.Mapping;
 using Dse.Tasks;
 using Dse.Test.Unit.Mapping.Pocos;

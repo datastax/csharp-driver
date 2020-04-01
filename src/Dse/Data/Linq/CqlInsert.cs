@@ -5,9 +5,6 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Dse.Mapping;
 using Dse.Mapping.Statements;
 using Dse.Mapping.Utils;

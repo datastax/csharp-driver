@@ -7,7 +7,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using Dse.Data.Linq;
 using Dse.Test.Integration.SimulacronAPI;

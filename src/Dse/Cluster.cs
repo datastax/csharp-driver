@@ -16,7 +16,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Dse.Collections;
 using Dse.Connections;
-using Dse.ExecutionProfiles;
 using Dse.Helpers;
 using Dse.ProtocolEvents;
 using Dse.Requests;

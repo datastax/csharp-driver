@@ -14,7 +14,6 @@ using Dse.Test.Unit.Mapping.TestData;
 using Moq;
 
 using NUnit.Framework;
-using NUnit.Framework.Interfaces;
 
 namespace Dse.Test.Unit.Mapping
 {

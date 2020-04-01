@@ -14,7 +14,6 @@
 //   limitations under the License.
 //
 
-using System;
 using Dse.Connections;
 using Dse.Observers.Abstractions;
 using Dse.Responses;

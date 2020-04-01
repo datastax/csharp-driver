@@ -7,15 +7,10 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Text;
-using System.Linq;
 using System.Net.Sockets;
 using System.Threading;
-using Dse.Test.Integration.TestClusterManagement;
 using Dse.Test.Unit;
-using NUnit.Framework;
 
 namespace Dse.Test.Integration.TestClusterManagement
 {

@@ -6,15 +6,10 @@
 //
 
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading;
 using Cassandra.Tests;
 using Dse.Test.Integration.Policies.Util;
 using Dse.Test.Integration.TestClusterManagement;
-using Dse.Serialization;
 using NUnit.Framework;
 
 namespace Dse.Test.Integration.Policies.Tests

@@ -5,9 +5,6 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-using System;
-using System.Threading;
-
 namespace Dse
 {
     /// <summary>

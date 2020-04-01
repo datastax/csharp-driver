@@ -17,7 +17,6 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
-using System.Threading.Tasks;
 using Dse.Connections;
 using Dse.ProtocolEvents;
 using Dse.Test.Unit.MetadataHelpers.TestHelpers;

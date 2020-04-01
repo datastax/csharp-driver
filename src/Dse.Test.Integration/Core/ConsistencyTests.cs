@@ -5,17 +5,9 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-using System.Diagnostics;
-using Dse.Data.Linq;
-using Dse.Test.Integration.Linq.Structures;
-using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;
-using System;
-using System.Collections.Generic;
 using System.Linq;
 using Cassandra.Tests;
-using Dse.Mapping;
-using Dse.Mapping.Statements;
 using Dse.Test.Integration.SimulacronAPI.Models.Logs;
 using Dse.Test.Integration.TestClusterManagement.Simulacron;
 

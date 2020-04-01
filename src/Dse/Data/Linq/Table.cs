@@ -6,13 +6,10 @@
 //
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
 using Dse.Mapping;
 using Dse.Mapping.Statements;
-using Dse.Mapping.TypeConversion;
 
 namespace Dse.Data.Linq
 {

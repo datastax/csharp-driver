@@ -6,7 +6,6 @@
 //
 
 using System;
-using Dse;
 using Dse.Geometry;
 
 namespace Dse.Serialization.Geometry

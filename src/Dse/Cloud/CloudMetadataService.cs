@@ -25,11 +25,8 @@ using System.Net.Http.Headers;
 #endif
 
 using System.Security.Authentication;
-using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
-
 using Dse.Helpers;
-
 using Newtonsoft.Json;
 
 namespace Dse.Cloud

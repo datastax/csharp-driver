@@ -10,7 +10,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Dse.Data.Linq;
-using Dse.Test.Integration.Mapping.Tests;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Mapping;
 using Dse.Test.Integration.SimulacronAPI;

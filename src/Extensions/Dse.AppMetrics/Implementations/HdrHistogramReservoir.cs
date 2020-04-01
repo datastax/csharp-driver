@@ -5,7 +5,6 @@
 // https://github.com/alhardy/AppMetrics.Reservoirs/blob/3a1861386ac73b21b37e548c61575602eed67f89/LICENSE
 
 using System;
-using System.Diagnostics;
 using System.Threading;
 using App.Metrics.Concurrency;
 using App.Metrics.ReservoirSampling;

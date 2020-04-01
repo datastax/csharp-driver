@@ -16,7 +16,6 @@ using Dse.Insights.Schema.StatusMessage;
 using Dse.SessionManagement;
 using Dse.Test.Integration.SimulacronAPI.Models.Logs;
 using Dse.Test.Integration.SimulacronAPI.PrimeBuilder;
-using Dse.Test.Integration.SimulacronAPI.PrimeBuilder.When;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Test.Integration.TestClusterManagement.Simulacron;
 using Dse.Test.Unit;

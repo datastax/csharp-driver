@@ -6,9 +6,7 @@
 //
 
 using NUnit.Framework;
-using System;
 using System.Diagnostics;
-using System.Linq.Expressions;
 using Dse.Test.Integration.TestClusterManagement;
 using System.Threading.Tasks;
 using Cassandra.Tests;

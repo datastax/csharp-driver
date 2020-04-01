@@ -8,8 +8,6 @@
 using System;
 using System.Threading.Tasks;
 using Dse.Mapping;
-using Dse.Mapping.Statements;
-using Dse.Tasks;
 
 namespace Dse.Data.Linq
 {

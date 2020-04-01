@@ -1,4 +1,4 @@
-//
+﻿//
 //  Copyright (C) DataStax, Inc.
 //
 //  Please see the license for details:
@@ -7,14 +7,13 @@
 
 using System;
 using System.Collections.Concurrent;
-﻿using System.Collections.Generic;
+ using System.Collections.Generic;
 using System.Linq;
-﻿using System.Net;
-﻿using NUnit.Framework;
+using NUnit.Framework;
 using Moq;
 using System.Threading.Tasks;
 using System.Threading;
-﻿using Dse.Requests;
+
 #pragma warning disable 618
 
 namespace Dse.Test.Unit
