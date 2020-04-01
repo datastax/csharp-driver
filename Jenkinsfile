@@ -457,7 +457,7 @@ pipeline {
           exclude {
             axis {
               name 'DOTNET_VERSION'
-              values 'mono'
+              values 'mono', 'netcoreapp2.0'
             }
             axis {
               name 'SERVER_VERSION'
