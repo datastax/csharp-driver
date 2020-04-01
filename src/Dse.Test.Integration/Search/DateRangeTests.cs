@@ -10,7 +10,7 @@ using NUnit.Framework;
 namespace Dse.Test.Integration.Search
 {
     [Category(TestCategory.Short), TestDseVersion(5, 1), Category(TestCategory.ServerApi)]
-    public class DateRangeTests : SharedClusterTest
+    public class DateRangeTests : SharedDseClusterTest
     {
         private static readonly string[] Values = new[]
         {

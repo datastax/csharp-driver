@@ -15,7 +15,7 @@ using NUnit.Framework;
 namespace Dse.Test.Integration
 {
     [Category(TestCategory.Short), TestDseVersion(5, 1)]
-    public class DurationTests : SharedClusterTest
+    public class DurationTests : SharedDseClusterTest
     {
         public static readonly string[] Values = 
         {
