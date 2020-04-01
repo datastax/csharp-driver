@@ -61,9 +61,8 @@ namespace Dse.Data.Linq
             {
                 throw new ArgumentNullException(nameof(executionProfile));
             }
-            
-            object[] values;
-            var cql = GetCql(out values);
+
+            var cql = GetCql(out object[] values);
             var session = GetTable().GetSession();
             var stmt = await InternalRef.StatementFactory.GetStatementAsync(
                 session, 

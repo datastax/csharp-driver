@@ -87,8 +87,7 @@ namespace Dse
 
         public void RemoveIfExists(IPEndPoint ep)
         {
-            Host host;
-            if (!_hosts.TryRemove(ep, out host))
+            if (!_hosts.TryRemove(ep, out Host host))
             {
                 //The host does not exists
                 return;

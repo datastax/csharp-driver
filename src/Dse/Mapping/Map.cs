@@ -235,12 +235,11 @@ namespace Dse.Mapping
             MemberInfo memberInfo = GetPropertyOrField(column);
 
             // Create the ColumnMap for the member if we haven't already
-            ColumnMap columnMap;
-            if (_columnMaps.TryGetValue(memberInfo.Name, out columnMap) == false)
+            if (_columnMaps.TryGetValue(memberInfo.Name, out ColumnMap columnMap) == false)
             {
                 Type memberInfoType = memberInfo as PropertyInfo != null
-                                          ? ((PropertyInfo) memberInfo).PropertyType
-                                          : ((FieldInfo) memberInfo).FieldType;
+                                          ? ((PropertyInfo)memberInfo).PropertyType
+                                          : ((FieldInfo)memberInfo).FieldType;
 
                 columnMap = new ColumnMap(memberInfo, memberInfoType, true);
                 _columnMaps[memberInfo.Name] = columnMap;
@@ -282,21 +281,18 @@ namespace Dse.Mapping
         IColumnDefinition ITypeDefinition.GetColumnDefinition(FieldInfo field)
         {
             // If a column map has been defined, return it, otherwise create an empty one
-            ColumnMap columnMap;
-            return _columnMaps.TryGetValue(field.Name, out columnMap) ? columnMap : new ColumnMap(field, field.FieldType, false);
+            return _columnMaps.TryGetValue(field.Name, out ColumnMap columnMap) ? columnMap : new ColumnMap(field, field.FieldType, false);
         }
 
         IColumnDefinition ITypeDefinition.GetColumnDefinition(PropertyInfo property)
         {
             // If a column map has been defined, return it, otherwise create an empty one
-            ColumnMap columnMap;
-            return _columnMaps.TryGetValue(property.Name, out columnMap) ? columnMap : new ColumnMap(property, property.PropertyType, false);
+            return _columnMaps.TryGetValue(property.Name, out ColumnMap columnMap) ? columnMap : new ColumnMap(property, property.PropertyType, false);
         }
 
         private string GetColumnName(MemberInfo memberInfo)
         {
-            ColumnMap columnMap;
-            if (_columnMaps.TryGetValue(memberInfo.Name, out columnMap))
+            if (_columnMaps.TryGetValue(memberInfo.Name, out ColumnMap columnMap))
             {
                 return ((IColumnDefinition)columnMap).ColumnName ?? memberInfo.Name;
             }

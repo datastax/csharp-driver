@@ -72,15 +72,13 @@ namespace Dse.Auth
 
         private byte[] FirstTransition(byte[] challenge)
         {
-            byte[] resultToken;
-            _context.Init(null, out resultToken);
+            _context.Init(null, out byte[] resultToken);
             return resultToken;
         }
 
         private byte[] SecondTransition(byte[] challenge)
         {
-            byte[] resultToken;
-            _context.Init(challenge, out resultToken);
+            _context.Init(challenge, out byte[] resultToken);
             return resultToken;
         }
 

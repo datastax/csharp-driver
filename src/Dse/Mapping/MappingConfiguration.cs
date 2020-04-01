@@ -74,8 +74,7 @@ namespace Dse.Mapping
         /// </summary>
         public MappingConfiguration ConvertTypesUsing(TypeConverter typeConverter)
         {
-            if (typeConverter == null) throw new ArgumentNullException("typeConverter");
-            _typeConverter = typeConverter;
+            _typeConverter = typeConverter ?? throw new ArgumentNullException("typeConverter");
             MapperFactory = new MapperFactory(_typeConverter, new PocoDataFactory(_typeDefinitions));
             return this;
         }
@@ -134,8 +133,7 @@ namespace Dse.Mapping
         /// </summary>
         public ITypeDefinition Get<T>()
         {
-            ITypeDefinition existingMapping;
-            _typeDefinitions.TryGetItem(typeof(T), out existingMapping);
+            _typeDefinitions.TryGetItem(typeof(T), out ITypeDefinition existingMapping);
 
             return existingMapping;
         }

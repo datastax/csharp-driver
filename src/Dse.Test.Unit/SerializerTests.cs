@@ -547,8 +547,7 @@ namespace Dse.Test.Unit
 
         internal static ColumnTypeCode GetCqlTypeForPrimitive(this IGenericSerializer serializer, Type type)
         {
-            IColumnInfo dummyInfo;
-            return serializer.GetCqlType(type, out dummyInfo);
+            return serializer.GetCqlType(type, out IColumnInfo dummyInfo);
         }
     }
 }

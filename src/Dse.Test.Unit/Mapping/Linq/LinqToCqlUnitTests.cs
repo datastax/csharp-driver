@@ -115,8 +115,7 @@ namespace Dse.Test.Unit.Mapping.Linq
             var query = table.Where(t => t.pk == "a" && t.ck1.StartsWith("foo") && t.pk == "bar");
             var pocoData = MappingConfiguration.Global.MapperFactory.GetPocoData<LinqDecoratedWithStringCkEntity>();
             var visitor = new CqlExpressionVisitor(pocoData, "x_ts", null);
-            object[] parameters;
-            var queryCql = visitor.GetSelect(query.Expression, out parameters);
+            var queryCql = visitor.GetSelect(query.Expression, out object[] parameters);
 
             Assert.That(parameters, Is.EquivalentTo(new[] { "a", "foo", "foo" + Encoding.UTF8.GetString(new byte[] { 0xF4, 0x8F, 0xBF, 0xBF }), "bar" }));
             Assert.AreEqual(@"SELECT ""x_ck1"", ""x_f1"", ""x_pk"" FROM ""x_ts"" WHERE ""x_pk"" = ? AND ""x_ck1"" >= ? AND ""x_ck1"" < ? AND ""x_pk"" = ?", queryCql);
@@ -145,8 +144,7 @@ namespace Dse.Test.Unit.Mapping.Linq
             var query = table.Where(t => t.pk == testObject.Property && t.ck1 == testObject.AnotherObjectProperty.Property);
             var pocoData = MappingConfiguration.Global.MapperFactory.GetPocoData<LinqDecoratedWithStringCkEntity>();
             var visitor = new CqlExpressionVisitor(pocoData, "x_ts", null);
-            object[] parameters;
-            var queryCql = visitor.GetSelect(query.Expression, out parameters);
+            var queryCql = visitor.GetSelect(query.Expression, out object[] parameters);
 
             Assert.That(parameters, Is.EquivalentTo(new[] { "a", "b" }));
             Assert.AreEqual(@"SELECT ""x_ck1"", ""x_f1"", ""x_pk"" FROM ""x_ts"" WHERE ""x_pk"" = ? AND ""x_ck1"" = ?", queryCql);
@@ -167,8 +165,7 @@ namespace Dse.Test.Unit.Mapping.Linq
             var query = table.Where(t => t.pk == testObject.Field && t.ck1 == testObject.AnotherObjectField.Field);
             var pocoData = MappingConfiguration.Global.MapperFactory.GetPocoData<LinqDecoratedWithStringCkEntity>();
             var visitor = new CqlExpressionVisitor(pocoData, "x_ts", null);
-            object[] parameters;
-            var queryCql = visitor.GetSelect(query.Expression, out parameters);
+            var queryCql = visitor.GetSelect(query.Expression, out object[] parameters);
 
             Assert.That(parameters, Is.EquivalentTo(new[] { "a", "b" }));
             Assert.AreEqual(@"SELECT ""x_ck1"", ""x_f1"", ""x_pk"" FROM ""x_ts"" WHERE ""x_pk"" = ? AND ""x_ck1"" = ?", queryCql);
@@ -192,8 +189,7 @@ namespace Dse.Test.Unit.Mapping.Linq
             var query = table.Where(t => t.pk == testObject.AnotherObjectField.Property && t.ck1 == testObject.AnotherObjectProperty.Field);
             var pocoData = MappingConfiguration.Global.MapperFactory.GetPocoData<LinqDecoratedWithStringCkEntity>();
             var visitor = new CqlExpressionVisitor(pocoData, "x_ts", null);
-            object[] parameters;
-            var queryCql = visitor.GetSelect(query.Expression, out parameters);
+            var queryCql = visitor.GetSelect(query.Expression, out object[] parameters);
 
             Assert.That(parameters, Is.EquivalentTo(new[] { "a", "b" }));
             Assert.AreEqual(@"SELECT ""x_ck1"", ""x_f1"", ""x_pk"" FROM ""x_ts"" WHERE ""x_pk"" = ? AND ""x_ck1"" = ?", queryCql);

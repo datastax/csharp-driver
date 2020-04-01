@@ -195,8 +195,7 @@ namespace Dse.Test.Unit.Mapping
                 .Column(u => u.UserId, cm => cm.WithName("ID")));
             var pocoFactory = new PocoDataFactory(types);
             var cqlGenerator = new CqlGenerator(pocoFactory);
-            object[] queryParameters;
-            var cql = cqlGenerator.GenerateInsert<ExplicitColumnsUser>(true, new object[0], out queryParameters);
+            var cql = cqlGenerator.GenerateInsert<ExplicitColumnsUser>(true, new object[0], out object[] queryParameters);
             Assert.AreEqual(@"INSERT INTO USERS (ID, Name, UserAge) VALUES (?, ?, ?)", cql);
         }
 
@@ -211,8 +210,7 @@ namespace Dse.Test.Unit.Mapping
                 .Column(u => u.UserId, cm => cm.WithName("ID")));
             var pocoFactory = new PocoDataFactory(types);
             var cqlGenerator = new CqlGenerator(pocoFactory);
-            object[] queryParameters;
-            var cql = cqlGenerator.GenerateInsert<ExplicitColumnsUser>(true, new object[0], out queryParameters);
+            var cql = cqlGenerator.GenerateInsert<ExplicitColumnsUser>(true, new object[0], out object[] queryParameters);
             Assert.AreEqual(@"INSERT INTO keyspace1.USERS (ID, Name, UserAge) VALUES (?, ?, ?)", cql);
         }
 
@@ -227,8 +225,7 @@ namespace Dse.Test.Unit.Mapping
             var pocoFactory = new PocoDataFactory(types);
             var cqlGenerator = new CqlGenerator(pocoFactory);
             var values = new object[] {Guid.NewGuid(), null, 100};
-            object[] queryParameters;
-            var cql = cqlGenerator.GenerateInsert<ExplicitColumnsUser>(false, values, out queryParameters);
+            var cql = cqlGenerator.GenerateInsert<ExplicitColumnsUser>(false, values, out object[] queryParameters);
             Assert.AreEqual(@"INSERT INTO USERS (ID, UserAge) VALUES (?, ?)", cql);
             CollectionAssert.AreEqual(values.Where(v => v != null), queryParameters);
             
@@ -248,8 +245,7 @@ namespace Dse.Test.Unit.Mapping
             var pocoFactory = new PocoDataFactory(types);
             var cqlGenerator = new CqlGenerator(pocoFactory);
             var values = new object[] { null, "name", 100 };
-            object[] queryParameters;
-            var cql = cqlGenerator.GenerateInsert<ExplicitColumnsUser>(false, values, out queryParameters);
+            var cql = cqlGenerator.GenerateInsert<ExplicitColumnsUser>(false, values, out object[] queryParameters);
             Assert.AreEqual(@"INSERT INTO USERS (Name, UserAge) VALUES (?, ?)", cql);
             CollectionAssert.AreEqual(values.Where(v => v != null), queryParameters);
 
@@ -268,9 +264,8 @@ namespace Dse.Test.Unit.Mapping
                 .Column(u => u.UserId, cm => cm.WithName("ID")));
             var pocoFactory = new PocoDataFactory(types);
             var cqlGenerator = new CqlGenerator(pocoFactory);
-            object[] queryParameters;
             Assert.Throws<ArgumentNullException>(() =>
-                cqlGenerator.GenerateInsert<ExplicitColumnsUser>(false, null, out queryParameters));
+                cqlGenerator.GenerateInsert<ExplicitColumnsUser>(false, null, out object[] queryParameters));
         }
 
         [Test]
@@ -283,9 +278,8 @@ namespace Dse.Test.Unit.Mapping
                 .Column(u => u.UserId, cm => cm.WithName("ID")));
             var pocoFactory = new PocoDataFactory(types);
             var cqlGenerator = new CqlGenerator(pocoFactory);
-            object[] queryParameters;
             Assert.Throws<ArgumentException>(() =>
-                cqlGenerator.GenerateInsert<ExplicitColumnsUser>(false, new object[] { Guid.NewGuid()}, out queryParameters));
+                cqlGenerator.GenerateInsert<ExplicitColumnsUser>(false, new object[] { Guid.NewGuid() }, out object[] queryParameters));
         }
 
         [Test]
@@ -298,8 +292,7 @@ namespace Dse.Test.Unit.Mapping
                 .CaseSensitive());
             var pocoFactory = new PocoDataFactory(types);
             var cqlGenerator = new CqlGenerator(pocoFactory);
-            object[] queryParameters;
-            var cql = cqlGenerator.GenerateInsert<ExplicitColumnsUser>(true, new object[0], out queryParameters);
+            var cql = cqlGenerator.GenerateInsert<ExplicitColumnsUser>(true, new object[0], out object[] queryParameters);
             Assert.AreEqual(@"INSERT INTO ""USERS"" (""Name"", ""UserAge"", ""UserId"") VALUES (?, ?, ?)", cql);
         }
     }

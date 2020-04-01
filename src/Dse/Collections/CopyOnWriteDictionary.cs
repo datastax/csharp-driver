@@ -100,8 +100,7 @@ namespace Dse.Collections
 
             lock (_writeLock)
             {
-                TValue existingValue;
-                if (_map.TryGetValue(key, out existingValue))
+                if (_map.TryGetValue(key, out TValue existingValue))
                 {
                     return existingValue;
                 }
@@ -213,8 +212,7 @@ namespace Dse.Collections
 
             lock (_writeLock)
             {
-                TValue existingValue;
-                if (_map.TryGetValue(key, out existingValue))
+                if (_map.TryGetValue(key, out TValue existingValue))
                 {
                     return existingValue;
                 }

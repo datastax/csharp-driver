@@ -274,8 +274,7 @@ namespace Microsoft.IO
         /// <returns>A byte[] array</returns>
         internal byte[] GetBlock()
         {
-            byte[] block;
-            if (!this.smallPool.TryPop(out block))
+            if (!this.smallPool.TryPop(out byte[] block))
             {
                 // We'll add this back to the pool when the stream is disposed
                 // (unless our free pool is too large)

@@ -147,8 +147,7 @@ namespace Dse.Data.Linq
 
         protected void InitializeStatement()
         {
-            object[] values;
-            string query = GetCql(out values);
+            string query = GetCql(out object[] values);
             SetQueryString(query);
             SetValues(values);
         }

@@ -41,14 +41,12 @@ namespace Dse
 
         public int GetOpenConnections(Host host)
         {
-            HostStateInfo info;
-            return !_infos.TryGetValue(host, out info) ? 0 : info.OpenConnections;
+            return !_infos.TryGetValue(host, out HostStateInfo info) ? 0 : info.OpenConnections;
         }
 
         public int GetInFlightQueries(Host host)
         {
-            HostStateInfo info;
-            return !_infos.TryGetValue(host, out info) ? 0 : info.InFlightQueries;
+            return !_infos.TryGetValue(host, out HostStateInfo info) ? 0 : info.InFlightQueries;
         }
 
         public override string ToString()

@@ -397,8 +397,7 @@ namespace Dse.Test.Unit
                 GetConnectionMock(1)
             };
             var index = 0;
-            int inFlight;
-            var c = HostConnectionPool.MinInFlight(connections, ref index, 100, out inFlight);
+            var c = HostConnectionPool.MinInFlight(connections, ref index, 100, out int inFlight);
             Assert.AreEqual(index, 1);
             Assert.AreSame(connections[1], c);
             Assert.AreEqual(1, inFlight);
@@ -438,9 +437,8 @@ namespace Dse.Test.Unit
                 GetConnectionMock(210)
             };
             var index = 0;
-            int inFlight;
 
-            var c = HostConnectionPool.MinInFlight(connections, ref index, 100, out inFlight);
+            var c = HostConnectionPool.MinInFlight(connections, ref index, 100, out int inFlight);
             Assert.AreEqual(index, 1);
             Assert.AreSame(connections[1], c);
             Assert.AreEqual(1, inFlight);

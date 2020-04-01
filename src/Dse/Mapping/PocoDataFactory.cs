@@ -31,8 +31,7 @@ namespace Dse.Mapping
         /// <param name="predefinedTypeDefinitions">Explicitly declared type definitions</param>
         public PocoDataFactory(LookupKeyedCollection<Type, ITypeDefinition> predefinedTypeDefinitions)
         {
-            if (predefinedTypeDefinitions == null) throw new ArgumentNullException("predefinedTypeDefinitions");
-            _predefinedTypeDefinitions = predefinedTypeDefinitions;
+            _predefinedTypeDefinitions = predefinedTypeDefinitions ?? throw new ArgumentNullException("predefinedTypeDefinitions");
             _cache = new ConcurrentDictionary<Type, PocoData>();
         }
 
@@ -58,8 +57,7 @@ namespace Dse.Mapping
         private PocoData CreatePocoData(Type pocoType)
         {
             // Try to get mapping from predefined collection, otherwise fallback to using attributes
-            ITypeDefinition typeDefinition;
-            if (_predefinedTypeDefinitions.TryGetItem(pocoType, out typeDefinition) == false)
+            if (!_predefinedTypeDefinitions.TryGetItem(pocoType, out ITypeDefinition typeDefinition))
             {
                 typeDefinition = new AttributeBasedTypeDefinition(pocoType);
             }

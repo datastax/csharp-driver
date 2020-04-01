@@ -41,7 +41,7 @@ namespace Dse.Mapping.TypeConversion
         public static string MapEnumToString(T enumValue)
         {
             // ReSharper disable once CompareNonConstrainedGenericWithNull (we know this is a Nullable enum from the static constructor)
-            return enumValue == null ? null : enumValue.ToString();
+            return enumValue?.ToString();
         }
     }
 }

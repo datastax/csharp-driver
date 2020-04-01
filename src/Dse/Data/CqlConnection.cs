@@ -92,7 +92,7 @@ namespace Dse.Data
         {
             get
             {
-                return _connectionStringBuilder == null ? null : _connectionStringBuilder.ConnectionString;
+                return _connectionStringBuilder?.ConnectionString;
             }
             set
             {
@@ -120,7 +120,7 @@ namespace Dse.Data
         /// </summary>
         public override string Database
         {
-            get { return ManagedConnection == null ? null : ManagedConnection.Keyspace; }
+            get { return ManagedConnection?.Keyspace; }
         }
 
 #if !NETCORE
@@ -159,8 +159,7 @@ namespace Dse.Data
         /// <returns></returns>
         protected virtual Cluster CreateCluster(CassandraConnectionStringBuilder connectionStringBuilder)
         {
-            Cluster cluster;
-            if (!_clusters.TryGetValue(_connectionStringBuilder.ClusterName, out cluster))
+            if (!_clusters.TryGetValue(_connectionStringBuilder.ClusterName, out Cluster cluster))
             {
                 var builder = _connectionStringBuilder.MakeClusterBuilder();
                 OnBuildingCluster(builder);

@@ -50,8 +50,7 @@ namespace Dse
 
         internal static OutputError CreateOutputError(int code, string message, FrameReader cb)
         {
-            Func<OutputError> factoryMethod;
-            if (OutputErrorFactoryMethods.TryGetValue(code, out factoryMethod) == false)
+            if (!OutputErrorFactoryMethods.TryGetValue(code, out Func<OutputError> factoryMethod))
                 throw new DriverInternalError(string.Format("Received unknown error with code {0} and message {1}", code, message));
 
             var error = factoryMethod();

@@ -320,8 +320,7 @@ namespace Dse
                                 for (var i = 0; i < partitionKeyNames.Length; i++)
                                 {
                                     var name = partitionKeyNames[i];
-                                    TableColumn c;
-                                    if (!columns.TryGetValue(name, out c))
+                                    if (!columns.TryGetValue(name, out TableColumn c))
                                     {
                                         c = new TableColumn
                                         {
@@ -345,9 +344,8 @@ namespace Dse
                                     for (var i = 0; i < clusteringKeyNames.Length; i++)
                                     {
                                         var name = clusteringKeyNames[i];
-                                        TableColumn c;
                                         var dataType = types[i];
-                                        if (!columns.TryGetValue(name, out c))
+                                        if (!columns.TryGetValue(name, out TableColumn c))
                                         {
                                             c = new TableColumn
                                             {
@@ -784,8 +782,7 @@ namespace Dse
             }
             clusteringKeys.Clear();
             //remove regular columns and set the static columns to non-static
-            TableColumn valueBlob;
-            if (columns.TryGetValue("value", out valueBlob) && valueBlob.TypeCode == ColumnTypeCode.Blob)
+            if (columns.TryGetValue("value", out TableColumn valueBlob) && valueBlob.TypeCode == ColumnTypeCode.Blob)
             {
                 columns.Remove("value");
             }

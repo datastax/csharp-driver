@@ -67,9 +67,8 @@ namespace Dse.Data.Linq
             {
                 throw new ArgumentNullException(nameof(executionProfile));
             }
-            
-            object[] values;
-            string cql = GetCql(out values);
+
+            string cql = GetCql(out object[] values);
             var rs = await InternalExecuteWithProfileAsync(executionProfile, cql, values).ConfigureAwait(false);
             var result = default(TEntity);
             var row = rs.FirstOrDefault();

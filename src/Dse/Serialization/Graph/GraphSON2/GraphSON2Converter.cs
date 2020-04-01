@@ -176,8 +176,7 @@ namespace Dse.Serialization.Graph.GraphSON2
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, 
                                         JsonSerializer serializer)
         {
-            ReadDelegate readHandler;
-            if (!_readers.TryGetValue(objectType, out readHandler))
+            if (!_readers.TryGetValue(objectType, out ReadDelegate readHandler))
             {
                 throw new NotSupportedException($"The Type '{objectType.Name}' is not supported");
             }

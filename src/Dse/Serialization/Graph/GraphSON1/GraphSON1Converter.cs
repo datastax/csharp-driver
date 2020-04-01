@@ -77,8 +77,7 @@ namespace Dse.Serialization.Graph.GraphSON1
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
-            WriteDelegate writeHandler;
-            if (!Writers.TryGetValue(value.GetType(), out writeHandler))
+            if (!Writers.TryGetValue(value.GetType(), out WriteDelegate writeHandler))
             {
                 return;
             }
@@ -87,8 +86,7 @@ namespace Dse.Serialization.Graph.GraphSON1
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
-            ReadDelegate readHandler;
-            if (!_readers.TryGetValue(objectType, out readHandler))
+            if (!_readers.TryGetValue(objectType, out ReadDelegate readHandler))
             {
                 return null;
             }

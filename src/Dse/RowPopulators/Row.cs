@@ -124,12 +124,9 @@ namespace Dse
         /// </summary>
         public CqlColumn GetColumn(string name)
         {
-            int index;
-            if (!ColumnIndexes.TryGetValue(name, out index))
-            {
-                return null;
-            }
-            return Columns[index];
+            return ColumnIndexes.TryGetValue(name, out var index)
+                ? Columns[index]
+                : null;
         }
 
         /// <summary>
@@ -181,7 +178,7 @@ namespace Dse
         public virtual T GetValue<T>(int index)
         {
             //The method is marked virtual to allow to be mocked
-            var type = typeof (T);
+            var type = typeof(T);
             var value = GetValue(type, index);
             //Check that the value is null but the type is not nullable (structs)
             //A little overhead in case of misuse but improved Error message
@@ -189,7 +186,7 @@ namespace Dse
             {
                 throw new NullReferenceException(string.Format("Cannot convert null to {0} because it is a value type, try using Nullable<{0}>", type.Name));
             }
-            return (T) value;
+            return (T)value;
         }
 
         /// <summary>
@@ -227,7 +224,7 @@ namespace Dse
                     return TryConvertDictionary((IDictionary)value, column, targetType);
                 case ColumnTypeCode.Timestamp:
                     // The type of the value is DateTimeOffset
-                    if (targetType == typeof (object) || targetType.GetTypeInfo().IsAssignableFrom(typeof(DateTimeOffset)))
+                    if (targetType == typeof(object) || targetType.GetTypeInfo().IsAssignableFrom(typeof(DateTimeOffset)))
                     {
                         return value;
                     }
@@ -253,8 +250,8 @@ namespace Dse
             if (targetTypeInfo.IsArray)
             {
                 childTargetType = targetTypeInfo.GetElementType();
-                return childTargetType == childType 
-                    ? value 
+                return childTargetType == childType
+                    ? value
                     : Row.GetArray((Array)value, childTargetType, column.TypeInfo);
             }
             if (Utils.IsIEnumerable(targetType, out childTargetType))
@@ -271,8 +268,8 @@ namespace Dse
                     // The target type is an interface
                     return value;
                 }
-                if (column.TypeCode == ColumnTypeCode.List 
-                    || genericTargetType == typeof(List<>) 
+                if (column.TypeCode == ColumnTypeCode.List
+                    || genericTargetType == typeof(List<>)
                     || TypeConverter.ListGenericInterfaces.Contains(genericTargetType))
                 {
                     // Use List<T> by default when a list is expected and the target type 
@@ -316,7 +313,7 @@ namespace Dse
                 return result;
             }
             // Other collections
-            var childColumnInfo = ((ICollectionColumnInfo) columnInfo).GetChildType();
+            var childColumnInfo = ((ICollectionColumnInfo)columnInfo).GetChildType();
             var arr = Array.CreateInstance(childTargetType, source.Length);
             bool? isNullable = null;
             for (var i = 0; i < source.Length; i++)
@@ -342,7 +339,7 @@ namespace Dse
                         isNullable = true;
                     }
                 }
-                
+
                 arr.SetValue(TryConvertToType(source.GetValue(i), childColumnInfo, childTargetType), i);
             }
             return arr;
@@ -355,9 +352,7 @@ namespace Dse
                 return value;
             }
             var mapColumnInfo = (MapColumnInfo)column.TypeInfo;
-            Type childTargetKeyType;
-            Type childTargetValueType;
-            if (!Utils.IsIDictionary(targetType, out childTargetKeyType, out childTargetValueType))
+            if (!Utils.IsIDictionary(targetType, out Type childTargetKeyType, out Type childTargetValueType))
             {
                 throw new InvalidCastException(string.Format("Unable to cast object of type '{0}' to type '{1}'",
                     value.GetType(), targetType));

@@ -463,8 +463,7 @@ namespace Dse
 
             public void Add(string textValue, string symbol, string input)
             {
-                Func<string, Builder> addMethod;
-                if (!_addMethods.TryGetValue(symbol, out addMethod))
+                if (!_addMethods.TryGetValue(symbol, out Func<string, Builder> addMethod))
                 {
                     throw new FormatException(string.Format("Unknown duration symbol {0}: {1}", symbol, input));
                 }

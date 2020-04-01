@@ -29,8 +29,7 @@ namespace Dse
 
         private static IndexKind GetKindByName(string name)
         {
-            IndexKind result;
-            if (!Enum.TryParse(name, true, out result))
+            if (!Enum.TryParse(name, true, out IndexKind result))
             {
                 return IndexKind.Custom;
             }

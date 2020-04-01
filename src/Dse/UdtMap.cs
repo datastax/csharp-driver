@@ -96,11 +96,7 @@ namespace Dse
         
         protected UdtMap(Type netType, string udtName, string keyspace)
         {
-            if (netType == null)
-            {
-                throw new ArgumentNullException("netType");
-            }
-            NetType = netType;
+            NetType = netType ?? throw new ArgumentNullException("netType");
             UdtName = string.IsNullOrWhiteSpace(udtName) ? NetType.Name : udtName;
             IgnoreCase = true;
             Keyspace = keyspace;
@@ -200,8 +196,7 @@ namespace Dse
         protected internal string GetUdtFieldName(PropertyInfo property)
         {
             // See if there is a mapping registered for the specific property
-            string fieldName;
-            if (_propertyToFieldName.TryGetValue(property, out fieldName))
+            if (_propertyToFieldName.TryGetValue(property, out string fieldName))
             {
                 return fieldName;
             }
@@ -216,8 +211,7 @@ namespace Dse
         protected internal PropertyInfo GetPropertyForUdtField(string udtFieldName)
         {
             // See if there is a mapping registered for the field
-            PropertyInfo prop;
-            if (_fieldNameToProperty.TryGetValue(udtFieldName, out prop))
+            if (_fieldNameToProperty.TryGetValue(udtFieldName, out PropertyInfo prop))
             {
                 return prop;
             }

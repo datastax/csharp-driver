@@ -319,8 +319,7 @@ namespace Dse.Graph
 
         private static string GetConsistencyName(ConsistencyLevel consistency)
         {
-            string name;
-            if (!ConsistencyLevelNames.TryGetValue(consistency, out name))
+            if (!GraphOptions.ConsistencyLevelNames.TryGetValue(consistency, out string name))
             {
                 //If not defined, use upper case representation
                 name = consistency.ToString().ToUpper();

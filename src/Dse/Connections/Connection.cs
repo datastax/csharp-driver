@@ -838,8 +838,8 @@ namespace Dse.Connections
                     //No more items in the write queue
                     break;
                 }
-                short streamId;
-                if (!_freeOperations.TryPop(out streamId))
+
+                if (!_freeOperations.TryPop(out short streamId))
                 {
                     //Queue it up for later.
                     _writeQueue.Enqueue(state);

@@ -611,8 +611,7 @@ namespace Dse.Connections
             //The address in the Cassandra event message needs to be translated
             var address = TranslateAddress(e.Address);
             ControlConnection._logger.Info("Received Node status change event: host {0} is {1}", address, e.What.ToString().ToUpper());
-            Host host;
-            if (!_metadata.Hosts.TryGet(address, out host))
+            if (!_metadata.Hosts.TryGet(address, out var host))
             {
                 ControlConnection._logger.Info("Received status change event for host {0} but it was not found", address);
                 return;

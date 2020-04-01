@@ -73,7 +73,7 @@ namespace Dse
         /// <returns>the new query plan.</returns>
         public IEnumerable<Host> NewQueryPlan(string loggedKeyspace, IStatement query)
         {
-            var routingKey = query == null ? null : query.RoutingKey;
+            var routingKey = query?.RoutingKey;
             IEnumerable<Host> childIterator;
             if (routingKey == null)
             {

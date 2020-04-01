@@ -47,8 +47,7 @@ namespace Dse.Test.Unit
             {
                 if (kv.Value != null)
                 {
-                    IColumnInfo typeInfo;
-                    var typeCode = serializer.GetCqlType(kv.Value.GetType(), out typeInfo);
+                    var typeCode = serializer.GetCqlType(kv.Value.GetType(), out IColumnInfo typeInfo);
                     columns.Add(new CqlColumn { Name = kv.Key, TypeCode = typeCode, TypeInfo = typeInfo });
                 }
                 else
@@ -76,8 +75,7 @@ namespace Dse.Test.Unit
                 CqlColumn c;
                 if (kv.Value != null)
                 {
-                    IColumnInfo typeInfo;
-                    var typeCode = serializer.GetCqlType(kv.Value.GetType(), out typeInfo);
+                    var typeCode = serializer.GetCqlType(kv.Value.GetType(), out IColumnInfo typeInfo);
                     c = new CqlColumn
                     {
                         Name = kv.Key,

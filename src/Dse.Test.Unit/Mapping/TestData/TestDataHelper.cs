@@ -44,8 +44,7 @@ namespace Dse.Test.Unit.Mapping.TestData
         {
             var serializer = new SerializerManager(ProtocolVersion.MaxSupported);
             var rs = new RowSet();
-            IColumnInfo typeInfo;
-            var typeCode = serializer.GetCurrentSerializer().GetCqlType(typeof (T), out typeInfo);
+            var typeCode = serializer.GetCurrentSerializer().GetCqlType(typeof(T), out IColumnInfo typeInfo);
             rs.Columns = new[]
             {
                 new CqlColumn { Name = columnName, TypeCode = typeCode, TypeInfo = typeInfo, Type = typeof(T), Index = 0}
@@ -75,8 +74,7 @@ namespace Dse.Test.Unit.Mapping.TestData
             rs.Columns = new CqlColumn[columnNames.Length];
             for (var i = 0; i < columnNames.Length; i++)
             {
-                IColumnInfo typeInfo;
-                var type = typeof (T);
+                var type = typeof(T);
                 if (type == typeof (Object))
                 {
                     //Try to guess by value
@@ -86,7 +84,7 @@ namespace Dse.Test.Unit.Mapping.TestData
                     }
                     type = genericValues[i].GetType();
                 }
-                var typeCode = serializer.GetCurrentSerializer().GetCqlType(type, out typeInfo);
+                var typeCode = serializer.GetCurrentSerializer().GetCqlType(type, out IColumnInfo typeInfo);
                 rs.Columns[i] = new CqlColumn
                 {
                     Name = columnNames[i],

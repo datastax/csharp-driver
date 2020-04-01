@@ -37,8 +37,7 @@ namespace Dse
         
         protected sealed override long GetTimestamp()
         {
-            long preciseTime;
-            GetSystemTimePreciseAsFileTime(out preciseTime);
+            GetSystemTimePreciseAsFileTime(out long preciseTime);
             var timestamp = DateTime.FromFileTimeUtc(preciseTime);
             return (timestamp.Ticks - UnixEpochTicks)/TicksPerMicrosecond;
         }
