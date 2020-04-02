@@ -406,13 +406,11 @@ pipeline {
 
   triggers {
     parameterizedCron(branchPatternCron.matcher(env.BRANCH_NAME).matches() ? """
-      # Every weeknight (Monday - Friday) around 12:00 and 2:00 AM
-      H 0 * * 1-5 %CI_SCHEDULE=NIGHTLY;CI_SCHEDULE_OS_VERSION=ubuntu/bionic64/csharp-driver
-      H 2 * * 1-5 %CI_SCHEDULE=NIGHTLY;CI_SCHEDULE_OS_VERSION=win/cs
+      # Every weeknight (Monday - Friday) around 18:00 Pacific / 03:00 Central Europe
+      H 18 * * 1-5 %CI_SCHEDULE=NIGHTLY;CI_SCHEDULE_OS_VERSION=ubuntu/bionic64/csharp-driver
 
-      # Every Saturday around 4:00 and 8:00 AM
-      H 4 * * 6 %CI_SCHEDULE=WEEKLY;CI_SCHEDULE_OS_VERSION=ubuntu/bionic64/csharp-driver
-      H 8 * * 6 %CI_SCHEDULE=WEEKLY;CI_SCHEDULE_OS_VERSION=win/cs
+      # Every Saturday around 09:00 Pacific / 18:00 Central Europe
+      H 9 * * 6 %CI_SCHEDULE=WEEKLY;CI_SCHEDULE_OS_VERSION=ubuntu/bionic64/csharp-driver
     """ : "")
   }
 
@@ -558,7 +556,6 @@ pipeline {
                   'dse-5.1', // Legacy DataStax Enterprise
                   'dse-6.0', // Previous DataStax Enterprise
                   'dse-6.7', // Current DataStax Enterprise
-                  'dse-6.8',  // Development DataStax Enterprise
                   'dse-6.8.0'  // Current DataStax Enterprise
           }
           axis {
@@ -575,6 +572,16 @@ pipeline {
             axis {
               name 'SERVER_VERSION'
               values 'dse-5.0', 'dse-6.0', 'dse-6.8.0'
+            }
+          }          
+          exclude {
+            axis {
+              name 'DOTNET_VERSION'
+              values 'netcoreapp2.0'
+            }
+            axis {
+              name 'SERVER_VERSION'
+              values 'dse-5.0', 'dse-6.0'
             }
           }
         }
@@ -659,7 +666,6 @@ pipeline {
                   'dse-5.1', // Legacy DataStax Enterprise
                   'dse-6.0', // Previous DataStax Enterprise
                   'dse-6.7', // Current DataStax Enterprise
-                  'dse-6.8',  // Development DataStax Enterprise
                   'dse-6.8.0'  // Current DataStax Enterprise
           }
           axis {
