@@ -406,13 +406,13 @@ pipeline {
 
   triggers {
     parameterizedCron(branchPatternCron.matcher(env.BRANCH_NAME).matches() ? """
-      # Every weeknight (Monday - Friday) around 12:00 and 2:00 AM
-      H 0 * * 1-5 %CI_SCHEDULE=NIGHTLY;CI_SCHEDULE_OS_VERSION=ubuntu/bionic64/csharp-driver
-      H 2 * * 1-5 %CI_SCHEDULE=NIGHTLY;CI_SCHEDULE_OS_VERSION=win/cs
+      # Every weeknight (Monday - Friday) around 20:00 and 22:00 Pacific / 05:00 and 07:00 Central Europe
+      H 20 * * 1-5 %CI_SCHEDULE=NIGHTLY;CI_SCHEDULE_OS_VERSION=ubuntu/bionic64/csharp-driver
+      H 22 * * 1-5 %CI_SCHEDULE=NIGHTLY;CI_SCHEDULE_OS_VERSION=win/cs
 
-      # Every Saturday around 4:00 and 8:00 AM
-      H 4 * * 6 %CI_SCHEDULE=WEEKLY;CI_SCHEDULE_OS_VERSION=ubuntu/bionic64/csharp-driver
-      H 8 * * 6 %CI_SCHEDULE=WEEKLY;CI_SCHEDULE_OS_VERSION=win/cs
+      # Every Saturday around 01:00 and 05:00 Pacific / 10:00 and 14:00 Central Europe
+      H 1 * * 6 %CI_SCHEDULE=WEEKLY;CI_SCHEDULE_OS_VERSION=ubuntu/bionic64/csharp-driver
+      H 5 * * 6 %CI_SCHEDULE=WEEKLY;CI_SCHEDULE_OS_VERSION=win/cs
     """ : "")
   }
 
@@ -566,7 +566,6 @@ pipeline {
                   'dse-5.1', // Legacy DataStax Enterprise
                   'dse-6.0', // Previous DataStax Enterprise
                   'dse-6.7', // Current DataStax Enterprise
-                  'dse-6.8',  // Development DataStax Enterprise
                   'dse-6.8.0'  // Current DataStax Enterprise
           }
           axis {
@@ -582,7 +581,7 @@ pipeline {
             }
             axis {
               name 'SERVER_VERSION'
-              values '2.1', '3.0', 'dse-5.0', 'dse-6.0', 'dse-6.8.0'
+              values '2.1', '3.0', 'dse-5.0', 'dse-6.0'
             }
           }
         }
@@ -676,13 +675,7 @@ pipeline {
                   '2.2',     // Legacy Apache Cassandara�
                   '3.0',     // Previous Apache Cassandara�
                   '3.11',    // Current Apache Cassandara�
-                  '4.0',     // Development Apache Cassandara�
-                  'dse-5.0', // Legacy DataStax Enterprise
-                  'dse-5.1', // Legacy DataStax Enterprise
-                  'dse-6.0', // Previous DataStax Enterprise
-                  'dse-6.7', // Current DataStax Enterprise
-                  'dse-6.8',  // Development DataStax Enterprise
-                  'dse-6.8.0'  // Current DataStax Enterprise
+                  '4.0'     // Development Apache Cassandara�
           }
           axis {
             name 'DOTNET_VERSION'
@@ -797,7 +790,6 @@ pipeline {
                   'dse-5.1', // Legacy DataStax Enterprise
                   'dse-6.0', // Previous DataStax Enterprise
                   'dse-6.7', // Current DataStax Enterprise
-                  'dse-6.8',  // Development DataStax Enterprise
                   'dse-6.8.0'  // Current DataStax Enterprise
           }
           axis {
@@ -886,13 +878,7 @@ pipeline {
                   '2.2',     // Legacy Apache Cassandara�
                   '3.0',     // Previous Apache Cassandara�
                   '3.11',    // Current Apache Cassandara�
-                  '4.0',     // Development Apache Cassandara�
-                  'dse-5.0', // Legacy DataStax Enterprise
-                  'dse-5.1', // Legacy DataStax Enterprise
-                  'dse-6.0', // Previous DataStax Enterprise
-                  'dse-6.7', // Current DataStax Enterprise
-                  'dse-6.8',  // Development DataStax Enterprise
-                  'dse-6.8.0'  // Current DataStax Enterprise
+                  '4.0'     // Development Apache Cassandara�
           }
           axis {
             name 'DOTNET_VERSION'
