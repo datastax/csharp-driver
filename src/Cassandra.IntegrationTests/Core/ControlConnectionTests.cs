@@ -100,7 +100,8 @@ namespace Cassandra.IntegrationTests.Core
                 GetEventDebouncer(config), 
                 version, 
                 config,
-                metadata, 
+                metadata,
+                config.TopologyRefresherFactory.Create(metadata, config),
                 new List<IContactPoint>
                 {
                     new IpLiteralContactPoint(IPAddress.Parse(_testCluster.InitialContactPoint), config.ProtocolOptions, config.ServerNameResolver )

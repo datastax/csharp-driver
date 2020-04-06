@@ -29,6 +29,7 @@ using Cassandra.DataStax.Insights.Schema.StartupMessage;
 using Cassandra.DataStax.Insights.Schema.StatusMessage;
 using Cassandra.ExecutionProfiles;
 using Cassandra.Helpers;
+using Cassandra.MetadataHelpers;
 using Cassandra.Metrics;
 using Cassandra.Metrics.Abstractions;
 using Cassandra.Metrics.Providers.Null;
@@ -157,6 +158,12 @@ namespace Cassandra
         internal IEndPointResolver EndPointResolver { get; }
 
         internal IDnsResolver DnsResolver { get; }
+
+        internal IMetadataRequestHandler MetadataRequestHandler { get; }
+
+        internal ITopologyRefresherFactory TopologyRefresherFactory { get; }
+
+        internal ISchemaParserFactory SchemaParserFactory { get; }
 
         internal IDriverMetricsProvider MetricsProvider { get; }
 
@@ -323,7 +330,10 @@ namespace Cassandra
                                IInsightsClientFactory insightsClientFactory = null,
                                IContactPointParser contactPointParser = null,
                                IServerNameResolver serverNameResolver = null,
-                               IDnsResolver dnsResolver = null)
+                               IDnsResolver dnsResolver = null,
+                               IMetadataRequestHandler metadataRequestHandler = null,
+                               ITopologyRefresherFactory topologyRefresherFactory = null,
+                               ISchemaParserFactory schemaParserFactory = null)
         {
             AddressTranslator = addressTranslator ?? throw new ArgumentNullException(nameof(addressTranslator));
             QueryOptions = queryOptions ?? throw new ArgumentNullException(nameof(queryOptions));
@@ -346,6 +356,10 @@ namespace Cassandra
             RequestOptionsMapper = requestOptionsMapper ?? new RequestOptionsMapper();
             MetadataSyncOptions = metadataSyncOptions?.Clone() ?? new MetadataSyncOptions();
             DnsResolver = dnsResolver ?? new DnsResolver();
+            MetadataRequestHandler = metadataRequestHandler ?? new MetadataRequestHandler();
+            TopologyRefresherFactory = topologyRefresherFactory ?? new TopologyRefresherFactory();
+            SchemaParserFactory = schemaParserFactory ?? new SchemaParserFactory();
+
             MetricsOptions = metricsOptions ?? new DriverMetricsOptions();
             MetricsProvider = driverMetricsProvider ?? new NullDriverMetricsProvider();
             SessionName = sessionName;

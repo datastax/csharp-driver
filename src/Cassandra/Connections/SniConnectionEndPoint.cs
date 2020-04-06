@@ -84,7 +84,7 @@ namespace Cassandra.Connections
                 return _hostIpEndPoint;
             }
 
-            var ipEndPoint = ControlConnection.GetAddressForLocalOrPeerHost(row, translator, port);
+            var ipEndPoint = TopologyRefresher.GetAddressForLocalOrPeerHost(row, translator, port);
             if (ipEndPoint == null)
             {
                 throw new DriverInternalError("Could not parse the node's ip address from system tables.");

@@ -103,8 +103,8 @@ namespace Cassandra.Tests
             };
             var keyspaces = new List<KeyspaceMetadata>
             {
-                TokenTests.CreateSimpleKeyspace("ks1", 2),
-                TokenTests.CreateSimpleKeyspace("ks2", 10)
+                FakeSchemaParserFactory.CreateSimpleKeyspace("ks1", 2),
+                FakeSchemaParserFactory.CreateSimpleKeyspace("ks2", 10)
             };
             var tokenMap = TokenMap.Build("Murmur3Partitioner", hosts, keyspaces);
 
@@ -151,8 +151,8 @@ namespace Cassandra.Tests
             };
             var keyspaces = new List<KeyspaceMetadata>
             {
-                TokenTests.CreateSimpleKeyspace("ks1", 10),
-                TokenTests.CreateSimpleKeyspace("ks2", 2)
+                FakeSchemaParserFactory.CreateSimpleKeyspace("ks1", 10),
+                FakeSchemaParserFactory.CreateSimpleKeyspace("ks2", 2)
             };
             var tokenMap = TokenMap.Build("Murmur3Partitioner", hosts, keyspaces);
 
@@ -362,7 +362,7 @@ namespace Cassandra.Tests
                 TestHelper.CreateHost("192.168.0.2", "dc1", "rack1", new HashSet<string> {"200", "2000", "20000"}),
                 TestHelper.CreateHost("192.168.0.3", "dc1", "rack1", new HashSet<string> {"300", "3000", "30000"})
             };
-            var ks = TokenTests.CreateSimpleKeyspace("ks1", 2);
+            var ks = FakeSchemaParserFactory.CreateSimpleKeyspace("ks1", 2);
             var map = TokenMap.Build("Murmur3Partitioner", hosts, new[] { ks });
             var replicas = map.GetReplicas("ks1", new M3PToken(0));
             Assert.AreEqual(2, replicas.Count);
@@ -386,19 +386,19 @@ namespace Cassandra.Tests
             var keyspaces = new List<KeyspaceMetadata>
             {
                 // unique configurations
-                TokenTests.CreateSimpleKeyspace("ks1", 2, factory),
-                TokenTests.CreateSimpleKeyspace("ks2", 10, factory),
-                TokenTests.CreateSimpleKeyspace("ks3", 5, factory),
-                TokenTests.CreateNetworkTopologyKeyspace("ks4", new Dictionary<string, int> {{"dc1", 2}, {"dc2", 2}}, factory),
-                TokenTests.CreateNetworkTopologyKeyspace("ks5", new Dictionary<string, int> {{"dc1", 1}, {"dc2", 2}}, factory),
-                TokenTests.CreateNetworkTopologyKeyspace("ks6", new Dictionary<string, int> {{"dc1", 1}}, factory),
+                FakeSchemaParserFactory.CreateSimpleKeyspace("ks1", 2, factory),
+                FakeSchemaParserFactory.CreateSimpleKeyspace("ks2", 10, factory),
+                FakeSchemaParserFactory.CreateSimpleKeyspace("ks3", 5, factory),
+                FakeSchemaParserFactory.CreateNetworkTopologyKeyspace("ks4", new Dictionary<string, int> {{"dc1", 2}, {"dc2", 2}}, factory),
+                FakeSchemaParserFactory.CreateNetworkTopologyKeyspace("ks5", new Dictionary<string, int> {{"dc1", 1}, {"dc2", 2}}, factory),
+                FakeSchemaParserFactory.CreateNetworkTopologyKeyspace("ks6", new Dictionary<string, int> {{"dc1", 1}}, factory),
 
                 // duplicate configurations
-                TokenTests.CreateNetworkTopologyKeyspace("ks7", new Dictionary<string, int> {{"dc1", 2}, {"dc2", 2}}, factory),
-                TokenTests.CreateNetworkTopologyKeyspace("ks8", new Dictionary<string, int> {{"dc1", 1}}, factory),
-                TokenTests.CreateNetworkTopologyKeyspace("ks9", new Dictionary<string, int> {{"dc1", 1}, {"dc2", 2}}, factory),
-                TokenTests.CreateSimpleKeyspace("ks10", 10, factory),
-                TokenTests.CreateSimpleKeyspace("ks11", 2, factory)
+                FakeSchemaParserFactory.CreateNetworkTopologyKeyspace("ks7", new Dictionary<string, int> {{"dc1", 2}, {"dc2", 2}}, factory),
+                FakeSchemaParserFactory.CreateNetworkTopologyKeyspace("ks8", new Dictionary<string, int> {{"dc1", 1}}, factory),
+                FakeSchemaParserFactory.CreateNetworkTopologyKeyspace("ks9", new Dictionary<string, int> {{"dc1", 1}, {"dc2", 2}}, factory),
+                FakeSchemaParserFactory.CreateSimpleKeyspace("ks10", 10, factory),
+                FakeSchemaParserFactory.CreateSimpleKeyspace("ks11", 2, factory)
             };
             var tokenMap = TokenMap.Build("Murmur3Partitioner", hosts, keyspaces);
 
@@ -421,19 +421,19 @@ namespace Cassandra.Tests
             var keyspaces = new ConcurrentDictionary<string, KeyspaceMetadata>();
 
             // unique configurations
-            keyspaces.AddOrUpdate("ks1", TokenTests.CreateSimpleKeyspace("ks1", 2), (s, keyspaceMetadata) => keyspaceMetadata);
-            keyspaces.AddOrUpdate("ks2", TokenTests.CreateSimpleKeyspace("ks2", 10), (s, keyspaceMetadata) => keyspaceMetadata);
-            keyspaces.AddOrUpdate("ks3", TokenTests.CreateSimpleKeyspace("ks3", 5), (s, keyspaceMetadata) => keyspaceMetadata);
-            keyspaces.AddOrUpdate("ks4", TokenTests.CreateNetworkTopologyKeyspace("ks4", new Dictionary<string, int> { { "dc1", 2 }, { "dc2", 2 } }), (s, keyspaceMetadata) => keyspaceMetadata);
-            keyspaces.AddOrUpdate("ks5", TokenTests.CreateNetworkTopologyKeyspace("ks5", new Dictionary<string, int> { { "dc1", 1 }, { "dc2", 2 } }), (s, keyspaceMetadata) => keyspaceMetadata);
-            keyspaces.AddOrUpdate("ks6", TokenTests.CreateNetworkTopologyKeyspace("ks6", new Dictionary<string, int> { { "dc1", 1 } }), (s, keyspaceMetadata) => keyspaceMetadata);
+            keyspaces.AddOrUpdate("ks1", FakeSchemaParserFactory.CreateSimpleKeyspace("ks1", 2), (s, keyspaceMetadata) => keyspaceMetadata);
+            keyspaces.AddOrUpdate("ks2", FakeSchemaParserFactory.CreateSimpleKeyspace("ks2", 10), (s, keyspaceMetadata) => keyspaceMetadata);
+            keyspaces.AddOrUpdate("ks3", FakeSchemaParserFactory.CreateSimpleKeyspace("ks3", 5), (s, keyspaceMetadata) => keyspaceMetadata);
+            keyspaces.AddOrUpdate("ks4", FakeSchemaParserFactory.CreateNetworkTopologyKeyspace("ks4", new Dictionary<string, int> { { "dc1", 2 }, { "dc2", 2 } }), (s, keyspaceMetadata) => keyspaceMetadata);
+            keyspaces.AddOrUpdate("ks5", FakeSchemaParserFactory.CreateNetworkTopologyKeyspace("ks5", new Dictionary<string, int> { { "dc1", 1 }, { "dc2", 2 } }), (s, keyspaceMetadata) => keyspaceMetadata);
+            keyspaces.AddOrUpdate("ks6", FakeSchemaParserFactory.CreateNetworkTopologyKeyspace("ks6", new Dictionary<string, int> { { "dc1", 1 } }), (s, keyspaceMetadata) => keyspaceMetadata);
 
             // duplicate configurations
-            keyspaces.AddOrUpdate("ks7", TokenTests.CreateNetworkTopologyKeyspace("ks7", new Dictionary<string, int> { { "dc1", 2 }, { "dc2", 2 } }), (s, keyspaceMetadata) => keyspaceMetadata);
-            keyspaces.AddOrUpdate("ks8", TokenTests.CreateNetworkTopologyKeyspace("ks8", new Dictionary<string, int> { { "dc1", 1 } }), (s, keyspaceMetadata) => keyspaceMetadata);
-            keyspaces.AddOrUpdate("ks9", TokenTests.CreateNetworkTopologyKeyspace("ks9", new Dictionary<string, int> { { "dc1", 1 }, { "dc2", 2 } }), (s, keyspaceMetadata) => keyspaceMetadata);
-            keyspaces.AddOrUpdate("ks10", TokenTests.CreateSimpleKeyspace("ks10", 10), (s, keyspaceMetadata) => keyspaceMetadata);
-            keyspaces.AddOrUpdate("ks11", TokenTests.CreateSimpleKeyspace("ks11", 2), (s, keyspaceMetadata) => keyspaceMetadata);
+            keyspaces.AddOrUpdate("ks7", FakeSchemaParserFactory.CreateNetworkTopologyKeyspace("ks7", new Dictionary<string, int> { { "dc1", 2 }, { "dc2", 2 } }), (s, keyspaceMetadata) => keyspaceMetadata);
+            keyspaces.AddOrUpdate("ks8", FakeSchemaParserFactory.CreateNetworkTopologyKeyspace("ks8", new Dictionary<string, int> { { "dc1", 1 } }), (s, keyspaceMetadata) => keyspaceMetadata);
+            keyspaces.AddOrUpdate("ks9", FakeSchemaParserFactory.CreateNetworkTopologyKeyspace("ks9", new Dictionary<string, int> { { "dc1", 1 }, { "dc2", 2 } }), (s, keyspaceMetadata) => keyspaceMetadata);
+            keyspaces.AddOrUpdate("ks10", FakeSchemaParserFactory.CreateSimpleKeyspace("ks10", 10), (s, keyspaceMetadata) => keyspaceMetadata);
+            keyspaces.AddOrUpdate("ks11", FakeSchemaParserFactory.CreateSimpleKeyspace("ks11", 2), (s, keyspaceMetadata) => keyspaceMetadata);
 
             var schemaParser = new FakeSchemaParser(keyspaces);
             var config = new TestConfigurationBuilder
@@ -447,6 +447,7 @@ namespace Cassandra.Tests
                 ProtocolVersion.V3, 
                 config, 
                 metadata,
+                new TopologyRefresher(metadata, config), 
                 new List<IContactPoint>
                 {
                     new IpLiteralContactPoint(IPAddress.Parse("127.0.0.1"), config.ProtocolOptions, config.ServerNameResolver)
@@ -524,7 +525,7 @@ namespace Cassandra.Tests
                             else
                             {
                                 var keyspaceName = $"ks_____{index}_____{j}";
-                                var ks = TokenTests.CreateSimpleKeyspace(keyspaceName, (index * j) % 10);
+                                var ks = FakeSchemaParserFactory.CreateSimpleKeyspace(keyspaceName, (index * j) % 10);
                                 keyspaces.AddOrUpdate(
                                     keyspaceName,
                                     ks,
@@ -549,7 +550,7 @@ namespace Cassandra.Tests
         public void RefreshSingleKeyspace_Should_BuildTokenMap_When_TokenMapIsNull()
         {
             var keyspaces = new ConcurrentDictionary<string, KeyspaceMetadata>();
-            keyspaces.GetOrAdd("ks1", TokenTests.CreateSimpleKeyspace("ks1", 1));
+            keyspaces.GetOrAdd("ks1", FakeSchemaParserFactory.CreateSimpleKeyspace("ks1", 1));
             var schemaParser = new FakeSchemaParser(keyspaces);
             var metadata = new Metadata(new Configuration(), schemaParser) { Partitioner = "Murmur3Partitioner" };
             metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.1"), 9042)); ;
@@ -613,28 +614,6 @@ namespace Cassandra.Tests
                 initialToken += 1000;
             }
             return output;
-        }
-
-        private static KeyspaceMetadata CreateSimpleKeyspace(string name, int replicationFactor, IReplicationStrategyFactory factory = null)
-        {
-            return new KeyspaceMetadata(
-                null,
-                name,
-                true,
-                ReplicationStrategies.SimpleStrategy,
-                new Dictionary<string, int> { { "replication_factor", replicationFactor } },
-                factory ?? new ReplicationStrategyFactory());
-        }
-
-        private static KeyspaceMetadata CreateNetworkTopologyKeyspace(string name, IDictionary<string, int> replicationFactors, IReplicationStrategyFactory factory = null)
-        {
-            return new KeyspaceMetadata(
-                null,
-                name,
-                true,
-                ReplicationStrategies.NetworkTopologyStrategy,
-                replicationFactors,
-                factory ?? new ReplicationStrategyFactory());
         }
     }
 }

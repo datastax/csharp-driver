@@ -172,7 +172,13 @@ namespace Cassandra
             var parsedContactPoints = configuration.ContactPointParser.ParseContactPoints(contactPoints);
 
             _controlConnection = configuration.ControlConnectionFactory.Create(
-                this, _protocolEventDebouncer, protocolVersion, Configuration, _metadata, parsedContactPoints);
+                this, 
+                _protocolEventDebouncer, 
+                protocolVersion, 
+                Configuration, 
+                _metadata, 
+                Configuration.TopologyRefresherFactory.Create(_metadata, Configuration), 
+                parsedContactPoints);
 
             _metadata.ControlConnection = _controlConnection;
         }

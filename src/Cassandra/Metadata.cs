@@ -40,7 +40,7 @@ namespace Cassandra
         private static readonly Logger Logger = new Logger(typeof(ControlConnection));
         private volatile TokenMap _tokenMap;
         private volatile ConcurrentDictionary<string, KeyspaceMetadata> _keyspaces = new ConcurrentDictionary<string, KeyspaceMetadata>();
-        private volatile SchemaParser _schemaParser;
+        private volatile ISchemaParser _schemaParser;
         private readonly int _queryAbortTimeout;
         private volatile CopyOnWriteDictionary<IContactPoint, IEnumerable<IConnectionEndPoint>> _resolvedContactPoints = 
             new CopyOnWriteDictionary<IContactPoint, IEnumerable<IConnectionEndPoint>>();
@@ -70,7 +70,7 @@ namespace Cassandra
         /// </summary>
         internal IControlConnection ControlConnection { get; set; }
 
-        internal SchemaParser SchemaParser { get { return _schemaParser; } }
+        internal ISchemaParser SchemaParser { get { return _schemaParser; } }
 
         internal string Partitioner { get; set; }
 
@@ -613,8 +613,8 @@ namespace Cassandra
                     Task.WaitAll(queries, Configuration.DefaultRequestOptions.QueryAbortTimeout);
 
                     if (Metadata.CheckSchemaVersionResults(
-                        Cassandra.Connections.ControlConnection.GetRowSet(queries[0].Result),
-                        Cassandra.Connections.ControlConnection.GetRowSet(queries[1].Result)))
+                        Configuration.MetadataRequestHandler.GetRowSet(queries[0].Result),
+                        Configuration.MetadataRequestHandler.GetRowSet(queries[1].Result)))
                     {
                         return true;
                     }
@@ -638,7 +638,7 @@ namespace Cassandra
         /// <param name="version"></param>
         internal void SetCassandraVersion(Version version)
         {
-            _schemaParser = SchemaParser.GetInstance(version, this, GetUdtDefinitionAsync, _schemaParser);
+            _schemaParser = Configuration.SchemaParserFactory.Create(version, this, GetUdtDefinitionAsync, _schemaParser);
         }
 
         internal void SetProductTypeAsDbaas()

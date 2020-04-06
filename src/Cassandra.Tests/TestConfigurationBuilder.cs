@@ -20,6 +20,7 @@ using Cassandra.Connections;
 using Cassandra.DataStax.Graph;
 using Cassandra.DataStax.Insights;
 using Cassandra.ExecutionProfiles;
+using Cassandra.MetadataHelpers;
 using Cassandra.Metrics;
 using Cassandra.Metrics.Providers.Null;
 using Cassandra.Observers;
@@ -27,6 +28,7 @@ using Cassandra.ProtocolEvents;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
+using Cassandra.Tests.MetadataHelpers.TestHelpers;
 
 namespace Cassandra.Tests
 {
@@ -98,6 +100,12 @@ namespace Cassandra.Tests
 
         public IDnsResolver DnsResolver { get; set; }
 
+        public IMetadataRequestHandler MetadataRequestHandler { get; set; } = new MetadataRequestHandler();
+
+        public ITopologyRefresherFactory TopologyRefresherFactory { get; set; } = new TopologyRefresherFactory();
+
+        public ISchemaParserFactory SchemaParserFactory { get; set; } = new FakeSchemaParserFactory();
+
         public MonitorReportingOptions MonitorReportingOptions { get; set; } = new MonitorReportingOptions();
 
         public IInsightsSupportVerifier InsightsSupportVerifier { get; set; } = new InsightsSupportVerifier();
@@ -148,7 +156,10 @@ namespace Cassandra.Tests
                 InsightsClientFactory,
                 ContactPointParser,
                 ServerNameResolver,
-                DnsResolver);
+                DnsResolver,
+                MetadataRequestHandler,
+                TopologyRefresherFactory,
+                SchemaParserFactory);
         }
     }
 }

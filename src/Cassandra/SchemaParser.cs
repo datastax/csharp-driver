@@ -25,42 +25,14 @@ using SortOrder = Cassandra.DataCollectionMetadata.SortOrder;
 
 namespace Cassandra
 {
-    internal abstract class SchemaParser
+    internal abstract class SchemaParser : ISchemaParser
     {
         protected const string CompositeTypeName = "org.apache.cassandra.db.marshal.CompositeType";
         private const int TraceMaxAttempts = 5;
         private const int TraceAttemptDelay = 400;
         private const string SelectTraceSessions = "SELECT * FROM system_traces.sessions WHERE session_id = {0}";
         private const string SelectTraceEvents = "SELECT * FROM system_traces.events WHERE session_id = {0}";
-        private static readonly Version Version30 = new Version(3, 0);
-        private static readonly Version Version40 = new Version(4, 0);
-
-        /// <summary>
-        /// Creates a new instance if the currentInstance is not valid for the given Cassandra version
-        /// </summary>
-        public static SchemaParser GetInstance(Version cassandraVersion, Metadata parent,
-                                               Func<string, string, Task<UdtColumnInfo>> udtResolver,
-                                               SchemaParser currentInstance = null)
-        {
-            if (cassandraVersion >= Version40 && !(currentInstance is SchemaParserV3))
-            {
-                return new SchemaParserV3(parent, udtResolver);
-            }
-            if (cassandraVersion >= Version30 && !(currentInstance is SchemaParserV2))
-            {
-                return new SchemaParserV2(parent, udtResolver);
-            }
-            if (cassandraVersion < Version30 && !(currentInstance is SchemaParserV1))
-            {
-                return new SchemaParserV1(parent);
-            }
-            if (currentInstance == null)
-            {
-                throw new ArgumentNullException(nameof(currentInstance));
-            }
-            return currentInstance;
-        }
-
+        
         protected readonly IMetadataQueryProvider Cc;
         protected readonly Metadata Parent;
         protected abstract string SelectAggregates { get; }
@@ -103,12 +75,12 @@ namespace Cassandra
 
         public abstract Task<UdtColumnInfo> GetUdtDefinitionAsync(string keyspaceName, string typeName);
 
-        internal string ComputeFunctionSignatureString(string[] signature)
+        public string ComputeFunctionSignatureString(string[] signature)
         {
             return "[" + string.Join(",", signature.Select(s => "'" + s + "'")) + "]";
         }
 
-        internal Task<QueryTrace> GetQueryTraceAsync(QueryTrace trace, HashedWheelTimer timer)
+        public Task<QueryTrace> GetQueryTraceAsync(QueryTrace trace, HashedWheelTimer timer)
         {
             return GetQueryTraceAsync(trace, timer, 0);
         }
