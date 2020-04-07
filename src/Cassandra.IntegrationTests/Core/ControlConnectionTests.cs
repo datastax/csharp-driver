@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using Cassandra.Connections;
+using Cassandra.Connections.Control;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.ProtocolEvents;
 using NUnit.Framework;

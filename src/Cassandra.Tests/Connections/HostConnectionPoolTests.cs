@@ -23,6 +23,7 @@ using Cassandra.Metrics.Internal;
 using Cassandra.Metrics.Providers.Null;
 using Cassandra.Observers;
 using Cassandra.Serialization;
+using Cassandra.Tests.Connections.Control.TestHelpers;
 using Moq;
 using NUnit.Framework;
 

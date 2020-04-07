@@ -27,8 +27,7 @@ using Cassandra.Requests;
 using Cassandra.Responses;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
-using Cassandra.Tests.Connections;
-
+using Cassandra.Tests.Connections.Control.TestHelpers;
 using Moq;
 
 using NUnit.Framework;

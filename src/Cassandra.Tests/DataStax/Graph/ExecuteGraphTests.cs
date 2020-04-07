@@ -22,13 +22,13 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.DataStax.Graph;
-using Cassandra.Tests.Connections;
 using Cassandra.Tests.Requests;
 using Cassandra.Tests.TestHelpers;
 using Moq;
 using NUnit.Framework;
 
 using System;
+using Cassandra.Tests.Connections.Control.TestHelpers;
 
 namespace Cassandra.Tests.DataStax.Graph
 {

@@ -23,6 +23,7 @@ using System.Linq.Expressions;
 using System.Net;
 using System.Threading.Tasks;
 using Cassandra.Connections;
+using Cassandra.Connections.Control;
 using Cassandra.DataStax.Graph;
 using Cassandra.DataStax.Insights;
 using Cassandra.DataStax.Insights.InfoProviders;

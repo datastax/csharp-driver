@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 using Cassandra.Connections;
+using Cassandra.Connections.Control;
 using Cassandra.DataStax.Graph;
 using Cassandra.DataStax.Insights;
 using Cassandra.DataStax.Insights.InfoProviders;

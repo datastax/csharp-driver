@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using Cassandra.Connections;
+using Cassandra.Connections.Control;
 using Cassandra.DataStax.Graph;
 using Cassandra.DataStax.Insights;
 using Cassandra.ExecutionProfiles;
@@ -28,7 +29,6 @@ using Cassandra.ProtocolEvents;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
-using Cassandra.Tests.MetadataHelpers.TestHelpers;
 
 namespace Cassandra.Tests
 {

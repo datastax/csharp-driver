@@ -23,6 +23,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Collections;
 using Cassandra.Connections;
+using Cassandra.Connections.Control;
 using Cassandra.MetadataHelpers;
 using Cassandra.Requests;
 using Cassandra.Tasks;
