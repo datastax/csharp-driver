@@ -18,7 +18,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using Cassandra.ExecutionProfiles;
-using Cassandra.Tests.Connections.Control.TestHelpers;
+using Cassandra.Tests.Connections.TestHelpers;
 using Moq;
 using NUnit.Framework;
 

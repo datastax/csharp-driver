@@ -20,7 +20,7 @@ using System.Threading.Tasks;
 using Cassandra.Connections;
 using Cassandra.Connections.Control;
 
-namespace Cassandra.Tests.Connections.Control.TestHelpers
+namespace Cassandra.Tests.Connections.TestHelpers
 {
     internal class FakeTopologyRefresher : ITopologyRefresher
     {

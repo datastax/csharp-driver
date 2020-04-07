@@ -17,6 +17,7 @@
 using System;
 using System.Net;
 using System.Threading.Tasks;
+using Cassandra.Connections.Control;
 
 namespace Cassandra.Connections
 {

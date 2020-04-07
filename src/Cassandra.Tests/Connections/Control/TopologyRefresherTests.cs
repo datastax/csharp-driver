@@ -22,7 +22,7 @@ using System.Threading.Tasks;
 using Cassandra.Connections;
 using Cassandra.Connections.Control;
 using Cassandra.Requests;
-using Cassandra.Tests.Connections.Control.TestHelpers;
+using Cassandra.Tests.Connections.TestHelpers;
 using Moq;
 using NUnit.Framework;
 

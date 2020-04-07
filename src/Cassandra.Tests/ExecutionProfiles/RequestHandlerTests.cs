@@ -29,7 +29,7 @@ using Cassandra.Requests;
 using Cassandra.Responses;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
-using Cassandra.Tests.Connections.Control.TestHelpers;
+using Cassandra.Tests.Connections.TestHelpers;
 using Cassandra.Tests.Requests;
 
 using Moq;

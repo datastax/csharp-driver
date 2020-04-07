@@ -20,6 +20,7 @@ using System.Collections.Generic;
 using System.Net;
 using Cassandra.Collections;
 using Cassandra.Connections;
+using Cassandra.Connections.Control;
 
 namespace Cassandra
 {

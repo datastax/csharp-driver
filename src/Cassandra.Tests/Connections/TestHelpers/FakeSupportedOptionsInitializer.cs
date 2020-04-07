@@ -18,7 +18,7 @@ using Cassandra.Connections;
 using Cassandra.Connections.Control;
 using Cassandra.Tasks;
 
-namespace Cassandra.Tests.Connections.Control.TestHelpers
+namespace Cassandra.Tests.Connections.TestHelpers
 {
     internal class FakeSupportedOptionsInitializer : ISupportedOptionsInitializer
     {

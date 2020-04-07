@@ -28,7 +28,7 @@ using Moq;
 using NUnit.Framework;
 
 using System;
-using Cassandra.Tests.Connections.Control.TestHelpers;
+using Cassandra.Tests.Connections.TestHelpers;
 
 namespace Cassandra.Tests.DataStax.Graph
 {

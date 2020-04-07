@@ -25,7 +25,7 @@ using Cassandra.Serialization;
 using Cassandra.SessionManagement;
 using Moq;
 
-namespace Cassandra.Tests.Connections.Control.TestHelpers
+namespace Cassandra.Tests.Connections.TestHelpers
 {
     internal class FakeControlConnectionFactory : IControlConnectionFactory
     {

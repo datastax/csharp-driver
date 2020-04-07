@@ -19,7 +19,7 @@ using System.Collections.Concurrent;
 using System.Net;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
-using Cassandra.Tests.Connections.Control.TestHelpers;
+using Cassandra.Tests.Connections.TestHelpers;
 using Moq;
 using NUnit.Framework;
 

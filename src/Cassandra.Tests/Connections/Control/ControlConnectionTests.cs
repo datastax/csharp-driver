@@ -25,7 +25,7 @@ using Cassandra.Connections;
 using Cassandra.Connections.Control;
 using Cassandra.ProtocolEvents;
 using Cassandra.SessionManagement;
-using Cassandra.Tests.Connections.Control.TestHelpers;
+using Cassandra.Tests.Connections.TestHelpers;
 using Cassandra.Tests.MetadataHelpers.TestHelpers;
 using Moq;
 using NUnit.Framework;

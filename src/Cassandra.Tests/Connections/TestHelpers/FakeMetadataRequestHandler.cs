@@ -21,7 +21,7 @@ using Cassandra.Connections.Control;
 using Cassandra.Responses;
 using Cassandra.Tests.DataStax.Insights;
 
-namespace Cassandra.Tests.Connections.Control.TestHelpers
+namespace Cassandra.Tests.Connections.TestHelpers
 {
     internal class FakeMetadataRequestHandler : IMetadataRequestHandler
     {

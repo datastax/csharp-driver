@@ -23,7 +23,7 @@ using Cassandra.Observers.Abstractions;
 using Cassandra.Serialization;
 using Moq;
 
-namespace Cassandra.Tests.Connections.Control.TestHelpers
+namespace Cassandra.Tests.Connections.TestHelpers
 {
     internal class FakeConnectionFactory : IConnectionFactory
     {

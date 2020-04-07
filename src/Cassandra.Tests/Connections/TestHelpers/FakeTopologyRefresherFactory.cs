@@ -17,7 +17,7 @@ using System.Collections.Generic;
 using System.Net;
 using Cassandra.Connections.Control;
 
-namespace Cassandra.Tests.Connections.Control.TestHelpers
+namespace Cassandra.Tests.Connections.TestHelpers
 {
     internal class FakeTopologyRefresherFactory : ITopologyRefresherFactory
     {
