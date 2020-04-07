@@ -39,7 +39,7 @@ namespace Cassandra.Connections
         }
 
         /// <inheritdoc />
-        public async Task<Host> RefreshNodeList(IConnectionEndPoint currentEndPoint, IConnection connection, ProtocolVersion version)
+        public async Task<Host> RefreshNodeListAsync(IConnectionEndPoint currentEndPoint, IConnection connection, ProtocolVersion version)
         {
             ControlConnection.Logger.Info("Refreshing node list");
 
@@ -69,7 +69,7 @@ namespace Cassandra.Connections
         /// <summary>
         /// Parses system.local response, creates the local Host and adds it to the Hosts collection.
         /// </summary>
-        internal Host GetAndUpdateLocalHost(IConnectionEndPoint endPoint, Row row)
+        private Host GetAndUpdateLocalHost(IConnectionEndPoint endPoint, IRow row)
         {
             var hostIpEndPoint = endPoint.GetOrParseHostIpEndPoint(row, _config.AddressTranslator, _config.ProtocolOptions.Port);
             var host = _metadata.GetHost(hostIpEndPoint) ?? _metadata.AddHost(hostIpEndPoint, endPoint.ContactPoint);
@@ -91,7 +91,7 @@ namespace Cassandra.Connections
         /// </summary>
         /// <param name="rs"></param>
         /// <param name="currentHost"></param>
-        internal void UpdatePeersInfo(IEnumerable<Row> rs, Host currentHost)
+        private void UpdatePeersInfo(IEnumerable<IRow> rs, Host currentHost)
         {
             var foundPeers = new HashSet<IPEndPoint>();
             foreach (var row in rs)
@@ -121,7 +121,7 @@ namespace Cassandra.Connections
         /// <summary>
         /// Parses address from system table query response and translates it using the provided <paramref name="translator"/>.
         /// </summary>
-        internal static IPEndPoint GetAddressForLocalOrPeerHost(Row row, IAddressTranslator translator, int port)
+        internal static IPEndPoint GetAddressForLocalOrPeerHost(IRow row, IAddressTranslator translator, int port)
         {
             var address = row.GetValue<IPAddress>("rpc_address");
             if (address == null)

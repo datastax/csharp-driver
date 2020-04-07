@@ -447,7 +447,6 @@ namespace Cassandra.Tests
                 ProtocolVersion.V3, 
                 config, 
                 metadata,
-                new TopologyRefresher(metadata, config), 
                 new List<IContactPoint>
                 {
                     new IpLiteralContactPoint(IPAddress.Parse("127.0.0.1"), config.ProtocolOptions, config.ServerNameResolver)

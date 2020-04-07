@@ -36,6 +36,6 @@ namespace Cassandra.Connections
         /// </summary>
         /// <exception cref="NullReferenceException" />
         /// <exception cref="DriverInternalError" />
-        IEnumerable<Row> GetRowSet(Response response);
+        IEnumerable<IRow> GetRowSet(Response response);
     }
 }

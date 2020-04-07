@@ -579,7 +579,7 @@ namespace Cassandra
         /// </param>
         /// <returns><code>True</code> if there is a schema agreement (only 1 schema version). <code>False</code> otherwise.</returns>
         private static bool CheckSchemaVersionResults(
-            IEnumerable<Row> localVersionQuery, IEnumerable<Row> peerVersionsQuery)
+            IEnumerable<IRow> localVersionQuery, IEnumerable<IRow> peerVersionsQuery)
         {
             return new HashSet<Guid>(
                peerVersionsQuery

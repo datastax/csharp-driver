@@ -170,7 +170,7 @@ namespace Cassandra
 
         }
 
-        private KeyspaceMetadata ParseKeyspaceRow(Row row)
+        private KeyspaceMetadata ParseKeyspaceRow(IRow row)
         {
             if (row == null)
             {
@@ -205,7 +205,7 @@ namespace Cassandra
             return rs.Select(r => r.GetValue<string>(0)).ToArray();
         }
 
-        private static SortedDictionary<string, string> GetCompactionStrategyOptions(Row row)
+        private static SortedDictionary<string, string> GetCompactionStrategyOptions(IRow row)
         {
             var result = new SortedDictionary<string, string> { { "class", row.GetValue<string>("compaction_strategy_class") } };
             foreach (var entry in Utils.ConvertStringToMap(row.GetValue<string>("compaction_strategy_options")))
@@ -542,7 +542,7 @@ namespace Cassandra
             _udtResolver = udtResolver;
         }
 
-        private KeyspaceMetadata ParseKeyspaceRow(Row row)
+        private KeyspaceMetadata ParseKeyspaceRow(IRow row)
         {
             var replication = row.GetValue<IDictionary<string, string>>("replication");
             string strategy = null;
@@ -607,8 +607,8 @@ namespace Cassandra
                 .ConfigureAwait(false);
         }
 
-        protected async Task<T> ParseTableOrView<T>(Func<Row, T> newInstance, IEnumerable<Row> tableRs,
-                                                    IEnumerable<Row> columnsRs) where T : DataCollectionMetadata
+        protected async Task<T> ParseTableOrView<T>(Func<IRow, T> newInstance, IEnumerable<IRow> tableRs,
+                                                    IEnumerable<IRow> columnsRs) where T : DataCollectionMetadata
         {
             var tableMetadataRow = tableRs.FirstOrDefault();
             if (tableMetadataRow == null)
@@ -769,7 +769,7 @@ namespace Cassandra
             }
         }
 
-        private static IDictionary<string, IndexMetadata> GetIndexes(IEnumerable<Row> rows)
+        private static IDictionary<string, IndexMetadata> GetIndexes(IEnumerable<IRow> rows)
         {
             return rows.Select(IndexMetadata.FromRow).ToDictionary(ix => ix.Name);
         }
@@ -937,7 +937,7 @@ namespace Cassandra
             }
 
             // Maybe its a virtual keyspace
-            IEnumerable<Row> rs;
+            IEnumerable<IRow> rs;
             try
             {
                 rs = await Cc.QueryAsync(string.Format(SelectSingleVirtualKeyspace, name), true)
@@ -953,7 +953,7 @@ namespace Cassandra
             return row != null ? ParseVirtualKeyspaceRow(row) : null;
         }
 
-        private KeyspaceMetadata ParseVirtualKeyspaceRow(Row row)
+        private KeyspaceMetadata ParseVirtualKeyspaceRow(IRow row)
         {
             return new KeyspaceMetadata(
                 Parent,
@@ -1016,7 +1016,7 @@ namespace Cassandra
                 return table;
             }
 
-            IEnumerable<Row> tableRs;
+            IEnumerable<IRow> tableRs;
             try
             {
                 // Maybe its a virtual table

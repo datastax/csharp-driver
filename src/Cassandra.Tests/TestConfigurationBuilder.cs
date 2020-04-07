@@ -104,8 +104,14 @@ namespace Cassandra.Tests
 
         public ITopologyRefresherFactory TopologyRefresherFactory { get; set; } = new TopologyRefresherFactory();
 
-        public ISchemaParserFactory SchemaParserFactory { get; set; } = new FakeSchemaParserFactory();
+        public ISchemaParserFactory SchemaParserFactory { get; set; } = new SchemaParserFactory();
 
+        public ISupportedOptionsInitializerFactory SupportedOptionsInitializerFactory { get; set; } = new SupportedOptionsInitializerFactory();
+
+        public IServerEventsSubscriber ServerEventsSubscriber { get; set; } = new ServerEventsSubscriber();
+        
+        public IProtocolVersionNegotiator ProtocolVersionNegotiator { get; set; } = new ProtocolVersionNegotiator();
+        
         public MonitorReportingOptions MonitorReportingOptions { get; set; } = new MonitorReportingOptions();
 
         public IInsightsSupportVerifier InsightsSupportVerifier { get; set; } = new InsightsSupportVerifier();
@@ -159,7 +165,10 @@ namespace Cassandra.Tests
                 DnsResolver,
                 MetadataRequestHandler,
                 TopologyRefresherFactory,
-                SchemaParserFactory);
+                SchemaParserFactory,
+                SupportedOptionsInitializerFactory,
+                ProtocolVersionNegotiator,
+                ServerEventsSubscriber);
         }
     }
 }

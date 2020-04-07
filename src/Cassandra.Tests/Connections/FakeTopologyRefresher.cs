@@ -34,7 +34,7 @@ namespace Cassandra.Tests.Connections
             _hosts = hosts;
         }
 
-        public Task<Host> RefreshNodeList(IConnectionEndPoint currentEndPoint, IConnection connection, ProtocolVersion version)
+        public Task<Host> RefreshNodeListAsync(IConnectionEndPoint currentEndPoint, IConnection connection, ProtocolVersion version)
         {
             foreach (var h in _hosts)
             {
@@ -45,6 +45,7 @@ namespace Cassandra.Tests.Connections
                 }
             }
 
+            _metadata.Partitioner = "Murmur3Partitioner";
             return Task.FromResult(_metadata.Hosts.First());
         }
     }

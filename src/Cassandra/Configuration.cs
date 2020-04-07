@@ -165,6 +165,12 @@ namespace Cassandra
 
         internal ISchemaParserFactory SchemaParserFactory { get; }
 
+        internal ISupportedOptionsInitializerFactory SupportedOptionsInitializerFactory { get; }
+
+        internal IProtocolVersionNegotiator ProtocolVersionNegotiator { get; }
+
+        internal IServerEventsSubscriber ServerEventsSubscriber { get; }
+
         internal IDriverMetricsProvider MetricsProvider { get; }
 
         internal DriverMetricsOptions MetricsOptions { get; }
@@ -333,7 +339,10 @@ namespace Cassandra
                                IDnsResolver dnsResolver = null,
                                IMetadataRequestHandler metadataRequestHandler = null,
                                ITopologyRefresherFactory topologyRefresherFactory = null,
-                               ISchemaParserFactory schemaParserFactory = null)
+                               ISchemaParserFactory schemaParserFactory = null,
+                               ISupportedOptionsInitializerFactory supportedOptionsInitializerFactory = null,
+                               IProtocolVersionNegotiator protocolVersionNegotiator = null,
+                               IServerEventsSubscriber serverEventsSubscriber = null)
         {
             AddressTranslator = addressTranslator ?? throw new ArgumentNullException(nameof(addressTranslator));
             QueryOptions = queryOptions ?? throw new ArgumentNullException(nameof(queryOptions));
@@ -359,6 +368,9 @@ namespace Cassandra
             MetadataRequestHandler = metadataRequestHandler ?? new MetadataRequestHandler();
             TopologyRefresherFactory = topologyRefresherFactory ?? new TopologyRefresherFactory();
             SchemaParserFactory = schemaParserFactory ?? new SchemaParserFactory();
+            SupportedOptionsInitializerFactory = supportedOptionsInitializerFactory ?? new SupportedOptionsInitializerFactory();
+            ProtocolVersionNegotiator = protocolVersionNegotiator ?? new ProtocolVersionNegotiator();
+            ServerEventsSubscriber = serverEventsSubscriber ?? new ServerEventsSubscriber();
 
             MetricsOptions = metricsOptions ?? new DriverMetricsOptions();
             MetricsProvider = driverMetricsProvider ?? new NullDriverMetricsProvider();

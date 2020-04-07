@@ -13,19 +13,18 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
+using System.Net.Sockets;
 using System.Threading.Tasks;
 
 namespace Cassandra.Connections
 {
     /// <summary>
-    /// Class that issues system table queries and updates the hosts collection on <see cref="Metadata"/>.
+    /// Gets the next connection and setup the event listener for the host and connection.
     /// </summary>
-    internal interface ITopologyRefresher
+    /// <exception cref="SocketException" />
+    /// <exception cref="DriverInternalError" />
+    internal interface IServerEventsSubscriber
     {
-        /// <summary>
-        /// Refreshes the Hosts collection using the <paramref name="currentEndPoint"/> to issue system table queries (local and peers).
-        /// </summary>
-        /// <returns>Returns the Host parsed from the <paramref name="currentEndPoint"/>'s system.local table.</returns>
-        Task<Host> RefreshNodeListAsync(IConnectionEndPoint currentEndPoint, IConnection connection, ProtocolVersion version);
+        Task SubscribeToServerEvents(IConnection connection, CassandraEventHandler handler);
     }
 }

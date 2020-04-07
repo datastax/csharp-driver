@@ -14,18 +14,14 @@
 //    limitations under the License.
 
 using System.Threading.Tasks;
+using Cassandra.Serialization;
 
 namespace Cassandra.Connections
 {
-    /// <summary>
-    /// Class that issues system table queries and updates the hosts collection on <see cref="Metadata"/>.
-    /// </summary>
-    internal interface ITopologyRefresher
+    internal interface IProtocolVersionNegotiator
     {
-        /// <summary>
-        /// Refreshes the Hosts collection using the <paramref name="currentEndPoint"/> to issue system table queries (local and peers).
-        /// </summary>
-        /// <returns>Returns the Host parsed from the <paramref name="currentEndPoint"/>'s system.local table.</returns>
-        Task<Host> RefreshNodeListAsync(IConnectionEndPoint currentEndPoint, IConnection connection, ProtocolVersion version);
+        Task<IConnection> ChangeProtocolVersion(Configuration config, ISerializerManager serializer, ProtocolVersion nextVersion, IConnection previousConnection, UnsupportedProtocolVersionException ex = null, ProtocolVersion? previousVersion = null);
+        
+        Task<IConnection> NegotiateVersionAsync(Configuration config, Metadata metadata, IConnection connection, ISerializerManager serializer);
     }
 }

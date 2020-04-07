@@ -14,18 +14,23 @@
 //    limitations under the License.
 
 using System.Threading.Tasks;
+using Cassandra.Connections;
+using Cassandra.Tasks;
 
-namespace Cassandra.Connections
+namespace Cassandra.Tests.Connections
 {
-    /// <summary>
-    /// Class that issues system table queries and updates the hosts collection on <see cref="Metadata"/>.
-    /// </summary>
-    internal interface ITopologyRefresher
+    internal class FakeSupportedOptionsInitializer : ISupportedOptionsInitializer
     {
-        /// <summary>
-        /// Refreshes the Hosts collection using the <paramref name="currentEndPoint"/> to issue system table queries (local and peers).
-        /// </summary>
-        /// <returns>Returns the Host parsed from the <paramref name="currentEndPoint"/>'s system.local table.</returns>
-        Task<Host> RefreshNodeListAsync(IConnectionEndPoint currentEndPoint, IConnection connection, ProtocolVersion version);
+        private Metadata _metadata;
+
+        public FakeSupportedOptionsInitializer(Metadata metadata)
+        {
+            _metadata = metadata;
+        }
+
+        public Task ApplySupportedOptionsAsync(IConnection connection)
+        {
+            return TaskHelper.Completed;
+        }
     }
 }

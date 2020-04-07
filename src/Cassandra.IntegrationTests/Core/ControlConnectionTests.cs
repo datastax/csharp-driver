@@ -101,7 +101,6 @@ namespace Cassandra.IntegrationTests.Core
                 version, 
                 config,
                 metadata,
-                config.TopologyRefresherFactory.Create(metadata, config),
                 new List<IContactPoint>
                 {
                     new IpLiteralContactPoint(IPAddress.Parse(_testCluster.InitialContactPoint), config.ProtocolOptions, config.ServerNameResolver )

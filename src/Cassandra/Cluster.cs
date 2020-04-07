@@ -177,7 +177,6 @@ namespace Cassandra
                 protocolVersion, 
                 Configuration, 
                 _metadata, 
-                Configuration.TopologyRefresherFactory.Create(_metadata, Configuration), 
                 parsedContactPoints);
 
             _metadata.ControlConnection = _controlConnection;

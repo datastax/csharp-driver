@@ -36,7 +36,6 @@ namespace Cassandra.Tests.Connections
             ProtocolVersion initialProtocolVersion,
             Configuration config,
             Metadata metadata,
-            ITopologyRefresher topologyRefresher,
             IEnumerable<IContactPoint> contactPoints)
         {
             var cc = Mock.Of<IControlConnection>();

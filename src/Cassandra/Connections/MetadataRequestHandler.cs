@@ -51,7 +51,7 @@ namespace Cassandra.Connections
         }
 
         /// <inheritdoc />
-        public IEnumerable<Row> GetRowSet(Response response)
+        public IEnumerable<IRow> GetRowSet(Response response)
         {
             if (response == null)
             {

@@ -24,7 +24,6 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using Cassandra.ProtocolEvents;
-using Cassandra.Requests;
 using Cassandra.Responses;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
@@ -34,10 +33,6 @@ namespace Cassandra.Connections
 {
     internal class ControlConnection : IControlConnection
     {
-        private const string SupportedProductTypeKey = "PRODUCT_TYPE";
-        private const string SupportedDbaas = "DATASTAX_APOLLO";
-        private const CassandraEventType CassandraEventTypes = CassandraEventType.TopologyChange | CassandraEventType.StatusChange | CassandraEventType.SchemaChange;
-
         private readonly IInternalCluster _cluster;
         private readonly Metadata _metadata;
         private volatile Host _host;
@@ -57,6 +52,7 @@ namespace Cassandra.Connections
         private readonly IProtocolEventDebouncer _eventDebouncer;
         private readonly IEnumerable<IContactPoint> _contactPoints;
         private readonly ITopologyRefresher _topologyRefresher;
+        private readonly ISupportedOptionsInitializer _supportedOptionsInitializer;
 
         /// <summary>
         /// Gets the binary protocol version to be used for this cluster.
@@ -82,7 +78,6 @@ namespace Cassandra.Connections
             ProtocolVersion initialProtocolVersion,
             Configuration config,
             Metadata metadata,
-            ITopologyRefresher topologyRefresher,
             IEnumerable<IContactPoint> contactPoints)
         {
             _cluster = cluster;
@@ -94,7 +89,8 @@ namespace Cassandra.Connections
             _serializer = new SerializerManager(initialProtocolVersion, config.TypeSerializers);
             _eventDebouncer = eventDebouncer;
             _contactPoints = contactPoints;
-            _topologyRefresher = topologyRefresher ?? throw new ArgumentNullException(nameof(topologyRefresher));
+            _topologyRefresher = config.TopologyRefresherFactory.Create(metadata, config);
+            _supportedOptionsInitializer = config.SupportedOptionsInitializerFactory.Create(metadata);
 
             if (!_config.KeepContactPointsUnresolved)
             {
@@ -113,7 +109,7 @@ namespace Cassandra.Connections
             ControlConnection.Logger.Info("Trying to connect the ControlConnection");
             await Connect(true).ConfigureAwait(false);
         }
-        
+
         /// <summary>
         /// Resolves the contact points to a read only list of <see cref="IConnectionEndPoint"/> which will be used
         /// during initialization. Also sets <see cref="Metadata.SetResolvedContactPoints"/>.
@@ -150,7 +146,7 @@ namespace Cassandra.Connections
                     "Total connectivity loss detected due to the fact that there are no open connections, " +
                     "re-resolving the following contact point: {0}", contactPoint.StringRepresentation);
             }
-            
+
             var endpoints = await contactPoint.GetConnectionEndPointsAsync(
                 _config.KeepContactPointsUnresolved || connectivityLoss).ConfigureAwait(false);
             return _metadata.UpdateResolvedContactPoint(contactPoint, endpoints);
@@ -163,7 +159,7 @@ namespace Cassandra.Connections
             {
                 return await ResolveContactPoint(host.ContactPoint, isInitializing).ConfigureAwait(false);
             }
-            
+
             var endpoint =
                 await _config
                       .EndPointResolver
@@ -234,7 +230,7 @@ namespace Cassandra.Connections
                 ControlConnection.Logger.Verbose("Skipping {0} because it is ignored.", host.Address.ToString());
                 return false;
             }
-            
+
             if (!host.IsUp)
             {
                 ControlConnection.Logger.Verbose("Skipping {0} because it is not UP.", host.Address.ToString());
@@ -257,7 +253,7 @@ namespace Cassandra.Connections
         private async Task Connect(bool isInitializing)
         {
             // lazy iterator of endpoints to try for the control connection
-            IEnumerable<Task<IEnumerable<IConnectionEndPoint>>> endPointResolutionTasksLazyIterator = 
+            IEnumerable<Task<IEnumerable<IConnectionEndPoint>>> endPointResolutionTasksLazyIterator =
                 Enumerable.Empty<Task<IEnumerable<IConnectionEndPoint>>>();
 
             var attemptedContactPoints = new ConcurrentDictionary<IContactPoint, object>();
@@ -272,7 +268,7 @@ namespace Cassandra.Connections
             // add contact points next
             endPointResolutionTasksLazyIterator = endPointResolutionTasksLazyIterator.Concat(
                 ContactPointResolutionTasksEnumerable(attemptedContactPoints, isInitializing));
-            
+
             // finally add all hosts iterator, this will contain already tried hosts but we will check for it with the concurrent dictionary
             if (isInitializing)
             {
@@ -307,8 +303,15 @@ namespace Cassandra.Connections
                                 throw;
                             }
 
-                            connection = await ChangeProtocolVersion(ex.ResponseProtocolVersion, connection, ex, version)
-                                .ConfigureAwait(false);
+                            connection =
+                                await _config.ProtocolVersionNegotiator.ChangeProtocolVersion(
+                                                 _config,
+                                                 _serializer,
+                                                 ex.ResponseProtocolVersion,
+                                                 connection,
+                                                 ex,
+                                                 version)
+                                             .ConfigureAwait(false);
                         }
 
                         ControlConnection.Logger.Info($"Connection established to {connection.EndPoint.EndpointFriendlyName} using protocol " +
@@ -317,24 +320,19 @@ namespace Cassandra.Connections
 
                         if (isInitializing)
                         {
-                            await ApplySupportedOptionsAsync().ConfigureAwait(false);
+                            await _supportedOptionsInitializer.ApplySupportedOptionsAsync(connection).ConfigureAwait(false);
                         }
 
-                        var currentHost = await _topologyRefresher.RefreshNodeList(endPoint, connection, ProtocolVersion).ConfigureAwait(false);
+                        var currentHost = await _topologyRefresher.RefreshNodeListAsync(endPoint, connection, ProtocolVersion).ConfigureAwait(false);
                         SetCurrentConnection(currentHost, endPoint);
 
                         if (isInitializing)
                         {
-                            var commonVersion = ProtocolVersion.GetHighestCommon(_metadata.Hosts);
-                            if (commonVersion != _serializer.CurrentProtocolVersion)
-                            {
-                                // Current connection will be closed and reopened
-                                connection = await ChangeProtocolVersion(commonVersion, connection).ConfigureAwait(false);
-                                _connection = connection;
-                            }
+                            await _config.ProtocolVersionNegotiator.NegotiateVersionAsync(
+                                _config, _metadata, connection, _serializer).ConfigureAwait(false);
                         }
 
-                        await SubscribeToServerEvents(connection).ConfigureAwait(false);
+                        await _config.ServerEventsSubscriber.SubscribeToServerEvents(connection, OnConnectionCassandraEvent).ConfigureAwait(false);
                         await _metadata.RebuildTokenMapAsync(false, _config.MetadataSyncOptions.MetadataSyncEnabled).ConfigureAwait(false);
 
                         _host.Down += OnHostDown;
@@ -350,84 +348,6 @@ namespace Cassandra.Connections
                 }
             }
             throw new NoHostAvailableException(triedHosts);
-        }
-
-        private async Task ApplySupportedOptionsAsync()
-        {
-            var request = new OptionsRequest();
-            var response = await _connection.Send(request).ConfigureAwait(false);
-
-            if (response == null)
-            {
-                throw new NullReferenceException("Response can not be null");
-            }
-
-            if (!(response is SupportedResponse supportedResponse))
-            {
-                throw new DriverInternalError("Expected SupportedResponse, obtained " + response.GetType().FullName);
-            }
-
-            ApplyProductTypeOption(supportedResponse.Output.Options);
-        }
-
-        private void ApplyProductTypeOption(IDictionary<string, string[]> options)
-        {
-            if (!options.TryGetValue(ControlConnection.SupportedProductTypeKey, out var productTypeOptions))
-            {
-                return;
-            }
-
-            if (productTypeOptions.Length <= 0)
-            {
-                return;
-            }
-
-            if (string.Compare(productTypeOptions[0], ControlConnection.SupportedDbaas, StringComparison.OrdinalIgnoreCase) == 0)
-            {
-                _metadata.SetProductTypeAsDbaas();
-            }
-        }
-
-        private async Task<IConnection> ChangeProtocolVersion(ProtocolVersion nextVersion, IConnection previousConnection,
-                                                 UnsupportedProtocolVersionException ex = null,
-                                                 ProtocolVersion? previousVersion = null)
-        {
-            if (!nextVersion.IsSupported() || nextVersion == previousVersion)
-            {
-                nextVersion = nextVersion.GetLowerSupported();
-            }
-
-            if (nextVersion == 0)
-            {
-                if (ex != null)
-                {
-                    // We have downgraded the version until is 0 and none of those are supported
-                    throw ex;
-                }
-
-                // There was no exception leading to the downgrade, signal internal error
-                throw new DriverInternalError("Connection was unable to STARTUP using protocol version 0");
-            }
-
-            ControlConnection.Logger.Info(ex != null
-                ? $"{ex.Message}, trying with version {nextVersion:D}"
-                : $"Changing protocol version to {nextVersion:D}");
-
-            _serializer.ChangeProtocolVersion(nextVersion);
-
-            previousConnection.Dispose();
-
-            var c = _config.ConnectionFactory.CreateUnobserved(_serializer.GetCurrentSerializer(), previousConnection.EndPoint, _config);
-            try
-            {
-                await c.Open().ConfigureAwait(false);
-                return c;
-            }
-            catch
-            {
-                c.Dispose();
-                throw;
-            }
         }
 
         private async void ReconnectEventHandler(object state)
@@ -524,7 +444,7 @@ namespace Cassandra.Connections
             try
             {
                 var currentEndPoint = _currentConnectionEndPoint;
-                var currentHost = await _topologyRefresher.RefreshNodeList(currentEndPoint, _connection, ProtocolVersion).ConfigureAwait(false);
+                var currentHost = await _topologyRefresher.RefreshNodeListAsync(currentEndPoint, _connection, ProtocolVersion).ConfigureAwait(false);
                 SetCurrentConnection(currentHost, currentEndPoint);
 
                 await _metadata.RebuildTokenMapAsync(false, _config.MetadataSyncOptions.MetadataSyncEnabled).ConfigureAwait(false);
@@ -564,23 +484,6 @@ namespace Cassandra.Connections
             }
             _reconnectionTimer.Change(Timeout.Infinite, Timeout.Infinite);
             _reconnectionTimer.Dispose();
-        }
-
-        /// <summary>
-        /// Gets the next connection and setup the event listener for the host and connection.
-        /// </summary>
-        /// <exception cref="SocketException" />
-        /// <exception cref="DriverInternalError" />
-        private async Task SubscribeToServerEvents(IConnection connection)
-        {
-            connection.CassandraEventResponse += OnConnectionCassandraEvent;
-            // Register to events on the connection
-            var response = await connection.Send(new RegisterForEventRequest(ControlConnection.CassandraEventTypes))
-                                            .ConfigureAwait(false);
-            if (!(response is ReadyResponse))
-            {
-                throw new DriverInternalError("Expected ReadyResponse, obtained " + response?.GetType().Name);
-            }
         }
 
         /// <summary>
@@ -707,23 +610,23 @@ namespace Cassandra.Connections
         {
             return _config.AddressTranslator.Translate(value);
         }
-        
+
         private void SetCurrentConnection(Host host, IConnectionEndPoint endPoint)
         {
             _host = host;
             _currentConnectionEndPoint = endPoint;
             _metadata.SetCassandraVersion(host.CassandraVersion);
         }
-        
+
         /// <summary>
         /// Uses the active connection to execute a query
         /// </summary>
-        public IEnumerable<Row> Query(string cqlQuery, bool retry = false)
+        public IEnumerable<IRow> Query(string cqlQuery, bool retry = false)
         {
             return TaskHelper.WaitToComplete(QueryAsync(cqlQuery, retry), _config.SocketOptions.MetadataAbortTimeout);
         }
 
-        public async Task<IEnumerable<Row>> QueryAsync(string cqlQuery, bool retry = false)
+        public async Task<IEnumerable<IRow>> QueryAsync(string cqlQuery, bool retry = false)
         {
             return _config.MetadataRequestHandler.GetRowSet(
                 await SendQueryRequestAsync(cqlQuery, retry, QueryProtocolOptions.Default).ConfigureAwait(false));

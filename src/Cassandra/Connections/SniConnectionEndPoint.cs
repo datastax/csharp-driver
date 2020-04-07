@@ -77,7 +77,7 @@ namespace Cassandra.Connections
         }
 
         /// <inheritdoc />
-        public IPEndPoint GetOrParseHostIpEndPoint(Row row, IAddressTranslator translator, int port)
+        public IPEndPoint GetOrParseHostIpEndPoint(IRow row, IAddressTranslator translator, int port)
         {
             if (_hostIpEndPoint != null)
             {
