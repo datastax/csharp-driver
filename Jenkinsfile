@@ -212,7 +212,7 @@ def buildDriver() {
         chmod -R ugo+rwx /tmp/NuGetScratch
       '''
       sh label: "Install required packages and build the driver for ${env.DOTNET_VERSION}", script: '''#!/bin/bash -le
-        dotnet restore src
+        dotnet restore src || true
         dotnet restore src
       '''
     }
