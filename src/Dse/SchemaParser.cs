@@ -89,7 +89,7 @@ namespace Dse
                 .ContinueSync(rs =>
                 {
                     var sessionRow = rs.FirstOrDefault();
-                    if (sessionRow == null || sessionRow.IsNull("duration"))
+                    if (sessionRow == null || sessionRow.IsNull("duration") || sessionRow.IsNull("started_at"))
                     {
                         return null;
                     }
