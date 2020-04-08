@@ -53,6 +53,8 @@ namespace Cassandra.Connections.Control
         private readonly ITopologyRefresher _topologyRefresher;
         private readonly ISupportedOptionsInitializer _supportedOptionsInitializer;
 
+        private bool IsShutdown => Interlocked.Read(ref _isShutdown) > 0L;
+
         /// <summary>
         /// Gets the binary protocol version to be used for this cluster.
         /// </summary>
@@ -313,9 +315,24 @@ namespace Cassandra.Connections.Control
                                              .ConfigureAwait(false);
                         }
 
-                        ControlConnection.Logger.Info($"Connection established to {connection.EndPoint.EndpointFriendlyName} using protocol " +
-                                     $"version {_serializer.CurrentProtocolVersion:D}");
                         _connection = connection;
+
+                        //// We haven't used a CAS operation, so it's possible that the control connection is
+                        //// being closed while a reconnection attempt is happening, we should dispose it in that case.
+                        if (IsShutdown)
+                        {
+                            ControlConnection.Logger.Info(
+                                "Connection established to {0} successfully but the Control Connection was being disposed, " +
+                                "closing the connection.",
+                                connection.EndPoint.EndpointFriendlyName);
+                            connection.Dispose();
+                            return;
+                        }
+
+                        ControlConnection.Logger.Info(
+                            "Connection established to {0} using protocol version {1}.",
+                            connection.EndPoint.EndpointFriendlyName,
+                            _serializer.CurrentProtocolVersion.ToString("D"));
 
                         if (isInitializing)
                         {
@@ -404,7 +421,7 @@ namespace Cassandra.Connections.Control
                 }
             }
 
-            if (Interlocked.Read(ref _isShutdown) > 0L)
+            if (IsShutdown)
             {
                 return false;
             }
