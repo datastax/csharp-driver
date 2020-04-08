@@ -325,8 +325,7 @@ namespace Cassandra.Connections.Control
                                 "Connection established to {0} successfully but the Control Connection was being disposed, " +
                                 "closing the connection.",
                                 connection.EndPoint.EndpointFriendlyName);
-                            connection.Dispose();
-                            return;
+                            throw new ObjectDisposedException("Connection established successfully but the Control Connection was being disposed.");
                         }
 
                         ControlConnection.Logger.Info(
@@ -357,9 +356,20 @@ namespace Cassandra.Connections.Control
                     }
                     catch (Exception ex)
                     {
+                        connection.Dispose();
+
+                        if (ex is ObjectDisposedException)
+                        {
+                            throw;
+                        }
+
+                        if (IsShutdown)
+                        {
+                            throw new ObjectDisposedException("Control Connection has been disposed.", ex);
+                        }
+
                         // There was a socket or authentication exception or an unexpected error
                         triedHosts[endPoint.GetHostIpEndPointWithFallback()] = ex;
-                        connection.Dispose();
                     }
                 }
             }
@@ -423,6 +433,7 @@ namespace Cassandra.Connections.Control
 
             if (IsShutdown)
             {
+                tcs.TrySetResult(false);
                 return false;
             }
             try
