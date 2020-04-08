@@ -16,6 +16,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Dse.Collections;
 using Dse.Connections;
+using Dse.Connections.Control;
 using Dse.Helpers;
 using Dse.ProtocolEvents;
 using Dse.Requests;
@@ -161,7 +162,12 @@ namespace Dse
                 TimeSpan.FromMilliseconds(configuration.MetadataSyncOptions.RefreshSchemaDelayIncrement),
                 TimeSpan.FromMilliseconds(configuration.MetadataSyncOptions.MaxTotalRefreshSchemaDelay));
 
-            _controlConnection = configuration.ControlConnectionFactory.Create(_protocolEventDebouncer, protocolVersion, Configuration, _metadata, contactPoints);
+            _controlConnection = configuration.ControlConnectionFactory.Create(
+                _protocolEventDebouncer, 
+                protocolVersion, 
+                Configuration, 
+                _metadata,
+                contactPoints);
 
             _metadata.ControlConnection = _controlConnection;
             _sessionFactory = configuration.SessionFactoryBuilder.BuildWithCluster(this);

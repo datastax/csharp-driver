@@ -18,14 +18,12 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
-
-using Dse.Connections;
+using Dse.Connections.Control;
 using Dse.ProtocolEvents;
 using Dse.Serialization;
-
 using Moq;
 
-namespace Dse.Test.Unit.Connections
+namespace Dse.Test.Unit.Connections.TestHelpers
 {
     internal class FakeControlConnectionFactory : IControlConnectionFactory
     {

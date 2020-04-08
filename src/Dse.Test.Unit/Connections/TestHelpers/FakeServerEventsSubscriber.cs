@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,26 +14,17 @@
 //   limitations under the License.
 //
 
-using System.Collections.Generic;
-using Dse.ProtocolEvents;
+using System.Threading.Tasks;
+using Dse.Connections;
+using Dse.Connections.Control;
 
-namespace Dse.Connections
+namespace Dse.Test.Unit.Connections.TestHelpers
 {
-    internal class ControlConnectionFactory : IControlConnectionFactory
+    internal class FakeServerEventsSubscriber : IServerEventsSubscriber
     {
-        public IControlConnection Create(
-            IProtocolEventDebouncer protocolEventDebouncer, 
-            ProtocolVersion initialProtocolVersion, 
-            Configuration config, 
-            Metadata metadata,
-            IEnumerable<object> contactPoints)
+        public Task SubscribeToServerEvents(IConnection connection, CassandraEventHandler handler)
         {
-            return new ControlConnection(
-                protocolEventDebouncer, 
-                initialProtocolVersion, 
-                config, 
-                metadata,
-                contactPoints);
+            return Task.FromResult(0);
         }
     }
 }

@@ -20,6 +20,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using Dse.Connections;
+using Dse.Connections.Control;
 using Dse.MetadataHelpers;
 
 namespace Dse

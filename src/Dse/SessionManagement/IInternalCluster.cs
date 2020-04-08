@@ -20,6 +20,7 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Dse.Connections;
+using Dse.Connections.Control;
 using Dse.Requests;
 using Dse.Serialization;
 

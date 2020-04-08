@@ -89,7 +89,7 @@ namespace Dse
         /// <summary>
         /// From a row in the 'system_schema.indexes' table
         /// </summary>
-        internal static IndexMetadata FromRow(Row row)
+        internal static IndexMetadata FromRow(IRow row)
         {
             var options = row.GetValue<IDictionary<string, string>>("options");
             return new IndexMetadata(row.GetValue<string>("index_name"), options["target"], GetKindByName(row.GetValue<string>("kind")), options);

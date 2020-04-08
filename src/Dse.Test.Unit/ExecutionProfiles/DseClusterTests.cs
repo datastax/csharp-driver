@@ -19,6 +19,7 @@ using System.Linq;
 using System.Net;
 using Dse.ExecutionProfiles;
 using Dse.Test.Unit.Connections;
+using Dse.Test.Unit.Connections.TestHelpers;
 using Moq;
 using NUnit.Framework;
 

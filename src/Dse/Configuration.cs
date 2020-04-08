@@ -10,7 +10,9 @@ using System.Collections.Generic;
 using System.Linq;
 
 using Dse.Connections;
+using Dse.Connections.Control;
 using Dse.ExecutionProfiles;
+using Dse.MetadataHelpers;
 using Dse.Metrics;
 using Dse.Metrics.Abstractions;
 using Dse.Metrics.Providers.Null;
@@ -135,6 +137,18 @@ namespace Dse
 
         internal IDnsResolver DnsResolver { get; }
 
+        internal IMetadataRequestHandler MetadataRequestHandler { get; }
+
+        internal ITopologyRefresherFactory TopologyRefresherFactory { get; }
+
+        internal ISchemaParserFactory SchemaParserFactory { get; }
+
+        internal ISupportedOptionsInitializerFactory SupportedOptionsInitializerFactory { get; }
+
+        internal IProtocolVersionNegotiator ProtocolVersionNegotiator { get; }
+
+        internal IServerEventsSubscriber ServerEventsSubscriber { get; }
+
         internal IDriverMetricsProvider MetricsProvider { get; }
 
         internal DriverMetricsOptions MetricsOptions { get; }
@@ -204,7 +218,13 @@ namespace Dse
                                IControlConnectionFactory controlConnectionFactory = null,
                                IPrepareHandlerFactory prepareHandlerFactory = null,
                                ITimerFactory timerFactory = null,
-                               IObserverFactoryBuilder observerFactoryBuilder = null)
+                               IObserverFactoryBuilder observerFactoryBuilder = null,
+                               IMetadataRequestHandler metadataRequestHandler = null,
+                               ITopologyRefresherFactory topologyRefresherFactory = null,
+                               ISchemaParserFactory schemaParserFactory = null,
+                               ISupportedOptionsInitializerFactory supportedOptionsInitializerFactory = null,
+                               IProtocolVersionNegotiator protocolVersionNegotiator = null,
+                               IServerEventsSubscriber serverEventsSubscriber = null)
         {
             AddressTranslator = addressTranslator ?? throw new ArgumentNullException(nameof(addressTranslator));
             QueryOptions = queryOptions ?? throw new ArgumentNullException(nameof(queryOptions));
@@ -219,6 +239,13 @@ namespace Dse
             SessionFactoryBuilder = sessionFactoryBuilder;
             RequestOptionsMapper = requestOptionsMapper;
             MetadataSyncOptions = metadataSyncOptions?.Clone() ?? new MetadataSyncOptions();
+            MetadataRequestHandler = metadataRequestHandler ?? new MetadataRequestHandler();
+            TopologyRefresherFactory = topologyRefresherFactory ?? new TopologyRefresherFactory();
+            SchemaParserFactory = schemaParserFactory ?? new SchemaParserFactory();
+            SupportedOptionsInitializerFactory = supportedOptionsInitializerFactory ?? new SupportedOptionsInitializerFactory();
+            ProtocolVersionNegotiator = protocolVersionNegotiator ?? new ProtocolVersionNegotiator();
+            ServerEventsSubscriber = serverEventsSubscriber ?? new ServerEventsSubscriber();
+
             DnsResolver = new DnsResolver();
             EndPointResolver = endPointResolver ?? new EndPointResolver(DnsResolver, protocolOptions);
             MetricsOptions = metricsOptions ?? new DriverMetricsOptions();

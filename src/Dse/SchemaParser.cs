@@ -16,42 +16,14 @@ using SortOrder = Dse.DataCollectionMetadata.SortOrder;
 
 namespace Dse
 {
-    internal abstract class SchemaParser
+    internal abstract class SchemaParser : ISchemaParser
     {
         protected const string CompositeTypeName = "org.apache.cassandra.db.marshal.CompositeType";
         private const int TraceMaxAttempts = 5;
         private const int TraceAttemptDelay = 400;
         private const string SelectTraceSessions = "SELECT * FROM system_traces.sessions WHERE session_id = {0}";
         private const string SelectTraceEvents = "SELECT * FROM system_traces.events WHERE session_id = {0}";
-        private static readonly Version Version30 = new Version(3, 0);
-        private static readonly Version Version40 = new Version(4, 0);
-
-        /// <summary>
-        /// Creates a new instance if the currentInstance is not valid for the given Cassandra version
-        /// </summary>
-        public static SchemaParser GetInstance(Version cassandraVersion, Metadata parent,
-                                               Func<string, string, Task<UdtColumnInfo>> udtResolver,
-                                               SchemaParser currentInstance = null)
-        {
-            if (cassandraVersion >= Version40 && !(currentInstance is SchemaParserV3))
-            {
-                return new SchemaParserV3(parent, udtResolver);
-            }
-            if (cassandraVersion >= Version30 && !(currentInstance is SchemaParserV2))
-            {
-                return new SchemaParserV2(parent, udtResolver);
-            }
-            if (cassandraVersion < Version30 && !(currentInstance is SchemaParserV1))
-            {
-                return new SchemaParserV1(parent);
-            }
-            if (currentInstance == null)
-            {
-                throw new ArgumentNullException(nameof(currentInstance));
-            }
-            return currentInstance;
-        }
-
+        
         protected readonly IMetadataQueryProvider Cc;
         protected readonly Metadata Parent;
         protected abstract string SelectAggregates { get; }
@@ -94,12 +66,12 @@ namespace Dse
 
         public abstract Task<UdtColumnInfo> GetUdtDefinitionAsync(string keyspaceName, string typeName);
 
-        internal string ComputeFunctionSignatureString(string[] signature)
+        public string ComputeFunctionSignatureString(string[] signature)
         {
             return "[" + string.Join(",", signature.Select(s => "'" + s + "'")) + "]";
         }
 
-        internal Task<QueryTrace> GetQueryTraceAsync(QueryTrace trace, HashedWheelTimer timer)
+        public Task<QueryTrace> GetQueryTraceAsync(QueryTrace trace, HashedWheelTimer timer)
         {
             return GetQueryTraceAsync(trace, timer, 0);
         }
@@ -189,7 +161,7 @@ namespace Dse
 
         }
 
-        private KeyspaceMetadata ParseKeyspaceRow(Row row)
+        private KeyspaceMetadata ParseKeyspaceRow(IRow row)
         {
             if (row == null)
             {
@@ -224,7 +196,7 @@ namespace Dse
             return rs.Select(r => r.GetValue<string>(0)).ToArray();
         }
 
-        private static SortedDictionary<string, string> GetCompactionStrategyOptions(Row row)
+        private static SortedDictionary<string, string> GetCompactionStrategyOptions(IRow row)
         {
             var result = new SortedDictionary<string, string> { { "class", row.GetValue<string>("compaction_strategy_class") } };
             foreach (var entry in Utils.ConvertStringToMap(row.GetValue<string>("compaction_strategy_options")))
@@ -561,7 +533,7 @@ namespace Dse
             _udtResolver = udtResolver;
         }
 
-        private KeyspaceMetadata ParseKeyspaceRow(Row row)
+        private KeyspaceMetadata ParseKeyspaceRow(IRow row)
         {
             var replication = row.GetValue<IDictionary<string, string>>("replication");
             string strategy = null;
@@ -626,8 +598,8 @@ namespace Dse
                 .ConfigureAwait(false);
         }
 
-        protected async Task<T> ParseTableOrView<T>(Func<Row, T> newInstance, IEnumerable<Row> tableRs,
-                                                    IEnumerable<Row> columnsRs) where T : DataCollectionMetadata
+        protected async Task<T> ParseTableOrView<T>(Func<IRow, T> newInstance, IEnumerable<IRow> tableRs,
+                                                    IEnumerable<IRow> columnsRs) where T : DataCollectionMetadata
         {
             var tableMetadataRow = tableRs.FirstOrDefault();
             if (tableMetadataRow == null)
@@ -788,7 +760,7 @@ namespace Dse
             }
         }
 
-        private static IDictionary<string, IndexMetadata> GetIndexes(IEnumerable<Row> rows)
+        private static IDictionary<string, IndexMetadata> GetIndexes(IEnumerable<IRow> rows)
         {
             return rows.Select(IndexMetadata.FromRow).ToDictionary(ix => ix.Name);
         }
@@ -956,7 +928,7 @@ namespace Dse
             }
 
             // Maybe its a virtual keyspace
-            IEnumerable<Row> rs;
+            IEnumerable<IRow> rs;
             try
             {
                 rs = await Cc.QueryAsync(string.Format(SelectSingleVirtualKeyspace, name), true)
@@ -972,7 +944,7 @@ namespace Dse
             return row != null ? ParseVirtualKeyspaceRow(row) : null;
         }
 
-        private KeyspaceMetadata ParseVirtualKeyspaceRow(Row row)
+        private KeyspaceMetadata ParseVirtualKeyspaceRow(IRow row)
         {
             return new KeyspaceMetadata(
                 Parent,
@@ -1035,7 +1007,7 @@ namespace Dse
                 return table;
             }
 
-            IEnumerable<Row> tableRs;
+            IEnumerable<IRow> tableRs;
             try
             {
                 // Maybe its a virtual table

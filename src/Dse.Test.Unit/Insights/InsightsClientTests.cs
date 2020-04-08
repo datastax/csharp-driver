@@ -14,6 +14,7 @@ using System.Linq.Expressions;
 using System.Net;
 using System.Threading.Tasks;
 using Dse.Connections;
+using Dse.Connections.Control;
 using Dse.ExecutionProfiles;
 using Dse.Graph;
 using Dse.Insights;

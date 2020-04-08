@@ -23,6 +23,7 @@ using Dse.Metrics.Internal;
 using Dse.Metrics.Providers.Null;
 using Dse.Observers;
 using Dse.Serialization;
+using Dse.Test.Unit.Connections.TestHelpers;
 using Moq;
 using NUnit.Framework;
 

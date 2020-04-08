@@ -29,7 +29,7 @@ using Dse.Responses;
 using Dse.Serialization;
 using Dse.SessionManagement;
 using Dse.Test.Unit.Connections;
-
+using Dse.Test.Unit.Connections.TestHelpers;
 using Moq;
 
 using NUnit.Framework;

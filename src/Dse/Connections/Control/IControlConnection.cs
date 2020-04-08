@@ -17,7 +17,7 @@
 using System;
 using System.Threading.Tasks;
 
-namespace Dse.Connections
+namespace Dse.Connections.Control
 {
     internal interface IControlConnection : IMetadataQueryProvider, IDisposable
     {

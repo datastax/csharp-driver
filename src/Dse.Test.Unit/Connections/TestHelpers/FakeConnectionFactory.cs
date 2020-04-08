@@ -23,7 +23,7 @@ using Dse.Observers.Abstractions;
 using Dse.Serialization;
 using Moq;
 
-namespace Dse.Test.Unit.Connections
+namespace Dse.Test.Unit.Connections.TestHelpers
 {
     internal class FakeConnectionFactory : IConnectionFactory
     {

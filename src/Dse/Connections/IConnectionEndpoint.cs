@@ -60,6 +60,6 @@ namespace Dse.Connections
         /// <param name="translator">Address translator to use when parsing the host's IP address from the <paramref name="row"/>.</param>
         /// <param name="port">Port to use when building the <see cref="IPEndPoint"/> in case the IP address is parsed from the <paramref name="row"/>.</param>
         /// <returns></returns>
-        IPEndPoint GetOrParseHostIpEndPoint(Row row, IAddressTranslator translator, int port);
+        IPEndPoint GetOrParseHostIpEndPoint(IRow row, IAddressTranslator translator, int port);
     }
 }

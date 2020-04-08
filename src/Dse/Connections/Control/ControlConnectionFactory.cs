@@ -17,15 +17,23 @@
 using System.Collections.Generic;
 using Dse.ProtocolEvents;
 
-namespace Dse.Connections
+namespace Dse.Connections.Control
 {
-    internal interface IControlConnectionFactory
+    internal class ControlConnectionFactory : IControlConnectionFactory
     {
-        IControlConnection Create(
-            IProtocolEventDebouncer protocolEventDebouncer,
+        public IControlConnection Create(
+            IProtocolEventDebouncer protocolEventDebouncer, 
             ProtocolVersion initialProtocolVersion, 
             Configuration config, 
             Metadata metadata,
-            IEnumerable<object> contactPoints);
+            IEnumerable<object> contactPoints)
+        {
+            return new ControlConnection(
+                protocolEventDebouncer, 
+                initialProtocolVersion, 
+                config, 
+                metadata,
+                contactPoints);
+        }
     }
 }

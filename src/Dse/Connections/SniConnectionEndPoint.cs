@@ -18,6 +18,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using Dse.Connections.Control;
 
 namespace Dse.Connections
 {
@@ -72,14 +73,14 @@ namespace Dse.Connections
         }
 
         /// <inheritdoc />
-        public IPEndPoint GetOrParseHostIpEndPoint(Row row, IAddressTranslator translator, int port)
+        public IPEndPoint GetOrParseHostIpEndPoint(IRow row, IAddressTranslator translator, int port)
         {
             if (_hostIpEndPoint != null)
             {
                 return _hostIpEndPoint;
             }
 
-            var ipEndPoint = ControlConnection.GetAddressForLocalOrPeerHost(row, translator, port);
+            var ipEndPoint = TopologyRefresher.GetAddressForLocalOrPeerHost(row, translator, port);
             if (ipEndPoint == null)
             {
                 throw new DriverInternalError("Could not parse the node's ip address from system tables.");

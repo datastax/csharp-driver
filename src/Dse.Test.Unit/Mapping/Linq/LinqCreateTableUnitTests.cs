@@ -7,6 +7,7 @@
 
 using System.Collections.Generic;
 using Dse.Connections;
+using Dse.Connections.Control;
 using Dse.Data.Linq;
 using Dse.Mapping;
 using Dse.Serialization;

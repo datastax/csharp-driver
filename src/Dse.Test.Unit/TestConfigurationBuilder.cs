@@ -16,13 +16,16 @@
 
 using System.Collections.Generic;
 using Dse.Connections;
+using Dse.Connections.Control;
 using Dse.ExecutionProfiles;
+using Dse.MetadataHelpers;
 using Dse.Metrics;
 using Dse.Metrics.Providers.Null;
 using Dse.Observers;
 using Dse.ProtocolEvents;
 using Dse.Requests;
 using Dse.SessionManagement;
+using Dse.Test.Unit.MetadataHelpers.TestHelpers;
 
 namespace Dse.Test.Unit
 {
@@ -76,7 +79,19 @@ namespace Dse.Test.Unit
 
         public DriverMetricsOptions MetricsOptions { get; set; } = new DriverMetricsOptions();
 
-        public string SessionName { get; set; }
+        public string SessionName { get; set; } 
+        
+        public IMetadataRequestHandler MetadataRequestHandler { get; set; } = new MetadataRequestHandler();
+
+        public ITopologyRefresherFactory TopologyRefresherFactory { get; set; } = new TopologyRefresherFactory();
+
+        public ISchemaParserFactory SchemaParserFactory { get; set; } = new FakeSchemaParserFactory();
+        
+        public ISupportedOptionsInitializerFactory SupportedOptionsInitializerFactory { get; set; } = new SupportedOptionsInitializerFactory();
+
+        public IServerEventsSubscriber ServerEventsSubscriber { get; set; } = new ServerEventsSubscriber();
+        
+        public IProtocolVersionNegotiator ProtocolVersionNegotiator { get; set; } = new ProtocolVersionNegotiator();
 
         public Configuration Build()
         {
@@ -106,7 +121,13 @@ namespace Dse.Test.Unit
                 ControlConnectionFactory,
                 PrepareHandlerFactory,
                 TimerFactory,
-                ObserverFactoryBuilder);
+                ObserverFactoryBuilder,
+                MetadataRequestHandler,
+                TopologyRefresherFactory,
+                SchemaParserFactory,
+                SupportedOptionsInitializerFactory,
+                ProtocolVersionNegotiator,
+                ServerEventsSubscriber);
         }
     }
 }

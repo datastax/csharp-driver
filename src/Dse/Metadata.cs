@@ -13,6 +13,7 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Dse.Connections;
+using Dse.Connections.Control;
 using Dse.MetadataHelpers;
 using Dse.Requests;
 using Dse.Tasks;
@@ -30,7 +31,7 @@ namespace Dse
         private static readonly Logger Logger = new Logger(typeof(ControlConnection));
         private volatile TokenMap _tokenMap;
         private volatile ConcurrentDictionary<string, KeyspaceMetadata> _keyspaces = new ConcurrentDictionary<string, KeyspaceMetadata>();
-        private volatile SchemaParser _schemaParser;
+        private volatile ISchemaParser _schemaParser;
         private readonly int _queryAbortTimeout;
 
         public event HostsEventHandler HostsEvent;
@@ -58,7 +59,7 @@ namespace Dse
         /// </summary>
         internal IControlConnection ControlConnection { get; set; }
 
-        internal SchemaParser SchemaParser { get { return _schemaParser; } }
+        internal ISchemaParser SchemaParser { get { return _schemaParser; } }
 
         internal string Partitioner { get; set; }
 
@@ -563,7 +564,7 @@ namespace Dse
         /// </param>
         /// <returns><code>True</code> if there is a schema agreement (only 1 schema version). <code>False</code> otherwise.</returns>
         private static bool CheckSchemaVersionResults(
-            IEnumerable<Row> localVersionQuery, IEnumerable<Row> peerVersionsQuery)
+            IEnumerable<IRow> localVersionQuery, IEnumerable<IRow> peerVersionsQuery)
         {
             return new HashSet<Guid>(
                peerVersionsQuery
@@ -597,8 +598,8 @@ namespace Dse
                     Task.WaitAll(queries, Configuration.DefaultRequestOptions.QueryAbortTimeout);
 
                     if (Metadata.CheckSchemaVersionResults(
-                        Dse.Connections.ControlConnection.GetRowSet(queries[0].Result),
-                        Dse.Connections.ControlConnection.GetRowSet(queries[1].Result)))
+                        Configuration.MetadataRequestHandler.GetRowSet(queries[0].Result),
+                        Configuration.MetadataRequestHandler.GetRowSet(queries[1].Result)))
                     {
                         return true;
                     }
@@ -622,7 +623,7 @@ namespace Dse
         /// <param name="version"></param>
         internal void SetCassandraVersion(Version version)
         {
-            _schemaParser = SchemaParser.GetInstance(version, this, GetUdtDefinitionAsync, _schemaParser);
+            _schemaParser = Configuration.SchemaParserFactory.Create(version, this, GetUdtDefinitionAsync, _schemaParser);
         }
 
         internal void SetProductTypeAsDbaas()

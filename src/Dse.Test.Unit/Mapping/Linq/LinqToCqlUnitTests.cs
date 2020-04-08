@@ -12,6 +12,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Dse.Connections;
+using Dse.Connections.Control;
 using Dse.Data.Linq;
 using Dse.Mapping;
 using Dse.Serialization;

@@ -30,6 +30,7 @@ using Dse.Requests;
 using Dse.Responses;
 using Dse.Serialization;
 using Dse.Test.Unit.Connections;
+using Dse.Test.Unit.Connections.TestHelpers;
 using Dse.Test.Unit.Requests;
 
 using Moq;

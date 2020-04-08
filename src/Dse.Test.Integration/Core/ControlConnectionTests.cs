@@ -8,11 +8,14 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
-using Dse.Test.Unit;
+
 using Dse.Connections;
+using Dse.Connections.Control;
 using Dse.ProtocolEvents;
-using NUnit.Framework;
 using Dse.Test.Integration.TestClusterManagement;
+using Dse.Test.Unit;
+
+using NUnit.Framework;
 
 namespace Dse.Test.Integration.Core
 {
@@ -91,8 +94,8 @@ namespace Dse.Test.Integration.Core
         private IProtocolEventDebouncer GetEventDebouncer(Configuration config)
         {
             return new ProtocolEventDebouncer(
-                new TaskBasedTimerFactory(), 
-                TimeSpan.FromMilliseconds(config.MetadataSyncOptions.RefreshSchemaDelayIncrement), 
+                new TaskBasedTimerFactory(),
+                TimeSpan.FromMilliseconds(config.MetadataSyncOptions.RefreshSchemaDelayIncrement),
                 TimeSpan.FromMilliseconds(config.MetadataSyncOptions.MaxTotalRefreshSchemaDelay));
         }
     }

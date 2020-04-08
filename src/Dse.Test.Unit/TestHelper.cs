@@ -59,7 +59,7 @@ namespace Dse.Test.Unit
             return new Row(rowValues.ToArray(), columns.ToArray(), valueMap.ToDictionary(kv => kv.Key, kv => i++));
         }
 
-        public static IEnumerable<Row> CreateRows(IEnumerable<IDictionary<string, object>> valueMapList)
+        public static IEnumerable<IRow> CreateRows(IEnumerable<IDictionary<string, object>> valueMapList)
         {
             return valueMapList.Select(CreateRow);
         }
@@ -170,6 +170,21 @@ namespace Dse.Test.Unit
             public bool ContainsColumn(string name)
             {
                 return _values.ContainsKey(name);
+            }
+
+            public bool IsNull(string name)
+            {
+                return _values[name] == null;
+            }
+
+            public T GetValue<T>(int index)
+            {
+                return (T)_values.ElementAt(index).Value;
+            }
+
+            public CqlColumn GetColumn(string name)
+            {
+                return null;
             }
         }
 

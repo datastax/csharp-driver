@@ -11,6 +11,7 @@ using System.Linq;
 using System.Net;
 using System.Runtime.InteropServices;
 using Dse.Connections;
+using Dse.Connections.Control;
 using Dse.ExecutionProfiles;
 using Dse.Graph;
 using Dse.Insights;

@@ -11,6 +11,7 @@ using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using Dse.Connections;
+using Dse.Connections.Control;
 using Dse.Tasks;
 using Moq;
 using NUnit.Framework;
@@ -60,7 +61,7 @@ namespace Dse.Test.Unit
             var queryProviderMock = new Mock<IControlConnection>(MockBehavior.Strict);
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_keyspaces.*" + ksName), It.IsAny<bool>()))
-                .Returns(() => TaskHelper.ToTask(Enumerable.Empty<Row>()));
+                .Returns(() => TaskHelper.ToTask(Enumerable.Empty<IRow>()));
             var parser = GetV1Instance(queryProviderMock.Object);
             var ks = TaskHelper.WaitToComplete(parser.GetKeyspaceAsync(ksName));
             Assert.Null(ks);
@@ -80,7 +81,7 @@ namespace Dse.Test.Unit
             var queryProviderMock = new Mock<IControlConnection>(MockBehavior.Strict);
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_keyspaces.*" + ksName), It.IsAny<bool>()))
-                .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { row }));
+                .Returns(() => TestHelper.DelayedTask<IEnumerable<IRow>>(new[] { row }));
             var parser = GetV1Instance(queryProviderMock.Object);
             var ks = TaskHelper.WaitToComplete(parser.GetKeyspaceAsync(ksName));
             Assert.NotNull(ks);
@@ -130,7 +131,7 @@ namespace Dse.Test.Unit
               new Dictionary<string, object>{{"keyspace_name","ks_tbl_meta"},{"columnfamily_name","tbl1"},{"column_name","id"   },{"component_index",null},{"index_name",null},{"index_options",null},{"index_type",null},{"type","partition_key"},{"validator","org.apache.cassandra.db.marshal.UUIDType"}},
               new Dictionary<string, object>{{"keyspace_name","ks_tbl_meta"},{"columnfamily_name","tbl1"},{"column_name","text1"},{"component_index",null},{"index_name",null},{"index_options",null},{"index_type",null},{"type","regular"      },{"validator","org.apache.cassandra.db.marshal.UTF8Type"}},
               new Dictionary<string, object>{{"keyspace_name","ks_tbl_meta"},{"columnfamily_name","tbl1"},{"column_name","text2"},{"component_index",null},{"index_name",null},{"index_options",null},{"index_type",null},{"type","regular"      },{"validator","org.apache.cassandra.db.marshal.UTF8Type"}}
-            }.Select(TestHelper.CreateRow);
+            }.Select(TestHelper.CreateRow).Cast<IRow>();
 
             var ksRow = TestHelper.CreateRow(new Dictionary<string, object>
             {
@@ -142,10 +143,10 @@ namespace Dse.Test.Unit
             var queryProviderMock = new Mock<IControlConnection>(MockBehavior.Strict);
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_keyspaces.*ks1"), It.IsAny<bool>()))
-                .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { ksRow }));
+                .Returns(() => TestHelper.DelayedTask<IEnumerable<IRow>>(new[] { ksRow }));
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_columnfamilies.*ks1"), It.IsAny<bool>()))
-                .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { tableRow }));
+                .Returns(() => TestHelper.DelayedTask<IEnumerable<IRow>>(new[] { tableRow }));
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_columns.*ks1"), It.IsAny<bool>()))
                 .Returns(() => TestHelper.DelayedTask(columnRows));
@@ -199,7 +200,7 @@ namespace Dse.Test.Unit
               new Dictionary<string, object>{{"keyspace_name","ks_tbl_meta"},{"columnfamily_name","tbl1"},{"column_name","pk"  },{"component_index", 0   },{"index_name",null},{"index_options",null},{"index_type",null},{"type","partition_key"  },{"validator","org.apache.cassandra.db.marshal.UTF8Type"}},
               new Dictionary<string, object>{{"keyspace_name","ks_tbl_meta"},{"columnfamily_name","tbl1"},{"column_name","ck"  },{"component_index", null},{"index_name",null},{"index_options",null},{"index_type",null},{"type","clustering_key" },{"validator","org.apache.cassandra.db.marshal.UTF8Type"}},
               new Dictionary<string, object>{{"keyspace_name","ks_tbl_meta"},{"columnfamily_name","tbl1"},{"column_name","stat"},{"component_index", 1   },{"index_name",null},{"index_options",null},{"index_type",null},{"type","static"         },{"validator","org.apache.cassandra.db.marshal.UTF8Type"}}
-            }.Select(TestHelper.CreateRow);
+            }.Select(TestHelper.CreateRow).Cast<IRow>();
 
             var ksRow = TestHelper.CreateRow(new Dictionary<string, object>
             {
@@ -211,10 +212,10 @@ namespace Dse.Test.Unit
             var queryProviderMock = new Mock<IControlConnection>(MockBehavior.Strict);
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_keyspaces.*ks1"), It.IsAny<bool>()))
-                .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { ksRow }));
+                .Returns(() => TestHelper.DelayedTask<IEnumerable<IRow>>(new[] { ksRow }));
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_columnfamilies.*ks1"), It.IsAny<bool>()))
-                .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { tableRow }));
+                .Returns(() => TestHelper.DelayedTask<IEnumerable<IRow>>(new[] { tableRow }));
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_columns.*ks1"), It.IsAny<bool>()))
                 .Returns(() => TestHelper.DelayedTask(columnRows));
@@ -249,7 +250,7 @@ namespace Dse.Test.Unit
             {
               new Dictionary<string, object> { {"keyspace_name", "ks_tbl_meta"}, {"columnfamily_name", "tbl1"}, {"column_name", "val2" }, {"component_index", 1}, {"index_name", null}, {"index_options", null}, {"index_type", null}, {"validator", "org.apache.cassandra.db.marshal.BytesType"}},
               new Dictionary<string, object> { {"keyspace_name", "ks_tbl_meta"}, {"columnfamily_name", "tbl1"}, {"column_name", "valz1"}, {"component_index", 1}, {"index_name", null}, {"index_options", null}, {"index_type", null}, {"validator", "org.apache.cassandra.db.marshal.Int32Type"}}
-            }.Select(TestHelper.CreateRow);
+            }.Select(TestHelper.CreateRow).Cast<IRow>();
 
             var ksRow = TestHelper.CreateRow(new Dictionary<string, object>
             {
@@ -261,10 +262,10 @@ namespace Dse.Test.Unit
             var queryProviderMock = new Mock<IControlConnection>(MockBehavior.Strict);
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_keyspaces.*ks1"), It.IsAny<bool>()))
-                .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { ksRow }));
+                .Returns(() => TestHelper.DelayedTask<IEnumerable<IRow>>(new[] { ksRow }));
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_columnfamilies.*ks1"), It.IsAny<bool>()))
-                .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { tableRow }));
+                .Returns(() => TestHelper.DelayedTask<IEnumerable<IRow>>(new[] { tableRow }));
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_columns.*ks1"), It.IsAny<bool>()))
                 .Returns(() => TestHelper.DelayedTask(columnRows));
@@ -324,13 +325,13 @@ namespace Dse.Test.Unit
             var queryProviderMock = new Mock<IControlConnection>(MockBehavior.Strict);
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_keyspaces.*ks1"), It.IsAny<bool>()))
-                .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { ksRow }));
+                .Returns(() => TestHelper.DelayedTask<IEnumerable<IRow>>(new[] { ksRow }));
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_columnfamilies.*ks1"), It.IsAny<bool>()))
-                .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { tableRow }));
+                .Returns(() => TestHelper.DelayedTask<IEnumerable<IRow>>(new[] { tableRow }));
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_columns.*ks1"), It.IsAny<bool>()))
-                .Returns(() => TestHelper.DelayedTask(Enumerable.Empty<Row>));
+                .Returns(() => TestHelper.DelayedTask(Enumerable.Empty<IRow>));
             var parser = GetV1Instance(queryProviderMock.Object);
             var ks = TaskHelper.WaitToComplete(parser.GetKeyspaceAsync("ks1"));
             Assert.NotNull(ks);
@@ -393,13 +394,13 @@ namespace Dse.Test.Unit
             var queryProviderMock = new Mock<IControlConnection>(MockBehavior.Strict);
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_keyspaces.*ks1"), It.IsAny<bool>()))
-                .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { ksRow }));
+                .Returns(() => TestHelper.DelayedTask<IEnumerable<IRow>>(new[] { ksRow }));
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_columnfamilies.*ks1"), It.IsAny<bool>()))
-                .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { tableRow }));
+                .Returns(() => TestHelper.DelayedTask<IEnumerable<IRow>>(new[] { tableRow }));
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_columns.*ks1"), It.IsAny<bool>()))
-                .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { columnRow }));
+                .Returns(() => TestHelper.DelayedTask<IEnumerable<IRow>>(new[] { columnRow }));
             var parser = GetV1Instance(queryProviderMock.Object);
             var ks = TaskHelper.WaitToComplete(parser.GetKeyspaceAsync("ks1"));
             Assert.NotNull(ks);
@@ -417,14 +418,14 @@ namespace Dse.Test.Unit
             var queryProviderMock = new Mock<IControlConnection>(MockBehavior.Strict);
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_keyspaces.*ks1"), It.IsAny<bool>()))
-                .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { ksRow }));
+                .Returns(() => TestHelper.DelayedTask<IEnumerable<IRow>>(new[] { ksRow }));
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_columnfamilies.*ks1"), It.IsAny<bool>()))
-                .Returns(() => TaskHelper.FromException<IEnumerable<Row>>(new NoHostAvailableException(new Dictionary<IPEndPoint, Exception>())));
+                .Returns(() => TaskHelper.FromException<IEnumerable<IRow>>(new NoHostAvailableException(new Dictionary<IPEndPoint, Exception>())));
             //This will cause the task to be faulted
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_columns.*ks1"), It.IsAny<bool>()))
-                .Returns(() => TaskHelper.FromException<IEnumerable<Row>>(new NoHostAvailableException(new Dictionary<IPEndPoint, Exception>())));
+                .Returns(() => TaskHelper.FromException<IEnumerable<IRow>>(new NoHostAvailableException(new Dictionary<IPEndPoint, Exception>())));
             var parser = GetV1Instance(queryProviderMock.Object);
             var ks = TaskHelper.WaitToComplete(parser.GetKeyspaceAsync("ks1"));
             Assert.NotNull(ks);
@@ -444,7 +445,7 @@ namespace Dse.Test.Unit
             var queryProviderMock = new Mock<IControlConnection>(MockBehavior.Strict);
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.keyspaces.*" + ksName), It.IsAny<bool>()))
-                .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { row }));
+                .Returns(() => TestHelper.DelayedTask<IEnumerable<IRow>>(new[] { row }));
             var parser = GetV2Instance(queryProviderMock.Object);
             var ks = TaskHelper.WaitToComplete(parser.GetKeyspaceAsync(ksName));
             Assert.NotNull(ks);
@@ -482,7 +483,7 @@ namespace Dse.Test.Unit
                 new Dictionary<string, object>{{"keyspace_name", "ks_tbl_meta"}, {"table_name", "tbl4"}, {"column_name", "val2" }, {"clustering_order", "none"}, {"column_name_bytes", "0x76616c32"  }, {"kind", "regular"      }, {"position",  -1}, {"type", "blob"}},
                 new Dictionary<string, object>{{"keyspace_name", "ks_tbl_meta"}, {"table_name", "tbl4"}, {"column_name", "valz1"}, {"clustering_order", "none"}, {"column_name_bytes", "0x76616c7a31"}, {"kind", "regular"      }, {"position",  -1}, {"type", "int"}},
                 new Dictionary<string, object>{{"keyspace_name", "ks_tbl_meta"}, {"table_name", "tbl4"}, {"column_name", "zck"  }, {"clustering_order", "asc" }, {"column_name_bytes", "0x7a636b"    }, {"kind", "clustering"   }, {"position",  0 }, {"type", "timeuuid"}}
-            }.Select(TestHelper.CreateRow);
+            }.Select(TestHelper.CreateRow).Cast<IRow>();
 
             var ksRow = TestHelper.CreateRow(new Dictionary<string, object>
             {
@@ -491,16 +492,16 @@ namespace Dse.Test.Unit
             var queryProviderMock = new Mock<IControlConnection>(MockBehavior.Strict);
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.keyspaces.*ks1"), It.IsAny<bool>()))
-                .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { ksRow }));
+                .Returns(() => TestHelper.DelayedTask<IEnumerable<IRow>>(new[] { ksRow }));
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.tables.*ks1"), It.IsAny<bool>()))
-                .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { tableRow }));
+                .Returns(() => TestHelper.DelayedTask<IEnumerable<IRow>>(new[] { tableRow }));
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.columns.*ks1"), It.IsAny<bool>()))
                 .Returns(() => TestHelper.DelayedTask(columnRows));
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.indexes.*ks1"), It.IsAny<bool>()))
-                .Returns(() => TestHelper.DelayedTask(Enumerable.Empty<Row>()));
+                .Returns(() => TestHelper.DelayedTask(Enumerable.Empty<IRow>()));
             var parser = GetV2Instance(queryProviderMock.Object);
             var ks = TaskHelper.WaitToComplete(parser.GetKeyspaceAsync("ks1"));
             Assert.NotNull(ks);
@@ -540,7 +541,7 @@ namespace Dse.Test.Unit
                 new Dictionary<string, object>{{"keyspace_name", "ks1" }, {"table_name", "tbl4"}, {"column_name", "ck"   }, {"clustering_order", "asc" }, {"column_name_bytes", "0x7a636b"    }, {"kind", "clustering"   }, {"position",  0 }, {"type", "timeuuid"}},
                 new Dictionary<string, object>{{"keyspace_name", "ks1" }, {"table_name", "tbl4"}, {"column_name", "val1" }, {"clustering_order", "none"}, {"column_name_bytes", "0x76616c32"  }, {"kind", "regular"      }, {"position",  -1}, {"type", "blob"}},
                 new Dictionary<string, object>{{"keyspace_name", "ks1" }, {"table_name", "tbl4"}, {"column_name", "stat" }, {"clustering_order", "none"}, {"column_name_bytes", "0x7a636b213a"}, {"kind", "static"       }, {"position",  -1}, {"type", "text"}}
-            }.Select(TestHelper.CreateRow);
+            }.Select(TestHelper.CreateRow).Cast<IRow>();
 
             var ksRow = TestHelper.CreateRow(new Dictionary<string, object>
             {
@@ -550,16 +551,16 @@ namespace Dse.Test.Unit
             var queryProviderMock = new Mock<IControlConnection>(MockBehavior.Strict);
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.keyspaces.*ks1"), It.IsAny<bool>()))
-                .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { ksRow }));
+                .Returns(() => TestHelper.DelayedTask<IEnumerable<IRow>>(new[] { ksRow }));
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.tables.*ks1"), It.IsAny<bool>()))
-                .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { tableRow }));
+                .Returns(() => TestHelper.DelayedTask<IEnumerable<IRow>>(new[] { tableRow }));
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.columns.*ks1"), It.IsAny<bool>()))
                 .Returns(() => TestHelper.DelayedTask(columnRows));
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.indexes.*ks1"), It.IsAny<bool>()))
-                .Returns(() => TestHelper.DelayedTask(Enumerable.Empty<Row>()));
+                .Returns(() => TestHelper.DelayedTask(Enumerable.Empty<IRow>()));
             var parser = GetV2Instance(queryProviderMock.Object);
             var ks = TaskHelper.WaitToComplete(parser.GetKeyspaceAsync("ks1"));
             Assert.NotNull(ks);
@@ -599,7 +600,7 @@ namespace Dse.Test.Unit
                 new Dictionary<string, object>{{"keyspace_name", "ks1"}, {"table_name", "tbl4"}, {"column_name", "pk"  }, {"clustering_order", "none"}, {"column_name_bytes", "0x706b31"    }, {"kind", "partition_key"}, {"position",  0 }, {"type", "uuid"}},
                 new Dictionary<string, object>{{"keyspace_name", "ks1"}, {"table_name", "tbl4"}, {"column_name", "ck"  }, {"clustering_order", "desc" }, {"column_name_bytes", "0x7a636b"    }, {"kind", "clustering"   }, {"position",  0 }, {"type", "timeuuid"}},
                 new Dictionary<string, object>{{"keyspace_name", "ks1"}, {"table_name", "tbl4"}, {"column_name", "val" }, {"clustering_order", "none"}, {"column_name_bytes", "0x76616c32"  }, {"kind", "regular"      }, {"position",  -1}, {"type", "blob"}}
-            }.Select(TestHelper.CreateRow);
+            }.Select(TestHelper.CreateRow).Cast<IRow>();
             var indexRow = TestHelper.CreateRow(new Dictionary<string, object>
             {
                 {"keyspace_name", "ks1"},
@@ -618,16 +619,16 @@ namespace Dse.Test.Unit
             var queryProviderMock = new Mock<IControlConnection>(MockBehavior.Strict);
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.keyspaces.*ks1"), It.IsAny<bool>()))
-                .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { ksRow }));
+                .Returns(() => TestHelper.DelayedTask<IEnumerable<IRow>>(new[] { ksRow }));
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.tables.*ks1"), It.IsAny<bool>()))
-                .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { tableRow }));
+                .Returns(() => TestHelper.DelayedTask<IEnumerable<IRow>>(new[] { tableRow }));
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.columns.*ks1"), It.IsAny<bool>()))
                 .Returns(() => TestHelper.DelayedTask(columnRows));
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.indexes.*ks1"), It.IsAny<bool>()))
-                .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] {indexRow}));
+                .Returns(() => TestHelper.DelayedTask<IEnumerable<IRow>>(new[] {indexRow}));
             var parser = GetV2Instance(queryProviderMock.Object);
             var ks = TaskHelper.WaitToComplete(parser.GetKeyspaceAsync("ks1"));
             Assert.NotNull(ks);
@@ -656,17 +657,17 @@ namespace Dse.Test.Unit
             var queryProviderMock = new Mock<IControlConnection>(MockBehavior.Strict);
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.keyspaces.*ks1"), It.IsAny<bool>()))
-                .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { ksRow }));
+                .Returns(() => TestHelper.DelayedTask<IEnumerable<IRow>>(new[] { ksRow }));
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.tables.*ks1"), It.IsAny<bool>()))
-                .Returns(() => TestHelper.DelayedTask(Enumerable.Empty<Row>()));
+                .Returns(() => TestHelper.DelayedTask(Enumerable.Empty<IRow>()));
             //This will cause the task to be faulted
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.columns.*ks1"), It.IsAny<bool>()))
-                .Returns(() => TaskHelper.FromException<IEnumerable<Row>>(new NoHostAvailableException(new Dictionary<IPEndPoint,Exception>())));
+                .Returns(() => TaskHelper.FromException<IEnumerable<IRow>>(new NoHostAvailableException(new Dictionary<IPEndPoint,Exception>())));
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.indexes.*ks1"), It.IsAny<bool>()))
-                .Returns(() => TestHelper.DelayedTask(Enumerable.Empty<Row>()));
+                .Returns(() => TestHelper.DelayedTask(Enumerable.Empty<IRow>()));
             var parser = GetV2Instance(queryProviderMock.Object);
             var ks = TaskHelper.WaitToComplete(parser.GetKeyspaceAsync("ks1"));
             Assert.NotNull(ks);
@@ -695,10 +696,10 @@ namespace Dse.Test.Unit
             var queryProviderMock = new Mock<IControlConnection>(MockBehavior.Strict);
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_traces\\.sessions"), It.IsAny<bool>()))
-                .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { sessionRow }));
+                .Returns(() => TestHelper.DelayedTask<IEnumerable<IRow>>(new[] { sessionRow }));
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_traces\\.events"), It.IsAny<bool>()))
-                .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { eventRow }));
+                .Returns(() => TestHelper.DelayedTask<IEnumerable<IRow>>(new[] { eventRow }));
 
             var queryTrace = GetQueryTrace();
             var parser = GetV1Instance(queryProviderMock.Object);
@@ -718,10 +719,10 @@ namespace Dse.Test.Unit
             var queryProviderMock = new Mock<IControlConnection>(MockBehavior.Strict);
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_traces\\.sessions"), It.IsAny<bool>()))
-                .Returns(() => TaskHelper.FromException<IEnumerable<Row>>(new Exception("Test exception")));
+                .Returns(() => TaskHelper.FromException<IEnumerable<IRow>>(new Exception("Test exception")));
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_traces\\.events"), It.IsAny<bool>()))
-                .Returns(() => TestHelper.DelayedTask(Enumerable.Empty<Row>()));
+                .Returns(() => TestHelper.DelayedTask(Enumerable.Empty<IRow>()));
 
             var queryTrace = GetQueryTrace();
             var parser = GetV1Instance(queryProviderMock.Object);
@@ -745,10 +746,10 @@ namespace Dse.Test.Unit
             var queryProviderMock = new Mock<IControlConnection>(MockBehavior.Strict);
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_traces\\.sessions"), It.IsAny<bool>()))
-                .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { sessionRow }));
+                .Returns(() => TestHelper.DelayedTask<IEnumerable<IRow>>(new[] { sessionRow }));
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_traces\\.events"), It.IsAny<bool>()))
-                .Returns(() => TaskHelper.FromException<IEnumerable<Row>>(new Exception("Test exception 2")));
+                .Returns(() => TaskHelper.FromException<IEnumerable<IRow>>(new Exception("Test exception 2")));
 
             var queryTrace = GetQueryTrace();
             var parser = GetV1Instance(queryProviderMock.Object);
@@ -775,11 +776,11 @@ namespace Dse.Test.Unit
                         {"parameters", null},
                         {"started_at", DateTimeOffset.Now}
                     });
-                    return TestHelper.DelayedTask<IEnumerable<Row>>(new[] {sessionRow});
+                    return TestHelper.DelayedTask<IEnumerable<IRow>>(new[] {sessionRow});
                 });
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_traces\\.events"), It.IsAny<bool>()))
-                .Returns(() => TaskHelper.ToTask(Enumerable.Empty<Row>()));
+                .Returns(() => TaskHelper.ToTask(Enumerable.Empty<IRow>()));
             var queryTrace = GetQueryTrace();
             var parser = GetV1Instance(queryProviderMock.Object);
             var timer = new HashedWheelTimer();
@@ -807,11 +808,11 @@ namespace Dse.Test.Unit
                         {"parameters", null},
                         {"started_at", DateTimeOffset.Now}
                     });
-                    return TestHelper.DelayedTask<IEnumerable<Row>>(new[] { sessionRow });
+                    return TestHelper.DelayedTask<IEnumerable<IRow>>(new[] { sessionRow });
                 });
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_traces\\.events"), It.IsAny<bool>()))
-                .Returns(() => TaskHelper.ToTask(Enumerable.Empty<Row>()));
+                .Returns(() => TaskHelper.ToTask(Enumerable.Empty<IRow>()));
             var queryTrace = GetQueryTrace();
             var parser = GetV1Instance(queryProviderMock.Object);
             var timer = new HashedWheelTimer();
