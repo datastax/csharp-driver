@@ -18,7 +18,7 @@ using System.Collections.Generic;
 using Cassandra.ProtocolEvents;
 using Cassandra.SessionManagement;
 
-namespace Cassandra.Connections
+namespace Cassandra.Connections.Control
 {
     internal class ControlConnectionFactory : IControlConnectionFactory
     {

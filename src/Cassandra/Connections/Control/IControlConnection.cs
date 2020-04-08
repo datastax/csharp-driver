@@ -17,7 +17,7 @@
 using System;
 using System.Threading.Tasks;
 
-namespace Cassandra.Connections
+namespace Cassandra.Connections.Control
 {
     internal interface IControlConnection : IMetadataQueryProvider, IDisposable
     {

@@ -14,7 +14,7 @@
 //   limitations under the License.
 //
 using System.Collections.Generic;
-using Cassandra.Connections;
+using Cassandra.Connections.Control;
 using Cassandra.Data.Linq;
 using Cassandra.Mapping;
 using Cassandra.Serialization;

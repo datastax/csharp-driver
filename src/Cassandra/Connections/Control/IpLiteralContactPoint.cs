@@ -20,7 +20,7 @@ using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 
-namespace Cassandra.Connections
+namespace Cassandra.Connections.Control
 {
     internal class IpLiteralContactPoint : IContactPoint
     {
@@ -53,7 +53,7 @@ namespace Cassandra.Connections
 
         private bool TypedEquals(IpLiteralContactPoint other)
         {
-            return Equals(_ipEndPoint, other._ipEndPoint) && Equals(_ipAddress, other._ipAddress);
+            return object.Equals(_ipEndPoint, other._ipEndPoint) && object.Equals(_ipAddress, other._ipAddress);
         }
 
         public bool Equals(IContactPoint other)
@@ -63,12 +63,12 @@ namespace Cassandra.Connections
 
         public override bool Equals(object obj)
         {
-            if (ReferenceEquals(null, obj))
+            if (object.ReferenceEquals(null, obj))
             {
                 return false;
             }
 
-            if (ReferenceEquals(this, obj))
+            if (object.ReferenceEquals(this, obj))
             {
                 return true;
             }

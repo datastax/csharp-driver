@@ -42,7 +42,7 @@ namespace Cassandra
 
         ISerializerManager Serializer { get; }
 
-        Task<IEnumerable<Row>> QueryAsync(string cqlQuery, bool retry = false);
+        Task<IEnumerable<IRow>> QueryAsync(string cqlQuery, bool retry = false);
 
         Task<Response> SendQueryRequestAsync(string cqlQuery, bool retry, QueryProtocolOptions queryProtocolOptions);
 
@@ -51,6 +51,6 @@ namespace Cassandra
         /// </summary>
         Task<Response> UnsafeSendQueryRequestAsync(string cqlQuery, QueryProtocolOptions queryProtocolOptions);
 
-        IEnumerable<Row> Query(string cqlQuery, bool retry = false);
+        IEnumerable<IRow> Query(string cqlQuery, bool retry = false);
     }
 }

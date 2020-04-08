@@ -18,7 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 
-namespace Cassandra.Connections
+namespace Cassandra.Connections.Control
 {
     internal class ContactPointParser : IContactPointParser
     {

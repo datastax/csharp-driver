@@ -22,6 +22,7 @@ using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using Cassandra.Connections;
+using Cassandra.Connections.Control;
 using Cassandra.DataStax.Cloud;
 using Cassandra.DataStax.Graph;
 using Cassandra.ExecutionProfiles;

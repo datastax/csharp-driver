@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using Cassandra.Connections;
+using Cassandra.Connections.Control;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.ProtocolEvents;
 using NUnit.Framework;
@@ -100,7 +101,7 @@ namespace Cassandra.IntegrationTests.Core
                 GetEventDebouncer(config), 
                 version, 
                 config,
-                metadata, 
+                metadata,
                 new List<IContactPoint>
                 {
                     new IpLiteralContactPoint(IPAddress.Parse(_testCluster.InitialContactPoint), config.ProtocolOptions, config.ServerNameResolver )

@@ -12,20 +12,16 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
-// 
 
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+using Cassandra.Connections.Control;
 
-namespace Cassandra.Connections
+namespace Cassandra.Tests.Connections.TestHelpers
 {
-    internal interface IContactPoint : IEquatable<IContactPoint>
+    internal class FakeSupportedOptionsInitializerFactory : ISupportedOptionsInitializerFactory
     {
-        bool CanBeResolved { get; }
-
-        string StringRepresentation { get; }
-
-        Task<IEnumerable<IConnectionEndPoint>> GetConnectionEndPointsAsync(bool refreshCache);
+        public ISupportedOptionsInitializer Create(Metadata metadata)
+        {
+            return new FakeSupportedOptionsInitializer(metadata);
+        }
     }
 }

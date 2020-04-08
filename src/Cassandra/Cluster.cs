@@ -26,6 +26,7 @@ using System.Threading.Tasks;
 
 using Cassandra.Collections;
 using Cassandra.Connections;
+using Cassandra.Connections.Control;
 using Cassandra.Helpers;
 using Cassandra.ProtocolEvents;
 using Cassandra.Requests;
@@ -172,7 +173,12 @@ namespace Cassandra
             var parsedContactPoints = configuration.ContactPointParser.ParseContactPoints(contactPoints);
 
             _controlConnection = configuration.ControlConnectionFactory.Create(
-                this, _protocolEventDebouncer, protocolVersion, Configuration, _metadata, parsedContactPoints);
+                this, 
+                _protocolEventDebouncer, 
+                protocolVersion, 
+                Configuration, 
+                _metadata, 
+                parsedContactPoints);
 
             _metadata.ControlConnection = _controlConnection;
         }

@@ -17,9 +17,11 @@
 using System;
 using System.Collections.Generic;
 using Cassandra.Connections;
+using Cassandra.Connections.Control;
 using Cassandra.DataStax.Graph;
 using Cassandra.DataStax.Insights;
 using Cassandra.ExecutionProfiles;
+using Cassandra.MetadataHelpers;
 using Cassandra.Metrics;
 using Cassandra.Metrics.Providers.Null;
 using Cassandra.Observers;
@@ -98,6 +100,18 @@ namespace Cassandra.Tests
 
         public IDnsResolver DnsResolver { get; set; }
 
+        public IMetadataRequestHandler MetadataRequestHandler { get; set; } = new MetadataRequestHandler();
+
+        public ITopologyRefresherFactory TopologyRefresherFactory { get; set; } = new TopologyRefresherFactory();
+
+        public ISchemaParserFactory SchemaParserFactory { get; set; } = new SchemaParserFactory();
+
+        public ISupportedOptionsInitializerFactory SupportedOptionsInitializerFactory { get; set; } = new SupportedOptionsInitializerFactory();
+
+        public IServerEventsSubscriber ServerEventsSubscriber { get; set; } = new ServerEventsSubscriber();
+        
+        public IProtocolVersionNegotiator ProtocolVersionNegotiator { get; set; } = new ProtocolVersionNegotiator();
+        
         public MonitorReportingOptions MonitorReportingOptions { get; set; } = new MonitorReportingOptions();
 
         public IInsightsSupportVerifier InsightsSupportVerifier { get; set; } = new InsightsSupportVerifier();
@@ -148,7 +162,13 @@ namespace Cassandra.Tests
                 InsightsClientFactory,
                 ContactPointParser,
                 ServerNameResolver,
-                DnsResolver);
+                DnsResolver,
+                MetadataRequestHandler,
+                TopologyRefresherFactory,
+                SchemaParserFactory,
+                SupportedOptionsInitializerFactory,
+                ProtocolVersionNegotiator,
+                ServerEventsSubscriber);
         }
     }
 }

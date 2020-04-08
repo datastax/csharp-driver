@@ -17,6 +17,7 @@
 using System;
 using System.Net;
 using System.Threading.Tasks;
+using Cassandra.Connections.Control;
 
 namespace Cassandra.Connections
 {
@@ -61,7 +62,7 @@ namespace Cassandra.Connections
         }
 
         /// <inheritdoc />
-        public IPEndPoint GetOrParseHostIpEndPoint(Row row, IAddressTranslator translator, int port)
+        public IPEndPoint GetOrParseHostIpEndPoint(IRow row, IAddressTranslator translator, int port)
         {
             return SocketIpEndPoint;
         }

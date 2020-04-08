@@ -21,7 +21,7 @@ using Cassandra.Connections;
 using Moq;
 using NUnit.Framework;
 
-namespace Cassandra.Tests.Connections
+namespace Cassandra.Tests.Connections.Control
 {
     [TestFixture]
     public class HostnameContactPointTests

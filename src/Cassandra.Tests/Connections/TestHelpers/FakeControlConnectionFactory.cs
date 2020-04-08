@@ -18,15 +18,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-
 using Cassandra.Connections;
+using Cassandra.Connections.Control;
 using Cassandra.ProtocolEvents;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
-
 using Moq;
 
-namespace Cassandra.Tests.Connections
+namespace Cassandra.Tests.Connections.TestHelpers
 {
     internal class FakeControlConnectionFactory : IControlConnectionFactory
     {

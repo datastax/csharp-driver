@@ -399,6 +399,13 @@ namespace Cassandra
     internal interface IRow
     {
         T GetValue<T>(string name);
+
         bool ContainsColumn(string name);
+
+        bool IsNull(string name);
+
+        T GetValue<T>(int index);
+
+        CqlColumn GetColumn(string name);
     }
 }

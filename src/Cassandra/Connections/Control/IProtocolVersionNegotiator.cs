@@ -12,14 +12,16 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
-// 
 
-using System.Collections.Generic;
+using System.Threading.Tasks;
+using Cassandra.Serialization;
 
-namespace Cassandra.Connections
+namespace Cassandra.Connections.Control
 {
-    internal interface IContactPointParser
+    internal interface IProtocolVersionNegotiator
     {
-        IEnumerable<IContactPoint> ParseContactPoints(IEnumerable<object> providedContactPoints);
+        Task<IConnection> ChangeProtocolVersion(Configuration config, ISerializerManager serializer, ProtocolVersion nextVersion, IConnection previousConnection, UnsupportedProtocolVersionException ex = null, ProtocolVersion? previousVersion = null);
+        
+        Task<IConnection> NegotiateVersionAsync(Configuration config, Metadata metadata, IConnection connection, ISerializerManager serializer);
     }
 }

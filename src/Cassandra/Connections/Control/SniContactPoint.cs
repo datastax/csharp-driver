@@ -19,7 +19,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Cassandra.Connections
+namespace Cassandra.Connections.Control
 {
     internal class SniContactPoint : IContactPoint
     {
@@ -87,12 +87,12 @@ namespace Cassandra.Connections
 
         public override bool Equals(object obj)
         {
-            if (ReferenceEquals(null, obj))
+            if (object.ReferenceEquals(null, obj))
             {
                 return false;
             }
 
-            if (ReferenceEquals(this, obj))
+            if (object.ReferenceEquals(this, obj))
             {
                 return true;
             }
