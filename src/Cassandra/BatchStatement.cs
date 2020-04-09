@@ -88,24 +88,45 @@ namespace Cassandra
                             .ToArray());
                 }
 
-                var firstStatement = _queries.FirstOrDefault();
-                if (firstStatement == null)
+                foreach (var statement in _queries)
                 {
-                    return null;
+                    if (statement is SimpleStatement simpleStatement)
+                    {
+                        // Serializer must be set before obtaining the routing key for SimpleStatement instances.
+                        // For BoundStatement instances, it isn't needed.
+                        simpleStatement.Serializer = serializer;
+                    }
+
+                    if (statement.RoutingKey != null)
+                    {
+                        return statement.RoutingKey;
+                    }
                 }
 
-                if (firstStatement is SimpleStatement simpleStatement)
-                {
-                    // Serializer must be set before obtaining the routing key for SimpleStatement instances.
-                    // For BoundStatement instances, it isn't needed.
-                    simpleStatement.Serializer = serializer;
-                }
-
-                return firstStatement.RoutingKey;
+                return null;
             }
         }
 
-        public override string Keyspace => _keyspace;
+        public override string Keyspace
+        {
+            get
+            {
+                if (_keyspace != null)
+                {
+                    return _keyspace;
+                }
+
+                foreach (var statement in _queries)
+                {
+                    if (statement.Keyspace != null)
+                    {
+                        return statement.Keyspace;
+                    }
+                }
+
+                return null;
+            }
+        }
 
         internal ISerializer Serializer { get; set; }
 
