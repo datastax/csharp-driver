@@ -73,8 +73,8 @@ namespace Cassandra
                 var serializer = Serializer;
                 if (serializer == null)
                 {
-                    serializer = Serialization.SerializerManager.Default.GetCurrentSerializer();
-                    Logger.Warning(
+                    serializer = SerializerManager.Default.GetCurrentSerializer();
+                    BatchStatement.Logger.Warning(
                         "Calculating routing key before executing is not supported for BatchStatement instances, " +
                         "using default serializer.");
                 }
@@ -88,22 +88,7 @@ namespace Cassandra
                             .ToArray());
                 }
 
-                foreach (var statement in _queries)
-                {
-                    if (statement is SimpleStatement simpleStatement)
-                    {
-                        // Serializer must be set before obtaining the routing key for SimpleStatement instances.
-                        // For BoundStatement instances, it isn't needed.
-                        simpleStatement.Serializer = serializer;
-                    }
-
-                    if (statement.RoutingKey != null)
-                    {
-                        return statement.RoutingKey;
-                    }
-                }
-
-                return null;
+                return GetRoutingStatement(serializer)?.RoutingKey;
             }
         }
 
@@ -116,16 +101,35 @@ namespace Cassandra
                     return _keyspace;
                 }
 
-                foreach (var statement in _queries)
+                var serializer = Serializer;
+                if (serializer == null)
                 {
-                    if (statement.Keyspace != null)
-                    {
-                        return statement.Keyspace;
-                    }
+                    serializer = SerializerManager.Default.GetCurrentSerializer();
+                    BatchStatement.Logger.Warning(
+                        "Calculating keyspace key before executing is not supported for BatchStatement instances, " +
+                        "using default serializer.");
                 }
 
+                return GetRoutingStatement(serializer)?.Keyspace;
+            }
+        }
+
+        private IStatement GetRoutingStatement(ISerializer serializer)
+        {
+            var firstStatement = _queries.FirstOrDefault();
+            if (firstStatement == null)
+            {
                 return null;
             }
+
+            if (firstStatement is SimpleStatement simpleStatement)
+            {
+                // Serializer must be set before obtaining the routing key for SimpleStatement instances.
+                // For BoundStatement instances, it isn't needed.
+                simpleStatement.Serializer = serializer;
+            }
+
+            return firstStatement;
         }
 
         internal ISerializer Serializer { get; set; }
