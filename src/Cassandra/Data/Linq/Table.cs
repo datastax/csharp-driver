@@ -17,6 +17,7 @@
 using System;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading.Tasks;
 using Cassandra.Mapping;
 using Cassandra.Mapping.Statements;
 
@@ -162,6 +163,28 @@ namespace Cassandra.Data.Linq
             try
             {
                 Create();
+            }
+            catch (AlreadyExistsException)
+            {
+                //do nothing
+            }
+        }
+
+        public async Task CreateAsync()
+        {
+            var serializer = _session.Cluster.Metadata.ControlConnection.Serializer.GetCurrentSerializer();
+            var cqlQueries = CqlGenerator.GetCreate(serializer, PocoData, Name, KeyspaceName, false);
+            foreach (var cql in cqlQueries)
+            {
+                await _session.ExecuteAsync(new SimpleStatement(cql)).ConfigureAwait(false);
+            }
+        }
+
+        public async Task CreateIfNotExistsAsync()
+        {
+            try
+            {
+                await CreateAsync().ConfigureAwait(false);
             }
             catch (AlreadyExistsException)
             {
