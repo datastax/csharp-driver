@@ -120,6 +120,14 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             VerifyStatement(QueryType.Query, CreateTable.CreateCql, 1);
         }
 
+        [Test, TestCassandraVersion(2, 0)]
+        public void TableCreateAsync_CreateIfNotExistAsync()
+        {
+            var table = new Table<AllDataTypesEntity>(Session, new MappingConfiguration());
+            table.CreateIfNotExistsAsync().GetAwaiter().GetResult();
+            VerifyStatement(QueryType.Query, CreateTable.CreateCql, 1);
+        }
+
         /// <summary>
         /// Successfully create a table using the method Create
         /// </summary>
@@ -148,6 +156,31 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
                 1);
         }
 
+        [Test, TestCassandraVersion(2, 0)]
+        public void TableCreateAsync_Create()
+        {
+            var table = new Table<AllDataTypesEntity>(Session, new MappingConfiguration());
+            table.CreateAsync().GetAwaiter().GetResult();
+            VerifyStatement(QueryType.Query, CreateTable.CreateCql, 1);
+        }
+        
+        [Test, TestCassandraVersion(4, 0, Comparison.LessThan)]
+        public void Should_CreateTableAsync_WhenClusteringOrderAndCompactOptionsAreSet()
+        {
+            var config = new MappingConfiguration().Define(
+                new Map<Tweet>()
+                    .PartitionKey(a => a.TweetId)
+                    .ClusteringKey(a => a.AuthorId, SortOrder.Descending)
+                    .CompactStorage());
+            var table = new Table<Tweet>(Session, config);
+            table.CreateAsync().GetAwaiter().GetResult();
+            VerifyStatement(
+                QueryType.Query, 
+                "CREATE TABLE Tweet (AuthorId text, Body text, TweetId uuid, PRIMARY KEY (TweetId, AuthorId)) " +
+                "WITH CLUSTERING ORDER BY (AuthorId DESC) AND COMPACT STORAGE", 
+                1);
+        }
+
         /// <summary>
         /// Successfully create a table using the method Create, 
         /// overriding the default table name given via the class' "name" meta-tag
@@ -159,6 +192,19 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             var table = new Table<AllDataTypesEntity>(Session, new MappingConfiguration(), uniqueTableName);
             Assert.AreEqual(uniqueTableName, table.Name);
             table.Create();
+            VerifyStatement(
+                QueryType.Query, 
+                CreateTable.CreateCql.Replace($"\"{AllDataTypesEntity.TableName}\"", $"\"{uniqueTableName}\""), 
+                1);
+        }
+
+        [Test, TestCassandraVersion(2, 0)]
+        public void TableCreateAsync_Create_NameOverride()
+        {
+            var uniqueTableName = TestUtils.GetUniqueTableName();
+            var table = new Table<AllDataTypesEntity>(Session, new MappingConfiguration(), uniqueTableName);
+            Assert.AreEqual(uniqueTableName, table.Name);
+            table.CreateAsync().GetAwaiter().GetResult();
             VerifyStatement(
                 QueryType.Query, 
                 CreateTable.CreateCql.Replace($"\"{AllDataTypesEntity.TableName}\"", $"\"{uniqueTableName}\""), 
@@ -177,6 +223,31 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             var table = new Table<AllDataTypesEntity>(Session, config);
 
             table.Create();
+            VerifyStatement(
+                QueryType.Query, 
+                $"CREATE TABLE {tableName} ({CreateTable.CreateCqlDefaultColumns}, PRIMARY KEY (TimeUuidType))", 
+                1);
+
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery(
+                          $"CREATE TABLE {tableName} ({CreateTable.CreateCqlDefaultColumns}, PRIMARY KEY (TimeUuidType))")
+                      .ThenAlreadyExists(_uniqueKsName, tableName));
+
+            var ex = Assert.Throws<AlreadyExistsException>(() => table.Create());
+
+            Assert.AreEqual(tableName, ex.Table);
+            Assert.AreEqual(_uniqueKsName, ex.Keyspace);
+        }
+
+        [Test, TestCassandraVersion(2, 0)]
+        public void TableCreateAsync_CreateTable_AlreadyExists()
+        {
+            var tableName = "tbl_already_exists_1";
+            var config = new MappingConfiguration().Define(
+                new Map<AllDataTypesEntity>().TableName(tableName).PartitionKey(a => a.TimeUuidType));
+            var table = new Table<AllDataTypesEntity>(Session, config);
+
+            table.CreateAsync().GetAwaiter().GetResult();
             VerifyStatement(
                 QueryType.Query, 
                 $"CREATE TABLE {tableName} ({CreateTable.CreateCqlDefaultColumns}, PRIMARY KEY (TimeUuidType))", 
@@ -290,6 +361,35 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             }
         }
 
+        [Test, TestCassandraVersion(2, 0)]
+        public void TableCreateAsync_Create_KeyspaceOverride_NoSuchKeyspace()
+        {
+            var uniqueTableName = TestUtils.GetUniqueTableName();
+            var uniqueKsName = TestUtils.GetUniqueKeyspaceName();
+            if (!TestClusterManager.SchemaManipulatingQueriesThrowInvalidQueryException())
+            {
+                TestCluster.PrimeFluent(
+                    b => b.WhenQuery(string.Format(CreateTable.CreateCqlFormatStr, $"\"{uniqueKsName}\".\"{uniqueTableName}\""))
+                          .ThenServerError(ServerError.ConfigError, "msg"));
+            }
+            else
+            {
+                TestCluster.PrimeFluent(
+                    b => b.WhenQuery(string.Format(CreateTable.CreateCqlFormatStr, $"\"{uniqueKsName}\".\"{uniqueTableName}\""))
+                          .ThenServerError(ServerError.Invalid, "msg"));
+            }
+
+            var table = new Table<AllDataTypesEntity>(Session, new MappingConfiguration(), uniqueTableName, uniqueKsName);
+            if(!TestClusterManager.SchemaManipulatingQueriesThrowInvalidQueryException())
+            {
+                Assert.ThrowsAsync<InvalidConfigurationInQueryException>(() => table.CreateAsync());
+            }
+            else
+            {
+                Assert.ThrowsAsync<InvalidQueryException>(() => table.CreateAsync());
+            }
+        }
+
         /// <summary>
         /// Attempt to create a table in a non-existent keyspace, specifying the keyspace name in Table constructor's override option
         /// Validate error message.
@@ -306,6 +406,20 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
 
             var table = new Table<AllDataTypesEntity>(Session, new MappingConfiguration(), uniqueTableName, uniqueKsName);
             Assert.Throws<InvalidConfigurationInQueryException>(() => table.CreateIfNotExists());
+        }
+
+        [Test, TestCassandraVersion(2, 0)]
+        public void TableCreateAsync_CreateIfNotExists_KeyspaceOverride_NoSuchKeyspace()
+        {
+            var uniqueTableName = TestUtils.GetUniqueTableName();
+            var uniqueKsName = TestUtils.GetUniqueKeyspaceName();
+            
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery(string.Format(CreateTable.CreateCqlFormatStr, $"\"{uniqueKsName}\".\"{uniqueTableName}\""))
+                      .ThenServerError(ServerError.ConfigError, "msg"));
+
+            var table = new Table<AllDataTypesEntity>(Session, new MappingConfiguration(), uniqueTableName, uniqueKsName);
+            Assert.ThrowsAsync<InvalidConfigurationInQueryException>(() => table.CreateIfNotExistsAsync());
         }
 
         /// <summary>
