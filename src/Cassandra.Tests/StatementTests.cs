@@ -18,6 +18,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Cassandra.Serialization;
+using Cassandra.SessionManagement;
+using Cassandra.Tests.ExecutionProfiles;
 using Moq;
 using NUnit.Framework;
 #pragma warning disable 618
@@ -299,19 +301,48 @@ namespace Cassandra.Tests
         {
             var rawRoutingKey = new byte[] {1, 2, 3, 4};
             var s1MockCalled = 0;
+            var s1MockCalledKeyspace = 0;
             var s2MockCalled = 0;
+            var s2MockCalledKeyspace = 0;
 
             var s1Mock = new Mock<Statement>(MockBehavior.Loose);
             s1Mock.Setup(s => s.RoutingKey).Returns(new RoutingKey(rawRoutingKey)).Callback(() => s1MockCalled++);
+            s1Mock.Setup(s => s.Keyspace).Returns("ks1").Callback(() => s1MockCalledKeyspace++);
             var s2Mock = new Mock<Statement>(MockBehavior.Loose);
             s2Mock.Setup(s => s.RoutingKey).Returns((RoutingKey)null).Callback(() => s2MockCalled++);
+            s2Mock.Setup(s => s.Keyspace).Returns((string)null).Callback(() => s2MockCalledKeyspace++);
 
             var batch = new BatchStatement().Add(s1Mock.Object).Add(s2Mock.Object);
             Assert.AreEqual(BitConverter.ToString(rawRoutingKey),
                 BitConverter.ToString(batch.RoutingKey.RawRoutingKey));
+            Assert.AreEqual("ks1", batch.Keyspace);
 
             Assert.AreEqual(1, s1MockCalled);
             Assert.AreEqual(0, s2MockCalled);
+            Assert.AreEqual(1, s1MockCalledKeyspace);
+            Assert.AreEqual(0, s2MockCalledKeyspace);
+        }
+
+        [Test]
+        public void BatchStatement_Should_UseRoutingKeyAndKeyspaceOfFirstStatement_When_TokenAwareLbpIsUsed()
+        {
+            var rawRoutingKey = new byte[] {1, 2, 3, 4};
+            var lbp = new TokenAwarePolicy(new ClusterTests.FakeLoadBalancingPolicy());
+            var clusterMock = Mock.Of<IInternalCluster>();
+            Mock.Get(clusterMock).Setup(c => c.GetReplicas(It.IsAny<string>(), It.IsAny<byte[]>()))
+                .Returns(new List<Host>());
+            Mock.Get(clusterMock).Setup(c => c.AllHosts())
+                .Returns(new List<Host>());
+            lbp.Initialize(clusterMock);
+            
+            var s1Mock = new Mock<Statement>(MockBehavior.Loose);
+            s1Mock.Setup(s => s.RoutingKey).Returns(new RoutingKey(rawRoutingKey));
+            s1Mock.Setup(s => s.Keyspace).Returns("ks1");
+            var batch = new BatchStatement().Add(s1Mock.Object);
+
+            var _ = lbp.NewQueryPlan("ks2", batch).ToList();
+
+            Mock.Get(clusterMock).Verify(c => c.GetReplicas("ks1", rawRoutingKey), Times.Once);
         }
     }
 }
