@@ -353,6 +353,9 @@ namespace Cassandra.Connections
                 //Only dispose once
                 return;
             }
+
+            Connection.Logger.Verbose("Disposing Connection #{0} to {1}.", GetHashCode(), EndPoint.EndpointFriendlyName);
+
             _idleTimer.Dispose();
             _tcpSocket.Dispose();
             var readStream = Interlocked.Exchange(ref _readStream, null);
@@ -417,7 +420,9 @@ namespace Cassandra.Connections
         {
             try
             {
-                return await DoOpen().ConfigureAwait(false);
+                var response = await DoOpen().ConfigureAwait(false);
+                Connection.Logger.Verbose("Opened Connection #{0} to {1}.", GetHashCode(), EndPoint.EndpointFriendlyName);
+                return response;
             }
             catch (Exception exception)
             {
