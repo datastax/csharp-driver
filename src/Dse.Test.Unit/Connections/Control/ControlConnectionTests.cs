@@ -15,6 +15,7 @@
 //
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -34,10 +35,6 @@ namespace Dse.Test.Unit.Connections.Control
     [TestFixture]
     public class ControlConnectionTests
     {
-        private Metadata _metadata;
-        private Configuration _config;
-        private IInternalCluster _cluster;
-
         private IEndPointResolver _resolver;
         private FakeConnectionFactory _connectionFactory;
         private IPEndPoint _endpoint1 = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9042);
@@ -56,7 +53,7 @@ namespace Dse.Test.Unit.Connections.Control
                 TimeSpan.FromMilliseconds(config.MetadataSyncOptions.MaxTotalRefreshSchemaDelay));
         }
 
-        private ControlConnection NewInstance(
+        private ControlConnectionCreateResult NewInstance(
             IDictionary<IPEndPoint, IRow> rows = null,
             IInternalCluster cluster = null,
             Configuration config = null,
@@ -86,13 +83,13 @@ namespace Dse.Test.Unit.Connections.Control
                 cluster = Mock.Of<IInternalCluster>();
             }
 
-            _cluster = cluster;
+            var connectionFactory = new FakeConnectionFactory();
 
             if (config == null)
             {
                 var builder = new TestConfigurationBuilder
                 {
-                    ConnectionFactory = new FakeConnectionFactory(),
+                    ConnectionFactory = connectionFactory,
                     TopologyRefresherFactory = new FakeTopologyRefresherFactory(rows),
                     SchemaParserFactory = new FakeSchemaParserFactory(),
                     SupportedOptionsInitializerFactory = new FakeSupportedOptionsInitializerFactory(),
@@ -102,32 +99,37 @@ namespace Dse.Test.Unit.Connections.Control
                 configBuilderAct?.Invoke(builder);
                 config = builder.Build();
             }
-
-            _config = config;
-
+            
             if (metadata == null)
             {
                 metadata = new Metadata(config);
             }
 
-            _metadata = metadata;
-
-            return new ControlConnection(
-                GetEventDebouncer(config),
-                ProtocolVersion.MaxSupported,
-                config,
-                metadata,
-                new object[] { "127.0.0.1" });
+            return new ControlConnectionCreateResult
+            {
+                ConnectionFactory = connectionFactory,
+                Metadata = metadata,
+                Cluster = cluster,
+                Config = config,
+                ControlConnection = new ControlConnection(
+                    GetEventDebouncer(config),
+                    ProtocolVersion.MaxSupported,
+                    config,
+                    metadata,
+                    new object[] { "127.0.0.1" })
+            };
         }
 
         [Test]
         public async Task ConnectSetsHost()
         {
-            var cc = NewInstance();
-            await cc.InitAsync().ConfigureAwait(false);
-            Assert.AreEqual("ut-dc", cc.Host.Datacenter);
-            Assert.AreEqual("ut-rack", cc.Host.Rack);
-            Assert.AreEqual(Version.Parse("2.2.1"), cc.Host.CassandraVersion);
+            using (var cc = NewInstance().ControlConnection)
+            {
+                await cc.InitAsync().ConfigureAwait(false);
+                Assert.AreEqual("ut-dc", cc.Host.Datacenter);
+                Assert.AreEqual("ut-rack", cc.Host.Rack);
+                Assert.AreEqual(Version.Parse("2.2.1"), cc.Host.CassandraVersion);
+            }
         }
 
         [Test]
@@ -181,11 +183,13 @@ namespace Dse.Test.Unit.Connections.Control
                 { new IPEndPoint(hostAddress3, 9042), rows.ElementAt(2) },
                 { new IPEndPoint(hostAddress4, 9042), rows.ElementAt(3) },
             };
-            using (var cc = NewInstance(rowsWithIp, configBuilderAct: configAct))
+            var createResult = NewInstance(rowsWithIp, configBuilderAct: configAct);
+            try
             {
-                var metadata = _metadata;
-                var config = _config;
-                var cluster = _cluster;
+                var metadata = createResult.Metadata;
+                var config = createResult.Config;
+                var cluster = createResult.Cluster;
+                var cc = createResult.ControlConnection;
                 cc.InitAsync().GetAwaiter().GetResult();
                 Assert.AreEqual(4, metadata.AllHosts().Count);
                 var host2 = metadata.GetHost(new IPEndPoint(hostAddress2, ProtocolOptions.DefaultPort));
@@ -201,6 +205,87 @@ namespace Dse.Test.Unit.Connections.Control
 
                 var ex = Assert.ThrowsAsync<NoHostAvailableException>(() => cc.Reconnect());
                 CollectionAssert.AreEquivalent(new[] { "127.0.0.1", "127.0.0.4" }, ex.Errors.Keys.Select(e => e.Address.ToString()));
+            }
+            finally
+            {
+                createResult.ControlConnection.Dispose();
+            }
+        }
+        
+        [Test]
+        public async Task Should_NotLeakConnections_When_DisposeAndReconnectHappenSimultaneously()
+        {
+            var localHost = IPAddress.Parse("127.0.0.1");
+            var hostAddress2 = IPAddress.Parse("127.0.0.2");
+            var hostAddress3 = IPAddress.Parse("127.0.0.3");
+            var hostAddress4 = IPAddress.Parse("127.0.0.4");
+            var rows = TestHelper.CreateRows(new List<Dictionary<string, object>>
+            {
+                new Dictionary<string, object>{{"rpc_address", localHost}, { "data_center", "ut-dc2" }, { "rack", "ut-rack2" }, {"tokens", null}, {"release_version", "2.1.5"}},
+                new Dictionary<string, object>{{"rpc_address", hostAddress2}, {"peer", null}, { "data_center", "ut-dc2" }, { "rack", "ut-rack2" }, {"tokens", null}, {"release_version", "2.1.5"}},
+                new Dictionary<string, object>{{"rpc_address", IPAddress.Parse("0.0.0.0")}, {"peer", hostAddress3}, { "data_center", "ut-dc3" }, { "rack", "ut-rack3" }, {"tokens", null}, {"release_version", "2.1.5"}},
+                new Dictionary<string, object>{{"rpc_address", IPAddress.Parse("0.0.0.0")}, {"peer", hostAddress4}, { "data_center", "ut-dc3" }, { "rack", "ut-rack2" }, {"tokens", null}, {"release_version", "2.1.5"}}
+            });
+            var rowsWithIp = new Dictionary<IPEndPoint, IRow>
+            {
+                { new IPEndPoint(localHost, 9042), rows.ElementAt(0) },
+                { new IPEndPoint(hostAddress2, 9042), rows.ElementAt(1) },
+                { new IPEndPoint(hostAddress3, 9042), rows.ElementAt(2) },
+                { new IPEndPoint(hostAddress4, 9042), rows.ElementAt(3) },
+            };
+
+            var createdResults = new ConcurrentQueue<ControlConnectionCreateResult>();
+
+            var tasks = Enumerable.Range(0, 100).Select(_ =>
+            {
+                return Task.Run(async () =>
+                {
+                    var createResult = NewInstance(rowsWithIp);
+                    createdResults.Enqueue(createResult);
+                    try
+                    {
+                        var metadata = createResult.Metadata;
+                        var config = createResult.Config;
+                        var cluster = createResult.Cluster;
+                        var cc = createResult.ControlConnection;
+                        cc.InitAsync().GetAwaiter().GetResult();
+                        Assert.AreEqual(4, metadata.AllHosts().Count);
+
+                        Mock.Get(cluster).Setup(c => c.AllHosts()).Returns(() => metadata.AllHosts());
+                        Mock.Get(cluster).Setup(c => c.GetControlConnection()).Returns(cc);
+                        config.Policies.LoadBalancingPolicy.Initialize(cluster);
+
+                        createResult.ConnectionFactory.CreatedConnections.Clear();
+
+                        var task = Task.Run(() => cc.Reconnect());
+                        cc.Dispose();
+                        try
+                        {
+                            await task.ConfigureAwait(false);
+                        }
+                        catch
+                        {
+                            // ignored
+                        }
+                    }
+                    finally
+                    {
+                        createResult.ControlConnection.Dispose();
+                    }
+                });
+            });
+
+            await Task.WhenAll(tasks).ConfigureAwait(false);
+
+            foreach (var createResult in createdResults)
+            {
+                foreach (var kvp in createResult.ConnectionFactory.CreatedConnections)
+                {
+                    foreach (var conn in kvp.Value)
+                    {
+                        Mock.Get(conn).Verify(c => c.Dispose(), Times.AtLeastOnce);
+                    }
+                }
             }
         }
 
@@ -244,6 +329,19 @@ namespace Dse.Test.Unit.Connections.Control
                 config,
                 new Metadata(config),
                 new List<object> { "cp1", "cp2", "127.0.0.1" });
+        }
+
+        private class ControlConnectionCreateResult
+        {
+            public ControlConnection ControlConnection { get; set; }
+
+            public Metadata Metadata { get; set; }
+
+            public Configuration Config { get; set; }
+
+            public FakeConnectionFactory ConnectionFactory { get; set; }
+            
+            public IInternalCluster Cluster { get; set; }
         }
     }
 }
