@@ -186,10 +186,6 @@ namespace Cassandra.IntegrationTests.TestBase
     /// </summary>
     public class TestCassandraVersion : TestDseVersion
     {
-        static TestCassandraVersion()
-        {
-            Environment.SetEnvironmentVariable("CASSANDRA_VERSION", "4.0-alpha3");
-        }
         protected override Version GetExpectedServerVersion()
         {
             var version = new Version(Major, Minor, Build);

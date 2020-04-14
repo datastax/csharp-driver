@@ -70,7 +70,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
                     //The full replicas (2) must be the only ones present in the trace.
                     Assert.True(t.Events.All(e => fullReplicas.Contains(e.Source.ToString())),
                         "There were trace events from another host for coordinator " + t.Coordinator);
-                    Assert.AreEqual(fullReplicas.Count, t.Events.Select(e => e.Source.ToString()).Distinct().Count(),
+                    Assert.LessOrEqual(t.Events.Select(e => e.Source.ToString()).Distinct().Count(), fullReplicas.Count,
                         "Only both full replicas should have trace events which wasn't the case for coordinator " + t.Coordinator);
                 }
             }
