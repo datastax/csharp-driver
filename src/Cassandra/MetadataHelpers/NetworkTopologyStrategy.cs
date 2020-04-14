@@ -23,13 +23,14 @@ namespace Cassandra.MetadataHelpers
     internal class NetworkTopologyStrategy : IReplicationStrategy, IEquatable<NetworkTopologyStrategy>
     {
         private readonly SortedSet<DatacenterReplicationFactor> _replicationFactorsSet;
-        private readonly IReadOnlyDictionary<string, int> _replicationFactorsMap;
+        private readonly IReadOnlyDictionary<string, ReplicationFactor> _replicationFactorsMap;
         private readonly int _hashCode;
 
-        public NetworkTopologyStrategy(IReadOnlyDictionary<string, int> replicationFactors)
+        public NetworkTopologyStrategy(IReadOnlyDictionary<string, ReplicationFactor> replicationFactors)
         {
             _replicationFactorsSet = new SortedSet<DatacenterReplicationFactor>(
-                replicationFactors.Select(rf => new DatacenterReplicationFactor(rf.Key, rf.Value)), DatacenterReplicationFactorComparer.Instance);
+                replicationFactors.Select(rf => new DatacenterReplicationFactor(rf.Key, rf.Value)), 
+                DatacenterReplicationFactorComparer.Instance);
 
             _replicationFactorsMap = replicationFactors;
             _hashCode = NetworkTopologyStrategy.ComputeHashCode(_replicationFactorsSet);
@@ -85,7 +86,10 @@ namespace Cassandra.MetadataHelpers
         }
 
         private ISet<Host> ComputeReplicasForToken(
-            IReadOnlyList<IToken> ring, IReadOnlyDictionary<IToken, Host> primaryReplicas, IReadOnlyDictionary<string, DatacenterInfo> datacenters, int i)
+            IReadOnlyList<IToken> ring, 
+            IReadOnlyDictionary<IToken, Host> primaryReplicas, 
+            IReadOnlyDictionary<string, DatacenterInfo> datacenters, 
+            int i)
         {
             var context = new NetworkTopologyTokenMapContext(ring, primaryReplicas, datacenters);
             for (var j = 0; j < ring.Count; j++)
@@ -95,12 +99,12 @@ namespace Cassandra.MetadataHelpers
 
                 var replica = primaryReplicas[ring[replicaIndex]];
                 var dc = replica.Datacenter;
-                if (!_replicationFactorsMap.TryGetValue(dc, out var dcRf))
+                if (!_replicationFactorsMap.TryGetValue(dc, out var dcRfObj))
                 {
                     continue;
                 }
 
-                dcRf = Math.Min(dcRf, datacenters[dc].HostLength);
+                var dcRf = Math.Min(dcRfObj.FullReplicas, datacenters[dc].HostLength);
                 context.ReplicasByDc.TryGetValue(dc, out var dcAddedReplicas);
                 if (dcAddedReplicas >= dcRf)
                 {
@@ -192,7 +196,7 @@ namespace Cassandra.MetadataHelpers
         /// Checks if <paramref name="replicasByDc"/> has enough replicas for each datacenter considering the datacenter's replication factor.
         /// </summary>
         internal static bool AreReplicationFactorsSatisfied(
-            IReadOnlyDictionary<string, int> replicationFactors,
+            IReadOnlyDictionary<string, ReplicationFactor> replicationFactors,
             IDictionary<string, int> replicasByDc,
             IReadOnlyDictionary<string, DatacenterInfo> datacenters)
         {
@@ -204,7 +208,7 @@ namespace Cassandra.MetadataHelpers
                     continue;
                 }
 
-                var rf = Math.Min(replicationFactors[dcName], dc.HostLength);
+                var rf = Math.Min(replicationFactors[dcName].FullReplicas, dc.HostLength);
                 if (rf > 0 && (!replicasByDc.ContainsKey(dcName) || replicasByDc[dcName] < rf))
                 {
                     return false;

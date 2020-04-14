@@ -60,6 +60,13 @@ namespace Cassandra
         public IDictionary<string, int> Replication { get; }
 
         /// <summary>
+        ///  Returns the replication options for this keyspace.
+        /// </summary>
+        /// 
+        /// <returns>a dictionary containing the keyspace replication strategy options.</returns>
+        private IDictionary<string, string> ReplicationOptions { get; }
+
+        /// <summary>
         /// Determines whether the keyspace is a virtual keyspace or not.
         /// </summary>
         public bool IsVirtual { get; }
@@ -67,7 +74,7 @@ namespace Cassandra
         internal IReplicationStrategy Strategy { get; }
 
         internal KeyspaceMetadata(Metadata parent, string name, bool durableWrites, string strategyClass,
-                                  IDictionary<string, int> replicationOptions, bool isVirtual = false) 
+                                  IDictionary<string, string> replicationOptions, bool isVirtual = false) 
             : this(parent, name, durableWrites, strategyClass, replicationOptions, new ReplicationStrategyFactory(), isVirtual)
         {
         }
@@ -77,7 +84,7 @@ namespace Cassandra
             string name, 
             bool durableWrites, 
             string strategyClass,
-            IDictionary<string, int> replicationOptions,
+            IDictionary<string, string> replicationOptions,
             IReplicationStrategyFactory replicationStrategyFactory,
             bool isVirtual = false)
         {
@@ -92,12 +99,14 @@ namespace Cassandra
             }
 
             StrategyClass = strategyClass;
-            Replication = replicationOptions;
+            var parsedReplicationOptions = ParseReplicationFactors(replicationOptions);
+            Replication = ConvertReplicationOptionsToLegacy(parsedReplicationOptions);
+            ReplicationOptions = replicationOptions;
             IsVirtual = isVirtual;
             Strategy = 
                 (strategyClass == null || replicationOptions == null) 
                 ? null 
-                : replicationStrategyFactory.Create(StrategyClass, new Dictionary<string, int>(replicationOptions));
+                : replicationStrategyFactory.Create(StrategyClass, parsedReplicationOptions);
         }
 
         /// <summary>
@@ -250,7 +259,7 @@ namespace Cassandra
 
             sb.Append("CREATE KEYSPACE ").Append(CqlQueryTools.QuoteIdentifier(Name)).Append(" WITH ");
             sb.Append("REPLICATION = { 'class' : '").Append(StrategyClass).Append("'");
-            foreach (var rep in Replication)
+            foreach (var rep in ReplicationOptions)
             {
                 if (rep.Key == "class")
                 {
@@ -350,6 +359,19 @@ namespace Cassandra
         private static Tuple<string, string> GetFunctionKey(string name, string[] signature)
         {
             return Tuple.Create(name, string.Join(",", signature));
+        }
+
+        /// <summary>
+        /// This is needed in order to avoid breaking the public API (see <see cref="Replication"/>
+        /// </summary>
+        private IDictionary<string, int> ConvertReplicationOptionsToLegacy(IDictionary<string, ReplicationFactor> replicationOptions)
+        {
+            return replicationOptions.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.AllReplicas);
+        }
+
+        private Dictionary<string, ReplicationFactor> ParseReplicationFactors(IDictionary<string, string> replicationOptions)
+        {
+            return replicationOptions.ToDictionary(kvp => kvp.Key, kvp => ReplicationFactor.Parse(kvp.Value));
         }
     }
 }

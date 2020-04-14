@@ -181,7 +181,7 @@ namespace Cassandra
                 row.GetValue<string>("keyspace_name"),
                 row.GetValue<bool>("durable_writes"),
                 row.GetValue<string>("strategy_class"),
-                Utils.ConvertStringToMapInt(row.GetValue<string>("strategy_options")),
+                Utils.ConvertStringToMap(row.GetValue<string>("strategy_options")),
                 false);
         }
 
@@ -546,20 +546,10 @@ namespace Cassandra
         {
             var replication = row.GetValue<IDictionary<string, string>>("replication");
             string strategy = null;
-            Dictionary<string, int> strategyOptions = null;
 
             if (replication != null)
             {
                 strategy = replication["class"];
-                strategyOptions = new Dictionary<string, int>();
-                foreach (var kv in replication)
-                {
-                    if (kv.Key == "class")
-                    {
-                        continue;
-                    }
-                    strategyOptions[kv.Key] = Convert.ToInt32(kv.Value);
-                }
             }
 
             return new KeyspaceMetadata(
@@ -567,7 +557,7 @@ namespace Cassandra
                 row.GetValue<string>("keyspace_name"),
                 row.GetValue<bool>("durable_writes"),
                 strategy,
-                strategyOptions);
+                replication);
         }
 
         public override async Task<KeyspaceMetadata> GetKeyspaceAsync(string name)

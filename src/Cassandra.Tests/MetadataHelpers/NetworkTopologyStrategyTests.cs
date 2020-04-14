@@ -26,11 +26,11 @@ namespace Cassandra.Tests.MetadataHelpers
         [Test]
         public void AreReplicationFactorsSatisfied_Should_ReturnTrue_When_NoHostInDc()
         {
-            var ksReplicationFactor = new Dictionary<string, int>
+            var ksReplicationFactor = new Dictionary<string, ReplicationFactor>
             {
-                {"dc1", 1},
-                {"dc2", 3},
-                {"dc3", 1}
+                {"dc1", ReplicationFactor.Parse("1")},
+                {"dc2", ReplicationFactor.Parse("3")},
+                {"dc3", ReplicationFactor.Parse("1")}
             };
             var replicasByDc = new Dictionary<string, int>
             {
@@ -49,11 +49,11 @@ namespace Cassandra.Tests.MetadataHelpers
         [Test]
         public void AreReplicationFactorsSatisfied_Should_ReturnFalse_When_LessReplicasThanReplicationFactorInOneDc()
         {
-            var ksReplicationFactor = new Dictionary<string, int>
+            var ksReplicationFactor = new Dictionary<string, ReplicationFactor>
             {
-                {"dc1", 1},
-                {"dc2", 3},
-                {"dc3", 1}
+                {"dc1", ReplicationFactor.Parse("1")},
+                {"dc2", ReplicationFactor.Parse("3")},
+                {"dc3", ReplicationFactor.Parse("1")}
             };
             var replicasByDc = new Dictionary<string, int>
             {

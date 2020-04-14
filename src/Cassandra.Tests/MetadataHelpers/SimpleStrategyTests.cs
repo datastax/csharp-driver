@@ -26,7 +26,7 @@ namespace Cassandra.Tests.MetadataHelpers
         [Test]
         public void Should_ReturnThreeReplicasPerToken()
         {
-            var target = new SimpleStrategy(2);
+            var target = new SimpleStrategy(ReplicationFactor.Parse("2"));
             var testData = ReplicationStrategyTestData.Create();
 
             var result = target.ComputeTokenToReplicaMap(
