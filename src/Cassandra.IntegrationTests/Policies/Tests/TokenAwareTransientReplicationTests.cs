@@ -1,12 +1,12 @@
-﻿// 
+﻿//
 //       Copyright (C) DataStax Inc.
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //       http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,14 +16,16 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
+
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
+using Cassandra.Tests;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Policies.Tests
 {
     [TestFixture, TestCassandraVersion(4, 0, isOssRequired: true)]
+    [Category(TestCategory.Short), Category(TestCategory.ServerApi), Category(TestCategory.RealCluster)]
     public class TokenAwareTransientReplicationTests : SharedClusterTest
     {
         public TokenAwareTransientReplicationTests() : base(3, false, new TestClusterOptions
@@ -61,14 +63,14 @@ namespace Cassandra.IntegrationTests.Policies.Tests
 
                 var fullReplicas = new HashSet<string>(traces.Select(t => t.Coordinator.ToString()));
                 Assert.AreEqual(2, fullReplicas.Count);
-                
+
                 //Check that there weren't any hops
                 foreach (var t in traces)
                 {
                     //The full replicas (2) must be the only ones present in the trace.
-                    Assert.True(t.Events.All(e => fullReplicas.Contains(e.Source.ToString())), 
+                    Assert.True(t.Events.All(e => fullReplicas.Contains(e.Source.ToString())),
                         "There were trace events from another host for coordinator " + t.Coordinator);
-                    Assert.AreEqual(fullReplicas.Count, t.Events.Select(e => e.Source.ToString()).Distinct().Count(), 
+                    Assert.AreEqual(fullReplicas.Count, t.Events.Select(e => e.Source.ToString()).Distinct().Count(),
                         "Only both full replicas should have trace events which wasn't the case for coordinator " + t.Coordinator);
                 }
             }
