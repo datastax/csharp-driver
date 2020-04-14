@@ -552,6 +552,8 @@ namespace Cassandra
                 strategy = replication["class"];
             }
 
+            replication?.Remove("class");
+
             return new KeyspaceMetadata(
                 Parent,
                 row.GetValue<string>("keyspace_name"),

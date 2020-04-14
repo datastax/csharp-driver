@@ -24,9 +24,27 @@ namespace Cassandra.Tests.MetadataHelpers
     public class SimpleStrategyTests
     {
         [Test]
-        public void Should_ReturnThreeReplicasPerToken()
+        public void Should_ReturnTwoReplicasPerToken()
         {
             var target = new SimpleStrategy(ReplicationFactor.Parse("2"));
+            var testData = ReplicationStrategyTestData.Create();
+
+            var result = target.ComputeTokenToReplicaMap(
+                testData.Ring, testData.PrimaryReplicas, testData.NumberOfHostsWithTokens, testData.Datacenters);
+            
+            // 3 dcs, 3 hosts per rack, 3 racks per dc, 10 tokens per host
+            Assert.AreEqual(10 * 3 * 3 * 3, result.Count);
+
+            foreach (var token in result)
+            {
+                Assert.AreEqual(2, token.Value.Count);
+            }
+        }
+        
+        [Test]
+        public void Should_ReturnTwoReplicasPerToken_When_TransientReplicationIsEnabled()
+        {
+            var target = new SimpleStrategy(ReplicationFactor.Parse("3/1"));
             var testData = ReplicationStrategyTestData.Create();
 
             var result = target.ComputeTokenToReplicaMap(

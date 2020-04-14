@@ -68,5 +68,80 @@ namespace Cassandra.Tests.MetadataHelpers
             };
             Assert.False(NetworkTopologyStrategy.AreReplicationFactorsSatisfied(ksReplicationFactor, replicasByDc, datacenters));
         }
+        
+        [Test]
+        public void AreReplicationFactorsSatisfied_Should_ReturnTrue_When_OnlyFullReplicas()
+        {
+            var ksReplicationFactor = new Dictionary<string, ReplicationFactor>
+            {
+                {"dc1", ReplicationFactor.Parse("1")},
+                {"dc2", ReplicationFactor.Parse("3/1")},
+                {"dc3", ReplicationFactor.Parse("1")}
+            };
+            var replicasByDc = new Dictionary<string, int>
+            {
+                {"dc1", 1},
+                {"dc2", 2},
+                {"dc3", 1}
+            };
+            //no host in DC 3
+            var datacenters = new Dictionary<string, DatacenterInfo>
+            {
+                {"dc1", new DatacenterInfo { HostLength = 10 } },
+                {"dc2", new DatacenterInfo { HostLength = 10 } },
+                {"dc3", new DatacenterInfo { HostLength = 10 } }
+            };
+            Assert.True(NetworkTopologyStrategy.AreReplicationFactorsSatisfied(ksReplicationFactor, replicasByDc, datacenters));
+        }
+        
+        [Test]
+        public void AreReplicationFactorsSatisfied_Should_ReturnFalse_When_LessReplicasThanRf()
+        {
+            var ksReplicationFactor = new Dictionary<string, ReplicationFactor>
+            {
+                {"dc1", ReplicationFactor.Parse("1")},
+                {"dc2", ReplicationFactor.Parse("3/1")},
+                {"dc3", ReplicationFactor.Parse("1")}
+            };
+            var replicasByDc = new Dictionary<string, int>
+            {
+                {"dc1", 1},
+                {"dc2", 1},
+                {"dc3", 1}
+            };
+            //no host in DC 3
+            var datacenters = new Dictionary<string, DatacenterInfo>
+            {
+                {"dc1", new DatacenterInfo { HostLength = 10 } },
+                {"dc2", new DatacenterInfo { HostLength = 10 } },
+                {"dc3", new DatacenterInfo { HostLength = 10 } }
+            };
+            Assert.False(NetworkTopologyStrategy.AreReplicationFactorsSatisfied(ksReplicationFactor, replicasByDc, datacenters));
+        }
+        
+        [Test]
+        public void Should_ReturnAppropriateReplicasPerDcPerToken()
+        {
+            var target = new NetworkTopologyStrategy(
+                new Dictionary<string, ReplicationFactor>
+                {
+                    { "dc1", ReplicationFactor.Parse("2") },
+                    { "dc2", ReplicationFactor.Parse("3/1") },
+                    { "dc3", ReplicationFactor.Parse("3/2") }
+                });
+            var testData = ReplicationStrategyTestData.Create();
+
+            var result = target.ComputeTokenToReplicaMap(
+                testData.Ring, testData.PrimaryReplicas, testData.NumberOfHostsWithTokens, testData.Datacenters);
+            
+            // 3 dcs, 3 hosts per rack, 3 racks per dc, 10 tokens per host
+            Assert.AreEqual(10 * 3 * 3 * 3, result.Count);
+
+            foreach (var token in result)
+            {
+                // 2 for dc1, 2 for dc2, 1 for dc3
+                Assert.AreEqual(2 + 2 + 1, token.Value.Count);
+            }
+        }
     }
 }
