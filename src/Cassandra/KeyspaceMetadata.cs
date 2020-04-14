@@ -99,12 +99,19 @@ namespace Cassandra
             }
 
             StrategyClass = strategyClass;
-            var parsedReplicationOptions = ParseReplicationFactors(replicationOptions);
-            Replication = ConvertReplicationOptionsToLegacy(parsedReplicationOptions);
+
+            var parsedReplicationOptions = replicationOptions == null
+                ? null 
+                : ParseReplicationFactors(replicationOptions);
+
+            Replication = parsedReplicationOptions == null 
+                ? null 
+                : ConvertReplicationOptionsToLegacy(parsedReplicationOptions);
+            
             ReplicationOptions = replicationOptions;
             IsVirtual = isVirtual;
             Strategy = 
-                (strategyClass == null || replicationOptions == null) 
+                (strategyClass == null || parsedReplicationOptions == null) 
                 ? null 
                 : replicationStrategyFactory.Create(StrategyClass, parsedReplicationOptions);
         }
