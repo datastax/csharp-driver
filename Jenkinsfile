@@ -447,6 +447,7 @@ pipeline {
             values '2.2',     // latest 2.2.x Apache Cassandara�
                   '3.0',     // latest 3.0.x Apache Cassandara�
                   '3.11',    // latest 3.11.x Apache Cassandara�
+                  '4.0',    // Development Apache Cassandara�
                   'dse-5.1', // latest 5.1.x DataStax Enterprise
                   'dse-6.7', // latest 6.7.x DataStax Enterprise
                   'dse-6.8.0' // 6.8.0 current DataStax Enterprise
