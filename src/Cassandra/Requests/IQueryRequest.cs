@@ -25,6 +25,7 @@ namespace Cassandra.Requests
         /// The paging state for the request
         /// </summary>
         byte[] PagingState { get; set; }
+
         /// <summary>
         /// Method used by the batch to build each individual request
         /// </summary>

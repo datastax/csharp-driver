@@ -21,7 +21,7 @@ namespace Cassandra.Requests
 {
     internal interface IPrepareHandlerFactory
     {
-        IPrepareHandler CreatePrepareHandler(ISerializer serializer, IInternalCluster cluster);
+        IPrepareHandler CreatePrepareHandler(ISerializerManager serializerManager, IInternalCluster cluster);
 
         IReprepareHandler CreateReprepareHandler();
     }
