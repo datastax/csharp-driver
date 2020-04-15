@@ -62,7 +62,7 @@ namespace Cassandra
             // the driver only sets this flag for bound statements
             if (resultMetadata?.Columns == null)
             {
-                resultMetadata = ((ExecuteRequest) request).ResultMetadata.RowSetMetadata;
+                resultMetadata = ((ExecuteRequest) request).ResultMetadata?.RowSetMetadata;
                 rs.Columns = resultMetadata?.Columns;
             }
 
