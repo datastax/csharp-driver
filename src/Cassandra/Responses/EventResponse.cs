@@ -14,6 +14,8 @@
 //   limitations under the License.
 //
 
+using Cassandra.Requests;
+
 namespace Cassandra.Responses
 {
     internal class EventResponse : Response
@@ -109,7 +111,7 @@ namespace Cassandra.Responses
             return ce;
         }
 
-        internal static EventResponse Create(Frame frame)
+        internal static EventResponse Create(Frame frame, IRequest _)
         {
             return new EventResponse(frame);
         }

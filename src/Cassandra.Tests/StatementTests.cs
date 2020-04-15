@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Cassandra.Requests;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
 using Cassandra.Tests.ExecutionProfiles;
@@ -31,10 +32,10 @@ namespace Cassandra.Tests
     {
         private const string Query = "SELECT * ...";
 
-        private static PreparedStatement GetPrepared(string query = Query, RowSetMetadata metadata = null)
+        private static PreparedStatement GetPrepared(string query = Query, RowSetMetadata metadata = null, RowSetMetadata resultRowsMetadata = null)
         {
-            return new PreparedStatement(metadata, new byte[0], null, query, null,
-                new SerializerManager(ProtocolVersion.MaxSupported).GetCurrentSerializer());
+            return new PreparedStatement(metadata, new byte[0], new ResultMetadata(null, resultRowsMetadata), query, null,
+                new SerializerManager(ProtocolVersion.MaxSupported));
         }
 
         [Test]

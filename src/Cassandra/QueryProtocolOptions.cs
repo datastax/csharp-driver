@@ -97,7 +97,7 @@ namespace Cassandra
         }
 
         internal static QueryProtocolOptions CreateFromQuery(
-            ProtocolVersion protocolVersion, Statement query, IRequestOptions requestOptions)
+            ProtocolVersion protocolVersion, Statement query, IRequestOptions requestOptions, bool? forceSkipMetadata)
         {
             if (query == null)
             {
@@ -122,7 +122,7 @@ namespace Cassandra
             return new QueryProtocolOptions(
                 consistency,
                 query.QueryValues,
-                query.SkipMetadata,
+                forceSkipMetadata ?? query.SkipMetadata,
                 pageSize,
                 query.PagingState,
                 requestOptions.GetSerialConsistencyLevelOrDefault(query),

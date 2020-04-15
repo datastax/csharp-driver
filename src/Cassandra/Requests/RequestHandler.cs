@@ -126,19 +126,32 @@ namespace Cassandra.Requests
             {
                 statement.SetIdempotence(requestOptions.DefaultIdempotence);
             }
+
             if (statement is RegularStatement s1)
             {
                 s1.Serializer = serializer;
-                var options = QueryProtocolOptions.CreateFromQuery(serializer.ProtocolVersion, s1, requestOptions);
+                var options = QueryProtocolOptions.CreateFromQuery(serializer.ProtocolVersion, s1, requestOptions, null);
                 options.ValueNames = s1.QueryValueNames;
                 request = new QueryRequest(serializer.ProtocolVersion, s1.QueryString, s1.IsTracing, options);
             }
+
             if (statement is BoundStatement s2)
             {
-                var options = QueryProtocolOptions.CreateFromQuery(serializer.ProtocolVersion, s2, requestOptions);
-                request = new ExecuteRequest(serializer.ProtocolVersion, s2.PreparedStatement.Id, null,
-                    s2.PreparedStatement.ResultMetadataId, s2.IsTracing, options);
+                // set skip metadata only when result metadata id is supported because of CASSANDRA-10786
+                var skipMetadata = 
+                    serializer.ProtocolVersion.SupportsResultMetadataId() 
+                    && s2.PreparedStatement.ResultMetadata.ContainsColumnDefinitions();
+
+                var options = QueryProtocolOptions.CreateFromQuery(serializer.ProtocolVersion, s2, requestOptions, skipMetadata);
+                request = new ExecuteRequest(
+                    serializer.ProtocolVersion, 
+                    s2.PreparedStatement.Id, 
+                    null,
+                    s2.PreparedStatement.ResultMetadata, 
+                    s2.IsTracing, 
+                    options);
             }
+
             if (statement is BatchStatement s)
             {
                 s.Serializer = serializer;
@@ -149,10 +162,12 @@ namespace Cassandra.Requests
                 }
                 request = new BatchRequest(serializer.ProtocolVersion, s, consistency, requestOptions);
             }
+
             if (request == null)
             {
                 throw new NotSupportedException("Statement of type " + statement.GetType().FullName + " not supported");
             }
+
             //Set the outgoing payload for the request
             request.Payload = statement.OutgoingPayload;
             return request;

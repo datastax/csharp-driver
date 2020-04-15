@@ -19,8 +19,10 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
+using Cassandra.Requests;
 using Cassandra.Responses;
 using Cassandra.Serialization;
+using Moq;
 using NUnit.Framework;
 using HeaderFlag = Cassandra.FrameHeader.HeaderFlag;
 
@@ -39,7 +41,7 @@ namespace Cassandra.Tests
         {
             var body = GetErrorBody(0x2000, "Test syntax error");
             var header = FrameHeader.ParseResponseHeader(Version, GetHeaderBuffer(body.Length), 0);
-            var response = FrameParser.Parse(new Frame(header, new MemoryStream(body), Serializer.GetCurrentSerializer()));
+            var response = FrameParser.Parse(new Frame(header, new MemoryStream(body), Serializer.GetCurrentSerializer()), Mock.Of<IRequest>());
             var ex = IsErrorResponse<SyntaxError>(response);
             Assert.AreEqual("Test syntax error", ex.Message);
         }
@@ -51,7 +53,7 @@ namespace Cassandra.Tests
             var warningBuffers = BeConverter.GetBytes((ushort)1).Concat(GetProtocolString("Test warning"));
             var body = warningBuffers.Concat(GetErrorBody(0x2000, "Test syntax error")).ToArray();
             var header = FrameHeader.ParseResponseHeader(Version, GetHeaderBuffer(body.Length, HeaderFlag.Warning), 0);
-            var response = FrameParser.Parse(new Frame(header, new MemoryStream(body), Serializer.GetCurrentSerializer()));
+            var response = FrameParser.Parse(new Frame(header, new MemoryStream(body), Serializer.GetCurrentSerializer()), Mock.Of<IRequest>());
             var ex = IsErrorResponse<SyntaxError>(response);
             Assert.AreEqual("Test syntax error", ex.Message);
         }
@@ -169,7 +171,7 @@ namespace Cassandra.Tests
         private static Response GetResponse(byte[] body, ProtocolVersion version = Version)
         {
             var header = FrameHeader.ParseResponseHeader(version, GetHeaderBuffer(body.Length), 0);
-            return FrameParser.Parse(new Frame(header, new MemoryStream(body), new SerializerManager(version).GetCurrentSerializer()));
+            return FrameParser.Parse(new Frame(header, new MemoryStream(body), new SerializerManager(version).GetCurrentSerializer()), Mock.Of<IRequest>());
         }
 
         private static byte[] GetProtocolString(string value)

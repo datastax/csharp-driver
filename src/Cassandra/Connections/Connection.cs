@@ -602,8 +602,9 @@ namespace Cassandra.Connections
                 // Get read stream
                 stream = stream ?? Configuration.BufferPool.GetStream(Connection.StreamReadTag);
 
-                // Get callback
+                // Get callback and operation state
                 Action<IRequestError, Response, long> callback;
+                IRequest request = null;
                 if (header.Opcode == EventResponse.OpCode)
                 {
                     callback = EventHandler;
@@ -614,13 +615,14 @@ namespace Cassandra.Connections
                     // State can be null when the Connection is being closed concurrently
                     // The original callback is being called with an error, use a Noop here
                     callback = state != null ? state.SetCompleted() : OperationState.Noop;
+                    request = state?.Request;
                 }
 
                 // Write to read stream
                 stream.Write(buffer, offset, remainingBodyLength);
 
                 // Add callback with deserialize from stream
-                operationCallbacks.AddLast(CreateResponseAction(serializer, header, callback));
+                operationCallbacks.AddLast(CreateResponseAction(request, serializer, header, callback));
 
                 offset += remainingBodyLength;
             }
@@ -695,7 +697,8 @@ namespace Cassandra.Connections
         /// <summary>
         /// Returns an action that capture the parameters closure
         /// </summary>
-        private Action<MemoryStream, long> CreateResponseAction(ISerializer serializer, FrameHeader header, Action<IRequestError, Response, long> callback)
+        private Action<MemoryStream, long> CreateResponseAction(
+            IRequest request, ISerializer serializer, FrameHeader header, Action<IRequestError, Response, long> callback)
         {
             var compressor = Compressor;
 
@@ -712,7 +715,7 @@ namespace Cassandra.Connections
                         plainTextStream = compressor.Decompress(new WrappedStream(stream, header.BodyLength));
                         plainTextStream.Position = 0;
                     }
-                    response = FrameParser.Parse(new Frame(header, plainTextStream, serializer));
+                    response = FrameParser.Parse(new Frame(header, plainTextStream, serializer), request);
                 }
                 catch (Exception caughtException)
                 {

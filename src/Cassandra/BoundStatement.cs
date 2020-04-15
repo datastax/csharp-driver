@@ -31,7 +31,6 @@ namespace Cassandra
     {
         private readonly PreparedStatement _preparedStatement;
         private RoutingKey _routingKey;
-        private readonly ISerializer _serializer;
         private readonly string _keyspace;
 
         /// <summary>
@@ -88,18 +87,13 @@ namespace Cassandra
         {
             _preparedStatement = statement;
             _routingKey = statement.RoutingKey;
-            _keyspace = statement.Keyspace ?? statement.Metadata?.Keyspace;
+            _keyspace = statement.Keyspace ?? statement.Variables?.Keyspace;
 
             SetConsistencyLevel(statement.ConsistencyLevel);
             if (statement.IsIdempotent != null)
             {
                 SetIdempotence(statement.IsIdempotent.Value);
             }
-        }
-
-        internal BoundStatement(PreparedStatement statement, ISerializer serializer) : this(statement)
-        {
-            _serializer = serializer;
         }
         
         /// <summary>
@@ -115,31 +109,32 @@ namespace Cassandra
             return this;
         }
 
-        internal override void SetValues(object[] values)
+        internal override void SetValues(object[] values, ISerializer serializer)
         {
-            values = ValidateValues(values);
-            base.SetValues(values);
+            values = ValidateValues(values, serializer);
+            base.SetValues(values, serializer);
         }
 
         /// <summary>
         /// Validate values using prepared statement metadata,
         /// returning a new instance of values to be used as parameters.
         /// </summary>
-        private object[] ValidateValues(object[] values)
+        private object[] ValidateValues(object[] values, ISerializer serializer)
         {
-            if (_serializer == null)
+            if (serializer == null)
             {
                 throw new DriverInternalError("Serializer can not be null");
             }
+            
             if (values == null)
             {
                 return null;
             }
-            if (PreparedStatement.Metadata == null || PreparedStatement.Metadata.Columns == null || PreparedStatement.Metadata.Columns.Length == 0)
+            if (PreparedStatement.Variables == null || PreparedStatement.Variables.Columns == null || PreparedStatement.Variables.Columns.Length == 0)
             {
                 return values;
             }
-            var paramsMetadata = PreparedStatement.Metadata.Columns;
+            var paramsMetadata = PreparedStatement.Variables.Columns;
             if (values.Length > paramsMetadata.Length)
             {
                 throw new ArgumentException(
@@ -149,13 +144,13 @@ namespace Cassandra
             {
                 var p = paramsMetadata[i];
                 var value = values[i];
-                if (!_serializer.IsAssignableFrom(p, value))
+                if (!serializer.IsAssignableFrom(p, value))
                 {
                     throw new InvalidTypeException(
                         string.Format("It is not possible to encode a value of type {0} to a CQL type {1}", value.GetType(), p.TypeCode));
                 }
             }
-            if (values.Length < paramsMetadata.Length && _serializer.ProtocolVersion.SupportsUnset())
+            if (values.Length < paramsMetadata.Length && serializer.ProtocolVersion.SupportsUnset())
             {
                 //Set the result of the unspecified parameters to Unset
                 var completeValues = new object[paramsMetadata.Length];
@@ -173,11 +168,17 @@ namespace Cassandra
         {
             // Use the default query options as the individual options of the query will be ignored
             var options = QueryProtocolOptions.CreateForBatchItem(this);
-            return new ExecuteRequest(protocolVersion, PreparedStatement.Id, PreparedStatement.Metadata,
-                PreparedStatement.ResultMetadataId, IsTracing, options);
+            return new ExecuteRequest(protocolVersion, PreparedStatement.Id, PreparedStatement.Variables,
+                PreparedStatement.ResultMetadata, IsTracing, options);
         }
 
-        internal void CalculateRoutingKey(bool useNamedParameters, int[] routingIndexes, string[] routingNames, object[] valuesByPosition, object[] rawValues)
+        internal void CalculateRoutingKey(
+            ISerializer serializer,
+            bool useNamedParameters, 
+            int[] routingIndexes, 
+            string[] routingNames, 
+            object[] valuesByPosition, 
+            object[] rawValues)
         {
             if (_routingKey != null)
             {
@@ -190,7 +191,7 @@ namespace Cassandra
                 for (var i = 0; i < routingIndexes.Length; i++)
                 {
                     var index = routingIndexes[i];
-                    var key = _serializer.Serialize(valuesByPosition[index]);
+                    var key = serializer.Serialize(valuesByPosition[index]);
                     if (key == null)
                     {
                         //The partition key can not be null
@@ -213,7 +214,7 @@ namespace Cassandra
                 }
                 for (var i = 0; i < routingValues.Length; i++)
                 {
-                    var key = _serializer.Serialize(routingValues[i]);
+                    var key = serializer.Serialize(routingValues[i]);
                     if (key == null)
                     {
                         //The partition key can not be null

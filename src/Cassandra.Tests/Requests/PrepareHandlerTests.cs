@@ -68,7 +68,8 @@ namespace Cassandra.Tests.Requests
                         await Task.Delay(1).ConfigureAwait(false);
                         return new ProxyResultResponse(
                             ResultResponse.ResultResponseKind.Void,
-                            new OutputPrepared(new byte[0], new RowSetMetadata { Columns = new CqlColumn[0] }));
+                            new OutputPrepared(
+                                new byte[0], new RowSetMetadata { Columns = new CqlColumn[0] }, new RowSetMetadata { Columns = new CqlColumn[0] }));
                     });
             };
             var queryPlan = mockResult.Session.InternalCluster
@@ -137,7 +138,8 @@ namespace Cassandra.Tests.Requests
                         await Task.Delay(1).ConfigureAwait(false);
                         return new ProxyResultResponse(
                             ResultResponse.ResultResponseKind.Void,
-                            new OutputPrepared(new byte[0], new RowSetMetadata { Columns = new CqlColumn[0] }));
+                            new OutputPrepared(
+                                new byte[0], new RowSetMetadata { Columns = new CqlColumn[0] }, new RowSetMetadata { Columns = new CqlColumn[0] }));
                     });
             };
             var queryPlan = mockResult.Session.InternalCluster
@@ -207,7 +209,8 @@ namespace Cassandra.Tests.Requests
                         await Task.Delay(1).ConfigureAwait(false);
                         return new ProxyResultResponse(
                             ResultResponse.ResultResponseKind.Void,
-                            new OutputPrepared(new byte[0], new RowSetMetadata { Columns = new CqlColumn[0] }));
+                            new OutputPrepared(
+                                new byte[0], new RowSetMetadata { Columns = new CqlColumn[0] }, new RowSetMetadata { Columns = new CqlColumn[0] }));
                     });
             };
             var queryPlan = mockResult.Session.InternalCluster
@@ -279,7 +282,8 @@ namespace Cassandra.Tests.Requests
                         await Task.Delay(1).ConfigureAwait(false);
                         return new ProxyResultResponse(
                             ResultResponse.ResultResponseKind.Void,
-                            new OutputPrepared(new byte[0], new RowSetMetadata { Columns = new CqlColumn[0] }));
+                            new OutputPrepared(
+                                new byte[0], new RowSetMetadata { Columns = new CqlColumn[0] }, new RowSetMetadata { Columns = new CqlColumn[0] }));
                     });
             };
             var queryPlan = mockResult.Session.InternalCluster
@@ -349,7 +353,8 @@ namespace Cassandra.Tests.Requests
                         await Task.Delay(1).ConfigureAwait(false);
                         return new ProxyResultResponse(
                             ResultResponse.ResultResponseKind.Void,
-                            new OutputPrepared(new byte[0], new RowSetMetadata { Columns = new CqlColumn[0] }));
+                            new OutputPrepared(
+                                new byte[0], new RowSetMetadata { Columns = new CqlColumn[0] }, new RowSetMetadata { Columns = new CqlColumn[0] }));
                     });
             };
             var queryPlan = mockResult.Session.InternalCluster
@@ -420,7 +425,8 @@ namespace Cassandra.Tests.Requests
                         await Task.Delay(1).ConfigureAwait(false);
                         return new ProxyResultResponse(
                             ResultResponse.ResultResponseKind.Void,
-                            new OutputPrepared(new byte[0], new RowSetMetadata { Columns = new CqlColumn[0] }));
+                            new OutputPrepared(
+                                new byte[0], new RowSetMetadata { Columns = new CqlColumn[0] }, new RowSetMetadata { Columns = new CqlColumn[0] }));
                     });
             };
             var queryPlan = mockResult.Session.InternalCluster
@@ -495,7 +501,7 @@ namespace Cassandra.Tests.Requests
             var session = new Session(cluster, config, null, SerializerManager.Default, null);
 
             // create prepare handler
-            var prepareHandler = new PrepareHandler(new SerializerManager(ProtocolVersion.V3).GetCurrentSerializer(), cluster, new ReprepareHandler());
+            var prepareHandler = new PrepareHandler(new SerializerManager(ProtocolVersion.V3), cluster, new ReprepareHandler());
 
             // create mock result object
             var mockResult = new PrepareHandlerMockResult(prepareHandler, session, factory);

@@ -273,6 +273,11 @@ namespace Cassandra
         /// It returns null when partition keys were not parsed.
         /// </summary>
         internal int[] PartitionKeys { get; private set; }
+        
+        /// <summary>
+        /// Whether the new_metadata_id was set.
+        /// </summary>
+        internal bool HasNewResultMetadataId() => NewResultMetadataId != null;
 
         // for testing
         internal RowSetMetadata()

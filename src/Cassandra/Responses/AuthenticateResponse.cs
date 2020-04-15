@@ -14,6 +14,8 @@
 //   limitations under the License.
 //
 
+using Cassandra.Requests;
+
 namespace Cassandra.Responses
 {
     internal class AuthenticateResponse : Response
@@ -27,7 +29,7 @@ namespace Cassandra.Responses
             Authenticator = Reader.ReadString();
         }
 
-        internal static AuthenticateResponse Create(Frame frame)
+        internal static AuthenticateResponse Create(Frame frame, IRequest _)
         {
             return new AuthenticateResponse(frame);
         }

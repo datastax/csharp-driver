@@ -16,6 +16,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using Cassandra.Requests;
 using Cassandra.Serialization;
 
 namespace Cassandra
@@ -29,12 +30,12 @@ namespace Cassandra
     /// </summary>
     public class PreparedStatement
     {
-        internal readonly RowSetMetadata Metadata;
-        private readonly ISerializer _serializer = SerializerManager.Default.GetCurrentSerializer();
+        private readonly RowSetMetadata _variablesRowsMetadata;
+        private readonly ISerializerManager _serializerManager = SerializerManager.Default;
         private volatile RoutingKey _routingKey;
         private string[] _routingNames;
         private volatile int[] _routingIndexes;
-        private volatile byte[] _resultMetadataId;
+        private volatile ResultMetadata _resultMetadata;
 
         /// <summary>
         /// The cql query
@@ -67,7 +68,15 @@ namespace Cassandra
         /// </summary>
         public RowSetMetadata Variables
         {
-            get { return Metadata; }
+            get { return _variablesRowsMetadata; }
+        }
+        
+        /// <summary>
+        ///  Gets metadata on the columns that will be returned for this prepared statement.
+        /// </summary>
+        internal ResultMetadata ResultMetadata
+        {
+            get { return _resultMetadata; }
         }
 
         /// <summary>
@@ -103,12 +112,6 @@ namespace Cassandra
         /// </summary>
         public bool? IsIdempotent { get; private set; }
 
-        internal byte[] ResultMetadataId
-        {
-            get => _resultMetadataId;
-            set => _resultMetadataId = value;
-        }
-
         /// <summary>
         /// Initializes a new instance of the Cassandra.PreparedStatement class
         /// </summary>
@@ -117,15 +120,20 @@ namespace Cassandra
             //Default constructor for client test and mocking frameworks
         }
 
-        internal PreparedStatement(RowSetMetadata metadata, byte[] id, byte[] resultMetadataId, string cql,
-                                   string keyspace, ISerializer serializer)
+        internal PreparedStatement(RowSetMetadata variablesRowsMetadata, byte[] id, ResultMetadata resultMetadata, string cql,
+                                   string keyspace, ISerializerManager serializer)
         {
-            Metadata = metadata;
+            _variablesRowsMetadata = variablesRowsMetadata;
+            _resultMetadata = resultMetadata;
             Id = id;
-            ResultMetadataId = resultMetadataId;
             Cql = cql;
             Keyspace = keyspace;
-            _serializer = serializer;
+            _serializerManager = serializer;
+        }
+
+        internal void UpdateResultMetadata(ResultMetadata resultMetadata)
+        {
+            _resultMetadata = resultMetadata;
         }
 
         /// <summary>
@@ -157,7 +165,7 @@ namespace Cassandra
         /// </example>
         public virtual BoundStatement Bind(params object[] values)
         {
-            var bs = new BoundStatement(this, _serializer);
+            var bs = new BoundStatement(this);
             bs.SetRoutingKey(_routingKey);
             if (values == null)
             {
@@ -169,10 +177,12 @@ namespace Cassandra
             {
                 //Using named parameters
                 //Reorder the params according the position in the query
-                valuesByPosition = Utils.GetValues(Metadata.Columns.Select(c => c.Name), values[0]).ToArray();
+                valuesByPosition = Utils.GetValues(_variablesRowsMetadata.Columns.Select(c => c.Name), values[0]).ToArray();
             }
-            bs.SetValues(valuesByPosition);
-            bs.CalculateRoutingKey(useNamedParameters, RoutingIndexes, _routingNames, valuesByPosition, values);
+
+            var serializer = _serializerManager.GetCurrentSerializer();
+            bs.SetValues(valuesByPosition, serializer);
+            bs.CalculateRoutingKey(serializer, useNamedParameters, RoutingIndexes, _routingNames, valuesByPosition, values);
             return bs;
         }
 
@@ -197,7 +207,7 @@ namespace Cassandra
         /// <returns>True if it was possible to set the routing indexes for this query</returns>
         internal bool SetPartitionKeys(TableColumn[] keys)
         {
-            var queryParameters = Metadata.Columns;
+            var queryParameters = _variablesRowsMetadata.Columns;
             var routingIndexes = new List<int>();
             foreach (var key in keys)
             {

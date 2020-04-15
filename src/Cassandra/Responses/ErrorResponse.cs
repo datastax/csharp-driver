@@ -14,6 +14,8 @@
 //   limitations under the License.
 //
 
+using Cassandra.Requests;
+
 namespace Cassandra.Responses
 {
     internal class ErrorResponse : Response
@@ -29,7 +31,7 @@ namespace Cassandra.Responses
             Output = OutputError.CreateOutputError(errorCode, message, Reader);
         }
 
-        internal static ErrorResponse Create(Frame frame)
+        internal static ErrorResponse Create(Frame frame, IRequest _)
         {
             return new ErrorResponse(frame);
         }

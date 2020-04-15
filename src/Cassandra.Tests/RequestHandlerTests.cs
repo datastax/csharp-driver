@@ -33,6 +33,7 @@ namespace Cassandra.Tests
     [TestFixture]
     public class RequestHandlerTests
     {
+        private static readonly ISerializerManager SerializerManager = new SerializerManager(ProtocolVersion.MaxSupported);
         private static readonly ISerializer Serializer = new SerializerManager(ProtocolVersion.MaxSupported).GetCurrentSerializer();
 
         private static Configuration GetConfig(QueryOptions queryOptions = null, Cassandra.Policies policies = null, PoolingOptions poolingOptions = null)
@@ -54,7 +55,7 @@ namespace Cassandra.Tests
 
         private static PreparedStatement GetPrepared(byte[] queryId = null)
         {
-            return new PreparedStatement(null, queryId, new byte[16], "DUMMY QUERY", null, Serializer);
+            return new PreparedStatement(null, queryId, new ResultMetadata(new byte[16], null), "DUMMY QUERY", null, RequestHandlerTests.SerializerManager);
         }
 
         [Test]
