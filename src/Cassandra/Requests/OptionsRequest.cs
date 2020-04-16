@@ -23,6 +23,9 @@ namespace Cassandra.Requests
     {
         public const byte OpCode = 0x05;
 
+        /// <inheritdoc />
+        public ResultMetadata ResultMetadata => null;
+
         public int WriteFrame(short streamId, MemoryStream stream, ISerializer serializer)
         {
             var wb = new FrameWriter(stream, serializer);

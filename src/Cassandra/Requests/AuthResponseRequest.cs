@@ -29,6 +29,9 @@ namespace Cassandra.Requests
             _token = token;
         }
 
+        /// <inheritdoc />
+        public ResultMetadata ResultMetadata => null;
+
         public int WriteFrame(short streamId, MemoryStream stream, ISerializer serializer)
         {
             var wb = new FrameWriter(stream, serializer);

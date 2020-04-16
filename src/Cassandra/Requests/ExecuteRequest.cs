@@ -54,7 +54,8 @@ namespace Cassandra.Requests
         }
 
         public IDictionary<string, byte[]> Payload { get; set; }
-
+        
+        /// <inheritdoc />
         public ResultMetadata ResultMetadata { get; }
 
         public ExecuteRequest(ProtocolVersion protocolVersion, byte[] id, RowSetMetadata variablesMetadata,

@@ -111,7 +111,7 @@ namespace Cassandra.Responses
             return ce;
         }
 
-        internal static EventResponse Create(Frame frame, IRequest _)
+        internal static EventResponse Create(Frame frame, ResultMetadata _)
         {
             return new EventResponse(frame);
         }

@@ -40,6 +40,9 @@ namespace Cassandra.Requests
 
         public IDictionary<string, byte[]> Payload { get; set; }
 
+        /// <inheritdoc />
+        public ResultMetadata ResultMetadata => null;
+
         public BatchRequest(ProtocolVersion protocolVersion, BatchStatement statement, ConsistencyLevel consistency, IRequestOptions requestOptions)
         {
             if (!protocolVersion.SupportsBatch())

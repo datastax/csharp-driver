@@ -31,6 +31,9 @@ namespace Cassandra.Requests
             _credentials = credentials;
         }
 
+        /// <inheritdoc />
+        public ResultMetadata ResultMetadata => null;
+
         public int WriteFrame(short streamId, MemoryStream stream, ISerializer serializer)
         {
             if (serializer.ProtocolVersion != ProtocolVersion.V1)

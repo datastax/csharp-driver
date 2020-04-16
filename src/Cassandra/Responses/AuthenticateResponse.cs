@@ -29,7 +29,7 @@ namespace Cassandra.Responses
             Authenticator = Reader.ReadString();
         }
 
-        internal static AuthenticateResponse Create(Frame frame, IRequest _)
+        internal static AuthenticateResponse Create(Frame frame, ResultMetadata _)
         {
             return new AuthenticateResponse(frame);
         }

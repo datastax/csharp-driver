@@ -30,7 +30,7 @@ namespace Cassandra.Responses
             Token = Reader.ReadBytes();
         }
 
-        internal static AuthChallengeResponse Create(Frame frame, IRequest _)
+        internal static AuthChallengeResponse Create(Frame frame, ResultMetadata _)
         {
             return new AuthChallengeResponse(frame);
         }

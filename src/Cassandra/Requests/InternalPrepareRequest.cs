@@ -44,6 +44,9 @@ namespace Cassandra.Requests
         /// </summary>
         public string Query { get; set; }
 
+        /// <inheritdoc />
+        public ResultMetadata ResultMetadata => null;
+
         public InternalPrepareRequest(string cqlQuery, string keyspace = null, IDictionary<string, byte[]> payload = null)
         {
             Query = cqlQuery;

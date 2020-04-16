@@ -31,7 +31,7 @@ namespace Cassandra.Responses
             Output = OutputError.CreateOutputError(errorCode, message, Reader);
         }
 
-        internal static ErrorResponse Create(Frame frame, IRequest _)
+        internal static ErrorResponse Create(Frame frame, ResultMetadata _)
         {
             return new ErrorResponse(frame);
         }

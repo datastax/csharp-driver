@@ -27,7 +27,7 @@ namespace Cassandra.Responses
         {
         }
 
-        internal static ReadyResponse Create(Frame frame, IRequest _)
+        internal static ReadyResponse Create(Frame frame, ResultMetadata _)
         {
             return new ReadyResponse(frame);
         }

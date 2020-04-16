@@ -25,5 +25,10 @@ namespace Cassandra.Requests
         /// Writes the frame for this request on the provided stream
         /// </summary>
         int WriteFrame(short streamId, MemoryStream stream, ISerializer serializer);
+
+        /// <summary>
+        /// Result Metadata to parse the response rows. Most requests set this to null.
+        /// </summary>
+        ResultMetadata ResultMetadata { get; }
     }
 }

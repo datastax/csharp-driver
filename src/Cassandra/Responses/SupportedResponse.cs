@@ -28,7 +28,7 @@ namespace Cassandra.Responses
             Output = new OutputOptions(Reader);
         }
 
-        internal static SupportedResponse Create(Frame frame, IRequest _)
+        internal static SupportedResponse Create(Frame frame, ResultMetadata _)
         {
             return new SupportedResponse(frame);
         }

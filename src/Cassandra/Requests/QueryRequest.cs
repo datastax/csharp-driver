@@ -50,6 +50,9 @@ namespace Cassandra.Requests
             get { return _queryOptions.SerialConsistency; }
         }
 
+        /// <inheritdoc />
+        public ResultMetadata ResultMetadata => null;
+
         public string Query { get { return _cqlQuery; }}
 
         public IDictionary<string, byte[]> Payload { get; set; }
