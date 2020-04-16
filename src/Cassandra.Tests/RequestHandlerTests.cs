@@ -53,9 +53,16 @@ namespace Cassandra.Tests
 
         private static QueryOptions DefaultQueryOptions => new QueryOptions();
 
-        private static PreparedStatement GetPrepared(byte[] queryId = null)
+        private static PreparedStatement GetPrepared(
+            byte[] queryId = null, ISerializerManager serializerManager = null, RowSetMetadata rowSetMetadata = null)
         {
-            return new PreparedStatement(null, queryId, new ResultMetadata(new byte[16], null), "DUMMY QUERY", null, RequestHandlerTests.SerializerManager);
+            return new PreparedStatement(
+                null, 
+                queryId, 
+                new ResultMetadata(new byte[16], rowSetMetadata), 
+                "DUMMY QUERY", 
+                null, 
+                serializerManager ?? RequestHandlerTests.SerializerManager);
         }
 
         [Test]
@@ -124,6 +131,58 @@ namespace Cassandra.Tests
             Assert.AreEqual(queryOptions.GetPageSize(), request.PageSize);
             Assert.AreEqual(queryOptions.GetConsistencyLevel(), request.Consistency);
             Assert.AreEqual(QueryOptions.DefaultSerialConsistencyLevel, request.SerialConsistency);
+        }
+
+        [Test]
+        [TestCase(ProtocolVersion.V5)]
+        [TestCase(ProtocolVersion.DseV2)]
+        [TestCase(ProtocolVersion.V4)]
+        [TestCase(ProtocolVersion.V3)]
+        [TestCase(ProtocolVersion.V2)]
+        [TestCase(ProtocolVersion.V1)]
+        public void Should_NotSkipMetadata_When_BoundStatementDoesNotContainColumnDefinitions(ProtocolVersion version)
+        {
+            var serializerManager = new SerializerManager(version);
+            var ps = GetPrepared(serializerManager: serializerManager);
+            var stmt = ps.Bind();
+            var queryOptions = new QueryOptions();
+            var request = (ExecuteRequest)RequestHandler.GetRequest(stmt, serializerManager.GetCurrentSerializer(), GetRequestOptions(queryOptions));
+            Assert.IsFalse(request.SkipMetadata);
+        }
+
+        [Test]
+        [TestCase(ProtocolVersion.V5, true)]
+        [TestCase(ProtocolVersion.DseV2, true)]
+        [TestCase(ProtocolVersion.V4, false)]
+        [TestCase(ProtocolVersion.V3, false)]
+        [TestCase(ProtocolVersion.V2, false)]
+        [TestCase(ProtocolVersion.V1, false)]
+        public void Should_SkipMetadata_When_BoundStatementContainsColumnDefinitionsAndProtocolSupportsNewResultMetadataId(
+            ProtocolVersion version, bool isSet)
+        {
+            var serializerManager = new SerializerManager(version);
+            var rsMetadata = new RowSetMetadata { Columns = new[] { new CqlColumn() } };
+            var ps = GetPrepared(new byte[16], serializerManager, rsMetadata);
+            var stmt = ps.Bind();
+            var queryOptions = new QueryOptions();
+            var request = (ExecuteRequest)RequestHandler.GetRequest(stmt, serializerManager.GetCurrentSerializer(), GetRequestOptions(queryOptions));
+            Assert.AreEqual(isSet, request.SkipMetadata);
+        }
+        
+        [Test]
+        [TestCase(ProtocolVersion.V5)]
+        [TestCase(ProtocolVersion.DseV2)]
+        [TestCase(ProtocolVersion.V4)]
+        [TestCase(ProtocolVersion.V3)]
+        [TestCase(ProtocolVersion.V2)]
+        [TestCase(ProtocolVersion.V1)]
+        public void Should_SkipMetadata_When_NotBoundStatement(ProtocolVersion version)
+        {
+            var serializerManager = new SerializerManager(version);
+            var stmt = new SimpleStatement("DUMMY QUERY");
+            var queryOptions = new QueryOptions();
+            var request = (QueryRequest)RequestHandler.GetRequest(stmt, serializerManager.GetCurrentSerializer(), GetRequestOptions(queryOptions));
+            Assert.IsFalse(request.SkipMetadata);
         }
 
         [Test]
@@ -517,7 +576,7 @@ namespace Cassandra.Tests
         public void GetRequest_Execute_Should_Use_Serial_Consistency_From_Statement()
         {
             const ConsistencyLevel expectedSerialConsistencyLevel = ConsistencyLevel.Serial;
-            var ps = GetPrepared(new byte[16]);
+            var ps = GetPrepared(queryId: new byte[16]);
             var statement = ps.Bind().SetSerialConsistencyLevel(expectedSerialConsistencyLevel);
             var config = new Configuration();
             config.QueryOptions.SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial);
@@ -547,7 +606,7 @@ namespace Cassandra.Tests
         public void GetRequest_Execute_Should_Use_Serial_Consistency_From_QueryOptions()
         {
             const ConsistencyLevel expectedSerialConsistencyLevel = ConsistencyLevel.LocalSerial;
-            var ps = GetPrepared(new byte[16]);
+            var ps = GetPrepared(queryId: new byte[16]);
             var statement = ps.Bind();
             var config = new Configuration();
             config.QueryOptions.SetSerialConsistencyLevel(expectedSerialConsistencyLevel);

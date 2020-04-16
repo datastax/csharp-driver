@@ -24,15 +24,14 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
     {
         public virtual ProcessOutput ExecuteCcm(string args, bool throwOnProcessError = true)
         {
-            //var executable = GetExecutable(ref args);
-            //Trace.TraceInformation(executable + " " + args);
-            //var output = ExecuteProcess(executable, args, GetDefaultTimeout());
-            //if (throwOnProcessError)
-            //{
-            //    ValidateOutput(output);
-            //}
-            //return output;
-            return null;
+            var executable = GetExecutable(ref args);
+            Trace.TraceInformation(executable + " " + args);
+            var output = ExecuteProcess(executable, args, GetDefaultTimeout());
+            if (throwOnProcessError)
+            {
+                ValidateOutput(output);
+            }
+            return output;
         }
 
         public virtual int GetDefaultTimeout()

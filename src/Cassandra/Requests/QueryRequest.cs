@@ -40,6 +40,11 @@ namespace Cassandra.Requests
             set { _queryOptions.PagingState = value; }
         }
 
+        public bool SkipMetadata
+        {
+            get { return _queryOptions.SkipMetadata; }
+        }
+
         public int PageSize
         {
             get { return _queryOptions.PageSize; }

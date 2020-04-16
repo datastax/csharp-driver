@@ -27,7 +27,8 @@ namespace Cassandra.Requests
         int WriteFrame(short streamId, MemoryStream stream, ISerializer serializer);
 
         /// <summary>
-        /// Result Metadata to parse the response rows. Most requests set this to null.
+        /// Result Metadata to parse the response rows. Only EXECUTE requests set this value so it will be null
+        /// for other types of requests.
         /// </summary>
         ResultMetadata ResultMetadata { get; }
     }

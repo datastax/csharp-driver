@@ -53,6 +53,11 @@ namespace Cassandra.Requests
             get { return _queryOptions.SerialConsistency; }
         }
 
+        public bool SkipMetadata
+        {
+            get { return _queryOptions.SkipMetadata; }
+        }
+
         public IDictionary<string, byte[]> Payload { get; set; }
         
         /// <inheritdoc />

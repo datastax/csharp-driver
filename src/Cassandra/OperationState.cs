@@ -82,7 +82,7 @@ namespace Cassandra
             _operationObserver = operationObserver;
             Request = request;
             TimeoutMillis = timeoutMillis;
-            ResultMetadata = request.ResultMetadata;
+            ResultMetadata = request?.ResultMetadata;
         }
 
         /// <summary>

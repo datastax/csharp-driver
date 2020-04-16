@@ -40,14 +40,17 @@ namespace Cassandra
         public static readonly QueryProtocolOptions Default = 
             new QueryProtocolOptions(ConsistencyLevel.One, null, false, QueryOptions.DefaultPageSize, null, ConsistencyLevel.Any);
 
-        private readonly bool _skipMetadata;
         public readonly int PageSize;
         public readonly ConsistencyLevel SerialConsistency;
         
         private readonly string _keyspace;
 
+        public bool SkipMetadata { get; }
+
         public byte[] PagingState { get; set; }
+
         public object[] Values { get; private set; }
+
         public ConsistencyLevel Consistency { get; set; }
 
         public DateTimeOffset? Timestamp
@@ -77,7 +80,7 @@ namespace Cassandra
         {
             Consistency = consistency;
             Values = values;
-            _skipMetadata = skipMetadata;
+            SkipMetadata = skipMetadata;
             if (pageSize <= 0)
             {
                 PageSize = QueryOptions.DefaultPageSize;
@@ -146,7 +149,7 @@ namespace Cassandra
             {
                 flags |= QueryFlags.Values;
             }
-            if (_skipMetadata)
+            if (SkipMetadata)
             {
                 flags |= QueryFlags.SkipMetadata;
             }
