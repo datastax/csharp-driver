@@ -50,10 +50,13 @@ namespace Cassandra.Connections.Control
         {
             ControlConnection.Logger.Info("Refreshing node list");
 
+            // safe guard against concurrent changes of this field
+            var localIsPeersV2 = _isPeersV2;
+
             var localTask = _config.MetadataRequestHandler.SendMetadataRequestAsync(
                 connection, version, TopologyRefresher.SelectLocal, QueryProtocolOptions.Default);
             var peersTask = _config.MetadataRequestHandler.SendMetadataRequestAsync(
-                connection, version, _isPeersV2 ? TopologyRefresher.SelectPeersV2 : TopologyRefresher.SelectPeers, QueryProtocolOptions.Default);
+                connection, version, localIsPeersV2 ? TopologyRefresher.SelectPeersV2 : TopologyRefresher.SelectPeers, QueryProtocolOptions.Default);
 
             // Wait for both tasks to complete before checking for a missing peers_v2 table.
             try
@@ -62,14 +65,14 @@ namespace Cassandra.Connections.Control
             }
             catch
             {
-                if (localTask.Exception != null)
+                if (localTask.Exception != null || !localIsPeersV2)
                 {
                     throw;
                 }
             }
             
             Response peersResponse = null;
-            if (_isPeersV2)
+            if (localIsPeersV2)
             {
                 try
                 {
@@ -81,13 +84,9 @@ namespace Cassandra.Connections.Control
                         "Failed to retrieve data from system.peers_v2, falling back to system.peers for " +
                         "the remainder of this cluster instance's lifetime.");
                     _isPeersV2 = false;
+                    peersResponse = await _config.MetadataRequestHandler.SendMetadataRequestAsync(
+                        connection, version, TopologyRefresher.SelectPeers, QueryProtocolOptions.Default);
                 }
-            }
-
-            if (peersResponse == null)
-            {
-                peersResponse = await _config.MetadataRequestHandler.SendMetadataRequestAsync(
-                    connection, version, TopologyRefresher.SelectPeers, QueryProtocolOptions.Default);
             }
 
             var rsPeers = _config.MetadataRequestHandler.GetRowSet(peersResponse);
@@ -101,7 +100,7 @@ namespace Cassandra.Connections.Control
 
             _metadata.Partitioner = localRow.GetValue<string>("partitioner");
             var host = GetAndUpdateLocalHost(currentEndPoint, localRow);
-            UpdatePeersInfo(rsPeers, host);
+            UpdatePeersInfo(localIsPeersV2, rsPeers, host);
             ControlConnection.Logger.Info("Node list retrieved successfully");
             return host;
         }
@@ -137,12 +136,12 @@ namespace Cassandra.Connections.Control
         /// <summary>
         /// Parses response from system.peers and updates the hosts collection.
         /// </summary>
-        private void UpdatePeersInfo(IEnumerable<IRow> peersRs, Host currentHost)
+        private void UpdatePeersInfo(bool isPeersV2, IEnumerable<IRow> peersRs, Host currentHost)
         {
             var foundPeers = new HashSet<IPEndPoint>();
             foreach (var row in peersRs)
             {
-                var address = GetRpcEndPoint(true, row, _config.AddressTranslator, _config.ProtocolOptions.Port);
+                var address = GetRpcEndPoint(isPeersV2, row, _config.AddressTranslator, _config.ProtocolOptions.Port);
                 if (address == null)
                 {
                     ControlConnection.Logger.Error("No address found for host, ignoring it.");
@@ -167,17 +166,10 @@ namespace Cassandra.Connections.Control
         /// <summary>
         /// Parses address from system table query response and translates it using the provided <paramref name="translator"/>.
         /// </summary>
-        internal IPEndPoint GetRpcEndPoint(bool isPeer, IRow row, IAddressTranslator translator, int defaultPort)
+        internal IPEndPoint GetRpcEndPoint(bool isPeersV2, IRow row, IAddressTranslator translator, int defaultPort)
         {
             IPAddress address;
-            if (isPeer && _isPeersV2)
-            {
-                address = GetRpcAddressFromPeersV2(row);
-            }
-            else
-            {
-                address = GetRpcAddressFromLocalPeersV1(row);
-            }
+            address = isPeersV2 ? GetRpcAddressFromPeersV2(row) : GetRpcAddressFromLocalPeersV1(row);
 
             if (address == null)
             {
@@ -193,7 +185,7 @@ namespace Cassandra.Connections.Control
             }
 
             var rpcPort = defaultPort;
-            if (_isPeersV2 && isPeer)
+            if (isPeersV2)
             {
                 var nullableRpcPort = GetRpcPortFromPeersV2(row);
                 if (nullableRpcPort == null)
