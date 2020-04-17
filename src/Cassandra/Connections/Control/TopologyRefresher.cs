@@ -84,8 +84,9 @@ namespace Cassandra.Connections.Control
                         "Failed to retrieve data from system.peers_v2, falling back to system.peers for " +
                         "the remainder of this cluster instance's lifetime.");
                     _isPeersV2 = false;
+                    localIsPeersV2 = false;
                     peersResponse = await _config.MetadataRequestHandler.SendMetadataRequestAsync(
-                        connection, version, TopologyRefresher.SelectPeers, QueryProtocolOptions.Default);
+                        connection, version, TopologyRefresher.SelectPeers, QueryProtocolOptions.Default).ConfigureAwait(false);
                 }
             }
 

@@ -36,12 +36,22 @@ namespace Cassandra.Tests.Connections.TestHelpers
             _rows = rows;
         }
 
-        private Task<Response> Send(IConnection connection, ProtocolVersion version, string cqlQuery, QueryProtocolOptions queryProtocolOptions)
+        private async Task<Response> Send(IConnection connection, ProtocolVersion version, string cqlQuery, QueryProtocolOptions queryProtocolOptions)
         {
             Requests.Enqueue(new MetadataRequest { Version = version, CqlQuery = cqlQuery, QueryProtocolOptions = queryProtocolOptions });
+            await Task.Yield();
+            ThrowErrorIfNullRows(cqlQuery);
             var response = new FakeResultResponse(ResultResponse.ResultResponseKind.Rows);
             _responsesByCql.AddOrUpdate(response, _ => cqlQuery, (_,__) => cqlQuery);
-            return Task.FromResult((Response) response);
+            return (Response) response;
+        }
+
+        private void ThrowErrorIfNullRows(string cqlQuery)
+        {
+            if (_rows.ContainsKey(cqlQuery) && _rows[cqlQuery] == null)
+            {
+                throw new InvalidQueryException("error");
+            }
         }
 
         public Task<Response> SendMetadataRequestAsync(IConnection connection, ProtocolVersion version, string cqlQuery, QueryProtocolOptions queryProtocolOptions)
