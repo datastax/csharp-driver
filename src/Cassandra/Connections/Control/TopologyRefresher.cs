@@ -19,6 +19,7 @@ using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using Cassandra.Responses;
+using Cassandra.Tasks;
 
 namespace Cassandra.Connections.Control
 {
@@ -46,51 +47,23 @@ namespace Cassandra.Connections.Control
         }
 
         /// <inheritdoc />
-        public async Task<Host> RefreshNodeListAsync(IConnectionEndPoint currentEndPoint, IConnection connection, ProtocolVersion version)
+        public async Task<Host> RefreshNodeListAsync(
+            IConnectionEndPoint currentEndPoint, IConnection connection, ProtocolVersion version)
         {
             ControlConnection.Logger.Info("Refreshing node list");
 
             // safe guard against concurrent changes of this field
             var localIsPeersV2 = _isPeersV2;
 
-            var localTask = _config.MetadataRequestHandler.SendMetadataRequestAsync(
-                connection, version, TopologyRefresher.SelectLocal, QueryProtocolOptions.Default);
-            var peersTask = _config.MetadataRequestHandler.SendMetadataRequestAsync(
-                connection, version, localIsPeersV2 ? TopologyRefresher.SelectPeersV2 : TopologyRefresher.SelectPeers, QueryProtocolOptions.Default);
-
-            // Wait for both tasks to complete before checking for a missing peers_v2 table.
-            try
-            {
-                await Task.WhenAll(localTask, peersTask).ConfigureAwait(false);
-            }
-            catch
-            {
-                if (localTask.Exception != null || !localIsPeersV2)
-                {
-                    throw;
-                }
-            }
+            var localTask = SendSystemLocalRequestAsync(connection, version);
+            var peersTask = SendSystemPeersRequestAsync(localIsPeersV2, connection, version);
             
-            Response peersResponse = null;
-            if (localIsPeersV2)
-            {
-                try
-                {
-                    peersResponse = await peersTask.ConfigureAwait(false);
-                }
-                catch (InvalidQueryException)
-                {
-                    ControlConnection.Logger.Verbose(
-                        "Failed to retrieve data from system.peers_v2, falling back to system.peers for " +
-                        "the remainder of this cluster instance's lifetime.");
-                    _isPeersV2 = false;
-                    localIsPeersV2 = false;
-                    peersResponse = await _config.MetadataRequestHandler.SendMetadataRequestAsync(
-                        connection, version, TopologyRefresher.SelectPeers, QueryProtocolOptions.Default).ConfigureAwait(false);
-                }
-            }
+            await Task.WhenAll(localTask, peersTask).ConfigureAwait(false);
 
-            var rsPeers = _config.MetadataRequestHandler.GetRowSet(peersResponse);
+            var peersResponse = await peersTask.ConfigureAwait(false);
+            localIsPeersV2 = peersResponse.IsPeersV2;
+
+            var rsPeers = _config.MetadataRequestHandler.GetRowSet(peersResponse.Response);
             
             var localRow = _config.MetadataRequestHandler.GetRowSet(await localTask.ConfigureAwait(false)).FirstOrDefault();
             if (localRow == null)
@@ -104,6 +77,55 @@ namespace Cassandra.Connections.Control
             UpdatePeersInfo(localIsPeersV2, rsPeers, host);
             ControlConnection.Logger.Info("Node list retrieved successfully");
             return host;
+        }
+        
+        private Task<Response> SendSystemLocalRequestAsync(IConnection connection, ProtocolVersion version)
+        {
+            return _config.MetadataRequestHandler.SendMetadataRequestAsync(
+                connection, version, TopologyRefresher.SelectLocal, QueryProtocolOptions.Default);
+        }
+
+        private Task<PeersResponse> SendSystemPeersRequestAsync(bool isPeersV2, IConnection connection, ProtocolVersion version)
+        {
+            var peersTask = _config.MetadataRequestHandler.SendMetadataRequestAsync(
+                connection, 
+                version, 
+                isPeersV2 ? TopologyRefresher.SelectPeersV2 : TopologyRefresher.SelectPeers, 
+                QueryProtocolOptions.Default);
+
+            return GetPeersResponseAsync(isPeersV2, peersTask, connection, version);
+        }
+
+        /// <summary>
+        /// Handles fallback logic when peers_v2 table is missing.
+        /// </summary>
+        private async Task<PeersResponse> GetPeersResponseAsync(
+            bool isPeersV2, Task<Response> peersRequest, IConnection connection, ProtocolVersion version)
+        {
+            if (!isPeersV2)
+            {
+                var peersResponse = await peersRequest.ConfigureAwait(false);
+                return new PeersResponse { IsPeersV2 = false, Response = peersResponse };
+            }
+
+            try
+            {
+                var peersResponse = await peersRequest.ConfigureAwait(false);
+                return new PeersResponse { IsPeersV2 = true, Response = peersResponse };
+            }
+            catch (InvalidQueryException)
+            {
+                ControlConnection.Logger.Verbose(
+                    "Failed to retrieve data from system.peers_v2, falling back to system.peers for " +
+                    "the remainder of this cluster instance's lifetime.");
+
+                _isPeersV2 = false;
+
+                peersRequest = _config.MetadataRequestHandler.SendMetadataRequestAsync(
+                    connection, version, TopologyRefresher.SelectPeers, QueryProtocolOptions.Default);
+
+                return await GetPeersResponseAsync(false, peersRequest, connection, version).ConfigureAwait(false);
+            }
         }
 
         /// <summary>
@@ -216,6 +238,13 @@ namespace Cassandra.Connections.Control
         private int? GetRpcPortFromPeersV2(IRow row)
         {
             return row.GetValue<int?>("native_port");
+        }
+
+        private class PeersResponse
+        {
+            public bool IsPeersV2 { get; set;  }
+
+            public Response Response { get; set;  }
         }
     }
 }

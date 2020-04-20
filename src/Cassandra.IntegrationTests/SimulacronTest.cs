@@ -33,17 +33,24 @@ namespace Cassandra.IntegrationTests
         private readonly SimulacronOptions _options;
         private readonly bool _connect;
         private readonly string _keyspace;
+        private readonly SimulacronManager _simulacronManager;
 
-        public SimulacronTest() : this(false, null, true, null)
+        protected SimulacronTest() : this(false, null, true, null, null)
         {
         }
 
-        public SimulacronTest(bool shared = false, SimulacronOptions options = null, bool connect = true, string keyspace = null)
+        protected SimulacronTest(
+            bool shared = false, 
+            SimulacronOptions options = null, 
+            bool connect = true, 
+            string keyspace = null,
+            SimulacronManager simulacronManager = null)
         {
             _shared = shared;
             _options = options ?? new SimulacronOptions();
             _connect = connect;
             _keyspace = keyspace;
+            _simulacronManager = simulacronManager;
         }
         
         protected ISession Session { get; private set; }
@@ -121,11 +128,6 @@ namespace Cassandra.IntegrationTests
             Assert.AreEqual(count, filteredQueries.Count());
         }
 
-        protected void PrimeSystemSchemaUdt(string keyspace, string type, IEnumerable<StubTableColumn> columns)
-        {
-
-        }
-
         protected void PrimeSystemSchemaTables(string keyspace, string table, IEnumerable<StubTableColumn> columns)
         {
             var version30 = new Version(3, 0);
@@ -184,7 +186,10 @@ namespace Cassandra.IntegrationTests
 
         private void Init()
         {
-            TestCluster = SimulacronCluster.CreateNew(_options);
+            TestCluster = _simulacronManager == null 
+                ? SimulacronCluster.CreateNew(_options) 
+                : SimulacronCluster.CreateNew(_simulacronManager, _options);
+
             if (_connect)
             {
                 Session = CreateSession();
@@ -199,6 +204,7 @@ namespace Cassandra.IntegrationTests
         {
             Session?.Cluster?.Dispose();
             TestCluster?.Dispose();
+            _simulacronManager?.Dispose();
         }
 
         protected void SetupNewTestCluster()
@@ -209,9 +215,11 @@ namespace Cassandra.IntegrationTests
             Init();
         }
         
-        protected void SetupNewSession(Func<Builder, Builder> builderConfig)
+        protected void SetupNewSession(Func<Builder, Builder> builderConfig = null)
         {
-            var session = builderConfig(Cluster.Builder()).AddContactPoint(TestCluster.InitialContactPoint).Build().Connect();
+            var builder = Cluster.Builder();
+            builderConfig?.Invoke(builder);
+            var session = builder.AddContactPoint(TestCluster.InitialContactPoint).Build().Connect();
             Session?.Cluster?.Dispose();
             Session = session;
         }

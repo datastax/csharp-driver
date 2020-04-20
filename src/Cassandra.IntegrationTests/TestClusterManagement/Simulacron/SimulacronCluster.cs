@@ -58,7 +58,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
             return new IPEndPoint(IPAddress.Parse(contact), 9042);
         }
 
-        private SimulacronCluster(string id) : base(id)
+        private SimulacronCluster(string id, SimulacronManager simulacronManager) : base(id, simulacronManager)
         {
         }
         
@@ -75,14 +75,18 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
             return CreateNew(new SimulacronOptions { Nodes = nodeLength.ToString() });
         }
         
-        public static async Task<SimulacronCluster> CreateNewAsync(SimulacronOptions options)
+        public static Task<SimulacronCluster> CreateNewAsync(SimulacronOptions options)
         {
-            var simulacronManager = SimulacronManager.Instance;
-            simulacronManager.Start();
+            SimulacronManager.DefaultInstance.Start();
+            return CreateNewAsync(SimulacronManager.DefaultInstance, options);
+        }
+        
+        public static async Task<SimulacronCluster> CreateNewAsync(SimulacronManager simulacronManager, SimulacronOptions options)
+        {
             var path = string.Format(CreateClusterPathFormat, options.Nodes, options.GetCassandraVersion(),
                 options.GetDseVersion(), options.Name, options.ActivityLog, options.NumberOfTokens);
-            var data = await Post(path, null).ConfigureAwait(false);
-            return CreateFromData(data);
+            var data = await Post(simulacronManager, path, null).ConfigureAwait(false);
+            return CreateFromData(simulacronManager, data);
         }
 
         public static SimulacronCluster CreateNew(SimulacronOptions options)
@@ -90,20 +94,33 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
             return TaskHelper.WaitToComplete(CreateNewAsync(options));
         }
 
+        public static SimulacronCluster CreateNew(SimulacronManager simulacronManager, SimulacronOptions options)
+        {
+            return TaskHelper.WaitToComplete(CreateNewAsync(simulacronManager, options));
+        }
+        
         /// <summary>
         /// Creates a new cluster with POST body parameters.
         /// </summary>
         public static SimulacronCluster CreateNewWithPostBody(dynamic body)
         {
-            var simulacronManager = SimulacronManager.Instance;
+            var simulacronManager = SimulacronManager.DefaultInstance;
             simulacronManager.Start();
-            var data = TaskHelper.WaitToComplete(Post(CreateClusterPath, body));
-            return CreateFromData(data);
+            return CreateNewWithPostBody(simulacronManager, body);
+        }
+        
+        /// <summary>
+        /// Creates a new cluster with POST body parameters.
+        /// </summary>
+        public static SimulacronCluster CreateNewWithPostBody(SimulacronManager simulacronManager, dynamic body)
+        {
+            var data = TaskHelper.WaitToComplete(Post(simulacronManager, CreateClusterPath, body));
+            return CreateFromData(simulacronManager, data);
         }
 
-        private static SimulacronCluster CreateFromData(dynamic data)
+        private static SimulacronCluster CreateFromData(SimulacronManager simulacronManager, dynamic data)
         {
-            var cluster = new SimulacronCluster(data["id"].ToString())
+            var cluster = new SimulacronCluster(data["id"].ToString(), simulacronManager)
             {
                 Data = data,
                 DataCenters = new List<SimulacronDataCenter>()
@@ -111,13 +128,13 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
             var dcs = (JArray) cluster.Data["data_centers"];
             foreach (var dc in dcs)
             {
-                var dataCenter = new SimulacronDataCenter(cluster.Id + "/" + dc["id"]);
+                var dataCenter = new SimulacronDataCenter(cluster.Id + "/" + dc["id"], simulacronManager);
                 cluster.DataCenters.Add(dataCenter);
                 dataCenter.Nodes = new List<SimulacronNode>();
                 var nodes = (JArray) dc["nodes"];
                 foreach (var nodeJObject in nodes)
                 {
-                    var node = new SimulacronNode(dataCenter.Id + "/" + nodeJObject["id"]);
+                    var node = new SimulacronNode(dataCenter.Id + "/" + nodeJObject["id"], simulacronManager);
                     dataCenter.Nodes.Add(node);
                     node.ContactPoint = nodeJObject["address"].ToString();
                 }
@@ -127,7 +144,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
 
         public Task DropConnection(string ip, int port)
         {
-            return SimulacronBase.DeleteAsync(GetPath("connection") + "/" + ip + "/" + port);
+            return DeleteAsync(GetPath("connection") + "/" + ip + "/" + port);
         }
 
         public Task DropConnection(IPEndPoint endpoint)
@@ -157,7 +174,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
 
         public async Task RemoveAsync()
         {
-            await SimulacronBase.DeleteAsync(GetPath("cluster")).ConfigureAwait(false);
+            await DeleteAsync(GetPath("cluster")).ConfigureAwait(false);
         }
 
         public SimulacronNode GetNode(int index)
