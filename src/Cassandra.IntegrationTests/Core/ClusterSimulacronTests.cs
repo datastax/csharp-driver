@@ -32,10 +32,10 @@ namespace Cassandra.IntegrationTests.Core
 {
     public class ClusterSimulacronTests : SimulacronTest
     {
-        public ClusterSimulacronTests() : base(false, new SimulacronOptions {Nodes = "3"}, false)
+        public ClusterSimulacronTests() : base(false, new SimulacronOptions { Nodes = "3" }, false)
         {
         }
-        
+
         [Test]
         public async Task Cluster_Should_StopSendingPeersV2Requests_When_InvalidQueryIsThrown()
         {
@@ -50,28 +50,28 @@ namespace Cassandra.IntegrationTests.Core
 
             await TestCluster.GetNode(Session.Cluster.Metadata.ControlConnection.Host.Address).Stop().ConfigureAwait(false);
 
-            try
-            {
-                // force control connection reconnect
-                await Session.Cluster.Metadata.ControlConnection.QueryAsync("hack", true).ConfigureAwait(false);
-            }
-            catch
-            {
-                // ignored
-            }
-            
+            // wait until control connection reconnection is done
+            TestHelper.RetryAssert(
+                () =>
+                {
+                    Assert.AreEqual(1, Session.Cluster.AllHosts().Count(h => !h.IsUp));
+                    Assert.IsTrue(Session.Cluster.Metadata.ControlConnection.Host.IsUp);
+                },
+                100,
+                50);
+
             await TestCluster.GetNode(Session.Cluster.Metadata.ControlConnection.Host.Address).Stop().ConfigureAwait(false);
-            
-            try
-            {
-                // force control connection reconnect
-                await Session.Cluster.Metadata.ControlConnection.QueryAsync("hack", true).ConfigureAwait(false);
-            }
-            catch
-            {
-                // ignored
-            }
-            
+
+            // wait until control connection reconnection is done
+            TestHelper.RetryAssert(
+                () =>
+                {
+                    Assert.AreEqual(2, Session.Cluster.AllHosts().Count(h => !h.IsUp));
+                    Assert.IsTrue(Session.Cluster.Metadata.ControlConnection.Host.IsUp);
+                },
+                100,
+                50);
+
             var afterPeersV2Queries = TestCluster.GetQueries("SELECT * FROM system.peers_v2");
             var afterPeersQueries = TestCluster.GetQueries("SELECT * FROM system.peers");
 
