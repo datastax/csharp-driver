@@ -14,20 +14,21 @@
 //   limitations under the License.
 //
 
-using System.IO;
-using Cassandra.Serialization;
-
 namespace Cassandra.Requests
 {
-    internal class OptionsRequest : IRequest
+    internal class OptionsRequest : BaseRequest
     {
-        public const byte OpCode = 0x05;
+        public const byte OptionsOpCode = 0x05;
 
-        public int WriteFrame(short streamId, MemoryStream stream, ISerializer serializer)
+        public OptionsRequest() : base(false, null)
         {
-            var wb = new FrameWriter(stream, serializer);
-            wb.WriteFrameHeader(0x00, streamId, OpCode);
-            return wb.Close();
+        }
+
+        protected override byte OpCode => OptionsRequest.OptionsOpCode;
+
+        protected override void WriteBody(FrameWriter wb)
+        {
+            // OPTIONS requests have a header only
         }
     }
 }

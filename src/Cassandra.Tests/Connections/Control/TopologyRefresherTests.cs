@@ -22,6 +22,7 @@ using System.Threading.Tasks;
 using Cassandra.Connections;
 using Cassandra.Connections.Control;
 using Cassandra.Requests;
+using Cassandra.Serialization;
 using Cassandra.Tests.Connections.TestHelpers;
 using Moq;
 using NUnit.Framework;
@@ -35,6 +36,8 @@ namespace Cassandra.Tests.Connections.Control
         private const string PeersQuery = "SELECT * FROM system.peers";
 
         private Metadata _metadata;
+
+        private ISerializer _serializer = new SerializerManager(ProtocolVersion.MaxSupported).GetCurrentSerializer();
 
         private FakeMetadataRequestHandler CreateFakeMetadataRequestHandler(
             IRow localRow = null,
@@ -86,7 +89,7 @@ namespace Cassandra.Tests.Connections.Control
             var topologyRefresher = new TopologyRefresher(_metadata, config);
             var connection = Mock.Of<IConnection>();
 
-            var _ = topologyRefresher.RefreshNodeListAsync(new FakeConnectionEndPoint("127.0.0.1", 9042), connection, ProtocolVersion.MaxSupported);
+            var _ = topologyRefresher.RefreshNodeListAsync(new FakeConnectionEndPoint("127.0.0.1", 9042), connection, _serializer);
 
             Assert.AreEqual(TopologyRefresherTests.LocalQuery, fakeRequestHandler.Requests.First().CqlQuery);
             Assert.AreEqual(TopologyRefresherTests.PeersQuery, fakeRequestHandler.Requests.Last().CqlQuery);
@@ -99,7 +102,7 @@ namespace Cassandra.Tests.Connections.Control
             var connection = Mock.Of<IConnection>();
 
             await topologyRefresher.RefreshNodeListAsync(
-                new FakeConnectionEndPoint("127.0.0.1", 9042), connection, ProtocolVersion.MaxSupported).ConfigureAwait(false);
+                new FakeConnectionEndPoint("127.0.0.1", 9042), connection, _serializer).ConfigureAwait(false);
 
             Assert.AreEqual("ut-cluster", _metadata.ClusterName);
         }
@@ -117,7 +120,7 @@ namespace Cassandra.Tests.Connections.Control
             var topologyRefresher = CreateTopologyRefresher(peersRows: rows);
 
             await topologyRefresher.RefreshNodeListAsync(
-                                       new FakeConnectionEndPoint("127.0.0.1", 9042), Mock.Of<IConnection>(), ProtocolVersion.MaxSupported)
+                                       new FakeConnectionEndPoint("127.0.0.1", 9042), Mock.Of<IConnection>(), _serializer)
                                    .ConfigureAwait(false);
 
             Assert.AreEqual(3, _metadata.AllHosts().Count);
@@ -144,7 +147,7 @@ namespace Cassandra.Tests.Connections.Control
             var topologyRefresher = CreateTopologyRefresher(peersRows: rows);
 
             await topologyRefresher.RefreshNodeListAsync(
-                                       new FakeConnectionEndPoint("127.0.0.1", 9042), Mock.Of<IConnection>(), ProtocolVersion.MaxSupported)
+                                       new FakeConnectionEndPoint("127.0.0.1", 9042), Mock.Of<IConnection>(), _serializer)
                                    .ConfigureAwait(false);
 
             //Only local host present
@@ -181,7 +184,7 @@ namespace Cassandra.Tests.Connections.Control
             var topologyRefresher = new TopologyRefresher(metadata, config);
 
             await topologyRefresher.RefreshNodeListAsync(
-                                       new FakeConnectionEndPoint("127.0.0.1", 9042), Mock.Of<IConnection>(), ProtocolVersion.MaxSupported)
+                                       new FakeConnectionEndPoint("127.0.0.1", 9042), Mock.Of<IConnection>(), _serializer)
                                    .ConfigureAwait(false);
 
             Assert.AreEqual(3, metadata.AllHosts().Count);

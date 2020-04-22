@@ -16,21 +16,21 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
+
 using Cassandra.Serialization;
 
 namespace Cassandra.Requests
 {
-    internal class InternalPrepareRequest : IRequest
+    internal class PrepareRequest : BaseRequest
     {
-        public const byte OpCode = 0x09;
-        private readonly IDictionary<string, byte[]> _payload;
-        private readonly FrameHeader.HeaderFlag _headerFlags;
-        private readonly PrepareFlags _prepareFlags = 0;
+        public const byte PrepareOpCode = 0x09;
+
+        private readonly PrepareFlags _prepareFlags = PrepareFlags.None;
 
         [Flags]
         internal enum PrepareFlags
         {
+            None = 0,
             WithKeyspace = 0x01
         }
 
@@ -44,45 +44,30 @@ namespace Cassandra.Requests
         /// </summary>
         public string Query { get; set; }
 
-        public InternalPrepareRequest(string cqlQuery, string keyspace = null, IDictionary<string, byte[]> payload = null)
+        public PrepareRequest(
+            ISerializer serializer, string cqlQuery, string keyspace, IDictionary<string, byte[]> payload)
+            : base(serializer, false, payload)
         {
             Query = cqlQuery;
             Keyspace = keyspace;
-            _payload = payload;
-            if (payload != null)
-            {
-                _headerFlags |= FrameHeader.HeaderFlag.CustomPayload;
-            }
 
-            if (keyspace != null)
+            if (serializer.ProtocolVersion.SupportsKeyspaceInRequest() && keyspace != null)
             {
                 _prepareFlags |= PrepareFlags.WithKeyspace;
             }
         }
 
-        public int WriteFrame(short streamId, MemoryStream stream, ISerializer serializer)
+        protected override byte OpCode => PrepareRequest.PrepareOpCode;
+
+        protected override void WriteBody(FrameWriter wb)
         {
-            var wb = new FrameWriter(stream, serializer);
-            wb.WriteFrameHeader((byte)_headerFlags, streamId, OpCode);
-            var protocolVersion = serializer.ProtocolVersion;
-
-            if (_payload != null)
-            {
-                wb.WriteBytesMap(_payload);
-            }
-
             wb.WriteLongString(Query);
 
-            if (protocolVersion.SupportsKeyspaceInRequest())
+            if (_prepareFlags != PrepareFlags.None)
             {
-                wb.WriteInt32((int) _prepareFlags);
-                if (Keyspace != null)
-                {
-                    wb.WriteString(Keyspace);
-                }
+                wb.WriteInt32((int)_prepareFlags);
+                wb.WriteString(Keyspace);
             }
-
-            return wb.Close();
         }
     }
 }

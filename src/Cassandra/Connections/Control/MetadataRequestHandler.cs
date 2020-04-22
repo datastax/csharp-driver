@@ -19,6 +19,7 @@ using System.Net.Sockets;
 using System.Threading.Tasks;
 using Cassandra.Requests;
 using Cassandra.Responses;
+using Cassandra.Serialization;
 
 namespace Cassandra.Connections.Control
 {
@@ -26,9 +27,9 @@ namespace Cassandra.Connections.Control
     internal class MetadataRequestHandler : IMetadataRequestHandler
     {
         public async Task<Response> SendMetadataRequestAsync(
-            IConnection connection, ProtocolVersion version, string cqlQuery, QueryProtocolOptions queryProtocolOptions)
+            IConnection connection, ISerializer serializer, string cqlQuery, QueryProtocolOptions queryProtocolOptions)
         {
-            var request = new QueryRequest(version, cqlQuery, false, queryProtocolOptions);
+            var request = new QueryRequest(serializer, cqlQuery, queryProtocolOptions, false, null);
             Response response;
             try
             {
@@ -44,9 +45,9 @@ namespace Cassandra.Connections.Control
         }
 
         public Task<Response> UnsafeSendQueryRequestAsync(
-            IConnection connection, ProtocolVersion version, string cqlQuery, QueryProtocolOptions queryProtocolOptions)
+            IConnection connection, ISerializer serializer, string cqlQuery, QueryProtocolOptions queryProtocolOptions)
         {
-            return connection.Send(new QueryRequest(version, cqlQuery, false, queryProtocolOptions));
+            return connection.Send(new QueryRequest(serializer, cqlQuery, queryProtocolOptions, false, null));
         }
 
         /// <inheritdoc />

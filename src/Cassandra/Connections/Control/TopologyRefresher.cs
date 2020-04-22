@@ -18,6 +18,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
+using Cassandra.Serialization;
 
 namespace Cassandra.Connections.Control
 {
@@ -39,15 +40,16 @@ namespace Cassandra.Connections.Control
         }
 
         /// <inheritdoc />
-        public async Task<Host> RefreshNodeListAsync(IConnectionEndPoint currentEndPoint, IConnection connection, ProtocolVersion version)
+        public async Task<Host> RefreshNodeListAsync(
+            IConnectionEndPoint currentEndPoint, IConnection connection, ISerializer serializer)
         {
             ControlConnection.Logger.Info("Refreshing node list");
 
             var queriesRs = await Task.WhenAll(
                                           _config.MetadataRequestHandler.SendMetadataRequestAsync(
-                                              connection, version, TopologyRefresher.SelectLocal, QueryProtocolOptions.Default), 
+                                              connection, serializer, TopologyRefresher.SelectLocal, QueryProtocolOptions.Default), 
                                           _config.MetadataRequestHandler.SendMetadataRequestAsync(
-                                              connection, version, TopologyRefresher.SelectPeers, QueryProtocolOptions.Default))
+                                              connection, serializer, TopologyRefresher.SelectPeers, QueryProtocolOptions.Default))
                                       .ConfigureAwait(false);
 
             var localRow = _config.MetadataRequestHandler.GetRowSet(queriesRs[0]).FirstOrDefault();

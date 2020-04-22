@@ -31,7 +31,7 @@ namespace Cassandra.Requests
         /// <param name="prepareResult">The result of the prepare request on the first node.</param>
         /// <returns></returns>
         Task ReprepareOnAllNodesWithExistingConnections(
-            IInternalSession session, InternalPrepareRequest request, PrepareResult prepareResult);
+            IInternalSession session, PrepareRequest request, PrepareResult prepareResult);
 
         Task ReprepareOnSingleNodeAsync(
             KeyValuePair<Host, IHostConnectionPool> poolKvp, PreparedStatement ps, IRequest request, SemaphoreSlim sem, bool throwException);

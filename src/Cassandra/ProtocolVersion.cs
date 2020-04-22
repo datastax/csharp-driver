@@ -70,6 +70,7 @@ namespace Cassandra
     {
         private static readonly Logger Logger = new Logger(typeof(ProtocolVersion));
         private static readonly Version Version60 = new Version(6, 0);
+        private static readonly Version Version40 = new Version(4, 0);
         private static readonly Version Version30 = new Version(3, 0);
         private static readonly Version Version22 = new Version(2, 2);
         private static readonly Version Version21 = new Version(2, 1);
@@ -78,34 +79,46 @@ namespace Cassandra
         /// <summary>
         /// Determines if the protocol version is supported by this driver.
         /// </summary>
-        public static bool IsSupported(this ProtocolVersion version)
+        public static bool IsSupported(this ProtocolVersion version, Configuration config)
         {
-            return version == ProtocolVersion.DseV2 || (version >= ProtocolVersion.V1 && version <= ProtocolVersion.V4);
+            if (version.IsBeta())
+            {
+                return config.AllowBetaProtocolVersions;
+            }
+
+            return version >= ProtocolVersion.MinSupported && version <= ProtocolVersion.MaxSupported;
         }
 
         /// <summary>
         /// Gets the first version number that is supported, lower than the one provided.
         /// Returns zero when there isn't a lower supported version.
         /// </summary>
-        /// <param name="version"></param>
         /// <returns></returns>
-        public static ProtocolVersion GetLowerSupported(this ProtocolVersion version)
+        public static ProtocolVersion GetLowerSupported(this ProtocolVersion version, Configuration config)
         {
-            if (version >= ProtocolVersion.V5)
+            ProtocolVersion lowerVersion;
+            if (version > ProtocolVersion.V5)
             {
-                return ProtocolVersion.V4;
+                lowerVersion = ProtocolVersion.V5;
             }
-            if (version <= ProtocolVersion.V1)
+            else if (version <= ProtocolVersion.V1)
             {
-                return 0;
+                lowerVersion = 0;
             }
-            return version - 1;
+            else
+            {
+                lowerVersion = version - 1;
+            }
+
+            return lowerVersion.IsSupported(config)
+                ? lowerVersion
+                : lowerVersion.GetLowerSupported(config);
         }
 
         /// <summary>
         /// Gets the highest supported protocol version collectively by the given hosts.
         /// </summary>
-        public static ProtocolVersion GetHighestCommon(this ProtocolVersion version, IEnumerable<Host> hosts)
+        public static ProtocolVersion GetHighestCommon(this ProtocolVersion version, Configuration config, IEnumerable<Host> hosts)
         {
             var maxVersion = (byte)version;
             var v3Requirement = false;
@@ -122,7 +135,15 @@ namespace Cassandra
                 }
 
                 var cassandraVersion = host.CassandraVersion;
-                if (cassandraVersion >= Version30)
+
+                if (cassandraVersion >= Version40)
+                {
+                    // Anything 4.0.0+ has a max protocol version of V5 and requires at least V3.
+                    v3Requirement = true;
+                    maxVersion = Math.Min((byte)ProtocolVersion.V5, maxVersion);
+                    maxVersionWith3OrMore = maxVersion;
+                }
+                else if (cassandraVersion >= Version30)
                 {
                     // Anything 3.0.0+ has a max protocol version of V4 and requires at least V3.
                     v3Requirement = true;
@@ -186,6 +207,14 @@ namespace Cassandra
         /// Determines whether the protocol supports timestamps parameters in BATCH, QUERY and EXECUTE requests.
         /// </summary>
         public static bool SupportsTimestamp(this ProtocolVersion version)
+        {
+            return version >= ProtocolVersion.V3;
+        }
+
+        /// <summary>
+        /// Determines whether the protocol supports named values in BATCH, QUERY and EXECUTE requests.
+        /// </summary>
+        public static bool SupportsNamedValuesInQueries(this ProtocolVersion version)
         {
             return version >= ProtocolVersion.V3;
         }
@@ -281,6 +310,11 @@ namespace Cassandra
             }
 
             return 8;
+        }
+
+        public static bool IsBeta(this ProtocolVersion version)
+        {
+            return version == ProtocolVersion.V5;
         }
     }
 }

@@ -25,7 +25,7 @@ using Cassandra.Serialization;
 
 using NUnit.Framework;
 
-using PrepareFlags = Cassandra.Requests.InternalPrepareRequest.PrepareFlags;
+using PrepareFlags = Cassandra.Requests.PrepareRequest.PrepareFlags;
 using QueryFlags = Cassandra.QueryProtocolOptions.QueryFlags;
 
 namespace Cassandra.Tests
@@ -668,7 +668,7 @@ namespace Cassandra.Tests
         {
             const string query = "QUERY1";
             const string keyspace = "ks1";
-            var request = new InternalPrepareRequest(query, keyspace);
+            var request = new PrepareRequest(RequestHandlerTests.Serializer, query, keyspace, null);
 
             // The request is composed by: <query><flags>[<keyspace>]
             var buffer = GetBodyBuffer(request);
@@ -689,10 +689,11 @@ namespace Cassandra.Tests
         public void Prepare_With_Keyspace_On_Lower_Protocol_Version_Should_Ignore_Keyspace()
         {
             const string query = "SELECT col1, col2 FROM table1";
-            var request = new InternalPrepareRequest(query, "my_keyspace");
+            var serializer = new SerializerManager(ProtocolVersion.V2).GetCurrentSerializer();
+            var request = new PrepareRequest(serializer, query, "my_keyspace", null);
 
             // The request only contains the query
-            var buffer = GetBodyBuffer(request, new SerializerManager(ProtocolVersion.V2).GetCurrentSerializer());
+            var buffer = GetBodyBuffer(request, serializer);
 
             var queryLength = BeConverter.ToInt32(buffer);
             Assert.AreEqual(query.Length, queryLength);

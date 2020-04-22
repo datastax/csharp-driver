@@ -94,6 +94,8 @@ namespace Cassandra.Tests
 
         public bool? KeepContactPointsUnresolved { get; set; }
 
+        public bool? AllowBetaProtocolVersions { get; set; }
+
         public IContactPointParser ContactPointParser { get; set; }
 
         public IServerNameResolver ServerNameResolver { get; set; }
@@ -147,6 +149,7 @@ namespace Cassandra.Tests
                 MonitorReportingOptions,
                 TypeSerializerDefinitions,
                 KeepContactPointsUnresolved,
+                AllowBetaProtocolVersions,
                 SessionFactory,
                 RequestOptionsMapper,
                 StartupOptionsFactory,

@@ -45,7 +45,7 @@ namespace Cassandra.SessionManagement
         /// parallel.
         /// In case the statement was already in the prepared statements cache, logs an warning but prepares it anyway.
         /// </summary>
-        Task<PreparedStatement> Prepare(IInternalSession session, ISerializer serializer, InternalPrepareRequest request);
+        Task<PreparedStatement> Prepare(IInternalSession session, ISerializer serializer, PrepareRequest request);
         
         IReadOnlyDictionary<IContactPoint, IEnumerable<IConnectionEndPoint>> GetResolvedEndpoints();
 

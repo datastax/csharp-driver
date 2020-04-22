@@ -17,6 +17,7 @@
 using System;
 using System.Threading.Tasks;
 using Cassandra.IntegrationTests.TestClusterManagement;
+using Cassandra.Serialization;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.TestBase
@@ -59,6 +60,11 @@ namespace Cassandra.IntegrationTests.TestBase
                 protocolVersion = ProtocolVersion.V2;
             }
             return protocolVersion;
+        }
+
+        internal ISerializer GetSerializer()
+        {
+            return new SerializerManager(GetProtocolVersion()).GetCurrentSerializer();
         }
 
         public static async Task Connect(Cluster cluster, bool asyncConnect, Action<ISession> action)

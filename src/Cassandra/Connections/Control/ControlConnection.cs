@@ -338,7 +338,9 @@ namespace Cassandra.Connections.Control
                             await _supportedOptionsInitializer.ApplySupportedOptionsAsync(connection).ConfigureAwait(false);
                         }
 
-                        var currentHost = await _topologyRefresher.RefreshNodeListAsync(endPoint, connection, ProtocolVersion).ConfigureAwait(false);
+                        var currentHost = await _topologyRefresher.RefreshNodeListAsync(
+                            endPoint, connection, _serializer.GetCurrentSerializer()).ConfigureAwait(false);
+
                         SetCurrentConnection(currentHost, endPoint);
 
                         if (isInitializing)
@@ -471,7 +473,9 @@ namespace Cassandra.Connections.Control
             try
             {
                 var currentEndPoint = _currentConnectionEndPoint;
-                var currentHost = await _topologyRefresher.RefreshNodeListAsync(currentEndPoint, _connection, ProtocolVersion).ConfigureAwait(false);
+                var currentHost = await _topologyRefresher.RefreshNodeListAsync(
+                    currentEndPoint, _connection, _serializer.GetCurrentSerializer()).ConfigureAwait(false);
+                
                 SetCurrentConnection(currentHost, currentEndPoint);
 
                 await _metadata.RebuildTokenMapAsync(false, _config.MetadataSyncOptions.MetadataSyncEnabled).ConfigureAwait(false);
@@ -665,7 +669,7 @@ namespace Cassandra.Connections.Control
             try
             {
                 response = await _config.MetadataRequestHandler.SendMetadataRequestAsync(
-                    _connection, ProtocolVersion, cqlQuery, queryProtocolOptions).ConfigureAwait(false);
+                    _connection, _serializer.GetCurrentSerializer(), cqlQuery, queryProtocolOptions).ConfigureAwait(false);
             }
             catch (SocketException)
             {
@@ -686,7 +690,8 @@ namespace Cassandra.Connections.Control
         /// <inheritdoc />
         public Task<Response> UnsafeSendQueryRequestAsync(string cqlQuery, QueryProtocolOptions queryProtocolOptions)
         {
-            return _config.MetadataRequestHandler.UnsafeSendQueryRequestAsync(_connection, ProtocolVersion, cqlQuery, queryProtocolOptions);
+            return _config.MetadataRequestHandler.UnsafeSendQueryRequestAsync(
+                _connection, _serializer.GetCurrentSerializer(), cqlQuery, queryProtocolOptions);
         }
 
         /// <summary>

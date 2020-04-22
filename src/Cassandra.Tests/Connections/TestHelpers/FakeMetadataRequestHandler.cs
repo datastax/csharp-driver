@@ -19,6 +19,7 @@ using System.Threading.Tasks;
 using Cassandra.Connections;
 using Cassandra.Connections.Control;
 using Cassandra.Responses;
+using Cassandra.Serialization;
 using Cassandra.Tests.DataStax.Insights;
 
 namespace Cassandra.Tests.Connections.TestHelpers
@@ -36,22 +37,31 @@ namespace Cassandra.Tests.Connections.TestHelpers
             _rows = rows;
         }
 
-        private Task<Response> Send(IConnection connection, ProtocolVersion version, string cqlQuery, QueryProtocolOptions queryProtocolOptions)
+        private Task<Response> Send(
+            IConnection connection, ISerializer serializer, string cqlQuery, QueryProtocolOptions queryProtocolOptions)
         {
-            Requests.Enqueue(new MetadataRequest { Version = version, CqlQuery = cqlQuery, QueryProtocolOptions = queryProtocolOptions });
+            Requests.Enqueue(new MetadataRequest
+            {
+                Serializer = serializer, 
+                CqlQuery = cqlQuery, 
+                QueryProtocolOptions = queryProtocolOptions
+            });
+
             var response = new FakeResultResponse(ResultResponse.ResultResponseKind.Rows);
             _responsesByCql.AddOrUpdate(response, _ => cqlQuery, (_,__) => cqlQuery);
             return Task.FromResult((Response) response);
         }
 
-        public Task<Response> SendMetadataRequestAsync(IConnection connection, ProtocolVersion version, string cqlQuery, QueryProtocolOptions queryProtocolOptions)
+        public Task<Response> SendMetadataRequestAsync(
+            IConnection connection, ISerializer serializer, string cqlQuery, QueryProtocolOptions queryProtocolOptions)
         {
-            return Send(connection, version, cqlQuery, queryProtocolOptions);
+            return Send(connection, serializer, cqlQuery, queryProtocolOptions);
         }
 
-        public Task<Response> UnsafeSendQueryRequestAsync(IConnection connection, ProtocolVersion version, string cqlQuery, QueryProtocolOptions queryProtocolOptions)
+        public Task<Response> UnsafeSendQueryRequestAsync(
+            IConnection connection, ISerializer serializer, string cqlQuery, QueryProtocolOptions queryProtocolOptions)
         {
-            return Send(connection, version, cqlQuery, queryProtocolOptions);
+            return Send(connection, serializer, cqlQuery, queryProtocolOptions);
         }
 
         public IEnumerable<IRow> GetRowSet(Response response)
@@ -61,7 +71,7 @@ namespace Cassandra.Tests.Connections.TestHelpers
 
         internal struct MetadataRequest
         {
-            public ProtocolVersion Version { get; set; }
+            public ISerializer Serializer { get; set; }
 
             public string CqlQuery { get; set; }
 
