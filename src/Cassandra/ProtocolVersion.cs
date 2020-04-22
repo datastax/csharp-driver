@@ -210,9 +210,17 @@ namespace Cassandra
         {
             return version >= ProtocolVersion.V3;
         }
+        
+        /// <summary>
+        /// Determines whether the protocol supports flags in BATCH requests.
+        /// </summary>
+        public static bool SupportsBatchFlags(this ProtocolVersion version)
+        {
+            return version >= ProtocolVersion.V3;
+        }
 
         /// <summary>
-        /// Determines whether the protocol supports named values in BATCH, QUERY and EXECUTE requests.
+        /// Determines whether the protocol supports named values in QUERY and EXECUTE requests.
         /// </summary>
         public static bool SupportsNamedValuesInQueries(this ProtocolVersion version)
         {

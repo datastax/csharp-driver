@@ -52,20 +52,26 @@ namespace Cassandra.Requests
                 throw new NotSupportedException("Batch request is supported in C* >= 2.0.x");
             }
 
+            if (statement.Timestamp != null && !serializer.ProtocolVersion.SupportsTimestamp())
+            {
+                throw new NotSupportedException(
+                    "Timestamp for BATCH request is supported in Cassandra 2.1 or above.");
+            }
+
             _type = statement.BatchType;
             _requests = statement.Queries
                 .Select(q => q.CreateBatchRequest(serializer))
                 .ToArray();
             Consistency = consistency;
 
+            if (!serializer.ProtocolVersion.SupportsBatchFlags())
+            {
+                // if flags are not supported, then the following additional parameters aren't either
+                return;
+            }
+            
             SerialConsistency = requestOptions.GetSerialConsistencyLevelOrDefault(statement);
             _batchFlags |= QueryProtocolOptions.QueryFlags.WithSerialConsistency;
-
-            if (statement.Timestamp != null && !serializer.ProtocolVersion.SupportsTimestamp())
-            {
-                throw new NotSupportedException(
-                    "Timestamp for BATCH request is supported in Cassandra 2.1 or above.");
-            }
 
             if (serializer.ProtocolVersion.SupportsTimestamp())
             {
@@ -112,6 +118,13 @@ namespace Cassandra.Requests
 
             wb.WriteUInt16((ushort)Consistency);
 
+            if (!protocolVersion.SupportsBatchFlags())
+            {
+                // if the protocol version doesn't support flags,
+                // then it doesn't support the following optional parameters either
+                return;
+            }
+            
             if (protocolVersion.Uses4BytesQueryFlags())
             {
                 wb.WriteInt32((int)_batchFlags);
@@ -121,6 +134,7 @@ namespace Cassandra.Requests
                 wb.WriteByte((byte)_batchFlags);
             }
 
+            // this is optional in the protocol but we always set it
             wb.WriteUInt16((ushort)SerialConsistency);
 
             if (protocolVersion.SupportsTimestamp() && _timestamp != null)
