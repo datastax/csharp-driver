@@ -250,7 +250,8 @@ namespace Cassandra.Tests
                 new NoTimestampGenerator());
             var config = RequestHandlerTests.GetConfig(new QueryOptions(), policies, PoolingOptions.Create());
 
-            var request = RequestHandler.GetRequest(statement, Serialization.SerializerManager.Default.GetCurrentSerializer(), config.DefaultRequestOptions);
+            var request = RequestHandler.GetRequest(
+                statement, RequestHandlerTests.Serializer, config.DefaultRequestOptions);
             var bodyBuffer = GetBodyBuffer(request);
 
             // The query request is composed by:

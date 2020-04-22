@@ -70,6 +70,10 @@ namespace Cassandra.Requests
             if (serializer.ProtocolVersion.SupportsTimestamp())
             {
                 _timestamp = BatchRequest.GetRequestTimestamp(statement, requestOptions.TimestampGenerator);
+            }
+
+            if (_timestamp != null)
+            {
                 _batchFlags |= QueryProtocolOptions.QueryFlags.WithDefaultTimestamp;
             }
 
