@@ -200,7 +200,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Should_Use_Statement_ReadTimeout()
         {
             const int generalReadTimeout = 1000;
-            const int statementReadTimeout = 6000;
+            const int statementReadTimeout = 8000;
             _testCluster = SimulacronCluster.CreateNew(1);
             var socketOptions = new SocketOptions().SetReadTimeoutMillis(generalReadTimeout);
             var queryOptions = new QueryOptions().SetRetryOnTimeout(false);
@@ -235,8 +235,8 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.Throws<OperationTimedOutException>(() => session.Execute(stmt));
                 stopWatch.Stop();
                 //precision of the timer is not guaranteed
-                Assert.Greater(stopWatch.ElapsedMilliseconds, statementReadTimeout - 2500);
-                Assert.Less(stopWatch.ElapsedMilliseconds, statementReadTimeout + 2500);
+                Assert.Greater(stopWatch.ElapsedMilliseconds, statementReadTimeout - 4000);
+                Assert.Less(stopWatch.ElapsedMilliseconds, statementReadTimeout + 4000);
             }
         }
 
