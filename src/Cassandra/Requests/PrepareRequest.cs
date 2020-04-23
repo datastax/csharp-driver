@@ -25,7 +25,7 @@ namespace Cassandra.Requests
     {
         public const byte PrepareOpCode = 0x09;
 
-        private readonly PrepareFlags _prepareFlags = PrepareFlags.None;
+        private readonly PrepareFlags? _prepareFlags = PrepareFlags.None;
 
         [Flags]
         internal enum PrepareFlags
@@ -51,7 +51,16 @@ namespace Cassandra.Requests
             Query = cqlQuery;
             Keyspace = keyspace;
 
-            if (serializer.ProtocolVersion.SupportsKeyspaceInRequest() && keyspace != null)
+            if (!serializer.ProtocolVersion.SupportsKeyspaceInRequest())
+            {
+                // if the keyspace parameter is not supported then prepare flags aren't either
+                _prepareFlags = null;
+                
+                // and also no other optional parameter is supported
+                return;
+            }
+            
+            if (keyspace != null)
             {
                 _prepareFlags |= PrepareFlags.WithKeyspace;
             }
@@ -63,10 +72,13 @@ namespace Cassandra.Requests
         {
             wb.WriteLongString(Query);
 
-            if (_prepareFlags != PrepareFlags.None)
+            if (_prepareFlags != null)
             {
                 wb.WriteInt32((int)_prepareFlags);
-                wb.WriteString(Keyspace);
+                if (_prepareFlags.Value.HasFlag(PrepareFlags.WithKeyspace))
+                {
+                    wb.WriteString(Keyspace);
+                }
             }
         }
     }
