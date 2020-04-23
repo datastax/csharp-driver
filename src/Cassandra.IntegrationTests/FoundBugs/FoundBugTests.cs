@@ -33,7 +33,7 @@ namespace Cassandra.IntegrationTests.FoundBugs
         {
             try
             {
-                using (var cluster = Cluster.Builder().AddContactPoint("0.0.0.0").Build())
+                using (var cluster = ClusterBuilder().AddContactPoint("0.0.0.0").Build())
                 {
                     try
                     {

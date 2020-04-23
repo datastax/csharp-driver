@@ -34,7 +34,7 @@ namespace Cassandra.IntegrationTests.Core
 
         private ICluster GetCluster(bool metadataSync)
         {
-            var cluster = Cluster.Builder()
+            var cluster = ClusterBuilder()
                                  .AddContactPoint(_testCluster.InitialContactPoint)
                                  .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(60000))
                                  .WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync).SetRefreshSchemaDelayIncrement(1).SetMaxTotalRefreshSchemaDelay(5))
@@ -53,7 +53,7 @@ namespace Cassandra.IntegrationTests.Core
             _testCluster = TestClusterManager.GetTestCluster(1, 0, false, DefaultMaxClusterCreateRetries, false, false);
             _testCluster.UpdateConfig("enable_user_defined_functions: true");
             _testCluster.Start(1);
-            using (var cluster = Cluster.Builder().AddContactPoint(_testCluster.InitialContactPoint).Build())
+            using (var cluster = ClusterBuilder().AddContactPoint(_testCluster.InitialContactPoint).Build())
             {
                 var session = cluster.Connect();
                 var queries = new List<string>

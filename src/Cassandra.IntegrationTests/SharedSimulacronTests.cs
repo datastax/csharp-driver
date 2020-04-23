@@ -102,7 +102,7 @@ namespace Cassandra.IntegrationTests
 
             if (CreateSession)
             {
-                Cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint)
+                Cluster = ClusterBuilder().AddContactPoint(TestCluster.InitialContactPoint)
                                  .WithQueryTimeout(60000)
                                  .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(30000))
                                  .Build();
@@ -138,7 +138,7 @@ namespace Cassandra.IntegrationTests
 
         protected virtual ICluster GetNewCluster(Action<Builder> build = null)
         {
-            var builder = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint);
+            var builder = ClusterBuilder().AddContactPoint(TestCluster.InitialContactPoint);
             build?.Invoke(builder);
             var cluster = builder.Build();
             _clusterInstances.Add(cluster);

@@ -127,7 +127,7 @@ namespace Cassandra.IntegrationTests.DataStax.Cloud
         [Test]
         public void Should_ThrowException_When_BundleDoesNotExist()
         {
-            var ex = Assert.Throws<InvalidOperationException>(() => Cassandra.Cluster.Builder().WithCloudSecureConnectionBundle("does-not-exist.zip").Build());
+            var ex = Assert.Throws<InvalidOperationException>(() => ClusterBuilder().WithCloudSecureConnectionBundle("does-not-exist.zip").Build());
         }
 
         [Test]

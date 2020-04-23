@@ -40,7 +40,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Session_Cancels_Pending_When_Disposed()
         {
             Trace.TraceInformation("SessionCancelsPendingWhenDisposed");
-            using (var localCluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build())
+            using (var localCluster = ClusterBuilder().AddContactPoint(TestCluster.InitialContactPoint).Build())
             {
                 var localSession = localCluster.Connect();
                 localSession.CreateKeyspaceIfNotExists(KeyspaceName, null, false);
@@ -194,7 +194,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.That(pool11.OpenConnections, Is.EqualTo(3));
             Assert.That(pool12.OpenConnections, Is.EqualTo(3));
 
-            using (var localCluster2 = Cluster.Builder()
+            using (var localCluster2 = ClusterBuilder()
                                               .AddContactPoint(TestCluster.InitialContactPoint)
                                               .WithPoolingOptions(new PoolingOptions().SetCoreConnectionsPerHost(HostDistance.Local, 1))
                                               .Build())
@@ -229,7 +229,7 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.Ignore("The test should not run under the Mono runtime");
             }
             var lbp = new DistanceChangingLbp();
-            var builder = Cluster.Builder()
+            var builder = ClusterBuilder()
                 .AddContactPoint(TestCluster.InitialContactPoint)
                 .WithLoadBalancingPolicy(lbp)
                 .WithPoolingOptions(new PoolingOptions().SetCoreConnectionsPerHost(HostDistance.Local, 3));
@@ -353,7 +353,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             Assert.DoesNotThrow(() =>
             {
-                using (var localCluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build())
+                using (var localCluster = ClusterBuilder().AddContactPoint(TestCluster.InitialContactPoint).Build())
                 {
                     var localSession = localCluster.Connect();
                     var ps = localSession.Prepare("SELECT * FROM system.local");
@@ -371,7 +371,7 @@ namespace Cassandra.IntegrationTests.Core
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;
             Assert.DoesNotThrow(() =>
             {
-                using (var localCluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build())
+                using (var localCluster = ClusterBuilder().AddContactPoint(TestCluster.InitialContactPoint).Build())
                 {
                     var localSession = localCluster.Connect("system");
                     var ps = localSession.Prepare("SELECT * FROM local");
@@ -384,12 +384,12 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Session_Execute_Throws_TimeoutException_When_QueryAbortTimeout_Elapsed()
         {
-            using (var dummyCluster = Cluster.Builder().AddContactPoint("0.0.0.0").Build())
+            using (var dummyCluster = ClusterBuilder().AddContactPoint("0.0.0.0").Build())
             {
                 Assert.AreNotEqual(dummyCluster.Configuration.ClientOptions.QueryAbortTimeout, Timeout.Infinite);
             }
 
-            using (var localCluster = Cluster.Builder()
+            using (var localCluster = ClusterBuilder()
                                              .AddContactPoint(TestCluster.InitialContactPoint)
                                              //Disable socket read timeout
                                              .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(0))
@@ -453,7 +453,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             const string query = "SELECT * FROM local";
             // Using a default keyspace
-            using (var cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint)
+            using (var cluster = ClusterBuilder().AddContactPoint(TestCluster.InitialContactPoint)
                                            .WithDefaultKeyspace("system").Build())
             {
                 ISession session = await cluster.ConnectAsync().ConfigureAwait(false);
@@ -465,7 +465,7 @@ namespace Cassandra.IntegrationTests.Core
             }
 
             // Setting the keyspace on ConnectAsync
-            using (var cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build())
+            using (var cluster = ClusterBuilder().AddContactPoint(TestCluster.InitialContactPoint).Build())
             {
                 ISession session = await cluster.ConnectAsync("system").ConfigureAwait(false);
                 Assert.DoesNotThrowAsync(async () =>
@@ -476,7 +476,7 @@ namespace Cassandra.IntegrationTests.Core
             }
 
             // Without setting the keyspace
-            using (var cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build())
+            using (var cluster = ClusterBuilder().AddContactPoint(TestCluster.InitialContactPoint).Build())
             {
                 ISession session = await cluster.ConnectAsync().ConfigureAwait(false);
                 Assert.DoesNotThrowAsync(async () =>

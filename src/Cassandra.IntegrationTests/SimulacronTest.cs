@@ -18,6 +18,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Cassandra.IntegrationTests.SimulacronAPI.Models.Logs;
 using Cassandra.IntegrationTests.SimulacronAPI.SystemTables;
+using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using Cassandra.SessionManagement;
@@ -27,7 +28,7 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests
 {
     [TestFixture, Category(TestCategory.Short)]
-    public abstract class SimulacronTest
+    public abstract class SimulacronTest : TestGlobals
     {
         private readonly bool _shared;
         private readonly SimulacronOptions _options;
@@ -211,19 +212,19 @@ namespace Cassandra.IntegrationTests
         
         protected void SetupNewSession(Func<Builder, Builder> builderConfig)
         {
-            var session = builderConfig(Cluster.Builder()).AddContactPoint(TestCluster.InitialContactPoint).Build().Connect();
+            var session = builderConfig(ClusterBuilder()).AddContactPoint(TestCluster.InitialContactPoint).Build().Connect();
             Session?.Cluster?.Dispose();
             Session = session;
         }
 
         protected virtual ISession CreateSession()
         {
-            return ConfigBuilder(Cluster.Builder()).AddContactPoint(TestCluster.InitialContactPoint).Build().Connect();
+            return ConfigBuilder(ClusterBuilder()).AddContactPoint(TestCluster.InitialContactPoint).Build().Connect();
         }
 
         protected virtual Builder ConfigBuilder(Builder b)
         {
-            return Cluster.Builder();
+            return b;
         }
     }
 }

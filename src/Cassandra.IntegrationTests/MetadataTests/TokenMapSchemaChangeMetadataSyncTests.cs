@@ -39,7 +39,7 @@ namespace Cassandra.IntegrationTests.MetadataTests
         public void SetUp()
         {
             base.OneTimeSetUp();
-            _cluster = Cluster.Builder()
+            _cluster = ClusterBuilder()
                              .AddContactPoint(TestCluster.InitialContactPoint)
                              .WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(false))
                              .WithQueryTimeout(60000)
@@ -58,7 +58,7 @@ namespace Cassandra.IntegrationTests.MetadataTests
         {
             TestUtils.WaitForSchemaAgreement(_cluster);
             var keyspaceName = TestUtils.GetUniqueKeyspaceName().ToLower();
-            using (var newCluster = Cluster.Builder()
+            using (var newCluster = ClusterBuilder()
                                            .AddContactPoint(TestCluster.InitialContactPoint)
                                            .WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(false))
                                            .WithQueryTimeout(60000)
@@ -89,7 +89,7 @@ namespace Cassandra.IntegrationTests.MetadataTests
             _session.Execute(createKeyspaceCql);
             TestUtils.WaitForSchemaAgreement(_cluster);
 
-            using (var newCluster = Cluster.Builder()
+            using (var newCluster = ClusterBuilder()
                                            .AddContactPoint(TestCluster.InitialContactPoint)
                                            .WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(false))
                                            .WithQueryTimeout(60000)
@@ -114,7 +114,7 @@ namespace Cassandra.IntegrationTests.MetadataTests
             _session.Execute(createKeyspaceCql);
             TestUtils.WaitForSchemaAgreement(_cluster);
 
-            using (var newCluster = Cluster.Builder()
+            using (var newCluster = ClusterBuilder()
                                            .AddContactPoint(TestCluster.InitialContactPoint)
                                            .WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(false))
                                            .WithQueryTimeout(60000)
@@ -157,7 +157,7 @@ namespace Cassandra.IntegrationTests.MetadataTests
             _session.Execute(createKeyspaceCql);
             TestUtils.WaitForSchemaAgreement(_cluster);
 
-            using (var newCluster = Cluster.Builder()
+            using (var newCluster = ClusterBuilder()
                                            .AddContactPoint(TestCluster.InitialContactPoint)
                                            .WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(false))
                                            .WithQueryTimeout(60000)
@@ -196,7 +196,7 @@ namespace Cassandra.IntegrationTests.MetadataTests
             _session.Execute(createKeyspaceCql);
             TestUtils.WaitForSchemaAgreement(_cluster);
 
-            using (var newCluster = Cluster.Builder()
+            using (var newCluster = ClusterBuilder()
                                            .AddContactPoint(TestCluster.InitialContactPoint)
                                            .WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(false))
                                            .WithQueryTimeout(60000)

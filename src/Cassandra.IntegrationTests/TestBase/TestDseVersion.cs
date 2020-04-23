@@ -85,27 +85,38 @@ namespace Cassandra.IntegrationTests.TestBase
         public void ApplyToTest(NUnit.Framework.Internal.Test test)
         {
             var expectedVersion = GetExpectedServerVersion();
-            if (!TestClusterManager.IsDse && IsDseRequired())
+            if (!TestDseVersion.VersionMatch(expectedVersion, IsDseRequired(), Comparison, out var msg))
             {
                 test.RunState = RunState.Ignored;
-                var message = string.Format("Test designed to run with DSE {0} v{1} (executing OSS {2})", 
-                    TestDseVersion.GetComparisonText(Comparison), 
-                    expectedVersion, 
-                    TestClusterManager.CassandraVersion);
+                var message = msg;
                 test.Properties.Set("_SKIPREASON", message);
-                return;
+            }
+        }
+
+        public static bool VersionMatch(Version expectedVersion, bool requiresDse, Comparison comparison, out string message)
+        {
+            if (!TestClusterManager.IsDse && requiresDse)
+            {
+                message = $"Test designed to run with DSE {TestDseVersion.GetComparisonText(comparison)} " +
+                          $"v{expectedVersion} (executing OSS {TestClusterManager.CassandraVersion})";
+                return false;
             }
 
             var executingVersion = TestClusterManager.IsDse ? TestClusterManager.DseVersion : TestClusterManager.CassandraVersion;
-            if (!TestDseVersion.VersionMatch(expectedVersion, executingVersion, Comparison))
+            if (!TestDseVersion.VersionMatch(expectedVersion, executingVersion, comparison))
             {
-                test.RunState = RunState.Ignored;
-                var message = string.Format("Test designed to run with DSE {0} v{1} (executing {2})", 
-                    TestDseVersion.GetComparisonText(Comparison), 
-                    expectedVersion, 
-                    executingVersion);
-                test.Properties.Set("_SKIPREASON", message);
+                message =
+                    $"Test designed to run with DSE {TestDseVersion.GetComparisonText(comparison)} v{expectedVersion} (executing {executingVersion})";
+                return false;
             }
+
+            message = null;
+            return true;
+        }
+
+        public static bool VersionMatch(Version expectedVersion, bool requiresDse, Comparison comparison)
+        {
+            return TestDseVersion.VersionMatch(expectedVersion, requiresDse, comparison, out _);
         }
 
         public static bool VersionMatch(Version expectedVersion, Version executingVersion, Comparison comparison)
@@ -191,6 +202,41 @@ namespace Cassandra.IntegrationTests.TestBase
 
         public TestCassandraVersion(int major, int minor, int build, Comparison comparison = Comparison.GreaterThanOrEqualsTo) : base(major, minor, build, comparison)
         {
+        }
+    }
+
+    public class TestBothServersVersion : TestDseVersion
+    {
+        public TestBothServersVersion(
+            int cassandraVersionMajor, 
+            int cassandraVersionMinor, 
+            int dseVersionMajor, 
+            int dseVersionMinor, 
+            Comparison comparison = Comparison.GreaterThanOrEqualsTo) 
+            : this(
+                TestClusterManager.IsDse 
+                    ? new Version(dseVersionMajor, dseVersionMinor) 
+                    : new Version(cassandraVersionMajor, cassandraVersionMinor), 
+                comparison)
+        {
+        }
+
+        private TestBothServersVersion(Version version, Comparison comparison) 
+            : base(version.Major, version.Minor, comparison)
+        {
+        }
+        
+        protected override Version GetExpectedServerVersion()
+        {
+            var version = new Version(Major, Minor, Build);
+            return TestClusterManager.IsDse
+                ? TestClusterManager.GetDseVersion(version)
+                : version;
+        }
+
+        protected override bool IsDseRequired()
+        {
+            return TestClusterManager.IsDse;
         }
     }
 

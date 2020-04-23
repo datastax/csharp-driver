@@ -28,7 +28,7 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests.MetadataTests
 {
     [TestFixture, Category(TestCategory.Short), Category(TestCategory.RealClusterLong)]
-    public class TokenMapTopologyChangeTests
+    public class TokenMapTopologyChangeTests : TestGlobals
     {
         private ITestCluster TestCluster { get; set; }
         private ICluster ClusterObjSync { get; set; }
@@ -45,13 +45,13 @@ namespace Cassandra.IntegrationTests.MetadataTests
             {
                 TestCluster = TestClusterManager.CreateNew(3, new TestClusterOptions { UseVNodes = true });
                 var keyspaceName = TestUtils.GetUniqueKeyspaceName().ToLower();
-                ClusterObjSync = Cluster.Builder()
+                ClusterObjSync = ClusterBuilder()
                                         .AddContactPoint(TestCluster.InitialContactPoint)
                                         .WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(true))
                                         .WithReconnectionPolicy(new ConstantReconnectionPolicy(5000))
                                         .Build();
 
-                ClusterObjNotSync = Cluster.Builder()
+                ClusterObjNotSync = ClusterBuilder()
                                            .AddContactPoint(TestCluster.InitialContactPoint)
                                            .WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(false))
                                            .WithReconnectionPolicy(new ConstantReconnectionPolicy(5000))

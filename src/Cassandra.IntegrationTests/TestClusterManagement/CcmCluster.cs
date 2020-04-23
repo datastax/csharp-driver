@@ -97,7 +97,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             Cluster?.Shutdown();
             if (Builder == null)
             {
-                Builder = new Builder();   
+                Builder = TestUtils.NewBuilder();   
             }
             Cluster = Builder.AddContactPoint(InitialContactPoint).Build();
             Session = Cluster.Connect();

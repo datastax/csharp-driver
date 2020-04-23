@@ -41,7 +41,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             var tableName = TestUtils.GetUniqueTableName();
             var cql = $"INSERT INTO {tableName}(k, i) VALUES (0, 0)";
             using (var simulacronCluster = SimulacronCluster.CreateNew(1))
-            using (var cluster = Cluster.Builder().AddContactPoint(simulacronCluster.InitialContactPoint)
+            using (var cluster = ClusterBuilder().AddContactPoint(simulacronCluster.InitialContactPoint)
                                         .Build())
             {
                 var session = cluster.Connect();

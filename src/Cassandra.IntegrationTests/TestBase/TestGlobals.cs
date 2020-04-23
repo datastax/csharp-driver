@@ -91,5 +91,10 @@ namespace Cassandra.IntegrationTests.TestBase
                 }
             }
         }
+
+        protected Builder ClusterBuilder()
+        {
+            return TestUtils.NewBuilder();
+        }
     }
 }

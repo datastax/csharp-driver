@@ -29,7 +29,7 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests.Core
 {
     [TestFixture, Category(TestCategory.Short)]
-    public class SchemaAgreementSimulacronTests
+    public class SchemaAgreementSimulacronTests : TestGlobals
     {
         private SimulacronCluster _simulacronCluster;
         private Cluster _cluster;
@@ -54,9 +54,9 @@ namespace Cassandra.IntegrationTests.Core
                     rows => rows.WithRows(versions.Select(v => new object[] { v }).ToArray()))
                 .BuildRequest();
 
-        private static Cluster BuildCluster(SimulacronCluster simulacronCluster)
+        private Cluster BuildCluster(SimulacronCluster simulacronCluster)
         {
-            return Cluster.Builder()
+            return ClusterBuilder()
                           .AddContactPoint(simulacronCluster.InitialContactPoint)
                           .WithSocketOptions(
                               new SocketOptions()
@@ -83,7 +83,7 @@ namespace Cassandra.IntegrationTests.Core
 
             _simulacronCluster.Prime(SchemaAgreementSimulacronTests.LocalSchemaVersionQueryPrime(schemaVersion));
             _simulacronCluster.Prime(SchemaAgreementSimulacronTests.PeersSchemaVersionQueryPrime(Enumerable.Repeat(schemaVersion, 2)));
-            _cluster = SchemaAgreementSimulacronTests.BuildCluster(_simulacronCluster);
+            _cluster = BuildCluster(_simulacronCluster);
 
             _cluster.Connect();
             Assert.IsTrue(await _cluster.Metadata.CheckSchemaAgreementAsync().ConfigureAwait(false));
@@ -101,7 +101,7 @@ namespace Cassandra.IntegrationTests.Core
             await _simulacronCluster.PrimeAsync(
                 SchemaAgreementSimulacronTests.PeersSchemaVersionQueryPrime(
                     new[] { schemaVersion1, schemaVersion2 })).ConfigureAwait(false);
-            _cluster = SchemaAgreementSimulacronTests.BuildCluster(_simulacronCluster);
+            _cluster = BuildCluster(_simulacronCluster);
 
             await _cluster.ConnectAsync().ConfigureAwait(false);
             Assert.IsFalse(await _cluster.Metadata.CheckSchemaAgreementAsync().ConfigureAwait(false));
@@ -129,7 +129,7 @@ namespace Cassandra.IntegrationTests.Core
                   .PrimeAsync(SchemaAgreementSimulacronTests.PeersSchemaVersionQueryPrime(
                       new[] { schemaVersion1, schemaVersion2 }))
                   .ConfigureAwait(false);
-            _cluster = SchemaAgreementSimulacronTests.BuildCluster(_simulacronCluster);
+            _cluster = BuildCluster(_simulacronCluster);
             var session = await _cluster.ConnectAsync().ConfigureAwait(false);
 
             await _simulacronCluster.PrimeAsync(queryPrime).ConfigureAwait(false);

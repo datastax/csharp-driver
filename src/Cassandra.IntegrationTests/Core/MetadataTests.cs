@@ -471,7 +471,7 @@ namespace Cassandra.IntegrationTests.Core
         public void TableMetadata_With_Compact_Storage()
         {
             var testCluster = TestClusterManager.GetNonShareableTestCluster(1, 1, true, false);
-            using (var cluster = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint).Build())
+            using (var cluster = ClusterBuilder().AddContactPoint(testCluster.InitialContactPoint).Build())
             {
                 var session = cluster.Connect();
                 session.CreateKeyspaceIfNotExists("ks_meta_compac");
@@ -524,7 +524,7 @@ namespace Cassandra.IntegrationTests.Core
                 "SELECT * FROM ks2.tbl4",
                 "SELECT * FROM ks2.tbl4"
             };
-            using (var cluster = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint).Build())
+            using (var cluster = ClusterBuilder().AddContactPoint(testCluster.InitialContactPoint).Build())
             {
                 var session = cluster.Connect();
                 //warm up the pool
@@ -542,7 +542,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Should_Retrieve_Host_Cassandra_Version()
         {
             var testCluster = TestClusterManager.GetNonShareableTestCluster(2, DefaultMaxClusterCreateRetries, true, false);
-            using (var cluster = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint).Build())
+            using (var cluster = ClusterBuilder().AddContactPoint(testCluster.InitialContactPoint).Build())
             {
                 CollectionAssert.DoesNotContain(cluster.Metadata.Hosts.Select(h => h.CassandraVersion), null);
             }
@@ -569,7 +569,7 @@ namespace Cassandra.IntegrationTests.Core
                 "CREATE MATERIALIZED VIEW ks_view_meta.dailyhigh AS SELECT user FROM scores WHERE game IS NOT NULL AND year IS NOT NULL AND month IS NOT NULL AND day IS NOT NULL AND score IS NOT NULL AND user IS NOT NULL PRIMARY KEY ((game, year, month, day), score, user) WITH CLUSTERING ORDER BY (score DESC)"
             };
             var testCluster = TestClusterManager.GetNonShareableTestCluster(1, DefaultMaxClusterCreateRetries, true, false);
-            using (var cluster = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint).Build())
+            using (var cluster = ClusterBuilder().AddContactPoint(testCluster.InitialContactPoint).Build())
             {
                 var session = cluster.Connect();
                 foreach (var q in queries)
@@ -627,7 +627,7 @@ namespace Cassandra.IntegrationTests.Core
                 @"CREATE MATERIALIZED VIEW ks_view_meta2.mv1 AS SELECT ""theKey"", ""the;Clustering"", ""the Value"" FROM t1 WHERE ""theKey"" IS NOT NULL AND ""the;Clustering"" IS NOT NULL AND ""the Value"" IS NOT NULL PRIMARY KEY (""theKey"", ""the;Clustering"")"
             };
             var testCluster = TestClusterManager.GetNonShareableTestCluster(1, DefaultMaxClusterCreateRetries, true, false);
-            using (var cluster = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint).Build())
+            using (var cluster = ClusterBuilder().AddContactPoint(testCluster.InitialContactPoint).Build())
             {
                 var session = cluster.Connect();
                 foreach (var q in queries)

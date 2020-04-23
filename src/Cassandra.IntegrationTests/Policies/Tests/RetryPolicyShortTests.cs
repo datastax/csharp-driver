@@ -46,7 +46,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             {
                 var contactPoint = simulacronCluster.InitialContactPoint;
                 var extendedRetryPolicy = new TestExtendedRetryPolicy();
-                var builder = Cluster.Builder()
+                var builder = ClusterBuilder()
                                      .AddContactPoint(contactPoint)
                                      .WithRetryPolicy(extendedRetryPolicy)
                                      .WithReconnectionPolicy(new ConstantReconnectionPolicy(long.MaxValue));
@@ -97,7 +97,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
                 var currentHostRetryPolicy = new CurrentHostRetryPolicy(10, null);
                 var loadBalancingPolicy = new CustomLoadBalancingPolicy(
                     queryPlan.Select(n => n.ContactPoint).ToArray());
-                var builder = Cluster.Builder()
+                var builder = ClusterBuilder()
                                      .AddContactPoint(contactPoint)
                                      .WithSocketOptions(new SocketOptions()
                                                         .SetConnectTimeoutMillis(10000)
@@ -152,7 +152,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
                 var currentHostRetryPolicy = new CurrentHostRetryPolicy(10, null);
                 var loadBalancingPolicy = new CustomLoadBalancingPolicy(
                     nodes.Select(n => n.ContactPoint).ToArray());
-                var builder = Cluster.Builder()
+                var builder = ClusterBuilder()
                                      .AddContactPoint(contactPoint)
                                      .WithSocketOptions(new SocketOptions()
                                                         .SetConnectTimeoutMillis(10000)

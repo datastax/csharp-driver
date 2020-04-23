@@ -590,7 +590,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test, TestCassandraVersion(3, 0, Comparison.LessThan)]
         public void MappingOnLowerProtocolVersionTest()
         {
-            using (var cluster = Cluster.Builder()
+            using (var cluster = ClusterBuilder()
                 .AddContactPoint(TestCluster.InitialContactPoint)
                 .WithMaxProtocolVersion(ProtocolVersion.V2)
                 .Build())

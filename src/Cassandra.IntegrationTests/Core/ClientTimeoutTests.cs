@@ -52,8 +52,8 @@ namespace Cassandra.IntegrationTests.Core
         {
             _testCluster = SimulacronCluster.CreateNew(2);
             var socketOptions = new SocketOptions().SetReadTimeoutMillis(500);
-            var builder = Cluster.Builder().AddContactPoint(_testCluster.InitialContactPoint)
-                .WithSocketOptions(socketOptions);
+            var builder = ClusterBuilder().AddContactPoint(_testCluster.InitialContactPoint)
+                                      .WithSocketOptions(socketOptions);
             using (var cluster = builder.Build())
             {
                 var session = cluster.Connect();
@@ -78,8 +78,8 @@ namespace Cassandra.IntegrationTests.Core
         {
             _testCluster = SimulacronCluster.CreateNew(2);
             var socketOptions = new SocketOptions().SetReadTimeoutMillis(500);
-            var builder = Cluster.Builder().AddContactPoint(_testCluster.InitialContactPoint)
-                .WithSocketOptions(socketOptions);
+            var builder = ClusterBuilder().AddContactPoint(_testCluster.InitialContactPoint)
+                                          .WithSocketOptions(socketOptions);
             using (var cluster = builder.Build())
             {
                 var session = cluster.Connect();
@@ -105,7 +105,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             _testCluster = SimulacronCluster.CreateNew(2);
             var socketOptions = new SocketOptions().SetReadTimeoutMillis(3000);
-            var builder = Cluster.Builder().AddContactPoint(_testCluster.InitialContactPoint)
+            var builder = ClusterBuilder().AddContactPoint(_testCluster.InitialContactPoint)
                 .WithSocketOptions(socketOptions);
             using (var cluster = builder.Build())
             {
@@ -128,7 +128,7 @@ namespace Cassandra.IntegrationTests.Core
             _testCluster = SimulacronCluster.CreateNew(2);
             var socketOptions = new SocketOptions().SetReadTimeoutMillis(500);
             var queryOptions = new QueryOptions().SetRetryOnTimeout(false);
-            var builder = Cluster.Builder().AddContactPoint(_testCluster.InitialContactPoint)
+            var builder = ClusterBuilder().AddContactPoint(_testCluster.InitialContactPoint)
                 .WithSocketOptions(socketOptions)
                 .WithQueryOptions(queryOptions);
             using (var cluster = builder.Build())
@@ -174,7 +174,7 @@ namespace Cassandra.IntegrationTests.Core
                           .ThenRowsSuccess(new [] { ("key", DataType.Ascii) }, rows => rows.WithRow("123"))
                           .WithDelayInMs(30000));
 
-                using (var cluster = Cluster.Builder().AddContactPoint(simulacronCluster.InitialContactPoint).WithSocketOptions(socketOptions).Build())
+                using (var cluster = ClusterBuilder().AddContactPoint(simulacronCluster.InitialContactPoint).WithSocketOptions(socketOptions).Build())
                 {
                     var session = cluster.Connect();
                     var query = new SimpleStatement(cql);
@@ -204,7 +204,7 @@ namespace Cassandra.IntegrationTests.Core
             _testCluster = SimulacronCluster.CreateNew(1);
             var socketOptions = new SocketOptions().SetReadTimeoutMillis(generalReadTimeout);
             var queryOptions = new QueryOptions().SetRetryOnTimeout(false);
-            var builder = Cluster.Builder().AddContactPoint(_testCluster.InitialContactPoint)
+            var builder = ClusterBuilder().AddContactPoint(_testCluster.InitialContactPoint)
                 .WithSocketOptions(socketOptions)
                 .WithPoolingOptions(PoolingOptions.Create().SetHeartBeatInterval(0))
                 .WithQueryTimeout(Timeout.Infinite)
@@ -255,7 +255,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             _testCluster = SimulacronCluster.CreateNew(2);
             var socketOptions = new SocketOptions().SetReadTimeoutMillis(500);
-            var builder = Cluster.Builder().AddContactPoint(_testCluster.InitialContactPoint)
+            var builder = ClusterBuilder().AddContactPoint(_testCluster.InitialContactPoint)
                 .WithSocketOptions(socketOptions);
             using (var cluster = builder.Build())
             {
@@ -280,9 +280,9 @@ namespace Cassandra.IntegrationTests.Core
         {
             _testCluster = SimulacronCluster.CreateNew(1);
             var socketOptions = new SocketOptions().SetReadTimeoutMillis(1000).SetConnectTimeoutMillis(1000);
-            var builder = Cluster.Builder()
-                                 .AddContactPoint(_testCluster.InitialContactPoint)
-                                 .WithSocketOptions(socketOptions);
+            var builder = ClusterBuilder()
+                          .AddContactPoint(_testCluster.InitialContactPoint)
+                          .WithSocketOptions(socketOptions);
             using (var cluster = builder.Build())
             {
                 _testCluster.GetNodes().First().DisableConnectionListener(0, "reject_startup").GetAwaiter().GetResult();
@@ -304,10 +304,10 @@ namespace Cassandra.IntegrationTests.Core
             var node = _testCluster.GetNodes().First();
             node.DisableConnectionListener(0, "reject_startup").GetAwaiter().GetResult();
             var clusters = Enumerable.Range(0, 100).Select(
-                b => Cluster.Builder()
-                            .AddContactPoint(_testCluster.InitialContactPoint)
-                            .WithSocketOptions(socketOptions)
-                            .Build()).ToList();
+                b => ClusterBuilder()
+                     .AddContactPoint(_testCluster.InitialContactPoint)
+                     .WithSocketOptions(socketOptions)
+                     .Build()).ToList();
             
             try
             {

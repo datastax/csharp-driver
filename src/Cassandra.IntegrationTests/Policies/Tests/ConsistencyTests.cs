@@ -49,7 +49,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
         public void ReplicationFactorOne_TokenAware()
         {
             ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(3);
-            testCluster.Builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
+            testCluster.Builder = ClusterBuilder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
             testCluster.InitClient();
 
             _policyTestTools.CreateSchema(testCluster.Session, 1);
@@ -180,7 +180,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
         public void ReplicationFactorTwo_TokenAware()
         {
             ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(3);
-            testCluster.Builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
+            testCluster.Builder = ClusterBuilder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
             testCluster.InitClient();
 
             _policyTestTools.CreateSchema(testCluster.Session, 2);
@@ -317,7 +317,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
         public void ReplicationFactorThree_TokenAware()
         {
             ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(3);
-            testCluster.Builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
+            testCluster.Builder = ClusterBuilder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
             testCluster.InitClient();
 
             _policyTestTools.CreateSchema(testCluster.Session, 3);
@@ -450,7 +450,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
         public void ReplicationFactorOne_DowngradingConsistencyRetryPolicy()
         {
             ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(3);
-            testCluster.Builder = Cluster.Builder()
+            testCluster.Builder = ClusterBuilder()
                                          .WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()))
                                          .WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
             testCluster.InitClient();
@@ -579,7 +579,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
         public void ReplicationFactorTwo_DowngradingConsistencyRetryPolicy()
         {
             ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(3);
-            testCluster.Builder = Cluster.Builder()
+            testCluster.Builder = ClusterBuilder()
                                          .WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()))
                                          .WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
             testCluster.InitClient();
@@ -716,7 +716,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
         public void ReplicationFactorThree_TwoDCs_DowngradingConsistencyRetryPolicy()
         {
             ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(3, 3, DefaultMaxClusterCreateRetries, true);
-            testCluster.Builder = Cluster.Builder()
+            testCluster.Builder = ClusterBuilder()
                                          .WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()))
                                          .WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
             testCluster.InitClient();
@@ -845,7 +845,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
         {
             // Seetup
             ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(3, 3, DefaultMaxClusterCreateRetries, true);
-            testCluster.Builder = Cluster.Builder()
+            testCluster.Builder = ClusterBuilder()
                                          .WithLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy("dc2")))
                                          .WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
             testCluster.InitClient();
@@ -974,7 +974,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
         public void ReplicationFactorThree_RoundRobin_DowngradingConsistencyRetryPolicy()
         {
             ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(3);
-            testCluster.Builder = Cluster.Builder().WithLoadBalancingPolicy(new RoundRobinPolicy()).WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
+            testCluster.Builder = ClusterBuilder().WithLoadBalancingPolicy(new RoundRobinPolicy()).WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
             testCluster.InitClient();
             TestReplicationFactorThree(testCluster);
         }
@@ -992,7 +992,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
         public void ReplicationFactorThree_TokenAware_DowngradingConsistencyRetryPolicy()
         {
             ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(3);
-            testCluster.Builder = Cluster.Builder()
+            testCluster.Builder = ClusterBuilder()
                        .WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()))
                        .WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
             testCluster.InitClient();

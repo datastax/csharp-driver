@@ -72,7 +72,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             _testCluster = SimulacronCluster.CreateNew(1);
 
-            using (var cluster = Cluster.Builder()
+            using (var cluster = ClusterBuilder()
                                         .AddContactPoint(_testCluster.InitialContactPoint)
                                         .WithPoolingOptions(
                                             new PoolingOptions()
@@ -143,7 +143,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             _testCluster = SimulacronCluster.CreateNew(2);
 
-            using (var cluster = Cluster.Builder()
+            using (var cluster = ClusterBuilder()
                                         .AddContactPoint(_testCluster.InitialContactPoint)
                                         .WithPoolingOptions(
                                             new PoolingOptions()
@@ -221,7 +221,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             _testCluster = SimulacronCluster.CreateNew(2);
 
-            using (var cluster = Cluster.Builder()
+            using (var cluster = ClusterBuilder()
                                         .AddContactPoint(_testCluster.InitialContactPoint)
                                         .WithPoolingOptions(
                                             new PoolingOptions()
@@ -294,7 +294,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             var testCluster = _realCluster.Value;
             using (var cluster = 
-                 Cluster.Builder()
+                 ClusterBuilder()
                         .AddContactPoint(testCluster.InitialContactPoint)
                         .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(22000).SetConnectTimeoutMillis(60000))
                         .WithPoolingOptions(
@@ -398,7 +398,7 @@ namespace Cassandra.IntegrationTests.Core
 
             _realCluster.Value.BootstrapNode(3);
 
-            using (var cluster = Cluster.Builder().AddContactPoint(_realCluster.Value.InitialContactPoint).Build())
+            using (var cluster = ClusterBuilder().AddContactPoint(_realCluster.Value.InitialContactPoint).Build())
             {
                 var session = (IInternalSession)cluster.Connect();
                 session.CreateKeyspaceIfNotExists("ks1");

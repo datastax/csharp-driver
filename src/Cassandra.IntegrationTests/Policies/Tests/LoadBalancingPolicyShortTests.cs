@@ -42,7 +42,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
         [Test]
         public void TwoSessionsConnectedToSameDcUseSeparatePolicyInstances()
         {
-            var builder = Cluster.Builder();
+            var builder = ClusterBuilder();
 
             using (var cluster1 = builder.WithConnectionString($"Contact Points={TestCluster.ClusterIpPrefix}1").Build())
             using (var cluster2 = builder.WithConnectionString($"Contact Points={TestCluster.ClusterIpPrefix}2").Build())
@@ -314,7 +314,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
         [Test, TestCase(true), TestCase(false)]
         public void TokenAware_VNodes_Test(bool metadataSync)
         {
-            var cluster = Cluster.Builder()
+            var cluster = ClusterBuilder()
                                  .AddContactPoint(TestCluster.InitialContactPoint)
                                  .WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync))
                                  .Build();
@@ -354,7 +354,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
         [Test, TestCase(true), TestCase(false)]
         public void Token_Aware_Uses_Keyspace_From_Statement_To_Determine_Replication(bool metadataSync)
         {
-            var cluster = Cluster.Builder()
+            var cluster = ClusterBuilder()
                                  .AddContactPoint(TestCluster.InitialContactPoint)
                                  .WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync))
                                  .Build();
