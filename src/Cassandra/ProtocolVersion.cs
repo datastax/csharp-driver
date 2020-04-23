@@ -110,7 +110,7 @@ namespace Cassandra
                 lowerVersion = version - 1;
             }
 
-            return lowerVersion.IsSupported(config)
+            return lowerVersion <= 0 || lowerVersion.IsSupported(config)
                 ? lowerVersion
                 : lowerVersion.GetLowerSupported(config);
         }
