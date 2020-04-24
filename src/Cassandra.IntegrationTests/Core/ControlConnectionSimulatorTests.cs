@@ -79,7 +79,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Should_Not_Downgrade_Protocol_Version(ProtocolVersion version, params string[] cassandraVersions)
         {
             using (var testCluster = SimulacronCluster.CreateNewWithPostBody(GetSimulatorBody(cassandraVersions)))
-            using (var cluster = ClusterBuilder().AddContactPoint(testCluster.InitialContactPoint).Build())
+            using (var cluster = ClusterBuilder().WithBetaProtocolVersions().AddContactPoint(testCluster.InitialContactPoint).Build())
             {
                 var session = cluster.Connect();
                 Parallel.For(0, 10, _ => session.Execute("SELECT * FROM system.local"));
