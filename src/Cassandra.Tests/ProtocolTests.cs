@@ -22,8 +22,39 @@ namespace Cassandra.Tests
     [TestFixture]
     public class ProtocolTests
     {
-        private Configuration _config = new TestConfigurationBuilder().Build();
+        private readonly Configuration _config = new TestConfigurationBuilder { AllowBetaProtocolVersions = false }.Build();
+        private readonly Configuration _configBeta = new TestConfigurationBuilder { AllowBetaProtocolVersions = true }.Build();
+        
+        [TestCase(ProtocolVersion.V4, ProtocolVersion.V5)]
+        [TestCase(ProtocolVersion.V2, ProtocolVersion.V3)]
+        [TestCase(ProtocolVersion.V3, ProtocolVersion.V4)]
+        [TestCase(ProtocolVersion.V5, ProtocolVersion.DseV2)]
+        [TestCase(ProtocolVersion.V5, ProtocolVersion.MaxSupported)]
+        [TestCase(ProtocolVersion.MinSupported, ProtocolVersion.V2)]
+        [TestCase(ProtocolVersion.V1, ProtocolVersion.V2)]
+        [TestCase((byte)0, ProtocolVersion.MinSupported)]
+        public void GetLowerSupported_Should_NotSkipBetaVersions_When_AllowBetaProtocolVersionsTrue(
+            ProtocolVersion version, ProtocolVersion initialVersion)
+        {
+            Assert.AreEqual(version, initialVersion.GetLowerSupported(_configBeta));
+        }
+        
+        [TestCase(ProtocolVersion.V4, ProtocolVersion.V5)]
+        [TestCase(ProtocolVersion.V2, ProtocolVersion.V3)]
+        [TestCase(ProtocolVersion.V3, ProtocolVersion.V4)]
+        [TestCase(ProtocolVersion.V4, ProtocolVersion.DseV2)]
+        [TestCase(ProtocolVersion.V4, ProtocolVersion.MaxSupported)]
+        [TestCase(ProtocolVersion.MinSupported, ProtocolVersion.V2)]
+        [TestCase(ProtocolVersion.V1, ProtocolVersion.V2)]
+        [TestCase((byte)0, ProtocolVersion.MinSupported)]
+        public void GetLowerSupported_Should_SkipBetaVersions_When_AllowBetaProtocolVersionsFalse(
+            ProtocolVersion version, ProtocolVersion initialVersion)
+        {
+            Assert.AreEqual(version, initialVersion.GetLowerSupported(_config));
+        }
 
+        [TestCase(ProtocolVersion.V5, "4.0.0", "1.2.19")]
+        [TestCase(ProtocolVersion.V3, "4.0.0", "2.1.17")]
         [TestCase(ProtocolVersion.V3, "3.0.13", "2.1.17")]
         [TestCase(ProtocolVersion.V3, "2.2.11", "2.1.17")]
         [TestCase(ProtocolVersion.V2, "2.2.11", "2.0.17")]
@@ -44,7 +75,9 @@ namespace Cassandra.Tests
         {
             Assert.AreEqual(version, ProtocolVersion.MaxSupported.GetHighestCommon(_config, cassandraVersions.Select(GetHost)));
         }
-
+        
+        [TestCase(ProtocolVersion.V5, "4.0.0")]
+        [TestCase(ProtocolVersion.V5, "4.0.0", "1.2.19")]
         [TestCase(ProtocolVersion.V4, "3.0.13", "3.0.11", "2.2.9")]
         // can't downgrade because C* 3.0 does not support protocol lower versions than v3.
         [TestCase(ProtocolVersion.V4, "3.0.13", "2.0.17")]

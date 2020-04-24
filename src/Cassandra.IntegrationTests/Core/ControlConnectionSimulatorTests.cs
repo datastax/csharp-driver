@@ -32,6 +32,11 @@ namespace Cassandra.IntegrationTests.Core
     [TestFixture, Category(TestCategory.Short)]
     public class ControlConnectionSimulatorTests : TestGlobals
     {
+        [TestCase(ProtocolVersion.V4, "4.0.0", "3.11.6")]
+        [TestCase(ProtocolVersion.V4, "4.0.0", "3.0.13")]
+        [TestCase(ProtocolVersion.V3, "4.0.0", "2.1.17")]
+        [TestCase(ProtocolVersion.V3, "3.11.6", "2.1.17")]
+        [TestCase(ProtocolVersion.V3, "3.0.13", "2.1.17")]
         [TestCase(ProtocolVersion.V3, "3.0.13", "2.1.17")]
         [TestCase(ProtocolVersion.V3, "2.2.11", "2.1.17")]
         [TestCase(ProtocolVersion.V2, "2.2.11", "2.0.17")]
@@ -49,7 +54,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     var session = cluster.Connect();
                     Parallel.For(0, 10, _ => session.Execute("SELECT * FROM system.local"));
-                    Assert.AreEqual(cluster.InternalRef.GetControlConnection().ProtocolVersion, version);
+                    Assert.AreEqual(version, cluster.InternalRef.GetControlConnection().ProtocolVersion);
                 }
                 else
                 {
@@ -63,11 +68,14 @@ namespace Cassandra.IntegrationTests.Core
                 }
             }
         }
-
+        
+        [TestCase(ProtocolVersion.V5, "4.0.0")]
+        [TestCase(ProtocolVersion.V4, "3.11.6", "3.0.11", "2.2.9")]
         [TestCase(ProtocolVersion.V4, "3.0.13", "3.0.11", "2.2.9")]
         // Can't downgrade C* 3.0+ nodes to v1 or v2
-        [TestCase(ProtocolVersion.V4, "3.0.13", "2.0.17")]
+        [TestCase(ProtocolVersion.V4, "4.0.0", "3.0.13", "2.0.17")]
         [TestCase(ProtocolVersion.V4, "3.0.13", "1.2.19")]
+        [TestCase(ProtocolVersion.V5, "4.0.0", "1.2.19")]
         public void Should_Not_Downgrade_Protocol_Version(ProtocolVersion version, params string[] cassandraVersions)
         {
             using (var testCluster = SimulacronCluster.CreateNewWithPostBody(GetSimulatorBody(cassandraVersions)))
@@ -75,7 +83,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 var session = cluster.Connect();
                 Parallel.For(0, 10, _ => session.Execute("SELECT * FROM system.local"));
-                Assert.AreEqual(cluster.InternalRef.GetControlConnection().ProtocolVersion, version);
+                Assert.AreEqual(version, cluster.InternalRef.GetControlConnection().ProtocolVersion);
             }
         }
 
