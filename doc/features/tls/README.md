@@ -20,7 +20,9 @@ var cluster = Cluster.Builder()
     .Build();
 ```
 
-There's an overload that lets you customize several SSL options available on the `SSLOptions` class:
+`Builder.WithSSL()` and `Builder.WithSSL(new SSLOptions())` enable TLS/SSL with the default configuration. The default configuration includes a `RemoteCertificateValidationCallback` that logs any errors returned by .NET's SSL API.
+
+To customize this configuration check out the several SSL options available on the `SSLOptions` class:
 
 ```csharp
 var cluster = Cluster.Builder()
@@ -29,9 +31,18 @@ var cluster = Cluster.Builder()
     .Build();
 ```
 
-### Server authentication
+The .NET SSL API will return a `RemoteCertificateNameMismatch` error when the `HostName` does not match the name on the server certificate. By default the driver performs reverse DNS resolution to obtain the `HostName` from the server node's IP address. You can change this by providing a custom hostname resolver in the `SSLOptions.SetHostNameResolver(...)` method:
 
-By default, `Builder.WithSSL()` adds a `RemoteCertificateValidationCallback` that logs any errors returned by .NET's SSL API.
+```csharp
+var cluster = Cluster.Builder()
+    .AddContactPoints(...)
+    .WithSSL(new SSLOptions().SetHostNameResolver(...))
+    .Build();
+```
+
+Alternatively, you can provide your own `RemoteCertificateValidationCallback` to handle the SSL errors and perform your own validation logic. Note that you can introduce security vulnerabilities with this so you should avoid it if you can.
+
+### Enabling server authentication with a custom root certificate
 
 If you have a custom (untrusted) root certificate, then there are two ways to provide it: using the system/user store or loading it manually in code.
 
@@ -56,7 +67,9 @@ var cluster = Cluster.Builder()
     .Build();
 ```
 
-### Client authentication
+The examples on the [driver's repository][Github repository] have a basic custom certificate validator which can be used as a starting point.
+
+### Enabling client authentication
 
 To enable client authentication, you need to provide the driver the client certificate(s):
 
