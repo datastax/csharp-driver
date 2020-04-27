@@ -71,7 +71,7 @@ The examples on the [driver's repository][Github repository] have a basic custom
 
 ### Enabling client authentication
 
-To enable client authentication, you need to provide the driver the client certificate(s):
+To enable client authentication, you need to provide the driver with the client certificate(s):
 
 ```csharp
 var cluster = Cluster.Builder()
