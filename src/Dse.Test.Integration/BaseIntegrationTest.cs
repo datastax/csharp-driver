@@ -8,9 +8,11 @@ using System;
 using System.Diagnostics;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Graph;
+using NUnit.Framework;
 
 namespace Dse.Test.Integration
 {
+    [TestFixture]
     public abstract class BaseIntegrationTest
     {
         protected BaseIntegrationTest()

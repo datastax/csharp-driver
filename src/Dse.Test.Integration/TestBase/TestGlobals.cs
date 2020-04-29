@@ -14,7 +14,7 @@ using NUnit.Framework;
 namespace Dse.Test.Integration.TestClusterManagement
 {
     [TestFixture]
-    public class TestGlobals
+    public abstract class TestGlobals
     {
         public const int DefaultCassandraPort = 9042;
         public const int DefaultMaxClusterCreateRetries = 2;

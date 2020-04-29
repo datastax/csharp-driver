@@ -20,7 +20,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Graph
 {
-    [TestFixture, Category(TestCategory.Short), Category(TestCategory.RealClusterLong)]
+    [Category(TestCategory.Short), Category(TestCategory.RealClusterLong)]
     [TestDseVersion(5, 0)]
     class GraphMultiNodeTests : BaseIntegrationTest
     {

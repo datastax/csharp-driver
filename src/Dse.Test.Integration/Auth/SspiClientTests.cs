@@ -5,10 +5,12 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
+using Dse.Test.Unit;
 using NUnit.Framework;
 
 namespace Dse.Test.Integration.Auth
 {
+    [Category(TestCategory.Kerberos)]
     public class SspiClientTests : BaseIntegrationTest
     {
         [Explicit(

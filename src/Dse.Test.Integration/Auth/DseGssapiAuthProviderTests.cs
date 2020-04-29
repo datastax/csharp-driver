@@ -10,10 +10,12 @@ using System.Linq;
 using System.Threading;
 using Dse.Auth;
 using Dse.Test.Integration.TestClusterManagement;
+using Dse.Test.Unit;
 using NUnit.Framework;
 
 namespace Dse.Test.Integration.Auth
 {
+    [Category(TestCategory.Kerberos)]
     [Explicit(
         "It can only run when there is a Kerberos-enabled DSE cluster and the host running the test is authenticated" +
         "against the KDC")]
