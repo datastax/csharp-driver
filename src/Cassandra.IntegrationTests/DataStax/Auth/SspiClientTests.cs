@@ -14,10 +14,12 @@
 //   limitations under the License.
 //
 
+using Cassandra.Tests;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.DataStax.Auth
 {
+    [Category(TestCategory.Kerberos)]
     public class SspiClientTests : BaseIntegrationTest
     {
         [Explicit(

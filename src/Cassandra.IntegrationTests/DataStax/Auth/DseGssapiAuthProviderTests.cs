@@ -18,10 +18,12 @@ using System.Linq;
 using System.Threading;
 using Cassandra.DataStax.Auth;
 using Cassandra.IntegrationTests.TestClusterManagement;
+using Cassandra.Tests;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.DataStax.Auth
 {
+    [Category(TestCategory.Kerberos)]
     [Explicit(
         "It can only run when there is a Kerberos-enabled DSE cluster and the host running the test is authenticated" +
         "against the KDC")]
