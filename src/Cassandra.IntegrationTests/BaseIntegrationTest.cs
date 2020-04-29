@@ -16,9 +16,11 @@
 using System.Diagnostics;
 using Cassandra.DataStax.Graph;
 using Cassandra.IntegrationTests.TestClusterManagement;
+using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests
 {
+    [TestFixture]
     public abstract class BaseIntegrationTest
     {
         protected BaseIntegrationTest()

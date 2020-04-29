@@ -52,5 +52,11 @@ namespace Cassandra.Tests
         /// https://github.com/datastax/cassandra-drivers-smoke-test
         /// </summary>
         public const string ServerApi = "serverapi";
+        
+        /// <summary>
+        /// These tests can only run against a kerberos enabled cluster.
+        /// At the moment, they are skipped in all CI schedules.
+        /// </summary>
+        public const string Kerberos = "kerberos";
     }
 }

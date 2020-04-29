@@ -48,7 +48,7 @@ namespace Cassandra.IntegrationTests.Core
         public async Task Connection_Should_Send_Options_Requests_For_Heartbeats(bool executeQuery)
         {
             var builder = Cluster.Builder()
-                                 .WithPoolingOptions(PoolingOptions.Create().SetHeartBeatInterval(1000))
+                                 .WithPoolingOptions(PoolingOptions.Create().SetHeartBeatInterval(4000))
                                  .AddContactPoint(_testCluster.InitialContactPoint);
 
             using (var cluster = builder.Build())
@@ -64,11 +64,15 @@ namespace Cassandra.IntegrationTests.Core
                 }
                 var initialCount = logs.Count;
 
-                await Task.Delay(1400).ConfigureAwait(false);
-
-                logs = await _testCluster.GetNodes().First()
-                                         .GetQueriesAsync(null, OptionsQueryType).ConfigureAwait(false);
-                Assert.That(logs.Count, Is.GreaterThan(initialCount));
+                await TestHelper.RetryAssertAsync(
+                    async () =>
+                    {
+                        logs = await _testCluster.GetNodes().First()
+                                                 .GetQueriesAsync(null, OptionsQueryType).ConfigureAwait(false);
+                        Assert.That(logs.Count, Is.GreaterThan(initialCount));
+                    }, 
+                    500,
+                    20).ConfigureAwait(false);
             }
         }
     }
