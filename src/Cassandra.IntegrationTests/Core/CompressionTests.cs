@@ -30,7 +30,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test, TestTimeout(120000)]
         public void Lz4_Compression_Under_Heavy_Concurrency_Test()
         {
-            using (var cluster = Cluster.Builder()
+            using (var cluster = ClusterBuilder()
                                         .AddContactPoint(TestCluster.InitialContactPoint)
                                         .WithCompression(CompressionType.LZ4)
                                         .Build())

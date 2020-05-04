@@ -24,95 +24,82 @@ namespace Cassandra.Requests
     /// <summary>
     /// Represents a protocol EXECUTE request
     /// </summary>
-    internal class ExecuteRequest : IQueryRequest, ICqlRequest
+    internal class ExecuteRequest : BaseRequest, IQueryRequest, ICqlRequest
     {
-        public const byte OpCode = 0x0A;
-        private FrameHeader.HeaderFlag _headerFlags;
+        public const byte ExecuteOpCode = 0x0A;
+
         private readonly byte[] _id;
         private readonly QueryProtocolOptions _queryOptions;
 
         public ConsistencyLevel Consistency 
         { 
-            get { return _queryOptions.Consistency; }
-            set { _queryOptions.Consistency = value; }
+            get => _queryOptions.Consistency;
+            set => _queryOptions.Consistency = value;
         }
 
         public byte[] PagingState
         {
-            get { return _queryOptions.PagingState; }
-            set { _queryOptions.PagingState = value; }
+            get => _queryOptions.PagingState;
+            set => _queryOptions.PagingState = value;
         }
 
-        public int PageSize
-        {
-            get { return _queryOptions.PageSize; }
-        }
+        public int PageSize => _queryOptions.PageSize;
 
-        public ConsistencyLevel SerialConsistency
-        {
-            get { return _queryOptions.SerialConsistency; }
-        }
-
-        public bool SkipMetadata
-        {
-            get { return _queryOptions.SkipMetadata; }
-        }
-
-        public IDictionary<string, byte[]> Payload { get; set; }
+        public ConsistencyLevel SerialConsistency => _queryOptions.SerialConsistency;
         
-        /// <inheritdoc />
-        public ResultMetadata ResultMetadata { get; }
+        public bool SkipMetadata => _queryOptions.SkipMetadata;
 
-        public ExecuteRequest(ProtocolVersion protocolVersion, byte[] id, RowSetMetadata variablesMetadata,
-                              ResultMetadata resultMetadata, bool tracingEnabled, QueryProtocolOptions queryOptions)
+        /// <inheritdoc />
+        public override ResultMetadata ResultMetadata { get; }
+
+        public ExecuteRequest(
+            ISerializer serializer, 
+            byte[] id, 
+            RowSetMetadata variablesMetadata, 
+            ResultMetadata resultMetadata, 
+            QueryProtocolOptions queryOptions,
+            bool tracingEnabled, 
+            IDictionary<string, byte[]> payload) : base(serializer, tracingEnabled, payload)
         {
+            var protocolVersion = serializer.ProtocolVersion;
             if (variablesMetadata != null && queryOptions.Values.Length != variablesMetadata.Columns.Length)
             {
                 throw new ArgumentException("Number of values does not match with number of prepared statement markers(?).");
             }
             _id = id;
-            ResultMetadata = resultMetadata;
             _queryOptions = queryOptions;
-            if (tracingEnabled)
+
+            if (protocolVersion.SupportsResultMetadataId())
             {
-                _headerFlags = FrameHeader.HeaderFlag.Tracing;
+                ResultMetadata = resultMetadata;
             }
 
-            if (queryOptions.SerialConsistency != ConsistencyLevel.Any && queryOptions.SerialConsistency.IsSerialConsistencyLevel() == false)
+            if (queryOptions.SerialConsistency != ConsistencyLevel.Any 
+                && queryOptions.SerialConsistency.IsSerialConsistencyLevel() == false)
             {
                 throw new RequestInvalidException("Non-serial consistency specified as a serial one.");
             }
+
             if (queryOptions.RawTimestamp != null && !protocolVersion.SupportsTimestamp())
             {
                 throw new NotSupportedException("Timestamp for query is supported in Cassandra 2.1 or above.");
             }
         }
 
-        public int WriteFrame(short streamId, MemoryStream stream, ISerializer serializer)
+        protected override byte OpCode => ExecuteRequest.ExecuteOpCode;
+
+        protected override void WriteBody(FrameWriter wb)
         {
-            var wb = new FrameWriter(stream, serializer);
-            var protocolVersion = serializer.ProtocolVersion;
-            if (Payload != null)
-            {
-                _headerFlags |= FrameHeader.HeaderFlag.CustomPayload;
-            }
-            wb.WriteFrameHeader((byte)_headerFlags, streamId, OpCode);
-            if (Payload != null)
-            {
-                //A custom payload for this request
-                wb.WriteBytesMap(Payload);
-            }
             wb.WriteShortBytes(_id);
 
-            if (protocolVersion.SupportsResultMetadataId())
+            if (ResultMetadata != null)
             {
                 wb.WriteShortBytes(ResultMetadata.ResultMetadataId);
             }
 
             _queryOptions.Write(wb, true);
-            return wb.Close();
         }
-
+        
         public void WriteToBatch(FrameWriter wb)
         {
             wb.WriteByte(1); //prepared query

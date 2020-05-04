@@ -15,17 +15,16 @@
 //
 
 using System.Collections.Generic;
-using System.IO;
-using Cassandra.Serialization;
 
 namespace Cassandra.Requests
 {
-    internal class RegisterForEventRequest : IRequest
+    internal class RegisterForEventRequest : BaseRequest
     {
-        public const byte OpCode = 0x0B;
+        public const byte RegisterOpCode = 0x0B;
+
         private readonly List<string> _eventTypes;
 
-        public RegisterForEventRequest(CassandraEventType eventTypes)
+        public RegisterForEventRequest(CassandraEventType eventTypes) : base(false, null)
         {
             _eventTypes = new List<string>();
             if ((eventTypes & CassandraEventType.StatusChange) == CassandraEventType.StatusChange)
@@ -42,15 +41,14 @@ namespace Cassandra.Requests
             }
         }
 
-        /// <inheritdoc />
-        public ResultMetadata ResultMetadata => null;
+        protected override byte OpCode => RegisterForEventRequest.RegisterOpCode;
 
-        public int WriteFrame(short streamId, MemoryStream stream, ISerializer serializer)
+        /// <inheritdoc />
+        public override ResultMetadata ResultMetadata => null;
+
+        protected override void WriteBody(FrameWriter wb)
         {
-            var wb = new FrameWriter(stream, serializer);
-            wb.WriteFrameHeader(0x00, streamId, OpCode);
             wb.WriteStringList(_eventTypes);
-            return wb.Close();
         }
     }
 }

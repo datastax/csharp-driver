@@ -41,7 +41,7 @@ namespace Cassandra.IntegrationTests.Core
         public override void OneTimeSetUp()
         {
             base.OneTimeSetUp();
-            _cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint)
+            _cluster = ClusterBuilder().AddContactPoint(TestCluster.InitialContactPoint)
                               .WithSocketOptions(new SocketOptions()
                                                  .SetReadTimeoutMillis(15000)
                                                  .SetConnectTimeoutMillis(60000))

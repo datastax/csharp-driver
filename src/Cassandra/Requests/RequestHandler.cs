@@ -132,7 +132,7 @@ namespace Cassandra.Requests
                 s1.Serializer = serializer;
                 var options = QueryProtocolOptions.CreateFromQuery(serializer.ProtocolVersion, s1, requestOptions, null);
                 options.ValueNames = s1.QueryValueNames;
-                request = new QueryRequest(serializer.ProtocolVersion, s1.QueryString, s1.IsTracing, options);
+                request = new QueryRequest(serializer, s1.QueryString, options, s1.IsTracing, s1.OutgoingPayload);
             }
 
             if (statement is BoundStatement s2)
@@ -144,12 +144,13 @@ namespace Cassandra.Requests
 
                 var options = QueryProtocolOptions.CreateFromQuery(serializer.ProtocolVersion, s2, requestOptions, skipMetadata);
                 request = new ExecuteRequest(
-                    serializer.ProtocolVersion, 
+                    serializer, 
                     s2.PreparedStatement.Id, 
                     null,
                     s2.PreparedStatement.ResultMetadata, 
+                    options,
                     s2.IsTracing, 
-                    options);
+                    s2.OutgoingPayload);
             }
 
             if (statement is BatchStatement s)
@@ -160,16 +161,13 @@ namespace Cassandra.Requests
                 {
                     consistency = s.ConsistencyLevel.Value;
                 }
-                request = new BatchRequest(serializer.ProtocolVersion, s, consistency, requestOptions);
+                request = new BatchRequest(serializer, s.OutgoingPayload, s, consistency, requestOptions);
             }
 
             if (request == null)
             {
                 throw new NotSupportedException("Statement of type " + statement.GetType().FullName + " not supported");
             }
-
-            //Set the outgoing payload for the request
-            request.Payload = statement.OutgoingPayload;
             return request;
         }
 

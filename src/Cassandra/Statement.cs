@@ -255,7 +255,7 @@ namespace Cassandra
             return this;
         }
 
-        internal virtual IQueryRequest CreateBatchRequest(ProtocolVersion protocolVersion)
+        internal virtual IQueryRequest CreateBatchRequest(ISerializer serializer)
         {
             throw new InvalidOperationException("Cannot insert this query into the batch");
         }

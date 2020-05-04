@@ -33,9 +33,9 @@ namespace Cassandra.IntegrationTests.Core
             var query = new SimpleStatement($"INSERT INTO {_tableName} (id) values (-99999)");
             var generator = new MockTimestampGenerator();
             using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions()))
-            using (var cluster = Cluster.Builder()
-                                        .AddContactPoint(simulacronCluster.InitialContactPoint)
-                                        .WithTimestampGenerator(generator).Build())
+            using (var cluster = ClusterBuilder()
+                                 .AddContactPoint(simulacronCluster.InitialContactPoint)
+                                 .WithTimestampGenerator(generator).Build())
             {
                 var session = cluster.Connect();
                 var batchStatement = new BatchStatement().Add(query);
@@ -57,7 +57,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             var query = new SimpleStatement($"INSERT INTO {_tableName} (id) values (-99999)");
             using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions()))
-            using (var cluster = Cluster.Builder().AddContactPoint(simulacronCluster.InitialContactPoint).Build())
+            using (var cluster = ClusterBuilder().AddContactPoint(simulacronCluster.InitialContactPoint).Build())
             {
                 var session = cluster.Connect();
                 var oldTimestamp = cluster.Configuration.Policies.TimestampGenerator.Next();

@@ -44,7 +44,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Parallel_Insert_And_Select_Sync()
         {
             var testCluster = TestClusterManager.GetNonShareableTestCluster(3, 1, true, false);
-            using (var cluster = Cluster.Builder()
+            using (var cluster = ClusterBuilder()
                                         .WithRetryPolicy(AlwaysRetryRetryPolicy.Instance)
                                         .AddContactPoint(testCluster.InitialContactPoint)
                                         .Build())
@@ -101,7 +101,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Parallel_Insert_And_Select_Sync_With_Nodes_Failing()
         {
             var testCluster = TestClusterManager.GetNonShareableTestCluster(3, 1, true, false);
-            using (var cluster = Cluster.Builder()
+            using (var cluster = ClusterBuilder()
                 .WithRetryPolicy(AlwaysRetryRetryPolicy.Instance)
                 .AddContactPoint(testCluster.InitialContactPoint)
                 .Build())
@@ -167,7 +167,7 @@ namespace Cassandra.IntegrationTests.Core
             Trace.TraceInformation("--Initial memory: {0}", start / 1024);
             Action multipleConnect = () =>
             {
-                var cluster = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint).Build();
+                var cluster = ClusterBuilder().AddContactPoint(testCluster.InitialContactPoint).Build();
                 for (var i = 0; i < 200; i++)
                 {
                     var session = cluster.Connect();

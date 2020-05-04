@@ -223,7 +223,7 @@ namespace Cassandra
         {
             _metricsManager.InitializeMetrics(this);
 
-            if (Configuration.GetOrCreatePoolingOptions(_serializerManager.GetCurrentSerializer().ProtocolVersion).GetWarmup())
+            if (Configuration.GetOrCreatePoolingOptions(_serializerManager.CurrentProtocolVersion).GetWarmup())
             {
                 await Warmup().ConfigureAwait(false);
             }
@@ -349,7 +349,8 @@ namespace Cassandra
         {
             var hostPool = _connectionPool.GetOrAdd(host.Address, address =>
             {
-                var newPool = Configuration.HostConnectionPoolFactory.Create(host, Configuration, _serializerManager, _observerFactory);
+                var newPool = Configuration.HostConnectionPoolFactory.Create(
+                    host, Configuration, _serializerManager, _observerFactory);
                 newPool.AllConnectionClosed += InternalRef.OnAllConnectionClosed;
                 newPool.SetDistance(distance);
                 _metricsManager.GetOrCreateNodeMetrics(host).InitializePoolGauges(newPool);
@@ -455,9 +456,11 @@ namespace Cassandra
         }
 
         /// <inheritdoc />
-        public async Task<PreparedStatement> PrepareAsync(string cqlQuery, string keyspace, IDictionary<string, byte[]> customPayload)
+        public async Task<PreparedStatement> PrepareAsync(
+            string cqlQuery, string keyspace, IDictionary<string, byte[]> customPayload)
         {
-            var currentVersion = _serializerManager.CurrentProtocolVersion;
+            var serializer = _serializerManager.GetCurrentSerializer();
+            var currentVersion = serializer.ProtocolVersion;
             if (!currentVersion.SupportsKeyspaceInRequest() && keyspace != null)
             {
                 // Validate protocol version here and not at PrepareRequest level, as PrepareRequest can be issued
@@ -465,7 +468,7 @@ namespace Cassandra
                 throw new NotSupportedException($"Protocol version {currentVersion} does not support" +
                                                 " setting the keyspace as part of the PREPARE request");
             }
-            var request = new InternalPrepareRequest(cqlQuery, keyspace, customPayload);
+            var request = new PrepareRequest(serializer, cqlQuery, keyspace, customPayload);
             return await _cluster.Prepare(this, _serializerManager, request).ConfigureAwait(false);
         }
 

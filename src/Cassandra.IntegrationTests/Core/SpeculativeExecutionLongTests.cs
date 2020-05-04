@@ -45,7 +45,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 throw new Exception("Test cluster not initialized");
             }
-            var builder = Cluster.Builder()
+            var builder = ClusterBuilder()
                 .AddContactPoint(_testCluster.InitialContactPoint)
                 .WithSpeculativeExecutionPolicy(speculativeExecutionPolicy)
                 .WithLoadBalancingPolicy(lbp ?? Cassandra.Policies.DefaultLoadBalancingPolicy)

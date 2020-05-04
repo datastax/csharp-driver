@@ -34,7 +34,6 @@ namespace Cassandra.IntegrationTests.Core
         private const string TableTimestampCollections = "tbl_params_timestamp_collections";
         private const string TableTimeUuidCollections = "tbl_params_timeuuid_collections";
         private const string TableCompactStorage = "tbl_compact";
-        private static readonly Version Version40 = new Version(4, 0);
 
         protected override string[] SetupQueries
         {
@@ -521,10 +520,6 @@ namespace Cassandra.IntegrationTests.Core
         [TestCassandraVersion(4, 0)]
         public void SimpleStatement_With_Keyspace_Defined_On_Protocol_Greater_Than_4()
         {
-            if (Session.BinaryProtocolVersion <= 4)
-            {
-                Assert.Ignore("Test designed to run against C* 4.0 or above");
-            }
             // It defaults to null
             Assert.Null(new SimpleStatement("SELECT key FROM system.local").Keyspace);
 
@@ -552,7 +547,7 @@ namespace Cassandra.IntegrationTests.Core
                 return;
             }
 
-            var builder = Cluster.Builder().WithNoCompact().AddContactPoint(TestCluster.InitialContactPoint);
+            var builder = ClusterBuilder().WithNoCompact().AddContactPoint(TestCluster.InitialContactPoint);
             using (ICluster cluster = builder.Build())
             {
                 var session = cluster.Connect(KeyspaceName);
@@ -573,7 +568,7 @@ namespace Cassandra.IntegrationTests.Core
                 return;
             }
 
-            var builder = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint);
+            var builder = ClusterBuilder().AddContactPoint(TestCluster.InitialContactPoint);
             using (var cluster = builder.Build())
             {
                 var session = cluster.Connect(KeyspaceName);

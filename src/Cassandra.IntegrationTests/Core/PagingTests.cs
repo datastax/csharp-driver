@@ -42,7 +42,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             var pageSize = 10;
             var queryOptions = new QueryOptions().SetPageSize(pageSize);
-            var builder = new Builder().WithQueryOptions(queryOptions).WithDefaultKeyspace(KeyspaceName);
+            var builder = ClusterBuilder().WithQueryOptions(queryOptions).WithDefaultKeyspace(KeyspaceName);
             builder.AddContactPoint(TestCluster.InitialContactPoint);
 
             const int totalRowLength = 1003;

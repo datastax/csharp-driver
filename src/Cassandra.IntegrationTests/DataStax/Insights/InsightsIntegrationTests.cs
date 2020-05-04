@@ -23,6 +23,7 @@ using Cassandra.DataStax.Insights.Schema.StartupMessage;
 using Cassandra.DataStax.Insights.Schema.StatusMessage;
 using Cassandra.IntegrationTests.SimulacronAPI.Models.Logs;
 using Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder;
+using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using Cassandra.SessionManagement;
@@ -33,7 +34,7 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests.DataStax.Insights
 {
     [TestFixture, Category(TestCategory.Short)]
-    public class InsightsIntegrationTests
+    public class InsightsIntegrationTests : TestGlobals
     {
         private static IPrimeRequest InsightsRpcPrime() =>
             new PrimeRequestBuilder().WhenQuery("CALL InsightsRpc.reportInsight(?)").ThenVoid().BuildRequest();
@@ -42,9 +43,9 @@ namespace Cassandra.IntegrationTests.DataStax.Insights
         private static readonly string applicationName = "app 1";
         private static readonly string applicationVersion = "v1.2";
 
-        private static Cluster BuildCluster(SimulacronCluster simulacronCluster, int statusEventDelay)
+        private Cluster BuildCluster(SimulacronCluster simulacronCluster, int statusEventDelay)
         {
-            return Cluster.Builder()
+            return ClusterBuilder()
                           .AddContactPoint(simulacronCluster.InitialContactPoint)
                           .WithApplicationName(InsightsIntegrationTests.applicationName)
                           .WithApplicationVersion(InsightsIntegrationTests.applicationVersion)
@@ -64,7 +65,7 @@ namespace Cassandra.IntegrationTests.DataStax.Insights
             using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { IsDse = true, Nodes = "3" }))
             {
                 simulacronCluster.Prime(InsightsIntegrationTests.InsightsRpcPrime());
-                using (var cluster = InsightsIntegrationTests.BuildCluster(simulacronCluster, 500))
+                using (var cluster = BuildCluster(simulacronCluster, 500))
                 {
                     Assert.AreEqual(0, simulacronCluster.GetQueries("CALL InsightsRpc.reportInsight(?)").Count);
                     var session = (IInternalSession)cluster.Connect();
@@ -119,7 +120,7 @@ namespace Cassandra.IntegrationTests.DataStax.Insights
             using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { IsDse = true, Nodes = "3" }))
             {
                 simulacronCluster.Prime(InsightsIntegrationTests.InsightsRpcPrime());
-                using (var cluster = InsightsIntegrationTests.BuildCluster(simulacronCluster, 50))
+                using (var cluster = BuildCluster(simulacronCluster, 50))
                 {
                     Assert.AreEqual(0, simulacronCluster.GetQueries("CALL InsightsRpc.reportInsight(?)").Count);
                     var session = (IInternalSession) cluster.Connect();

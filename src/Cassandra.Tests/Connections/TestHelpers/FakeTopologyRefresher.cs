@@ -19,6 +19,7 @@ using System.Net;
 using System.Threading.Tasks;
 using Cassandra.Connections;
 using Cassandra.Connections.Control;
+using Cassandra.Serialization;
 
 namespace Cassandra.Tests.Connections.TestHelpers
 {
@@ -35,7 +36,7 @@ namespace Cassandra.Tests.Connections.TestHelpers
             _hosts = hosts;
         }
 
-        public Task<Host> RefreshNodeListAsync(IConnectionEndPoint currentEndPoint, IConnection connection, ProtocolVersion version)
+        public Task<Host> RefreshNodeListAsync(IConnectionEndPoint currentEndPoint, IConnection connection, ISerializer serializer)
         {
             foreach (var h in _hosts)
             {

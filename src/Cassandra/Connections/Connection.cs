@@ -718,7 +718,7 @@ namespace Cassandra.Connections
                 try
                 {
                     Stream plainTextStream = stream;
-                    if (header.Flags.HasFlag(FrameHeader.HeaderFlag.Compression))
+                    if (header.Flags.HasFlag(HeaderFlags.Compression))
                     {
                         plainTextStream = compressor.Decompress(new WrappedStream(stream, header.BodyLength));
                         plainTextStream.Position = 0;
@@ -1004,7 +1004,7 @@ namespace Cassandra.Connections
                 if (_keyspace != value)
                 {
                     Connection.Logger.Info("Connection to host {0} switching to keyspace {1}", EndPoint.EndpointFriendlyName, value);
-                    var request = new QueryRequest(Serializer.ProtocolVersion, $"USE \"{value}\"", false, QueryProtocolOptions.Default);
+                    var request = new QueryRequest(Serializer, $"USE \"{value}\"", QueryProtocolOptions.Default, false, null);
                     try
                     {
                         await Send(request).ConfigureAwait(false);

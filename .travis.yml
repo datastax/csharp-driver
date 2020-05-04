@@ -32,5 +32,5 @@ script:
   - dotnet build src/Cassandra.Tests/Cassandra.Tests.csproj --no-restore -c Release || true  
   - sleep 5
   
-  - dotnet build src/Cassandra.Tests/Cassandra.Tests.csproj --no-restore -c Release  
+  - dotnet build src/Cassandra.Tests/Cassandra.Tests.csproj --no-restore -c Release || true
   - dotnet test src/Cassandra.Tests/Cassandra.Tests.csproj --no-restore --no-build -v n -c Release -f $TARGETF

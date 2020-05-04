@@ -164,12 +164,18 @@ namespace Cassandra
             return values;
         }
 
-        internal override IQueryRequest CreateBatchRequest(ProtocolVersion protocolVersion)
+        internal override IQueryRequest CreateBatchRequest(ISerializer serializer)
         {
             // Use the default query options as the individual options of the query will be ignored
             var options = QueryProtocolOptions.CreateForBatchItem(this);
-            return new ExecuteRequest(protocolVersion, PreparedStatement.Id, PreparedStatement.Variables,
-                PreparedStatement.ResultMetadata, IsTracing, options);
+            return new ExecuteRequest(
+                serializer, 
+                PreparedStatement.Id, 
+                PreparedStatement.Variables,
+                PreparedStatement.ResultMetadata, 
+                options, 
+                IsTracing, 
+                null);
         }
 
         internal void CalculateRoutingKey(

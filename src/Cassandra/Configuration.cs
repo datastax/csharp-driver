@@ -213,6 +213,12 @@ namespace Cassandra
         public GraphOptions GraphOptions { get; protected set; }
 
         /// <summary>
+        /// Whether beta protocol versions will be considered by the driver during
+        /// the protocol version negotiation.
+        /// </summary>
+        public bool AllowBetaProtocolVersions { get; }
+
+        /// <summary>
         /// The key is the execution profile name and the value is the IRequestOptions instance
         /// built from the execution profile with that key.
         /// </summary>
@@ -292,6 +298,7 @@ namespace Cassandra
                  null,
                  null,
                  null,
+                 null,
                  null)
         {
         }
@@ -322,6 +329,7 @@ namespace Cassandra
                                MonitorReportingOptions monitorReportingOptions,
                                TypeSerializerDefinitions typeSerializerDefinitions,
                                bool? keepContactPointsUnresolved,
+                               bool? allowBetaProtocolVersions,
                                ISessionFactory sessionFactory = null,
                                IRequestOptionsMapper requestOptionsMapper = null,
                                IStartupOptionsFactory startupOptionsFactory = null,
@@ -379,6 +387,7 @@ namespace Cassandra
             MetricsEnabled = driverMetricsProvider != null;
             TypeSerializers = typeSerializerDefinitions?.Definitions;
             KeepContactPointsUnresolved = keepContactPointsUnresolved ?? false;
+            AllowBetaProtocolVersions = allowBetaProtocolVersions ?? false;
             
             ObserverFactoryBuilder = observerFactoryBuilder ?? (MetricsEnabled ? (IObserverFactoryBuilder)new MetricsObserverFactoryBuilder() : new NullObserverFactoryBuilder());
             RequestHandlerFactory = requestHandlerFactory ?? new RequestHandlerFactory();

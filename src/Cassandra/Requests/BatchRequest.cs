@@ -16,18 +16,17 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
+
 using Cassandra.ExecutionProfiles;
 using Cassandra.Serialization;
 
 namespace Cassandra.Requests
 {
-    internal class BatchRequest : ICqlRequest
+    internal class BatchRequest : BaseRequest, ICqlRequest
     {
-        private const byte OpCode = 0x0D;
+        private const byte BatchOpCode = 0x0D;
 
-        private FrameHeader.HeaderFlag _headerFlags;
         private readonly QueryProtocolOptions.QueryFlags _batchFlags = 0;
         private readonly ICollection<IQueryRequest> _requests;
         private readonly BatchType _type;
@@ -38,113 +37,117 @@ namespace Cassandra.Requests
 
         public ConsistencyLevel Consistency { get; set; }
 
-        public IDictionary<string, byte[]> Payload { get; set; }
-
+        protected override byte OpCode => BatchRequest.BatchOpCode;
+        
         /// <inheritdoc />
-        public ResultMetadata ResultMetadata => null;
+        public override ResultMetadata ResultMetadata => null;
 
-        public BatchRequest(ProtocolVersion protocolVersion, BatchStatement statement, ConsistencyLevel consistency, IRequestOptions requestOptions)
+        public BatchRequest(
+            ISerializer serializer,
+            IDictionary<string, byte[]> payload,
+            BatchStatement statement,
+            ConsistencyLevel consistency,
+            IRequestOptions requestOptions) : base(serializer, statement.IsTracing, payload)
         {
-            if (!protocolVersion.SupportsBatch())
+            if (!serializer.ProtocolVersion.SupportsBatch())
             {
                 throw new NotSupportedException("Batch request is supported in C* >= 2.0.x");
             }
-            _type = statement.BatchType;
-            _requests = statement.Queries
-                .Select(q => q.CreateBatchRequest(protocolVersion))
-                .ToArray();
-            Consistency = consistency;
-            if (statement.IsTracing)
+
+            if (statement.Timestamp != null && !serializer.ProtocolVersion.SupportsTimestamp())
             {
-                _headerFlags = FrameHeader.HeaderFlag.Tracing;
+                throw new NotSupportedException(
+                    "Timestamp for BATCH request is supported in Cassandra 2.1 or above.");
             }
 
+            _type = statement.BatchType;
+            _requests = statement.Queries
+                .Select(q => q.CreateBatchRequest(serializer))
+                .ToArray();
+            Consistency = consistency;
+
+            if (!serializer.ProtocolVersion.SupportsBatchFlags())
+            {
+                // if flags are not supported, then the following additional parameters aren't either
+                return;
+            }
+            
             SerialConsistency = requestOptions.GetSerialConsistencyLevelOrDefault(statement);
             _batchFlags |= QueryProtocolOptions.QueryFlags.WithSerialConsistency;
 
-            _timestamp = BatchRequest.GetRequestTimestamp(protocolVersion, statement, requestOptions.TimestampGenerator);
-            if (_timestamp != null)
+            if (serializer.ProtocolVersion.SupportsTimestamp())
             {
-                _batchFlags |= QueryProtocolOptions.QueryFlags.WithDefaultTimestamp;   
+                _timestamp = BatchRequest.GetRequestTimestamp(statement, requestOptions.TimestampGenerator);
             }
 
-            if (protocolVersion.SupportsKeyspaceInRequest() && statement.Keyspace != null)
+            if (_timestamp != null)
+            {
+                _batchFlags |= QueryProtocolOptions.QueryFlags.WithDefaultTimestamp;
+            }
+
+            _keyspace = statement.Keyspace;
+            if (serializer.ProtocolVersion.SupportsKeyspaceInRequest() && _keyspace != null)
             {
                 _batchFlags |= QueryProtocolOptions.QueryFlags.WithKeyspace;
-                _keyspace = statement.Keyspace;
             }
         }
 
         /// <summary>
         /// Gets the timestamp of the request or null if not defined.
         /// </summary>
-        /// <exception cref="NotSupportedException" />
-        private static long? GetRequestTimestamp(ProtocolVersion protocolVersion, BatchStatement statement, ITimestampGenerator timestampGenerator)
+        private static long? GetRequestTimestamp(BatchStatement statement, ITimestampGenerator timestampGenerator)
         {
-            if (!protocolVersion.SupportsTimestamp())
-            {
-                if (statement.Timestamp != null)
-                {
-                    throw new NotSupportedException(
-                        "Timestamp for BATCH request is supported in Cassandra 2.1 or above.");
-                }
-                return null;
-            }
             if (statement.Timestamp != null)
             {
                 return TypeSerializer.SinceUnixEpoch(statement.Timestamp.Value).Ticks / 10;
             }
+
             var timestamp = timestampGenerator.Next();
-            return timestamp != long.MinValue ? (long?) timestamp : null;
+            return timestamp != long.MinValue ? (long?)timestamp : null;
         }
 
-        public int WriteFrame(short streamId, MemoryStream stream, ISerializer serializer)
+        protected override void WriteBody(FrameWriter wb)
         {
-            //protocol v2: <type><n><query_1>...<query_n><consistency>
-            //protocol v3: <type><n><query_1>...<query_n><consistency><flags>[<serial_consistency>][<timestamp>]
-            var protocolVersion = serializer.ProtocolVersion;
-            var wb = new FrameWriter(stream, serializer);
-            if (Payload != null)
-            {
-                _headerFlags |= FrameHeader.HeaderFlag.CustomPayload;
-            }
-            wb.WriteFrameHeader((byte)_headerFlags, streamId, OpCode);
-            if (Payload != null)
-            {
-                //A custom payload for this request
-                wb.WriteBytesMap(Payload);
-            }
-            wb.WriteByte((byte) _type);
-            wb.WriteUInt16((ushort) _requests.Count);
+            var protocolVersion = wb.Serializer.ProtocolVersion;
+
+            wb.WriteByte((byte)_type);
+            wb.WriteUInt16((ushort)_requests.Count);
+
             foreach (var br in _requests)
             {
                 br.WriteToBatch(wb);
             }
-            wb.WriteUInt16((ushort) Consistency);
-            if (protocolVersion.SupportsTimestamp())
+
+            wb.WriteUInt16((ushort)Consistency);
+
+            if (!protocolVersion.SupportsBatchFlags())
             {
-                if (protocolVersion.Uses4BytesQueryFlags())
-                {
-                    wb.WriteInt32((int) _batchFlags);
-                }
-                else
-                {
-                    wb.WriteByte((byte) _batchFlags);
-                }
-
-                wb.WriteUInt16((ushort) SerialConsistency);
-
-                if (_timestamp != null)
-                {
-                    wb.WriteLong(_timestamp.Value);
-                }
-
-                if (_keyspace != null)
-                {
-                    wb.WriteString(_keyspace);
-                }
+                // if the protocol version doesn't support flags,
+                // then it doesn't support the following optional parameters either
+                return;
             }
-            return wb.Close();
+            
+            if (protocolVersion.Uses4BytesQueryFlags())
+            {
+                wb.WriteInt32((int)_batchFlags);
+            }
+            else
+            {
+                wb.WriteByte((byte)_batchFlags);
+            }
+
+            // this is optional in the protocol but we always set it
+            wb.WriteUInt16((ushort)SerialConsistency);
+
+            if (protocolVersion.SupportsTimestamp() && _timestamp != null)
+            {
+                wb.WriteLong(_timestamp.Value);
+            }
+
+            if (protocolVersion.SupportsKeyspaceInRequest() && _keyspace != null)
+            {
+                wb.WriteString(_keyspace);
+            }
         }
     }
 }

@@ -16,7 +16,7 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
+
 using Cassandra.Serialization;
 
 namespace Cassandra.Requests
@@ -24,14 +24,14 @@ namespace Cassandra.Requests
     /// <summary>
     /// Represents a protocol QUERY request
     /// </summary>
-    internal class QueryRequest : IQueryRequest, ICqlRequest
+    internal class QueryRequest : BaseRequest, IQueryRequest, ICqlRequest
     {
-        public const byte OpCode = 0x07;
+        public const byte QueryOpCode = 0x07;
 
         public ConsistencyLevel Consistency
         {
             get { return _queryOptions.Consistency; }
-            set { _queryOptions.Consistency = value;}
+            set { _queryOptions.Consistency = value; }
         }
 
         public byte[] PagingState
@@ -54,35 +54,36 @@ namespace Cassandra.Requests
         {
             get { return _queryOptions.SerialConsistency; }
         }
-
+        
         /// <inheritdoc />
-        public ResultMetadata ResultMetadata => null;
+        public override ResultMetadata ResultMetadata => null;
 
-        public string Query { get { return _cqlQuery; }}
-
-        public IDictionary<string, byte[]> Payload { get; set; }
+        public string Query { get { return _cqlQuery; } }
 
         private readonly string _cqlQuery;
-        private FrameHeader.HeaderFlag _headerFlags;
         private readonly QueryProtocolOptions _queryOptions;
 
-        public QueryRequest(ProtocolVersion protocolVersion, string cqlQuery, bool tracingEnabled, QueryProtocolOptions queryOptions)
+        public QueryRequest(
+            ISerializer serializer,
+            string cqlQuery,
+            QueryProtocolOptions queryOptions,
+            bool tracingEnabled,
+            IDictionary<string, byte[]> payload) : base(serializer, tracingEnabled, payload)
         {
             _cqlQuery = cqlQuery;
             _queryOptions = queryOptions;
-            if (tracingEnabled)
-            {
-                _headerFlags = FrameHeader.HeaderFlag.Tracing;
-            }
+
             if (queryOptions == null)
             {
                 throw new ArgumentNullException("queryOptions");
             }
+
             if (queryOptions.SerialConsistency != ConsistencyLevel.Any && queryOptions.SerialConsistency.IsSerialConsistencyLevel() == false)
             {
                 throw new RequestInvalidException("Non-serial consistency specified as a serial one.");
             }
-            if (!protocolVersion.SupportsTimestamp())
+
+            if (!serializer.ProtocolVersion.SupportsTimestamp())
             {
                 //Features supported in protocol v3 and above
                 if (queryOptions.RawTimestamp != null)
@@ -96,22 +97,12 @@ namespace Cassandra.Requests
             }
         }
 
-        public int WriteFrame(short streamId, MemoryStream stream, ISerializer serializer)
+        protected override byte OpCode => QueryRequest.QueryOpCode;
+
+        protected override void WriteBody(FrameWriter wb)
         {
-            var wb = new FrameWriter(stream, serializer);
-            if (Payload != null)
-            {
-                _headerFlags |= FrameHeader.HeaderFlag.CustomPayload;
-            }
-            wb.WriteFrameHeader((byte)_headerFlags, streamId, OpCode);
-            if (Payload != null)
-            {
-                //A custom payload for this request
-                wb.WriteBytesMap(Payload);
-            }
             wb.WriteLongString(_cqlQuery);
             _queryOptions.Write(wb, false);
-            return wb.Close();
         }
 
         public void WriteToBatch(FrameWriter wb)
@@ -126,7 +117,7 @@ namespace Cassandra.Requests
             }
             else
             {
-                wb.WriteUInt16((ushort) _queryOptions.Values.Length);
+                wb.WriteUInt16((ushort)_queryOptions.Values.Length);
                 foreach (var queryParameter in _queryOptions.Values)
                 {
                     wb.WriteAsBytes(queryParameter);

@@ -34,14 +34,13 @@ namespace Cassandra.IntegrationTests.DataStax.Auth
         private Lazy<ITestCluster> _testClusterForDseAuthTesting;
         private ICluster _cluster;
 
-        public static void RetryUntilClusterAuthHealthy(ITestCluster cluster)
+        public void RetryUntilClusterAuthHealthy(ITestCluster cluster)
         {
-            using (var c = Cluster
-                                 .Builder()
-                                 .AddContactPoint(cluster.InitialContactPoint)
-                                 .WithAuthProvider(new PlainTextAuthProvider("wrong_username", "password"))
-                                 .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(22000).SetConnectTimeoutMillis(60000))
-                                 .Build())
+            using (var c = ClusterBuilder()
+                           .AddContactPoint(cluster.InitialContactPoint)
+                           .WithAuthProvider(new PlainTextAuthProvider("wrong_username", "password"))
+                           .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(22000).SetConnectTimeoutMillis(60000))
+                           .Build())
             {
                 TestHelper.RetryAssert(
                     () =>
@@ -98,7 +97,7 @@ namespace Cassandra.IntegrationTests.DataStax.Auth
         [Test, TestDseVersion(5, 0)]
         public void StandardCreds_DseAuth_AuthSuccess()
         {
-            var builder = Cluster.Builder()
+            var builder = ClusterBuilder()
                 .AddContactPoint(_testClusterForDseAuthTesting.Value.InitialContactPoint)
                 .WithCredentials("cassandra", "cassandra");
             _cluster = builder.Build();
@@ -111,11 +110,10 @@ namespace Cassandra.IntegrationTests.DataStax.Auth
         [Test, TestDseVersion(5, 0)]
         public void StandardCreds_DseAuth_AuthFail()
         {
-            using (var cluster = Cluster
-                .Builder()
-                .AddContactPoint(_testClusterForDseAuthTesting.Value.InitialContactPoint)
-                .WithCredentials("wrong_username", "password")
-                .Build())
+            using (var cluster = ClusterBuilder()
+                                 .AddContactPoint(_testClusterForDseAuthTesting.Value.InitialContactPoint)
+                                 .WithCredentials("wrong_username", "password")
+                                 .Build())
             {
                 var ex = Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
                 Assert.AreEqual(1, ex.Errors.Count);
@@ -127,10 +125,9 @@ namespace Cassandra.IntegrationTests.DataStax.Auth
         [Test, TestDseVersion(5, 0)]
         public void StandardCreds_DseAuth_AuthOmitted()
         {
-            using (var cluster = Cluster
-                .Builder()
-                .AddContactPoint(_testClusterForDseAuthTesting.Value.InitialContactPoint)
-                .Build())
+            using (var cluster = ClusterBuilder()
+                                 .AddContactPoint(_testClusterForDseAuthTesting.Value.InitialContactPoint)
+                                 .Build())
             {
                 var ex = Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
                 Assert.AreEqual(1, ex.Errors.Count);

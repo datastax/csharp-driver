@@ -24,7 +24,6 @@ using Cassandra.Responses;
 using Cassandra.Serialization;
 using Moq;
 using NUnit.Framework;
-using HeaderFlag = Cassandra.FrameHeader.HeaderFlag;
 
 namespace Cassandra.Tests
 {
@@ -52,7 +51,7 @@ namespace Cassandra.Tests
             // Protocol warnings are [string list]: A [short] n, followed by n [string]
             var warningBuffers = BeConverter.GetBytes((ushort)1).Concat(GetProtocolString("Test warning"));
             var body = warningBuffers.Concat(GetErrorBody(0x2000, "Test syntax error")).ToArray();
-            var header = FrameHeader.ParseResponseHeader(Version, GetHeaderBuffer(body.Length, HeaderFlag.Warning), 0);
+            var header = FrameHeader.ParseResponseHeader(Version, GetHeaderBuffer(body.Length, HeaderFlags.Warning), 0);
             var response = FrameParser.Parse(new Frame(header, new MemoryStream(body), Serializer.GetCurrentSerializer(), null));
             var ex = IsErrorResponse<SyntaxError>(response);
             Assert.AreEqual("Test syntax error", ex.Message);
@@ -152,7 +151,7 @@ namespace Cassandra.Tests
             }));
         }
 
-        private static byte[] GetHeaderBuffer(int length, HeaderFlag flags = 0)
+        private static byte[] GetHeaderBuffer(int length, HeaderFlags flags = 0)
         {
             var headerBuffer = new byte[] {0x80 | (int) Version, (byte) flags, 0, 0, ErrorResponse.OpCode}
                 .Concat(BeConverter.GetBytes(length));

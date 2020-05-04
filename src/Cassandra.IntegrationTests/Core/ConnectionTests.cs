@@ -92,7 +92,7 @@ namespace Cassandra.IntegrationTests.Core
             using (var connection = CreateConnection())
             {
                 connection.Open().Wait();
-                var request = new InternalPrepareRequest(BasicQuery);
+                var request = new PrepareRequest(GetSerializer(), BasicQuery, null, null);
                 var task = connection.Send(request);
                 task.Wait();
                 Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
@@ -106,7 +106,7 @@ namespace Cassandra.IntegrationTests.Core
             using (var connection = CreateConnection())
             {
                 connection.Open().Wait();
-                var request = new InternalPrepareRequest("SELECT WILL FAIL");
+                var request = new PrepareRequest(GetSerializer(), "SELECT WILL FAIL", null, null);
                 var task = connection.Send(request);
                 task.ContinueWith(t =>
                 {
@@ -125,13 +125,19 @@ namespace Cassandra.IntegrationTests.Core
                 connection.Open().Wait();
 
                 //Prepare a query
-                var prepareRequest = new InternalPrepareRequest(BasicQuery);
+                var prepareRequest = new PrepareRequest(GetSerializer(), BasicQuery, null, null);
                 var task = connection.Send(prepareRequest);
                 var prepareOutput = ValidateResult<OutputPrepared>(task.Result);
 
                 //Execute the prepared query
-                var executeRequest = new ExecuteRequest(GetProtocolVersion(), prepareOutput.QueryId, null,
-                    new ResultMetadata(prepareOutput.ResultMetadataId, prepareOutput.ResultRowsMetadata), false, QueryProtocolOptions.Default);
+                var executeRequest = new ExecuteRequest(
+                    GetSerializer(), 
+                    prepareOutput.QueryId, 
+                    null,
+                    new ResultMetadata(prepareOutput.ResultMetadataId, prepareOutput.ResultRowsMetadata),
+                    QueryProtocolOptions.Default,
+                    false,
+                    null);
                 task = connection.Send(executeRequest);
                 var output = ValidateResult<OutputRows>(task.Result);
                 var rs = output.RowSet;
@@ -148,19 +154,20 @@ namespace Cassandra.IntegrationTests.Core
             {
                 connection.Open().Wait();
 
-                var prepareRequest = new InternalPrepareRequest("SELECT * FROM system.local WHERE key = ?");
+                var prepareRequest = new PrepareRequest(GetSerializer(), "SELECT * FROM system.local WHERE key = ?", null, null);
                 var task = connection.Send(prepareRequest);
                 var prepareOutput = ValidateResult<OutputPrepared>(task.Result);
 
                 var options = new QueryProtocolOptions(ConsistencyLevel.One, new object[] { "local" }, false, 100, null, ConsistencyLevel.Any);
 
                 var executeRequest = new ExecuteRequest(
-                    GetProtocolVersion(), 
+                    GetSerializer(), 
                     prepareOutput.QueryId, 
                     null, 
-                    new ResultMetadata(prepareOutput.ResultMetadataId, prepareOutput.ResultRowsMetadata), 
-                    false, 
-                    options);
+                    new ResultMetadata(prepareOutput.ResultMetadataId, prepareOutput.ResultRowsMetadata),
+                    options,
+                    false,
+                    null);
 
                 task = connection.Send(executeRequest);
                 var output = ValidateResult<OutputRows>(task.Result);
@@ -893,7 +900,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 options = QueryProtocolOptions.Default;
             }
-            return new QueryRequest(GetProtocolVersion(), query, false, options);
+            return new QueryRequest(GetSerializer(), query, options, false, null);
         }
 
         private static T ValidateResult<T>(Response response)

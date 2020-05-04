@@ -169,7 +169,7 @@ namespace Cassandra
             {
                 flags |= QueryFlags.WithDefaultTimestamp;
             }
-            if (ValueNames != null && ValueNames.Count > 0)
+            if (protocolVersion.SupportsNamedValuesInQueries() && ValueNames != null && ValueNames.Count > 0)
             {
                 flags |= QueryFlags.WithNameForValues;
             }

@@ -18,6 +18,7 @@ using System;
 using System.Linq;
 using Cassandra.IntegrationTests.SimulacronAPI;
 using Cassandra.IntegrationTests.SimulacronAPI.Models;
+using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using Cassandra.Tests;
 using NUnit.Framework;
@@ -25,7 +26,7 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests.Core
 {
     [Category(TestCategory.Short), TestFixture]
-    public class SimulacronHealthTest
+    public class SimulacronHealthTest : TestGlobals
     {
         [Test]
         public void Should_CreateSimulacronCluster()
@@ -33,7 +34,7 @@ namespace Cassandra.IntegrationTests.Core
             const string query = "SELECT * FROM system.traces";
             var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" });
             var contactPoint = simulacronCluster.InitialContactPoint;
-            var builder = Cluster.Builder()
+            var builder = ClusterBuilder()
                                  .AddContactPoint(contactPoint);
             using (var cluster = builder.Build())
             {

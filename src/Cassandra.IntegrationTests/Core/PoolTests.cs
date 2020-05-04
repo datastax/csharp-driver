@@ -58,7 +58,7 @@ namespace Cassandra.IntegrationTests.Core
 
             var policy = new ConstantReconnectionPolicy(int.MaxValue);
             var nonShareableTestCluster = TestClusterManager.GetNonShareableTestCluster(4, 1, true, false);
-            using (var cluster = Cluster.Builder().AddContactPoint(nonShareableTestCluster.InitialContactPoint).WithReconnectionPolicy(policy).Build())
+            using (var cluster = ClusterBuilder().AddContactPoint(nonShareableTestCluster.InitialContactPoint).WithReconnectionPolicy(policy).Build())
             {
                 var session = cluster.Connect();
                 // Check query to host distribution before killing nodes
@@ -121,7 +121,7 @@ namespace Cassandra.IntegrationTests.Core
 
             var policy = new ConstantReconnectionPolicy(500);
             var nonShareableTestCluster = TestClusterManager.GetNonShareableTestCluster(4, 1, true, false);
-            using (var cluster = Cluster.Builder().AddContactPoint(nonShareableTestCluster.InitialContactPoint).WithReconnectionPolicy(policy).Build())
+            using (var cluster = ClusterBuilder().AddContactPoint(nonShareableTestCluster.InitialContactPoint).WithReconnectionPolicy(policy).Build())
             {
                 var session = cluster.Connect();
                 // Check query to host distribution before killing nodes
@@ -213,7 +213,7 @@ namespace Cassandra.IntegrationTests.Core
             const int reconnectionDelay = 5000;
             const int waitTime = reconnectionDelay * 3 + 4000;
             var nonShareableTestCluster = TestClusterManager.GetNonShareableTestCluster(2, DefaultMaxClusterCreateRetries, true, false);
-            var cluster = Cluster.Builder()
+            var cluster = ClusterBuilder()
                 .AddContactPoint(nonShareableTestCluster.InitialContactPoint)
                 .WithReconnectionPolicy(new ConstantReconnectionPolicy(reconnectionDelay))
                 .Build();
@@ -267,7 +267,7 @@ namespace Cassandra.IntegrationTests.Core
                 .Callback<IPEndPoint>(invokedEndPoints.Add)
                 .Returns<IPEndPoint>(e => e);
             var testCluster = TestClusterManager.GetNonShareableTestCluster(3);
-            var cluster = Cluster.Builder()
+            var cluster = ClusterBuilder()
                 .AddContactPoint(testCluster.InitialContactPoint)
                 .WithReconnectionPolicy(new ConstantReconnectionPolicy(int.MaxValue))
                 .WithAddressTranslator(translatorMock.Object)
@@ -297,7 +297,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             ITestCluster nonShareableTestCluster = TestClusterManager.GetNonShareableTestCluster(2, 0, true, false);
             nonShareableTestCluster.Stop(2);
-            using (var cluster = Cluster.Builder()
+            using (var cluster = ClusterBuilder()
                                         .AddContactPoint(nonShareableTestCluster.InitialContactPoint)
                                         .Build())
             {
@@ -316,7 +316,7 @@ namespace Cassandra.IntegrationTests.Core
             var index = 0;
             ITestCluster nonShareableTestCluster = TestClusterManager.GetNonShareableTestCluster(2, 0, true, false);
             nonShareableTestCluster.Stop(2);
-            using (var cluster = Cluster.Builder()
+            using (var cluster = ClusterBuilder()
                                         .AddContactPoint(nonShareableTestCluster.InitialContactPoint)
                                         .Build())
             {

@@ -28,7 +28,7 @@ namespace Cassandra.Requests
     {
         /// <inheritdoc />
         public async Task ReprepareOnAllNodesWithExistingConnections(
-            IInternalSession session, InternalPrepareRequest request, PrepareResult prepareResult)
+            IInternalSession session, PrepareRequest request, PrepareResult prepareResult)
         {
             var pools = session.GetPools();
             var hosts = session.InternalCluster.AllHosts();

@@ -44,7 +44,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
         [Test]
         public void ExponentialReconnectionPolicyTest()
         {
-            var builder = Cluster.Builder().WithReconnectionPolicy(new ExponentialReconnectionPolicy(2*1000, 5*60*1000));
+            var builder = ClusterBuilder().WithReconnectionPolicy(new ExponentialReconnectionPolicy(2*1000, 5*60*1000));
 
             // Ensure that ExponentialReconnectionPolicy is what we should be testing
             if (!(builder.GetConfiguration().Policies.ReconnectionPolicy is ExponentialReconnectionPolicy))
@@ -113,7 +113,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
         [Test]
         public void ConstantReconnectionPolicyTest()
         {
-            Builder builder = Cluster.Builder().WithReconnectionPolicy(new ConstantReconnectionPolicy(25*1000));
+            Builder builder = ClusterBuilder().WithReconnectionPolicy(new ConstantReconnectionPolicy(25*1000));
 
             // Ensure that ConstantReconnectionPolicy is what we should be testing
             if (!(builder.GetConfiguration().Policies.ReconnectionPolicy is ConstantReconnectionPolicy))

@@ -17,13 +17,14 @@
 using NUnit.Framework;
 using System.Linq;
 using Cassandra.IntegrationTests.SimulacronAPI.Models.Logs;
+using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using Cassandra.Tests;
 
 namespace Cassandra.IntegrationTests.Core
 {
     [TestFixture, Category(TestCategory.Short)]
-    public class ConsistencyTests
+    public class ConsistencyTests : TestGlobals
     {
         private const string Query = "SELECT id, value from verifyconsistency";
 
@@ -41,7 +42,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Should_UseCLLocalOne_When_NotSpecifiedXDefaultX()
         {
             using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" } ))
-            using (var cluster = Cluster.Builder()
+            using (var cluster = ClusterBuilder()
                                         .AddContactPoint(simulacronCluster.InitialContactPoint).Build())
             {
                 var session = cluster.Connect();
@@ -63,7 +64,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Should_UseQueryOptionsCL_When_NotSetAtSimpleStatement(ConsistencyLevel consistencyLevel)
         {
             using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3,3" } ))
-            using (var cluster = Cluster.Builder()
+            using (var cluster = ClusterBuilder()
                                         .WithQueryOptions(new QueryOptions().SetConsistencyLevel(consistencyLevel))
                                         .AddContactPoint(simulacronCluster.InitialContactPoint).Build())
             {
@@ -81,7 +82,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Should_UseQueryOptionsSerialCL_When_NotSetAtSimpleStatement(ConsistencyLevel serialConsistency)
         {
             using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3,3" } ))
-            using (var cluster = Cluster.Builder()
+            using (var cluster = ClusterBuilder()
                                         .WithQueryOptions(new QueryOptions().SetSerialConsistencyLevel(serialConsistency))
                                         .AddContactPoint(simulacronCluster.InitialContactPoint).Build())
             {
@@ -106,7 +107,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Should_UseSimpleStatementCL_When_Set(ConsistencyLevel consistencyLevel)
         {
             using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3,3" } ))
-            using (var cluster = Cluster.Builder()
+            using (var cluster = ClusterBuilder()
                                         .WithQueryOptions(new QueryOptions().SetConsistencyLevel(ConsistencyLevel.Any))
                                         .AddContactPoint(simulacronCluster.InitialContactPoint).Build())
             {
@@ -125,7 +126,7 @@ namespace Cassandra.IntegrationTests.Core
             ConsistencyLevel consistencyLevel, ConsistencyLevel serialConsistency)
         {
             using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3,3" } ))
-            using (var cluster = Cluster.Builder()
+            using (var cluster = ClusterBuilder()
                                         .AddContactPoint(simulacronCluster.InitialContactPoint).Build())
             {
                 const string conditionalQuery = "update tbl_serial set value=2 where id=1 if exists";
@@ -146,7 +147,7 @@ namespace Cassandra.IntegrationTests.Core
             ConsistencyLevel consistencyLevel, ConsistencyLevel serialConsistency)
         {
             using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3,3" } ))
-            using (var cluster = Cluster.Builder()
+            using (var cluster = ClusterBuilder()
                                         .AddContactPoint(simulacronCluster.InitialContactPoint)
                                         .WithQueryOptions(new QueryOptions()
                                             .SetConsistencyLevel(consistencyLevel)
@@ -175,7 +176,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Should_UseQueryOptionsCL_When_NotSetAtPreparedStatement(ConsistencyLevel consistencyLevel)
         {
             using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3,3" } ))
-            using (var cluster = Cluster.Builder()
+            using (var cluster = ClusterBuilder()
                                         .WithQueryOptions(new QueryOptions().SetConsistencyLevel(consistencyLevel))
                                         .AddContactPoint(simulacronCluster.InitialContactPoint).Build())
             {
@@ -195,7 +196,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Should_UseQueryOptionsSerialCL_When_NotSetAtPreparedStatement(ConsistencyLevel consistencyLevel)
         {
             using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3,3" } ))
-            using (var cluster = Cluster.Builder()
+            using (var cluster = ClusterBuilder()
                                         .WithQueryOptions(new QueryOptions().SetSerialConsistencyLevel(consistencyLevel))
                                         .AddContactPoint(simulacronCluster.InitialContactPoint).Build())
             {
@@ -221,7 +222,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Should_UsePreparedStatementCL_When_Set(ConsistencyLevel consistencyLevel)
         {
             using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3,3" } ))
-            using (var cluster = Cluster.Builder()
+            using (var cluster = ClusterBuilder()
                                         .AddContactPoint(simulacronCluster.InitialContactPoint).Build())
             {
                 var session = cluster.Connect();

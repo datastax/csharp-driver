@@ -16,16 +16,19 @@
 
 using System.Linq;
 using System.Threading.Tasks;
+
 using Cassandra.IntegrationTests.SimulacronAPI;
+using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using Cassandra.Tests;
+
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.ExecutionProfiles
 {
     [TestFixture]
     [Category(TestCategory.Short)]
-    public class ExecutionProfileTests
+    public class ExecutionProfileTests : TestGlobals
     {
         private SimulacronCluster _simulacron;
 
@@ -47,7 +50,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
         public void Should_UseDerivedProfileConsistency_When_DerivedProfileIsProvided(bool async)
         {
             using (var cluster =
-                Cluster.Builder()
+                ClusterBuilder()
                        .AddContactPoint(_simulacron.InitialContactPoint)
                        .WithQueryOptions(new QueryOptions().SetConsistencyLevel(ConsistencyLevel.One))
                        .WithExecutionProfiles(opts => opts
@@ -76,7 +79,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
         public async Task Should_UseProfileConsistency_When_ProfileIsProvided(bool async)
         {
             using (var cluster =
-                Cluster.Builder()
+                ClusterBuilder()
                        .AddContactPoint(_simulacron.InitialContactPoint)
                        .WithQueryOptions(new QueryOptions().SetConsistencyLevel(ConsistencyLevel.One))
                        .WithExecutionProfiles(opts => opts
@@ -109,7 +112,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
         public async Task Should_UseClusterConsistency_When_ProfileIsNotProvided(bool async)
         {
             using (var cluster =
-                Cluster.Builder()
+                ClusterBuilder()
                        .AddContactPoint(_simulacron.InitialContactPoint)
                        .WithQueryOptions(new QueryOptions().SetConsistencyLevel(ConsistencyLevel.One))
                        .WithExecutionProfiles(opts => opts
@@ -125,11 +128,11 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
                 _simulacron.PrimeFluent(
                     b => b.WhenQuery("SELECT * from test.test", query => query.WithConsistency(ConsistencyLevel.One))
                           .ThenRowsSuccess(new[] { ("text", DataType.Ascii) }, r => r.WithRow("test10").WithRow("test60")));
-                
+
                 _simulacron.PrimeFluent(
                     b => b.WhenQuery("SELECT * from test.test", query => query.WithConsistency(ConsistencyLevel.Two))
                           .ThenUnavailable("unavailable", (int)ConsistencyLevel.Two, 2, 1));
-                
+
                 var rs = async
                     ? await session.ExecuteAsync(new SimpleStatement("SELECT * from test.test")).ConfigureAwait(false)
                     : session.Execute("SELECT * from test.test");
@@ -149,7 +152,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
         public async Task Should_UseDefaultProfileConsistency_When_ProfileIsNotProvidedButDefaultProfileWasChanged(bool async)
         {
             using (var cluster =
-                Cluster.Builder()
+                ClusterBuilder()
                        .AddContactPoint(_simulacron.InitialContactPoint)
                        .WithQueryOptions(new QueryOptions().SetConsistencyLevel(ConsistencyLevel.One))
                        .WithExecutionProfiles(opts => opts
@@ -167,11 +170,11 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
                 _simulacron.PrimeFluent(
                     b => b.WhenQuery("SELECT * from test.test", query => query.WithConsistency(ConsistencyLevel.One))
                           .ThenRowsSuccess(new[] { ("text", DataType.Ascii) }, r => r.WithRow("test10").WithRow("test60")));
-                
+
                 _simulacron.PrimeFluent(
                     b => b.WhenQuery("SELECT * from test.test", query => query.WithConsistency(ConsistencyLevel.Two))
                           .ThenRowsSuccess(new[] { ("text", DataType.Ascii) }, r => r.WithRow("test12").WithRow("test62")));
-                
+
                 _simulacron.PrimeFluent(
                     b => b.WhenQuery("SELECT * from test.test", query => query.WithConsistency(ConsistencyLevel.Quorum))
                           .ThenUnavailable("unavailable", (int)ConsistencyLevel.Two, 2, 1));

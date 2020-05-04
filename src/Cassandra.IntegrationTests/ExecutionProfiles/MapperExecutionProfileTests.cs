@@ -35,7 +35,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
 {
     [TestFixture]
     [Category(TestCategory.Short)]
-    public class MapperExecutionProfileTests
+    public class MapperExecutionProfileTests : TestGlobals
     {
         private ISession _session;
         private string _keyspace;
@@ -50,7 +50,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
             _keyspace = TestUtils.GetUniqueKeyspaceName().ToLowerInvariant();
 
             _simulacronCluster = SimulacronCluster.CreateNew(3);
-            _session = Cluster.Builder()
+            _session = ClusterBuilder()
                               .AddContactPoint(_simulacronCluster.InitialContactPoint)
                               .WithExecutionProfiles(opts => opts
                                   .WithProfile("testProfile", profile => profile

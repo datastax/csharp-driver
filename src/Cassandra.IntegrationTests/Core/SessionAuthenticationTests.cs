@@ -36,10 +36,9 @@ namespace Cassandra.IntegrationTests.Core
         // Test cluster object to be shared by tests in this class only
         private ITestCluster _testClusterForAuthTesting;
         
-        public static void RetryUntilClusterAuthHealthy(ITestCluster cluster)
+        public void RetryUntilClusterAuthHealthy(ITestCluster cluster)
         {
-            using (var c = Cluster
-                           .Builder()
+            using (var c = ClusterBuilder()
                            .AddContactPoint(cluster.InitialContactPoint)
                            .WithAuthProvider(new PlainTextAuthProvider("wrong_username", "password"))
                            .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(22000).SetConnectTimeoutMillis(60000))
@@ -63,7 +62,7 @@ namespace Cassandra.IntegrationTests.Core
             _testClusterForAuthTesting = GetTestCcmClusterForAuthTests();
             //Wait 10 seconds as auth table needs to be created
             Thread.Sleep(10000);
-            SessionAuthenticationTests.RetryUntilClusterAuthHealthy(_testClusterForAuthTesting);
+            RetryUntilClusterAuthHealthy(_testClusterForAuthTesting);
         }
 
         [OneTimeTearDown]
@@ -83,11 +82,10 @@ namespace Cassandra.IntegrationTests.Core
         [Test, TestCassandraVersion(2, 0)]
         public void PlainTextAuthProvider_AuthFail()
         {
-            using (var cluster = Cluster
-                .Builder()
-                .AddContactPoint(_testClusterForAuthTesting.InitialContactPoint)
-                .WithAuthProvider(new PlainTextAuthProvider("wrong_username", "password"))
-                .Build())
+            using (var cluster = ClusterBuilder()
+                                 .AddContactPoint(_testClusterForAuthTesting.InitialContactPoint)
+                                 .WithAuthProvider(new PlainTextAuthProvider("wrong_username", "password"))
+                                 .Build())
             {
                 var ex = Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
                 Assert.AreEqual(1, ex.Errors.Count);
@@ -102,11 +100,10 @@ namespace Cassandra.IntegrationTests.Core
         [TestCassandraVersion(2, 0)]
         public void PlainTextAuthProvider_AuthSuccess()
         {
-            using (var cluster = Cluster
-                .Builder()
-                .AddContactPoint(_testClusterForAuthTesting.InitialContactPoint)
-                .WithAuthProvider(new PlainTextAuthProvider("cassandra", "cassandra"))
-                .Build())
+            using (var cluster = ClusterBuilder()
+                                 .AddContactPoint(_testClusterForAuthTesting.InitialContactPoint)
+                                 .WithAuthProvider(new PlainTextAuthProvider("cassandra", "cassandra"))
+                                 .Build())
             {
                 var session = cluster.Connect();
                 var rowSet = session.Execute("SELECT * FROM system.local");
@@ -119,11 +116,10 @@ namespace Cassandra.IntegrationTests.Core
         public void PlainTextAuthProvider_With_Name_AuthSuccess()
         {
             var testAuthProvider = new PlainTextAuthTestProvider("cassandra", "cassandra");
-            using (var cluster = Cluster
-                .Builder()
-                .AddContactPoint(_testClusterForAuthTesting.InitialContactPoint)
-                .WithAuthProvider(testAuthProvider)
-                .Build())
+            using (var cluster = ClusterBuilder()
+                                 .AddContactPoint(_testClusterForAuthTesting.InitialContactPoint)
+                                 .WithAuthProvider(testAuthProvider)
+                                 .Build())
             {
                 var session = cluster.Connect();
                 Assert.True(testAuthProvider.NameBeforeNewAuthenticator);
@@ -136,7 +132,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void StandardCreds_AuthSuccess()
         {
-            Builder builder = Cluster.Builder()
+            Builder builder = ClusterBuilder()
                 .AddContactPoint(_testClusterForAuthTesting.InitialContactPoint)
                 .WithCredentials("cassandra", "cassandra");
             using (var cluster = builder.Build())
@@ -150,11 +146,10 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void StandardCreds_AuthFail()
         {
-            using (var cluster = Cluster
-                .Builder()
-                .AddContactPoint(_testClusterForAuthTesting.InitialContactPoint)
-                .WithCredentials("wrong_username", "password")
-                .Build())
+            using (var cluster = ClusterBuilder()
+                                 .AddContactPoint(_testClusterForAuthTesting.InitialContactPoint)
+                                 .WithCredentials("wrong_username", "password")
+                                 .Build())
             {
                 var ex = Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
                 Assert.AreEqual(1, ex.Errors.Count);
@@ -168,10 +163,9 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void StandardCreds_AuthOmitted()
         {
-            using (var cluster = Cluster
-                .Builder()
-                .AddContactPoint(_testClusterForAuthTesting.InitialContactPoint)
-                .Build())
+            using (var cluster = ClusterBuilder()
+                                 .AddContactPoint(_testClusterForAuthTesting.InitialContactPoint)
+                                 .Build())
             {
                 var ex = Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
                 Assert.AreEqual(1, ex.Errors.Count);

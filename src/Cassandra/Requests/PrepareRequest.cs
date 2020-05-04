@@ -16,21 +16,21 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
+
 using Cassandra.Serialization;
 
 namespace Cassandra.Requests
 {
-    internal class InternalPrepareRequest : IRequest
+    internal class PrepareRequest : BaseRequest
     {
-        public const byte OpCode = 0x09;
-        private readonly IDictionary<string, byte[]> _payload;
-        private readonly FrameHeader.HeaderFlag _headerFlags;
-        private readonly PrepareFlags _prepareFlags = 0;
+        public const byte PrepareOpCode = 0x09;
+
+        private readonly PrepareFlags? _prepareFlags = PrepareFlags.None;
 
         [Flags]
         internal enum PrepareFlags
         {
+            None = 0,
             WithKeyspace = 0x01
         }
 
@@ -43,49 +43,46 @@ namespace Cassandra.Requests
         /// The CQL string to be prepared
         /// </summary>
         public string Query { get; set; }
-
+        
         /// <inheritdoc />
-        public ResultMetadata ResultMetadata => null;
+        public override ResultMetadata ResultMetadata => null;
 
-        public InternalPrepareRequest(string cqlQuery, string keyspace = null, IDictionary<string, byte[]> payload = null)
+        public PrepareRequest(
+            ISerializer serializer, string cqlQuery, string keyspace, IDictionary<string, byte[]> payload)
+            : base(serializer, false, payload)
         {
             Query = cqlQuery;
             Keyspace = keyspace;
-            _payload = payload;
-            if (payload != null)
-            {
-                _headerFlags |= FrameHeader.HeaderFlag.CustomPayload;
-            }
 
+            if (!serializer.ProtocolVersion.SupportsKeyspaceInRequest())
+            {
+                // if the keyspace parameter is not supported then prepare flags aren't either
+                _prepareFlags = null;
+                
+                // and also no other optional parameter is supported
+                return;
+            }
+            
             if (keyspace != null)
             {
                 _prepareFlags |= PrepareFlags.WithKeyspace;
             }
         }
 
-        public int WriteFrame(short streamId, MemoryStream stream, ISerializer serializer)
+        protected override byte OpCode => PrepareRequest.PrepareOpCode;
+
+        protected override void WriteBody(FrameWriter wb)
         {
-            var wb = new FrameWriter(stream, serializer);
-            wb.WriteFrameHeader((byte)_headerFlags, streamId, OpCode);
-            var protocolVersion = serializer.ProtocolVersion;
-
-            if (_payload != null)
-            {
-                wb.WriteBytesMap(_payload);
-            }
-
             wb.WriteLongString(Query);
 
-            if (protocolVersion.SupportsKeyspaceInRequest())
+            if (_prepareFlags != null)
             {
-                wb.WriteInt32((int) _prepareFlags);
-                if (Keyspace != null)
+                wb.WriteInt32((int)_prepareFlags);
+                if (_prepareFlags.Value.HasFlag(PrepareFlags.WithKeyspace))
                 {
                     wb.WriteString(Keyspace);
                 }
             }
-
-            return wb.Close();
         }
     }
 }
