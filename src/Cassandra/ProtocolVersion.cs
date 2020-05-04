@@ -96,23 +96,24 @@ namespace Cassandra
         /// <returns></returns>
         public static ProtocolVersion GetLowerSupported(this ProtocolVersion version, Configuration config)
         {
-            ProtocolVersion lowerVersion;
-            if (version > ProtocolVersion.V5)
+            var lowerVersion = version;
+            do
             {
-                lowerVersion = ProtocolVersion.V5;
-            }
-            else if (version <= ProtocolVersion.V1)
-            {
-                lowerVersion = 0;
-            }
-            else
-            {
-                lowerVersion = version - 1;
-            }
+                if (lowerVersion > ProtocolVersion.V5)
+                {
+                    lowerVersion = ProtocolVersion.V5;
+                }
+                else if (lowerVersion <= ProtocolVersion.V1)
+                {
+                    lowerVersion = 0;
+                }
+                else
+                {
+                    lowerVersion = lowerVersion - 1;
+                }
+            } while (lowerVersion > 0 && !lowerVersion.IsSupported(config));
 
-            return lowerVersion <= 0 || lowerVersion.IsSupported(config)
-                ? lowerVersion
-                : lowerVersion.GetLowerSupported(config);
+            return lowerVersion;
         }
 
         /// <summary>
@@ -140,7 +141,9 @@ namespace Cassandra
                 {
                     // Anything 4.0.0+ has a max protocol version of V5 and requires at least V3.
                     v3Requirement = true;
-                    maxVersion = Math.Min((byte)ProtocolVersion.V5, maxVersion);
+                    maxVersion = config.AllowBetaProtocolVersions 
+                        ? Math.Min((byte)ProtocolVersion.V5, maxVersion) 
+                        : Math.Min((byte)ProtocolVersion.V4, maxVersion);
                     maxVersionWith3OrMore = maxVersion;
                 }
                 else if (cassandraVersion >= Version30)

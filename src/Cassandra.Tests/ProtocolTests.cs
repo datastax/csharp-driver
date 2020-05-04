@@ -53,7 +53,7 @@ namespace Cassandra.Tests
             Assert.AreEqual(version, initialVersion.GetLowerSupported(_config));
         }
 
-        [TestCase(ProtocolVersion.V5, "4.0.0", "1.2.19")]
+        [TestCase(ProtocolVersion.V4, "4.0.0", "1.2.19")]
         [TestCase(ProtocolVersion.V3, "4.0.0", "2.1.17")]
         [TestCase(ProtocolVersion.V3, "3.0.13", "2.1.17")]
         [TestCase(ProtocolVersion.V3, "2.2.11", "2.1.17")]
@@ -67,6 +67,22 @@ namespace Cassandra.Tests
         {
             Assert.AreEqual(version, ProtocolVersion.MaxSupported.GetHighestCommon(_config, cassandraVersions.Select(GetHost)));
         }
+        
+
+        [TestCase(ProtocolVersion.V5, "4.0.0", "1.2.19")]
+        [TestCase(ProtocolVersion.V3, "4.0.0", "2.1.17")]
+        [TestCase(ProtocolVersion.V3, "3.0.13", "2.1.17")]
+        [TestCase(ProtocolVersion.V3, "2.2.11", "2.1.17")]
+        [TestCase(ProtocolVersion.V2, "2.2.11", "2.0.17")]
+        [TestCase(ProtocolVersion.V2, "2.0.17", "2.1.11")]
+        [TestCase(ProtocolVersion.V1, "1.2.19", "2.2.11")]
+        [TestCase(ProtocolVersion.V1, "1.2.19", "2.1.11")]
+        [TestCase(ProtocolVersion.V1, "2.0.17", "1.2.19", null)]
+        public void GetHighestCommon_Should_NotSkipBeta_When_AllowBetaVersionIsTrue(ProtocolVersion version,
+                                                                                params string[] cassandraVersions)
+        {
+            Assert.AreEqual(version, ProtocolVersion.MaxSupported.GetHighestCommon(_configBeta, cassandraVersions.Select(GetHost)));
+        }
 
         [TestCase(ProtocolVersion.V3, "6.0/3.10.2", "4.8.1/2.1.17", "5.1/3.0.13")]
         [TestCase(ProtocolVersion.V4, "6.0/3.10.2", "5.1/3.0.13")]
@@ -76,8 +92,8 @@ namespace Cassandra.Tests
             Assert.AreEqual(version, ProtocolVersion.MaxSupported.GetHighestCommon(_config, cassandraVersions.Select(GetHost)));
         }
         
-        [TestCase(ProtocolVersion.V5, "4.0.0")]
-        [TestCase(ProtocolVersion.V5, "4.0.0", "1.2.19")]
+        [TestCase(ProtocolVersion.V4, "4.0.0")]
+        [TestCase(ProtocolVersion.V4, "4.0.0", "1.2.19")]
         [TestCase(ProtocolVersion.V4, "3.0.13", "3.0.11", "2.2.9")]
         // can't downgrade because C* 3.0 does not support protocol lower versions than v3.
         [TestCase(ProtocolVersion.V4, "3.0.13", "2.0.17")]
@@ -87,6 +103,19 @@ namespace Cassandra.Tests
                                                                               params string[] cassandraVersions)
         {
             Assert.AreEqual(version, version.GetHighestCommon(_config, cassandraVersions.Select(GetHost)));
+        }
+        
+        [TestCase(ProtocolVersion.V5, "4.0.0")]
+        [TestCase(ProtocolVersion.V5, "4.0.0", "1.2.19")]
+        [TestCase(ProtocolVersion.V4, "3.0.13", "3.0.11", "2.2.9")]
+        // can't downgrade because C* 3.0 does not support protocol lower versions than v3.
+        [TestCase(ProtocolVersion.V4, "3.0.13", "2.0.17")]
+        [TestCase(ProtocolVersion.V4, "3.0.13", "1.2.19")]
+        [TestCase(ProtocolVersion.V3, "3.0.13", "2.2.11")]
+        public void GetHighestCommon_Should_Not_Downgrade_Protocol_With_Hosts_When_AllowBetaVersionIsTrue(ProtocolVersion version,
+                                                                              params string[] cassandraVersions)
+        {
+            Assert.AreEqual(version, version.GetHighestCommon(_configBeta, cassandraVersions.Select(GetHost)));
         }
 
         [TestCase(ProtocolVersion.V4, "5.1.7/3.0.13", "5.0.13/3.0.11", "2.2.9")]
