@@ -18,7 +18,7 @@ SimpleStatement statement =
 session.Execute(statement);
 ```
 
-You can do this on [simple](../simple/), [prepared](../prepared) or [batch](../batch/) statements.
+You can do this on [simple](../simple/) or [batch](../batch/) statements. For [prepared statements](../prepared) there is no `SetKeyspace` method but you can specify a per-query keyspace as a parameter in the `Session.Prepare()` method.
 
 If the session is connected to another keyspace, the per-query keyspace takes precedence:
 
