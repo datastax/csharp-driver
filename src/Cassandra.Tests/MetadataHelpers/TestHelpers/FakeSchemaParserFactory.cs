@@ -30,7 +30,7 @@ namespace Cassandra.Tests.MetadataHelpers.TestHelpers
 
             // unique configurations
             keyspaces.AddOrUpdate("ks1", FakeSchemaParserFactory.CreateSimpleKeyspace("ks1", 2), (s, keyspaceMetadata) => keyspaceMetadata);
-            keyspaces.AddOrUpdate("ks4", FakeSchemaParserFactory.CreateNetworkTopologyKeyspace("ks4", new Dictionary<string, int> { { "dc1", 2 }, { "dc2", 2 } }), (s, keyspaceMetadata) => keyspaceMetadata);
+            keyspaces.AddOrUpdate("ks4", FakeSchemaParserFactory.CreateNetworkTopologyKeyspace("ks4", new Dictionary<string, string> { { "dc1", "2" }, { "dc2", "2" } }), (s, keyspaceMetadata) => keyspaceMetadata);
 
             return new FakeSchemaParser(keyspaces);
         }
@@ -42,11 +42,11 @@ namespace Cassandra.Tests.MetadataHelpers.TestHelpers
                 name,
                 true,
                 ReplicationStrategies.SimpleStrategy,
-                new Dictionary<string, int> { { "replication_factor", replicationFactor } },
+                new Dictionary<string, string> { { "replication_factor", replicationFactor.ToString() } },
                 factory ?? new ReplicationStrategyFactory());
         }
 
-        public static KeyspaceMetadata CreateNetworkTopologyKeyspace(string name, IDictionary<string, int> replicationFactors, IReplicationStrategyFactory factory = null)
+        public static KeyspaceMetadata CreateNetworkTopologyKeyspace(string name, IDictionary<string, string> replicationFactors, IReplicationStrategyFactory factory = null)
         {
             return new KeyspaceMetadata(
                 null,

@@ -20,6 +20,8 @@ namespace Cassandra.MetadataHelpers
 {
     internal interface IReplicationStrategyFactory
     {
-        IReplicationStrategy Create(string strategyClass, IReadOnlyDictionary<string, int> replicationOptions);
+        IReplicationStrategy Create(
+            string strategyClass, 
+            IReadOnlyDictionary<string, ReplicationFactor> replicationOptions);
     }
 }

@@ -21,9 +21,9 @@ namespace Cassandra.MetadataHelpers
 {
     internal class SimpleStrategy : IReplicationStrategy, IEquatable<SimpleStrategy>
     {
-        private readonly int _replicationFactor;
+        private readonly ReplicationFactor _replicationFactor;
 
-        public SimpleStrategy(int replicationFactor)
+        public SimpleStrategy(ReplicationFactor replicationFactor)
         {
             _replicationFactor = replicationFactor;
         }
@@ -49,7 +49,8 @@ namespace Cassandra.MetadataHelpers
 
         public bool Equals(SimpleStrategy other)
         {
-            return other != null && _replicationFactor == other._replicationFactor;
+            return other != null 
+                   && _replicationFactor.Equals(other._replicationFactor);
         }
 
         public override int GetHashCode()
@@ -65,7 +66,7 @@ namespace Cassandra.MetadataHelpers
             IReadOnlyList<IToken> ring, 
             IReadOnlyDictionary<IToken, Host> primaryReplicas)
         {
-            var rf = Math.Min(_replicationFactor, numberOfHostsWithTokens);
+            var rf = Math.Min(_replicationFactor.FullReplicas, numberOfHostsWithTokens);
             var tokenToReplicas = new Dictionary<IToken, ISet<Host>>(ring.Count);
             for (var i = 0; i < ring.Count; i++)
             {

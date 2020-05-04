@@ -22,7 +22,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests
 {
-    public class SharedSimulacronTests : TestGlobals
+    public abstract class SharedSimulacronTests : TestGlobals
     {
         private readonly List<Cluster> _clusterInstances = new List<Cluster>();
         private readonly List<SimulacronCluster> _simulacronClusters = new List<SimulacronCluster>();
