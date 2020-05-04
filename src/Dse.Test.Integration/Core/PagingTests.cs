@@ -126,6 +126,48 @@ namespace Dse.Test.Integration.Core
         }
 
         [Test]
+        [TestCassandraVersion(4, 0)]
+        public void Should_PagingOnBoundStatement_When_NewResultMetadataIsSet()
+        {
+            var pageSize = 10;
+            var totalRowLength = 25;
+            var tableName = CreateSimpleTableAndInsert(totalRowLength);
+
+            var statementToBeBound = "SELECT * from " + tableName;
+            var ps = Session.Prepare(statementToBeBound);
+
+            var allRows = Session.Execute(ps.Bind()).ToList();
+            var previousResultMetadataId = ps.ResultMetadataId;
+            Assert.AreEqual(totalRowLength, allRows.Count);
+            Assert.IsTrue(allRows.All(r => !r.ContainsColumn("new_column")));
+
+            var boundStatementManualPaging = ps.Bind().SetPageSize(pageSize).SetAutoPage(false);
+            var rs = Session.Execute(boundStatementManualPaging);
+            var firstPage = rs.ToList();
+
+            Session.Execute($"ALTER TABLE {tableName} ADD (new_column text)");
+            Assert.AreEqual(previousResultMetadataId, ps.ResultMetadataId);
+
+            rs = Session.Execute(boundStatementManualPaging.SetPagingState(rs.PagingState));
+            var secondPage = rs.ToList();
+            Assert.AreNotEqual(previousResultMetadataId, ps.ResultMetadataId);
+            
+            rs = Session.Execute(boundStatementManualPaging.SetPagingState(rs.PagingState));
+            var thirdPage = rs.ToList();
+            
+            var allRowsAfterAlter = Session.Execute(ps.Bind()).ToList();
+            Assert.AreEqual(totalRowLength, allRowsAfterAlter.Count);
+
+            Assert.AreEqual(pageSize, firstPage.Count);
+            Assert.AreEqual(pageSize, secondPage.Count);
+            Assert.AreEqual(totalRowLength-(pageSize*2), thirdPage.Count);
+
+            Assert.IsTrue(firstPage.All(r => !r.ContainsColumn("new_column")));
+            Assert.IsTrue(secondPage.All(r => r.ContainsColumn("new_column") && r.GetValue<string>("new_column") == null));
+            Assert.IsTrue(allRowsAfterAlter.All(r => r.ContainsColumn("new_column") && r.GetValue<string>("new_column") == null));
+        }
+
+        [Test]
         [TestCassandraVersion(2, 0)]
         public void Should_PagingOnBoundStatement_When_ReceivedNumberOfRowsIsZero()
         {
