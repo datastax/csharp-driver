@@ -21,15 +21,39 @@ using System.Threading;
 
 namespace Cassandra.IntegrationTests.TestClusterManagement
 {
-    public class SimulacronManager
+    public class SimulacronManager : IDisposable
     {
         private Process _simulacronProcess;
 
         private bool _initialized;
 
-        public static SimulacronManager Instance { get; } = new SimulacronManager();
+        public static SimulacronManager DefaultInstance { get; } = new SimulacronManager();
+        
+        public Uri BaseAddress => new Uri($"http://127.0.0.1:{HttpPort}");
 
-        public static Uri BaseAddress => new Uri("http://127.0.0.1:8188");
+        public int? StartPort { get; } = null;
+
+        public string StartIp { get; } = "127.0.0.101";
+
+        public int HttpPort { get; } = 8188;
+
+        private SimulacronManager()
+        {
+        }
+
+        private SimulacronManager(int httpPort, string startIp, int? startPort)
+        {
+            HttpPort = httpPort;
+            StartIp = startIp;
+            StartPort = startPort;
+        }
+
+        public static SimulacronManager GetForPeersTests()
+        {
+            var manager = new SimulacronManager(8189, "127.0.0.111", 9011);
+            manager.Start();
+            return manager;
+        }
 
         public void Start()
         {
@@ -50,8 +74,15 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             {
                 throw new Exception("Simulacron: Simulacron jar not found: " + jarPath);
             }
+
+            var args = $"-jar {jarPath} --ip {StartIp} -p {HttpPort}";
+            if (StartPort.HasValue)
+            {
+                args += $" -s {StartPort}";
+            }
+
             _simulacronProcess.StartInfo.FileName = "java";
-            _simulacronProcess.StartInfo.Arguments = $"-jar {jarPath} --ip 127.0.0.101 -p 8188";
+            _simulacronProcess.StartInfo.Arguments = args;
             _simulacronProcess.StartInfo.UseShellExecute = false;
             _simulacronProcess.StartInfo.CreateNoWindow = true;
             _simulacronProcess.StartInfo.RedirectStandardOutput = true;
@@ -84,13 +115,13 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             if (!started)
             {
                 Trace.TraceError(errorMessage);
-                Stop();
+                Dispose();
                 throw new Exception("Simulacron failed to start!");
             }
             Trace.TraceInformation("Simulacron started");
         }
 
-        public void Stop()
+        public void Dispose()
         {
             if (_simulacronProcess == null) return;
 
