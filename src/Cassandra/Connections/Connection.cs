@@ -976,6 +976,7 @@ namespace Cassandra.Connections
                     await switchTcs.Task.ConfigureAwait(false);
                     continue;
                 }
+
                 var tcs = new TaskCompletionSource<bool>();
                 switchTcs = Interlocked.CompareExchange(ref _keyspaceSwitchTcs, tcs, null);
                 if (switchTcs != null)
@@ -984,18 +985,24 @@ namespace Cassandra.Connections
                     await switchTcs.Task.ConfigureAwait(false);
                     continue;
                 }
-                // CAS operation won, this is the only thread changing the keyspace
-                Connection.Logger.Info("Connection to host {0} switching to keyspace {1}", EndPoint.EndpointFriendlyName, value);
-                var request = new QueryRequest(Serializer, $"USE \"{value}\"", QueryProtocolOptions.Default, false, null);
+                
                 Exception sendException = null;
-                try
+
+                // CAS operation won, this is the only thread changing the keyspace
+                // but another thread might have changed it in the meantime
+                if (_keyspace != value)
                 {
-                    await Send(request).ConfigureAwait(false);
-                    _keyspace = value;
-                }
-                catch (Exception ex)
-                {
-                    sendException = ex;
+                    Connection.Logger.Info("Connection to host {0} switching to keyspace {1}", EndPoint.EndpointFriendlyName, value);
+                    var request = new QueryRequest(Serializer, $"USE \"{value}\"", QueryProtocolOptions.Default, false, null);
+                    try
+                    {
+                        await Send(request).ConfigureAwait(false);
+                        _keyspace = value;
+                    }
+                    catch (Exception ex)
+                    {
+                        sendException = ex;
+                    }
                 }
 
                 // Set the reference to null before setting the result

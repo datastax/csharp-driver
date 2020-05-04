@@ -23,7 +23,8 @@ namespace Cassandra.MetadataHelpers
     {
         private static readonly Logger Logger = new Logger(typeof(ReplicationStrategyFactory));
 
-        public IReplicationStrategy Create(string strategyClass, IReadOnlyDictionary<string, int> replicationOptions)
+        public IReplicationStrategy Create(
+            string strategyClass, IReadOnlyDictionary<string, ReplicationFactor> replicationOptions)
         {
             if (strategyClass == null)
             {

@@ -22,7 +22,7 @@ namespace Cassandra.MetadataHelpers
     {
         private readonly int _hashCode;
 
-        public DatacenterReplicationFactor(string datacenter, int replicationFactor)
+        public DatacenterReplicationFactor(string datacenter, ReplicationFactor replicationFactor)
         {
             Datacenter = datacenter ?? throw new ArgumentNullException(nameof(datacenter));
             ReplicationFactor = replicationFactor;
@@ -31,17 +31,23 @@ namespace Cassandra.MetadataHelpers
 
         public string Datacenter { get; }
 
-        public int ReplicationFactor { get; }
+        public ReplicationFactor ReplicationFactor { get; }
         
         public override bool Equals(object obj)
         {
-            return obj.GetType() == GetType() && Equals((DatacenterReplicationFactor)obj);
+            if (object.ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            return obj.GetType() == GetType() 
+                   && Equals((DatacenterReplicationFactor)obj);
         }
 
         public bool Equals(DatacenterReplicationFactor other)
         {
             return Datacenter == other.Datacenter &&
-                   ReplicationFactor == other.ReplicationFactor;
+                   ReplicationFactor.Equals(other.ReplicationFactor);
         }
 
         public override int GetHashCode()
@@ -49,7 +55,7 @@ namespace Cassandra.MetadataHelpers
             return _hashCode;
         }
 
-        private static int ComputeHashCode(string datacenter, int replicationFactor)
+        private static int ComputeHashCode(string datacenter, ReplicationFactor replicationFactor)
         {
             return Utils.CombineHashCode(new object[] { datacenter, replicationFactor });
         }

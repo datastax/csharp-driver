@@ -17,6 +17,7 @@ using System.Diagnostics;
 using Cassandra.DataStax.Graph;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
+using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests
 {

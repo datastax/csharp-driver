@@ -27,7 +27,7 @@ namespace Cassandra.Tests
         public void Ctor_Should_ParseNetworkTopologyStrategyClass_When_LongClassName()
         {
             var ks = new KeyspaceMetadata(
-                null, "ks2", true, "org.apache.cassandra.locator.NetworkTopologyStrategy", new Dictionary<string, int> { { "dc1", 2 }, { "dc2", 1 } });
+                null, "ks2", true, "org.apache.cassandra.locator.NetworkTopologyStrategy", new Dictionary<string, string> { { "dc1", "2" }, { "dc2", "1" } });
 
             Assert.IsNotNull(ks.Strategy);
             Assert.AreEqual(ReplicationStrategies.NetworkTopologyStrategy, ks.StrategyClass);
@@ -37,7 +37,7 @@ namespace Cassandra.Tests
         public void Ctor_Should_ParseSimpleStrategyClass_When_LongClassName()
         {
             var ks = new KeyspaceMetadata(
-                null, "ks2", true, "org.apache.cassandra.locator.SimpleStrategy", new Dictionary<string, int> { { "replication_factor", 2 } });
+                null, "ks2", true, "org.apache.cassandra.locator.SimpleStrategy", new Dictionary<string, string> { { "replication_factor", "2" } });
 
             Assert.IsNotNull(ks.Strategy);
             Assert.AreEqual(ReplicationStrategies.SimpleStrategy, ks.StrategyClass);
@@ -47,7 +47,7 @@ namespace Cassandra.Tests
         public void Ctor_Should_ParseNetworkTopologyStrategyClass_When_ShortClassName()
         {
             var ks = new KeyspaceMetadata(
-                null, "ks2", true, "NetworkTopologyStrategy", new Dictionary<string, int> { { "dc1", 2 }, { "dc2", 1 } });
+                null, "ks2", true, "NetworkTopologyStrategy", new Dictionary<string, string> { { "dc1", "2" }, { "dc2", "1" } });
 
             Assert.IsNotNull(ks.Strategy);
             Assert.AreEqual(ReplicationStrategies.NetworkTopologyStrategy, ks.StrategyClass);
@@ -57,7 +57,7 @@ namespace Cassandra.Tests
         public void Ctor_Should_ParseSimpleStrategyClass_When_ShortClassName()
         {
             var ks = new KeyspaceMetadata(
-                null, "ks2", true, "SimpleStrategy", new Dictionary<string, int> { { "replication_factor", 2 } });
+                null, "ks2", true, "SimpleStrategy", new Dictionary<string, string> { { "replication_factor", "2" } });
 
             Assert.IsNotNull(ks.Strategy);
             Assert.AreEqual(ReplicationStrategies.SimpleStrategy, ks.StrategyClass);
@@ -67,7 +67,7 @@ namespace Cassandra.Tests
         public void Ctor_Should_StrategyBeNull_When_UnrecognizedStrategyClass()
         {
             var ks = new KeyspaceMetadata(
-                null, "ks2", true, "random", new Dictionary<string, int> { { "replication_factor", 2 } });
+                null, "ks2", true, "random", new Dictionary<string, string> { { "replication_factor", "2" } });
 
             Assert.IsNull(ks.Strategy);
             Assert.AreEqual("random", ks.StrategyClass);
@@ -126,21 +126,21 @@ namespace Cassandra.Tests
         [Test]
         public void Ctor_Should_InitializeStrategyWithNull_When_NonNullReplicationOptionsArePassedButNullStrategyClassIsPassed()
         {
-            var sut = new KeyspaceMetadata(null, "name", true, null, new ConcurrentDictionary<string, int>(), true);
+            var sut = new KeyspaceMetadata(null, "name", true, null, new ConcurrentDictionary<string, string>(), true);
             Assert.IsNull(sut.Strategy);
         }
 
         [Test]
         public void Ctor_Should_InitializeReplicationWithNonNull_When_NonNullReplicationOptionsArePassedButNullStrategyClassIsPassed()
         {
-            var sut = new KeyspaceMetadata(null, "name", true, null, new ConcurrentDictionary<string, int>(), true);
+            var sut = new KeyspaceMetadata(null, "name", true, null, new ConcurrentDictionary<string, string>(), true);
             Assert.IsNotNull(sut.Replication);
         }
 
         [Test]
         public void Ctor_Should_InitializeStrategyClassWithNull_When_NonNullReplicationOptionsArePassedButNullStrategyClassIsPassed()
         {
-            var sut = new KeyspaceMetadata(null, "name", true, null, new ConcurrentDictionary<string, int>(), true);
+            var sut = new KeyspaceMetadata(null, "name", true, null, new ConcurrentDictionary<string, string>(), true);
             Assert.IsNull(sut.StrategyClass);
         }
     }

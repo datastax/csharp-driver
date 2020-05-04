@@ -21,7 +21,7 @@ namespace Cassandra.Tests.MetadataHelpers.TestHelpers
 {
     internal class ProxyReplicationStrategyFactory : IReplicationStrategyFactory
     {
-        public IReplicationStrategy Create(string strategyClass, IReadOnlyDictionary<string, int> replicationOptions)
+        public IReplicationStrategy Create(string strategyClass, IReadOnlyDictionary<string, ReplicationFactor> replicationOptions)
         {
             return new ProxyReplicationStrategy(new ReplicationStrategyFactory().Create(strategyClass, replicationOptions));
         }
