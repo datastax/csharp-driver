@@ -46,6 +46,7 @@ namespace Cassandra.IntegrationTests.TestBase
         /// Determines if the DSE version required should be "greater or equals to" = 1,
         /// "equals to" = 0, "less than or equal to " = -1
         /// </param>
+        /// <param name="isOssRequired">Whether OSS C* is required.</param>
         public TestDseVersion(int major, int minor, Comparison comparison = Comparison.GreaterThanOrEqualsTo, bool isOssRequired = false)
             : this(major, minor, 0, comparison, isOssRequired)
         {
@@ -63,6 +64,7 @@ namespace Cassandra.IntegrationTests.TestBase
         /// Determines if the DSE version required should be "greater or equals to" = 1,
         /// "equals to" = 0, "less than or equal to " = -1
         /// </param>
+        /// <param name="isOssRequired">Whether OSS C* is required.</param>
         public TestDseVersion(int major, int minor, int build, Comparison comparison = Comparison.GreaterThanOrEqualsTo, bool isOssRequired = false)
         {
             Major = major;
@@ -88,7 +90,7 @@ namespace Cassandra.IntegrationTests.TestBase
         public void ApplyToTest(NUnit.Framework.Internal.Test test)
         {
             var expectedVersion = GetExpectedServerVersion();
-            if (!TestDseVersion.VersionMatch(expectedVersion, IsDseRequired(), Comparison, out var msg))
+            if (!TestDseVersion.VersionMatch(expectedVersion, IsDseRequired(), IsOssRequired, Comparison, out var msg))
             {
                 test.RunState = RunState.Ignored;
                 var message = msg;
@@ -96,8 +98,17 @@ namespace Cassandra.IntegrationTests.TestBase
             }
         }
 
-        public static bool VersionMatch(Version expectedVersion, bool requiresDse, Comparison comparison, out string message)
+        public static bool VersionMatch(Version expectedVersion, bool requiresDse, bool requiresOss, Comparison comparison, out string message)
         {
+            if (TestClusterManager.IsDse && requiresOss)
+            {
+                message = string.Format("Test designed to run with OSS {0} v{1} (executing DSE {2})", 
+                    TestDseVersion.GetComparisonText(comparison), 
+                    expectedVersion, 
+                    TestClusterManager.DseVersion);
+                return false;
+            }
+
             if (!TestClusterManager.IsDse && requiresDse)
             {
                 message = $"Test designed to run with DSE {TestDseVersion.GetComparisonText(comparison)} " +
@@ -117,9 +128,9 @@ namespace Cassandra.IntegrationTests.TestBase
             return true;
         }
 
-        public static bool VersionMatch(Version expectedVersion, bool requiresDse, Comparison comparison)
+        public static bool VersionMatch(Version expectedVersion, bool requiresDse, bool requiresOss, Comparison comparison)
         {
-            return TestDseVersion.VersionMatch(expectedVersion, requiresDse, comparison, out _);
+            return TestDseVersion.VersionMatch(expectedVersion, requiresDse, requiresOss, comparison, out _);
         }
 
         public static bool VersionMatch(Version expectedVersion, Version executingVersion, Comparison comparison)
