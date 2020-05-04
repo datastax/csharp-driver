@@ -40,7 +40,7 @@ var cluster = Cluster.Builder()
     .Build();
 ```
 
-Alternatively, you can provide your own `RemoteCertificateValidationCallback` to handle the SSL errors and perform your own validation logic. Note that you can introduce security vulnerabilities with this so you should avoid it if you can.
+Alternatively, you can provide your own `RemoteCertificateValidationCallback` to handle the SSL errors and perform your own validation logic (see below for an example of this). Note that you can introduce security vulnerabilities with this so you should avoid it if you can.
 
 ### Enabling server authentication with a custom root certificate
 
