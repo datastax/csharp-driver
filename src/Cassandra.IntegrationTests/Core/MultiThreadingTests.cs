@@ -38,7 +38,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             var rp = new RetryLoadBalancingPolicy(new RoundRobinPolicy(), new ConstantReconnectionPolicy(100));
             rp.ReconnectionEvent += (s, ev) => Thread.Sleep((int)ev.DelayMs);
-            _builder = Cluster.Builder()
+            _builder = ClusterBuilder()
                 .WithReconnectionPolicy(new ConstantReconnectionPolicy(100))
                 .WithQueryTimeout(60 * 1000)
                 .WithLoadBalancingPolicy(rp);

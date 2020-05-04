@@ -73,7 +73,8 @@ namespace Cassandra.IntegrationTests
 
         protected TestClusterOptions Options { get; set; }
 
-        protected SharedClusterTest(int amountOfNodes = 1, bool createSession = true, TestClusterOptions options = null)
+        protected SharedClusterTest(
+            int amountOfNodes = 1, bool createSession = true, TestClusterOptions options = null)
         {
             AmountOfNodes = amountOfNodes;
             KeyspaceName = TestUtils.GetUniqueKeyspaceName().ToLowerInvariant();
@@ -102,10 +103,10 @@ namespace Cassandra.IntegrationTests
         
         protected virtual void CreateCommonSession()
         {
-            Cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint)
-                             .WithQueryTimeout(60000)
-                             .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(30000).SetReadTimeoutMillis(22000))
-                             .Build();
+            var builder = ClusterBuilder().AddContactPoint(TestCluster.InitialContactPoint)
+                                          .WithQueryTimeout(60000)
+                                          .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(30000).SetReadTimeoutMillis(22000));
+            Cluster = builder.Build();
             Session = (Session)Cluster.Connect();
             Session.CreateKeyspace(KeyspaceName, null, false);
             Session.ChangeKeyspace(KeyspaceName);
@@ -159,9 +160,9 @@ namespace Cassandra.IntegrationTests
         protected virtual ICluster GetNewTemporaryCluster(Action<Builder> build = null)
         {
             var builder = 
-                Cluster.Builder()
-                       .AddContactPoint(TestCluster.InitialContactPoint)
-                       .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(30000).SetReadTimeoutMillis(22000));
+                ClusterBuilder()
+                         .AddContactPoint(TestCluster.InitialContactPoint)
+                         .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(30000).SetReadTimeoutMillis(22000));
             build?.Invoke(builder);
             var cluster = builder.Build();
             ClusterInstances.Add(cluster);

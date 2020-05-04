@@ -35,7 +35,7 @@ namespace Cassandra.IntegrationTests.Core
             var sw = Stopwatch.StartNew();
             try
             {
-                var builder = new Builder().WithDefaultKeyspace("system")
+                var builder = ClusterBuilder().WithDefaultKeyspace("system")
                                            .AddContactPoints("1.1.1.1") // IP address that drops (not rejects !) the inbound connection
                                            .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(700));
                 var cluster = builder.Build();

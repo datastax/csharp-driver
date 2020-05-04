@@ -19,15 +19,18 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+
 using Cassandra.IntegrationTests.SimulacronAPI;
+using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using Cassandra.Tests;
+
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
     [TestFixture, Category(TestCategory.Short)]
-    public class SessionStateTests
+    public class SessionStateTests : TestGlobals
     {
         private SimulacronCluster _testCluster;
 
@@ -36,7 +39,7 @@ namespace Cassandra.IntegrationTests.Core
         [OneTimeSetUp]
         public void OneTimeSetup()
         {
-            _testCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3"});
+            _testCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" });
             _testCluster.PrimeFluent(b =>
                 b.WhenQuery(Query)
                  .ThenRowsSuccess(new[] { ("id", DataType.Uuid) }, rows => rows.WithRow(Guid.NewGuid())).WithDelayInMs(20));
@@ -52,7 +55,7 @@ namespace Cassandra.IntegrationTests.Core
         public async Task Session_GetState_Should_Return_A_Snapshot_Of_The_Pools_State()
         {
             var poolingOptions = PoolingOptions.Create().SetCoreConnectionsPerHost(HostDistance.Local, 2);
-            using (var cluster = Cluster.Builder()
+            using (var cluster = ClusterBuilder()
                                         .AddContactPoint(_testCluster.InitialContactPoint)
                                         .WithPoolingOptions(poolingOptions)
                                         .Build())
@@ -94,7 +97,7 @@ namespace Cassandra.IntegrationTests.Core
             ISession session;
             ISessionState state;
             ICollection<Host> hosts;
-            using (var cluster = Cluster.Builder()
+            using (var cluster = ClusterBuilder()
                                         .AddContactPoint(_testCluster.InitialContactPoint)
                                         .Build())
             {

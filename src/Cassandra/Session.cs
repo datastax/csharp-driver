@@ -39,7 +39,7 @@ namespace Cassandra
     /// <inheritdoc cref="Cassandra.ISession" />
     public class Session : IInternalSession
     {
-        private readonly ISerializer _serializer;
+        private readonly ISerializerManager _serializerManager;
         private static readonly Logger Logger = new Logger(typeof(Session));
         private readonly IThreadSafeDictionary<IPEndPoint, IHostConnectionPool> _connectionPool;
         private readonly IInternalCluster _cluster;
@@ -51,7 +51,7 @@ namespace Cassandra
 
         internal IInternalSession InternalRef => this;
 
-        public int BinaryProtocolVersion => (int)_serializer.ProtocolVersion;
+        public int BinaryProtocolVersion => (int)_serializerManager.GetCurrentSerializer().ProtocolVersion;
 
         /// <inheritdoc />
         public ICluster Cluster => _cluster;
@@ -104,15 +104,15 @@ namespace Cassandra
             IInternalCluster cluster,
             Configuration configuration,
             string keyspace,
-            ISerializerManager serializer,
+            ISerializerManager serializerManager,
             string sessionName)
         {
-            _serializer = serializer.GetCurrentSerializer();
+            _serializerManager = serializerManager;
             _cluster = cluster;
             Configuration = configuration;
             Keyspace = keyspace;
             SessionName = sessionName;
-            UserDefinedTypes = new UdtMappingDefinitions(this, serializer);
+            UserDefinedTypes = new UdtMappingDefinitions(this, serializerManager);
             _connectionPool = new CopyOnWriteDictionary<IPEndPoint, IHostConnectionPool>();
             _cluster.HostRemoved += OnHostRemoved;
             _metricsManager = new MetricsManager(configuration.MetricsProvider, Configuration.MetricsOptions, Configuration.MetricsEnabled, SessionName);
@@ -223,7 +223,7 @@ namespace Cassandra
         {
             _metricsManager.InitializeMetrics(this);
 
-            if (Configuration.GetOrCreatePoolingOptions(_serializer.ProtocolVersion).GetWarmup())
+            if (Configuration.GetOrCreatePoolingOptions(_serializerManager.CurrentProtocolVersion).GetWarmup())
             {
                 await Warmup().ConfigureAwait(false);
             }
@@ -231,7 +231,7 @@ namespace Cassandra
             if (Keyspace != null)
             {
                 // Borrow a connection, trying to fail fast
-                var handler = Configuration.RequestHandlerFactory.Create(this, _serializer);
+                var handler = Configuration.RequestHandlerFactory.Create(this, _serializerManager.GetCurrentSerializer());
                 await handler.GetNextConnectionAsync(new Dictionary<IPEndPoint, Exception>()).ConfigureAwait(false);
             }
             
@@ -340,7 +340,7 @@ namespace Cassandra
         private Task<RowSet> ExecuteAsync(IStatement statement, IRequestOptions requestOptions)
         {
             return Configuration.RequestHandlerFactory
-                                .Create(this, _serializer, statement, requestOptions)
+                                .Create(this, _serializerManager.GetCurrentSerializer(), statement, requestOptions)
                                 .SendAsync();
         }
 
@@ -349,7 +349,8 @@ namespace Cassandra
         {
             var hostPool = _connectionPool.GetOrAdd(host.Address, address =>
             {
-                var newPool = Configuration.HostConnectionPoolFactory.Create(host, Configuration, _serializer, _observerFactory);
+                var newPool = Configuration.HostConnectionPoolFactory.Create(
+                    host, Configuration, _serializerManager.GetCurrentSerializer(), _observerFactory);
                 newPool.AllConnectionClosed += InternalRef.OnAllConnectionClosed;
                 newPool.SetDistance(distance);
                 _metricsManager.GetOrCreateNodeMetrics(host).InitializePoolGauges(newPool);
@@ -457,15 +458,16 @@ namespace Cassandra
         /// <inheritdoc />
         public async Task<PreparedStatement> PrepareAsync(string cqlQuery, string keyspace, IDictionary<string, byte[]> customPayload)
         {
-            if (!_serializer.ProtocolVersion.SupportsKeyspaceInRequest() && keyspace != null)
+            var serializer = _serializerManager.GetCurrentSerializer();
+            if (!serializer.ProtocolVersion.SupportsKeyspaceInRequest() && keyspace != null)
             {
                 // Validate protocol version here and not at PrepareRequest level, as PrepareRequest can be issued
                 // in the background (prepare and retry, prepare on up, ...)
-                throw new NotSupportedException($"Protocol version {_serializer.ProtocolVersion} does not support" +
+                throw new NotSupportedException($"Protocol version {serializer.ProtocolVersion} does not support" +
                                                 " setting the keyspace as part of the PREPARE request");
             }
-            var request = new InternalPrepareRequest(cqlQuery, keyspace, customPayload);
-            return await _cluster.Prepare(this, _serializer, request).ConfigureAwait(false);
+            var request = new PrepareRequest(serializer, cqlQuery, keyspace, customPayload);
+            return await _cluster.Prepare(this, serializer, request).ConfigureAwait(false);
         }
 
         public void WaitForSchemaAgreement(RowSet rs)

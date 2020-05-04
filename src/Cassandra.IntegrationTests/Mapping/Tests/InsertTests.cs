@@ -544,7 +544,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         public void Insert_Batch_With_Options()
         {
             var anotherKeyspace = TestUtils.GetUniqueKeyspaceName().ToLowerInvariant();
-            using (var cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint)
+            using (var cluster = ClusterBuilder().AddContactPoint(TestCluster.InitialContactPoint)
                                                 .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(30000))
                                                 .Build())
             {

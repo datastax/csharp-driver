@@ -17,6 +17,7 @@
 #if NETFRAMEWORK && !LINUX
 using System;
 using System.Net.Sockets;
+using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Tests;
 using JetBrains.dotMemoryUnit;
 using NUnit.Framework;
@@ -24,7 +25,7 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests.Core
 {
     [TestFixture, Category("memory"), Explicit("this test needs dotMemory")]
-    class MemoryLeakTests
+    class MemoryLeakTests : TestGlobals
     {
         [Test]
         public void Monitor_Should_Not_Leak_Connections_Test()
@@ -41,7 +42,7 @@ namespace Cassandra.IntegrationTests.Core
             });
 
             var socketOptions = new SocketOptions().SetReadTimeoutMillis(1).SetConnectTimeoutMillis(1);
-            var builder = Cluster.Builder()
+            var builder = ClusterBuilder()
                                     .AddContactPoint(TestHelper.UnreachableHostAddress)
                                     .WithSocketOptions(socketOptions);
 

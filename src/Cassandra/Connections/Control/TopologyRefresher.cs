@@ -19,6 +19,7 @@ using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using Cassandra.Responses;
+using Cassandra.Serialization;
 using Cassandra.Tasks;
 
 namespace Cassandra.Connections.Control
@@ -48,15 +49,15 @@ namespace Cassandra.Connections.Control
 
         /// <inheritdoc />
         public async Task<Host> RefreshNodeListAsync(
-            IConnectionEndPoint currentEndPoint, IConnection connection, ProtocolVersion version)
+            IConnectionEndPoint currentEndPoint, IConnection connection, ISerializer serializer)
         {
             ControlConnection.Logger.Info("Refreshing node list");
 
             // safe guard against concurrent changes of this field
             var localIsPeersV2 = _isPeersV2;
 
-            var localTask = SendSystemLocalRequestAsync(connection, version);
-            var peersTask = SendSystemPeersRequestAsync(localIsPeersV2, connection, version);
+            var localTask = SendSystemLocalRequestAsync(connection, serializer);
+            var peersTask = SendSystemPeersRequestAsync(localIsPeersV2, connection, serializer);
             
             await Task.WhenAll(localTask, peersTask).ConfigureAwait(false);
 
@@ -79,28 +80,28 @@ namespace Cassandra.Connections.Control
             return host;
         }
         
-        private Task<Response> SendSystemLocalRequestAsync(IConnection connection, ProtocolVersion version)
+        private Task<Response> SendSystemLocalRequestAsync(IConnection connection, ISerializer serializer)
         {
             return _config.MetadataRequestHandler.SendMetadataRequestAsync(
-                connection, version, TopologyRefresher.SelectLocal, QueryProtocolOptions.Default);
+                connection, serializer, TopologyRefresher.SelectLocal, QueryProtocolOptions.Default);
         }
 
-        private Task<PeersResponse> SendSystemPeersRequestAsync(bool isPeersV2, IConnection connection, ProtocolVersion version)
+        private Task<PeersResponse> SendSystemPeersRequestAsync(bool isPeersV2, IConnection connection, ISerializer serializer)
         {
             var peersTask = _config.MetadataRequestHandler.SendMetadataRequestAsync(
                 connection, 
-                version, 
+                serializer, 
                 isPeersV2 ? TopologyRefresher.SelectPeersV2 : TopologyRefresher.SelectPeers, 
                 QueryProtocolOptions.Default);
 
-            return GetPeersResponseAsync(isPeersV2, peersTask, connection, version);
+            return GetPeersResponseAsync(isPeersV2, peersTask, connection, serializer);
         }
 
         /// <summary>
         /// Handles fallback logic when peers_v2 table is missing.
         /// </summary>
         private async Task<PeersResponse> GetPeersResponseAsync(
-            bool isPeersV2, Task<Response> peersRequest, IConnection connection, ProtocolVersion version)
+            bool isPeersV2, Task<Response> peersRequest, IConnection connection, ISerializer serializer)
         {
             if (!isPeersV2)
             {
@@ -122,9 +123,9 @@ namespace Cassandra.Connections.Control
                 _isPeersV2 = false;
 
                 peersRequest = _config.MetadataRequestHandler.SendMetadataRequestAsync(
-                    connection, version, TopologyRefresher.SelectPeers, QueryProtocolOptions.Default);
+                    connection, serializer, TopologyRefresher.SelectPeers, QueryProtocolOptions.Default);
 
-                return await GetPeersResponseAsync(false, peersRequest, connection, version).ConfigureAwait(false);
+                return await GetPeersResponseAsync(false, peersRequest, connection, serializer).ConfigureAwait(false);
             }
         }
 

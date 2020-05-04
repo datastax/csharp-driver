@@ -34,7 +34,7 @@ namespace Cassandra.IntegrationTests.DataStax.Auth
         public void Gssapi_Auth_Test()
         {
             var provider = new DseGssapiAuthProvider();
-            using (var cluster = Cluster.Builder()
+            using (var cluster = ClusterBuilder()
                                         .WithAuthProvider(provider)
                                         .WithQueryTimeout(Timeout.Infinite)
                                         .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(3600000))

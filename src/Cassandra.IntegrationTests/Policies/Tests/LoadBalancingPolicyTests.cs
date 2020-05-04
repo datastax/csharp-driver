@@ -42,7 +42,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             // Setup
             PolicyTestTools policyTestTools = new PolicyTestTools();
             ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(1);
-            testCluster.Builder = Cluster.Builder().WithLoadBalancingPolicy(new RoundRobinPolicy());
+            testCluster.Builder = ClusterBuilder().WithLoadBalancingPolicy(new RoundRobinPolicy());
             testCluster.InitClient();
 
             policyTestTools.CreateSchema(testCluster.Session);
@@ -89,7 +89,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             // Setup
             PolicyTestTools policyTestTools = new PolicyTestTools();
             ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(1, 1, DefaultMaxClusterCreateRetries, true);
-            testCluster.Builder = Cluster.Builder().WithLoadBalancingPolicy(new RoundRobinPolicy());
+            testCluster.Builder = ClusterBuilder().WithLoadBalancingPolicy(new RoundRobinPolicy());
             testCluster.InitClient();
 
             policyTestTools.CreateSchema(testCluster.Session);
@@ -157,7 +157,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
         public void RoundRobin_DcAware_BuildClusterWithNonExistentDc()
         {
             ITestCluster testCluster = TestClusterManager.GetTestCluster(1);
-            testCluster.Builder = Cluster.Builder().WithLoadBalancingPolicy(new DCAwareRoundRobinPolicy("dc2"));
+            testCluster.Builder = ClusterBuilder().WithLoadBalancingPolicy(new DCAwareRoundRobinPolicy("dc2"));
             try
             {
                 testCluster.InitClient();
@@ -181,7 +181,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             // Setup
             PolicyTestTools policyTestTools = new PolicyTestTools();
             ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(1, 1, DefaultMaxClusterCreateRetries, true);
-            testCluster.Builder = Cluster.Builder().WithLoadBalancingPolicy(new DCAwareRoundRobinPolicy("dc2"));
+            testCluster.Builder = ClusterBuilder().WithLoadBalancingPolicy(new DCAwareRoundRobinPolicy("dc2"));
             testCluster.InitClient();
 
             policyTestTools.CreateMultiDcSchema(testCluster.Session);
@@ -204,7 +204,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             // Setup
             PolicyTestTools policyTestTools = new PolicyTestTools();
             ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(2);
-            testCluster.Builder = Cluster.Builder()
+            testCluster.Builder = ClusterBuilder()
                                          .WithLoadBalancingPolicy(new RoundRobinPolicy())
                                          .WithQueryTimeout(10000);
             testCluster.InitClient();
@@ -251,7 +251,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             // Setup
             PolicyTestTools policyTestTools = new PolicyTestTools();
             ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(1, 1, DefaultMaxClusterCreateRetries, true);
-            testCluster.Builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
+            testCluster.Builder = ClusterBuilder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
             testCluster.InitClient();
 
             policyTestTools.CreateSchema(testCluster.Session, 2);
@@ -292,7 +292,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             // Setup
             PolicyTestTools policyTestTools = new PolicyTestTools();
             ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(1, 1, DefaultMaxClusterCreateRetries, true);
-            testCluster.Builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
+            testCluster.Builder = ClusterBuilder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
             testCluster.InitClient();
 
             policyTestTools.CreateSchema(testCluster.Session);
@@ -344,7 +344,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             clusterOptions.Dc2NodeLength = 1;
             var testCluster = TestClusterManager.CreateNew(1, clusterOptions);
 
-            testCluster.Builder = Cluster.Builder().AddContactPoint("127.0.0.1").WithLoadBalancingPolicy(new DCAwareRoundRobinPolicy("dc1"));
+            testCluster.Builder = ClusterBuilder().AddContactPoint("127.0.0.1").WithLoadBalancingPolicy(new DCAwareRoundRobinPolicy("dc1"));
             testCluster.Cluster = testCluster.Builder.Build();
             testCluster.Session = testCluster.Cluster.Connect();
 
@@ -362,7 +362,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             testCluster.DecommissionNode(1);
             // dc1 no longer has any hosts
 
-            testCluster.Builder = Cluster.Builder().AddContactPoint("127.0.0.2").WithLoadBalancingPolicy(new DCAwareRoundRobinPolicy("dc2"));
+            testCluster.Builder = ClusterBuilder().AddContactPoint("127.0.0.2").WithLoadBalancingPolicy(new DCAwareRoundRobinPolicy("dc2"));
             testCluster.Cluster = testCluster.Builder.Build();
             // Should be able to connect and rebuild token map
             testCluster.Session = testCluster.Cluster.Connect(policyTestTools.DefaultKeyspace);

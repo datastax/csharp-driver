@@ -43,7 +43,7 @@ namespace Cassandra.Requests
         }
 
         public async Task<PreparedStatement> Prepare(
-            InternalPrepareRequest request, IInternalSession session, IEnumerator<Host> queryPlan)
+            PrepareRequest request, IInternalSession session, IEnumerator<Host> queryPlan)
         {
             var prepareResult = await SendRequestToOneNode(session, queryPlan, request).ConfigureAwait(false);
 
@@ -55,7 +55,7 @@ namespace Cassandra.Requests
             return prepareResult.PreparedStatement;
         }
 
-        private async Task<PrepareResult> SendRequestToOneNode(IInternalSession session, IEnumerator<Host> queryPlan, InternalPrepareRequest request)
+        private async Task<PrepareResult> SendRequestToOneNode(IInternalSession session, IEnumerator<Host> queryPlan, PrepareRequest request)
         {
             var triedHosts = new Dictionary<IPEndPoint, Exception>();
 
@@ -127,7 +127,7 @@ namespace Cassandra.Requests
         }
 
         private async Task<PreparedStatement> GetPreparedStatement(
-            Response response, InternalPrepareRequest request, string keyspace, ICluster cluster)
+            Response response, PrepareRequest request, string keyspace, ICluster cluster)
         {
             if (response == null)
             {

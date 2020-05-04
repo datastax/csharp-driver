@@ -17,6 +17,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cassandra.Responses;
+using Cassandra.Serialization;
 
 namespace Cassandra.Connections.Control
 {
@@ -26,10 +27,10 @@ namespace Cassandra.Connections.Control
     internal interface IMetadataRequestHandler
     {
         Task<Response> SendMetadataRequestAsync(
-            IConnection connection, ProtocolVersion version, string cqlQuery, QueryProtocolOptions queryProtocolOptions);
+            IConnection connection, ISerializer serializer, string cqlQuery, QueryProtocolOptions queryProtocolOptions);
 
         Task<Response> UnsafeSendQueryRequestAsync(
-            IConnection connection, ProtocolVersion version, string cqlQuery, QueryProtocolOptions queryProtocolOptions);
+            IConnection connection, ISerializer serializer, string cqlQuery, QueryProtocolOptions queryProtocolOptions);
 
         /// <summary>
         /// Validates that the result contains a RowSet and returns it.

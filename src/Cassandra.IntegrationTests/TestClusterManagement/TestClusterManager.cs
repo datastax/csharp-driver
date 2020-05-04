@@ -129,6 +129,11 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                    && TestClusterManager.CassandraVersionString.Contains("-");
         }
 
+        public static bool ShouldEnableBetaProtocolVersion()
+        {
+            return TestClusterManager.IsCassandraFourZeroPreRelease();
+        }
+
         public static bool SupportsDecommissionForcefully()
         {
             return TestClusterManager.CheckDseVersion(new Version(5, 1), Comparison.GreaterThanOrEqualsTo) 

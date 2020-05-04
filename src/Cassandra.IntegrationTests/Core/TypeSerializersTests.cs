@@ -70,7 +70,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Should_Use_Primitive_TypeSerializers_With_BoundStatements()
         {
-            var builder = Cluster.Builder()
+            var builder = ClusterBuilder()
                                  .AddContactPoint(TestCluster.InitialContactPoint)
                                  .WithTypeSerializers(new TypeSerializerDefinitions()
                                      .Define(new BigDecimalSerializer())
@@ -102,7 +102,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Should_Use_Primitive_TypeSerializers_With_SimpleStatements()
         {
-            var builder = Cluster.Builder()
+            var builder = ClusterBuilder()
                                  .AddContactPoint(TestCluster.InitialContactPoint)
                                  .WithTypeSerializers(new TypeSerializerDefinitions()
                                      .Define(new BigDecimalSerializer())
@@ -134,7 +134,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Should_Use_Primitive_TypeSerializers_With_Simple_BatchStatements()
         {
-            var builder = Cluster.Builder()
+            var builder = ClusterBuilder()
                                  .AddContactPoint(TestCluster.InitialContactPoint)
                                  .WithTypeSerializers(new TypeSerializerDefinitions()
                                      .Define(new BigDecimalSerializer())
@@ -169,7 +169,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Should_Use_Primitive_TypeSerializers_For_Partition_Key()
         {
-            var builder = Cluster.Builder()
+            var builder = ClusterBuilder()
                                  .AddContactPoint(TestCluster.InitialContactPoint)
                                  .WithTypeSerializers(new TypeSerializerDefinitions()
                                      .Define(new BigDecimalSerializer())
@@ -204,7 +204,7 @@ namespace Cassandra.IntegrationTests.Core
                 ? TypeSerializersTests.CustomTypeName2
                 : TypeSerializersTests.CustomTypeName;
 
-            var builder = Cluster.Builder()
+            var builder = ClusterBuilder()
                                  .AddContactPoint(TestCluster.InitialContactPoint)
                                  .WithTypeSerializers(new TypeSerializerDefinitions()
                                      .Define(new DummyCustomTypeSerializer(typeSerializerName)));

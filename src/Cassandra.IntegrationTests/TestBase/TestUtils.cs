@@ -35,6 +35,7 @@ namespace Cassandra.IntegrationTests.TestBase
     /// </summary>
     internal static class TestUtils
     {
+        public static readonly Version Version40 = new Version(4, 0);
         private const int DefaultSleepIterationMs = 1000;
 
         public static readonly string CreateKeyspaceSimpleFormat =
@@ -114,6 +115,12 @@ namespace Cassandra.IntegrationTests.TestBase
             return true;
         }
 
+        public static Builder NewBuilder()
+        {
+            var builder = Cluster.Builder();
+            return TestClusterManager.ShouldEnableBetaProtocolVersion() ? builder.WithBetaProtocolVersions() : builder;
+        }
+        
         public static byte[] GetBytes(string str)
         {
             byte[] bytes = new byte[str.Length*sizeof (char)];
@@ -645,7 +652,7 @@ namespace Cassandra.IntegrationTests.TestBase
 
         public static void VerifyCurrentClusterWorkloads(string[] expectedWorkloads)
         {
-            using (var cluster = Cluster.Builder()
+            using (var cluster = TestUtils.NewBuilder()
                 .AddContactPoint(TestClusterManager.InitialContactPoint)
                 .Build())
             {

@@ -35,7 +35,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Cluster_Uses_Provided_Timestamp_Generator()
         {
             var generator = new TestTimestampGenerator();
-            using (var cluster = Cluster.Builder()
+            using (var cluster = ClusterBuilder()
                                         .WithTimestampGenerator(generator)
                                         .AddContactPoint(TestCluster.InitialContactPoint)
                                         .Build())
@@ -51,7 +51,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Should_Use_Statement_Timestamp_Precedence_Over_Cluster_Timestamp_Generator()
         {
             var generator = new TestTimestampGenerator();
-            using (var cluster = Cluster.Builder()
+            using (var cluster = ClusterBuilder()
                                         .WithTimestampGenerator(generator)
                                         .AddContactPoint(TestCluster.InitialContactPoint)
                                         .Build())
@@ -77,7 +77,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             var generator = new TicksTimestampGenerator();
             var unixEpochStart = new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero);
-            using (var cluster = Cluster.Builder()
+            using (var cluster = ClusterBuilder()
                                         .WithTimestampGenerator(generator)
                                         .AddContactPoint(TestCluster.InitialContactPoint)
                                         .Build())

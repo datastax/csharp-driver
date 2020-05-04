@@ -14,6 +14,7 @@
 //    limitations under the License.
 
 using System.Threading.Tasks;
+using Cassandra.Serialization;
 
 namespace Cassandra.Connections.Control
 {
@@ -26,6 +27,6 @@ namespace Cassandra.Connections.Control
         /// Refreshes the Hosts collection using the <paramref name="currentEndPoint"/> to issue system table queries (local and peers).
         /// </summary>
         /// <returns>Returns the Host parsed from the <paramref name="currentEndPoint"/>'s system.local table.</returns>
-        Task<Host> RefreshNodeListAsync(IConnectionEndPoint currentEndPoint, IConnection connection, ProtocolVersion version);
+        Task<Host> RefreshNodeListAsync(IConnectionEndPoint currentEndPoint, IConnection connection, ISerializer serializer);
     }
 }

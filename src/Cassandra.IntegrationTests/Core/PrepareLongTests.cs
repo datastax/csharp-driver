@@ -30,7 +30,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             var testCluster = TestClusterManager.CreateNew();
 
-            using (var cluster = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint)
+            using (var cluster = ClusterBuilder().AddContactPoint(testCluster.InitialContactPoint)
                                         .WithReconnectionPolicy(new ConstantReconnectionPolicy(500)).Build())
             {
                 // Connect using a keyspace

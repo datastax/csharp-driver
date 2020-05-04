@@ -15,13 +15,13 @@
 //
 using System.Diagnostics;
 using Cassandra.DataStax.Graph;
+using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests
 {
-    [TestFixture]
-    public abstract class BaseIntegrationTest
+    public abstract class BaseIntegrationTest : TestGlobals
     {
         protected BaseIntegrationTest()
         {
@@ -79,7 +79,7 @@ namespace Cassandra.IntegrationTests
         /// </summary>
         public void CreateClassicGraph(string contactPoint, string name)
         {
-            using (var cluster = Cluster.Builder().AddContactPoint(TestClusterManager.InitialContactPoint).Build())
+            using (var cluster = ClusterBuilder().AddContactPoint(TestClusterManager.InitialContactPoint).Build())
             {
                 CreateClassicGraph(cluster.Connect(), name);
             }

@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 
+using System.Collections.Generic;
 using System.IO;
 using Cassandra.Serialization;
 
@@ -21,9 +22,16 @@ namespace Cassandra.Requests
 {
     internal interface IRequest
     {
+        bool TracingEnabled { get; }
+
+        /// <summary>
+        /// Gets or sets the custom payload to be set with this request
+        /// </summary>
+        IDictionary<string, byte[]> Payload { get; }
+
         /// <summary>
         /// Writes the frame for this request on the provided stream
         /// </summary>
-        int WriteFrame(short streamId, MemoryStream stream, ISerializer serializer);
+        int WriteFrame(short streamId, MemoryStream stream, ISerializer connectionSerializer);
     }
 }

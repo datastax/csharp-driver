@@ -16,32 +16,29 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
-using Cassandra.Serialization;
 
 namespace Cassandra.Requests
 {
-    internal class StartupRequest : IRequest
+    internal class StartupRequest : BaseRequest
     {
-        public const byte OpCode = 0x01;
+        public const byte StartupOpCode = 0x01;
         private readonly IReadOnlyDictionary<string, string> _options;
 
-        public StartupRequest(IReadOnlyDictionary<string, string> startupOptions)
+        public StartupRequest(IReadOnlyDictionary<string, string> startupOptions) : base(false, null)
         {
             _options = startupOptions ?? throw new ArgumentNullException(nameof(startupOptions));
         }
 
-        public int WriteFrame(short streamId, MemoryStream stream, ISerializer serializer)
+        protected override byte OpCode => StartupRequest.StartupOpCode;
+
+        protected override void WriteBody(FrameWriter wb)
         {
-            var wb = new FrameWriter(stream, serializer);
-            wb.WriteFrameHeader(0x00, streamId, StartupRequest.OpCode);
             wb.WriteUInt16((ushort)_options.Count);
             foreach (var kv in _options)
             {
                 wb.WriteString(kv.Key);
                 wb.WriteString(kv.Value);
             }
-            return wb.Close();
         }
     }
 }

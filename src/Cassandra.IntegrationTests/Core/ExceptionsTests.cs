@@ -40,7 +40,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             _simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions());
             var contactPoint = _simulacronCluster.InitialContactPoint;
-            var builder = Cluster.Builder()
+            var builder = ClusterBuilder()
                                  .AddContactPoint(contactPoint);
             var cluster = builder.Build();
             _session = cluster.Connect();
@@ -92,7 +92,7 @@ namespace Cassandra.IntegrationTests.Core
 
             try
             {
-                Cluster.Builder().AddContactPoint(ipAddress).Build();
+                ClusterBuilder().AddContactPoint(ipAddress).Build();
             }
             catch (NoHostAvailableException e)
             {

@@ -79,6 +79,7 @@ namespace Cassandra
         private bool _addedAuth;
         private bool _addedLbp;
         private bool? _keepContactPointsUnresolved;
+        private bool? _allowBetaProtocolVersions;
 
         public Builder()
         {
@@ -200,7 +201,8 @@ namespace Cassandra
                 ApplicationName,
                 _monitorReportingOptions,
                 typeSerializerDefinitions,
-                _keepContactPointsUnresolved);
+                _keepContactPointsUnresolved,
+                _allowBetaProtocolVersions);
 
             return config;
         }
@@ -567,6 +569,16 @@ namespace Cassandra
         public Builder WithUnresolvedContactPoints(bool keepContactPointsUnresolved)
         {
             _keepContactPointsUnresolved = keepContactPointsUnresolved;
+            return this;
+        }
+
+        /// <summary>
+        /// Whether to allow beta protocol versions to be used. Do NOT set this in production environments as
+        /// beta protocol versions are not supported or recommended for production use.
+        /// </summary>
+        public Builder WithBetaProtocolVersions()
+        {
+            _allowBetaProtocolVersions = true;
             return this;
         }
 

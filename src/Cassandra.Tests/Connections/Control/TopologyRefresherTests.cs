@@ -22,6 +22,7 @@ using System.Threading.Tasks;
 using Cassandra.Connections;
 using Cassandra.Connections.Control;
 using Cassandra.Requests;
+using Cassandra.Serialization;
 using Cassandra.Tests.Connections.TestHelpers;
 using Moq;
 using NUnit.Framework;
@@ -36,6 +37,8 @@ namespace Cassandra.Tests.Connections.Control
         private const string PeersV2Query = "SELECT * FROM system.peers_v2";
 
         private Metadata _metadata;
+
+        private ISerializer _serializer = new SerializerManager(ProtocolVersion.MaxSupported).GetCurrentSerializer();
 
         private FakeMetadataRequestHandler CreateFakeMetadataRequestHandler(
             IRow localRow = null,
@@ -120,7 +123,7 @@ namespace Cassandra.Tests.Connections.Control
                   .RefreshNodeListAsync(
                       new FakeConnectionEndPoint("127.0.0.1", 9042), 
                       connection, 
-                      ProtocolVersion.MaxSupported).ConfigureAwait(false);
+                      _serializer).ConfigureAwait(false);
 
 
             Assert.AreEqual(TopologyRefresherTests.LocalQuery, fakeRequestHandler.Requests.First().CqlQuery);
@@ -144,7 +147,7 @@ namespace Cassandra.Tests.Connections.Control
                   .RefreshNodeListAsync(
                       new FakeConnectionEndPoint("127.0.0.1", 9042), 
                       connection, 
-                      ProtocolVersion.MaxSupported).ConfigureAwait(false);
+                      _serializer).ConfigureAwait(false);
 
             Assert.AreEqual(TopologyRefresherTests.LocalQuery, fakeRequestHandler.Requests.First().CqlQuery);
             Assert.AreEqual(TopologyRefresherTests.PeersV2Query, fakeRequestHandler.Requests.Last().CqlQuery);
@@ -166,7 +169,7 @@ namespace Cassandra.Tests.Connections.Control
                   .RefreshNodeListAsync(
                       new FakeConnectionEndPoint("127.0.0.1", 9042), 
                       connection, 
-                      ProtocolVersion.MaxSupported).ConfigureAwait(false);
+                      _serializer).ConfigureAwait(false);
 
             Assert.AreEqual(2, fakeRequestHandler.Requests.Count);
             Assert.AreEqual(TopologyRefresherTests.LocalQuery, fakeRequestHandler.Requests.First().CqlQuery);
@@ -176,7 +179,7 @@ namespace Cassandra.Tests.Connections.Control
                   .RefreshNodeListAsync(
                       new FakeConnectionEndPoint("127.0.0.1", 9042), 
                       connection, 
-                      ProtocolVersion.MaxSupported).ConfigureAwait(false);
+                      _serializer).ConfigureAwait(false);
             
             Assert.AreEqual(4, fakeRequestHandler.Requests.Count);
             Assert.AreEqual(TopologyRefresherTests.LocalQuery, fakeRequestHandler.Requests.ElementAt(2).CqlQuery);
@@ -196,7 +199,7 @@ namespace Cassandra.Tests.Connections.Control
                   .RefreshNodeListAsync(
                       new FakeConnectionEndPoint("127.0.0.1", 9042), 
                       connection, 
-                      ProtocolVersion.MaxSupported).ConfigureAwait(false);
+                      _serializer).ConfigureAwait(false);
             
             Assert.AreEqual(3, fakeRequestHandler.Requests.Count);
             Assert.AreEqual(TopologyRefresherTests.LocalQuery, fakeRequestHandler.Requests.First().CqlQuery);
@@ -207,7 +210,7 @@ namespace Cassandra.Tests.Connections.Control
                   .RefreshNodeListAsync(
                       new FakeConnectionEndPoint("127.0.0.1", 9042), 
                       connection, 
-                      ProtocolVersion.MaxSupported).ConfigureAwait(false);
+                      _serializer).ConfigureAwait(false);
             
             Assert.AreEqual(5, fakeRequestHandler.Requests.Count);
             Assert.AreEqual(TopologyRefresherTests.LocalQuery, fakeRequestHandler.Requests.ElementAt(3).CqlQuery);
@@ -221,7 +224,7 @@ namespace Cassandra.Tests.Connections.Control
             var connection = Mock.Of<IConnection>();
 
             await topologyRefresher.RefreshNodeListAsync(
-                new FakeConnectionEndPoint("127.0.0.1", 9042), connection, ProtocolVersion.MaxSupported).ConfigureAwait(false);
+                new FakeConnectionEndPoint("127.0.0.1", 9042), connection, _serializer).ConfigureAwait(false);
 
             Assert.AreEqual("ut-cluster", _metadata.ClusterName);
         }
@@ -239,7 +242,7 @@ namespace Cassandra.Tests.Connections.Control
             var topologyRefresher = CreateTopologyRefresher(peersRows: rows);
 
             await topologyRefresher.RefreshNodeListAsync(
-                                       new FakeConnectionEndPoint("127.0.0.1", 9042), Mock.Of<IConnection>(), ProtocolVersion.MaxSupported)
+                                       new FakeConnectionEndPoint("127.0.0.1", 9042), Mock.Of<IConnection>(), _serializer)
                                    .ConfigureAwait(false);
 
             Assert.AreEqual(3, _metadata.AllHosts().Count);
@@ -266,7 +269,7 @@ namespace Cassandra.Tests.Connections.Control
             var topologyRefresher = CreateTopologyRefresher(peersRows: rows);
 
             await topologyRefresher.RefreshNodeListAsync(
-                                       new FakeConnectionEndPoint("127.0.0.1", 9042), Mock.Of<IConnection>(), ProtocolVersion.MaxSupported)
+                                       new FakeConnectionEndPoint("127.0.0.1", 9042), Mock.Of<IConnection>(), _serializer)
                                    .ConfigureAwait(false);
 
             //Only local host present
@@ -303,7 +306,7 @@ namespace Cassandra.Tests.Connections.Control
             var topologyRefresher = new TopologyRefresher(metadata, config);
 
             await topologyRefresher.RefreshNodeListAsync(
-                                       new FakeConnectionEndPoint("127.0.0.1", 9042), Mock.Of<IConnection>(), ProtocolVersion.MaxSupported)
+                                       new FakeConnectionEndPoint("127.0.0.1", 9042), Mock.Of<IConnection>(), _serializer)
                                    .ConfigureAwait(false);
 
             Assert.AreEqual(3, metadata.AllHosts().Count);

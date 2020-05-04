@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Cassandra.Requests;
+using Cassandra.Serialization;
 
 namespace Cassandra
 {
@@ -238,11 +239,11 @@ namespace Cassandra
             return this;
         }
 
-        internal override IQueryRequest CreateBatchRequest(ProtocolVersion protocolVersion)
+        internal override IQueryRequest CreateBatchRequest(ISerializer serializer)
         {
             // Use the default query options as the individual options of the query will be ignored
             var options = QueryProtocolOptions.CreateForBatchItem(this);
-            return new QueryRequest(protocolVersion, QueryString, IsTracing, options);
+            return new QueryRequest(serializer, QueryString, options, IsTracing, null);
         }
 
         internal override void SetValues(object[] values)

@@ -52,7 +52,7 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
         private void PrepareForSparkTest(ITestCluster testCluster)
         {
             const string replicationConfigStr = "{'class' : 'SimpleStrategy', 'replication_factor' : 2}";
-            using (var cluster = Cluster.Builder().AddContactPoint(TestClusterManager.InitialContactPoint).Build())
+            using (var cluster = ClusterBuilder().AddContactPoint(TestClusterManager.InitialContactPoint).Build())
             {
                 WaitForWorkers(1);
 
@@ -139,7 +139,7 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
         public string FindSparkMaster()
         {
             Trace.TraceInformation("GraphMultiNodeTests: FindSparkMaster");
-            using (var cluster = Cluster.Builder()
+            using (var cluster = ClusterBuilder()
                         .AddContactPoint(TestClusterManager.InitialContactPoint)
                         .WithLoadBalancingPolicy(Cassandra.Policies.DefaultLoadBalancingPolicy)
                         .Build())
@@ -161,7 +161,7 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
             Trace.TraceInformation("GraphMultiNodeTests: Should_Contact_Spark_Master_Directly");
             var sparkHost = FindSparkMaster();
 
-            using (var cluster = Cluster.Builder()
+            using (var cluster = ClusterBuilder()
                 .AddContactPoint(TestClusterManager.InitialContactPoint)
                 .WithGraphOptions(new GraphOptions().SetName(GraphMultiNodeTests.GraphName))
                 .WithLoadBalancingPolicy(Cassandra.Policies.DefaultLoadBalancingPolicy)

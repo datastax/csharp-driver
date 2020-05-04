@@ -160,7 +160,7 @@ namespace Cassandra
             _metadata = new Metadata(configuration);
             var protocolVersion = _maxProtocolVersion;
             if (Configuration.ProtocolOptions.MaxProtocolVersionValue != null &&
-                Configuration.ProtocolOptions.MaxProtocolVersionValue.Value.IsSupported())
+                Configuration.ProtocolOptions.MaxProtocolVersionValue.Value.IsSupported(configuration))
             {
                 protocolVersion = Configuration.ProtocolOptions.MaxProtocolVersionValue.Value;
             }
@@ -552,7 +552,7 @@ namespace Cassandra
 
         /// <inheritdoc />
         async Task<PreparedStatement> IInternalCluster.Prepare(
-            IInternalSession session, ISerializer serializer, InternalPrepareRequest request)
+            IInternalSession session, ISerializer serializer, PrepareRequest request)
         {
             var lbp = session.Cluster.Configuration.DefaultRequestOptions.LoadBalancingPolicy;
             var handler = InternalRef.Configuration.PrepareHandlerFactory.CreatePrepareHandler(serializer, this);
@@ -589,12 +589,12 @@ namespace Cassandra
             PrepareHandler.Logger.Info($"Re-preparing {preparedQueries.Count} queries on {host.Address}");
             var tasks = new List<Task>(preparedQueries.Count);
             var handler = InternalRef.Configuration.PrepareHandlerFactory.CreateReprepareHandler();
+            var serializer = _metadata.ControlConnection.Serializer.GetCurrentSerializer();
             using (var semaphore = new SemaphoreSlim(64, 64))
             {
                 foreach (var ps in preparedQueries)
                 {
-                    var request = new InternalPrepareRequest(ps.Cql, ps.Keyspace);
-
+                    var request = new PrepareRequest(serializer, ps.Cql, ps.Keyspace, null);
                     await semaphore.WaitAsync().ConfigureAwait(false);
                     tasks.Add(Task.Run(() => handler.ReprepareOnSingleNodeAsync(
                         new KeyValuePair<Host, IHostConnectionPool>(host, pool), 

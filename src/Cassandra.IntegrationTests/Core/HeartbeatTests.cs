@@ -17,6 +17,7 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Cassandra.IntegrationTests.SimulacronAPI.Models.Logs;
+using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using Cassandra.Tests;
 using NUnit.Framework;
@@ -24,7 +25,7 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests.Core
 {
     [TestFixture, Category(TestCategory.Short)]
-    public class HeartbeatTests
+    public class HeartbeatTests : TestGlobals
     {
         private SimulacronCluster _testCluster;
         private const QueryType OptionsQueryType = QueryType.Options;
@@ -47,7 +48,7 @@ namespace Cassandra.IntegrationTests.Core
         [TestCase(false)]
         public async Task Connection_Should_Send_Options_Requests_For_Heartbeats(bool executeQuery)
         {
-            var builder = Cluster.Builder()
+            var builder = ClusterBuilder()
                                  .WithPoolingOptions(PoolingOptions.Create().SetHeartBeatInterval(4000))
                                  .AddContactPoint(_testCluster.InitialContactPoint);
 

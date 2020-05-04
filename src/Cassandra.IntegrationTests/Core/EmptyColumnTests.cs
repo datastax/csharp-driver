@@ -67,7 +67,7 @@ namespace Cassandra.IntegrationTests.Core
                         .Column(u => u.TestColumn, cm => cm.WithName(""))
                         .Column(u => u.TestColumn2, cm => cm.WithName(" ")));
 
-                using (var cluster = EmptyColumnTests.BuildCluster(simulacronCluster))
+                using (var cluster = BuildCluster(simulacronCluster))
                 {
                     var session = cluster.Connect();
 
@@ -131,7 +131,7 @@ namespace Cassandra.IntegrationTests.Core
                         .Column(u => u.TestColumn, cm => cm.WithName(""))
                         .Column(u => u.TestColumn2, cm => cm.WithName(" ")));
 
-                using (var cluster = EmptyColumnTests.BuildCluster(simulacronCluster))
+                using (var cluster = BuildCluster(simulacronCluster))
                 {
                     var session = cluster.Connect();
 
@@ -167,9 +167,9 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual("testval2", row.GetValue<string>(" "));
         }
 
-        private static Cluster BuildCluster(SimulacronCluster simulacronCluster)
+        private Cluster BuildCluster(SimulacronCluster simulacronCluster)
         {
-            return Cluster.Builder()
+            return ClusterBuilder()
                           .AddContactPoint(simulacronCluster.InitialContactPoint)
                           .Build();
         }

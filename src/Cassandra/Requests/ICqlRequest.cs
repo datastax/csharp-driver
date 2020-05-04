@@ -14,8 +14,6 @@
 //   limitations under the License.
 //
 
-using System.Collections.Generic;
-
 namespace Cassandra.Requests
 {
     /// <summary>
@@ -28,10 +26,5 @@ namespace Cassandra.Requests
         /// It defaults to the one provided by the Statement but it can be changed by the retry policy.
         /// </summary>
         ConsistencyLevel Consistency { get; set; }
-
-        /// <summary>
-        /// Gets or sets the custom payload to be set with this request
-        /// </summary>
-        IDictionary<string, byte[]> Payload { get; set; }
     }
 }

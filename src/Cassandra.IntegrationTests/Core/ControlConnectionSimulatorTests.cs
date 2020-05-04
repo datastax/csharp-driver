@@ -12,23 +12,31 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-// 
+//
 
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+
+using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using Cassandra.Tasks;
 using Cassandra.Tests;
+
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
     [TestFixture, Category(TestCategory.Short)]
-    public class ControlConnectionSimulatorTests
+    public class ControlConnectionSimulatorTests : TestGlobals
     {
+        [TestCase(ProtocolVersion.V4, "4.0.0", "3.11.6")]
+        [TestCase(ProtocolVersion.V4, "4.0.0", "3.0.13")]
+        [TestCase(ProtocolVersion.V3, "4.0.0", "2.1.17")]
+        [TestCase(ProtocolVersion.V3, "3.11.6", "2.1.17")]
+        [TestCase(ProtocolVersion.V3, "3.0.13", "2.1.17")]
         [TestCase(ProtocolVersion.V3, "3.0.13", "2.1.17")]
         [TestCase(ProtocolVersion.V3, "2.2.11", "2.1.17")]
         [TestCase(ProtocolVersion.V2, "2.2.11", "2.0.17")]
@@ -40,13 +48,13 @@ namespace Cassandra.IntegrationTests.Core
                                                                   params string[] cassandraVersions)
         {
             using (var testCluster = SimulacronCluster.CreateNewWithPostBody(GetSimulatorBody(cassandraVersions)))
-            using (var cluster = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint).Build())
+            using (var cluster = ClusterBuilder().AddContactPoint(testCluster.InitialContactPoint).Build())
             {
                 if (version > ProtocolVersion.V2)
                 {
                     var session = cluster.Connect();
                     Parallel.For(0, 10, _ => session.Execute("SELECT * FROM system.local"));
-                    Assert.AreEqual(cluster.InternalRef.GetControlConnection().ProtocolVersion, version);
+                    Assert.AreEqual(version, cluster.InternalRef.GetControlConnection().ProtocolVersion);
                 }
                 else
                 {
@@ -60,37 +68,40 @@ namespace Cassandra.IntegrationTests.Core
                 }
             }
         }
-
+        
+        [TestCase(ProtocolVersion.V5, "4.0.0")]
+        [TestCase(ProtocolVersion.V4, "3.11.6", "3.0.11", "2.2.9")]
         [TestCase(ProtocolVersion.V4, "3.0.13", "3.0.11", "2.2.9")]
         // Can't downgrade C* 3.0+ nodes to v1 or v2
-        [TestCase(ProtocolVersion.V4, "3.0.13", "2.0.17")]
+        [TestCase(ProtocolVersion.V4, "4.0.0", "3.0.13", "2.0.17")]
         [TestCase(ProtocolVersion.V4, "3.0.13", "1.2.19")]
+        [TestCase(ProtocolVersion.V5, "4.0.0", "1.2.19")]
         public void Should_Not_Downgrade_Protocol_Version(ProtocolVersion version, params string[] cassandraVersions)
         {
             using (var testCluster = SimulacronCluster.CreateNewWithPostBody(GetSimulatorBody(cassandraVersions)))
-            using (var cluster = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint).Build())
+            using (var cluster = ClusterBuilder().WithBetaProtocolVersions().AddContactPoint(testCluster.InitialContactPoint).Build())
             {
                 var session = cluster.Connect();
                 Parallel.For(0, 10, _ => session.Execute("SELECT * FROM system.local"));
-                Assert.AreEqual(cluster.InternalRef.GetControlConnection().ProtocolVersion, version);
+                Assert.AreEqual(version, cluster.InternalRef.GetControlConnection().ProtocolVersion);
             }
         }
 
         [Test]
         public async Task Should_Failover_With_Connections_Closing()
         {
-            using (var testCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "4" } ))
+            using (var testCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "4" }))
             {
                 var initialContactPoint = testCluster.InitialContactPoint.Address.GetAddressBytes();
                 var port = testCluster.InitialContactPoint.Port;
                 var contactPoints = new IPEndPoint[4];
                 for (byte i = 0; i < 4; i++)
                 {
-                    var arr = (byte[]) initialContactPoint.Clone();
+                    var arr = (byte[])initialContactPoint.Clone();
                     arr[3] += i;
                     contactPoints[i] = new IPEndPoint(new IPAddress(arr), port);
                 }
-                var builder = Cluster.Builder().AddContactPoints(contactPoints);
+                var builder = ClusterBuilder().AddContactPoints(contactPoints);
                 var index = 0;
                 await TestHelper.TimesLimit(async () =>
                 {
@@ -101,6 +112,7 @@ namespace Cassandra.IntegrationTests.Core
                         case 11:
                             nodeAsDown = 0;
                             break;
+
                         case 18:
                             nodeAsDown = 1;
                             break;

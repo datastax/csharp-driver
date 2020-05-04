@@ -607,8 +607,21 @@ namespace Cassandra
                 var totalVersions = 0;
                 while (DateTime.Now.Subtract(start).TotalSeconds < waitSeconds)
                 {
-                    var schemaVersionLocalQuery = new QueryRequest(ControlConnection.ProtocolVersion, Metadata.SelectSchemaVersionLocal, false, QueryProtocolOptions.Default);
-                    var schemaVersionPeersQuery = new QueryRequest(ControlConnection.ProtocolVersion, Metadata.SelectSchemaVersionPeers, false, QueryProtocolOptions.Default);
+                    var serializer = ControlConnection.Serializer.GetCurrentSerializer();
+                    var schemaVersionLocalQuery = 
+                        new QueryRequest(
+                            serializer, 
+                            Metadata.SelectSchemaVersionLocal, 
+                            QueryProtocolOptions.Default,
+                            false, 
+                            null);
+                    var schemaVersionPeersQuery = 
+                        new QueryRequest(
+                            serializer, 
+                            Metadata.SelectSchemaVersionPeers, 
+                            QueryProtocolOptions.Default,
+                            false, 
+                            null);
                     var queries = new[] { connection.Send(schemaVersionLocalQuery), connection.Send(schemaVersionPeersQuery) };
                     // ReSharper disable once CoVariantArrayConversion
                     Task.WaitAll(queries, Configuration.DefaultRequestOptions.QueryAbortTimeout);
