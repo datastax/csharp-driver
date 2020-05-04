@@ -232,7 +232,8 @@ namespace Cassandra.IntegrationTests.Core
             var builder = Cluster.Builder()
                 .AddContactPoint(TestCluster.InitialContactPoint)
                 .WithLoadBalancingPolicy(lbp)
-                .WithPoolingOptions(new PoolingOptions().SetCoreConnectionsPerHost(HostDistance.Local, 3));
+                .WithPoolingOptions(new PoolingOptions().SetCoreConnectionsPerHost(HostDistance.Local, 3))
+                .WithReconnectionPolicy(new ConstantReconnectionPolicy(1000));
             var counter = 0;
             using (var localCluster = builder.Build())
             {
@@ -277,8 +278,14 @@ namespace Cassandra.IntegrationTests.Core
                     return localSession.ExecuteAsync(new SimpleStatement("SELECT key FROM system.local"));
                 };
                 await TestHelper.TimesLimit(execute, 200000, 32).ConfigureAwait(false);
-                Assert.That(pool1.OpenConnections, Is.EqualTo(3));
-                Assert.That(pool2.OpenConnections, Is.EqualTo(3));
+                TestHelper.RetryAssert(
+                    () =>
+                    {
+                        Assert.That(pool1.OpenConnections, Is.EqualTo(3), "pool1 != 3");
+                        Assert.That(pool2.OpenConnections, Is.EqualTo(3), "pool2 != 3");
+                    },
+                    500,
+                    20);
             }
         }
 
