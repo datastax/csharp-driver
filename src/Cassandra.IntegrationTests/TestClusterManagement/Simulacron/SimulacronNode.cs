@@ -47,19 +47,19 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
             }
         }
 
-        public SimulacronNode(string id) : base(id)
+        public SimulacronNode(string id, SimulacronManager simulacronManager) : base(id, simulacronManager)
         {
 
         }
 
         public Task Stop()
         {
-            return SimulacronBase.DeleteAsync($"/listener/{Id}?type=stop");
+            return DeleteAsync($"/listener/{Id}?type=stop");
         }
 
         public Task Start()
         {
-            return SimulacronBase.PutAsync($"/listener/{Id}", null);
+            return PutAsync($"/listener/{Id}", null);
         }
         
         /// <summary>

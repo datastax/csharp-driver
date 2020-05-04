@@ -33,26 +33,34 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
 {
     public class SimulacronBase
     {
+        private readonly SimulacronManager _simulacronManager;
+
         public string Id { get; }
 
-        protected SimulacronBase(string id)
+        protected SimulacronBase(string id, SimulacronManager simulacronManager)
         {
+            _simulacronManager = simulacronManager;
             Id = id;
         }
-
-        protected static async Task<JObject> Post(string url, object body)
+        
+        protected static async Task<JObject> Post(SimulacronManager simulacronManager, string url, object body)
         {
             var bodyStr = SimulacronBase.GetJsonFromObject(body);
             var content = new StringContent(bodyStr, Encoding.UTF8, "application/json");
 
             using (var client = new HttpClient())
             {
-                client.BaseAddress = SimulacronManager.BaseAddress;
+                client.BaseAddress = simulacronManager.BaseAddress;
                 var response = await client.PostAsync(url, content).ConfigureAwait(false);
                 await SimulacronBase.EnsureSuccessStatusCode(response).ConfigureAwait(false);
                 var dataStr = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                 return JObject.Parse(dataStr);
             }
+        }
+
+        protected Task<JObject> Post(string url, object body)
+        {
+            return Post(_simulacronManager, url, body);
         }
 
         private static string GetJsonFromObject(object body)
@@ -73,14 +81,14 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
             return bodyStr;
         }
 
-        protected static async Task<JObject> PutAsync(string url, object body)
+        protected static async Task<JObject> PutAsync(SimulacronManager simulacronManager, string url, object body)
         {
             var bodyStr = SimulacronBase.GetJsonFromObject(body);
             var content = new StringContent(bodyStr, Encoding.UTF8, "application/json");
 
             using (var client = new HttpClient())
             {
-                client.BaseAddress = SimulacronManager.BaseAddress;
+                client.BaseAddress = simulacronManager.BaseAddress;
                 var response = await client.PutAsync(url, content).ConfigureAwait(false);
                 await SimulacronBase.EnsureSuccessStatusCode(response).ConfigureAwait(false);
                 var dataStr = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -91,12 +99,22 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
                 return JObject.Parse(dataStr);
             }
         }
+        
+        protected Task<JObject> PutAsync(string url, object body)
+        {
+            return PutAsync(_simulacronManager, url, body);
+        }
 
-        protected static async Task<T> GetAsync<T>(string url)
+        protected Task<T> GetAsync<T>(string url)
+        {
+            return GetAsync<T>(_simulacronManager, url);
+        }
+        
+        protected static async Task<T> GetAsync<T>(SimulacronManager simulacronManager, string url)
         {
             using (var client = new HttpClient())
             {
-                client.BaseAddress = SimulacronManager.BaseAddress;
+                client.BaseAddress = simulacronManager.BaseAddress;
                 var response = await client.GetAsync(url).ConfigureAwait(false);
                 await SimulacronBase.EnsureSuccessStatusCode(response).ConfigureAwait(false);
                 var dataStr = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -104,11 +122,16 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
             }
         }
 
-        protected static async Task DeleteAsync(string url)
+        protected Task DeleteAsync(string url)
+        {
+            return DeleteAsync(_simulacronManager, url);
+        }
+
+        protected static async Task DeleteAsync(SimulacronManager simulacronManager, string url)
         {
             using (var client = new HttpClient())
             {
-                client.BaseAddress = SimulacronManager.BaseAddress;
+                client.BaseAddress = simulacronManager.BaseAddress;
                 var response = await client.DeleteAsync(url).ConfigureAwait(false);
                 await SimulacronBase.EnsureSuccessStatusCode(response).ConfigureAwait(false);
             }
@@ -130,12 +153,12 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
 
         public Task<SimulacronClusterLogs> GetLogsAsync()
         {
-            return SimulacronBase.GetAsync<SimulacronClusterLogs>(GetPath("log"));
+            return GetAsync<SimulacronClusterLogs>(GetPath("log"));
         }
 
         public Task<JObject> PrimeAsync(IPrimeRequest request)
         {
-            return SimulacronBase.Post(GetPath("prime"), request.Render());
+            return Post(GetPath("prime"), request.Render());
         }
 
         public JObject Prime(IPrimeRequest request)
@@ -150,28 +173,28 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
         
         public Task<dynamic> GetConnectionsAsync()
         {
-            return SimulacronBase.GetAsync<dynamic>(GetPath("connections"));
+            return GetAsync<dynamic>(GetPath("connections"));
         }
 
         public Task DisableConnectionListener(int attempts = 0, string type = "unbind")
         {
-            return SimulacronBase.DeleteAsync(GetPath("listener") + "?after=" + attempts + "&type=" + type);
+            return DeleteAsync(GetPath("listener") + "?after=" + attempts + "&type=" + type);
         }
 
         public Task<JObject> EnableConnectionListener(int attempts = 0, string type = "unbind")
         {
-            return SimulacronBase.PutAsync(GetPath("listener") + "?after=" + attempts + "&type=" + type, null);
+            return PutAsync(GetPath("listener") + "?after=" + attempts + "&type=" + type, null);
         }
 
         public Task PauseReadsAsync()
         {
-            return SimulacronBase.PutAsync(GetPath("pause-reads"), null);
+            return PutAsync(GetPath("pause-reads"), null);
         }
         
 
         public Task ResumeReadsAsync()
         {
-            return SimulacronBase.DeleteAsync(GetPath("pause-reads"));
+            return DeleteAsync(GetPath("pause-reads"));
         }
 
         public IList<RequestLog> GetQueries(string query, QueryType? queryType = QueryType.Query)
@@ -204,7 +227,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
 
         public Task PrimeDeleteAsync()
         {
-            return SimulacronBase.DeleteAsync(GetPath("prime"));
+            return DeleteAsync(GetPath("prime"));
         }
 
         public JObject PrimeFluent(Func<IPrimeRequestBuilder, IThenFluent> builder)

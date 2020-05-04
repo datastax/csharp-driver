@@ -34,6 +34,7 @@ namespace Cassandra.Tests.Connections.Control
     {
         private const string LocalQuery = "SELECT * FROM system.local WHERE key='local'";
         private const string PeersQuery = "SELECT * FROM system.peers";
+        private const string PeersV2Query = "SELECT * FROM system.peers_v2";
 
         private Metadata _metadata;
 
@@ -41,7 +42,8 @@ namespace Cassandra.Tests.Connections.Control
 
         private FakeMetadataRequestHandler CreateFakeMetadataRequestHandler(
             IRow localRow = null,
-            IEnumerable<IRow> peersRows = null)
+            IEnumerable<IRow> peersRows = null,
+            bool withPeersV2 = false)
         {
             var row = localRow ?? TestHelper.CreateRow(new Dictionary<string, object>
             {
@@ -52,14 +54,42 @@ namespace Cassandra.Tests.Connections.Control
                 {"release_version", "2.2.1-SNAPSHOT"},
                 {"partitioner", "Murmur3Partitioner" }
             });
-            var peerRows = peersRows ?? TestHelper.CreateRows(new List<Dictionary<string, object>>
+
+            if (peersRows == null)
             {
-                new Dictionary<string, object>{{"rpc_address", IPAddress.Parse("127.0.0.2")}, {"peer", null}, { "data_center", "ut-dc3" }, { "rack", "ut-rack3" }, {"tokens", null}, {"release_version", "2.1.5"}},
-            });
+                peersRows = TestHelper.CreateRows(new List<Dictionary<string, object>>
+                {
+                    new Dictionary<string, object>
+                    {
+                        {"rpc_address", IPAddress.Parse("127.0.0.2")}, 
+                        {"peer", null}, 
+                        { "data_center", "ut-dc3" }, 
+                        { "rack", "ut-rack3" }, 
+                        {"tokens", null}, 
+                        {"release_version", "2.1.5"}
+                    }
+                });
+            }
+            
+            IEnumerable<IRow> peersV2Rows = null;
+            if (withPeersV2)
+            {
+                peersV2Rows = peersRows.Select(r => TestHelper.CreateRow(new Dictionary<string, object>
+                {
+                    { "native_address", r.GetValue<IPAddress>("rpc_address") },
+                    { "native_port", 9042 },
+                    { "peer", r.GetValue<IPAddress>("peer") },
+                    { "data_center", r.GetValue<string>("data_center") },
+                    { "rack", r.GetValue<string>("rack") },
+                    { "tokens", r.GetValue<string>("tokens") },
+                    { "release_version", r.GetValue<string>("release_version") }
+                })).ToList();
+            }
             return new FakeMetadataRequestHandler(new Dictionary<string, IEnumerable<IRow>>
             {
                 { TopologyRefresherTests.LocalQuery, new List<IRow> { row } },
-                { TopologyRefresherTests.PeersQuery, peerRows }
+                { TopologyRefresherTests.PeersQuery, peersRows },
+                { TopologyRefresherTests.PeersV2Query, peersV2Rows }
             });
         }
 
@@ -78,7 +108,7 @@ namespace Cassandra.Tests.Connections.Control
         }
 
         [Test]
-        public void Should_SendSystemLocalAndPeersQueries()
+        public async Task Should_SendSystemLocalAndPeersV1AndPeersV2Queries()
         {
             var fakeRequestHandler = CreateFakeMetadataRequestHandler();
             var config = new TestConfigurationBuilder
@@ -88,11 +118,103 @@ namespace Cassandra.Tests.Connections.Control
             _metadata = new Metadata(config);
             var topologyRefresher = new TopologyRefresher(_metadata, config);
             var connection = Mock.Of<IConnection>();
+            
+            await topologyRefresher
+                  .RefreshNodeListAsync(
+                      new FakeConnectionEndPoint("127.0.0.1", 9042), 
+                      connection, 
+                      _serializer).ConfigureAwait(false);
 
-            var _ = topologyRefresher.RefreshNodeListAsync(new FakeConnectionEndPoint("127.0.0.1", 9042), connection, _serializer);
 
             Assert.AreEqual(TopologyRefresherTests.LocalQuery, fakeRequestHandler.Requests.First().CqlQuery);
+            Assert.AreEqual(TopologyRefresherTests.PeersV2Query, fakeRequestHandler.Requests.ElementAt(1).CqlQuery);
             Assert.AreEqual(TopologyRefresherTests.PeersQuery, fakeRequestHandler.Requests.Last().CqlQuery);
+        }
+        
+        [Test]
+        public async Task Should_SendSystemLocalAndPeersV2Queries()
+        {
+            var fakeRequestHandler = CreateFakeMetadataRequestHandler(withPeersV2: true);
+            var config = new TestConfigurationBuilder
+            {
+                MetadataRequestHandler = fakeRequestHandler
+            }.Build();
+            _metadata = new Metadata(config);
+            var topologyRefresher = new TopologyRefresher(_metadata, config);
+            var connection = Mock.Of<IConnection>();
+
+            await topologyRefresher
+                  .RefreshNodeListAsync(
+                      new FakeConnectionEndPoint("127.0.0.1", 9042), 
+                      connection, 
+                      _serializer).ConfigureAwait(false);
+
+            Assert.AreEqual(TopologyRefresherTests.LocalQuery, fakeRequestHandler.Requests.First().CqlQuery);
+            Assert.AreEqual(TopologyRefresherTests.PeersV2Query, fakeRequestHandler.Requests.Last().CqlQuery);
+        }
+        
+        [Test]
+        public async Task Should_KeepSendingSystemPeersV2Queries_When_ItDoesNotFail()
+        {
+            var fakeRequestHandler = CreateFakeMetadataRequestHandler(withPeersV2: true);
+            var config = new TestConfigurationBuilder
+            {
+                MetadataRequestHandler = fakeRequestHandler
+            }.Build();
+            _metadata = new Metadata(config);
+            var topologyRefresher = new TopologyRefresher(_metadata, config);
+            var connection = Mock.Of<IConnection>();
+
+            await topologyRefresher
+                  .RefreshNodeListAsync(
+                      new FakeConnectionEndPoint("127.0.0.1", 9042), 
+                      connection, 
+                      _serializer).ConfigureAwait(false);
+
+            Assert.AreEqual(2, fakeRequestHandler.Requests.Count);
+            Assert.AreEqual(TopologyRefresherTests.LocalQuery, fakeRequestHandler.Requests.First().CqlQuery);
+            Assert.AreEqual(TopologyRefresherTests.PeersV2Query, fakeRequestHandler.Requests.ElementAt(1).CqlQuery);
+            
+            await topologyRefresher
+                  .RefreshNodeListAsync(
+                      new FakeConnectionEndPoint("127.0.0.1", 9042), 
+                      connection, 
+                      _serializer).ConfigureAwait(false);
+            
+            Assert.AreEqual(4, fakeRequestHandler.Requests.Count);
+            Assert.AreEqual(TopologyRefresherTests.LocalQuery, fakeRequestHandler.Requests.ElementAt(2).CqlQuery);
+            Assert.AreEqual(TopologyRefresherTests.PeersV2Query, fakeRequestHandler.Requests.ElementAt(3).CqlQuery);
+        }
+
+        [Test]
+        public async Task Should_SendPeersV1OnlyAfterPeersV2Fails()
+        {
+            var fakeRequestHandler = CreateFakeMetadataRequestHandler();
+            var config = new TestConfigurationBuilder { MetadataRequestHandler = fakeRequestHandler }.Build();
+            _metadata = new Metadata(config);
+            var topologyRefresher = new TopologyRefresher(_metadata, config);
+            var connection = Mock.Of<IConnection>();
+            
+            await topologyRefresher
+                  .RefreshNodeListAsync(
+                      new FakeConnectionEndPoint("127.0.0.1", 9042), 
+                      connection, 
+                      _serializer).ConfigureAwait(false);
+            
+            Assert.AreEqual(3, fakeRequestHandler.Requests.Count);
+            Assert.AreEqual(TopologyRefresherTests.LocalQuery, fakeRequestHandler.Requests.First().CqlQuery);
+            Assert.AreEqual(TopologyRefresherTests.PeersV2Query, fakeRequestHandler.Requests.ElementAt(1).CqlQuery);
+            Assert.AreEqual(TopologyRefresherTests.PeersQuery, fakeRequestHandler.Requests.ElementAt(2).CqlQuery);
+            
+            await topologyRefresher
+                  .RefreshNodeListAsync(
+                      new FakeConnectionEndPoint("127.0.0.1", 9042), 
+                      connection, 
+                      _serializer).ConfigureAwait(false);
+            
+            Assert.AreEqual(5, fakeRequestHandler.Requests.Count);
+            Assert.AreEqual(TopologyRefresherTests.LocalQuery, fakeRequestHandler.Requests.ElementAt(3).CqlQuery);
+            Assert.AreEqual(TopologyRefresherTests.PeersQuery, fakeRequestHandler.Requests.ElementAt(4).CqlQuery);
         }
 
         [Test]
