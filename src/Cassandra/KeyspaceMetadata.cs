@@ -233,16 +233,18 @@ namespace Cassandra
         {
             return TaskHelper.WaitToComplete(_parent.SchemaParser.GetTableNamesAsync(Name));
         }
-
+        
         /// <summary>
-        ///  Return a <c>String</c> containing CQL queries representing this
-        ///  name and the table it contains. In other words, this method returns the
-        ///  queries that would allow to recreate the schema of this name, along with
-        ///  all its table. Note that the returned String is formatted to be human
-        ///  readable (for some definition of human readable at least).
+        /// <para>
+        ///  Deprecated. Please use <see cref="AsCqlQuery"/>.
+        /// </para>
+        /// <para>
+        ///  Returns a CQL query representing this keyspace. This method returns a single
+        ///  'CREATE KEYSPACE' query with the options corresponding to this name
+        ///  definition.
+        /// </para>
         /// </summary>
-        /// <returns>the CQL queries representing this name schema as a code
-        ///  String}.</returns>
+        /// <returns>the 'CREATE KEYSPACE' query corresponding to this name.</returns>
         public string ExportAsString()
         {
             var sb = new StringBuilder();
@@ -258,8 +260,7 @@ namespace Cassandra
         ///  'CREATE KEYSPACE' query with the options corresponding to this name
         ///  definition.
         /// </summary>
-        /// <returns>the 'CREATE KEYSPACE' query corresponding to this name.
-        ///  <see>#ExportAsString</see></returns>
+        /// <returns>the 'CREATE KEYSPACE' query corresponding to this name.</returns>
         public string AsCqlQuery()
         {
             var sb = new StringBuilder();
