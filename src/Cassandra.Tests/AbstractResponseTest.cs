@@ -36,7 +36,8 @@ namespace Cassandra.Tests
         public void Ctor_NoFlags_TraceIdIsNull()
         {
             // Arrange
-            var frame = new Frame(new FrameHeader(), new MemoryStream(), new SerializerManager(ProtocolVersion.V4).GetCurrentSerializer());
+            var frame = new Frame(
+                new FrameHeader(), new MemoryStream(), new SerializerManager(ProtocolVersion.V4).GetCurrentSerializer(), null);
 
             // Act
             var uut = new Response(frame);
@@ -49,7 +50,11 @@ namespace Cassandra.Tests
         public void Ctor_NoFlags_BodyStreamPositionIsZero()
         {
             // Arrange
-            var frame = new Frame(new FrameHeader(), new MemoryStream(new byte[] { 1 }), new SerializerManager(ProtocolVersion.V4).GetCurrentSerializer());
+            var frame = new Frame(
+                new FrameHeader(), 
+                new MemoryStream(new byte[] { 1 }), 
+                new SerializerManager(ProtocolVersion.V4).GetCurrentSerializer(),
+                null);
 
             // Act
             new Response(frame);
@@ -68,7 +73,7 @@ namespace Cassandra.Tests
             rnd.NextBytes(buffer);
             var expected = new Guid(TypeSerializer.GuidShuffle(buffer));
             var body = new MemoryStream(buffer);
-            var frame = new Frame(header, body, new SerializerManager(ProtocolVersion.V4).GetCurrentSerializer());
+            var frame = new Frame(header, body, new SerializerManager(ProtocolVersion.V4).GetCurrentSerializer(), null);
 
             // Act
             var uut = new Response(frame);
@@ -83,7 +88,7 @@ namespace Cassandra.Tests
             // Arrange
             var header = new FrameHeader { Flags = FrameHeader.HeaderFlag.Tracing };
             var body = new MemoryStream(new byte[20]);
-            var frame = new Frame(header, body, new SerializerManager(ProtocolVersion.V4).GetCurrentSerializer());
+            var frame = new Frame(header, body, new SerializerManager(ProtocolVersion.V4).GetCurrentSerializer(), null);
 
             // Act
             new Response(frame);

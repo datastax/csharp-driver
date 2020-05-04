@@ -46,7 +46,7 @@ namespace Cassandra.Responses
         /// </summary>
         public ResultMetadata NewResultMetadata { get; }
 
-        internal ResultResponse(Frame frame, ResultMetadata resultMetadata) : base(frame)
+        internal ResultResponse(Frame frame) : base(frame)
         {
             Kind = (ResultResponseKind) Reader.ReadInt32();
             switch (Kind)
@@ -55,7 +55,7 @@ namespace Cassandra.Responses
                     Output = new OutputVoid(TraceId);
                     break;
                 case ResultResponseKind.Rows:
-                    var outputRows = new OutputRows(Reader, resultMetadata, TraceId);
+                    var outputRows = new OutputRows(Reader, frame.ResultMetadata, TraceId);
                     Output = outputRows;
                     if (outputRows.ResultRowsMetadata.HasNewResultMetadataId())
                     {
@@ -83,9 +83,9 @@ namespace Cassandra.Responses
             Output = output;
         }
 
-        internal static ResultResponse Create(Frame frame, ResultMetadata resultMetadata)
+        internal static ResultResponse Create(Frame frame)
         {
-            return new ResultResponse(frame, resultMetadata);
+            return new ResultResponse(frame);
         }
     }
 }

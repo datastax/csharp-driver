@@ -14,8 +14,6 @@
 //   limitations under the License.
 //
 
-using Cassandra.Requests;
-
 namespace Cassandra.Responses
 {
     internal class AuthSuccessResponse : Response
@@ -30,7 +28,7 @@ namespace Cassandra.Responses
             Token = Reader.ReadBytes();
         }
 
-        internal static AuthSuccessResponse Create(Frame frame, ResultMetadata _)
+        internal static AuthSuccessResponse Create(Frame frame)
         {
             return new AuthSuccessResponse(frame);
         }

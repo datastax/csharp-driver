@@ -41,7 +41,7 @@ namespace Cassandra.Tests
         {
             var body = GetErrorBody(0x2000, "Test syntax error");
             var header = FrameHeader.ParseResponseHeader(Version, GetHeaderBuffer(body.Length), 0);
-            var response = FrameParser.Parse(new Frame(header, new MemoryStream(body), Serializer.GetCurrentSerializer()), null);
+            var response = FrameParser.Parse(new Frame(header, new MemoryStream(body), Serializer.GetCurrentSerializer(), null));
             var ex = IsErrorResponse<SyntaxError>(response);
             Assert.AreEqual("Test syntax error", ex.Message);
         }
@@ -53,7 +53,7 @@ namespace Cassandra.Tests
             var warningBuffers = BeConverter.GetBytes((ushort)1).Concat(GetProtocolString("Test warning"));
             var body = warningBuffers.Concat(GetErrorBody(0x2000, "Test syntax error")).ToArray();
             var header = FrameHeader.ParseResponseHeader(Version, GetHeaderBuffer(body.Length, HeaderFlag.Warning), 0);
-            var response = FrameParser.Parse(new Frame(header, new MemoryStream(body), Serializer.GetCurrentSerializer()), null);
+            var response = FrameParser.Parse(new Frame(header, new MemoryStream(body), Serializer.GetCurrentSerializer(), null));
             var ex = IsErrorResponse<SyntaxError>(response);
             Assert.AreEqual("Test syntax error", ex.Message);
         }
@@ -171,7 +171,8 @@ namespace Cassandra.Tests
         private static Response GetResponse(byte[] body, ProtocolVersion version = Version)
         {
             var header = FrameHeader.ParseResponseHeader(version, GetHeaderBuffer(body.Length), 0);
-            return FrameParser.Parse(new Frame(header, new MemoryStream(body), new SerializerManager(version).GetCurrentSerializer()), null);
+            return FrameParser.Parse(new Frame(
+                header, new MemoryStream(body), new SerializerManager(version).GetCurrentSerializer(), null));
         }
 
         private static byte[] GetProtocolString(string value)

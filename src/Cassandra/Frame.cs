@@ -16,45 +16,39 @@
 
 using System;
 using System.IO;
+using Cassandra.Requests;
 using Cassandra.Serialization;
 
 namespace Cassandra
 {
     internal class Frame
     {
-        private readonly Stream _body;
-        private readonly ISerializer _serializer;
-        private readonly FrameHeader _header;
-
         /// <summary>
         /// The 8 byte protocol header
         /// </summary>
-        public FrameHeader Header
-        {
-            get { return _header; }
-        }
+        public FrameHeader Header { get; }
 
         /// <summary>
         /// A stream containing the frame body
         /// </summary>
-        public Stream Body
-        {
-            get { return _body; }
-        }
+        public Stream Body { get; }
 
         /// <summary>
         /// Gets the serializer instance to be used for this frame
         /// </summary>
-        public ISerializer Serializer
-        {
-            get { return _serializer; }
-        }
+        public ISerializer Serializer { get; }
 
-        public Frame(FrameHeader header, Stream body, ISerializer serializer)
+        /// <summary>
+        /// Metadata to parse the result. Can be null.
+        /// </summary>
+        public ResultMetadata ResultMetadata { get; }
+
+        public Frame(FrameHeader header, Stream body, ISerializer serializer, ResultMetadata resultMetadata)
         {
-            _header = header ?? throw new ArgumentNullException("header");
-            _body = body ?? throw new ArgumentNullException("body");
-            _serializer = serializer ?? throw new ArgumentNullException("serializer");
+            Header = header ?? throw new ArgumentNullException(nameof(header));
+            Body = body ?? throw new ArgumentNullException(nameof(body));
+            Serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
+            ResultMetadata = resultMetadata;
         }
     }
 }

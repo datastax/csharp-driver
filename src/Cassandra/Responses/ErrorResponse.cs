@@ -14,8 +14,6 @@
 //   limitations under the License.
 //
 
-using Cassandra.Requests;
-
 namespace Cassandra.Responses
 {
     internal class ErrorResponse : Response
@@ -23,7 +21,7 @@ namespace Cassandra.Responses
         public const byte OpCode = 0x00;
         public OutputError Output;
 
-        internal ErrorResponse(Frame frame) 
+        internal ErrorResponse(Frame frame)
             : base(frame)
         {
             int errorCode = Reader.ReadInt32();
@@ -31,7 +29,7 @@ namespace Cassandra.Responses
             Output = OutputError.CreateOutputError(errorCode, message, Reader);
         }
 
-        internal static ErrorResponse Create(Frame frame, ResultMetadata _)
+        internal static ErrorResponse Create(Frame frame)
         {
             return new ErrorResponse(frame);
         }

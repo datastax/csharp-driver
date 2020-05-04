@@ -14,8 +14,6 @@
 //   limitations under the License.
 //
 
-using Cassandra.Requests;
-
 namespace Cassandra.Responses
 {
     internal class SupportedResponse : Response
@@ -28,7 +26,7 @@ namespace Cassandra.Responses
             Output = new OutputOptions(Reader);
         }
 
-        internal static SupportedResponse Create(Frame frame, ResultMetadata _)
+        internal static SupportedResponse Create(Frame frame)
         {
             return new SupportedResponse(frame);
         }

@@ -14,8 +14,6 @@
 //   limitations under the License.
 //
 
-using Cassandra.Requests;
-
 namespace Cassandra.Responses
 {
     internal class ReadyResponse : Response
@@ -27,7 +25,7 @@ namespace Cassandra.Responses
         {
         }
 
-        internal static ReadyResponse Create(Frame frame, ResultMetadata _)
+        internal static ReadyResponse Create(Frame frame)
         {
             return new ReadyResponse(frame);
         }

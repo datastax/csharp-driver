@@ -29,8 +29,8 @@ namespace Cassandra
         /// <summary>
         /// A factory to get the response handlers 
         /// </summary>
-        private static readonly Dictionary<byte, Func<Frame, ResultMetadata, Response>> _responseHandlerFactory = 
-            new Dictionary<byte, Func<Frame, ResultMetadata, Response>>
+        private static readonly Dictionary<byte, Func<Frame, Response>> _responseHandlerFactory = 
+            new Dictionary<byte, Func<Frame, Response>>
         {
             {AuthenticateResponse.OpCode, AuthenticateResponse.Create},
             {ErrorResponse.OpCode, ErrorResponse.Create},
@@ -45,14 +45,14 @@ namespace Cassandra
         /// <summary>
         /// Parses the response frame
         /// </summary>
-        public static Response Parse(Frame frame, ResultMetadata resultMetadata)
+        public static Response Parse(Frame frame)
         {
             byte opcode = frame.Header.Opcode;
             if (!_responseHandlerFactory.ContainsKey(opcode))
             {
                 throw new DriverInternalError("Unknown Response Frame type " + opcode);
             }
-            return _responseHandlerFactory[opcode](frame, resultMetadata);
+            return _responseHandlerFactory[opcode](frame);
         }
     }
 }

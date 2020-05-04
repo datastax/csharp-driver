@@ -28,7 +28,7 @@ namespace Cassandra.Tests
         {
             // ReSharper disable once ObjectCreationAsStatement
             Assert.Throws<ArgumentNullException>(() => new Frame(
-                null, new MemoryStream(), new SerializerManager(ProtocolVersion.MaxSupported).GetCurrentSerializer()));
+                null, new MemoryStream(), new SerializerManager(ProtocolVersion.MaxSupported).GetCurrentSerializer(), null));
         }
 
         [Test]
@@ -36,7 +36,7 @@ namespace Cassandra.Tests
         {
             // ReSharper disable once ObjectCreationAsStatement
             Assert.Throws<ArgumentNullException>(() => new Frame(
-                new FrameHeader(), null, new SerializerManager(ProtocolVersion.MaxSupported).GetCurrentSerializer()));
+                new FrameHeader(), null, new SerializerManager(ProtocolVersion.MaxSupported).GetCurrentSerializer(), null));
         } 
     }
 }
