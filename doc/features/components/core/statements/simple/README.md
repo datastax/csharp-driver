@@ -68,7 +68,7 @@ The number of values must match the number of placeholders in the query string, 
 
 ### Type inference
 
-Another consequence of not parsing query strings is that the driver has to guess how to serialize values, based on their .NET type (see the [default type mappings](../../../datatypes)).
+Another consequence of not parsing query strings is that the driver has to guess how to serialize values, based on their .NET type (see the [default type mappings](../../../../datatypes)).
 This can be tricky, in particular for numeric types:
 
 ```csharp
