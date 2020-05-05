@@ -165,8 +165,6 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-#if NETFRAMEWORK
-
         [Test]
         [TestCassandraVersion(2, 0)]
         public void Query_Compression_LZ4_Test()
@@ -215,8 +213,6 @@ namespace Cassandra.IntegrationTests.Core
                 }
             }
         }
-
-#endif
 
         [Test]
         public void Query_Compression_Snappy_Test()
@@ -310,7 +306,7 @@ namespace Cassandra.IntegrationTests.Core
 
                 Assert.True(taskList.All(t =>
                     t.Status == TaskStatus.RanToCompletion ||
-                    (t.Exception != null && t.Exception.InnerException is ReadTimeoutException)), 
+                    (t.Exception != null && t.Exception.InnerException is ReadTimeoutException)),
                     string.Join(Environment.NewLine, taskList.Select(t => t.Exception?.ToString() ?? string.Empty)));
             }
         }
@@ -639,29 +635,29 @@ namespace Cassandra.IntegrationTests.Core
                 SocketOptions = socketOptions
             }.Build();
 
-            using (var connection = 
+            using (var connection =
                 new Connection(
-                    new SerializerManager(GetProtocolVersion()).GetCurrentSerializer(), 
+                    new SerializerManager(GetProtocolVersion()).GetCurrentSerializer(),
                     new ConnectionEndPoint(
                             new IPEndPoint(new IPAddress(new byte[] { 1, 1, 1, 1 }), 9042),
                             config.ServerNameResolver,
                             null),
-                    config, 
-                    new StartupRequestFactory(config.StartupOptionsFactory), 
+                    config,
+                    new StartupRequestFactory(config.StartupOptionsFactory),
                     NullConnectionObserver.Instance))
             {
                 var ex = Assert.Throws<SocketException>(() => TaskHelper.WaitToComplete(connection.Open()));
                 Assert.AreEqual(SocketError.TimedOut, ex.SocketErrorCode);
             }
-            using (var connection = 
+            using (var connection =
                 new Connection(
                     new SerializerManager(GetProtocolVersion()).GetCurrentSerializer(),
                     new ConnectionEndPoint(
                         new IPEndPoint(new IPAddress(new byte[] { 255, 255, 255, 255 }), 9042),
                         config.ServerNameResolver,
                         null),
-                    config, 
-                    new StartupRequestFactory(config.StartupOptionsFactory), 
+                    config,
+                    new StartupRequestFactory(config.StartupOptionsFactory),
                     NullConnectionObserver.Instance))
             {
                 Assert.Throws<SocketException>(() => TaskHelper.WaitToComplete(connection.Open()));
@@ -866,10 +862,10 @@ namespace Cassandra.IntegrationTests.Core
         {
             Trace.TraceInformation("Creating test connection using protocol v{0}", protocolVersion);
             return new Connection(
-                new SerializerManager(protocolVersion).GetCurrentSerializer(), 
+                new SerializerManager(protocolVersion).GetCurrentSerializer(),
                 new ConnectionEndPoint(new IPEndPoint(IPAddress.Parse(_testCluster.InitialContactPoint), 9042), config.ServerNameResolver, null),
-                config, 
-                new StartupRequestFactory(config.StartupOptionsFactory), 
+                config,
+                new StartupRequestFactory(config.StartupOptionsFactory),
                 NullConnectionObserver.Instance);
         }
 
