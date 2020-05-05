@@ -121,7 +121,7 @@ namespace Cassandra.Connections
         public IPEndPoint LocalAddress => _tcpSocket.GetLocalIpEndPoint();
 
         public int WriteQueueLength => _writeQueue.Count;
-        
+
         public int PendingOperationsMapLength => _pendingOperations.Count;
 
         /// <summary>
@@ -163,7 +163,7 @@ namespace Cassandra.Connections
                 return _keyspace;
             }
         }
-        
+
         public ProtocolOptions Options => Configuration.ProtocolOptions;
 
         public Configuration Configuration { get; set; }
@@ -195,7 +195,7 @@ namespace Cassandra.Connections
         {
             Interlocked.Decrement(ref _inFlight);
         }
-        
+
         /// <summary>
         /// Gets the amount of concurrent requests depending on the protocol version
         /// </summary>
@@ -449,11 +449,7 @@ namespace Cassandra.Connections
             }
             else if (Options.Compression == CompressionType.LZ4)
             {
-#if NETFRAMEWORK
                 Compressor = new LZ4Compressor();
-#else
-                throw new NotSupportedException("Lz4 compression not supported under .NETCore");
-#endif
             }
             else if (Options.Compression == CompressionType.Snappy)
             {
@@ -811,7 +807,7 @@ namespace Cassandra.Connections
             );
 
             _writeQueue.Enqueue(state);
-            
+
             if (state.TimeoutMillis > 0)
             {
                 // timer can be disposed while connection cancellation hasn't been invoked yet
@@ -996,7 +992,7 @@ namespace Cassandra.Connections
                     await switchTcs.Task.ConfigureAwait(false);
                     continue;
                 }
-                
+
                 Exception sendException = null;
 
                 // CAS operation won, this is the only thread changing the keyspace
@@ -1039,7 +1035,7 @@ namespace Cassandra.Connections
             //Increase timed-out counter
             Interlocked.Increment(ref _timedOutOperations);
         }
-        
+
         /// <summary>
         /// Method that gets executed when a write request has been completed.
         /// </summary>
