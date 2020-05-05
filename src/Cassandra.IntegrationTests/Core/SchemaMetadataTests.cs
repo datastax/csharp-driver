@@ -744,7 +744,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [Test, TestCassandraVersion(4, 0), TestCase(true), TestCase(false)]
+        [Test, TestBothServersVersion(4, 0, 6, 7), TestCase(true), TestCase(false)]
         public void Virtual_Table_Metadata_Test(bool metadataSync)
         {
             var cluster = GetNewTemporaryCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
@@ -755,7 +755,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(table.ClusteringKeys.Select(t => t.Item1.Name), new[] { "table_name", "task_id" });
         }
 
-        [Test, TestCase(true), TestCase(false), TestCassandraVersion(4, 0)]
+        [Test, TestCase(true), TestCase(false), TestBothServersVersion(4, 0, 6, 7)]
         public void Virtual_Keyspaces_Are_Included(bool metadataSync)
         {
             var cluster = GetNewTemporaryCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));

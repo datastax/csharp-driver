@@ -43,7 +43,7 @@ namespace Cassandra.IntegrationTests.Core
                 p => p.WhenQuery("SELECT * FROM system.peers_v2")
                       .ThenServerError(ServerError.Invalid, "error"));
 
-            SetupNewSession();
+            SetupNewSession(b => b.WithPoolingOptions(new PoolingOptions().SetHeartBeatInterval(3000)));
 
             var peersV2Queries = TestCluster.GetQueries("SELECT * FROM system.peers_v2");
             var peersQueries = TestCluster.GetQueries("SELECT * FROM system.peers");
@@ -57,8 +57,8 @@ namespace Cassandra.IntegrationTests.Core
                     Assert.AreEqual(1, Session.Cluster.AllHosts().Count(h => !h.IsUp));
                     Assert.IsTrue(Session.Cluster.Metadata.ControlConnection.Host.IsUp);
                 },
-                100,
-                50);
+                200,
+                100);
 
             await TestCluster.GetNode(Session.Cluster.Metadata.ControlConnection.Host.Address).Stop().ConfigureAwait(false);
 
@@ -69,8 +69,8 @@ namespace Cassandra.IntegrationTests.Core
                     Assert.AreEqual(2, Session.Cluster.AllHosts().Count(h => !h.IsUp));
                     Assert.IsTrue(Session.Cluster.Metadata.ControlConnection.Host.IsUp);
                 },
-                100,
-                50);
+                200,
+                100);
 
             var afterPeersV2Queries = TestCluster.GetQueries("SELECT * FROM system.peers_v2");
             var afterPeersQueries = TestCluster.GetQueries("SELECT * FROM system.peers");

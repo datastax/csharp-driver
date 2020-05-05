@@ -23,9 +23,9 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 {
     public class SimulacronManager : IDisposable
     {
-        private Process _simulacronProcess;
+        private volatile Process _simulacronProcess;
 
-        private bool _initialized;
+        private volatile bool _initialized;
 
         public static SimulacronManager DefaultInstance { get; } = new SimulacronManager();
         
@@ -50,7 +50,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         public static SimulacronManager GetForPeersTests()
         {
-            var manager = new SimulacronManager(8189, "127.0.0.111", 9011);
+            var manager = new SimulacronManager(8178, "127.0.0.11", 9011);
             manager.Start();
             return manager;
         }

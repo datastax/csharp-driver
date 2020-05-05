@@ -15,6 +15,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Cassandra.IntegrationTests.SimulacronAPI.Models.Logs;
 using Cassandra.IntegrationTests.SimulacronAPI.SystemTables;
@@ -187,9 +188,23 @@ namespace Cassandra.IntegrationTests
 
         private void Init()
         {
-            TestCluster = _simulacronManager == null 
-                ? SimulacronCluster.CreateNew(_options) 
-                : SimulacronCluster.CreateNew(_simulacronManager, _options);
+            var listener = new TestTraceListener();
+            Trace.Listeners.Add(listener);
+            try
+            {
+                TestCluster = _simulacronManager == null
+                    ? SimulacronCluster.CreateNew(_options)
+                    : SimulacronCluster.CreateNew(_simulacronManager, _options);
+            }
+            catch (Exception ex)
+            {
+                Trace.Flush();
+                throw new Exception(string.Join(Environment.NewLine, listener.Queue.ToArray()), ex);
+            }
+            finally
+            {
+                Trace.Listeners.Remove(listener);
+            }
 
             if (_connect)
             {
