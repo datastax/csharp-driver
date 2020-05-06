@@ -119,7 +119,7 @@ namespace Cassandra.IntegrationTests.Core
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", AllTypesTableName, columns);
 
             var preparedStatement = Session.Prepare(insertQuery);
-            Assert.AreEqual(columns, String.Join(", ", preparedStatement.Metadata.Columns.Select(c => c.Name)));
+            Assert.AreEqual(columns, String.Join(", ", preparedStatement.Variables.Columns.Select(c => c.Name)));
             var nullRowValues = new object[] 
             { 
                 Guid.NewGuid(), null, null, null, null, null, null, null, null, null, null
@@ -144,7 +144,7 @@ namespace Cassandra.IntegrationTests.Core
                 VALUES (?, ?)", AllTypesTableName, columns);
 
             var preparedStatement = Session.Prepare(insertQuery);
-            Assert.AreEqual(columns, String.Join(", ", preparedStatement.Metadata.Columns.Select(c => c.Name)));
+            Assert.AreEqual(columns, String.Join(", ", preparedStatement.Variables.Columns.Select(c => c.Name)));
             var nullRowValues = new object[] 
             { 
                 Guid.NewGuid(), ""
@@ -185,8 +185,8 @@ namespace Cassandra.IntegrationTests.Core
                 var protocolVersion = (ProtocolVersion)session1.BinaryProtocolVersion;
                 if (protocolVersion.SupportsResultMetadataId())
                 {
-                    originalResultMetadataId = selectPs1.ResultMetadataId;
-                    Assert.That(selectPs2.ResultMetadataId, Is.EquivalentTo(selectPs1.ResultMetadataId));
+                    originalResultMetadataId = selectPs1.ResultMetadata.ResultMetadataId;
+                    Assert.That(selectPs2.ResultMetadata.ResultMetadataId, Is.EquivalentTo(selectPs1.ResultMetadata.ResultMetadataId));
                 }
 
                 for (var i = 0; i < 10; i++)
@@ -217,8 +217,8 @@ namespace Cassandra.IntegrationTests.Core
                 if (protocolVersion.SupportsResultMetadataId())
                 {
                     // The ResultMetadataId changed and it's updated on both PreparedStatement instances
-                    Assert.That(selectPs1.ResultMetadataId, Is.Not.EquivalentTo(originalResultMetadataId));
-                    Assert.That(selectPs2.ResultMetadataId, Is.EquivalentTo(selectPs1.ResultMetadataId));
+                    Assert.That(selectPs1.ResultMetadata.ResultMetadataId, Is.Not.EquivalentTo(originalResultMetadataId));
+                    Assert.That(selectPs2.ResultMetadata.ResultMetadataId, Is.EquivalentTo(selectPs1.ResultMetadata.ResultMetadataId));
                 }
             }
         }
@@ -233,7 +233,7 @@ namespace Cassandra.IntegrationTests.Core
                 VALUES (?, ?, ?)", AllTypesTableName, columns);
 
             var preparedStatement = Session.Prepare(insertQuery);
-            Assert.AreEqual(columns, String.Join(", ", preparedStatement.Metadata.Columns.Select(c => c.Name)));
+            Assert.AreEqual(columns, String.Join(", ", preparedStatement.Variables.Columns.Select(c => c.Name)));
             var id = Guid.NewGuid();
 
             Session.Execute(preparedStatement.Bind(id, Unset.Value, Unset.Value));
@@ -269,7 +269,7 @@ namespace Cassandra.IntegrationTests.Core
                 VALUES (?, ?, ?)", AllTypesTableName, columns);
 
             var preparedStatement = Session.Prepare(insertQuery);
-            Assert.AreEqual(columns, String.Join(", ", preparedStatement.Metadata.Columns.Select(c => c.Name)));
+            Assert.AreEqual(columns, String.Join(", ", preparedStatement.Variables.Columns.Select(c => c.Name)));
             var id = Guid.NewGuid();
 
             if (TestClusterManager.CheckCassandraVersion(false, new Version(2, 2), Comparison.LessThan))
@@ -438,8 +438,8 @@ namespace Cassandra.IntegrationTests.Core
                 //For older versions, there is no way to determine that my_id is actually id column
                 Assert.Null(preparedStatement.RoutingIndexes);   
             }
-            Assert.AreEqual(preparedStatement.Metadata.Columns.Length, 4);
-            Assert.AreEqual("my_text, my_int, my_bigint, my_id", String.Join(", ", preparedStatement.Metadata.Columns.Select(c => c.Name)));
+            Assert.AreEqual(preparedStatement.Variables.Columns.Length, 4);
+            Assert.AreEqual("my_text, my_int, my_bigint, my_id", String.Join(", ", preparedStatement.Variables.Columns.Select(c => c.Name)));
         }
 
         [Test]
@@ -449,8 +449,8 @@ namespace Cassandra.IntegrationTests.Core
             var insertQuery = string.Format("INSERT INTO {0} (text_sample, int_sample, bigint_sample, id) VALUES (:my_text, :my_int, :my_bigint, :id)", AllTypesTableName);
             var preparedStatement = Session.Prepare(insertQuery);
             CollectionAssert.AreEqual(new [] {3}, preparedStatement.RoutingIndexes);
-            Assert.AreEqual(preparedStatement.Metadata.Columns.Length, 4);
-            Assert.AreEqual("my_text, my_int, my_bigint, id", String.Join(", ", preparedStatement.Metadata.Columns.Select(c => c.Name)));
+            Assert.AreEqual(preparedStatement.Variables.Columns.Length, 4);
+            Assert.AreEqual("my_text, my_int, my_bigint, id", String.Join(", ", preparedStatement.Variables.Columns.Select(c => c.Name)));
 
             var id = Guid.NewGuid();
             Session.Execute(

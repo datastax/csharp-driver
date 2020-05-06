@@ -14,6 +14,8 @@
 //   limitations under the License.
 //
 
+using Cassandra.Requests;
+
 namespace Cassandra.Responses
 {
     internal class ResultResponse : Response
@@ -40,10 +42,9 @@ namespace Cassandra.Responses
         public IOutput Output { get; private set; }
 
         /// <summary>
-        /// When the Output is ROWS, it returns the new_metadata_id.
-        /// It returns null when new_metadata_id is not provided or the output is not ROWS.
+        /// Is null if new_metadata_id is not set.
         /// </summary>
-        internal byte[] NewResultMetadataId => (Output as OutputRows)?.NewResultMetadataId;
+        public ResultMetadata NewResultMetadata { get; }
 
         internal ResultResponse(Frame frame) : base(frame)
         {
@@ -54,7 +55,13 @@ namespace Cassandra.Responses
                     Output = new OutputVoid(TraceId);
                     break;
                 case ResultResponseKind.Rows:
-                    Output = new OutputRows(Reader, TraceId);
+                    var outputRows = new OutputRows(Reader, frame.ResultMetadata, TraceId);
+                    Output = outputRows;
+                    if (outputRows.ResultRowsMetadata.HasNewResultMetadataId())
+                    {
+                        NewResultMetadata = new ResultMetadata(
+                            outputRows.ResultRowsMetadata.NewResultMetadataId, outputRows.ResultRowsMetadata);
+                    }
                     break;
                 case ResultResponseKind.SetKeyspace:
                     Output = new OutputSetKeyspace(Reader.ReadString());

@@ -110,7 +110,7 @@ namespace Cassandra.Tests.Connections
             var pool = new HostConnectionPool(
                 _host, 
                 config, 
-                SerializerManager.Default.GetCurrentSerializer(),
+                SerializerManager.Default,
                 new MetricsObserverFactory(new MetricsManager(new NullDriverMetricsProvider(), new DriverMetricsOptions(), false, "s1"))
                 );
             pool.SetDistance(HostDistance.Local); // set expected connections length

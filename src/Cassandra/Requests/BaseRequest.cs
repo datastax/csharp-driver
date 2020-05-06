@@ -63,6 +63,9 @@ namespace Cassandra.Requests
 
         protected abstract byte OpCode { get; }
 
+        /// <inheritdoc />
+        public abstract ResultMetadata ResultMetadata { get; }
+
         protected abstract void WriteBody(FrameWriter wb);
 
         public int WriteFrame(short streamId, MemoryStream stream, ISerializer connectionSerializer)

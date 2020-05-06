@@ -19,7 +19,8 @@ namespace Cassandra.Responses
     internal class EventResponse : Response
     {
         public const byte OpCode = 0x0C;
-        private readonly Logger _logger = new Logger(typeof (EventResponse));
+        private readonly Logger _logger = new Logger(typeof(EventResponse));
+
         /// <summary>
         /// Information on the actual event
         /// </summary>
@@ -70,9 +71,11 @@ namespace Cassandra.Responses
                 case "UPDATED":
                     changeType = SchemaChangeEventArgs.Reason.Updated;
                     break;
+
                 case "DROPPED":
                     changeType = SchemaChangeEventArgs.Reason.Dropped;
                     break;
+
                 default:
                     changeType = SchemaChangeEventArgs.Reason.Created;
                     break;
@@ -93,13 +96,16 @@ namespace Cassandra.Responses
                 case "TABLE":
                     ce.Table = reader.ReadString();
                     break;
+
                 case "TYPE":
                     ce.Type = reader.ReadString();
                     break;
+
                 case "FUNCTION":
                     ce.FunctionName = reader.ReadString();
                     ce.Signature = reader.ReadStringList();
                     break;
+
                 case "AGGREGATE":
                     ce.AggregateName = reader.ReadString();
                     ce.Signature = reader.ReadStringList();

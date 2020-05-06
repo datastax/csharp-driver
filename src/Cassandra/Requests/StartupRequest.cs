@@ -31,6 +31,9 @@ namespace Cassandra.Requests
 
         protected override byte OpCode => StartupRequest.StartupOpCode;
 
+        /// <inheritdoc />
+        public override ResultMetadata ResultMetadata => null;
+
         protected override void WriteBody(FrameWriter wb)
         {
             wb.WriteUInt16((ushort)_options.Count);

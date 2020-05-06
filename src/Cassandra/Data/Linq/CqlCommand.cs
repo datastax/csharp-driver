@@ -158,7 +158,7 @@ namespace Cassandra.Data.Linq
         {
             string query = GetCql(out object[] values);
             SetQueryString(query);
-            SetValues(values);
+            SetValues(values, Serializer);
         }
 
         public ITable GetTable()

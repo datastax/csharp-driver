@@ -47,6 +47,14 @@ namespace Cassandra
         private int _state = StateInit;
         private volatile HashedWheelTimer.ITimeout _timeout;
 
+        /// <summary>
+        /// See docs for <see cref="IRequest.ResultMetadata"/>.
+        /// </summary>
+        public ResultMetadata ResultMetadata { get; }
+
+        /// <summary>
+        /// Note: This is set to NULL after this operation is written to a frame.
+        /// </summary>
         public IRequest Request { get; private set; }
 
         /// <summary>
@@ -74,6 +82,7 @@ namespace Cassandra
             _operationObserver = operationObserver;
             Request = request;
             TimeoutMillis = timeoutMillis;
+            ResultMetadata = request?.ResultMetadata;
         }
 
         /// <summary>

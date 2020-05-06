@@ -287,11 +287,11 @@ namespace Cassandra.Requests
                     }
                 }
 
-                if (response.NewResultMetadataId != null && _parent.Statement is BoundStatement boundStatement)
+                if (response.NewResultMetadata != null && _parent.Statement is BoundStatement boundStatement)
                 {
                     // We've sent an EXECUTE request and the server is notifying the client that the result
                     // metadata changed
-                    boundStatement.PreparedStatement.ResultMetadataId = response.NewResultMetadataId;
+                    boundStatement.PreparedStatement.UpdateResultMetadata(response.NewResultMetadata);
                 }
 
                 rs.Info.IncomingPayload = response.CustomPayload;
@@ -546,7 +546,8 @@ namespace Cassandra.Requests
                     if (_parent.Statement is BoundStatement boundStatement)
                     {
                         // Use the latest result metadata id
-                        boundStatement.PreparedStatement.ResultMetadataId = outputPrepared.ResultMetadataId;
+                        boundStatement.PreparedStatement.UpdateResultMetadata(
+                            new ResultMetadata(outputPrepared.ResultMetadataId, outputPrepared.ResultRowsMetadata));
                     }
 
                     Send(_request, host, HandleResponse);

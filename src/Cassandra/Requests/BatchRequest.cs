@@ -18,7 +18,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-using Cassandra.Data.Linq;
 using Cassandra.ExecutionProfiles;
 using Cassandra.Serialization;
 
@@ -39,6 +38,9 @@ namespace Cassandra.Requests
         public ConsistencyLevel Consistency { get; set; }
 
         protected override byte OpCode => BatchRequest.BatchOpCode;
+        
+        /// <inheritdoc />
+        public override ResultMetadata ResultMetadata => null;
 
         public BatchRequest(
             ISerializer serializer,

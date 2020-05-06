@@ -130,8 +130,14 @@ namespace Cassandra.IntegrationTests.Core
                 var prepareOutput = ValidateResult<OutputPrepared>(task.Result);
 
                 //Execute the prepared query
-                var executeRequest = new ExecuteRequest(GetSerializer(), prepareOutput.QueryId, null,
-                    prepareOutput.ResultMetadataId, QueryProtocolOptions.Default, false, null);
+                var executeRequest = new ExecuteRequest(
+                    GetSerializer(), 
+                    prepareOutput.QueryId, 
+                    null,
+                    new ResultMetadata(prepareOutput.ResultMetadataId, prepareOutput.ResultRowsMetadata),
+                    QueryProtocolOptions.Default,
+                    false,
+                    null);
                 task = connection.Send(executeRequest);
                 var output = ValidateResult<OutputRows>(task.Result);
                 var rs = output.RowSet;
@@ -155,7 +161,14 @@ namespace Cassandra.IntegrationTests.Core
                 var options = new QueryProtocolOptions(ConsistencyLevel.One, new object[] { "local" }, false, 100, null, ConsistencyLevel.Any);
 
                 var executeRequest = new ExecuteRequest(
-                    GetSerializer(), prepareOutput.QueryId, null, prepareOutput.ResultMetadataId, options, false, null);
+                    GetSerializer(), 
+                    prepareOutput.QueryId, 
+                    null, 
+                    new ResultMetadata(prepareOutput.ResultMetadataId, prepareOutput.ResultRowsMetadata),
+                    options,
+                    false,
+                    null);
+
                 task = connection.Send(executeRequest);
                 var output = ValidateResult<OutputRows>(task.Result);
 
@@ -815,6 +828,8 @@ namespace Cassandra.IntegrationTests.Core
             // Create a request that throws an exception when writing the frame
             requestMock.Setup(r => r.WriteFrame(It.IsAny<short>(), It.IsAny<MemoryStream>(), It.IsAny<ISerializer>()))
                        .Throws(ex);
+            requestMock.SetupGet(r => r.ResultMetadata)
+                       .Returns((ResultMetadata)null);
 
             using (var connection = CreateConnection())
             {

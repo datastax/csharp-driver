@@ -176,8 +176,9 @@ namespace Cassandra
         ///  variables. In that case, the remaining variable need to be bound before
         ///  execution. If more values than variables are provided however, an
         ///  IllegalArgumentException will be raised. </param>
+        /// <param name="serializer">Current serializer.</param>
         /// <returns>this bound statement. </returns>
-        internal virtual void SetValues(object[] values)
+        internal virtual void SetValues(object[] values, ISerializer serializer)
         {
             _values = values;
         }

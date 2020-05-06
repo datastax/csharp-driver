@@ -241,14 +241,6 @@ namespace Cassandra.IntegrationTests.TestBase
         {
         }
         
-        protected override Version GetExpectedServerVersion()
-        {
-            var version = new Version(Major, Minor, Build);
-            return TestClusterManager.IsDse
-                ? TestClusterManager.GetDseVersion(version)
-                : version;
-        }
-
         protected override bool IsDseRequired()
         {
             return TestClusterManager.IsDse;

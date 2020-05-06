@@ -40,6 +40,11 @@ namespace Cassandra.Requests
             set { _queryOptions.PagingState = value; }
         }
 
+        public bool SkipMetadata
+        {
+            get { return _queryOptions.SkipMetadata; }
+        }
+
         public int PageSize
         {
             get { return _queryOptions.PageSize; }
@@ -49,6 +54,9 @@ namespace Cassandra.Requests
         {
             get { return _queryOptions.SerialConsistency; }
         }
+        
+        /// <inheritdoc />
+        public override ResultMetadata ResultMetadata => null;
 
         public string Query { get { return _cqlQuery; } }
 

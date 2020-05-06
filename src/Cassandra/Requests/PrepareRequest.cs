@@ -43,6 +43,9 @@ namespace Cassandra.Requests
         /// The CQL string to be prepared
         /// </summary>
         public string Query { get; set; }
+        
+        /// <inheritdoc />
+        public override ResultMetadata ResultMetadata => null;
 
         public PrepareRequest(
             ISerializer serializer, string cqlQuery, string keyspace, IDictionary<string, byte[]> payload)

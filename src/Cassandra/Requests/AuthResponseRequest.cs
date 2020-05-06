@@ -29,6 +29,9 @@ namespace Cassandra.Requests
 
         protected override byte OpCode => AuthResponseRequest.AuthResponseOpCode;
 
+        /// <inheritdoc />
+        public override ResultMetadata ResultMetadata => null;
+
         protected override void WriteBody(FrameWriter wb)
         {
             wb.WriteBytes(_token);

@@ -69,7 +69,7 @@ namespace Cassandra.Connections
         }
 
         private readonly Configuration _config;
-        private readonly ISerializer _serializer;
+        private readonly ISerializerManager _serializerManager;
         private readonly IObserverFactory _observerFactory;
         private readonly CopyOnWriteList<IConnection> _connections = new CopyOnWriteList<IConnection>();
         private readonly HashedWheelTimer _timer;
@@ -109,16 +109,16 @@ namespace Cassandra.Connections
         public IConnection[] ConnectionsSnapshot => _connections.GetSnapshot();
 
 
-        public HostConnectionPool(Host host, Configuration config, ISerializer serializer, IObserverFactory observerFactory)
+        public HostConnectionPool(Host host, Configuration config, ISerializerManager serializerManager, IObserverFactory observerFactory)
         {
             _host = host;
             _host.Down += OnHostDown;
             _host.Up += OnHostUp;
             _host.DistanceChanged += OnDistanceChanged;
             _config = config ?? throw new ArgumentNullException(nameof(config));
-            _poolingOptions = config.GetOrCreatePoolingOptions(serializer.ProtocolVersion);
+            _poolingOptions = config.GetOrCreatePoolingOptions(serializerManager.CurrentProtocolVersion);
             _maxRequestsPerConnection = _poolingOptions.GetMaxRequestsPerConnection();
-            _serializer = serializer;
+            _serializerManager = serializerManager;
             _observerFactory = observerFactory;
             _timer = config.Timer;
             _reconnectionSchedule = config.Policies.ReconnectionPolicy.NewSchedule();
@@ -266,7 +266,7 @@ namespace Cassandra.Connections
         public virtual async Task<IConnection> DoCreateAndOpen(bool isReconnection)
         {
             var endPoint = await _config.EndPointResolver.GetConnectionEndPointAsync(_host, isReconnection).ConfigureAwait(false);
-            var c = _config.ConnectionFactory.Create(_serializer, endPoint, _config, _observerFactory.CreateConnectionObserver(_host));
+            var c = _config.ConnectionFactory.Create(_serializerManager.GetCurrentSerializer(), endPoint, _config, _observerFactory.CreateConnectionObserver(_host));
             try
             {
                 await c.Open().ConfigureAwait(false);

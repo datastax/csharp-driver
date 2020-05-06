@@ -26,6 +26,9 @@ namespace Cassandra.Requests
 
         protected override byte OpCode => OptionsRequest.OptionsOpCode;
 
+        /// <inheritdoc />
+        public override ResultMetadata ResultMetadata => null;
+
         protected override void WriteBody(FrameWriter wb)
         {
             // OPTIONS requests have a header only

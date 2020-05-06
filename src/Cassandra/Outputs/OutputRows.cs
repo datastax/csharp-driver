@@ -16,6 +16,7 @@
 
 using System;
 using System.Threading;
+using Cassandra.Requests;
 
 // ReSharper disable CheckNamespace
 namespace Cassandra
@@ -23,7 +24,6 @@ namespace Cassandra
     internal class OutputRows : IOutput
     {
         private readonly int _rowLength;
-        private readonly RowSetMetadata _metadata;
         private const int ReusableBufferLength = 1024;
         private static readonly ThreadLocal<byte[]> ReusableBuffer = new ThreadLocal<byte[]>(() => new byte[ReusableBufferLength]);
 
@@ -33,43 +33,53 @@ namespace Cassandra
         public RowSet RowSet { get; set; }
 
         public Guid? TraceId { get; private set; }
+        
+        public RowSetMetadata ResultRowsMetadata { get; }
 
-        /// <summary>
-        /// Gets the new_metadata_id or null if not provided.
-        /// </summary>
-        internal byte[] NewResultMetadataId => _metadata.NewResultMetadataId;
-
-        internal OutputRows(FrameReader reader, Guid? traceId)
+        internal OutputRows(FrameReader reader, ResultMetadata resultMetadata, Guid? traceId)
         {
-            _metadata = new RowSetMetadata(reader);
+            ResultRowsMetadata = new RowSetMetadata(reader);
             _rowLength = reader.ReadInt32();
             TraceId = traceId;
             RowSet = new RowSet();
-            ProcessRows(RowSet, reader);
+            ProcessRows(RowSet, reader, resultMetadata);
         }
 
         /// <summary>
         /// Process rows and sets the paging event handler
         /// </summary>
-        internal void ProcessRows(RowSet rs, FrameReader reader)
+        internal void ProcessRows(RowSet rs, FrameReader reader, ResultMetadata providedResultMetadata)
         {
-            if (_metadata != null)
+            RowSetMetadata resultMetadata = null;
+
+            // result metadata in the response takes precedence over the previously provided result metadata.
+            if (ResultRowsMetadata != null)
             {
-                rs.Columns = _metadata.Columns;
-                rs.PagingState = _metadata.PagingState;
+                resultMetadata = ResultRowsMetadata;
+                rs.Columns = ResultRowsMetadata.Columns;
+                rs.PagingState = ResultRowsMetadata.PagingState;
             }
+
+            // if the response has no column definitions, then SKIP_METADATA was set by the driver
+            // the driver only sets this flag for bound statements
+            if (resultMetadata?.Columns == null)
+            {
+                resultMetadata = providedResultMetadata?.RowSetMetadata;
+                rs.Columns = resultMetadata?.Columns;
+            }
+
             for (var i = 0; i < _rowLength; i++)
             {
-                rs.AddRow(ProcessRowItem(reader));
+                rs.AddRow(ProcessRowItem(reader, resultMetadata));
             }
         }
 
-        internal virtual Row ProcessRowItem(FrameReader reader)
+        internal virtual Row ProcessRowItem(FrameReader reader, RowSetMetadata resultMetadata)
         {
-            var rowValues = new object[_metadata.Columns.Length];
-            for (var i = 0; i < _metadata.Columns.Length; i++)
+            var rowValues = new object[resultMetadata.Columns.Length];
+            for (var i = 0; i < resultMetadata.Columns.Length; i++)
             {
-                var c = _metadata.Columns[i];
+                var c = resultMetadata.Columns[i];
                 var length = reader.ReadInt32();
                 if (length < 0)
                 {
@@ -80,7 +90,7 @@ namespace Cassandra
                 rowValues[i] = reader.ReadFromBytes(buffer, 0, length, c.TypeCode, c.TypeInfo);
             }
 
-            return new Row(rowValues, _metadata.Columns, _metadata.ColumnIndexes);
+            return new Row(rowValues, resultMetadata.Columns, resultMetadata.ColumnIndexes);
         }
 
         /// <summary>

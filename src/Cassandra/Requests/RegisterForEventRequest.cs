@@ -43,6 +43,9 @@ namespace Cassandra.Requests
 
         protected override byte OpCode => RegisterForEventRequest.RegisterOpCode;
 
+        /// <inheritdoc />
+        public override ResultMetadata ResultMetadata => null;
+
         protected override void WriteBody(FrameWriter wb)
         {
             wb.WriteStringList(_eventTypes);

@@ -127,7 +127,7 @@ namespace Cassandra
         public SimpleStatement(string query, params object[] values) : this(query)
         {
             // ReSharper disable once DoNotCallOverridableMethodsInConstructor
-            SetValues(values);
+            SetValues(values, Serializer);
         }
 
         /// <summary>
@@ -166,7 +166,7 @@ namespace Cassandra
 
             //The order of the keys and values is unspecified, but is guaranteed to be both in the same order.
             SetParameterNames(valuesDictionary.Keys);
-            base.SetValues(valuesDictionary.Values.ToArray());
+            base.SetValues(valuesDictionary.Values.ToArray(), Serializer);
         }
 
         /// <summary>
@@ -217,7 +217,7 @@ namespace Cassandra
         [Obsolete("The method Bind() is deprecated, use SimpleStatement constructor parameters to provide query values")]
         public SimpleStatement Bind(params object[] values)
         {
-            SetValues(values);
+            SetValues(values, Serializer);
             return this;
         }
 
@@ -246,7 +246,7 @@ namespace Cassandra
             return new QueryRequest(serializer, QueryString, options, IsTracing, null);
         }
 
-        internal override void SetValues(object[] values)
+        internal override void SetValues(object[] values, ISerializer serializer)
         {
             if (values != null && values.Length == 1 && Utils.IsAnonymousType(values[0]))
             {
@@ -254,7 +254,7 @@ namespace Cassandra
                 SetParameterNames(keyValues.Keys);
                 values = keyValues.Values.ToArray();
             }
-            base.SetValues(values);
+            base.SetValues(values, serializer);
         }
 
         private void SetParameterNames(IEnumerable<string> names)

@@ -19,7 +19,9 @@ namespace Cassandra
 {
     internal class OutputPrepared : IOutput
     {
-        public RowSetMetadata Metadata { get; }
+        public RowSetMetadata VariablesRowsMetadata { get; }
+
+        public RowSetMetadata ResultRowsMetadata { get; }
 
         public byte[] QueryId { get; }
 
@@ -36,14 +38,16 @@ namespace Cassandra
                 ResultMetadataId = reader.ReadShortBytes();
             }
 
-            Metadata = new RowSetMetadata(reader, protocolVersion.SupportsPreparedPartitionKey());
+            VariablesRowsMetadata = new RowSetMetadata(reader, protocolVersion.SupportsPreparedPartitionKey());
+            ResultRowsMetadata = new RowSetMetadata(reader, false);
         }
         
         // for testing
-        internal OutputPrepared(byte[] queryId, RowSetMetadata rowSetMetadata)
+        internal OutputPrepared(byte[] queryId, RowSetMetadata rowSetVariablesRowsMetadata, RowSetMetadata resultRowsMetadata)
         {
             QueryId = queryId;
-            Metadata = rowSetMetadata;
+            VariablesRowsMetadata = rowSetVariablesRowsMetadata;
+            ResultRowsMetadata = resultRowsMetadata;
         }
 
         public void Dispose()

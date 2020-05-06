@@ -552,10 +552,10 @@ namespace Cassandra
 
         /// <inheritdoc />
         async Task<PreparedStatement> IInternalCluster.Prepare(
-            IInternalSession session, ISerializer serializer, PrepareRequest request)
+            IInternalSession session, ISerializerManager serializerManager, PrepareRequest request)
         {
             var lbp = session.Cluster.Configuration.DefaultRequestOptions.LoadBalancingPolicy;
-            var handler = InternalRef.Configuration.PrepareHandlerFactory.CreatePrepareHandler(serializer, this);
+            var handler = InternalRef.Configuration.PrepareHandlerFactory.CreatePrepareHandler(serializerManager, this);
             var ps = await handler.Prepare(request, session, lbp.NewQueryPlan(session.Keyspace, null).GetEnumerator()).ConfigureAwait(false);
             var psAdded = InternalRef.PreparedQueries.GetOrAdd(ps.Id, ps);
             if (ps != psAdded)

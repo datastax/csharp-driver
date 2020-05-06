@@ -29,7 +29,6 @@ namespace Cassandra.Requests
         public const byte ExecuteOpCode = 0x0A;
 
         private readonly byte[] _id;
-        private readonly byte[] _resultMetadataId;
         private readonly QueryProtocolOptions _queryOptions;
 
         public ConsistencyLevel Consistency 
@@ -47,18 +46,23 @@ namespace Cassandra.Requests
         public int PageSize => _queryOptions.PageSize;
 
         public ConsistencyLevel SerialConsistency => _queryOptions.SerialConsistency;
+        
+        public bool SkipMetadata => _queryOptions.SkipMetadata;
+
+        /// <inheritdoc />
+        public override ResultMetadata ResultMetadata { get; }
 
         public ExecuteRequest(
             ISerializer serializer, 
             byte[] id, 
-            RowSetMetadata metadata, 
-            byte[] resultMetadataId, 
+            RowSetMetadata variablesMetadata, 
+            ResultMetadata resultMetadata, 
             QueryProtocolOptions queryOptions,
             bool tracingEnabled, 
             IDictionary<string, byte[]> payload) : base(serializer, tracingEnabled, payload)
         {
             var protocolVersion = serializer.ProtocolVersion;
-            if (metadata != null && queryOptions.Values.Length != metadata.Columns.Length)
+            if (variablesMetadata != null && queryOptions.Values.Length != variablesMetadata.Columns.Length)
             {
                 throw new ArgumentException("Number of values does not match with number of prepared statement markers(?).");
             }
@@ -67,7 +71,7 @@ namespace Cassandra.Requests
 
             if (protocolVersion.SupportsResultMetadataId())
             {
-                _resultMetadataId = resultMetadataId;
+                ResultMetadata = resultMetadata;
             }
 
             if (queryOptions.SerialConsistency != ConsistencyLevel.Any 
@@ -88,9 +92,9 @@ namespace Cassandra.Requests
         {
             wb.WriteShortBytes(_id);
 
-            if (_resultMetadataId != null)
+            if (ResultMetadata != null)
             {
-                wb.WriteShortBytes(_resultMetadataId);
+                wb.WriteShortBytes(ResultMetadata.ResultMetadataId);
             }
 
             _queryOptions.Write(wb, true);

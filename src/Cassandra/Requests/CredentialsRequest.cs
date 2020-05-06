@@ -32,6 +32,9 @@ namespace Cassandra.Requests
 
         protected override byte OpCode => CredentialsRequest.CredentialsRequestOpCode;
 
+        /// <inheritdoc />
+        public override ResultMetadata ResultMetadata => null;
+
         protected override void WriteBody(FrameWriter wb)
         {
             if (wb.Serializer.ProtocolVersion != ProtocolVersion.V1)

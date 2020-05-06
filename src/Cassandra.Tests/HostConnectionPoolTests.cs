@@ -97,7 +97,7 @@ namespace Cassandra.Tests
             return new Mock<HostConnectionPool>(
                 host, 
                 config, 
-                new SerializerManager(ProtocolVersion.MaxSupported).GetCurrentSerializer(), 
+                new SerializerManager(ProtocolVersion.MaxSupported), 
                 new MetricsObserverFactory(new MetricsManager(new NullDriverMetricsProvider(), new DriverMetricsOptions(), false, "s1")));
         }
 

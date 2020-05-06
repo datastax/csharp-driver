@@ -31,13 +31,13 @@ namespace Cassandra.Requests
     {
         internal static readonly Logger Logger = new Logger(typeof(PrepareHandler));
 
-        private readonly ISerializer _serializer;
+        private readonly ISerializerManager _serializerManager;
         private readonly IInternalCluster _cluster;
         private readonly IReprepareHandler _reprepareHandler;
 
-        public PrepareHandler(ISerializer serializer, IInternalCluster cluster, IReprepareHandler reprepareHandler)
+        public PrepareHandler(ISerializerManager serializerManager, IInternalCluster cluster, IReprepareHandler reprepareHandler)
         {
-            _serializer = serializer;
+            _serializerManager = serializerManager;
             _cluster = cluster;
             _reprepareHandler = reprepareHandler;
         }
@@ -144,8 +144,13 @@ namespace Cassandra.Requests
                 throw new DriverInternalError("Expected prepared response, obtained " + output.GetType().FullName);
             }
             var prepared = (OutputPrepared)output;
-            var ps = new PreparedStatement(prepared.Metadata, prepared.QueryId, prepared.ResultMetadataId,
-                request.Query, keyspace, _serializer)
+            var ps = new PreparedStatement(
+                prepared.VariablesRowsMetadata, 
+                prepared.QueryId, 
+                new ResultMetadata(prepared.ResultMetadataId, prepared.ResultRowsMetadata),
+                request.Query, 
+                keyspace, 
+                _serializerManager)
             {
                 IncomingPayload = resultResponse.CustomPayload
             };
@@ -155,22 +160,22 @@ namespace Cassandra.Requests
 
         private static async Task FillRoutingInfo(PreparedStatement ps, ICluster cluster)
         {
-            var column = ps.Metadata.Columns.FirstOrDefault();
+            var column = ps.Variables.Columns.FirstOrDefault();
             if (column?.Keyspace == null)
             {
                 // The prepared statement does not contain parameters
                 return;
             }
-            if (ps.Metadata.PartitionKeys != null)
+            if (ps.Variables.PartitionKeys != null)
             {
                 // The routing indexes where parsed in the prepared response
-                if (ps.Metadata.PartitionKeys.Length == 0)
+                if (ps.Variables.PartitionKeys.Length == 0)
                 {
                     // zero-length partition keys means that none of the parameters are partition keys
                     // the partition key is hard-coded.
                     return;
                 }
-                ps.RoutingIndexes = ps.Metadata.PartitionKeys;
+                ps.RoutingIndexes = ps.Variables.PartitionKeys;
                 return;
             }
             try

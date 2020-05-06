@@ -21,7 +21,7 @@ namespace Cassandra.Responses
         public const byte OpCode = 0x00;
         public OutputError Output;
 
-        internal ErrorResponse(Frame frame) 
+        internal ErrorResponse(Frame frame)
             : base(frame)
         {
             int errorCode = Reader.ReadInt32();

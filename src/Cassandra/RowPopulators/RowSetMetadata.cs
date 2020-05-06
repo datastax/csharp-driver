@@ -273,6 +273,11 @@ namespace Cassandra
         /// It returns null when partition keys were not parsed.
         /// </summary>
         internal int[] PartitionKeys { get; private set; }
+        
+        /// <summary>
+        /// Whether the new_metadata_id was set.
+        /// </summary>
+        internal bool HasNewResultMetadataId() => NewResultMetadataId != null;
 
         // for testing
         internal RowSetMetadata()
@@ -300,20 +305,22 @@ namespace Cassandra
 
             string gKsname = null;
             string gTablename = null;
-
-            if (flags.HasFlag(RowSetMetadataFlags.MetadataChanged))
-            {
-                NewResultMetadataId = reader.ReadShortBytes();
-            }
-
+            
             if ((flags & RowSetMetadataFlags.HasMorePages) == RowSetMetadataFlags.HasMorePages)
             {
                 PagingState = reader.ReadBytes();
             }
+
+            if ((flags & RowSetMetadataFlags.MetadataChanged) == RowSetMetadataFlags.MetadataChanged)
+            {
+                NewResultMetadataId = reader.ReadShortBytes();
+            }
+            
             if ((flags & RowSetMetadataFlags.NoMetadata) == RowSetMetadataFlags.NoMetadata)
             {
                 return;
             }
+
             if ((flags & RowSetMetadataFlags.GlobalTablesSpec) == RowSetMetadataFlags.GlobalTablesSpec)
             {
                 gKsname = reader.ReadString();

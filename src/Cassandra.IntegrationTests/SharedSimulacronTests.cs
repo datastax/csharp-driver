@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using Cassandra.IntegrationTests.TestBase;
+using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using NUnit.Framework;
 
@@ -82,7 +83,7 @@ namespace Cassandra.IntegrationTests
         protected virtual SimulacronCluster CreateNew(SimulacronOptions options)
         {
             Options = options;
-            var c = SimulacronCluster.CreateNew(options);
+            var c = SimulacronManager.DefaultInstance.CreateNew(options);
             _simulacronClusters.Add(c);
             return c;
         }
@@ -90,7 +91,7 @@ namespace Cassandra.IntegrationTests
         protected virtual SimulacronCluster CreateNew(int nodeLength)
         {
             Options = new SimulacronOptions { Nodes = nodeLength.ToString() };
-            var c = SimulacronCluster.CreateNew(Options);
+            var c = SimulacronManager.DefaultInstance.CreateNew(Options);
             _simulacronClusters.Add(c);
             return c;
         }

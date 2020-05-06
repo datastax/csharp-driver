@@ -350,7 +350,7 @@ namespace Cassandra
             var hostPool = _connectionPool.GetOrAdd(host.Address, address =>
             {
                 var newPool = Configuration.HostConnectionPoolFactory.Create(
-                    host, Configuration, _serializerManager.GetCurrentSerializer(), _observerFactory);
+                    host, Configuration, _serializerManager, _observerFactory);
                 newPool.AllConnectionClosed += InternalRef.OnAllConnectionClosed;
                 newPool.SetDistance(distance);
                 _metricsManager.GetOrCreateNodeMetrics(host).InitializePoolGauges(newPool);
@@ -456,18 +456,20 @@ namespace Cassandra
         }
 
         /// <inheritdoc />
-        public async Task<PreparedStatement> PrepareAsync(string cqlQuery, string keyspace, IDictionary<string, byte[]> customPayload)
+        public async Task<PreparedStatement> PrepareAsync(
+            string cqlQuery, string keyspace, IDictionary<string, byte[]> customPayload)
         {
             var serializer = _serializerManager.GetCurrentSerializer();
-            if (!serializer.ProtocolVersion.SupportsKeyspaceInRequest() && keyspace != null)
+            var currentVersion = serializer.ProtocolVersion;
+            if (!currentVersion.SupportsKeyspaceInRequest() && keyspace != null)
             {
                 // Validate protocol version here and not at PrepareRequest level, as PrepareRequest can be issued
                 // in the background (prepare and retry, prepare on up, ...)
-                throw new NotSupportedException($"Protocol version {serializer.ProtocolVersion} does not support" +
+                throw new NotSupportedException($"Protocol version {currentVersion} does not support" +
                                                 " setting the keyspace as part of the PREPARE request");
             }
             var request = new PrepareRequest(serializer, cqlQuery, keyspace, customPayload);
-            return await _cluster.Prepare(this, serializer, request).ConfigureAwait(false);
+            return await _cluster.Prepare(this, _serializerManager, request).ConfigureAwait(false);
         }
 
         public void WaitForSchemaAgreement(RowSet rs)
