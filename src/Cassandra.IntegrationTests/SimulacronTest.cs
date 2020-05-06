@@ -193,8 +193,8 @@ namespace Cassandra.IntegrationTests
             try
             {
                 TestCluster = _simulacronManager == null
-                    ? SimulacronCluster.CreateNew(_options)
-                    : SimulacronCluster.CreateNew(_simulacronManager, _options);
+                    ? SimulacronManager.DefaultInstance.CreateNew(_options)
+                    : _simulacronManager.CreateNew(_options);
             }
             catch (Exception ex)
             {
@@ -220,7 +220,7 @@ namespace Cassandra.IntegrationTests
         {
             Session?.Cluster?.Dispose();
             TestCluster?.Dispose();
-            _simulacronManager?.Dispose();
+            _simulacronManager?.Stop();
         }
 
         protected void SetupNewTestCluster()

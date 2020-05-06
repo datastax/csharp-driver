@@ -267,7 +267,9 @@ namespace Cassandra.IntegrationTests.Core
                             stopWatch.Restart();
                         }
                     }
-                    var poolHasBeenReset = wasReset == 1 && pool2.OpenConnections == 3 &&
+                    var poolHasBeenReset = wasReset == 1 && 
+                                           pool1.OpenConnections == 3 &&
+                                           pool2.OpenConnections == 3 &&
                                            stopWatch.ElapsedMilliseconds > 2000;
                     if (poolHasBeenReset)
                     {
