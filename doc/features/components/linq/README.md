@@ -20,7 +20,9 @@ using Cassandra.Data.Linq;
 var users = new Table<User>(session);
 ```
 
-New `Table<T>` (`IQueryable`) instances can be created each time they are needed, as short-lived instances, as long as you are reusing the same `ISession` instance and mapping configuration.
+New `Table<T>` (`IQueryable`) instances can be created each time they are needed, as short-lived instances, as long as you are reusing the same `ISession` and `MappingConfiguration` instances. `MappingConfiguration.Global` is used if you don't provide one.
+
+In some scenarios, it might make sense to create multiple `MappingConfiguration` (e.g. reuse the same POCOs for multiple keyspaces).
 
 ## Example
 
