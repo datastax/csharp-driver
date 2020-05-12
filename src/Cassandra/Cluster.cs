@@ -36,7 +36,7 @@ using Cassandra.Tasks;
 
 namespace Cassandra
 {
-    /// <inheritdoc />
+    /// <inheritdoc cref="ICluster" />
     public class Cluster : IInternalCluster
     {
         private static ProtocolVersion _maxProtocolVersion = ProtocolVersion.MaxSupported;

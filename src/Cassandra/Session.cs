@@ -36,7 +36,7 @@ using Cassandra.Tasks;
 
 namespace Cassandra
 {
-    /// <inheritdoc />
+    /// <inheritdoc cref="ISession" />
     public class Session : IInternalSession
     {
         private readonly ISerializerManager _serializerManager;
