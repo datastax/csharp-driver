@@ -1,10 +1,40 @@
 # ChangeLog - DataStax C# Driver
 
+## 3.15.0
+
+2020-05-12
+
+### Features
+
+*   [[CSHARP-871](https://datastax-oss.atlassian.net/browse/CSHARP-871)] - Add support for system.peers_v2
+*   [[CSHARP-886](https://datastax-oss.atlassian.net/browse/CSHARP-886)] - Add beta version native protocol flag and ensure we have test coverage of v5
+*   [[CSHARP-887](https://datastax-oss.atlassian.net/browse/CSHARP-887)] - Transient Replication Support
+*   [[CSHARP-895](https://datastax-oss.atlassian.net/browse/CSHARP-895)] - Add Table.CreateAsync and Table.CreateIfNotExistsAsync
+*   [[CSHARP-719](https://datastax-oss.atlassian.net/browse/CSHARP-719)] - Support LZ4 compression in .NET Core
+
+### Improvements
+
+*   [[CSHARP-664](https://datastax-oss.atlassian.net/browse/CSHARP-664)] - Use prepared statement result_metadata for execute row responses
+
+### Bug fixes
+
+*   [[CSHARP-659](https://datastax-oss.atlassian.net/browse/CSHARP-659)] - Query trace retrieval fails when started_at is null
+*   [[CSHARP-884](https://datastax-oss.atlassian.net/browse/CSHARP-884)] - Race condition in the ControlConnection Dispose method can leak connections
+*   [[CSHARP-894](https://datastax-oss.atlassian.net/browse/CSHARP-894)] - Batch Statements cause a warning on TokenMap due to null keyspace
+*   [[CSHARP-896](https://datastax-oss.atlassian.net/browse/CSHARP-896)] - Invalid deserialization when paging a rowset and a schema change happens
+
+### Documentation
+
+*   [[CSHARP-812](https://datastax-oss.atlassian.net/browse/CSHARP-812)] - Add documentation about batch support for LINQ and Mapper
+*   [[CSHARP-833](https://datastax-oss.atlassian.net/browse/CSHARP-833)] - KeyspaceMetadata.ExportAsString API docs incorrectly state that it exports the table creation statements
+*   [[CSHARP-881](https://datastax-oss.atlassian.net/browse/CSHARP-881)] - Add section about ServerName and certificate name mismatches to SSL docs
+*   [[CSHARP-882](https://datastax-oss.atlassian.net/browse/CSHARP-882)] - Add a section to the driver manual with information on Statements
+
 ## 3.14.0
 
 2020-03-24
 
-## Features
+### Features
 
 *   [[CSHARP-405](https://datastax-oss.atlassian.net/browse/CSHARP-405)] - Log exception when Cluster.Init() can not recover from
 *   [[CSHARP-806](https://datastax-oss.atlassian.net/browse/CSHARP-806)] - Drop support for .NET Standard 1.5 and bump net45 to net452
@@ -17,11 +47,11 @@
 *   [[CSHARP-862](https://datastax-oss.atlassian.net/browse/CSHARP-862)] - Update System.Net.Http to fix vulnerabilities
 *   [[CSHARP-863](https://datastax-oss.atlassian.net/browse/CSHARP-863)] - Update System.Net.Security to fix vulnerabilities
 
-### AppMetrics Extension
+#### AppMetrics Extension
 
 *   [[CSHARP-851](https://datastax-oss.atlassian.net/browse/CSHARP-851)] - HistogramReservoir values should reset periodically (Timer metrics)
 
-## Bug fixes
+### Bug fixes
 
 *   [[CSHARP-696](https://datastax-oss.atlassian.net/browse/CSHARP-696)] - HostConnectionPool incorrectly logs reconnection message after warmup
 *   [[CSHARP-697](https://datastax-oss.atlassian.net/browse/CSHARP-697)] - When socket.ConnectAsync() throws an error synchronously, SocketAsyncEventArgs is not disposed
@@ -37,7 +67,7 @@
 *   [[CSHARP-877](https://datastax-oss.atlassian.net/browse/CSHARP-877)] - NodeMetric.DefaultNodeMetrics and SessionMetric.DefaultSessionMetrics contain null values
 *   [[CSHARP-878](https://datastax-oss.atlassian.net/browse/CSHARP-878)] - ControlConnection attempts to connect to DOWN nodes
 
-## Documentation
+### Documentation
 
 *   [[CSHARP-489](https://datastax-oss.atlassian.net/browse/CSHARP-489)] - Use docfx or doxygen to generate API docs
 *   [[CSHARP-847](https://datastax-oss.atlassian.net/browse/CSHARP-847)] - Doc: include a note about concurrent schema modifications

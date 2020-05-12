@@ -52,11 +52,14 @@ api_docs:
   '3.12': http://docs.datastax.com/en/drivers/csharp/3.12
   '3.13': http://docs.datastax.com/en/drivers/csharp/3.13
   '3.14': http://docs.datastax.com/en/drivers/csharp/3.14
+  '3.15': http://docs.datastax.com/en/drivers/csharp/3.15
 checks:
   external_links:
     exclude:
       - 'https://ci.appveyor.com/api/projects/status/ri1olv8bl7b7yk7y/branch/master?svg=true'
 versions:
+  - name: '3.15'
+    ref: '3.15'
   - name: '3.14'
     ref: '3.14'
   - name: '3.13'

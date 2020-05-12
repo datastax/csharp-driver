@@ -36,9 +36,6 @@ using Cassandra.Tasks;
 
 namespace Cassandra
 {
-    /// <summary>
-    /// Implementation of <see cref="ICluster"/>
-    /// </summary>
     /// <inheritdoc />
     public class Cluster : IInternalCluster
     {
