@@ -2,6 +2,17 @@
 
 Changelog for the DataStax Enterprise C# Driver.
 
+## 2.10.2
+
+2020-05-12
+
+### Bug fixes
+
+*   [[CSHARP-659](https://datastax-oss.atlassian.net/browse/CSHARP-659)] - Query trace retrieval fails when started_at is null
+*   [[CSHARP-884](https://datastax-oss.atlassian.net/browse/CSHARP-884)] - Race condition in the ControlConnection Dispose method can leak connections
+*   [[CSHARP-894](https://datastax-oss.atlassian.net/browse/CSHARP-894)] - Batch Statements cause a warning on TokenMap due to null keyspace
+*   [[CSHARP-896](https://datastax-oss.atlassian.net/browse/CSHARP-896)] - Invalid deserialization when paging a rowset and a schema change happens
+
 ## 2.10.1
 
 2020-03-24
