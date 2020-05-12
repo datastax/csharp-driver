@@ -1,6 +1,6 @@
 # Batch statements
 
-Use [BatchStatement] to execute a set of queries as an atomic operation (refer to [Batching inserts, updates and deletes][batch_dse] to understand how to use batching effectively):
+Use `BatchStatement` to execute a set of queries as an atomic operation (refer to [Batching inserts, updates and deletes][batch_dse] to understand how to use batching effectively):
 
 ```csharp
 PreparedStatement preparedInsertExpense =
