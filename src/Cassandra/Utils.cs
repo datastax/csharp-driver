@@ -64,6 +64,7 @@ namespace Cassandra
             var map = new SortedDictionary<string, int>();
 
             if (source != "{}")
+            { 
                 foreach (string elem in elements)
                 {
                     if (int.TryParse(elem.Split(':')[1].Replace("\"", ""), out int value))
@@ -71,13 +72,13 @@ namespace Cassandra
                     else
                         throw new FormatException("Value of keyspace strategy option is in invalid format!");
                 }
-
+            }
             return map;
         }
-        
+
         /// <summary>
-         /// Performs a getnameinfo() call and returns the primary host name
-         /// </summary>
+        /// Performs a getnameinfo() call and returns the primary host name
+        /// </summary>
         public static string GetPrimaryHostNameInfo(string address)
         {
             var hostEntry = Dns.GetHostEntry(address);
@@ -200,7 +201,7 @@ namespace Cassandra
             foreach (var stream in streamList)
             {
                 stream.Position = 0;
-                var itemLength = (int) stream.Length;
+                var itemLength = (int)stream.Length;
                 stream.Read(buffer, offset, itemLength);
                 offset += itemLength;
             }
@@ -370,7 +371,7 @@ namespace Cassandra
         public static bool IsIDictionary(Type t, out Type keyType, out Type valueType)
         {
             var typeInfo = t.GetTypeInfo();
-            var isIDictionary = typeInfo.IsGenericType && 
+            var isIDictionary = typeInfo.IsGenericType &&
                 typeInfo.GetGenericTypeDefinition() == typeof(IDictionary<,>);
             Type[] subTypes;
             if (isIDictionary)
@@ -409,11 +410,10 @@ namespace Cassandra
         public static string FillZeros(int value, int length = 2)
         {
             var textValue = value.ToString();
-            if (textValue.Length >= length)
-            {
-                return textValue;
-            }
-            return String.Join("", Enumerable.Repeat("0", length - textValue.Length)) + textValue;
+
+            return textValue.Length >= length
+                 ? textValue
+                 : textValue.PadLeft(length, '0');
         }
 
         public static string[] ParseJsonStringArray(string value)
@@ -506,7 +506,7 @@ namespace Cassandra
                 }
                 else if (isKey)
                 {
-                    key += c;   
+                    key += c;
                 }
             }
             return map;
