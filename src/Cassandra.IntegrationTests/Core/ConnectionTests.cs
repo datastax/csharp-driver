@@ -348,7 +348,7 @@ namespace Cassandra.IntegrationTests.Core
             using (var connection = CreateConnection())
             {
                 connection.Open().Wait();
-                Query(connection, string.Format("DROP KEYSPACE IF EXISTS test_events_kp", 1)).Wait();
+                Query(connection, "DROP KEYSPACE IF EXISTS test_events_kp").Wait();
                 var eventTypes = CassandraEventType.TopologyChange | CassandraEventType.StatusChange | CassandraEventType.SchemaChange;
                 var task = connection.Send(new RegisterForEventRequest(eventTypes));
                 TaskHelper.WaitToComplete(task, 1000);
@@ -374,7 +374,7 @@ namespace Cassandra.IntegrationTests.Core
                     50);
 
                 //create a table and check if gets received as an event
-                Query(connection, string.Format(TestUtils.CreateTableAllTypes, "test_events_kp.test_table", 1)).Wait(1000);
+                Query(connection, string.Format(TestUtils.CreateTableAllTypes, "test_events_kp.test_table")).Wait(1000);
                 TestHelper.RetryAssert(
                     () =>
                     {

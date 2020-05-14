@@ -61,6 +61,10 @@ namespace Cassandra.DataStax.Graph
         /// Gets the properties of this element that has the given name.
         /// </summary>
         /// <param name="name">The name of the property</param>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage(
+            "Naming", 
+            "CA1721:Property names should not match get methods", 
+            Justification = "Public API")]
         public IEnumerable<IVertexProperty> GetProperties(string name)
         {
             if (!Properties.TryGetValue(name, out var result))
@@ -77,6 +81,10 @@ namespace Cassandra.DataStax.Graph
         /// <summary>
         /// Gets the properties of this element.
         /// </summary>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage(
+            "Naming", 
+            "CA1721:Property names should not match get methods", 
+            Justification = "Public API")]
         public new IEnumerable<IVertexProperty> GetProperties()
         {
             return Properties.SelectMany(prop => GetProperties(prop.Key));

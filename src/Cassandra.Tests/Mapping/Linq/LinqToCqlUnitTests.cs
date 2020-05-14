@@ -617,5 +617,5 @@ APPLY BATCH".Replace("\r", ""));
                 query.ToString());
             Trace.TraceInformation(query.ToString());
         }
-	}
+    }
 }

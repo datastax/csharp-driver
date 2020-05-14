@@ -66,6 +66,10 @@ namespace Cassandra
                 return new RPToken(BigInteger.Parse(tokenStr));
             }
 
+            [System.Diagnostics.CodeAnalysis.SuppressMessage(
+                "Security", 
+                "CA5351:Do Not Use Broken Cryptographic Algorithms", 
+                Justification = "Support for Cassandra's RandomPartitioner")]
             public override IToken Hash(byte[] partitionKey)
             {
                 if (_md5 == null) 

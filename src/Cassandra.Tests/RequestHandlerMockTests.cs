@@ -33,7 +33,7 @@ using NUnit.Framework;
 namespace Cassandra.Tests
 {
     [TestFixture]
-    [SuppressMessage("ReSharper", "PossibleMultipleEnumeration")]
+    [SuppressMessage("ReSharper", "PossibleMultipleEnumeration", Justification = "Reviewed")]
     public class RequestHandlerMockTests
     {
         private static IInternalSession GetMockInternalSession()

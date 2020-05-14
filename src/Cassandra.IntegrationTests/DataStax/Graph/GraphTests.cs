@@ -898,7 +898,7 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                                                      "  \"step\": [[\"V\"], [\"hasLabel\", \"person\"]," +
                                                      "     [\"has\", \"name\", \"marko\"], [\"outE\"], [\"label\"]]}}");
             statement.SetGraphLanguage(GraphTests.GraphSON2Language);
-            var rs = await _session.ExecuteGraphAsync(statement);
+            var rs = await _session.ExecuteGraphAsync(statement).ConfigureAwait(false);
             Assert.That(rs.To<string>(), Is.EqualTo(new [] {"created", "knows", "knows"}));
         }
 
@@ -906,7 +906,7 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
         public async Task With_GraphSON1_It_Should_Parse_Bulked_Results()
         {
             var statement = new SimpleGraphStatement("g.V().hasLabel('person').has('name', 'marko').outE().label()");
-            var rs = await _session.ExecuteGraphAsync(statement);
+            var rs = await _session.ExecuteGraphAsync(statement).ConfigureAwait(false);
             Assert.That(rs.To<string>(), Is.EqualTo(new [] {"created", "knows", "knows"}));
         }
 

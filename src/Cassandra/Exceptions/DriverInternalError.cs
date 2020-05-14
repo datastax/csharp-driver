@@ -22,6 +22,10 @@ namespace Cassandra
     ///  An unexpected error happened internally. This should never be raise and
     ///  indicates an unexpected behavior (either in the driver or in Cassandra).
     /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Naming", 
+        "CA1710:Identifiers should have correct suffix", 
+        Justification = "Public API")]
     public class DriverInternalError : Exception
     {
         public DriverInternalError(string message)

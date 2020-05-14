@@ -67,9 +67,14 @@ namespace Cassandra.DataStax.Graph
         /// </summary>
         public string Label { get; }
 
+
         /// <summary>
         /// Gets the properties
         /// </summary>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage(
+            "Naming", 
+            "CA1721:Property names should not match get methods", 
+            Justification = "Public API")]
         public IDictionary<string, GraphNode> Properties { get; }
 
         /// <summary>

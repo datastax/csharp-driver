@@ -50,7 +50,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
             return Version;
         }
 
-        public string GetDseVersion()
+        public string GetDseVersionOrEmpty()
         {
             return !IsDse || DseVersion == null ? string.Empty : DseVersion;
         }

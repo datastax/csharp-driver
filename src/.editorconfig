@@ -226,7 +226,7 @@ dotnet_diagnostic.SA1120.severity = silent
 dotnet_diagnostic.SA1611.severity = silent
 
 # SA1636: File header copyright text should match
-dotnet_diagnostic.SA1636.severity = silent
+dotnet_diagnostic.SA1636.severity = suggestion
 
 # SA1615: Element return value should be documented
 dotnet_diagnostic.SA1615.severity = silent
@@ -479,3 +479,30 @@ dotnet_diagnostic.SA1015.severity = suggestion
 
 # SA1017: Closing attribute brackets should be spaced correctly
 dotnet_diagnostic.SA1017.severity = suggestion
+
+# SA1021: Negative signs should be spaced correctly
+dotnet_diagnostic.SA1021.severity = suggestion
+
+# SA0001: XML comment analysis is disabled due to project configuration
+dotnet_diagnostic.SA0001.severity = none
+
+# SA1131: Use readable conditions
+dotnet_diagnostic.SA1131.severity = suggestion
+
+# SA1133: Do not combine attributes
+dotnet_diagnostic.SA1133.severity = silent
+
+# SA1300: Element should begin with upper-case letter
+dotnet_diagnostic.SA1300.severity = suggestion
+
+# SA1405: Debug.Assert should provide message text
+dotnet_diagnostic.SA1405.severity = suggestion
+
+# SA1626: Single-line comments should not use documentation style slashes
+dotnet_diagnostic.SA1626.severity = silent
+
+# SA1136: Enum values should be on separate lines
+dotnet_diagnostic.SA1136.severity = suggestion
+
+# SA1311: Static readonly fields should begin with upper-case letter
+dotnet_diagnostic.SA1311.severity = suggestion

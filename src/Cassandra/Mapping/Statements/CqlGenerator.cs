@@ -62,7 +62,7 @@ namespace Cassandra.Mapping.Statements
             var pocoData = _pocoDataFactory.GetPocoData<T>();
             var allColumns = pocoData.Columns.Select(CqlGenerator.EscapeFunc(pocoData)).ToCommaDelimitedString();
 
-            var suffix = cql.Statement == string.Empty ? string.Empty : " " + cql.Statement;
+            var suffix = string.IsNullOrEmpty(cql.Statement) ? string.Empty : " " + cql.Statement;
 
             // If it's got the from clause, leave FROM intact, otherwise add it
             cql.SetStatement(CqlGenerator.FromRegex.IsMatch(cql.Statement)

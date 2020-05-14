@@ -859,12 +859,12 @@ namespace Cassandra.IntegrationTests.Core
             PreparedStatement ps;
             if (!usePayload)
             {
-                ps = await Session.PrepareAsync("SELECT key FROM local", "system");
+                ps = await Session.PrepareAsync("SELECT key FROM local", "system").ConfigureAwait(false);
             }
             else
             {
                 ps = await Session.PrepareAsync("SELECT key FROM local", "system",
-                    new Dictionary<string, byte[]> {{"a", new byte[] {0, 0, 0, 1}}});
+                    new Dictionary<string, byte[]> {{"a", new byte[] {0, 0, 0, 1}}}).ConfigureAwait(false);
             }
             Assert.AreEqual("system", ps.Keyspace);
 
@@ -872,10 +872,10 @@ namespace Cassandra.IntegrationTests.Core
             {
                 var boundStatement = ps.Bind();
                 Assert.AreEqual("system", boundStatement.Keyspace);
-                var rs = await Session.ExecuteAsync(boundStatement);
+                var rs = await Session.ExecuteAsync(boundStatement).ConfigureAwait(false);
                 Assert.NotNull(rs.First().GetValue<string>("key"));
                 return rs;
-            }, Cluster.AllHosts().Count, Cluster.AllHosts().Count);
+            }, Cluster.AllHosts().Count, Cluster.AllHosts().Count).ConfigureAwait(false);
         }
 
         [Test]

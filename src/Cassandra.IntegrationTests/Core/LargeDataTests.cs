@@ -120,7 +120,7 @@ namespace Cassandra.IntegrationTests.Core
 
             // according to specs it should accept  full UInt16.MaxValue, but for some reason it throws "The sum of all clustering columns is too long"
             string setVal = new string('a', UInt16.MaxValue - 9);
-            _session.Execute(string.Format("INSERT INTO {0}(k,i) VALUES({1},{{'{2}'}})", uniqueTableName, Key, setVal, ConsistencyLevel.Quorum));
+            _session.Execute(string.Format("INSERT INTO {0}(k,i) VALUES({1},{{'{2}'}})", uniqueTableName, Key, setVal));
 
             using (var rs = _session.Execute(string.Format("SELECT * FROM {0} WHERE k = {1}", uniqueTableName, Key), ConsistencyLevel.Quorum))
             {
@@ -144,7 +144,7 @@ namespace Cassandra.IntegrationTests.Core
             string setVal = new string('a', UInt16.MaxValue - 6);
             try
             {
-                _session.Execute(string.Format("INSERT INTO {0}(k,i) VALUES({1},{{'{2}'}})", uniqueTableName, Key, setVal, ConsistencyLevel.Quorum));
+                _session.Execute(string.Format("INSERT INTO {0}(k,i) VALUES({1},{{'{2}'}})", uniqueTableName, Key, setVal));
                 Assert.Fail("Expected exception was not thrown!");
             }
             catch (InvalidQueryException e)

@@ -1,3 +1,4 @@
+#pragma warning disable SA1636 // File header copyright text should match
 // ---------------------------------------------------------------------
 // Copyright (c) 2015 Microsoft
 //
@@ -21,6 +22,7 @@
 // ---------------------------------------------------------------------
 
 namespace Microsoft.IO
+#pragma warning restore SA1636 // File header copyright text should match
 {
     using System;
     using System.Collections.Concurrent;

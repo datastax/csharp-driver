@@ -53,7 +53,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
                 var connectionInfo = new ConnectionInfo(_ip, _port, _user, kauth, pauth);
 
-                kauth.AuthenticationPrompt += delegate(object sender, AuthenticationPromptEventArgs e)
+                kauth.AuthenticationPrompt += (sender, e) =>
                 {
                     foreach (var prompt in e.Prompts)
                     {
