@@ -57,7 +57,6 @@ install:
 build_script:
   - ps: dotnet --info
   - ps: dotnet restore src
-  - ps: dotnet build src\Cassandra.sln -c Release
 
 test_script:
   - ps: |
