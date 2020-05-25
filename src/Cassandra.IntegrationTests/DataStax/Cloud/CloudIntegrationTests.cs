@@ -353,7 +353,7 @@ namespace Cassandra.IntegrationTests.DataStax.Cloud
 
         private void AssertCaMismatchSslError(NoHostAvailableException ex)
         {
-#if NETCOREAPP2_1
+#if NETCOREAPP
             var ex2 = ex.InnerException;
             Assert.IsTrue(ex2 is HttpRequestException, ex2.ToString());
             var ex3 = ex2.InnerException;
