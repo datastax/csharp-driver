@@ -31,6 +31,7 @@
     <DefineConstants>$(DefineConstants);NETSTANDARD</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="System.Management" Version="4.7.0" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="1.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="1.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
@@ -47,11 +48,7 @@
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.IO.Compression" />
   </ItemGroup>
-  <ItemGroup Condition="'$(TargetFramework)' == 'net452'">
-    <PackageReference Include="System.Management" Version="4.5.0" />
-  </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
-    <PackageReference Include="System.Management" Version="4.5.0" />
     <PackageReference Include="K4os.Compression.LZ4" Version="1.1.11" />
   </ItemGroup>
 </Project>

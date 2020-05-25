@@ -425,6 +425,7 @@ pipeline {
     CCM_ENVIRONMENT_SHELL = '/usr/local/bin/ccm_environment.sh'
     CCM_ENVIRONMENT_SHELL_WINDOWS = '/mnt/c/Users/Admin/ccm_environment.sh'
     BuildAllTargets = 'True'
+    RunCodeAnalyzers = 'True'
   }
 
   stages {

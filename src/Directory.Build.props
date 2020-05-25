@@ -9,11 +9,13 @@
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 	</ItemGroup>
+	<PropertyGroup Condition="'$(RunCodeAnalyzers)' != 'True'">
+        <RunAnalyzers>false</RunAnalyzers>
+	</PropertyGroup>
 	<PropertyGroup>
 		<SkipDefaultEditorConfigAsAdditionalFile>true</SkipDefaultEditorConfigAsAdditionalFile>
 	</PropertyGroup>
 	<ItemGroup>
-		<!-- <AdditionalFiles Include="$(MSBuildThisFileDirectory).editorconfig" /> -->
 		<AdditionalFiles Include="$(MSBuildThisFileDirectory)stylecop.json" />
 	</ItemGroup>
 </Project>

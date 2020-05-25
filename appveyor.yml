@@ -10,6 +10,7 @@ image: Visual Studio 2019
 environment:
   NUNIT_PATH: nunit3-console
   BuildAllTargets: "True"
+  RunCodeAnalyzers: "True"
   matrix:
     - TARGET: net462
       CI_TYPE: UNIT
