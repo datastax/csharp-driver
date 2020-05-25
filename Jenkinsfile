@@ -586,6 +586,8 @@ pipeline {
               name 'SERVER_VERSION'
               values '2.1', '3.0', 'dse-5.0', 'dse-6.0'
             }
+          }
+          exclude {
             axis {
               name 'DOTNET_VERSION'
               values 'netcoreapp2.1'
@@ -925,7 +927,29 @@ pipeline {
           }
           axis {
             name 'DOTNET_VERSION'
-            values 'netcoreapp2.1', 'net452', 'net461'
+            values 'netcoreapp2.1', 'netcoreapp3.1', 'net452', 'net462', 'net472', 'net48'
+          }
+        }
+        excludes {
+          exclude {
+            axis {
+              name 'DOTNET_VERSION'
+              values 'net452', 'net472', 'net48', 'netcoreapp2.1'
+            }
+            axis {
+              name 'SERVER_VERSION'
+              values '2.1', '3.0'
+            }
+          }
+          exclude {
+            axis {
+              name 'DOTNET_VERSION'
+              values 'net472', 'net48'
+            }
+            axis {
+              name 'SERVER_VERSION'
+              values '2.2'
+            }
           }
         }
         
