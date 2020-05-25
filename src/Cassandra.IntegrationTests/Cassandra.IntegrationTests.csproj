@@ -1,7 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks Condition="'$(BuildCoreOnly)' != 'True'">net461;net452;netcoreapp2.1</TargetFrameworks>
-    <TargetFramework Condition="'$(BuildCoreOnly)' == 'True' And '$(NETCORE_RUNTIME)' != '2.0'">netcoreapp2.1</TargetFramework>
+    <TargetFrameworks Condition="'$(BuildAllTargets)' == 'True'">net48;net462;net472;net452;netcoreapp3.1;netcoreapp2.0;netcoreapp2.1</TargetFrameworks>
+    <TargetFrameworks Condition="'$(BuildAllTargets)' != 'True' And '$(BuildCoreOnly)' != 'True'">net462;netcoreapp3.1</TargetFrameworks>
+    <TargetFramework Condition="'$(BuildCoreOnly)' == 'True' And '$(NETCORE_RUNTIME)' != '2.0'">netcoreapp2.1;netcoreapp3.1</TargetFramework>
     <TargetFramework Condition="'$(BuildCoreOnly)' == 'True' And '$(NETCORE_RUNTIME)' == '2.0'">netcoreapp2.0</TargetFramework>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <PublicSign>false</PublicSign>
@@ -26,17 +27,51 @@
       <SetTargetFramework>TargetFramework=net452</SetTargetFramework>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net461' ">
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net462' ">
     <ProjectReference Include="..\Extensions\Cassandra.AppMetrics\Cassandra.AppMetrics.csproj">
       <SetTargetFramework>TargetFramework=net461</SetTargetFramework>
     </ProjectReference>
     <ProjectReference Include="..\Cassandra.Tests\Cassandra.Tests.csproj">
-      <SetTargetFramework>TargetFramework=net452</SetTargetFramework>
+      <SetTargetFramework>TargetFramework=net462</SetTargetFramework>
     </ProjectReference>
     <ProjectReference Include="..\Cassandra\Cassandra.csproj">
       <SetTargetFramework>TargetFramework=net452</SetTargetFramework>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net472' ">
+    <ProjectReference Include="..\Extensions\Cassandra.AppMetrics\Cassandra.AppMetrics.csproj">
+      <SetTargetFramework>TargetFramework=net461</SetTargetFramework>
+    </ProjectReference>
+    <ProjectReference Include="..\Cassandra.Tests\Cassandra.Tests.csproj">
+      <SetTargetFramework>TargetFramework=net472</SetTargetFramework>
+    </ProjectReference>
+    <ProjectReference Include="..\Cassandra\Cassandra.csproj">
+      <SetTargetFramework>TargetFramework=net452</SetTargetFramework>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net48' ">
+    <ProjectReference Include="..\Extensions\Cassandra.AppMetrics\Cassandra.AppMetrics.csproj">
+      <SetTargetFramework>TargetFramework=net461</SetTargetFramework>
+    </ProjectReference>
+    <ProjectReference Include="..\Cassandra.Tests\Cassandra.Tests.csproj">
+      <SetTargetFramework>TargetFramework=net48</SetTargetFramework>
+    </ProjectReference>
+    <ProjectReference Include="..\Cassandra\Cassandra.csproj">
+      <SetTargetFramework>TargetFramework=net452</SetTargetFramework>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp3.1' ">
+    <ProjectReference Include="..\Extensions\Cassandra.AppMetrics\Cassandra.AppMetrics.csproj">
+      <SetTargetFramework>TargetFramework=netstandard2.0</SetTargetFramework>
+    </ProjectReference>
+    <ProjectReference Include="..\Cassandra.Tests\Cassandra.Tests.csproj">
+      <SetTargetFramework>TargetFramework=netcoreapp3.1</SetTargetFramework>
+    </ProjectReference>
+    <ProjectReference Include="..\Cassandra\Cassandra.csproj">
+      <SetTargetFramework>TargetFramework=netstandard2.0</SetTargetFramework>
+    </ProjectReference>
+  </ItemGroup>
+
   <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.1' ">
     <ProjectReference Include="..\Extensions\Cassandra.AppMetrics\Cassandra.AppMetrics.csproj">
       <SetTargetFramework>TargetFramework=netstandard2.0</SetTargetFramework>
@@ -59,13 +94,8 @@
       <SetTargetFramework>TargetFramework=netstandard2.0</SetTargetFramework>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net461' ">
-    <PackageReference Include="App.Metrics" Version="3.2.0" />
-  </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.0' ">
-    <PackageReference Include="App.Metrics" Version="3.2.0" />
-  </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.1' ">
+
+  <ItemGroup Condition=" '$(TargetFramework)' != 'net452'">
     <PackageReference Include="App.Metrics" Version="3.2.0" />
   </ItemGroup>
   <ItemGroup>
@@ -92,13 +122,10 @@
     <Reference Include="System" />
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.1' ">
+  <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.0' Or '$(TargetFramework)' == 'netcoreapp2.1' Or '$(TargetFramework)' == 'netcoreapp3.1'">
     <PackageReference Include="System.Net.NameResolution" Version="4.3.0" />
   </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.0' ">
-    <PackageReference Include="System.Net.NameResolution" Version="4.3.0" />
-  </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net461' ">
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net452' Or '$(TargetFramework)' == 'net462' Or '$(TargetFramework)' == 'net472' Or '$(TargetFramework)' == 'net48' ">
     <PackageReference Include="JetBrains.DotMemoryUnit" Version="2.3.20160517.113140" />
     <Reference Include="System" />
   </ItemGroup>

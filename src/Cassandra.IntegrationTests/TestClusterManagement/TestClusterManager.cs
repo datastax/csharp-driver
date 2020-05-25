@@ -123,6 +123,8 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             get { return IsDse ? new Version(DseVersionString.Split('-')[0]) : TestClusterManager.GetDseVersionFromCassandraVersion(new Version(CassandraVersionString.Split('-')[0])); }
         }
 
+        public static bool CcmUseWsl => bool.Parse(Environment.GetEnvironmentVariable("CCM_USE_WSL") ?? "false");
+
         public static bool IsCassandraFourZeroPreRelease()
         {
             return TestClusterManager.CassandraVersion.Equals(new Version(4, 0))
@@ -197,7 +199,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                             remoteDseServer, remoteDseServerUser, remoteDseServerPassword, 
                             remoteDseServerPort, remoteDseServerUserPrivateKey);
                 }
-                else if (bool.Parse(Environment.GetEnvironmentVariable("CCM_USE_WSL") ?? "false"))
+                else if (TestClusterManager.CcmUseWsl)
                 {
                     TestClusterManager._executor = WslCcmProcessExecuter.Instance;
                 }

@@ -424,6 +424,7 @@ pipeline {
     SIMULACRON_PATH_WINDOWS = 'C:\\Users\\Admin\\simulacron.jar'
     CCM_ENVIRONMENT_SHELL = '/usr/local/bin/ccm_environment.sh'
     CCM_ENVIRONMENT_SHELL_WINDOWS = '/mnt/c/Users/Admin/ccm_environment.sh'
+    BuildAllTargets = 'True'
   }
 
   stages {
@@ -454,7 +455,7 @@ pipeline {
           }
           axis {
             name 'DOTNET_VERSION'
-            values 'mono', 'netcoreapp2.1'
+            values 'mono', 'netcoreapp3.1'
           }
         }
         excludes {
@@ -571,7 +572,7 @@ pipeline {
           }
           axis {
             name 'DOTNET_VERSION'
-            values 'mono', 'netcoreapp2.1'
+            values 'mono', 'netcoreapp2.1', 'netcoreapp3.1'
           }
         }
         excludes {
@@ -583,6 +584,14 @@ pipeline {
             axis {
               name 'SERVER_VERSION'
               values '2.1', '3.0', 'dse-5.0', 'dse-6.0'
+            }
+            axis {
+              name 'DOTNET_VERSION'
+              values 'netcoreapp2.1'
+            }
+            axis {
+              name 'SERVER_VERSION'
+              values '2.1', '2.2', '3.0', 'dse-5.0', 'dse-5.1', 'dse-6.0'
             }
           }
         }
@@ -680,14 +689,14 @@ pipeline {
           }
           axis {
             name 'DOTNET_VERSION'
-            values 'netcoreapp2.1', 'net452', 'net461'
+            values 'netcoreapp2.1', 'netcoreapp3.1', 'net452', 'net462', 'net472', 'net48'
           }
         }
         excludes {
           exclude {
             axis {
               name 'DOTNET_VERSION'
-              values 'net461'
+              values 'net462'
             }
             axis {
               name 'SERVER_VERSION'
@@ -697,11 +706,31 @@ pipeline {
           exclude {
             axis {
               name 'DOTNET_VERSION'
-              values 'netcoreapp2.1'
+              values 'netcoreapp3.1'
             }
             axis {
               name 'SERVER_VERSION'
               values '2.1', '2.2'
+            }
+          }
+          exclude {
+            axis {
+              name 'DOTNET_VERSION'
+              values 'net472', 'net48'
+            }
+            axis {
+              name 'SERVER_VERSION'
+              values '2.1', '2.2', '3.0', '4.0'
+            }
+          }
+          exclude {
+            axis {
+              name 'DOTNET_VERSION'
+              values 'net452', 'netcoreapp2.1'
+            }
+            axis {
+              name 'SERVER_VERSION'
+              values '2.1', '3.0'
             }
           }
         }
@@ -795,7 +824,19 @@ pipeline {
           }
           axis {
             name 'DOTNET_VERSION'
-            values 'mono', 'netcoreapp2.1'
+            values 'mono', 'netcoreapp2.1', 'netcoreapp3.1'
+          }
+        }
+        excludes {
+          exclude {
+            axis {
+              name 'DOTNET_VERSION'
+              values 'netcoreapp2.1'
+            }
+            axis {
+              name 'SERVER_VERSION'
+              values '2.1', '3.0', 'dse-5.0', 'dse-6.0'
+            }
           }
         }
 
