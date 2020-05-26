@@ -108,10 +108,6 @@ def initializeEnvironment() {
       echo "CASSANDRA_VERSION=${CCM_CASSANDRA_VERSION}" >> ${HOME}/environment.txt
     '''
     
-    if (env.DOTNET_VERSION == 'mono') {
-      env.BuildMonoOnly = 'True'
-    }
-
     if (env.SERVER_VERSION.split('-')[0] == 'dse') {
       sh label: 'Update environment for DataStax Enterprise', script: '''#!/bin/bash -le
         # Load CCM environment variables
@@ -207,8 +203,8 @@ def buildDriver() {
   } else {
     if (env.DOTNET_VERSION == 'mono') {
       sh label: 'Build the driver for mono', script: '''#!/bin/bash -le
-        msbuild /t:restore /v:m src/Cassandra.sln
-        msbuild /p:Configuration=Release /v:m /p:DynamicConstants=LINUX src/Cassandra.sln
+        msbuild /p:TargetFramework=net462 /t:restore /v:m src/Cassandra.sln
+        msbuild /p:RunAnalyzers=false /p:TargetFramework=net462 /p:Configuration=Release /v:m /p:DynamicConstants=LINUX src/Cassandra.sln
       '''
     } else {
       sh label: "Work around nuget issue", script: '''#!/bin/bash -le
@@ -253,7 +249,7 @@ def executeTests(perCommitSchedule) {
           . ${HOME}/environment.txt
           set +o allexport
 
-          mono ./testrunner/NUnit.ConsoleRunner.3.6.1/tools/nunit3-console.exe src/Cassandra.IntegrationTests/bin/Release/net452/Cassandra.IntegrationTests.dll --where "$MONO_TEST_FILTER" --labels=All --result:"TestResult_nunit.xml"
+          mono ./testrunner/NUnit.ConsoleRunner.3.6.1/tools/nunit3-console.exe src/Cassandra.IntegrationTests/bin/Release/net462/Cassandra.IntegrationTests.dll --where "$MONO_TEST_FILTER" --labels=All --result:"TestResult_nunit.xml"
         '''
       }
       sh label: 'Convert the test results using saxon', script: '''#!/bin/bash -le
