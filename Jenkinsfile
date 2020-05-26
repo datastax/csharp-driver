@@ -305,7 +305,7 @@ def notifySlack(status = 'started') {
 Commit <${env.GITHUB_COMMIT_URL}|${env.GIT_SHA}> on branch <${env.GITHUB_BRANCH_URL}|${env.BRANCH_NAME}>"""
 
   if (!changeLogMsg.equalsIgnoreCase("")) {
-    messag += """: _${changeLogMsg}_"""
+    message += """: _${changeLogMsg}_"""
   }
 
   if (!status.equalsIgnoreCase('Started')) {
