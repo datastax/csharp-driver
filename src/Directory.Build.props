@@ -1,5 +1,5 @@
 <Project>		
-	<ItemGroup>
+	<ItemGroup Condition="'$(RunCodeAnalyzers)' == 'True'">
 		<PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="3.0.0">
 		  <PrivateAssets>all</PrivateAssets>
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -9,13 +9,10 @@
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 	</ItemGroup>
-	<PropertyGroup Condition="'$(RunCodeAnalyzers)' != 'True'">
-        <RunAnalyzers>false</RunAnalyzers>
-	</PropertyGroup>
-	<PropertyGroup>
+	<PropertyGroup Condition="'$(RunCodeAnalyzers)' == 'True'">
 		<SkipDefaultEditorConfigAsAdditionalFile>true</SkipDefaultEditorConfigAsAdditionalFile>
 	</PropertyGroup>
-	<ItemGroup>
+	<ItemGroup Condition="'$(RunCodeAnalyzers)' == 'True'">
 		<AdditionalFiles Include="$(MSBuildThisFileDirectory)stylecop.json" />
 	</ItemGroup>
 </Project>
