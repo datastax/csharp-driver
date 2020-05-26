@@ -1,10 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks Condition="'$(BuildAllTargets)' == 'True'">net48;net462;net472;net452;netcoreapp3.1;netcoreapp2.0;netcoreapp2.1</TargetFrameworks>
-    <TargetFrameworks Condition="'$(BuildAllTargets)' != 'True' And '$(BuildCoreOnly)' != 'True'">net462;netcoreapp3.1</TargetFrameworks>
-    <TargetFrameworks Condition="'$(BuildCoreOnly)' == 'True' And '$(NETCORE_RUNTIME)' != '2.0'">netcoreapp3.1;netcoreapp2.1</TargetFrameworks>
+    <TargetFrameworks Condition="'$(BuildAllTargets)' == 'True' And '$(BuildMonoOnly)' != 'True'">net48;net462;net472;net452;netcoreapp3.1;netcoreapp2.0;netcoreapp2.1</TargetFrameworks>
+    <TargetFrameworks Condition="'$(BuildAllTargets)' != 'True' And '$(BuildCoreOnly)' != 'True' And '$(BuildMonoOnly)' != 'True'">net462;netcoreapp3.1</TargetFrameworks>
+    <TargetFramework Condition="'$(BuildCoreOnly)' == 'True' And '$(NETCORE_RUNTIME)' != '2.0'">netcoreapp2.1;netcoreapp3.1</TargetFramework>
     <TargetFramework Condition="'$(BuildCoreOnly)' == 'True' And '$(NETCORE_RUNTIME)' == '2.0'">netcoreapp2.0</TargetFramework>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <TargetFramework Condition="'$(BuildMonoOnly)' == 'True'">net462</TargetFramework><TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <PublicSign>false</PublicSign>
     <AssemblyName>Cassandra.Tests</AssemblyName>
     <AssemblyOriginatorKeyFile>../../build/datastax.snk</AssemblyOriginatorKeyFile>

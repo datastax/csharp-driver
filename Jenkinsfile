@@ -107,6 +107,19 @@ def initializeEnvironment() {
 
       echo "CASSANDRA_VERSION=${CCM_CASSANDRA_VERSION}" >> ${HOME}/environment.txt
     '''
+    
+    if (env.DOTNET_VERSION == 'mono') {
+      sh label: 'Update environment for mono', script: '''#!/bin/bash -le
+        # Load CCM and driver configuration environment variables
+        set -o allexport
+        . ${HOME}/environment.txt
+        set +o allexport
+
+        cat >> ${HOME}/environment.txt << ENVIRONMENT_EOF
+BuildMonoOnly=True
+ENVIRONMENT_EOF
+      '''
+    }
 
     if (env.SERVER_VERSION.split('-')[0] == 'dse') {
       sh label: 'Update environment for DataStax Enterprise', script: '''#!/bin/bash -le
