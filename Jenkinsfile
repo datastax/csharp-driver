@@ -285,6 +285,7 @@ def notifySlack(status = 'started') {
   }
 
   def buildType = 'Per-Commit'
+  def changeLogMsg = getFirstChangeLogEntry()
   if (params.CI_SCHEDULE != 'DEFAULT-PER-COMMIT') {
     buildType = "${params.CI_SCHEDULE.toLowerCase().capitalize()}-${osVersionDescription}"
   }
@@ -300,8 +301,12 @@ def notifySlack(status = 'started') {
     color = '#fde93f' // Yellow
   }
 
-  def message = """<${env.RUN_DISPLAY_URL}|Build #${env.BUILD_NUMBER}> ${status} for ${env.DRIVER_DISPLAY_NAME}
-[${buildType}] <${env.GITHUB_BRANCH_URL}|${env.BRANCH_NAME}> <${env.GITHUB_COMMIT_URL}|${env.GIT_SHA}>"""
+  def message = """<${env.RUN_DISPLAY_URL}|Build ${env.DRIVER_DISPLAY_NAME} #${env.BUILD_NUMBER} - ${buildType}> ${status}
+Commit <${env.GITHUB_COMMIT_URL}|${env.GIT_SHA}> on branch <${env.GITHUB_BRANCH_URL}|${env.BRANCH_NAME}>"""
+
+  if (!changeLogMsg.equalsIgnoreCase("")) {
+    messag += """: _${changeLogMsg}_"""
+  }
 
   if (!status.equalsIgnoreCase('Started')) {
     message += """
@@ -344,7 +349,20 @@ def getChangeLog() {
         }
     }
     return log;
-  }
+}
+
+@NonCPS
+def getFirstChangeLogEntry() {
+    def changeLogSets = currentBuild.changeSets
+    for (int i = 0; i < changeLogSets.size(); i++) {
+        def entries = changeLogSets[i].items
+        for (int j = 0; j < entries.length; j++) {
+            def entry = entries[j]
+            return "${entry.msg}"
+        }
+    }
+    return "";
+}
 
 def describePerCommitStage() {
   script {
