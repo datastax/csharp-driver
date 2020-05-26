@@ -119,7 +119,9 @@ namespace Cassandra.Serialization.Search
 
         private static int WriteDateRangeBound(byte[] buffer, int offset, DateRangeBound value)
         {
-            var millis = Convert.ToInt64(Math.Floor((value.Timestamp - UnixStart).TotalMilliseconds));
+            var ticksDiff = value.Timestamp.Ticks - UnixStart.Ticks;
+            var millisecondsDiff = ticksDiff / (decimal)TimeSpan.TicksPerMillisecond;
+            var millis = Convert.ToInt64(Math.Floor(millisecondsDiff));
             EndianBitConverter.SetBytes(false, buffer, offset, millis);
             buffer[offset + 8] = (byte) value.Precision;
             return offset + 9;
