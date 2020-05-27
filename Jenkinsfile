@@ -339,29 +339,30 @@ def submitCIMetrics(buildType) {
 
 @NonCPS
 def getChangeLog() {
-    def log = ""
-    def changeLogSets = currentBuild.changeSets
-    for (int i = 0; i < changeLogSets.size(); i++) {
-        def entries = changeLogSets[i].items
-        for (int j = 0; j < entries.length; j++) {
-            def entry = entries[j]
-            log += "  * ${entry.msg} by ${entry.author} <br>"
-        }
-    }
-    return log;
+  def log = ""
+  def changeLogSets = currentBuild.changeSets
+  for (int i = 0; i < changeLogSets.size(); i++) {
+      def entries = changeLogSets[i].items
+      for (int j = 0; j < entries.length; j++) {
+          def entry = entries[j]
+          log += "  * ${entry.msg} by ${entry.author} <br>"
+      }
+  }
+  return log;
 }
 
 @NonCPS
 def getFirstChangeLogEntry() {
-    def changeLogSets = currentBuild.changeSets
-    for (int i = 0; i < changeLogSets.size(); i++) {
-        def entries = changeLogSets[i].items
-        for (int j = 0; j < entries.length; j++) {
-            def entry = entries[j]
-            return "${entry.msg}"
-        }
+  def changeLogSets = currentBuild.changeSets
+  def changeLogSetsSize = changeLogSets.size()
+  if (changeLogSets.size() > 0) {
+    def firstChangeLogSet = changeLogSets[changeLogSets.size() - 1]
+    def entries = firstChangeLogSet.items;
+    if (entries.length > 0) {
+      return entries[entries.length - 1].msg;
     }
-    return "";
+  }
+  return "";
 }
 
 def describePerCommitStage() {
