@@ -45,14 +45,26 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
 
         private IPEndPoint GetTupleFromContactPoint(string contact)
         {
-            if (contact.Contains(":"))
+            var addr = contact;
+            var port = 9042;
+            try
             {
-                var parts = contact.Split(':');
-                var addr = parts[0];
-                var port = int.Parse(parts[1]);
-                return new IPEndPoint(IPAddress.Parse(addr), port);
+                // ran into a FormatException from IPAddress.Parse here once so 
+                // try catch to figure out why that happened
+                if (contact.Contains(":"))
+                {
+                    var parts = contact.Split(':');
+                    addr = parts[0];
+                    port = int.Parse(parts[1]);
+                    return new IPEndPoint(IPAddress.Parse(addr), port);
+                }
+
+                return new IPEndPoint(IPAddress.Parse(contact), 9042);
             }
-            return new IPEndPoint(IPAddress.Parse(contact), 9042);
+            catch (Exception ex)
+            {
+                throw new Exception($"{ex.Message}{Environment.NewLine}addr = {addr} port = {port}", ex);
+            }
         }
 
         public SimulacronCluster(string id, SimulacronManager simulacronManager) : base(id, simulacronManager)

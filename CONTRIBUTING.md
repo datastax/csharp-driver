@@ -29,7 +29,7 @@ As you can see, you can set the `RunCodeAnalyzers` environment variable or you c
 
 We follow the style guide enforced by StyleCop but we changed a couple of the default rules:
 
-- [SA1101]: in this project we don't use the `.this` prefix for local members so we disabled [SA1101] and enabled [SX1101] instead;
+- [SA1101]: in this project we don't use the `this.` prefix for local members so we disabled [SA1101] and enabled [SX1101] instead;
 - [SA1309]: in this project we use the `_` prefix for field names so we disabled [SA1309] and enabled [SX1309] instead.
 
 If you're not familiar with the rules enforced by StyleCop, you can read them [here][stylecoprules].
@@ -65,7 +65,7 @@ The first 3 log levels are for ops:
 
 Do not log errors that are rethrown to the client (such as the error that you're going to complete a request with). This is annoying for ops because they see a lot of stack traces that require no actual action on their part, because they're already handled by application code.
 
-The last 2 levels are for developers, to help follow what the driver is doing from a "black box" perspective (think about debugging an issue remotely, and all you have are the logs).
+The last log level, i.e. `Verbose`, is for developers, to help follow what the driver is doing from a "black box" perspective (think about debugging an issue remotely, and all you have are the logs):
 
 - `Verbose`: everything else. For example, node state changes, control connection activity, things that happen on each user request, etc.
 
@@ -87,8 +87,8 @@ They live in the `Cassandra.Tests` project under the same folder/namespace (usua
 They live in the `Cassandra.IntegrationTests` project and exercise the whole driver stack against an external
 process, which can be either one of:
 
-- [Simulacron](https://github.com/datastax/simulacron): simulates Cassandra nodes on loopback addresses; your test must "prime" data, i.e. tell the nodes what results to return for pre-determined queries.
-- [CCM](https://github.com/pcmanus/ccm): launches actual Cassandra nodes locally.
+- [Simulacron][simulacronrepo]: simulates Cassandra nodes on loopback addresses; your test must "prime" data, i.e. tell the nodes what results to return for pre-determined queries.
+- [CCM][ccmrepo]: launches actual Cassandra nodes locally.
 
 In both cases, the `CASSANDRA_VERSION` environment variable determines which server version is used to create the Cassandra nodes.
 
@@ -98,7 +98,7 @@ DataStax C# drivers support .NET 4.5.2+ and .NET Core 2.1+. To run the code anal
 
 ### Prerequisites
 
-- [.NET Core 3.1 SDK](https://www.microsoft.com/net/download/core)
+- [.NET Core 3.1 SDK][dotnetcoresdk]
 
 ### IDE Support
 
@@ -157,13 +157,13 @@ There are a couple of tools that you need to run the integration tests: Simulacr
 
 ##### CCM
 
-To run the integration tests you need [ccm](https://github.com/pcmanus/ccm) on your machine and make the ccm commands accessible from command line path. You should be able to run `> cmd.exe /c ccm help` using command line on Windows or `$ /usr/local/bin/ccm help` on Linux / macOS.
+To run the integration tests you need [ccm][ccmrepo] on your machine and make the ccm commands accessible from command line path. You should be able to run `> cmd.exe /c ccm help` using command line on Windows or `$ /usr/local/bin/ccm help` on Linux / macOS.
 
 ##### Simulacron
 
-To run most of the integration tests you also need [simulacron](https://github.com/datastax/simulacron):
+To run most of the integration tests you also need [simulacron][simulacronrepo]:
 
-1. Download the latest jar file [here](https://github.com/datastax/simulacron/releases).
+1. Download the latest jar file [here][simulacronreleases].
 2. Set `SIMULACRON_PATH` environment variable to the path of the jar file you downloaded in the previous step.
 
 Simulacron relies on loopback aliases to simulate multiple nodes. On Linux or Windows, you shouldn't have anything to do. On MacOS, run this script:
@@ -255,3 +255,7 @@ If you need new stuff from the base branch, it's fine to rebase and force-push, 
 [SA1101]: https://github.com/DotNetAnalyzers/StyleCopAnalyzers/blob/master/documentation/SA1101.md
 [stylecoprules]: https://github.com/DotNetAnalyzers/StyleCopAnalyzers/tree/master/documentation
 [vs2019analyzers]: https://docs.microsoft.com/en-us/visualstudio/code-quality/configure-fxcop-analyzers?view=vs-2019#vs2019-163-and-later--fxcopanalyzers-package-version-33x-and-later
+[ccmrepo]: https://github.com/riptano/ccm
+[simulacronrepo]: https://github.com/datastax/simulacron
+[simulacronreleases]: https://github.com/datastax/simulacron/releases
+[dotnetcoresdk]: https://www.microsoft.com/net/download/core
