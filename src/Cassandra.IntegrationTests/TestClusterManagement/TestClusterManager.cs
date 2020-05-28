@@ -120,8 +120,10 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         
         public static Version DseVersion
         {
-            get { return IsDse ? new Version(DseVersionString.Split('-')[0]) : TestClusterManager.GetDseVersion(new Version(CassandraVersionString.Split('-')[0])); }
+            get { return IsDse ? new Version(DseVersionString.Split('-')[0]) : TestClusterManager.GetDseVersionFromCassandraVersion(new Version(CassandraVersionString.Split('-')[0])); }
         }
+
+        public static bool CcmUseWsl => bool.Parse(Environment.GetEnvironmentVariable("CCM_USE_WSL") ?? "false");
 
         public static bool IsCassandraFourZeroPreRelease()
         {
@@ -168,7 +170,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             }
 
             var runningVersion = TestClusterManager.IsDse ? TestClusterManager.DseVersion : TestClusterManager.CassandraVersion;
-            var expectedVersion = TestClusterManager.IsDse ? TestClusterManager.GetDseVersion(version) : version;
+            var expectedVersion = TestClusterManager.IsDse ? TestClusterManager.GetDseVersionFromCassandraVersion(version) : version;
 
             return TestDseVersion.VersionMatch(expectedVersion, runningVersion, comparison);
         }
@@ -197,7 +199,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                             remoteDseServer, remoteDseServerUser, remoteDseServerPassword, 
                             remoteDseServerPort, remoteDseServerUserPrivateKey);
                 }
-                else if (bool.Parse(Environment.GetEnvironmentVariable("CCM_USE_WSL") ?? "false"))
+                else if (TestClusterManager.CcmUseWsl)
                 {
                     TestClusterManager._executor = WslCcmProcessExecuter.Instance;
                 }
@@ -210,7 +212,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             }
         }
 
-        public static Version GetDseVersion(Version cassandraVersion)
+        public static Version GetDseVersionFromCassandraVersion(Version cassandraVersion)
         {
             if (cassandraVersion < Version2Dot1)
             {

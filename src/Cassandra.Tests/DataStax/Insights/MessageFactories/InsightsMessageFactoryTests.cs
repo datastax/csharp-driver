@@ -170,21 +170,25 @@ namespace Cassandra.Tests.DataStax.Insights.MessageFactories
         private static void AssertPlatformInfo(Insight<InsightsStartupData> act)
         {
             Assert.Greater(act.Data.PlatformInfo.CentralProcessingUnits.Length, 0);
-            Assert.IsFalse(string.IsNullOrWhiteSpace(act.Data.PlatformInfo.CentralProcessingUnits.Model));
-            Assert.IsFalse(string.IsNullOrWhiteSpace(act.Data.PlatformInfo.OperatingSystem.Version));
-            Assert.IsFalse(string.IsNullOrWhiteSpace(act.Data.PlatformInfo.OperatingSystem.Name));
-            Assert.IsFalse(string.IsNullOrWhiteSpace(act.Data.PlatformInfo.OperatingSystem.Arch));
-            Assert.IsFalse(string.IsNullOrWhiteSpace(act.Data.PlatformInfo.Runtime.RuntimeFramework));
-#if NETCOREAPP2_0
+            Assert.IsFalse(
+                string.IsNullOrWhiteSpace(act.Data.PlatformInfo.CentralProcessingUnits.Model),
+                act.Data.PlatformInfo.CentralProcessingUnits.Model);
+            Assert.IsFalse(
+                string.IsNullOrWhiteSpace(act.Data.PlatformInfo.OperatingSystem.Version),
+                act.Data.PlatformInfo.OperatingSystem.Version);
+            Assert.IsFalse(
+                string.IsNullOrWhiteSpace(act.Data.PlatformInfo.OperatingSystem.Name),
+                act.Data.PlatformInfo.OperatingSystem.Name);
+            Assert.IsFalse(
+                string.IsNullOrWhiteSpace(act.Data.PlatformInfo.OperatingSystem.Arch),
+                act.Data.PlatformInfo.OperatingSystem.Arch);
+            Assert.IsFalse(
+                string.IsNullOrWhiteSpace(act.Data.PlatformInfo.Runtime.RuntimeFramework),
+                act.Data.PlatformInfo.Runtime.RuntimeFramework);
+#if NETCOREAPP
             Assert.AreEqual(".NET Standard 2.0", act.Data.PlatformInfo.Runtime.TargetFramework);
-#elif NETCOREAPP2_1
-            Assert.AreEqual(".NET Standard 2.0", act.Data.PlatformInfo.Runtime.TargetFramework);
-#elif NET452
-            Assert.AreEqual(".NET Framework 4.5.2", act.Data.PlatformInfo.Runtime.TargetFramework);
-#elif NET461
-            Assert.AreEqual(".NET Framework 4.6.1", act.Data.PlatformInfo.Runtime.TargetFramework);
 #else
-            Assert.Fail("Target needs assert: " + act.Data.PlatformInfo.Runtime.TargetFramework);
+            Assert.AreEqual(".NET Framework 4.5.2", act.Data.PlatformInfo.Runtime.TargetFramework);
 #endif
             Assert.Greater(
                 act.Data.PlatformInfo.Runtime.Dependencies

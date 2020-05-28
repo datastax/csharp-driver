@@ -339,7 +339,7 @@ namespace Cassandra.Tests.DataStax.Graph
             _cluster = ExecuteGraphTests.GetCluster(stmt => { }, null, rs);
             var session = _cluster.Connect();
             var graphStatement = new SimpleGraphStatement("g.V()").SetGraphLanguage(GraphOptions.DefaultLanguage);
-            var result = await session.ExecuteGraphAsync(graphStatement);
+            var result = await session.ExecuteGraphAsync(graphStatement).ConfigureAwait(false);
             Assert.That(result.To<int>(), Is.EquivalentTo(new[] { 1, 2, 2, 3, 3, 3, 4 }));
         }
 
@@ -353,7 +353,7 @@ namespace Cassandra.Tests.DataStax.Graph
             _cluster = ExecuteGraphTests.GetCluster(stmt => { }, null, rs);
             var session = _cluster.Connect();
             var graphStatement = new SimpleGraphStatement("g.V()").SetGraphLanguage(GraphOptions.GraphSON2Language);
-            var result = await session.ExecuteGraphAsync(graphStatement);
+            var result = await session.ExecuteGraphAsync(graphStatement).ConfigureAwait(false);
             Assert.That(result.To<int>(), Is.EquivalentTo(new[] { 1, 2, 2, 3, 3, 3, 10 }));
         }
 

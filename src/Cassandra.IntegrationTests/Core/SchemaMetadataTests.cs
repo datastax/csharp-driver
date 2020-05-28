@@ -122,7 +122,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(2, ((UdtColumnInfo)phoneSetSubType.KeyTypeInfo).Fields.Count);
 
             var tableMetadata = cluster.Metadata.GetTable(keyspaceName, "user");
-            Assert.AreEqual(3, tableMetadata.TableColumns.Count());
+            Assert.AreEqual(3, tableMetadata.TableColumns.Length);
             Assert.AreEqual(ColumnTypeCode.Udt, tableMetadata.TableColumns.First(c => c.Name == "addr").TypeCode);
         }
 
@@ -215,7 +215,7 @@ namespace Cassandra.IntegrationTests.Core
             session.Execute(cqlTable1);
 
             var tableMetadata = cluster.Metadata.GetTable(keyspaceName, tableName);
-            Assert.AreEqual(3, tableMetadata.TableColumns.Count());
+            Assert.AreEqual(3, tableMetadata.TableColumns.Length);
         }
 
         [Test, TestCase(true), TestCase(false)]
@@ -243,7 +243,7 @@ namespace Cassandra.IntegrationTests.Core
             var table = cluster.Metadata
                                .GetKeyspace(keyspaceName)
                                .GetTableMetadata(tableName1);
-            Assert.True(table.TableColumns.Count() == 4);
+            Assert.True(table.TableColumns.Length == 4);
             Assert.AreEqual(2, table.PartitionKeys.Length);
             Assert.AreEqual("a, b", String.Join(", ", table.PartitionKeys.Select(p => p.Name)));
 
@@ -259,7 +259,7 @@ namespace Cassandra.IntegrationTests.Core
             table = cluster.Metadata
                            .GetKeyspace(keyspaceName)
                            .GetTableMetadata(tableName2);
-            Assert.True(table.TableColumns.Count() == 4);
+            Assert.True(table.TableColumns.Length == 4);
             Assert.AreEqual("a, b, c", String.Join(", ", table.PartitionKeys.Select(p => p.Name)));
 
             string tableName3 = TestUtils.GetUniqueTableName().ToLower();
@@ -274,7 +274,7 @@ namespace Cassandra.IntegrationTests.Core
             table = cluster.Metadata
                            .GetKeyspace(keyspaceName)
                            .GetTableMetadata(tableName3);
-            Assert.True(table.TableColumns.Count() == 4);
+            Assert.True(table.TableColumns.Length == 4);
             //Just 1 partition key
             Assert.AreEqual("a", String.Join(", ", table.PartitionKeys.Select(p => p.Name)));
         }
@@ -361,7 +361,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual("keys(features)", featIndex.Target);
             Assert.NotNull(featIndex.Options);
 
-            Assert.AreEqual(5, table.TableColumns.Count());
+            Assert.AreEqual(5, table.TableColumns.Length);
         }
 
         [Test, TestCase(true), TestCase(false)]

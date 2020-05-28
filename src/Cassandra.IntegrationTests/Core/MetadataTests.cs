@@ -127,7 +127,7 @@ namespace Cassandra.IntegrationTests.Core
                 }
                 Thread.Sleep(1000);
             }
-            Assert.True(cluster.AllHosts().Any(h => TestHelper  .GetLastAddressByte(h) == 2 && !h.IsUp));
+            Assert.True(cluster.AllHosts().Any(h => TestHelper.GetLastAddressByte(h) == 2 && !h.IsUp));
             Assert.AreNotEqual(counter, maxWait, "Waited but it was never notified via events");
             Assert.True(downEventFired);
         }

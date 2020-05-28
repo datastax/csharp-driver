@@ -107,7 +107,7 @@ def initializeEnvironment() {
 
       echo "CASSANDRA_VERSION=${CCM_CASSANDRA_VERSION}" >> ${HOME}/environment.txt
     '''
-
+    
     if (env.SERVER_VERSION.split('-')[0] == 'dse') {
       sh label: 'Update environment for DataStax Enterprise', script: '''#!/bin/bash -le
         # Load CCM environment variables
@@ -203,6 +203,8 @@ def buildDriver() {
   } else {
     if (env.DOTNET_VERSION == 'mono') {
       sh label: 'Build the driver for mono', script: '''#!/bin/bash -le
+        export BuildMonoOnly=True
+        export RunCodeAnalyzers=False
         msbuild /t:restore /v:m src/Cassandra.sln
         msbuild /p:Configuration=Release /v:m /p:DynamicConstants=LINUX src/Cassandra.sln
       '''
@@ -249,7 +251,7 @@ def executeTests(perCommitSchedule) {
           . ${HOME}/environment.txt
           set +o allexport
 
-          mono ./testrunner/NUnit.ConsoleRunner.3.6.1/tools/nunit3-console.exe src/Cassandra.IntegrationTests/bin/Release/net452/Cassandra.IntegrationTests.dll --where "$MONO_TEST_FILTER" --labels=All --result:"TestResult_nunit.xml"
+          mono ./testrunner/NUnit.ConsoleRunner.3.6.1/tools/nunit3-console.exe src/Cassandra.IntegrationTests/bin/Release/net462/Cassandra.IntegrationTests.dll --where "$MONO_TEST_FILTER" --labels=All --result:"TestResult_nunit.xml"
         '''
       }
       sh label: 'Convert the test results using saxon', script: '''#!/bin/bash -le
@@ -283,6 +285,7 @@ def notifySlack(status = 'started') {
   }
 
   def buildType = 'Per-Commit'
+  def changeLogMsg = getFirstChangeLogEntry()
   if (params.CI_SCHEDULE != 'DEFAULT-PER-COMMIT') {
     buildType = "${params.CI_SCHEDULE.toLowerCase().capitalize()}-${osVersionDescription}"
   }
@@ -298,8 +301,12 @@ def notifySlack(status = 'started') {
     color = '#fde93f' // Yellow
   }
 
-  def message = """<${env.RUN_DISPLAY_URL}|Build #${env.BUILD_NUMBER}> ${status} for ${env.DRIVER_DISPLAY_NAME}
-[${buildType}] <${env.GITHUB_BRANCH_URL}|${env.BRANCH_NAME}> <${env.GITHUB_COMMIT_URL}|${env.GIT_SHA}>"""
+  def message = """<${env.RUN_DISPLAY_URL}|Build ${env.DRIVER_DISPLAY_NAME} #${env.BUILD_NUMBER} - ${buildType}> ${status}
+Commit <${env.GITHUB_COMMIT_URL}|${env.GIT_SHA}> on branch <${env.GITHUB_BRANCH_URL}|${env.BRANCH_NAME}>"""
+
+  if (!changeLogMsg.equalsIgnoreCase("")) {
+    message += """: _${changeLogMsg}_"""
+  }
 
   if (!status.equalsIgnoreCase('Started')) {
     message += """
@@ -332,17 +339,31 @@ def submitCIMetrics(buildType) {
 
 @NonCPS
 def getChangeLog() {
-    def log = ""
-    def changeLogSets = currentBuild.changeSets
-    for (int i = 0; i < changeLogSets.size(); i++) {
-        def entries = changeLogSets[i].items
-        for (int j = 0; j < entries.length; j++) {
-            def entry = entries[j]
-            log += "  * ${entry.msg} by ${entry.author} <br>"
-        }
-    }
-    return log;
+  def log = ""
+  def changeLogSets = currentBuild.changeSets
+  for (int i = 0; i < changeLogSets.size(); i++) {
+      def entries = changeLogSets[i].items
+      for (int j = 0; j < entries.length; j++) {
+          def entry = entries[j]
+          log += "  * ${entry.msg} by ${entry.author} <br>"
+      }
   }
+  return log;
+}
+
+@NonCPS
+def getFirstChangeLogEntry() {
+  def changeLogSets = currentBuild.changeSets
+  def changeLogSetsSize = changeLogSets.size()
+  if (changeLogSets.size() > 0) {
+    def firstChangeLogSet = changeLogSets[changeLogSets.size() - 1]
+    def entries = firstChangeLogSet.items;
+    if (entries.length > 0) {
+      return entries[entries.length - 1].msg;
+    }
+  }
+  return "";
+}
 
 def describePerCommitStage() {
   script {
@@ -407,12 +428,12 @@ pipeline {
   triggers {
     parameterizedCron(branchPatternCron.matcher(env.BRANCH_NAME).matches() ? """
       # Every weeknight (Monday - Friday) around 20:00 and 22:00 Pacific / 05:00 and 07:00 Central Europe
-      H 20 * * 1-5 %CI_SCHEDULE=NIGHTLY;CI_SCHEDULE_OS_VERSION=ubuntu/bionic64/csharp-driver
-      H 22 * * 1-5 %CI_SCHEDULE=NIGHTLY;CI_SCHEDULE_OS_VERSION=win/cs
+      H 22 * * 1-5 %CI_SCHEDULE=NIGHTLY;CI_SCHEDULE_OS_VERSION=ubuntu/bionic64/csharp-driver
+      H 20 * * 1-5 %CI_SCHEDULE=NIGHTLY;CI_SCHEDULE_OS_VERSION=win/cs
 
       # Every Saturday around 01:00 and 05:00 Pacific / 10:00 and 14:00 Central Europe
-      H 1 * * 6 %CI_SCHEDULE=WEEKLY;CI_SCHEDULE_OS_VERSION=ubuntu/bionic64/csharp-driver
-      H 5 * * 6 %CI_SCHEDULE=WEEKLY;CI_SCHEDULE_OS_VERSION=win/cs
+      H 5 * * 6 %CI_SCHEDULE=WEEKLY;CI_SCHEDULE_OS_VERSION=ubuntu/bionic64/csharp-driver
+      H 1 * * 6 %CI_SCHEDULE=WEEKLY;CI_SCHEDULE_OS_VERSION=win/cs
     """ : "")
   }
 
@@ -424,6 +445,8 @@ pipeline {
     SIMULACRON_PATH_WINDOWS = 'C:\\Users\\Admin\\simulacron.jar'
     CCM_ENVIRONMENT_SHELL = '/usr/local/bin/ccm_environment.sh'
     CCM_ENVIRONMENT_SHELL_WINDOWS = '/mnt/c/Users/Admin/ccm_environment.sh'
+    BuildAllTargets = 'True'
+    RunCodeAnalyzers = 'True'
   }
 
   stages {
@@ -454,7 +477,7 @@ pipeline {
           }
           axis {
             name 'DOTNET_VERSION'
-            values 'mono', 'netcoreapp2.1'
+            values 'mono', 'netcoreapp3.1'
           }
         }
         excludes {
@@ -571,7 +594,7 @@ pipeline {
           }
           axis {
             name 'DOTNET_VERSION'
-            values 'mono', 'netcoreapp2.1'
+            values 'mono', 'netcoreapp2.1', 'netcoreapp3.1'
           }
         }
         excludes {
@@ -583,6 +606,16 @@ pipeline {
             axis {
               name 'SERVER_VERSION'
               values '2.1', '3.0', 'dse-5.0', 'dse-6.0'
+            }
+          }
+          exclude {
+            axis {
+              name 'DOTNET_VERSION'
+              values 'netcoreapp2.1'
+            }
+            axis {
+              name 'SERVER_VERSION'
+              values '2.1', '2.2', '3.0', 'dse-5.0', 'dse-5.1', 'dse-6.0'
             }
           }
         }
@@ -680,14 +713,14 @@ pipeline {
           }
           axis {
             name 'DOTNET_VERSION'
-            values 'netcoreapp2.1', 'net452', 'net461'
+            values 'netcoreapp2.1', 'netcoreapp3.1', 'net452', 'net462', 'net472', 'net48'
           }
         }
         excludes {
           exclude {
             axis {
               name 'DOTNET_VERSION'
-              values 'net461'
+              values 'net462'
             }
             axis {
               name 'SERVER_VERSION'
@@ -697,11 +730,31 @@ pipeline {
           exclude {
             axis {
               name 'DOTNET_VERSION'
-              values 'netcoreapp2.1'
+              values 'netcoreapp3.1'
             }
             axis {
               name 'SERVER_VERSION'
               values '2.1', '2.2'
+            }
+          }
+          exclude {
+            axis {
+              name 'DOTNET_VERSION'
+              values 'net472', 'net48'
+            }
+            axis {
+              name 'SERVER_VERSION'
+              values '2.1', '2.2', '3.0', '4.0'
+            }
+          }
+          exclude {
+            axis {
+              name 'DOTNET_VERSION'
+              values 'net452', 'netcoreapp2.1'
+            }
+            axis {
+              name 'SERVER_VERSION'
+              values '2.1', '3.0'
             }
           }
         }
@@ -795,7 +848,19 @@ pipeline {
           }
           axis {
             name 'DOTNET_VERSION'
-            values 'mono', 'netcoreapp2.1'
+            values 'mono', 'netcoreapp2.1', 'netcoreapp3.1'
+          }
+        }
+        excludes {
+          exclude {
+            axis {
+              name 'DOTNET_VERSION'
+              values 'netcoreapp2.1'
+            }
+            axis {
+              name 'SERVER_VERSION'
+              values '2.1', '3.0', 'dse-5.0', 'dse-6.0'
+            }
           }
         }
 
@@ -883,7 +948,29 @@ pipeline {
           }
           axis {
             name 'DOTNET_VERSION'
-            values 'netcoreapp2.1', 'net452', 'net461'
+            values 'netcoreapp2.1', 'netcoreapp3.1', 'net452', 'net462', 'net472', 'net48'
+          }
+        }
+        excludes {
+          exclude {
+            axis {
+              name 'DOTNET_VERSION'
+              values 'net452', 'net472', 'net48', 'netcoreapp2.1'
+            }
+            axis {
+              name 'SERVER_VERSION'
+              values '2.1', '3.0'
+            }
+          }
+          exclude {
+            axis {
+              name 'DOTNET_VERSION'
+              values 'net472', 'net48'
+            }
+            axis {
+              name 'SERVER_VERSION'
+              values '2.2'
+            }
           }
         }
         

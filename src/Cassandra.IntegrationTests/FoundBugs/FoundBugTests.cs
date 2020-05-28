@@ -116,7 +116,7 @@ namespace Cassandra.IntegrationTests.FoundBugs
                     }
                     else
                     {
-                        throw e;
+                        throw;
                     }
                 }
             }

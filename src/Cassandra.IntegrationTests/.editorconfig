@@ -1,0 +1,22 @@
+﻿[*.cs]
+
+# SA1604: Element documentation should have summary
+dotnet_diagnostic.SA1604.severity = silent
+
+# CA1829: Use Length/Count property instead of Count() when available
+dotnet_diagnostic.CA1829.severity = silent
+
+# CA1820: Test for empty strings using string length
+dotnet_diagnostic.CA1820.severity = silent
+
+# SA1606: Element documentation should have summary text
+dotnet_diagnostic.SA1606.severity = silent
+
+# SA1627: Documentation text should not be empty
+dotnet_diagnostic.SA1627.severity = silent
+
+# SA1602: Enumeration items should be documented
+dotnet_diagnostic.SA1602.severity = silent
+
+# SA1600: Elements should be documented
+dotnet_diagnostic.SA1600.severity = silent

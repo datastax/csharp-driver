@@ -118,6 +118,14 @@ namespace Cassandra.IntegrationTests.TestBase
         public static Builder NewBuilder()
         {
             var builder = Cluster.Builder();
+            if (TestClusterManager.CcmUseWsl)
+            {
+                builder = builder.WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(20000));
+            }
+            else
+            {
+                builder = builder.WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(10000));
+            }
             return TestClusterManager.ShouldEnableBetaProtocolVersion() ? builder.WithBetaProtocolVersions() : builder;
         }
         

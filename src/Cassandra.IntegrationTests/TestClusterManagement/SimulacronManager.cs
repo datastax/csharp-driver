@@ -203,7 +203,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         {
             Start();
             var path = string.Format(CreateClusterPathFormat, options.Nodes, options.GetCassandraVersion(),
-                options.GetDseVersion(), options.Name, options.ActivityLog, options.NumberOfTokens);
+                options.GetDseVersionOrEmpty(), options.Name, options.ActivityLog, options.NumberOfTokens);
             var data = await Post(path, null).ConfigureAwait(false);
             return CreateFromData(data);
         }

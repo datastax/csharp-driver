@@ -20,7 +20,7 @@ using Cassandra.IntegrationTests.TestBase;
 
 namespace Cassandra.IntegrationTests.TestClusterManagement
 {
-    public class TestCloudClusterManager
+    public static class TestCloudClusterManager
     {
         public static bool Created = false;
 

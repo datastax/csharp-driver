@@ -21,6 +21,10 @@ namespace Cassandra.Mapping
     /// <summary>
     /// Represents the result of a paged query, returned by manually paged query executions.
     /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Naming", 
+        "CA1710:Identifiers should have correct suffix", 
+        Justification = "Public API")]
     public interface IPage<T> : ICollection<T>
     {
         /// <summary>

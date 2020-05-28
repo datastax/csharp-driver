@@ -212,7 +212,7 @@ namespace Cassandra.IntegrationTests.Core
             catch (Exception e)
             {
                 Trace.TraceError("Unexpected Exception was thrown! Message: " + e.Message);
-                throw e;
+                throw;
             }
             finally
             {

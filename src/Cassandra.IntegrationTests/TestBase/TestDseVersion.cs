@@ -201,7 +201,7 @@ namespace Cassandra.IntegrationTests.TestBase
         {
             var version = new Version(Major, Minor, Build);
             return TestClusterManager.IsDse
-                ? TestClusterManager.GetDseVersion(version)
+                ? TestClusterManager.GetDseVersionFromCassandraVersion(version)
                 : version;
         }
 

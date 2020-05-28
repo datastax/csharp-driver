@@ -361,7 +361,7 @@ namespace Cassandra.IntegrationTests.Core
                         return TaskHelper.Completed;
                     },
                     msPerRetry,
-                    maxRetries);
+                    maxRetries).ConfigureAwait(false);
             }
         }
 

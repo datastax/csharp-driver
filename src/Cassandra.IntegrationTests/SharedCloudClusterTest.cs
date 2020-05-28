@@ -28,8 +28,10 @@ namespace Cassandra.IntegrationTests
         private readonly bool _sniCertValidation;
         private readonly bool _clientCert;
         protected override string[] SetupQueries => base.SetupQueries;
-        
-        protected new ICluster Cluster { get; set; }
+
+        protected new ICluster Cluster => _cluster;
+
+        private ICluster _cluster;
 
         protected SharedCloudClusterTest(
             bool createSession = true, bool sniCertValidation = true, bool clientCert = true) :
@@ -57,7 +59,7 @@ namespace Cassandra.IntegrationTests
             {
                 try
                 {
-                    Cluster = CreateCluster();
+                    _cluster = CreateCluster();
                     SetBaseSession(Cluster.Connect());
                     return;
                 }
@@ -68,7 +70,7 @@ namespace Cassandra.IntegrationTests
                     if (Cluster != null)
                     {
                         Cluster.Dispose();
-                        Cluster = null;
+                        _cluster = null;
                     }
                 }
             }
