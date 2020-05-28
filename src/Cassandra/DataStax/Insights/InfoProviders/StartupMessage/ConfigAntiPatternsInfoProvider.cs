@@ -28,21 +28,6 @@ namespace Cassandra.DataStax.Insights.InfoProviders.StartupMessage
             ConfigAntiPatternsInfoProvider.AntiPatternsProviders = new Dictionary<Type, Func<object, Dictionary<string, string>, Dictionary<string, string>>>
             {
                 { 
-                    typeof(DCAwareRoundRobinPolicy), 
-                    (obj, antiPatterns) =>
-                    {
-                        var typedPolicy = (DCAwareRoundRobinPolicy) obj;
-#pragma warning disable 618
-                        if (typedPolicy.UsedHostsPerRemoteDc > 0)
-#pragma warning restore 618
-                        {
-                            antiPatterns["useRemoteHosts"] = "Using remote hosts for fail-over";
-                        }
-
-                        return antiPatterns;
-                    }
-                },
-                { 
 #pragma warning disable 618
                     typeof(DowngradingConsistencyRetryPolicy),
 #pragma warning restore 618

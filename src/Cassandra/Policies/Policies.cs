@@ -36,7 +36,7 @@ namespace Cassandra
         /// <see cref="TokenAwarePolicy"/> with <see cref="DCAwareRoundRobinPolicy"/> as child policy.
         /// </para>
         /// </summary>
-        public static ILoadBalancingPolicy DefaultLoadBalancingPolicy => 
+        internal static ILoadBalancingPolicy DefaultLoadBalancingPolicy => 
             new DefaultLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy()));
 
         /// <summary>

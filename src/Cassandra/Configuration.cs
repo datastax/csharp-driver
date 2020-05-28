@@ -115,9 +115,15 @@ namespace Cassandra
         public IReadOnlyDictionary<string, IExecutionProfile> ExecutionProfiles { get; }
 
         /// <summary>
-        /// <see cref="Builder.WithUnresolvedContactPoints"/>
+        /// See <see cref="Builder.WithUnresolvedContactPoints"/>
         /// </summary>
         public bool KeepContactPointsUnresolved { get; }
+        
+        /// <summary>
+        /// See <see cref="Builder.WithLocalDatacenter"/>. If you provide the local datacenter in the
+        /// load balancing policy, this property will return null.
+        /// </summary>
+        public string LocalDatacenter { get; }
 
         /// <summary>
         /// Shared reusable timer
@@ -299,6 +305,7 @@ namespace Cassandra
                  null,
                  null,
                  null,
+                 null,
                  null)
         {
         }
@@ -330,6 +337,7 @@ namespace Cassandra
                                TypeSerializerDefinitions typeSerializerDefinitions,
                                bool? keepContactPointsUnresolved,
                                bool? allowBetaProtocolVersions,
+                               string localDatacenter,
                                ISessionFactory sessionFactory = null,
                                IRequestOptionsMapper requestOptionsMapper = null,
                                IStartupOptionsFactory startupOptionsFactory = null,
@@ -400,6 +408,7 @@ namespace Cassandra
 
             RequestOptions = RequestOptionsMapper.BuildRequestOptionsDictionary(executionProfiles, policies, socketOptions, clientOptions, queryOptions, GraphOptions);
             ExecutionProfiles = BuildExecutionProfilesDictionary(executionProfiles, RequestOptions);
+            LocalDatacenter = localDatacenter;
             
             MonitorReportingOptions = monitorReportingOptions ?? new MonitorReportingOptions();
             InsightsSupportVerifier = insightsSupportVerifier ?? Configuration.DefaultInsightsSupportVerifier;

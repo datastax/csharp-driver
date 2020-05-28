@@ -34,9 +34,7 @@ namespace Cassandra.DataStax.Insights.InfoProviders.StartupMessage
                         var typedPolicy = (DCAwareRoundRobinPolicy) policy;
                         return new Dictionary<string, object>
                         {
-#pragma warning disable 618
-                            { "localDc", typedPolicy.LocalDc }, { "usedHostsPerRemoteDc", typedPolicy.UsedHostsPerRemoteDc }
-#pragma warning restore 618
+                            { "localDc", typedPolicy.LocalDc }
                         };
                     }
                 },

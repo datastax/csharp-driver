@@ -96,6 +96,8 @@ namespace Cassandra.Tests
 
         public bool? AllowBetaProtocolVersions { get; set; }
 
+        public string LocalDatacenter { get; set; }
+
         public IContactPointParser ContactPointParser { get; set; }
 
         public IServerNameResolver ServerNameResolver { get; set; }
@@ -150,6 +152,7 @@ namespace Cassandra.Tests
                 TypeSerializerDefinitions,
                 KeepContactPointsUnresolved,
                 AllowBetaProtocolVersions,
+                LocalDatacenter,
                 SessionFactory,
                 RequestOptionsMapper,
                 StartupOptionsFactory,
