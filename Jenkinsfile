@@ -203,6 +203,7 @@ def buildDriver() {
   } else {
     if (env.DOTNET_VERSION == 'mono') {
       sh label: 'Build the driver for mono', script: '''#!/bin/bash -le
+        export BuildMonoOnly=True
         msbuild /t:restore /v:m src/Dse.sln
         msbuild /p:Configuration=Release /v:m /p:DynamicConstants=LINUX src/Dse.sln
       '''
@@ -249,7 +250,7 @@ def executeTests(perCommitSchedule) {
           . ${HOME}/environment.txt
           set +o allexport
 
-          mono ./testrunner/NUnit.ConsoleRunner.3.6.1/tools/nunit3-console.exe src/Dse.Test.Integration/bin/Release/net452/Dse.Test.Integration.dll --where "$MONO_TEST_FILTER" --labels=All --result:"TestResult_nunit.xml"
+          mono ./testrunner/NUnit.ConsoleRunner.3.6.1/tools/nunit3-console.exe src/Dse.Test.Integration/bin/Release/net462/Dse.Test.Integration.dll --where "$MONO_TEST_FILTER" --labels=All --result:"TestResult_nunit.xml"
         '''
       }
       sh label: 'Convert the test results using saxon', script: '''#!/bin/bash -le
@@ -283,6 +284,7 @@ def notifySlack(status = 'started') {
   }
 
   def buildType = 'Per-Commit'
+  def changeLogMsg = getFirstChangeLogEntry()
   if (params.CI_SCHEDULE != 'DEFAULT-PER-COMMIT') {
     buildType = "${params.CI_SCHEDULE.toLowerCase().capitalize()}-${osVersionDescription}"
   }
@@ -298,8 +300,12 @@ def notifySlack(status = 'started') {
     color = '#fde93f' // Yellow
   }
 
-  def message = """<${env.RUN_DISPLAY_URL}|Build #${env.BUILD_NUMBER}> ${status} for ${env.DRIVER_DISPLAY_NAME}
-[${buildType}] <${env.GITHUB_BRANCH_URL}|${env.BRANCH_NAME}> <${env.GITHUB_COMMIT_URL}|${env.GIT_SHA}>"""
+  def message = """<${env.RUN_DISPLAY_URL}|Build ${env.DRIVER_DISPLAY_NAME} #${env.BUILD_NUMBER} - ${buildType}> ${status}
+Commit <${env.GITHUB_COMMIT_URL}|${env.GIT_SHA}> on branch <${env.GITHUB_BRANCH_URL}|${env.BRANCH_NAME}>"""
+
+  if (!changeLogMsg.equalsIgnoreCase("")) {
+    message += """: _${changeLogMsg}_"""
+  }
 
   if (!status.equalsIgnoreCase('Started')) {
     message += """
@@ -332,17 +338,31 @@ def submitCIMetrics(buildType) {
 
 @NonCPS
 def getChangeLog() {
-    def log = ""
-    def changeLogSets = currentBuild.changeSets
-    for (int i = 0; i < changeLogSets.size(); i++) {
-        def entries = changeLogSets[i].items
-        for (int j = 0; j < entries.length; j++) {
-            def entry = entries[j]
-            log += "  * ${entry.msg} by ${entry.author} <br>"
-        }
-    }
-    return log;
+  def log = ""
+  def changeLogSets = currentBuild.changeSets
+  for (int i = 0; i < changeLogSets.size(); i++) {
+      def entries = changeLogSets[i].items
+      for (int j = 0; j < entries.length; j++) {
+          def entry = entries[j]
+          log += "  * ${entry.msg} by ${entry.author} <br>"
+      }
   }
+  return log;
+}
+
+@NonCPS
+def getFirstChangeLogEntry() {
+  def changeLogSets = currentBuild.changeSets
+  def changeLogSetsSize = changeLogSets.size()
+  if (changeLogSets.size() > 0) {
+    def firstChangeLogSet = changeLogSets[changeLogSets.size() - 1]
+    def entries = firstChangeLogSet.items;
+    if (entries.length > 0) {
+      return entries[entries.length - 1].msg;
+    }
+  }
+  return "";
+}
 
 def describePerCommitStage() {
   script {
@@ -448,14 +468,14 @@ pipeline {
           }
           axis {
             name 'DOTNET_VERSION'
-            values 'mono', 'netcoreapp2.0', 'netcoreapp2.1'
+            values 'mono', 'netcoreapp2.0', 'netcoreapp2.1', 'netcoreapp3.1'
           }
         }
         excludes {
           exclude {
             axis {
               name 'DOTNET_VERSION'
-              values 'mono', 'netcoreapp2.0'
+              values 'mono', 'netcoreapp2.0', 'netcoreapp2.1'
             }
             axis {
               name 'SERVER_VERSION'
@@ -560,7 +580,7 @@ pipeline {
           }
           axis {
             name 'DOTNET_VERSION'
-            values 'mono', 'netcoreapp2.0', 'netcoreapp2.1'
+            values 'mono', 'netcoreapp2.0', 'netcoreapp2.1', 'netcoreapp3.1'
           }
         }
         excludes {
@@ -573,11 +593,11 @@ pipeline {
               name 'SERVER_VERSION'
               values 'dse-5.0', 'dse-6.0', 'dse-6.8.0'
             }
-          }          
+          }
           exclude {
             axis {
               name 'DOTNET_VERSION'
-              values 'netcoreapp2.0'
+              values 'netcoreapp2.0', 'netcoreapp2.1'
             }
             axis {
               name 'SERVER_VERSION'
@@ -670,7 +690,19 @@ pipeline {
           }
           axis {
             name 'DOTNET_VERSION'
-            values 'mono', 'netcoreapp2.0', 'netcoreapp2.1'
+            values 'mono', 'netcoreapp2.0', 'netcoreapp2.1', 'netcoreapp3.1'
+          }
+        }
+        excludes {
+          exclude {
+            axis {
+              name 'DOTNET_VERSION'
+              values 'netcoreapp2.1'
+            }
+            axis {
+              name 'SERVER_VERSION'
+              values 'dse-5.0', 'dse-6.0'
+            }
           }
         }
 

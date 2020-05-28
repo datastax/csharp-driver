@@ -58,7 +58,7 @@ namespace Dse.Test.Unit
             Assert.AreEqual(".NETFramework,Version=v4.5", framework);
         }
 
-#elif NETCOREAPP2_1
+#elif NETCOREAPP
         [Test]
         public void Should_TargetNetstandard20_When_TestsTargetNetcore21()
         {
@@ -75,7 +75,7 @@ namespace Dse.Test.Unit
         {
             Assert.Fail("Something changed in the test project targets. "+
                     "Please review these tests to make sure the change is intended "+
-                    "and if so please add new tests for the new targets.")
+                    "and if so please add new tests for the new targets.");
         }
 #endif
     }

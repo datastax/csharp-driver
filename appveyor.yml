@@ -4,9 +4,8 @@ shallow_clone: true
 cache:
   - C:\ProgramData\chocolatey\bin -> appveyor.yml
   - C:\ProgramData\chocolatey\lib -> appveyor.yml
-image: Visual Studio 2017
+image: Visual Studio 2019
 environment:
-  appveyor_build_worker_cloud: gce
   NUNIT_PATH: nunit3-console
   matrix:
     - TARGET: net452
@@ -18,14 +17,14 @@ environment:
     - TARGET: netcoreapp2.1
       CI_TYPE: UNIT
       PROJECT: Dse.Test.Unit
-
-install:
-  - ps: choco install -y xmlstarlet
+    - TARGET: netcoreapp3.1
+      CI_TYPE: UNIT
+      PROJECT: Dse.Test.Unit
 
 build_script:
   - ps: dotnet --info
   - ps: dotnet restore src
-  - ps: dotnet build src\Dse.sln -c Release
+  - ps: dotnet build src\${env:PROJECT}\${env:PROJECT}.csproj -c Release -f $env:TARGET
 
 test_script:
   - ps: dotnet test src\${env:PROJECT}\${env:PROJECT}.csproj -c Release -f $env:TARGET --logger:Appveyor

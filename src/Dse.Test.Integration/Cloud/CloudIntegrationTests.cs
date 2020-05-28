@@ -351,7 +351,7 @@ namespace Dse.Test.Integration.Cloud
 
         private void AssertCaMismatchSslError(NoHostAvailableException ex)
         {
-#if NETCOREAPP2_1
+#if NETCOREAPP && !NETCOREAPP2_0
             var ex2 = ex.InnerException;
             Assert.IsTrue(ex2 is HttpRequestException, ex2.ToString());
             var ex3 = ex2.InnerException;
