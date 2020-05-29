@@ -50,6 +50,7 @@ namespace AppMetricsGraphite
     {
         private const int GraphiteUpdateIntervalMilliseconds = 5000;
         private const string ContactPoint = "127.0.0.1";
+        private const string LocalDatacenter = "datacenter1";
         private const string SessionName = "metrics-example";
         private const string GraphiteIp = "127.0.0.1";
         private const int GraphitePort = 2003;
@@ -74,10 +75,9 @@ namespace AppMetricsGraphite
             // Build and run scheduler
             var scheduler = new AppMetricsTaskScheduler(
                 TimeSpan.FromMilliseconds(Program.GraphiteUpdateIntervalMilliseconds),
-                async () => { await Task.WhenAll(metrics.ReportRunner.RunAllAsync()); });
+                async () => { await Task.WhenAll(metrics.ReportRunner.RunAllAsync()).ConfigureAwait(false); });
 
             scheduler.Start();
-
 
             //// DataStax C# Driver configuration
             
@@ -86,6 +86,7 @@ namespace AppMetricsGraphite
 
             var cluster = Cluster.Builder()
                 .AddContactPoint(Program.ContactPoint)
+                .WithLocalDatacenter(Program.LocalDatacenter)
                 .WithSessionName(Program.SessionName)
                 .WithMetrics(
                     metrics.CreateDriverMetricsProvider(), 
@@ -106,7 +107,8 @@ namespace AppMetricsGraphite
                 {
                     try
                     {
-                        await session.ExecuteAsync(new SimpleStatement("SELECT * FROM system.local"));
+                        await session.ExecuteAsync(
+                            new SimpleStatement("SELECT * FROM system.local")).ConfigureAwait(false);
                     }
                     catch (Exception ex)
                     {

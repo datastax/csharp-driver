@@ -25,11 +25,12 @@ namespace SslServerAuthOnly
     /// <summary>
     /// To enable server authentication, the client application must specify the CA when configuring the Builder.
     /// </summary>
-    public class LoadingCertificateManuallyExample
+    public static class LoadingCertificateManuallyExample
     {
         // Set these constants accordingly
-        private static readonly string[] ContactPoints = { "127.0.0.1" };
+        private const string LocalDatacenter = "datacenter1";
         private const string CertificateAuthorityPath = @"C:\path\to\rootca.crt";
+        private static readonly string[] ContactPoints = { "127.0.0.1" };
 
         public static void Run()
         {
@@ -39,6 +40,7 @@ namespace SslServerAuthOnly
 
             var cluster = Cluster.Builder()
                 .AddContactPoints(LoadingCertificateManuallyExample.ContactPoints)
+                .WithLocalDatacenter(LoadingCertificateManuallyExample.LocalDatacenter)
                 .WithSSL(new SSLOptions().SetRemoteCertValidationCallback(
                     (sender, certificate, chain, errors) => certificateValidator.Validate(certificate, chain, errors)))
                 .Build();

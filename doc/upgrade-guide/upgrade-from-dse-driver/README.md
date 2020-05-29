@@ -2,7 +2,9 @@
 
 This guide is intended for users of the DSE driver that plan to migrate to this driver, i.e., `CassandraCSharpDriver`.
 
-This driver now supports all DataStax products and features, such as Unified Authentication, Kerberos, geo types and graph traversal executions, allowing you to use a single driver for Apache Cassandra, DSE or other DataStax products.
+This guide was written with version 3 of the unified driver in mind but most of it is valid for version 4. There's also [this guide](../upgrade-to-4x) that helps users update from version 3 to version 4 so DSE driver users should find it useful since the unified driver 3 shares most of its API with DSE Driver 2.
+
+This driver now (since version `3.13`) supports all DataStax products and features, such as Unified Authentication, Kerberos, geo types and graph traversal executions, allowing you to use a single driver for Apache Cassandra, DSE or other DataStax products.
 
 ## Changes to default settings
 

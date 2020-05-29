@@ -25,10 +25,11 @@ namespace SslTwoWayAuth
     /// <summary>
     /// To enable mutual authentication, the client application must specify the CA and the client certificate when configuring the Builder.
     /// </summary>
-    public class LoadingCertificateManuallyExample
+    public static class LoadingCertificateManuallyExample
     {
         // Set these constants accordingly
         private static readonly string[] ContactPoints = { "127.0.0.1" };
+        private const string LocalDatacenter = "datacenter1";
 
         // ## Client Certificate ##
         //
@@ -54,6 +55,7 @@ namespace SslTwoWayAuth
 
             var cluster = Cluster.Builder()
                 .AddContactPoints(LoadingCertificateManuallyExample.ContactPoints)
+                .WithLocalDatacenter(LoadingCertificateManuallyExample.LocalDatacenter)
                 .WithSSL(new SSLOptions()
                     // set client certificate collection
                     .SetCertificateCollection(new X509Certificate2Collection
