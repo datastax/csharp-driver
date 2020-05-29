@@ -124,6 +124,23 @@ namespace Cassandra.Tests
             clusterMock.Verify();
         }
 
+        [TestCase(true)]
+        [TestCase(false)]
+        [Test]
+        public void DcInferringPolicyInitializeInfersLocalDc(bool implicitContactPoint)
+        {
+            var hostList = new List<Host>
+            {
+                TestHelper.CreateHost("0.0.0.1", "dc1"),
+                TestHelper.CreateHost("0.0.0.2", "dc2")
+            };
+            var clusterMock = CreateClusterMock(hostList, implicitContactPoint: implicitContactPoint);
+            var policy = new DcInferringLoadBalancingPolicy();
+            policy.Initialize(clusterMock);
+            Assert.AreEqual(HostDistance.Local, policy.Distance(hostList[0]));
+            Assert.AreEqual(HostDistance.Remote, policy.Distance(hostList[1]));
+        }
+
         [Test]
         public void DCAwareRoundRobinPolicyNeverHitsRemote()
         {
@@ -177,14 +194,33 @@ namespace Cassandra.Tests
         }
 
         [Test]
-        public void DCAwareRoundRobinInitializeInfersLocalDc()
+        public void DCAwareRoundRobinInitializeDoesNotInferLocalDcWhenNotImplicitContactPoint()
         {
             var hostList = new List<Host>
             {
                 TestHelper.CreateHost("0.0.0.1", "dc1"),
                 TestHelper.CreateHost("0.0.0.2", "dc2")
             };
-            var clusterMock = CreateClusterMock(hostList);
+            var clusterMock = CreateClusterMock(hostList, implicitContactPoint: false);
+            var policy = new DCAwareRoundRobinPolicy();
+            var ex = Assert.Throws<InvalidOperationException>(() => policy.Initialize(clusterMock));
+            Assert.AreEqual(
+                "Since you provided explicit contact points, the local datacenter " +
+                "must be explicitly set. It can be specified in the load balancing " +
+                "policy constructor or via the Builder.WithLocalDatacenter() method." +
+                " Available datacenters: dc1, dc2.", 
+                ex.Message);
+        }
+
+        [Test]
+        public void DCAwareRoundRobinInitializeInfersLocalDcImplicitContactPoint()
+        {
+            var hostList = new List<Host>
+            {
+                TestHelper.CreateHost("0.0.0.1", "dc1"),
+                TestHelper.CreateHost("0.0.0.2", "dc2")
+            };
+            var clusterMock = CreateClusterMock(hostList, implicitContactPoint: true);
             var policy = new DCAwareRoundRobinPolicy();
             policy.Initialize(clusterMock);
             Assert.AreEqual(HostDistance.Local, policy.Distance(hostList[0]));
@@ -632,12 +668,15 @@ namespace Cassandra.Tests
             Assert.AreEqual(0, testPolicy.UnavailableCounter);
         }
 
-        private IInternalCluster CreateClusterMock(ICollection<Host> hostList = null, string localDc = null)
+        private IInternalCluster CreateClusterMock(
+            ICollection<Host> hostList = null, 
+            string localDc = null, 
+            bool implicitContactPoint = false)
         {
             var config = new TestConfigurationBuilder { LocalDatacenter = localDc }.Build();
             var cluster = Mock.Of<IInternalCluster>();
             Mock.Get(cluster).SetupGet(c => c.Configuration).Returns(config);
-            Mock.Get(cluster).SetupGet(c => c.ImplicitContactPoint).Returns(true);
+            Mock.Get(cluster).SetupGet(c => c.ImplicitContactPoint).Returns(implicitContactPoint);
             if (hostList != null)
             {
                 var cc = Mock.Of<IControlConnection>();

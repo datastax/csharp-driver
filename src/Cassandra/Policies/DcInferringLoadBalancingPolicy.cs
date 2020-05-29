@@ -13,23 +13,23 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-using Cassandra.SessionManagement;
-
 namespace Cassandra
 {
     /// <summary>
-    /// Obtains or infers the local datacenter.
+    /// <para>
+    /// An implementation of <see cref="ILoadBalancingPolicy"/> that infers the
+    /// local datacenter from the contact points, if no datacenter was provided.
+    /// </para>
+    /// <para>
+    /// This class is not recommended for normal users who should always prefer
+    /// <see cref="DefaultLoadBalancingPolicy"/> /
+    /// <see cref="Policies.NewDefaultLoadBalancingPolicy"/>
+    /// </para>
     /// </summary>
-    internal interface ILocalDatacenterProvider
+    public class DcInferringLoadBalancingPolicy : DefaultLoadBalancingPolicy
     {
-        /// <summary>
-        /// Obtains or infers the local datacenter (in case of implicit contact point).
-        /// </summary>
-        string DiscoverLocalDatacenter(bool inferLocalDc, string policyDatacenter);
-
-        /// <summary>
-        /// Should be called after we have an initialized cluster instance.
-        /// </summary>
-        void Initialize(IInternalCluster cluster);
+        public DcInferringLoadBalancingPolicy() : base(inferLocalDc: true)
+        {
+        }
     }
 }

@@ -31,6 +31,7 @@ namespace Cassandra
     /// </summary>
     public class DCAwareRoundRobinPolicy : ILoadBalancingPolicy
     {
+        private readonly bool _inferLocalDc;
         private static readonly Logger Logger = new Logger(typeof(DCAwareRoundRobinPolicy));
         private readonly int _maxIndex = int.MaxValue - 10000;
         private volatile List<Host> _hosts;
@@ -41,8 +42,16 @@ namespace Cassandra
         /// <summary>
         /// Used internally to build the default LBP.
         /// </summary>
-        internal DCAwareRoundRobinPolicy()
+        internal DCAwareRoundRobinPolicy() : this(inferLocalDc: false)
         {
+        }
+
+        /// <summary>
+        /// Used internally to build the default LBP and the DcInferringLBP
+        /// </summary>
+        internal DCAwareRoundRobinPolicy(bool inferLocalDc)
+        {
+            _inferLocalDc = inferLocalDc;
         }
 
         /// <summary>
@@ -54,7 +63,7 @@ namespace Cassandra
         /// </para>
         /// </summary>
         /// <param name="localDc"> the name of the local datacenter (as known by Cassandra).</param>
-        public DCAwareRoundRobinPolicy(string localDc)
+        public DCAwareRoundRobinPolicy(string localDc) : this(inferLocalDc: false)
         {
             if (string.IsNullOrEmpty(localDc))
             {
@@ -77,7 +86,8 @@ namespace Cassandra
             _cluster.HostAdded += _ => ClearHosts();
             _cluster.HostRemoved += _ => ClearHosts();
 
-            LocalDc = cluster.Configuration.LocalDatacenterProvider.DiscoverLocalDatacenter(LocalDc);
+            LocalDc = cluster.Configuration.LocalDatacenterProvider.DiscoverLocalDatacenter(
+                _inferLocalDc, LocalDc);
         }
 
         /// <summary>

@@ -37,7 +37,7 @@ namespace Cassandra
             _initialized = true;
         }
 
-        public string DiscoverLocalDatacenter(string policyDatacenter)
+        public string DiscoverLocalDatacenter(bool inferLocalDc, string policyDatacenter)
         {
             if (!_initialized)
             {
@@ -60,7 +60,7 @@ namespace Cassandra
                 return _cachedDatacenter;
             }
 
-            if (!_cluster.ImplicitContactPoint)
+            if (!_cluster.ImplicitContactPoint && !inferLocalDc)
             {
                 throw new InvalidOperationException(
                     "Since you provided explicit contact points, the local datacenter must be explicitly set. " +
