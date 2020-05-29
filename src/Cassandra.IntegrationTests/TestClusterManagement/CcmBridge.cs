@@ -182,12 +182,15 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         }
 
         public void Populate(int dc1NodeLength, int dc2NodeLength, bool useVNodes)
-        {
+        {      
+            // to ensure that the default DC is always called 'dc1': pass a list ('-nX:0') even if
+            // there is only one DC (with '-nX', CCM configures `SimpleSnitch`, which hard-codes the name
+            // to 'datacenter1')
             var parameters = new List<string>
             {
                 "populate",
                 "-n",
-                dc1NodeLength + (dc2NodeLength > 0 ? ":" + dc2NodeLength : null),
+                $"{dc1NodeLength}:{dc2NodeLength}",
                 "-i",
                 IpPrefix
             };

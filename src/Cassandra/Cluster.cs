@@ -39,6 +39,8 @@ namespace Cassandra
     /// <inheritdoc cref="ICluster" />
     public class Cluster : IInternalCluster
     {
+        private static readonly IPEndPoint DefaultContactPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9042);
+
         private static ProtocolVersion _maxProtocolVersion = ProtocolVersion.MaxSupported;
         internal static readonly Logger Logger = new Logger(typeof(Cluster));
         private readonly CopyOnWriteList<IInternalSession> _connectedSessions = new CopyOnWriteList<IInternalSession>();
@@ -47,6 +49,7 @@ namespace Cassandra
         private volatile Exception _initException;
         private readonly SemaphoreSlim _initLock = new SemaphoreSlim(1, 1);
         private long _sessionCounter = -1;
+        private readonly bool _implicitContactPoint = false;
 
         private readonly Metadata _metadata;
         private readonly IProtocolEventDebouncer _protocolEventDebouncer;
@@ -92,11 +95,6 @@ namespace Cassandra
         internal static Cluster BuildFrom(IInitializer initializer, IReadOnlyList<object> nonIpEndPointContactPoints, Configuration config)
         {
             nonIpEndPointContactPoints = nonIpEndPointContactPoints ?? new object[0];
-            if (initializer.ContactPoints.Count == 0 && nonIpEndPointContactPoints.Count == 0)
-            {
-                throw new ArgumentException("Cannot build a cluster without contact points");
-            }
-
             return new Cluster(
                 initializer.ContactPoints.Concat(nonIpEndPointContactPoints),
                 config ?? initializer.GetConfiguration());
@@ -136,10 +134,12 @@ namespace Cassandra
             }
         }
 
-        /// <summary>
-        ///  Gets the cluster configuration.
-        /// </summary>
+        /// <inheritdoc />
         public Configuration Configuration { get; private set; }
+
+        /// <inheritdoc />
+        // ReSharper disable once ConvertToAutoProperty, reviewed
+        bool IInternalCluster.ImplicitContactPoint => _implicitContactPoint;
 
         /// <inheritdoc />
         public Metadata Metadata
@@ -167,7 +167,15 @@ namespace Cassandra
                 TimeSpan.FromMilliseconds(configuration.MetadataSyncOptions.RefreshSchemaDelayIncrement),
                 TimeSpan.FromMilliseconds(configuration.MetadataSyncOptions.MaxTotalRefreshSchemaDelay));
 
-            var parsedContactPoints = configuration.ContactPointParser.ParseContactPoints(contactPoints);
+            var contactPointsList = contactPoints.ToList();
+            if (contactPointsList.Count == 0)
+            {
+                Cluster.Logger.Info("No contact points provided, defaulting to {0}", Cluster.DefaultContactPoint);
+                contactPointsList.Add(Cluster.DefaultContactPoint);
+                _implicitContactPoint = true;
+            }
+
+            var parsedContactPoints = configuration.ContactPointParser.ParseContactPoints(contactPointsList);
 
             _controlConnection = configuration.ControlConnectionFactory.Create(
                 this, 

@@ -39,8 +39,6 @@ namespace Cassandra
     {
         public const string DefaultApplicationName = "Default .NET Application";
 
-        private static readonly IPEndPoint DefaultContactPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9042);
-
         private static readonly Logger Logger = new Logger(typeof(Builder));
 
         private readonly List<object> _contactPoints = new List<object>();
@@ -166,14 +164,6 @@ namespace Cassandra
             {
                 ConfigureCloudCluster(_bundlePath);
             }
-
-            var implicitContactPoint = false;
-            if (!_addedContactPoints)
-            {
-                Builder.Logger.Info("No contact points provided, defaulting to {0}", Builder.DefaultContactPoint);
-                SetContactPoints(new[] { Builder.DefaultContactPoint });
-                implicitContactPoint = true;
-            }
             
             var typeSerializerDefinitions = _typeSerializerDefinitions ?? new TypeSerializerDefinitions();
             var policies = GetPolicies();
@@ -214,8 +204,7 @@ namespace Cassandra
                 typeSerializerDefinitions,
                 _keepContactPointsUnresolved,
                 _allowBetaProtocolVersions,
-                _localDatacenter,
-                implicitContactPoint);
+                _localDatacenter);
 
             return config;
         }

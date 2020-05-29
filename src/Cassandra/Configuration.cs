@@ -126,12 +126,6 @@ namespace Cassandra
         public string LocalDatacenter { get; }
 
         /// <summary>
-        /// If contact points are not provided in the builder, the driver will use localhost
-        /// as an implicit contact point.
-        /// </summary>
-        internal bool ImplicitContactPoint { get; }
-
-        /// <summary>
         /// Shared reusable timer
         /// </summary>
         internal HashedWheelTimer Timer { get; private set; }
@@ -314,8 +308,7 @@ namespace Cassandra
                  typeSerializerDefinitions: null,
                  keepContactPointsUnresolved: null,
                  allowBetaProtocolVersions: null,
-                 localDatacenter: null,
-                 implicitContactPoint: false)
+                 localDatacenter: null)
         {
         }
 
@@ -347,7 +340,6 @@ namespace Cassandra
                                bool? keepContactPointsUnresolved,
                                bool? allowBetaProtocolVersions,
                                string localDatacenter,
-                               bool implicitContactPoint,
                                ISessionFactory sessionFactory = null,
                                IRequestOptionsMapper requestOptionsMapper = null,
                                IStartupOptionsFactory startupOptionsFactory = null,
@@ -420,7 +412,6 @@ namespace Cassandra
             RequestOptions = RequestOptionsMapper.BuildRequestOptionsDictionary(executionProfiles, policies, socketOptions, clientOptions, queryOptions, GraphOptions);
             ExecutionProfiles = BuildExecutionProfilesDictionary(executionProfiles, RequestOptions);
             LocalDatacenter = localDatacenter;
-            ImplicitContactPoint = implicitContactPoint;
             
             MonitorReportingOptions = monitorReportingOptions ?? new MonitorReportingOptions();
             InsightsSupportVerifier = insightsSupportVerifier ?? Configuration.DefaultInsightsSupportVerifier;

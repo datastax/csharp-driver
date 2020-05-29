@@ -41,7 +41,7 @@ namespace Cassandra
 
         public string[] ContactPoints
         {
-            get { return ThrowIfNotExists<string>("Contact Points").Split(','); }
+            get { return DefaultIfNotExists<string>("Contact Points", null)?.Split(','); }
             set { base["Contact Points"] = string.Join(",", value); }
         }
 
@@ -57,6 +57,12 @@ namespace Cassandra
             set { base["Password"] = value; }
         }
 
+        public string LocalDatacenter
+        {
+            get { return DefaultIfNotExists<string>("Local Datacenter", null); }
+            set { base["Local Datacenter"] = value; }
+        }
+
         public CassandraConnectionStringBuilder()
         {
         }
@@ -68,12 +74,23 @@ namespace Cassandra
 
         public Builder ApplyToBuilder(Builder builder)
         {
-            builder.AddContactPoints(ContactPoints).WithPort(Port).WithDefaultKeyspace(DefaultKeyspace);
+            if (ContactPoints != null)
+            {
+                builder.AddContactPoints(ContactPoints);
+            }
+
+            builder.WithPort(Port).WithDefaultKeyspace(DefaultKeyspace);
             if (!string.IsNullOrEmpty(Username) && !string.IsNullOrEmpty(Password))
             {
                 //Make sure the credentials are not null
                 builder.WithCredentials(Username, Password);
             }
+
+            if (!string.IsNullOrEmpty(LocalDatacenter))
+            {
+                builder.WithLocalDatacenter(LocalDatacenter);
+            }
+
             return builder;
         }
 

@@ -13,6 +13,7 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
+using System;
 using System.Collections.Generic;
 using System.Net;
 using Cassandra.Connections.Control;
@@ -25,6 +26,30 @@ namespace Cassandra.Tests.Connections.TestHelpers
 
         public FakeTopologyRefresherFactory(IDictionary<IPEndPoint, IRow> rows)
         {
+            _rows = rows;
+        }
+        
+        public FakeTopologyRefresherFactory(ICollection<Host> hosts)
+        {
+            var rows = new Dictionary<IPEndPoint, IRow>();
+            foreach (var h in hosts)
+            {
+                if (rows.ContainsKey(h.Address))
+                {
+                    rows.Remove(h.Address);
+                }
+
+                rows.Add(
+                    h.Address,
+                    TestHelper.CreateRow(new Dictionary<string, object>
+                    {
+                        { "data_center", h.Datacenter },
+                        { "rack", h.Rack },
+                        { "tokens", h.Tokens },
+                        { "release_version", h.CassandraVersion?.ToString() ?? "3.11.6" },
+                        { "host_id", h.HostId }
+                    }));
+            }
             _rows = rows;
         }
 

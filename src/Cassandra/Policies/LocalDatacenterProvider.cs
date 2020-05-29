@@ -60,7 +60,7 @@ namespace Cassandra
                 return _cachedDatacenter;
             }
 
-            if (!_cluster.Configuration.ImplicitContactPoint)
+            if (!_cluster.ImplicitContactPoint)
             {
                 throw new InvalidOperationException(
                     "Since you provided explicit contact points, the local datacenter must be explicitly set. " +

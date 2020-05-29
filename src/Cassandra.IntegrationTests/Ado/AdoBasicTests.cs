@@ -34,7 +34,8 @@ namespace Cassandra.IntegrationTests.Data
             var cb = new CassandraConnectionStringBuilder
             {
                 ContactPoints = new[] { TestCluster.InitialContactPoint.Address.ToString() }, 
-                Port = 9042
+                Port = 9042,
+                LocalDatacenter = "dc1"
             };
             _connection = new CqlConnection(cb.ToString());
         }

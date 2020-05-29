@@ -98,11 +98,9 @@ namespace Cassandra.Tests
 
         public string LocalDatacenter { get; set; }
 
-        public bool ImplicitContactPoint { get; set; } = false;
-
         public IContactPointParser ContactPointParser { get; set; }
 
-        public ILocalDatacenterProvider LocalDatacenterProvider { get; set; }
+        public ILocalDatacenterProvider LocalDatacenterProvider { get; set; } = new LocalDatacenterProvider();
 
         public IServerNameResolver ServerNameResolver { get; set; }
 
@@ -157,7 +155,6 @@ namespace Cassandra.Tests
                 keepContactPointsUnresolved: KeepContactPointsUnresolved,
                 allowBetaProtocolVersions: AllowBetaProtocolVersions,
                 localDatacenter: LocalDatacenter,
-                implicitContactPoint: ImplicitContactPoint,
                 sessionFactory: SessionFactory,
                 requestOptionsMapper: RequestOptionsMapper,
                 startupOptionsFactory: StartupOptionsFactory,
