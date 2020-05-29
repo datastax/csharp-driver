@@ -11,6 +11,7 @@ TBD
 ### Improvements
 
 *   [[CSHARP-596](https://datastax-oss.atlassian.net/browse/CSHARP-596)] - DcAwareLoadBalancingPolicy: Throw when local datacenter is not specified
+*   [[CSHARP-722](https://datastax-oss.atlassian.net/browse/CSHARP-722)] - Remove usedHostsPerRemoteDc from DCAwareRoundRobinPolicy
 
 ### Bug fixes
 
