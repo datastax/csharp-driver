@@ -6,7 +6,7 @@ When contributing to this repository, please first discuss the changes you wish 
 
 The CI builds run a couple of code analyzers: [FxCop][fxcop] and [StyleCop][stylecop]. At this time, the severity for a lot of warnings and errors is set to `suggestion` because we are still in the process of fixing them in the entire codebase. Progress on this is tracked on [CSHARP-909][CSHARP909].
 
-The setting that controls whether code analysis runs during the build process is set on the [Directory.Build.props][./src/Directory.Build.props] file:
+The setting that controls whether code analysis runs during the build process is set on the [Directory.Build.props](./src/Directory.Build.props) file:
 
 ```xml
 <Project>
@@ -180,7 +180,7 @@ Note that this is known to cause temporary increased CPU usage in OS X initially
 
 #### Test Categories
 
-Integration tests are tagged with one or more categories. You can see the list of categories on the [TestCategory][./src/Cassandra.Tests/TestCategory.cs] static class under the unit test project (`Cassandra.Tests`).
+Integration tests are tagged with one or more categories. You can see the list of categories on the [TestCategory](./src/Cassandra.Tests/TestCategory.cs) static class under the unit test project (`Cassandra.Tests`).
 
 #### Running each integration test suite
 
