@@ -243,6 +243,9 @@ namespace Cassandra
                         }, TaskContinuationOptions.ExecuteSynchronously).Forget();
                         throw newEx;
                     }
+
+                    // initialize the local datacenter provider
+                    Configuration.LocalDatacenterProvider.Initialize(this);
                     
                     // Initialize policies
                     foreach (var lbp in loadBalancingPolicies)

@@ -175,10 +175,13 @@ namespace Cassandra.Tests
         }
 
         [Test]
-        public void Cluster_Builder_Should_Throw_When_No_Contact_Points_Have_Been_Defined()
+        public void Cluster_Builder_Should_Use_Default_ContactPoint_When_No_Contact_Points_Have_Been_Defined()
         {
-            var ex = Assert.Throws<ArgumentException>(() => Cluster.Builder().Build());
-            Assert.That(ex.Message, Is.EqualTo("Cannot build a cluster without contact points"));
+            using (var cluster = Cluster.Builder().Build())
+            {
+                var ex = Assert.Throws<NoHostAvailableException>(() =>  cluster.Connect());
+                Assert.AreEqual(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9042), ex.Errors.Single().Key);
+            }
         }
 
         [Test]

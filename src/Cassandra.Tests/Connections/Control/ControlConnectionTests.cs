@@ -95,11 +95,14 @@ namespace Cassandra.Tests.Connections.Control
                     SchemaParserFactory = new FakeSchemaParserFactory(),
                     SupportedOptionsInitializerFactory = new FakeSupportedOptionsInitializerFactory(),
                     ProtocolVersionNegotiator = new FakeProtocolVersionNegotiator(),
-                    ServerEventsSubscriber = new FakeServerEventsSubscriber()
+                    ServerEventsSubscriber = new FakeServerEventsSubscriber(),
+                    LocalDatacenter = "ut-dc2"
                 };
                 configBuilderAct?.Invoke(builder);
                 config = builder.Build();
             }
+
+            Mock.Get(cluster).SetupGet(c => c.Configuration).Returns(config);
             
             if (metadata == null)
             {
@@ -267,6 +270,7 @@ namespace Cassandra.Tests.Connections.Control
                             .Returns<Host>(h => config.Policies.LoadBalancingPolicy.Distance(h));
                         Mock.Get(cluster).Setup(c => c.AllHosts()).Returns(() => metadata.AllHosts());
                         Mock.Get(cluster).Setup(c => c.GetControlConnection()).Returns(cc);
+                        config.LocalDatacenterProvider.Initialize(cluster);
                         config.Policies.LoadBalancingPolicy.Initialize(cluster);
 
                         createResult.ConnectionFactory.CreatedConnections.Clear();

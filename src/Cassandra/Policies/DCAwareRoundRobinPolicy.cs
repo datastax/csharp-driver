@@ -77,44 +77,7 @@ namespace Cassandra
             _cluster.HostAdded += _ => ClearHosts();
             _cluster.HostRemoved += _ => ClearHosts();
 
-            var availableDcs = _cluster.AllHosts().Select(h => h.Datacenter).Where(dc => dc != null).Distinct().ToList();
-            var availableDcsStr = string.Join(", ", availableDcs);
-
-            LocalDc = LocalDc ?? cluster.Configuration.LocalDatacenter;
-
-            if (LocalDc == null)
-            {
-                throw new ArgumentException(
-                    "Local datacenter was not specified. It can be specified in the constructor or " +
-                    $"via the Builder.WithLocalDatacenter() method. Available datacenters: {availableDcsStr}.");
-            }
-
-            //Check that the datacenter exists
-            if (!availableDcs.Contains(LocalDc))
-            {
-                throw new ArgumentException(
-                    $"Datacenter {LocalDc} does not match any of the nodes, available datacenters: {availableDcsStr}.");
-            }
-        }
-
-        /// <summary>
-        /// Gets the current local host.
-        /// If can not be determined, it returns any of the nodes.
-        /// </summary>
-        private Host GetLocalHost()
-        {
-            if (!(_cluster is IInternalCluster clusterImplementation))
-            {
-                //fallback to use any of the hosts
-                return _cluster.AllHosts().FirstOrDefault(h => h.Datacenter != null);
-            }
-            var cc = clusterImplementation.GetControlConnection();
-            if (cc == null)
-            {
-                throw new DriverInternalError("ControlConnection was not correctly set");
-            }
-            //Use the host used by the control connection
-            return cc.Host;
+            LocalDc = cluster.Configuration.LocalDatacenterProvider.DiscoverLocalDatacenter(LocalDc);
         }
 
         /// <summary>
