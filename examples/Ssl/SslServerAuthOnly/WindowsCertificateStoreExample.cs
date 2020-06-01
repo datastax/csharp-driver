@@ -25,15 +25,17 @@ namespace SslServerAuthOnly
     /// If the certificate authority is added to the Trusted Root Certification Authorities location of the Local Machine store
     /// (using the windows certificate manager tool) then you just have to call .WithSSL() on the builder to enable server authentication.
     /// </summary>
-    public class WindowsCertificateStoreExample
+    public static class WindowsCertificateStoreExample
     {
         // Set these constants accordingly
+        private const string LocalDatacenter = "datacenter1";
         private static readonly string[] ContactPoints = { "127.0.0.1" };
 
         public static void Run()
         {
             var cluster = Cluster.Builder()
                 .AddContactPoints(WindowsCertificateStoreExample.ContactPoints)
+                .WithLocalDatacenter(WindowsCertificateStoreExample.LocalDatacenter)
                 .WithSSL()
                 .Build();
 

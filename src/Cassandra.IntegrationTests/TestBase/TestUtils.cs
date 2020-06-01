@@ -117,7 +117,7 @@ namespace Cassandra.IntegrationTests.TestBase
 
         public static Builder NewBuilder()
         {
-            var builder = Cluster.Builder();
+            var builder = Cluster.Builder().WithLocalDatacenter("dc1");
             if (TestClusterManager.CcmUseWsl)
             {
                 builder = builder.WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(20000));

@@ -28,6 +28,8 @@ Cluster.Builder()
        .Build();
 ```
 
+Note that you have to provide the local datacenter unless you don't provide any contact points. If you don't provide any contact points, an implicit one will be used (`127.0.0.1:9042`) and the driver will infer the local datacenter from that contact point.
+
 ## Reconnection policy
 
 The reconnection policy consists of one method:

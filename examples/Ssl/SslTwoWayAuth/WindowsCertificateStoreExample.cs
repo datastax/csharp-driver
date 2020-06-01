@@ -28,9 +28,10 @@ namespace SslTwoWayAuth
     /// If the certificate authority is added to the Personal location of the Local Machine store
     /// (using the windows certificate manager tool) then you can provide the local machine store's collection.
     /// </summary>
-    public class WindowsCertificateStoreExample
+    public static class WindowsCertificateStoreExample
     {
         // Set these constants accordingly
+        private const string LocalDatacenter = "datacenter1";
         private static readonly string[] ContactPoints = { "127.0.0.1" };
 
         public static void Run()
@@ -44,6 +45,7 @@ namespace SslTwoWayAuth
 
             var cluster = Cluster.Builder()
                 .AddContactPoints(WindowsCertificateStoreExample.ContactPoints)
+                .WithLocalDatacenter(WindowsCertificateStoreExample.LocalDatacenter)
                 .WithSSL(new SSLOptions()
                     .SetCertificateCollection(collection))
                 .Build();

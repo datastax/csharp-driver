@@ -55,8 +55,26 @@ If you are upgrading from the [DSE C# driver][dse-driver] (which has been unifie
 ## Basic Usage
 
 ```csharp
+// Connect to a Cassandra cluster on localhost
+var cluster = Cluster.Builder().Build();
+// Connect to the nodes using a keyspace
+var session = cluster.Connect("sample_keyspace");
+// Execute a query on a connection synchronously
+var rs = session.Execute("SELECT * FROM sample_table");
+// Iterate through the RowSet
+foreach (var row in rs)
+{
+  var value = row.GetValue<int>("sample_int_column");
+  // Do something with the value
+}
+```
+
+### Providing contact points
+
+```csharp
 var cluster = Cluster.Builder()
                      .AddContactPoints("host1")
+                     .WithLocalDatacenter("dc1")
                      .Build();
 // Connect to the nodes using a keyspace
 var session = cluster.Connect("sample_keyspace");
@@ -203,8 +221,8 @@ You can set the options on how the driver connects to the nodes and the executio
 var cluster = Cluster
   .Builder()
   .AddContactPoints(hosts)
-  .WithCompression(CompressionType.LZ4)
-  .WithLoadBalancingPolicy(new DCAwareRoundRobinPolicy("west"));
+  .WithLocalDatacenter("west")
+  .WithCompression(CompressionType.LZ4);
 
 // Example at statement (simple, bound, batch) level
 var statement = new SimpleStatement(query)
@@ -231,7 +249,6 @@ using Cassandra.DataStax.Auth;
 
 ```csharp
 ICluster cluster = Cluster.Builder()
-    .AddContactPoint("127.0.0.1")
     .WithAuthProvider(new DseGssapiAuthProvider())
     .Build();
 ```
@@ -263,7 +280,6 @@ You can set default graph options when initializing the cluster. They will be us
 
 ```csharp
 ICluster cluster = Cluster.Builder()
-    .AddContactPoint("127.0.0.1")
     .WithGraphOptions(new GraphOptions().SetName("demo"))
     .Build();
 ```

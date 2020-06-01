@@ -373,6 +373,7 @@ namespace Cassandra.Tests.DataStax.Graph
         {
             var config = new TestConfigurationBuilder
             {
+                LocalDatacenter = "dc1",
                 GraphOptions = graphOptions ?? new GraphOptions(),
                 ControlConnectionFactory = new FakeControlConnectionFactory(),
                 ConnectionFactory = new FakeConnectionFactory(),

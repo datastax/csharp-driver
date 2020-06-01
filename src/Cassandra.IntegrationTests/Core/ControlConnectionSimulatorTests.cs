@@ -161,7 +161,7 @@ namespace Cassandra.IntegrationTests.Core
                     new
                     {
                         id = 0,
-                        name = "dc0",
+                        name = "dc1",
                         nodes = cassandraVersions.Select((v, index) => new {id = index, cassandra_version = v})
                     }
                 }

@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28307.329
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29806.167
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "2 - Driver", "2 - Driver", "{EE6E727D-835E-42D1-8E62-081E0B6FAAC2}"
 EndProject
@@ -25,7 +25,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MinimalExample", "SecureCon
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Metrics", "Metrics", "{54250BC7-8110-43AC-BDC1-DADC2B8280A9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AppMetricsGraphite", "Metrics\AppMetricsGraphite\AppMetricsGraphite.csproj", "{7DE1D814-CC97-4B8F-A718-67556EAA4E7C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AppMetricsGraphite", "Metrics\AppMetricsGraphite\AppMetricsGraphite.csproj", "{7DE1D814-CC97-4B8F-A718-67556EAA4E7C}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cassandra.AppMetrics", "..\src\Extensions\Cassandra.AppMetrics\Cassandra.AppMetrics.csproj", "{E08A392D-0251-422C-A804-8699FCEA7D92}"
 EndProject

@@ -115,9 +115,15 @@ namespace Cassandra
         public IReadOnlyDictionary<string, IExecutionProfile> ExecutionProfiles { get; }
 
         /// <summary>
-        /// <see cref="Builder.WithUnresolvedContactPoints"/>
+        /// See <see cref="Builder.WithUnresolvedContactPoints"/>
         /// </summary>
         public bool KeepContactPointsUnresolved { get; }
+        
+        /// <summary>
+        /// See <see cref="Builder.WithLocalDatacenter"/>. If you provide the local datacenter in the
+        /// load balancing policy, this property will return null.
+        /// </summary>
+        public string LocalDatacenter { get; }
 
         /// <summary>
         /// Shared reusable timer
@@ -276,30 +282,33 @@ namespace Cassandra
 
         internal IServerNameResolver ServerNameResolver { get; }
 
+        internal ILocalDatacenterProvider LocalDatacenterProvider { get; }
+
         internal Configuration() :
-            this(Policies.DefaultPolicies,
-                 new ProtocolOptions(),
-                 null,
-                 new SocketOptions(),
-                 new ClientOptions(),
-                 NoneAuthProvider.Instance,
-                 null,
-                 new QueryOptions(),
-                 new DefaultAddressTranslator(),
-                 new Dictionary<string, IExecutionProfile>(),
-                 null,
-                 null,
-                 null,
-                 null,
-                 null,
-                 null,
-                 null,
-                 null,
-                 null,
-                 null,
-                 null,
-                 null,
-                 null)
+            this(policies: Policies.DefaultPolicies,
+                 protocolOptions: new ProtocolOptions(),
+                 poolingOptions: null,
+                 socketOptions: new SocketOptions(),
+                 clientOptions: new ClientOptions(),
+                 authProvider: NoneAuthProvider.Instance,
+                 authInfoProvider: null,
+                 queryOptions: new QueryOptions(),
+                 addressTranslator: new DefaultAddressTranslator(),
+                 executionProfiles: new Dictionary<string, IExecutionProfile>(),
+                 metadataSyncOptions: null,
+                 endPointResolver: null,
+                 driverMetricsProvider: null,
+                 metricsOptions: null,
+                 sessionName: null,
+                 graphOptions: null,
+                 clusterId: null,
+                 appVersion: null,
+                 appName: null,
+                 monitorReportingOptions: null,
+                 typeSerializerDefinitions: null,
+                 keepContactPointsUnresolved: null,
+                 allowBetaProtocolVersions: null,
+                 localDatacenter: null)
         {
         }
 
@@ -330,6 +339,7 @@ namespace Cassandra
                                TypeSerializerDefinitions typeSerializerDefinitions,
                                bool? keepContactPointsUnresolved,
                                bool? allowBetaProtocolVersions,
+                               string localDatacenter,
                                ISessionFactory sessionFactory = null,
                                IRequestOptionsMapper requestOptionsMapper = null,
                                IStartupOptionsFactory startupOptionsFactory = null,
@@ -351,7 +361,8 @@ namespace Cassandra
                                ISchemaParserFactory schemaParserFactory = null,
                                ISupportedOptionsInitializerFactory supportedOptionsInitializerFactory = null,
                                IProtocolVersionNegotiator protocolVersionNegotiator = null,
-                               IServerEventsSubscriber serverEventsSubscriber = null)
+                               IServerEventsSubscriber serverEventsSubscriber = null,
+                               ILocalDatacenterProvider localDatacenterProvider = null)
         {
             AddressTranslator = addressTranslator ?? throw new ArgumentNullException(nameof(addressTranslator));
             QueryOptions = queryOptions ?? throw new ArgumentNullException(nameof(queryOptions));
@@ -400,6 +411,7 @@ namespace Cassandra
 
             RequestOptions = RequestOptionsMapper.BuildRequestOptionsDictionary(executionProfiles, policies, socketOptions, clientOptions, queryOptions, GraphOptions);
             ExecutionProfiles = BuildExecutionProfilesDictionary(executionProfiles, RequestOptions);
+            LocalDatacenter = localDatacenter;
             
             MonitorReportingOptions = monitorReportingOptions ?? new MonitorReportingOptions();
             InsightsSupportVerifier = insightsSupportVerifier ?? Configuration.DefaultInsightsSupportVerifier;
@@ -407,6 +419,7 @@ namespace Cassandra
             ServerNameResolver = serverNameResolver ?? new ServerNameResolver(ProtocolOptions);
             EndPointResolver = endPointResolver ?? new EndPointResolver(ServerNameResolver);
             ContactPointParser = contactPointParser ?? new ContactPointParser(DnsResolver, ProtocolOptions, ServerNameResolver, KeepContactPointsUnresolved);
+            LocalDatacenterProvider = localDatacenterProvider ?? new LocalDatacenterProvider();
 
             // Create the buffer pool with 16KB for small buffers and 256Kb for large buffers.
             // The pool does not eagerly reserve the buffers, so it doesn't take unnecessary memory

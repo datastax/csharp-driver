@@ -1,5 +1,22 @@
 # ChangeLog - DataStax C# Driver
 
+## 4.0.0
+
+TBD
+
+### Features
+
+*   [[CSHARP-911](https://datastax-oss.atlassian.net/browse/CSHARP-911)] - Attempt to connect to localhost if no contact point is provided
+
+### Improvements
+
+*   [[CSHARP-596](https://datastax-oss.atlassian.net/browse/CSHARP-596)] - DcAwareLoadBalancingPolicy: Throw when local datacenter is not specified
+*   [[CSHARP-722](https://datastax-oss.atlassian.net/browse/CSHARP-722)] - Remove usedHostsPerRemoteDc from DCAwareRoundRobinPolicy
+
+### Bug fixes
+
+### Documentation
+
 ## 3.15.0
 
 2020-05-12

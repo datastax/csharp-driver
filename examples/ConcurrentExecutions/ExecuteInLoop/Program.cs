@@ -52,8 +52,7 @@ namespace ExecuteInLoop
             // build cluster
             _cluster =
                 Cluster.Builder()
-                    .AddContactPoint("127.0.0.1")
-                    .WithLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy("datacenter1")))
+                    .WithLocalDatacenter("datacenter1")
                     .Build();
 
             // create session

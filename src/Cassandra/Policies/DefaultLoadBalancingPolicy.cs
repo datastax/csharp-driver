@@ -41,6 +41,11 @@ namespace Cassandra
         {
             ChildPolicy = childPolicy ?? throw new ArgumentNullException(nameof(childPolicy));
         }
+
+        internal DefaultLoadBalancingPolicy(bool inferLocalDc)
+        {
+            ChildPolicy = new TokenAwarePolicy(new DCAwareRoundRobinPolicy(inferLocalDc: inferLocalDc));
+        }
         
         /// <summary>
         ///  Creates a new datacenter aware round robin policy given the name of the local

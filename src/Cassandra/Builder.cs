@@ -80,6 +80,7 @@ namespace Cassandra
         private bool _addedLbp;
         private bool? _keepContactPointsUnresolved;
         private bool? _allowBetaProtocolVersions;
+        private string _localDatacenter;
 
         public Builder()
         {
@@ -202,7 +203,8 @@ namespace Cassandra
                 _monitorReportingOptions,
                 typeSerializerDefinitions,
                 _keepContactPointsUnresolved,
-                _allowBetaProtocolVersions);
+                _allowBetaProtocolVersions,
+                _localDatacenter);
 
             return config;
         }
@@ -1005,6 +1007,16 @@ namespace Cassandra
         /// This makes it easier to change settings like ConsistencyLevel and ReadTimeoutMillis on a per request basis.
         /// </para>
         /// <para>
+        /// If the profile is not specified when you execute a request, the driver will use the profile with name "default".
+        /// This default profile inherits all the values set at the Builder level and you can configure this profile the same way as you would create a new execution profile.
+        /// This means that you can configure several settings through this method instead of the Builder level methods.
+        /// </para>
+        /// <para>
+        /// For more information on the default settings for execution profiles, see the API docs of <see cref="IExecutionProfileBuilder"/>.
+        /// There's also a section in the "Execution Profiles" page of the driver manual called "Mapping Legacy Parameters to Profiles". This section
+        /// explains how the "default" profile configuration replaces several builder level configuration methods.
+        /// </para>
+        /// <para>
         /// Note that subsequent calls to this method will override the previously provided profiles.
         /// </para>
         /// <para>
@@ -1129,6 +1141,34 @@ namespace Cassandra
         public Builder WithCloudSecureConnectionBundle(string bundlePath)
         {
             _bundlePath = bundlePath;
+            return this;
+        }
+
+        /// <summary>
+        /// <para>
+        /// The local datacenter. It is mandatory to provide this parameter either through this method
+        /// or through the load balancing policy (see <see cref="Policies.NewDefaultLoadBalancingPolicy"/>).
+        /// If it is set in both places, then the local datacenter on the load balancing policy is used.
+        /// </para>
+        /// <para>
+        /// If the load balancing policy is not Datacenter aware, then this setting is not required. The default
+        /// policy is datacenter aware so if you don't set the load balancing policy you have to call this
+        /// method to provide the local datacenter otherwise an error will be thrown.
+        /// </para>
+        /// <para>
+        /// If you don't provide any contact points, then this setting is not required because the driver will
+        /// attempt to connect to a node on localhost and assume that node's datacenter.
+        /// </para>
+        /// </summary>
+        /// <returns>This Builder.</returns>
+        public Builder WithLocalDatacenter(string localDc)
+        {
+            if (string.IsNullOrEmpty(localDc))
+            {
+                throw new ArgumentNullException(nameof(localDc));
+            }
+
+            _localDatacenter = localDc;
             return this;
         }
 
@@ -1261,14 +1301,10 @@ namespace Cassandra
             {
                 if (clusterMetadata.ContactInfo.LocalDc == null)
                 {
-                    Builder.Logger.Warning("Not setting localDc property of DCAwareRoundRobinPolicy because the driver could not" +
-                                                     "obtain it from the cluster metadata.");
-                    builder = builder.WithLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy()));
+                    throw new DriverInternalError("The driver was not able to obtain the local datacenter from the cluster metadata.");
                 }
-                else
-                {
-                    builder = builder.WithLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy(clusterMetadata.ContactInfo.LocalDc)));
-                }
+
+                builder = builder.WithLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy(clusterMetadata.ContactInfo.LocalDc)));
             }
 
             builder = builder.WithSSL(sslOptions)

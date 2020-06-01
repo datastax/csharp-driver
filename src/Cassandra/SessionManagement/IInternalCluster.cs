@@ -35,6 +35,12 @@ namespace Cassandra.SessionManagement
         IControlConnection GetControlConnection();
 
         /// <summary>
+        /// If contact points are not provided in the builder, the driver will use localhost
+        /// as an implicit contact point.
+        /// </summary>
+        bool ImplicitContactPoint { get; }
+
+        /// <summary>
         /// Gets the the prepared statements cache
         /// </summary>
         ConcurrentDictionary<byte[], PreparedStatement> PreparedQueries { get; }
