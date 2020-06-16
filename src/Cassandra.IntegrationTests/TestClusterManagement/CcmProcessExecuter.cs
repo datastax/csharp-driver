@@ -16,6 +16,10 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using Cassandra.IntegrationTests.TestBase;
 
 namespace Cassandra.IntegrationTests.TestClusterManagement
@@ -81,39 +85,85 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 
                 process.Start();
 
+                var processEndTokenSource = new CancellationTokenSource();
+                var timeoutTokenSource = new CancellationTokenSource();
+
+                var tStandardOutput = CcmProcessExecuter.ReadStreamAsync(
+                    process.StandardOutput, processEndTokenSource.Token, timeoutTokenSource.Token);
+                var tStandardError = CcmProcessExecuter.ReadStreamAsync(
+                    process.StandardError, processEndTokenSource.Token, timeoutTokenSource.Token);
+
                 if (process.WaitForExit(timeout))
                 {
                     // Process completed.
                     output.ExitCode = process.ExitCode;
+                    processEndTokenSource.Cancel();
+
+                    // process terminated normally, give some time for streams to catch up
+                    // (note that usually this will happen instantly and this 5 second timeout won't be necessary)
+                    timeoutTokenSource.CancelAfter(5000);
                 }
                 else
                 {
                     // Timed out.
                     output.ExitCode = -1;
+                    processEndTokenSource.Cancel();
+                    timeoutTokenSource.Cancel();
                 }
+                var stdOut = tStandardOutput.GetAwaiter().GetResult();
+                var stdErr = tStandardError.GetAwaiter().GetResult();
 
-                try
-                {
-                    process.CancelOutputRead();
-                }
-                catch
-                {
-                    // ignored
-                }
-
-                try
-                {
-                    process.CancelErrorRead();
-                }
-                catch
-                {
-                    // ignored
-                }
-
-                output.SetOutput(process.StandardOutput.ReadToEnd() + 
-                                 Environment.NewLine + "STDERR:" + Environment.NewLine + process.StandardError.ReadToEnd());
+                output.SetOutput(stdOut + Environment.NewLine + 
+                                 "STDERR:" + Environment.NewLine + 
+                                 stdErr);
             }
             return output;
+        }
+
+        private static async Task<string> ReadStreamAsync(
+            StreamReader stream, CancellationToken endProcessToken, CancellationToken timeoutToken)
+        {
+            const int bufLength = 1024;
+            var stringBuilder = new StringBuilder();
+            var buf = new char[bufLength];
+            try
+            {
+                while (!endProcessToken.IsCancellationRequested)
+                {
+                    while (!endProcessToken.IsCancellationRequested)
+                    {
+                        var read = await Task.Run(
+                            () => stream.ReadAsync(buf, 0, bufLength), 
+                            timeoutToken).ConfigureAwait(false);
+                        if (read <= 0)
+                        {
+                            break;
+                        }
+
+                        stringBuilder.Append(buf, 0, read);
+                    }
+
+                    await Task.Delay(500, endProcessToken).ConfigureAwait(false);
+                }
+            }
+            catch
+            {
+                // ignored
+            }
+
+            try
+            {
+                var readEnd = await Task.Run(
+                    stream.ReadToEndAsync, 
+                    timeoutToken).ConfigureAwait(false);
+                stringBuilder.Append(readEnd);
+            }
+            catch
+            {
+                // ignored
+            }
+
+            return stringBuilder.ToString();
         }
     }
 }
