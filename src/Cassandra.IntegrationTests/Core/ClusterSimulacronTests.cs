@@ -16,6 +16,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Threading;
@@ -39,44 +40,63 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public async Task Cluster_Should_StopSendingPeersV2Requests_When_InvalidQueryIsThrown()
         {
-            TestCluster.PrimeFluent(
-                p => p.WhenQuery("SELECT * FROM system.peers_v2")
-                      .ThenServerError(ServerError.Invalid, "error"));
+            var oldLevel = Diagnostics.CassandraTraceSwitch.Level;
+            var listener = new TestTraceListener();
+            Trace.Listeners.Add(listener);
+            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;
 
-            SetupNewSession(b => b.WithPoolingOptions(new PoolingOptions().SetHeartBeatInterval(3000)));
+            try
+            {
+                TestCluster.PrimeFluent(
+                    p => p.WhenQuery("SELECT * FROM system.peers_v2")
+                          .ThenServerError(ServerError.Invalid, "error"));
 
-            var peersV2Queries = TestCluster.GetQueries("SELECT * FROM system.peers_v2");
-            var peersQueries = TestCluster.GetQueries("SELECT * FROM system.peers");
+                SetupNewSession(b => b.WithPoolingOptions(new PoolingOptions().SetHeartBeatInterval(3000)));
 
-            await TestCluster.GetNode(Session.Cluster.Metadata.ControlConnection.Host.Address).Stop().ConfigureAwait(false);
+                var peersV2Queries = TestCluster.GetQueries("SELECT * FROM system.peers_v2");
+                var peersQueries = TestCluster.GetQueries("SELECT * FROM system.peers");
 
-            // wait until control connection reconnection is done
-            TestHelper.RetryAssert(
-                () =>
-                {
-                    Assert.AreEqual(1, Session.Cluster.AllHosts().Count(h => !h.IsUp));
-                    Assert.IsTrue(Session.Cluster.Metadata.ControlConnection.Host.IsUp);
-                },
-                200,
-                100);
+                await TestCluster.GetNode(Session.Cluster.Metadata.ControlConnection.Host.Address).Stop().ConfigureAwait(false);
 
-            await TestCluster.GetNode(Session.Cluster.Metadata.ControlConnection.Host.Address).Stop().ConfigureAwait(false);
+                // wait until control connection reconnection is done
+                TestHelper.RetryAssert(
+                    () =>
+                    {
+                        Assert.AreEqual(1, Session.Cluster.AllHosts().Count(h => !h.IsUp));
+                        Assert.IsTrue(Session.Cluster.Metadata.ControlConnection.Host.IsUp);
+                    },
+                    200,
+                    100);
 
-            // wait until control connection reconnection is done
-            TestHelper.RetryAssert(
-                () =>
-                {
-                    Assert.AreEqual(2, Session.Cluster.AllHosts().Count(h => !h.IsUp));
-                    Assert.IsTrue(Session.Cluster.Metadata.ControlConnection.Host.IsUp);
-                },
-                200,
-                100);
+                await TestCluster.GetNode(Session.Cluster.Metadata.ControlConnection.Host.Address).Stop().ConfigureAwait(false);
 
-            var afterPeersV2Queries = TestCluster.GetQueries("SELECT * FROM system.peers_v2");
-            var afterPeersQueries = TestCluster.GetQueries("SELECT * FROM system.peers");
+                // wait until control connection reconnection is done
+                TestHelper.RetryAssert(
+                    () =>
+                    {
+                        Assert.AreEqual(2, Session.Cluster.AllHosts().Count(h => !h.IsUp));
+                        Assert.IsTrue(Session.Cluster.Metadata.ControlConnection.Host.IsUp);
+                    },
+                    200,
+                    100);
 
-            Assert.AreEqual(peersV2Queries.Count, afterPeersV2Queries.Count);
-            Assert.AreEqual(peersQueries.Count + 2, afterPeersQueries.Count);
+                var afterPeersV2Queries = TestCluster.GetQueries("SELECT * FROM system.peers_v2");
+                var afterPeersQueries = TestCluster.GetQueries("SELECT * FROM system.peers");
+
+                Assert.AreEqual(peersV2Queries.Count, afterPeersV2Queries.Count);
+                Assert.AreEqual(peersQueries.Count + 2, afterPeersQueries.Count);
+
+            }
+            catch (Exception ex)
+            {
+                Trace.Flush();
+                Assert.Fail(ex.ToString() + Environment.NewLine + string.Join(Environment.NewLine, listener.Queue.ToList()));
+            }
+            finally
+            {
+                Trace.Listeners.Remove(listener);
+                Diagnostics.CassandraTraceSwitch.Level = oldLevel;
+            }
         }
 
         [Test]
