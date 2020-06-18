@@ -101,12 +101,12 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
         public void WaitForWorkers(int expectedWorkers)
         {
             Trace.TraceInformation("GraphMultiNodeTests: WaitForWorkers");
-            var master = FindSparkMaster();
+            var primary = FindSparkPrimary();
             var client = new HttpClient();
             var count = 100;
             while (count > 0)
             {
-                var task = client.GetAsync(string.Format("http://{0}:7080", master));
+                var task = client.GetAsync(string.Format("http://{0}:7080", primary));
                 task.Wait(5000);
                 var response = task.Result;
                 if (response.StatusCode == HttpStatusCode.OK)
@@ -136,9 +136,9 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
             }
         }
 
-        public string FindSparkMaster()
+        public string FindSparkPrimary()
         {
-            Trace.TraceInformation("GraphMultiNodeTests: FindSparkMaster");
+            Trace.TraceInformation("GraphMultiNodeTests: FindSparkPrimary");
             using (var cluster = ClusterBuilder()
                         .AddContactPoint(TestClusterManager.InitialContactPoint)
                         .WithLoadBalancingPolicy(Cassandra.Policies.DefaultLoadBalancingPolicy)
@@ -155,11 +155,11 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
         }
         
         [Test, TestDseVersion(5, 0)]
-        public void Should_Contact_Spark_Master_Directly()
+        public void Should_Contact_Spark_Primary_Directly()
         {
             PrepareForSparkTest(_testCluster);
-            Trace.TraceInformation("GraphMultiNodeTests: Should_Contact_Spark_Master_Directly");
-            var sparkHost = FindSparkMaster();
+            Trace.TraceInformation("GraphMultiNodeTests: Should_Contact_Spark_Primary_Directly");
+            var sparkHost = FindSparkPrimary();
 
             using (var cluster = ClusterBuilder()
                 .AddContactPoint(TestClusterManager.InitialContactPoint)
