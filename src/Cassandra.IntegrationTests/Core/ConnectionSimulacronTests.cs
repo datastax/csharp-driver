@@ -162,7 +162,7 @@ namespace Cassandra.IntegrationTests.Core
                  .WithExecutionProfiles(opt => opt
                      .WithProfile(profileName, profile => profile
                          .WithLoadBalancingPolicy(
-                             new TestBlackListLbp(
+                             new TestDisallowListLbp(
                                  Cassandra.Policies.NewDefaultLoadBalancingPolicy("dc1"))))));
 
             var maxRequestsPerConnection =
@@ -365,15 +365,15 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        private class TestBlackListLbp : ILoadBalancingPolicy
+        private class TestDisallowListLbp : ILoadBalancingPolicy
         {
             private readonly ILoadBalancingPolicy _parent;
-            private readonly IPEndPoint[] _blacklisted;
+            private readonly IPEndPoint[] _disallowed;
 
-            public TestBlackListLbp(ILoadBalancingPolicy parent, params IPEndPoint[] blacklisted)
+            public TestDisallowListLbp(ILoadBalancingPolicy parent, params IPEndPoint[] disallowed)
             {
                 _parent = parent;
-                _blacklisted = blacklisted;
+                _disallowed = disallowed;
             }
 
             public void Initialize(ICluster cluster)
@@ -389,7 +389,7 @@ namespace Cassandra.IntegrationTests.Core
             public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
             {
                 var plan = _parent.NewQueryPlan(keyspace, query);
-                return plan.Where(h => !_blacklisted.Contains(h.Address));
+                return plan.Where(h => !_disallowed.Contains(h.Address));
             }
         }
     }

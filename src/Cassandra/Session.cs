@@ -530,12 +530,12 @@ namespace Cassandra
         {
             var requestOptions = InternalRef.GetRequestOptions(executionProfileName);
             var stmt = graphStatement.ToIStatement(requestOptions.GraphOptions);
-            await GetAnalyticsMaster(stmt, graphStatement, requestOptions).ConfigureAwait(false);
+            await GetAnalyticsPrimary(stmt, graphStatement, requestOptions).ConfigureAwait(false);
             var rs = await ExecuteAsync(stmt, requestOptions).ConfigureAwait(false);
             return GraphResultSet.CreateNew(rs, graphStatement, requestOptions.GraphOptions);
         }
 
-        private async Task<IStatement> GetAnalyticsMaster(
+        private async Task<IStatement> GetAnalyticsPrimary(
             IStatement statement, IGraphStatement graphStatement, IRequestOptions requestOptions)
         {
             if (!(statement is TargettedSimpleStatement) || !requestOptions.GraphOptions.IsAnalyticsQuery(graphStatement))
@@ -557,10 +557,10 @@ namespace Cassandra
                 return statement;
             }
 
-            return AdaptRpcMasterResult(rs, targetedSimpleStatement);
+            return AdaptRpcPrimaryResult(rs, targetedSimpleStatement);
         }
 
-        private IStatement AdaptRpcMasterResult(RowSet rowSet, TargettedSimpleStatement statement)
+        private IStatement AdaptRpcPrimaryResult(RowSet rowSet, TargettedSimpleStatement statement)
         {
             var row = rowSet.FirstOrDefault();
             if (row == null)
