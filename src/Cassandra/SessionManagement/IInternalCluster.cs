@@ -27,6 +27,8 @@ namespace Cassandra.SessionManagement
     /// <inheritdoc />
     internal interface IInternalCluster : ICluster
     {
+        ISerializerManager SerializerManager { get; }
+
         bool AnyOpenConnections(Host host);
 
         /// <summary>
@@ -51,7 +53,7 @@ namespace Cassandra.SessionManagement
         /// parallel.
         /// In case the statement was already in the prepared statements cache, logs an warning but prepares it anyway.
         /// </summary>
-        Task<PreparedStatement> Prepare(IInternalSession session, ISerializerManager serializerManager, PrepareRequest request);
+        Task<PreparedStatement> PrepareAsync(IInternalSession session, string cqlQuery, string keyspace, IDictionary<string, byte[]> customPayload);
         
         IReadOnlyDictionary<IContactPoint, IEnumerable<IConnectionEndPoint>> GetResolvedEndpoints();
 
@@ -59,5 +61,10 @@ namespace Cassandra.SessionManagement
         /// Helper method to retrieve the aggregate distance from all configured LoadBalancingPolicies and set it at Host level.
         /// </summary>
         HostDistance RetrieveAndSetDistance(Host host);
+        
+        /// <summary>
+        /// Initializes once (Thread-safe) the control connection and returns the metadata associated with the Cluster instance
+        /// </summary>
+        Task<Metadata> TryInitAndGetMetadataAsync();
     }
 }

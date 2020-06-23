@@ -26,6 +26,7 @@ using Cassandra.Connections;
 using Cassandra.Connections.Control;
 using Cassandra.MetadataHelpers;
 using Cassandra.Requests;
+using Cassandra.Serialization;
 using Cassandra.Tasks;
 
 namespace Cassandra
@@ -34,11 +35,12 @@ namespace Cassandra
     ///  Keeps metadata on the connected cluster, including known nodes and schema
     ///  definitions.
     /// </summary>
-    public class Metadata : IDisposable
+    public class Metadata
     {
         private const string SelectSchemaVersionPeers = "SELECT schema_version FROM system.peers";
         private const string SelectSchemaVersionLocal = "SELECT schema_version FROM system.local";
         private static readonly Logger Logger = new Logger(typeof(ControlConnection));
+        private readonly ISerializerManager _serializerManager;
         private volatile TokenMap _tokenMap;
         private volatile ConcurrentDictionary<string, KeyspaceMetadata> _keyspaces = new ConcurrentDictionary<string, KeyspaceMetadata>();
         private volatile ISchemaParser _schemaParser;
@@ -60,6 +62,16 @@ namespace Cassandra
         /// Determines whether the cluster is provided as a service (DataStax Astra).
         /// </summary>
         public bool IsDbaas { get; private set; } = false;
+        
+        /// <summary>
+        /// Event that gets triggered when a new host is added to the cluster
+        /// </summary>
+        public event Action<Host> HostAdded;
+
+        /// <summary>
+        /// Event that gets triggered when a host has been removed from the cluster
+        /// </summary>
+        public event Action<Host> HostRemoved;
 
         /// <summary>
         /// Gets the configuration associated with this instance.
@@ -69,7 +81,14 @@ namespace Cassandra
         /// <summary>
         /// Control connection to be used to execute the queries to retrieve the metadata
         /// </summary>
-        internal IControlConnection ControlConnection { get; set; }
+        internal IControlConnection ControlConnection { get; }
+        
+        /// <summary>
+        /// Gets the Cassandra native binary protocol version
+        /// </summary>
+        public ProtocolVersion ProtocolVersion => _serializerManager.GetCurrentSerializer().ProtocolVersion;
+
+        internal ISerializerManager SerializerManager => _serializerManager;
 
         internal ISchemaParser SchemaParser { get { return _schemaParser; } }
 
@@ -81,28 +100,40 @@ namespace Cassandra
 
         internal IReadOnlyTokenMap TokenToReplicasMap => _tokenMap;
 
-        internal Metadata(Configuration configuration)
+        internal Metadata(Configuration configuration, ISerializerManager serializerManager, IControlConnection controlConnection)
         {
+            _serializerManager = serializerManager;
             _queryAbortTimeout = configuration.DefaultRequestOptions.QueryAbortTimeout;
             Configuration = configuration;
             Hosts = new Hosts();
             Hosts.Down += OnHostDown;
             Hosts.Up += OnHostUp;
+            ControlConnection = controlConnection;
         }
 
-        internal Metadata(Configuration configuration, SchemaParser schemaParser) : this(configuration)
+        internal Metadata(
+            Configuration configuration, 
+            ISerializerManager serializerManager, 
+            IControlConnection controlConnection, 
+            SchemaParser schemaParser) 
+            : this(configuration, serializerManager, controlConnection)
         {
             _schemaParser = schemaParser;
-        }
-
-        public void Dispose()
-        {
-            ShutDown();
         }
 
         internal void SetResolvedContactPoints(IDictionary<IContactPoint, IEnumerable<IConnectionEndPoint>> resolvedContactPoints)
         {
             _resolvedContactPoints = new CopyOnWriteDictionary<IContactPoint, IEnumerable<IConnectionEndPoint>>(resolvedContactPoints);
+        }
+        
+        internal void OnHostRemoved(Host h)
+        {
+            HostRemoved?.Invoke(h);
+        }
+
+        internal void OnHostAdded(Host h)
+        {
+            HostAdded?.Invoke(h);
         }
 
         public Host GetHost(IPEndPoint address)
@@ -433,17 +464,19 @@ namespace Cassandra
         {
             return _schemaParser.GetQueryTraceAsync(trace, Configuration.Timer);
         }
-
+        
         /// <summary>
-        /// Updates the keyspace and token information
+        /// Updates keyspace metadata (including token metadata for token aware routing) for a given keyspace or a specific keyspace table.
+        /// If no keyspace is provided then this method will update the metadata and token map for all the keyspaces of the cluster.
         /// </summary>
         public bool RefreshSchema(string keyspace = null, string table = null)
         {
             return TaskHelper.WaitToComplete(RefreshSchemaAsync(keyspace, table), Configuration.DefaultRequestOptions.QueryAbortTimeout * 2);
         }
-
+        
         /// <summary>
-        /// Updates the keyspace and token information
+        /// Updates keyspace metadata (including token metadata for token aware routing) for a given keyspace or a specific keyspace table.
+        /// If no keyspace is provided then this method will update the metadata and token map for all the keyspaces of the cluster.
         /// </summary>
         public async Task<bool> RefreshSchemaAsync(string keyspace = null, string table = null)
         {
@@ -466,14 +499,7 @@ namespace Cassandra
             }
             return true;
         }
-
-        public void ShutDown(int timeoutMs = Timeout.Infinite)
-        {
-            //it is really not required to be called, left as it is part of the public API
-            //dereference the control connection
-            ControlConnection = null;
-        }
-
+        
         /// <summary>
         /// this method should be called by the event debouncer
         /// </summary>
@@ -592,7 +618,7 @@ namespace Cassandra
         /// Waits until that the schema version in all nodes is the same or the waiting time passed.
         /// This method blocks the calling thread.
         /// </summary>
-        internal bool WaitForSchemaAgreement(IConnection connection)
+        internal async Task<bool> WaitForSchemaAgreementAsync(IConnection connection)
         {
             if (Hosts.Count == 1)
             {
@@ -607,7 +633,7 @@ namespace Cassandra
                 var totalVersions = 0;
                 while (DateTime.Now.Subtract(start).TotalSeconds < waitSeconds)
                 {
-                    var serializer = ControlConnection.Serializer.GetCurrentSerializer();
+                    var serializer = _serializerManager.GetCurrentSerializer();
                     var schemaVersionLocalQuery = 
                         new QueryRequest(
                             serializer, 
@@ -624,16 +650,16 @@ namespace Cassandra
                             null);
                     var queries = new[] { connection.Send(schemaVersionLocalQuery), connection.Send(schemaVersionPeersQuery) };
                     // ReSharper disable once CoVariantArrayConversion
-                    Task.WaitAll(queries, Configuration.DefaultRequestOptions.QueryAbortTimeout);
+                    await Task.WhenAll(queries);
 
                     if (Metadata.CheckSchemaVersionResults(
-                        Configuration.MetadataRequestHandler.GetRowSet(queries[0].Result),
-                        Configuration.MetadataRequestHandler.GetRowSet(queries[1].Result)))
+                        Configuration.MetadataRequestHandler.GetRowSet(await queries[0].ConfigureAwait(false)),
+                        Configuration.MetadataRequestHandler.GetRowSet(await queries[1].ConfigureAwait(false))))
                     {
                         return true;
                     }
 
-                    Thread.Sleep(500);
+                    await Task.Delay(500).ConfigureAwait(false);
                 }
                 Metadata.Logger.Info($"Waited for schema agreement, still {totalVersions} schema versions in the cluster.");
             }

@@ -20,6 +20,7 @@ using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Cassandra.Mapping;
 using Cassandra.Mapping.Statements;
+using Cassandra.Tasks;
 
 namespace Cassandra.Data.Linq
 {
@@ -150,12 +151,7 @@ namespace Cassandra.Data.Linq
 
         public void Create()
         {
-            var serializer = _session.Cluster.Metadata.ControlConnection.Serializer.GetCurrentSerializer();
-            var cqlQueries = CqlGenerator.GetCreate(serializer, PocoData, Name, KeyspaceName, false);
-            foreach (var cql in cqlQueries)
-            {
-                _session.Execute(cql);
-            }
+            WaitToCompleteWithMetrics(CreateAsync(), QueryAbortTimeout);
         }
 
         public void CreateIfNotExists()
@@ -172,7 +168,8 @@ namespace Cassandra.Data.Linq
 
         public async Task CreateAsync()
         {
-            var serializer = _session.Cluster.Metadata.ControlConnection.Serializer.GetCurrentSerializer();
+            var metadata = await _session.Cluster.GetMetadataAsync().ConfigureAwait(false);
+            var serializer = metadata.SerializerManager.GetCurrentSerializer();
             var cqlQueries = CqlGenerator.GetCreate(serializer, PocoData, Name, KeyspaceName, false);
             foreach (var cql in cqlQueries)
             {

@@ -21,7 +21,7 @@ namespace Cassandra.DataStax.Insights
 {
     internal interface IInsightsClient : IDisposable
     {
-        void Init();
+        Task InitializeAsync();
 
         Task ShutdownAsync();
     }

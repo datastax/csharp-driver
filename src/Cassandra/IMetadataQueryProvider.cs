@@ -28,8 +28,6 @@ namespace Cassandra
     /// </summary>
     internal interface IMetadataQueryProvider
     {
-        ProtocolVersion ProtocolVersion { get; }
-
         /// <summary>
         /// The address of the endpoint used by the ControlConnection
         /// </summary>
@@ -39,9 +37,7 @@ namespace Cassandra
         /// The local address of the socket used by the ControlConnection
         /// </summary>
         IPEndPoint LocalAddress { get; }
-
-        ISerializerManager Serializer { get; }
-
+        
         Task<IEnumerable<IRow>> QueryAsync(string cqlQuery, bool retry = false);
 
         Task<Response> SendQueryRequestAsync(string cqlQuery, bool retry, QueryProtocolOptions queryProtocolOptions);

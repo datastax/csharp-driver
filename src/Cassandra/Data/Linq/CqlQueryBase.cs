@@ -197,5 +197,10 @@ namespace Cassandra.Data.Linq
         {
             return TaskHelper.WaitToCompleteWithMetrics(_metricsManager, task, timeout);
         }
+
+        internal void WaitToCompleteWithMetrics(Task task, int timeout = Timeout.Infinite)
+        {
+            TaskHelper.WaitToCompleteWithMetrics(_metricsManager, task, timeout);
+        }
     }
 }

@@ -39,19 +39,22 @@ namespace Cassandra
     /// <inheritdoc cref="ISession" />
     public class Session : IInternalSession
     {
-        private readonly ISerializerManager _serializerManager;
+        private const int Disposed = 10;
+        private const int Initialized = 5;
+        private const int Initializing = 1;
+
         private static readonly Logger Logger = new Logger(typeof(Session));
         private readonly IThreadSafeDictionary<IPEndPoint, IHostConnectionPool> _connectionPool;
         private readonly IInternalCluster _cluster;
-        private int _disposed;
         private volatile string _keyspace;
         private readonly IMetricsManager _metricsManager;
         private readonly IObserverFactory _observerFactory;
         private readonly IInsightsClient _insightsClient;
 
-        internal IInternalSession InternalRef => this;
+        private readonly Task<Metadata> _initTask;
+        private long _state = Session.Initializing;
 
-        public int BinaryProtocolVersion => (int)_serializerManager.GetCurrentSerializer().ProtocolVersion;
+        internal IInternalSession InternalRef => this;
 
         /// <inheritdoc />
         public ICluster Cluster => _cluster;
@@ -70,7 +73,7 @@ namespace Cassandra
         /// <summary>
         /// Determines if the session is already disposed
         /// </summary>
-        public bool IsDisposed => Volatile.Read(ref _disposed) > 0;
+        public bool IsDisposed => Interlocked.Read(ref _state) == Session.Disposed;
 
         /// <summary>
         /// Gets or sets the keyspace
@@ -104,20 +107,18 @@ namespace Cassandra
             IInternalCluster cluster,
             Configuration configuration,
             string keyspace,
-            ISerializerManager serializerManager,
             string sessionName)
         {
-            _serializerManager = serializerManager;
             _cluster = cluster;
             Configuration = configuration;
             Keyspace = keyspace;
             SessionName = sessionName;
-            UserDefinedTypes = new UdtMappingDefinitions(this, serializerManager);
             _connectionPool = new CopyOnWriteDictionary<IPEndPoint, IHostConnectionPool>();
-            _cluster.HostRemoved += OnHostRemoved;
             _metricsManager = new MetricsManager(configuration.MetricsProvider, Configuration.MetricsOptions, Configuration.MetricsEnabled, SessionName);
             _observerFactory = configuration.ObserverFactoryBuilder.Build(_metricsManager);
             _insightsClient = configuration.InsightsClientFactory.Create(cluster, this);
+            UserDefinedTypes = new UdtMappingDefinitions(this);
+            _initTask = Task.Run(InitInternalAsync);
         }
 
         /// <inheritdoc />
@@ -151,7 +152,7 @@ namespace Cassandra
         /// <inheritdoc />
         public void CreateKeyspace(string keyspace, Dictionary<string, string> replication = null, bool durableWrites = true)
         {
-            WaitForSchemaAgreement(Execute(CqlQueryTools.GetCreateKeyspaceCql(keyspace, replication, durableWrites, false)));
+            Execute(CqlQueryTools.GetCreateKeyspaceCql(keyspace, replication, durableWrites, false));
             Session.Logger.Info("Keyspace [" + keyspace + "] has been successfully CREATED.");
         }
 
@@ -192,24 +193,31 @@ namespace Cassandra
         {
             ShutdownAsync().GetAwaiter().GetResult();
         }
-        
+
         /// <inheritdoc />
         public async Task ShutdownAsync()
         {
             //Only dispose once
-            if (Interlocked.Increment(ref _disposed) != 1)
+            var previousState = Interlocked.Exchange(ref _state, Session.Disposed);
+            if (previousState == Session.Disposed)
             {
                 return;
             }
 
+            await ShutdownInternalAsync().ConfigureAwait(false);
+        }
+
+        private async Task ShutdownInternalAsync()
+        {
             if (_insightsClient != null)
             {
                 await _insightsClient.ShutdownAsync().ConfigureAwait(false);
             }
 
             _metricsManager?.Dispose();
-
-            _cluster.HostRemoved -= OnHostRemoved;
+            
+            var metadata = await InternalRef.InternalCluster.GetMetadataAsync().ConfigureAwait(false);
+            metadata.HostRemoved -= OnHostRemoved;
 
             var pools = _connectionPool.ToArray();
             foreach (var pool in pools)
@@ -218,34 +226,57 @@ namespace Cassandra
             }
         }
 
-        /// <inheritdoc />
-        async Task IInternalSession.Init()
+        Task<Metadata> IInternalSession.TryInitAndGetMetadataAsync()
         {
-            _metricsManager.InitializeMetrics(this);
-
-            if (Configuration.GetOrCreatePoolingOptions(_serializerManager.CurrentProtocolVersion).GetWarmup())
+            var currentState = Interlocked.Read(ref _state);
+            if (currentState == Session.Disposed)
             {
-                await Warmup().ConfigureAwait(false);
+                throw new ObjectDisposedException("This session object has been disposed.");
+            }
+
+            return _initTask;
+        }
+
+        private async Task<Metadata> InitInternalAsync()
+        {
+            var metadata = await InternalRef.InternalCluster.TryInitAndGetMetadataAsync().ConfigureAwait(false);
+            metadata.HostRemoved += OnHostRemoved;
+            
+            _metricsManager.InitializeMetrics(this);
+            
+            var serializerManager = _cluster.SerializerManager;
+            if (Configuration.GetOrCreatePoolingOptions(serializerManager.CurrentProtocolVersion).GetWarmup())
+            {
+                await WarmupAsync().ConfigureAwait(false);
             }
 
             if (Keyspace != null)
             {
                 // Borrow a connection, trying to fail fast
-                var handler = Configuration.RequestHandlerFactory.Create(this, _serializerManager.GetCurrentSerializer());
+                var handler = Configuration.RequestHandlerFactory.Create(this, metadata, serializerManager.GetCurrentSerializer());
                 await handler.GetNextConnectionAsync(new Dictionary<IPEndPoint, Exception>()).ConfigureAwait(false);
             }
-            
-            _insightsClient.Init();
+
+            await _insightsClient.InitializeAsync().ConfigureAwait(false);
+
+            var previousState = Interlocked.CompareExchange(ref _state, Session.Initialized, Session.Initializing);
+            if (previousState == Session.Disposed)
+            {
+                await ShutdownInternalAsync().ConfigureAwait(false);
+            }
+
+            return metadata;
         }
-        
+
         /// <summary>
         /// Creates the required connections on all hosts in the local DC.
         /// Returns a Task that is marked as completed after all pools were warmed up.
         /// In case, all the host pool warmup fail, it logs an error.
         /// </summary>
-        private async Task Warmup()
+        private async Task WarmupAsync()
         {
-            var hosts = _cluster.AllHosts().Where(h => _cluster.RetrieveAndSetDistance(h) == HostDistance.Local).ToArray();
+            var metadata = await _cluster.GetMetadataAsync().ConfigureAwait(false);
+            var hosts = metadata.AllHosts().Where(h => _cluster.RetrieveAndSetDistance(h) == HostDistance.Local).ToArray();
             var tasks = new Task[hosts.Length];
             for (var i = 0; i < hosts.Length; i++)
             {
@@ -337,10 +368,16 @@ namespace Cassandra
             return ExecuteAsync(statement, InternalRef.GetRequestOptions(executionProfileName));
         }
 
-        private Task<RowSet> ExecuteAsync(IStatement statement, IRequestOptions requestOptions)
+        private async Task<RowSet> ExecuteAsync(IStatement statement, IRequestOptions requestOptions)
+        {
+            var metadata = await InternalRef.TryInitAndGetMetadataAsync().ConfigureAwait(false);
+            return await ExecuteAsync(metadata, statement, requestOptions).ConfigureAwait(false);
+        }
+
+        private Task<RowSet> ExecuteAsync(Metadata metadata, IStatement statement, IRequestOptions requestOptions)
         {
             return Configuration.RequestHandlerFactory
-                                .Create(this, _serializerManager.GetCurrentSerializer(), statement, requestOptions)
+                                .Create(this, metadata, metadata.SerializerManager.GetCurrentSerializer(), statement, requestOptions)
                                 .SendAsync();
         }
 
@@ -350,7 +387,7 @@ namespace Cassandra
             var hostPool = _connectionPool.GetOrAdd(host.Address, address =>
             {
                 var newPool = Configuration.HostConnectionPoolFactory.Create(
-                    host, Configuration, _serializerManager, _observerFactory);
+                    host, Configuration, _cluster.SerializerManager, _observerFactory);
                 newPool.AllConnectionClosed += InternalRef.OnAllConnectionClosed;
                 newPool.SetDistance(distance);
                 _metricsManager.GetOrCreateNodeMetrics(host).InitializePoolGauges(newPool);
@@ -459,26 +496,7 @@ namespace Cassandra
         public async Task<PreparedStatement> PrepareAsync(
             string cqlQuery, string keyspace, IDictionary<string, byte[]> customPayload)
         {
-            var serializer = _serializerManager.GetCurrentSerializer();
-            var currentVersion = serializer.ProtocolVersion;
-            if (!currentVersion.SupportsKeyspaceInRequest() && keyspace != null)
-            {
-                // Validate protocol version here and not at PrepareRequest level, as PrepareRequest can be issued
-                // in the background (prepare and retry, prepare on up, ...)
-                throw new NotSupportedException($"Protocol version {currentVersion} does not support" +
-                                                " setting the keyspace as part of the PREPARE request");
-            }
-            var request = new PrepareRequest(serializer, cqlQuery, keyspace, customPayload);
-            return await _cluster.Prepare(this, _serializerManager, request).ConfigureAwait(false);
-        }
-
-        public void WaitForSchemaAgreement(RowSet rs)
-        {
-        }
-
-        public bool WaitForSchemaAgreement(IPEndPoint hostAddress)
-        {
-            return false;
+            return await _cluster.PrepareAsync(this, cqlQuery, keyspace, customPayload).ConfigureAwait(false);
         }
 
         private IStatement GetDefaultStatement(string cqlQuery)
@@ -506,7 +524,7 @@ namespace Cassandra
                 pool.Dispose();
             }
         }
-        
+
         /// <inheritdoc />
         public GraphResultSet ExecuteGraph(IGraphStatement statement)
         {
@@ -528,15 +546,16 @@ namespace Cassandra
         /// <inheritdoc />
         public async Task<GraphResultSet> ExecuteGraphAsync(IGraphStatement graphStatement, string executionProfileName)
         {
+            var metadata = await InternalRef.TryInitAndGetMetadataAsync().ConfigureAwait(false);
             var requestOptions = InternalRef.GetRequestOptions(executionProfileName);
             var stmt = graphStatement.ToIStatement(requestOptions.GraphOptions);
-            await GetAnalyticsPrimary(stmt, graphStatement, requestOptions).ConfigureAwait(false);
+            await GetAnalyticsPrimary(metadata, stmt, graphStatement, requestOptions).ConfigureAwait(false);
             var rs = await ExecuteAsync(stmt, requestOptions).ConfigureAwait(false);
             return GraphResultSet.CreateNew(rs, graphStatement, requestOptions.GraphOptions);
         }
 
         private async Task<IStatement> GetAnalyticsPrimary(
-            IStatement statement, IGraphStatement graphStatement, IRequestOptions requestOptions)
+            Metadata metadata, IStatement statement, IGraphStatement graphStatement, IRequestOptions requestOptions)
         {
             if (!(statement is TargettedSimpleStatement) || !requestOptions.GraphOptions.IsAnalyticsQuery(graphStatement))
             {
@@ -557,10 +576,10 @@ namespace Cassandra
                 return statement;
             }
 
-            return AdaptRpcPrimaryResult(rs, targetedSimpleStatement);
+            return AdaptRpcPrimaryResult(metadata, rs, targetedSimpleStatement);
         }
 
-        private IStatement AdaptRpcPrimaryResult(RowSet rowSet, TargettedSimpleStatement statement)
+        private IStatement AdaptRpcPrimaryResult(Metadata metadata, RowSet rowSet, TargettedSimpleStatement statement)
         {
             var row = rowSet.FirstOrDefault();
             if (row == null)
@@ -578,7 +597,7 @@ namespace Cassandra
             var hostName = location.Substring(0, location.LastIndexOf(':'));
             var address = Configuration.AddressTranslator.Translate(
                 new IPEndPoint(IPAddress.Parse(hostName), Configuration.ProtocolOptions.Port));
-            var host = Cluster.GetHost(address);
+            var host = metadata.GetHost(address);
             statement.PreferredHost = host;
             return statement;
         }

@@ -21,16 +21,16 @@ namespace Cassandra.DataStax.Insights.InfoProviders.StartupMessage
 {
     internal class DataCentersInfoProvider : IInsightsInfoProvider<HashSet<string>>
     {
-        public HashSet<string> GetInformation(IInternalCluster cluster, IInternalSession session)
+        public HashSet<string> GetInformation(IInternalCluster cluster, IInternalSession session, Metadata metadata)
         {
             var dataCenters = new HashSet<string>();
             var remoteConnectionsLength =
                 cluster
                     .Configuration
-                    .GetOrCreatePoolingOptions(cluster.Metadata.ControlConnection.ProtocolVersion)
+                    .GetOrCreatePoolingOptions(metadata.ProtocolVersion)
                     .GetCoreConnectionsPerHost(HostDistance.Remote);
 
-            foreach (var h in cluster.AllHosts()) 
+            foreach (var h in metadata.AllHosts()) 
             {
                 if (h.Datacenter == null)
                 {

@@ -34,9 +34,9 @@ namespace Cassandra
 
         public ILoadBalancingPolicy LoadBalancingPolicy { get; }
 
-        public void Initialize(ICluster cluster)
+        public void Initialize(Metadata metadata)
         {
-            LoadBalancingPolicy.Initialize(cluster);
+            LoadBalancingPolicy.Initialize(metadata);
         }
 
         public HostDistance Distance(Host host)
@@ -44,12 +44,12 @@ namespace Cassandra
             return LoadBalancingPolicy.Distance(host);
         }
 
-        public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
+        public IEnumerable<Host> NewQueryPlan(Metadata metadata, string keyspace, IStatement query)
         {
             IReconnectionSchedule schedule = ReconnectionPolicy.NewSchedule();
             while (true)
             {
-                IEnumerable<Host> childQueryPlan = LoadBalancingPolicy.NewQueryPlan(keyspace, query);
+                IEnumerable<Host> childQueryPlan = LoadBalancingPolicy.NewQueryPlan(metadata, keyspace, query);
                 foreach (Host host in childQueryPlan)
                     yield return host;
 

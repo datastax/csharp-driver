@@ -14,15 +14,14 @@
 //   limitations under the License.
 //
 
-﻿using System.Collections.Generic;
-using System.Threading;
+using System.Collections.Generic;
 using System.Linq;
-
+using System.Threading;
 
 namespace Cassandra
 {
     /// <summary>
-    ///  A Round-robin load balancing policy. 
+    ///  A Round-robin load balancing policy.
     /// <para> This policy queries nodes in a
     ///  round-robin fashion. For a given query, if an host fail, the next one
     ///  (following the round-robin order) is tried, until all hosts have been tried.
@@ -35,12 +34,10 @@ namespace Cassandra
     /// </summary>
     public class RoundRobinPolicy : ILoadBalancingPolicy
     {
-        ICluster _cluster;
-        int _index;
+        private int _index;
 
-        public void Initialize(ICluster cluster)
+        public void Initialize(Metadata metadata)
         {
-            this._cluster = cluster;
         }
 
         /// <summary>
@@ -62,14 +59,15 @@ namespace Cassandra
         ///  plans returned will cycle over all the host of the cluster in a round-robin
         ///  fashion.</p>
         /// </summary>
+        /// <param name="metadata">The information about the session instance for which the policy is created.</param>
         /// <param name="keyspace">Keyspace on which the query is going to be executed</param>
         /// <param name="query"> the query for which to build the plan. </param>
         /// <returns>a new query plan, i.e. an iterator indicating which host to try
         ///  first for querying, which one to use as failover, etc...</returns>
-        public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
+        public IEnumerable<Host> NewQueryPlan(Metadata metadata, string keyspace, IStatement query)
         {
             //shallow copy the all hosts
-            var hosts = (from h in _cluster.AllHosts() select h).ToArray();
+            var hosts = (from h in metadata.AllHosts() select h).ToArray();
             var startIndex = Interlocked.Increment(ref _index);
 
             //Simplified overflow protection

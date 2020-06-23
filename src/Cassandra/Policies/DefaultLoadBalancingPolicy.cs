@@ -84,29 +84,29 @@ namespace Cassandra
         /// <summary>
         /// Initializes the policy.
         /// </summary>
-        public void Initialize(ICluster cluster)
+        public void Initialize(Metadata metadata)
         {
-            ChildPolicy.Initialize(cluster);
+            ChildPolicy.Initialize(metadata);
         }
 
         /// <summary>
         /// Returns the hosts to used for a query.
         /// </summary>
-        public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement statement)
+        public IEnumerable<Host> NewQueryPlan(Metadata metadata, string keyspace, IStatement statement)
         {
             if (statement is TargettedSimpleStatement targetedStatement && targetedStatement.PreferredHost != null)
             {
                 _lastPreferredHost = targetedStatement.PreferredHost;
-                return YieldPreferred(keyspace, targetedStatement);
+                return YieldPreferred(metadata, keyspace, targetedStatement);
             }
 
-            return ChildPolicy.NewQueryPlan(keyspace, statement);
+            return ChildPolicy.NewQueryPlan(metadata, keyspace, statement);
         }
 
-        private IEnumerable<Host> YieldPreferred(string keyspace, TargettedSimpleStatement statement)
+        private IEnumerable<Host> YieldPreferred(Metadata metadata, string keyspace, TargettedSimpleStatement statement)
         {
             yield return statement.PreferredHost;
-            foreach (var h in ChildPolicy.NewQueryPlan(keyspace, statement))
+            foreach (var h in ChildPolicy.NewQueryPlan(metadata, keyspace, statement))
             {
                 yield return h;
             }

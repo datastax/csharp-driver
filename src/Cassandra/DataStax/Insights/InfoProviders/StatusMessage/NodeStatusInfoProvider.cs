@@ -22,10 +22,11 @@ namespace Cassandra.DataStax.Insights.InfoProviders.StatusMessage
 {
     internal class NodeStatusInfoProvider : IInsightsInfoProvider<Dictionary<string, NodeStatusInfo>>
     {
-        public Dictionary<string, NodeStatusInfo> GetInformation(IInternalCluster cluster, IInternalSession session)
+        public Dictionary<string, NodeStatusInfo> GetInformation(
+            IInternalCluster cluster, IInternalSession session, Metadata metadata)
         {
             var nodeStatusDictionary = new Dictionary<string, NodeStatusInfo>();
-            var state = session.GetState();
+            var state = session.GetState(metadata);
             var connectedHosts = state.GetConnectedHosts();
 
             foreach (var h in connectedHosts)

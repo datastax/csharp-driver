@@ -92,11 +92,11 @@ namespace Cassandra.DataStax.Insights.InfoProviders.StartupMessage
 
         public static IReadOnlyDictionary<Type, Func<object, Dictionary<string, string>, Dictionary<string, string>>> AntiPatternsProviders { get; }
 
-        public Dictionary<string, string> GetInformation(IInternalCluster cluster, IInternalSession session)
+        public Dictionary<string, string> GetInformation(IInternalCluster cluster, IInternalSession session, Metadata metadata)
         {
             var antiPatterns = new Dictionary<string, string>();
 
-            var resolvedContactPoints = cluster.Metadata.ResolvedContactPoints;
+            var resolvedContactPoints = metadata.ResolvedContactPoints;
 
             var contactPointsEndPoints = resolvedContactPoints
                                          .Values
@@ -104,7 +104,7 @@ namespace Cassandra.DataStax.Insights.InfoProviders.StartupMessage
                                          .Select(c => c.GetHostIpEndPointWithFallback())
                                          .ToList();
 
-            var contactPointsHosts = cluster
+            var contactPointsHosts = metadata
                                      .AllHosts()
                                      .Where(host => (host.ContactPoint != null && resolvedContactPoints.ContainsKey(host.ContactPoint)) 
                                                     || contactPointsEndPoints.Contains(host.Address))

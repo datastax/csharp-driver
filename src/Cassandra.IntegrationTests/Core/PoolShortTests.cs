@@ -256,7 +256,7 @@ namespace Cassandra.IntegrationTests.Core
         [TestCase(ProtocolVersion.V2, 2)]
         public async Task PoolingOptions_Create_Based_On_Protocol(ProtocolVersion protocolVersion, int coreConnectionLength)
         {
-            var options1 = PoolingOptions.Create(protocolVersion);
+            var options1 = PoolingOptions.Get(protocolVersion);
             using (var sCluster = SimulacronCluster.CreateNew(new SimulacronOptions()))
             using (var cluster = ClusterBuilder()
                                        .AddContactPoint(sCluster.InitialContactPoint)
@@ -284,7 +284,7 @@ namespace Cassandra.IntegrationTests.Core
         public async Task Should_Create_Core_Connections_To_Hosts_In_Local_Dc_When_Warmup_Is_Enabled()
         {
             const int nodeLength = 4;
-            var poolingOptions = PoolingOptions.Create().SetCoreConnectionsPerHost(HostDistance.Local, 5);
+            var poolingOptions = PoolingOptions.Get().SetCoreConnectionsPerHost(HostDistance.Local, 5);
 
             // Use multiple DCs: 4 nodes in first DC and 3 nodes in second DC
             using (var testCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = $"{nodeLength},3" }))
@@ -430,7 +430,7 @@ namespace Cassandra.IntegrationTests.Core
             const int maxRequestsPerConnection = 100;
             var builder = ClusterBuilder()
                                  .WithPoolingOptions(
-                                     PoolingOptions.Create()
+                                     PoolingOptions.Get()
                                                    .SetCoreConnectionsPerHost(HostDistance.Local, connectionLength)
                                                    .SetMaxConnectionsPerHost(HostDistance.Local, connectionLength)
                                                    .SetHeartBeatInterval(0)
@@ -480,7 +480,7 @@ namespace Cassandra.IntegrationTests.Core
 
             var builder = ClusterBuilder()
                                  .WithPoolingOptions(
-                                     PoolingOptions.Create()
+                                     PoolingOptions.Get()
                                                    .SetCoreConnectionsPerHost(HostDistance.Local, connectionLength)
                                                    .SetMaxConnectionsPerHost(HostDistance.Local, connectionLength)
                                                    .SetHeartBeatInterval(0)

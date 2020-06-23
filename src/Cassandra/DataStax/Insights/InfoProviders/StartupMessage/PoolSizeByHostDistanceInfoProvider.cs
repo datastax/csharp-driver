@@ -21,17 +21,17 @@ namespace Cassandra.DataStax.Insights.InfoProviders.StartupMessage
 {
     internal class PoolSizeByHostDistanceInfoProvider : IInsightsInfoProvider<PoolSizeByHostDistance>
     {
-        public PoolSizeByHostDistance GetInformation(IInternalCluster cluster, IInternalSession session)
+        public PoolSizeByHostDistance GetInformation(IInternalCluster cluster, IInternalSession session, Metadata metadata)
         {
             return new PoolSizeByHostDistance
             {
                 Local = cluster
                         .Configuration
-                        .GetOrCreatePoolingOptions(cluster.Metadata.ControlConnection.ProtocolVersion)
+                        .GetOrCreatePoolingOptions(metadata.ProtocolVersion)
                         .GetCoreConnectionsPerHost(HostDistance.Local),
                 Remote = cluster
                          .Configuration
-                         .GetOrCreatePoolingOptions(cluster.Metadata.ControlConnection.ProtocolVersion)
+                         .GetOrCreatePoolingOptions(metadata.ProtocolVersion)
                          .GetCoreConnectionsPerHost(HostDistance.Remote)
             };
         }

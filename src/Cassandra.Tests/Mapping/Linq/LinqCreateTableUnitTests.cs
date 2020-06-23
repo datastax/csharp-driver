@@ -585,11 +585,9 @@ namespace Cassandra.Tests.Mapping.Linq
                 serializer = new SerializerManager(ProtocolVersion.MaxSupported);
             }
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
-            var config = new Configuration();
-            var metadata = new Metadata(config);
             var ccMock = new Mock<IControlConnection>(MockBehavior.Strict);
-            ccMock.Setup(cc => cc.Serializer).Returns(serializer);
-            metadata.ControlConnection = ccMock.Object;
+            var config = new Configuration();
+            var metadata = new Metadata(config, serializer, ccMock.Object);
             var clusterMock = new Mock<ICluster>();
             clusterMock.Setup(c => c.Metadata).Returns(metadata);
             clusterMock.Setup(c => c.Configuration).Returns(config);

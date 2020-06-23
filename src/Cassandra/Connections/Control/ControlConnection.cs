@@ -54,12 +54,7 @@ namespace Cassandra.Connections.Control
         private readonly ISupportedOptionsInitializer _supportedOptionsInitializer;
 
         private bool IsShutdown => Interlocked.Read(ref _isShutdown) > 0L;
-
-        /// <summary>
-        /// Gets the binary protocol version to be used for this cluster.
-        /// </summary>
-        public ProtocolVersion ProtocolVersion => _serializer.CurrentProtocolVersion;
-
+        
         /// <inheritdoc />
         public Host Host
         {
@@ -71,12 +66,10 @@ namespace Cassandra.Connections.Control
 
         public IPEndPoint LocalAddress => _connection?.LocalAddress;
 
-        public ISerializerManager Serializer => _serializer;
-
         internal ControlConnection(
             IInternalCluster cluster,
             IProtocolEventDebouncer eventDebouncer,
-            ProtocolVersion initialProtocolVersion,
+            ISerializerManager serializerManager,
             Configuration config,
             Metadata metadata,
             IEnumerable<IContactPoint> contactPoints)
@@ -87,7 +80,7 @@ namespace Cassandra.Connections.Control
             _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
             _reconnectionTimer = new Timer(ReconnectEventHandler, null, Timeout.Infinite, Timeout.Infinite);
             _config = config;
-            _serializer = new SerializerManager(initialProtocolVersion, config.TypeSerializers);
+            _serializer = serializerManager;
             _eventDebouncer = eventDebouncer;
             _contactPoints = contactPoints;
             _topologyRefresher = config.TopologyRefresherFactory.Create(metadata, config);
@@ -201,11 +194,12 @@ namespace Cassandra.Connections.Control
         }
 
         private IEnumerable<Task<IEnumerable<IConnectionEndPoint>>> DefaultLbpHostsEnumerable(
+            Metadata metadata,
             ConcurrentDictionary<IContactPoint, object> attemptedContactPoints,
             ConcurrentDictionary<Host, object> attemptedHosts,
             bool isInitializing)
         {
-            foreach (var host in _config.DefaultRequestOptions.LoadBalancingPolicy.NewQueryPlan(null, null))
+            foreach (var host in _config.DefaultRequestOptions.LoadBalancingPolicy.NewQueryPlan(metadata, null, null))
             {
                 if (attemptedHosts.TryAdd(host, null))
                 {
@@ -263,7 +257,7 @@ namespace Cassandra.Connections.Control
             // start with endpoints from the default LBP if it is already initialized
             if (!isInitializing)
             {
-                endPointResolutionTasksLazyIterator = DefaultLbpHostsEnumerable(attemptedContactPoints, attemptedHosts, isInitializing);
+                endPointResolutionTasksLazyIterator = DefaultLbpHostsEnumerable(_metadata, attemptedContactPoints, attemptedHosts, isInitializing);
             }
 
             // add contact points next

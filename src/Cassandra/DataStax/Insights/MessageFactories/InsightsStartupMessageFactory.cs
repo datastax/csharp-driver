@@ -36,12 +36,12 @@ namespace Cassandra.DataStax.Insights.MessageFactories
             _infoProviders = infoProviders;
         }
 
-        public Insight<InsightsStartupData> CreateMessage(IInternalCluster cluster, IInternalSession session)
+        public Insight<InsightsStartupData> CreateMessage(IInternalCluster cluster, IInternalSession session, Metadata metadata)
         {
-            var metadata = _metadataFactory.CreateInsightsMetadata(
+            var insightsMetadata = _metadataFactory.CreateInsightsMetadata(
                 InsightsStartupMessageFactory.StartupMessageName, InsightsStartupMessageFactory.StartupV1MappingId, InsightType.Event);
 
-            var driverInfo = _infoProviders.DriverInfoProvider.GetInformation(cluster, session);
+            var driverInfo = _infoProviders.DriverInfoProvider.GetInformation(cluster, session, metadata);
             var startupData = new InsightsStartupData
             {
                 ClientId = cluster.Configuration.ClusterId.ToString(),
@@ -52,33 +52,33 @@ namespace Cassandra.DataStax.Insights.MessageFactories
                 ApplicationVersion = cluster.Configuration.ApplicationVersion,
                 ApplicationNameWasGenerated = cluster.Configuration.ApplicationNameWasGenerated,
                 ContactPoints = 
-                    cluster.Metadata.ResolvedContactPoints.ToDictionary(
+                    metadata.ResolvedContactPoints.ToDictionary(
                         kvp => kvp.Key.StringRepresentation, kvp => kvp.Value.Select(ipEndPoint => ipEndPoint.GetHostIpEndPointWithFallback().ToString()).ToList()),
-                DataCenters = _infoProviders.DataCentersInfoProvider.GetInformation(cluster, session),
-                InitialControlConnection = cluster.Metadata.ControlConnection.EndPoint?.GetHostIpEndPointWithFallback().ToString(),
-                LocalAddress = cluster.Metadata.ControlConnection.LocalAddress?.ToString(),
-                HostName = _infoProviders.HostnameProvider.GetInformation(cluster, session),
-                ProtocolVersion = (byte)cluster.Metadata.ControlConnection.ProtocolVersion,
-                ExecutionProfiles = _infoProviders.ExecutionProfileInfoProvider.GetInformation(cluster, session),
-                PoolSizeByHostDistance = _infoProviders.PoolSizeByHostDistanceInfoProvider.GetInformation(cluster, session),
+                DataCenters = _infoProviders.DataCentersInfoProvider.GetInformation(cluster, session, metadata),
+                InitialControlConnection = metadata.ControlConnection.EndPoint?.GetHostIpEndPointWithFallback().ToString(),
+                LocalAddress = metadata.ControlConnection.LocalAddress?.ToString(),
+                HostName = _infoProviders.HostnameProvider.GetInformation(cluster, session, metadata),
+                ProtocolVersion = (byte)metadata.ProtocolVersion,
+                ExecutionProfiles = _infoProviders.ExecutionProfileInfoProvider.GetInformation(cluster, session, metadata),
+                PoolSizeByHostDistance = _infoProviders.PoolSizeByHostDistanceInfoProvider.GetInformation(cluster, session, metadata),
                 HeartbeatInterval = 
                     cluster
                         .Configuration
-                        .GetOrCreatePoolingOptions(cluster.Metadata.ControlConnection.ProtocolVersion)
+                        .GetOrCreatePoolingOptions(metadata.ProtocolVersion)
                         .GetHeartBeatInterval() ?? 0,
                 Compression = cluster.Configuration.ProtocolOptions.Compression,
-                ReconnectionPolicy = _infoProviders.ReconnectionPolicyInfoProvider.GetInformation(cluster, session),
+                ReconnectionPolicy = _infoProviders.ReconnectionPolicyInfoProvider.GetInformation(cluster, session, metadata),
                 Ssl = new SslInfo { Enabled = cluster.Configuration.ProtocolOptions.SslOptions != null },
-                AuthProvider = _infoProviders.AuthProviderInfoProvider.GetInformation(cluster, session),
-                OtherOptions = _infoProviders.OtherOptionsInfoProvider.GetInformation(cluster, session),
-                PlatformInfo = _infoProviders.PlatformInfoProvider.GetInformation(cluster, session),
-                ConfigAntiPatterns = _infoProviders.ConfigAntiPatternsInfoProvider.GetInformation(cluster, session),
+                AuthProvider = _infoProviders.AuthProviderInfoProvider.GetInformation(cluster, session, metadata),
+                OtherOptions = _infoProviders.OtherOptionsInfoProvider.GetInformation(cluster, session, metadata),
+                PlatformInfo = _infoProviders.PlatformInfoProvider.GetInformation(cluster, session, metadata),
+                ConfigAntiPatterns = _infoProviders.ConfigAntiPatternsInfoProvider.GetInformation(cluster, session, metadata),
                 PeriodicStatusInterval = cluster.Configuration.MonitorReportingOptions.StatusEventDelayMilliseconds / 1000
             };
 
             return new Insight<InsightsStartupData>
             {
-                Metadata = metadata,
+                Metadata = insightsMetadata,
                 Data = startupData
             };
         }

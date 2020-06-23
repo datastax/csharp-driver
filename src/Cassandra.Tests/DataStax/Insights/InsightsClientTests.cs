@@ -73,7 +73,7 @@ namespace Cassandra.Tests.DataStax.Insights
                         It.IsAny<QueryProtocolOptions>());
                 Mock.Get(cluster.Metadata.ControlConnection).Setup(mockExpression).ReturnsAsync((Response)null);
 
-                target.Init();
+                target.InitializeAsync();
 
                 TestHelper.RetryAssert(
                     () =>
@@ -113,7 +113,7 @@ namespace Cassandra.Tests.DataStax.Insights
                         .ReturnsAsync(new FakeResultResponse(ResultResponse.ResultResponseKind.Void))
                         .ReturnsAsync((Response)null);
 
-                target.Init();
+                target.InitializeAsync();
 
                 TestHelper.RetryAssert(
                     () =>
@@ -257,7 +257,7 @@ namespace Cassandra.Tests.DataStax.Insights
                     .ReturnsAsync(new FakeResultResponse(ResultResponse.ResultResponseKind.Void))
                     .Callback<string, QueryProtocolOptions>((query, opts) => { queryProtocolOptions.Enqueue(opts); });
 
-                target.Init();
+                target.InitializeAsync();
 
                 TestHelper.RetryAssert(
                     () => { Assert.GreaterOrEqual(queryProtocolOptions.Count, 1); }, 10, 50);
@@ -381,7 +381,7 @@ namespace Cassandra.Tests.DataStax.Insights
                     .ReturnsAsync(new FakeResultResponse(ResultResponse.ResultResponseKind.Void))
                     .Callback<string, QueryProtocolOptions>((query, opts) => { queryProtocolOptions.Enqueue(opts); });
 
-                target.Init();
+                target.InitializeAsync();
 
                 TestHelper.RetryAssert(
                     () => { Assert.GreaterOrEqual(queryProtocolOptions.Count, 1); }, 10, 50);
@@ -418,7 +418,7 @@ namespace Cassandra.Tests.DataStax.Insights
                     .ReturnsAsync(new FakeResultResponse(ResultResponse.ResultResponseKind.Void))
                     .Callback<string, QueryProtocolOptions>((query, opts) => { queryProtocolOptions.Enqueue(opts); });
 
-                target.Init();
+                target.InitializeAsync();
 
                 TestHelper.RetryAssert(() => { Assert.GreaterOrEqual(queryProtocolOptions.Count, 5); }, 5, 400);
                 queryProtocolOptions.TryDequeue(out var result); // ignore startup message

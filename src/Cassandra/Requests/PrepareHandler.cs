@@ -42,10 +42,10 @@ namespace Cassandra.Requests
             _reprepareHandler = reprepareHandler;
         }
 
-        public async Task<PreparedStatement> Prepare(
-            PrepareRequest request, IInternalSession session, IEnumerator<Host> queryPlan)
+        public async Task<PreparedStatement> PrepareAsync(
+            PrepareRequest request, IInternalSession session, Metadata metadata, IEnumerator<Host> queryPlan)
         {
-            var prepareResult = await SendRequestToOneNode(session, queryPlan, request).ConfigureAwait(false);
+            var prepareResult = await SendRequestToOneNode(session, metadata, queryPlan, request).ConfigureAwait(false);
 
             if (session.Cluster.Configuration.QueryOptions.IsPrepareOnAllHosts())
             {
@@ -55,7 +55,8 @@ namespace Cassandra.Requests
             return prepareResult.PreparedStatement;
         }
 
-        private async Task<PrepareResult> SendRequestToOneNode(IInternalSession session, IEnumerator<Host> queryPlan, PrepareRequest request)
+        private async Task<PrepareResult> SendRequestToOneNode(
+            IInternalSession session, Metadata metadata, IEnumerator<Host> queryPlan, PrepareRequest request)
         {
             var triedHosts = new Dictionary<IPEndPoint, Exception>();
 
@@ -70,7 +71,9 @@ namespace Cassandra.Requests
                     var result = await connection.Send(request).ConfigureAwait(false);
                     return new PrepareResult
                     {
-                        PreparedStatement = await GetPreparedStatement(result, request, request.Keyspace ?? connection.Keyspace, session.Cluster).ConfigureAwait(false),
+                        PreparedStatement = 
+                            await GetPreparedStatement(
+                                result, request, request.Keyspace ?? connection.Keyspace, metadata).ConfigureAwait(false),
                         TriedHosts = triedHosts,
                         HostAddress = host.Address
                     };
@@ -127,7 +130,7 @@ namespace Cassandra.Requests
         }
 
         private async Task<PreparedStatement> GetPreparedStatement(
-            Response response, PrepareRequest request, string keyspace, ICluster cluster)
+            Response response, PrepareRequest request, string keyspace, Metadata metadata)
         {
             if (response == null)
             {
@@ -154,11 +157,11 @@ namespace Cassandra.Requests
             {
                 IncomingPayload = resultResponse.CustomPayload
             };
-            await FillRoutingInfo(ps, cluster).ConfigureAwait(false);
+            await FillRoutingInfo(ps, metadata).ConfigureAwait(false);
             return ps;
         }
 
-        private static async Task FillRoutingInfo(PreparedStatement ps, ICluster cluster)
+        private static async Task FillRoutingInfo(PreparedStatement ps, Metadata metadata)
         {
             var column = ps.Variables.Columns.FirstOrDefault();
             if (column?.Keyspace == null)
@@ -181,7 +184,7 @@ namespace Cassandra.Requests
             try
             {
                 const string msgRoutingNotSet = "Routing information could not be set for query \"{0}\"";
-                var table = await cluster.Metadata.GetTableAsync(column.Keyspace, column.Table).ConfigureAwait(false);
+                var table = await metadata.GetTableAsync(column.Keyspace, column.Table).ConfigureAwait(false);
                 if (table == null)
                 {
                     Logger.Info(msgRoutingNotSet, ps.Cql);

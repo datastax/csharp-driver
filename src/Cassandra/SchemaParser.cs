@@ -494,7 +494,7 @@ namespace Cassandra
                         ReturnType = DataTypeParser.ParseFqTypeName(row.GetValue<string>("return_type")),
                         ArgumentTypes = (row.GetValue<string[]>("argument_types") ?? emptyArray).Select(s => DataTypeParser.ParseFqTypeName(s)).ToArray(),
                     };
-                    var initConditionRaw = Deserialize(Cc, row.GetValue<byte[]>("initcond"), aggregate.StateType.TypeCode, aggregate.StateType.TypeInfo);
+                    var initConditionRaw = Deserialize(Parent.SerializerManager, row.GetValue<byte[]>("initcond"), aggregate.StateType.TypeCode, aggregate.StateType.TypeInfo);
                     if (initConditionRaw != null)
                     {
                         aggregate.InitialCondition = initConditionRaw.ToString();
@@ -503,13 +503,13 @@ namespace Cassandra
                 });
         }
 
-        private static object Deserialize(IMetadataQueryProvider cc, byte[] buffer, ColumnTypeCode typeCode, IColumnInfo typeInfo)
+        private static object Deserialize(ISerializerManager serializerManager, byte[] buffer, ColumnTypeCode typeCode, IColumnInfo typeInfo)
         {
             if (buffer == null)
             {
                 return null;
             }
-            return cc.Serializer.GetCurrentSerializer().Deserialize(buffer, 0, buffer.Length, typeCode, typeInfo);
+            return serializerManager.GetCurrentSerializer().Deserialize(buffer, 0, buffer.Length, typeCode, typeInfo);
         }
     }
 

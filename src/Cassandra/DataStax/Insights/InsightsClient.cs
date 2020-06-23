@@ -59,11 +59,13 @@ namespace Cassandra.DataStax.Insights
 
         private bool Initialized => _insightsTask != null;
 
-        private async Task<bool> SendStartupMessageAsync()
+        private async Task<bool> SendStartupMessageAsync(Metadata metadata)
         {
             try
             {
-                await SendJsonMessageAsync(_startupMessageFactory.CreateMessage(_cluster, _session)).ConfigureAwait(false);
+                await SendJsonMessageAsync(
+                    _startupMessageFactory.CreateMessage(_cluster, _session, metadata), 
+                    metadata).ConfigureAwait(false);
                 _errorCount = 0;
                 return true;
             }
@@ -81,11 +83,13 @@ namespace Cassandra.DataStax.Insights
             }
         }
 
-        private async Task<bool> SendStatusMessageAsync()
+        private async Task<bool> SendStatusMessageAsync(Metadata metadata)
         {
             try
             {
-                await SendJsonMessageAsync(_statusMessageFactory.CreateMessage(_cluster, _session)).ConfigureAwait(false);
+                await SendJsonMessageAsync(
+                    _statusMessageFactory.CreateMessage(_cluster, _session, metadata), 
+                    metadata).ConfigureAwait(false);
                 _errorCount = 0;
                 return true;
             }
@@ -103,16 +107,17 @@ namespace Cassandra.DataStax.Insights
             }
         }
 
-        public void Init()
+        public async Task InitializeAsync()
         {
-            if (!ShouldStartInsightsTask())
+            var metadata = await _cluster.GetMetadataAsync().ConfigureAwait(false);
+            if (!ShouldStartInsightsTask(metadata))
             {
                 _insightsTask = null;
                 return;
             }
 
             _cancellationTokenSource = new CancellationTokenSource();
-            _insightsTask = Task.Run(MainLoopAsync);
+            _insightsTask = Task.Run(() => MainLoopAsync(metadata));
         }
 
         public Task ShutdownAsync()
@@ -131,12 +136,13 @@ namespace Cassandra.DataStax.Insights
             ShutdownAsync().GetAwaiter().GetResult();
         }
 
-        private bool ShouldStartInsightsTask()
+        private bool ShouldStartInsightsTask(Metadata metadata)
         {
-            return _monitorReportingOptions.MonitorReportingEnabled && _cluster.Configuration.InsightsSupportVerifier.SupportsInsights(_cluster);
+            return _monitorReportingOptions.MonitorReportingEnabled 
+                   && _cluster.Configuration.InsightsSupportVerifier.SupportsInsights(metadata);
         }
 
-        private async Task MainLoopAsync()
+        private async Task MainLoopAsync(Metadata metadata)
         {
             try
             {
@@ -153,11 +159,11 @@ namespace Cassandra.DataStax.Insights
                 {
                     if (!startupSent)
                     {
-                        startupSent = await SendStartupMessageAsync().ConfigureAwait(false);
+                        startupSent = await SendStartupMessageAsync(metadata).ConfigureAwait(false);
                     }
                     else
                     {
-                        await SendStatusMessageAsync().ConfigureAwait(false);
+                        await SendStatusMessageAsync(metadata).ConfigureAwait(false);
                     }
                     
                     await TaskHelper.DelayWithCancellation(
@@ -178,7 +184,7 @@ namespace Cassandra.DataStax.Insights
             InsightsClient.Logger.Verbose("Insights task is ending.");
         }
 
-        private async Task SendJsonMessageAsync<T>(T message)
+        private async Task SendJsonMessageAsync<T>(T message, Metadata metadata)
         {
             var queryProtocolOptions = new QueryProtocolOptions(
                 ConsistencyLevel.One,
@@ -189,7 +195,7 @@ namespace Cassandra.DataStax.Insights
                 ConsistencyLevel.Any);
 
             var response = await RunWithTokenAsync(() => 
-                _cluster.Metadata.ControlConnection.UnsafeSendQueryRequestAsync(
+                metadata.ControlConnection.UnsafeSendQueryRequestAsync(
                     InsightsClient.ReportInsightRpc, 
                     queryProtocolOptions)).ConfigureAwait(false);
 

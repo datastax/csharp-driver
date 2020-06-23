@@ -30,6 +30,6 @@ namespace Cassandra
         /// <summary>
         /// Should be called after we have an initialized cluster instance.
         /// </summary>
-        void Initialize(IInternalCluster cluster);
+        void Initialize(IInternalCluster cluster, Metadata metadata);
     }
 }

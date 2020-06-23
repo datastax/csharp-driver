@@ -16,6 +16,7 @@
 
 using System.Collections.Generic;
 using Cassandra.ProtocolEvents;
+using Cassandra.Serialization;
 using Cassandra.SessionManagement;
 
 namespace Cassandra.Connections.Control
@@ -25,7 +26,7 @@ namespace Cassandra.Connections.Control
         IControlConnection Create(
             IInternalCluster cluster,
             IProtocolEventDebouncer protocolEventDebouncer,
-            ProtocolVersion initialProtocolVersion, 
+            ISerializerManager serializerManager, 
             Configuration config, 
             Metadata metadata,
             IEnumerable<IContactPoint> contactPoints);

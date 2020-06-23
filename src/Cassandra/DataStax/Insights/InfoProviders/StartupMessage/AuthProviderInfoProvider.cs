@@ -21,7 +21,8 @@ namespace Cassandra.DataStax.Insights.InfoProviders.StartupMessage
 {
     internal class AuthProviderInfoProvider : IInsightsInfoProvider<AuthProviderInfo>
     {
-        public AuthProviderInfo GetInformation(IInternalCluster cluster, IInternalSession session)
+        public AuthProviderInfo GetInformation(
+            IInternalCluster cluster, IInternalSession session, Metadata metadata)
         {
             var type = cluster.Configuration.AuthProvider.GetType();
             return new AuthProviderInfo

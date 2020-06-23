@@ -36,7 +36,7 @@ namespace Cassandra
             
         }
 
-        public void Initialize(ICluster cluster)
+        public void Initialize(Metadata metadata)
         {
             
         }

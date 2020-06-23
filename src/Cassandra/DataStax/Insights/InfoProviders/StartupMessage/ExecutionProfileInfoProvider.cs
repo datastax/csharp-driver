@@ -38,7 +38,8 @@ namespace Cassandra.DataStax.Insights.InfoProviders.StartupMessage
             _retryPolicyInfoProvider = retryPolicyInfoProvider;
         }
         
-        public Dictionary<string, ExecutionProfileInfo> GetInformation(IInternalCluster cluster, IInternalSession session)
+        public Dictionary<string, ExecutionProfileInfo> GetInformation(
+            IInternalCluster cluster, IInternalSession session, Metadata metadata)
         {
             // add default first so that it is on top
             var dict = new Dictionary<string, ExecutionProfileInfo>

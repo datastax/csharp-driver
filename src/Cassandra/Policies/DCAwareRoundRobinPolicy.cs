@@ -16,9 +16,8 @@
 
 using System;
 using System.Collections.Generic;
-using System.Threading;
 using System.Linq;
-using Cassandra.SessionManagement;
+using System.Threading;
 
 namespace Cassandra
 {
@@ -36,7 +35,6 @@ namespace Cassandra
         private readonly int _maxIndex = int.MaxValue - 10000;
         private volatile List<Host> _hosts;
         private readonly object _hostCreationLock = new object();
-        private ICluster _cluster;
         private int _index;
 
         /// <summary>
@@ -72,21 +70,19 @@ namespace Cassandra
 
             LocalDc = localDc;
         }
-        
+
         /// <summary>
         /// Gets the Local Datacenter. This value is provided in the constructor.
         /// </summary>
         public string LocalDc { get; private set; }
 
-        public void Initialize(ICluster cluster)
+        public void Initialize(Metadata metadata)
         {
-            _cluster = cluster;
-
             //When the pool changes, it should clear the local cache
-            _cluster.HostAdded += _ => ClearHosts();
-            _cluster.HostRemoved += _ => ClearHosts();
+            metadata.HostAdded += _ => ClearHosts();
+            metadata.HostRemoved += _ => ClearHosts();
 
-            LocalDc = cluster.Configuration.LocalDatacenterProvider.DiscoverLocalDatacenter(
+            LocalDc = metadata.Configuration.LocalDatacenterProvider.DiscoverLocalDatacenter(
                 _inferLocalDc, LocalDc);
         }
 
@@ -112,11 +108,12 @@ namespace Cassandra
         ///  per remote datacenter. The order of the local node in the returned query plan
         ///  will follow a Round-robin algorithm.</p>
         /// </summary>
+        /// <param name="metadata">The information about the session instance for which the policy is created.</param>
         /// <param name="keyspace">Keyspace on which the query is going to be executed</param>
         /// <param name="query"> the query for which to build the plan. </param>
         /// <returns>a new query plan, i.e. an iterator indicating which host to try
         ///  first for querying, which one to use as failover, etc...</returns>
-        public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
+        public IEnumerable<Host> NewQueryPlan(Metadata metadata, string keyspace, IStatement query)
         {
             var startIndex = Interlocked.Increment(ref _index);
 
@@ -126,7 +123,7 @@ namespace Cassandra
                 Interlocked.Exchange(ref _index, 0);
             }
 
-            var hosts = GetHosts();
+            var hosts = GetHosts(metadata);
             //Round-robin through local nodes
             for (var i = 0; i < hosts.Count; i++)
             {
@@ -148,7 +145,7 @@ namespace Cassandra
         /// <summary>
         /// Gets a tuple containing the list of local and remote nodes
         /// </summary>
-        internal List<Host> GetHosts()
+        internal List<Host> GetHosts(Metadata metadata)
         {
             var hosts = _hosts;
             if (hosts != null)
@@ -166,7 +163,7 @@ namespace Cassandra
                 }
 
                 //shallow copy the nodes
-                var allNodes = _cluster.AllHosts().ToArray();
+                var allNodes = metadata.AllHosts().ToArray();
 
                 hosts = allNodes.Where(h => GetDatacenter(h) == LocalDc).ToList();
                 _hosts = hosts;

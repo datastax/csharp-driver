@@ -49,7 +49,7 @@ namespace Cassandra.IntegrationTests.Core
         public async Task Connection_Should_Send_Options_Requests_For_Heartbeats(bool executeQuery)
         {
             var builder = ClusterBuilder()
-                                 .WithPoolingOptions(PoolingOptions.Create().SetHeartBeatInterval(4000))
+                                 .WithPoolingOptions(PoolingOptions.Get().SetHeartBeatInterval(4000))
                                  .AddContactPoint(_testCluster.InitialContactPoint);
 
             using (var cluster = builder.Build())

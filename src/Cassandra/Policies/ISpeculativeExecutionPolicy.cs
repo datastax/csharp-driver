@@ -28,7 +28,7 @@ namespace Cassandra
         /// <summary>
         /// Initializes the policy at cluster startup.
         /// </summary>
-        void Initialize(ICluster cluster);
+        void Initialize(Metadata metadata);
 
         /// <summary>
         /// Returns the plan to use for a new query.

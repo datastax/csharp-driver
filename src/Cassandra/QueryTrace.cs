@@ -33,8 +33,8 @@ namespace Cassandra
     public class QueryTrace
     {
         private readonly object _fetchLock = new object();
-        private readonly Metadata _metadata;
         private readonly Guid _traceId;
+        private readonly ISession _session;
         private IPAddress _coordinator;
         private int _duration = int.MinValue;
         private List<Event> _events;
@@ -177,7 +177,7 @@ namespace Cassandra
             //The instance is created before fetching the actual trace metadata
             //The properties will be populated later.
             _traceId = traceId;
-            _metadata = session.Cluster.Metadata;
+            _session = session;
             _metadataFetchSyncTimeout = session.Cluster.Configuration.DefaultRequestOptions.QueryAbortTimeout;
         }
 
@@ -227,12 +227,13 @@ namespace Cassandra
             }
         }
 
-        internal Task<QueryTrace> LoadAsync()
+        internal async Task<QueryTrace> LoadAsync()
         {
             // mark as disconnected, guaranteeing that it wont make metadata fetches triggered by a property get
             // ReSharper disable once InconsistentlySynchronizedField : Can be both async and sync, don't mind
             _isDisconnected = false;
-            return _metadata.GetQueryTraceAsync(this);
+            var metadata = await _session.Cluster.GetMetadataAsync().ConfigureAwait(false);
+            return await metadata.GetQueryTraceAsync(this).ConfigureAwait(false);
         }
 
         /// <summary>

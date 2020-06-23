@@ -90,7 +90,7 @@ namespace Cassandra.IntegrationTests.Core
             Cluster.MaxProtocolVersion = 2;
             try
             {
-                var pooling = PoolingOptions.Create();
+                var pooling = PoolingOptions.Get();
                 var session = GetSession(new ConstantSpeculativeExecutionPolicy(50L, 1), true, null, pooling);
                 const int pauseThreshold = 140 * 2;
                 var tasks = new List<Task<IPAddress>>();

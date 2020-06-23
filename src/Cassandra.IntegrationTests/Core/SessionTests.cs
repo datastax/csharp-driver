@@ -171,7 +171,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public void Should_Create_The_Right_Amount_Of_Connections()
+        public async Task Should_Create_The_Right_Amount_Of_Connections()
         {
             var localCluster1 = GetNewTemporaryCluster(
                 builder => builder
@@ -180,7 +180,8 @@ namespace Cassandra.IntegrationTests.Core
                             .SetCoreConnectionsPerHost(HostDistance.Local, 3)));
 
             var localSession1 = (IInternalSession)localCluster1.Connect();
-            var hosts1 = localCluster1.AllHosts().ToList();
+            var metadata1 = await localCluster1.GetMetadataAsync().ConfigureAwait(false);
+            var hosts1 = metadata1.AllHosts().ToList();
             Assert.AreEqual(3, hosts1.Count);
             //Execute multiple times a query on the newly created keyspace
             for (var i = 0; i < 12; i++)
@@ -188,9 +189,9 @@ namespace Cassandra.IntegrationTests.Core
                 localSession1.Execute("SELECT * FROM system.local");
             }
 
-            Thread.Sleep(2000);
-            var pool11 = localSession1.GetOrCreateConnectionPool(hosts1[0], HostDistance.Local);
-            var pool12 = localSession1.GetOrCreateConnectionPool(hosts1[1], HostDistance.Local);
+            await Task.Delay(2000).ConfigureAwait(false);
+            var pool11 = await localSession1.GetOrCreateConnectionPool(hosts1[0], HostDistance.Local).ConfigureAwait(false);
+            var pool12 = await localSession1.GetOrCreateConnectionPool(hosts1[1], HostDistance.Local).ConfigureAwait(false);
             Assert.That(pool11.OpenConnections, Is.EqualTo(3));
             Assert.That(pool12.OpenConnections, Is.EqualTo(3));
 
@@ -199,8 +200,9 @@ namespace Cassandra.IntegrationTests.Core
                                               .WithPoolingOptions(new PoolingOptions().SetCoreConnectionsPerHost(HostDistance.Local, 1))
                                               .Build())
             {
+                var metadata2 = await localCluster2.GetMetadataAsync().ConfigureAwait(false);
                 var localSession2 = (IInternalSession)localCluster2.Connect();
-                var hosts2 = localCluster2.AllHosts().ToList();
+                var hosts2 = metadata2.AllHosts().ToList();
                 Assert.AreEqual(3, hosts2.Count);
                 //Execute multiple times a query on the newly created keyspace
                 for (var i = 0; i < 6; i++)
@@ -208,9 +210,9 @@ namespace Cassandra.IntegrationTests.Core
                     localSession2.Execute("SELECT * FROM system.local");
                 }
 
-                Thread.Sleep(2000);
-                var pool21 = localSession2.GetOrCreateConnectionPool(hosts2[0], HostDistance.Local);
-                var pool22 = localSession2.GetOrCreateConnectionPool(hosts2[1], HostDistance.Local);
+                await Task.Delay(2000).ConfigureAwait(false);
+                var pool21 = await localSession2.GetOrCreateConnectionPool(hosts2[0], HostDistance.Local).ConfigureAwait(false);
+                var pool22 = await localSession2.GetOrCreateConnectionPool(hosts2[1], HostDistance.Local).ConfigureAwait(false);
                 Assert.That(pool21.OpenConnections, Is.EqualTo(1));
                 Assert.That(pool22.OpenConnections, Is.EqualTo(1));
             }
@@ -237,14 +239,15 @@ namespace Cassandra.IntegrationTests.Core
             var counter = 0;
             using (var localCluster = builder.Build())
             {
-                var localSession = (IInternalSession)localCluster.Connect();
-                var remoteHost = localCluster.AllHosts().First(h => TestHelper.GetLastAddressByte(h) == 2);
+                var metadata = await localCluster.GetMetadataAsync().ConfigureAwait(false);
+                var localSession = (IInternalSession) await localCluster.ConnectAsync().ConfigureAwait(false);
+                var remoteHost = metadata.AllHosts().First(h => TestHelper.GetLastAddressByte(h) == 2);
                 var stopWatch = new Stopwatch();
                 var distanceReset = 0;
                 TestHelper.Invoke(() => localSession.Execute("SELECT key FROM system.local"), 10);
-                var hosts = localCluster.AllHosts().ToArray();
-                var pool1 = localSession.GetOrCreateConnectionPool(hosts[0], HostDistance.Local);
-                var pool2 = localSession.GetOrCreateConnectionPool(hosts[1], HostDistance.Local);
+                var hosts = metadata.AllHosts().ToArray();
+                var pool1 = await localSession.GetOrCreateConnectionPool(hosts[0], HostDistance.Local).ConfigureAwait(false);
+                var pool2 = await localSession.GetOrCreateConnectionPool(hosts[1], HostDistance.Local).ConfigureAwait(false);
                 var tcs = new TaskCompletionSource<RowSet>();
                 tcs.SetResult(null);
                 var completedTask = tcs.Task;

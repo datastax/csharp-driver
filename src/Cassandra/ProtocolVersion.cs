@@ -313,6 +313,14 @@ namespace Cassandra
             return version >= ProtocolVersion.V4;
         }
 
+        /// <summary>
+        /// Determines whether UDTs are supported in the provided protocol version.
+        /// </summary>
+        public static bool SupportsUserDefinedTypes(this ProtocolVersion version)
+        {
+            return version >= ProtocolVersion.V3;
+        }
+
         public static int GetHeaderSize(this ProtocolVersion version)
         {
             if (version.Uses2BytesStreamIds())

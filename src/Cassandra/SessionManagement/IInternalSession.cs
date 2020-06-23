@@ -36,10 +36,7 @@ namespace Cassandra.SessionManagement
         /// </summary>
         Guid InternalSessionId { get; }
 
-        /// <summary>
-        /// Initialize the session
-        /// </summary>
-        Task Init();
+        Task<Metadata> TryInitAndGetMetadataAsync();
 
         /// <summary>
         /// Gets or creates the connection pool for a given host

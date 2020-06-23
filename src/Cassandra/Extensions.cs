@@ -14,7 +14,9 @@
 //   limitations under the License.
 //
 
+using System.Threading.Tasks;
 using Cassandra.SessionManagement;
+using Cassandra.Tasks;
 
 namespace Cassandra
 {
@@ -27,7 +29,13 @@ namespace Cassandra
     public static class Extensions
     {
         /// <summary>
+        /// <para>
+        /// This method will block if no connection has been opened yet. Please use <see cref="GetStateAsync"/> if
+        /// your application uses the Task Parallel Library (e.g. async/await).
+        /// </para>
+        /// <para>
         /// Gets a snapshot containing information on the connections pools held by this Client at the current time.
+        /// </para>
         /// <para>
         /// The information provided in the returned object only represents the state at the moment this method was
         /// called and it's not maintained in sync with the driver metadata.
@@ -37,13 +45,30 @@ namespace Cassandra
         /// <returns></returns>
         public static ISessionState GetState(this ISession instance)
         {
-            var session = instance as IInternalSession;
-            return session == null ? SessionState.Empty() : SessionState.From(session);
+            return TaskHelper.WaitToComplete(
+                instance.GetStateAsync(), 
+                instance.Cluster.Configuration.DefaultRequestOptions.QueryAbortTimeout);
         }
 
-        internal static ISessionState GetState(this IInternalSession instance)
+        /// <summary>
+        /// Gets a snapshot containing information on the connections pools held by this Client at the current time.
+        /// <para>
+        /// The information provided in the returned object only represents the state at the moment this method was
+        /// called and it's not maintained in sync with the driver metadata.
+        /// </para>
+        /// </summary>
+        /// <param name="instance"></param>
+        /// <returns></returns>
+        public static async Task<ISessionState> GetStateAsync(this ISession instance)
         {
-            return SessionState.From(instance);
+            var session = instance as IInternalSession;
+            var metadata = await instance.Cluster.GetMetadataAsync().ConfigureAwait(false);
+            return session == null ? SessionState.Empty() : SessionState.From(session, metadata);
+        }
+
+        internal static ISessionState GetState(this IInternalSession instance, Metadata metadata)
+        {
+            return SessionState.From(instance, metadata);
         }
     }
 }

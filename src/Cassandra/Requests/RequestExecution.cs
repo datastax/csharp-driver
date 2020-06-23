@@ -47,7 +47,11 @@ namespace Cassandra.Requests
         /// </summary>
         private volatile Host _host;
         
-        public RequestExecution(IRequestHandler parent, IInternalSession session, IRequest request, IRequestObserver requestObserver)
+        public RequestExecution(
+            IRequestHandler parent, 
+            IInternalSession session,
+            IRequest request, 
+            IRequestObserver requestObserver)
         {
             _parent = parent;
             _session = session;
@@ -210,7 +214,7 @@ namespace Cassandra.Requests
             if (resultResponse.Output is OutputSchemaChange schemaChange)
             {
                 //Schema changes need to do blocking operations
-                HandleSchemaChange(resultResponse, schemaChange);
+                HandleSchemaChangeAsync(resultResponse, schemaChange);
                 return;
             }
             RowSet rs;
@@ -229,7 +233,7 @@ namespace Cassandra.Requests
             _parent.SetCompleted(null, FillRowSet(rs, resultResponse));
         }
 
-        private void HandleSchemaChange(ResultResponse response, OutputSchemaChange schemaChange)
+        private void HandleSchemaChangeAsync(ResultResponse response, OutputSchemaChange schemaChange)
         {
             var result = FillRowSet(new RowSet(), response);
 
@@ -237,17 +241,19 @@ namespace Cassandra.Requests
             result.Info.SetSchemaInAgreement(false);
 
             // Wait for the schema change before returning the result
-            _parent.SetCompleted(
+            _parent.SetCompletedWithTask(
                 result,
-                () =>
+                async () =>
                 {
-                    var schemaAgreed = _session.Cluster.Metadata.WaitForSchemaAgreement(_connection);
+                    var schemaAgreed = await _parent.Metadata.WaitForSchemaAgreementAsync(_connection).ConfigureAwait(false);
                     result.Info.SetSchemaInAgreement(schemaAgreed);
                     try
                     {
-                        TaskHelper.WaitToComplete(
-                            _session.InternalCluster.GetControlConnection().HandleSchemaChangeEvent(schemaChange.SchemaChangeEventArgs, true),
-                            _session.Cluster.Configuration.ProtocolOptions.MaxSchemaAgreementWaitSeconds * 1000);
+                        await _session.InternalCluster.GetControlConnection()
+                                      .HandleSchemaChangeEvent(schemaChange.SchemaChangeEventArgs, true)
+                                      .WaitToCompleteAsync(
+                                          _session.Cluster.Configuration.ProtocolOptions.MaxSchemaAgreementWaitSeconds * 1000)
+                                      .ConfigureAwait(false);
                     }
                     catch (TimeoutException)
                     {
@@ -322,7 +328,8 @@ namespace Cassandra.Requests
 
                     var request = (IQueryRequest)_parent.BuildRequest();
                     request.PagingState = pagingState;
-                    return _session.Cluster.Configuration.RequestHandlerFactory.Create(session, _parent.Serializer, request, statement, _parent.RequestOptions).SendAsync();
+                    return _session.Cluster.Configuration.RequestHandlerFactory.Create(
+                        session, _parent.Metadata, _parent.Serializer, request, statement, _parent.RequestOptions).SendAsync();
                 }, _parent.RequestOptions.QueryAbortTimeout, _session.MetricsManager);
             }
         }

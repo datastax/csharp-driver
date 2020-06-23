@@ -12,16 +12,15 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-// 
+//
 
 using System;
-using Cassandra.SessionManagement;
 
 namespace Cassandra.DataStax.Insights
 {
     internal interface IInsightsSupportVerifier
     {
-        bool SupportsInsights(IInternalCluster cluster);
+        bool SupportsInsights(Metadata metadata);
 
         bool DseVersionSupportsInsights(Version dseVersion);
     }

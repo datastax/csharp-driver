@@ -308,7 +308,7 @@ namespace Cassandra.Tests
                 Cassandra.Policies.DefaultLoadBalancingPolicy, Cassandra.Policies.DefaultReconnectionPolicy,
                 Cassandra.Policies.DefaultRetryPolicy, Cassandra.Policies.DefaultSpeculativeExecutionPolicy,
                 new NoTimestampGenerator());
-            var config = RequestHandlerTests.GetConfig(new QueryOptions(), policies, PoolingOptions.Create());
+            var config = RequestHandlerTests.GetConfig(new QueryOptions(), policies, PoolingOptions.Get());
 
             var request = RequestHandler.GetRequest(
                 statement, RequestHandlerTests.Serializer, config.DefaultRequestOptions);
@@ -341,7 +341,7 @@ namespace Cassandra.Tests
                 Cassandra.Policies.DefaultLoadBalancingPolicy, Cassandra.Policies.DefaultReconnectionPolicy,
                 Cassandra.Policies.DefaultRetryPolicy, Cassandra.Policies.DefaultSpeculativeExecutionPolicy,
                 new NoTimestampGenerator());
-            var config = RequestHandlerTests.GetConfig(new QueryOptions(), policies, PoolingOptions.Create());
+            var config = RequestHandlerTests.GetConfig(new QueryOptions(), policies, PoolingOptions.Get());
             
             var request = RequestHandler.GetRequest(statement, Serializer, config.DefaultRequestOptions);
             var bodyBuffer = GetBodyBuffer(request);
@@ -372,7 +372,7 @@ namespace Cassandra.Tests
                 batch.Add(new SimpleStatement("QUERY"));
             }
 
-            var config = RequestHandlerTests.GetConfig(new QueryOptions(), Cassandra.Policies.DefaultPolicies, PoolingOptions.Create());
+            var config = RequestHandlerTests.GetConfig(new QueryOptions(), Cassandra.Policies.DefaultPolicies, PoolingOptions.Get());
             var request = RequestHandler.GetRequest(batch, Serializer, config.DefaultRequestOptions);
             var bodyBuffer = GetBodyBuffer(request);
 
@@ -390,7 +390,7 @@ namespace Cassandra.Tests
             // To microsecond precision
             startDate = startDate.Subtract(TimeSpan.FromTicks(startDate.Ticks % 10));
 
-            var config = RequestHandlerTests.GetConfig(new QueryOptions(), Cassandra.Policies.DefaultPolicies, PoolingOptions.Create());
+            var config = RequestHandlerTests.GetConfig(new QueryOptions(), Cassandra.Policies.DefaultPolicies, PoolingOptions.Get());
             var request = RequestHandler.GetRequest(batch, Serializer, config.DefaultRequestOptions);
             var bodyBuffer = GetBodyBuffer(request);
 
@@ -426,7 +426,7 @@ namespace Cassandra.Tests
                 Cassandra.Policies.DefaultRetryPolicy, Cassandra.Policies.DefaultSpeculativeExecutionPolicy,
                 new NoTimestampGenerator());
 
-            var config = RequestHandlerTests.GetConfig(new QueryOptions(), policies, PoolingOptions.Create());
+            var config = RequestHandlerTests.GetConfig(new QueryOptions(), policies, PoolingOptions.Get());
             var request = RequestHandler.GetRequest(batch, Serializer, config.DefaultRequestOptions);
             var bodyBuffer = GetBodyBuffer(request);
 
@@ -453,7 +453,7 @@ namespace Cassandra.Tests
             providedTimestamp = providedTimestamp.Subtract(TimeSpan.FromTicks(providedTimestamp.Ticks % 10));
             batch.SetTimestamp(providedTimestamp);
 
-            var config = RequestHandlerTests.GetConfig(new QueryOptions(), Cassandra.Policies.DefaultPolicies, PoolingOptions.Create());
+            var config = RequestHandlerTests.GetConfig(new QueryOptions(), Cassandra.Policies.DefaultPolicies, PoolingOptions.Get());
             var request = RequestHandler.GetRequest(batch, Serializer, config.DefaultRequestOptions);
             var bodyBuffer = GetBodyBuffer(request);
 

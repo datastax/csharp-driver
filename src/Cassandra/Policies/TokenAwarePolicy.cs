@@ -27,14 +27,13 @@ namespace Cassandra
     /// </para>
     /// <list type="number">
     /// <item>The <see cref="Distance(Host)"/> method is inherited  from the child policy.</item>
-    /// <item>The host yielded by the <see cref="NewQueryPlan(string, IStatement)"/> method will first return the
+    /// <item>The host yielded by the <see cref="NewQueryPlan(Metadata, string, IStatement)"/> method will first return the
     /// <see cref="HostDistance.Local"/> replicas for the statement, based on the <see cref="Statement.RoutingKey"/>.
     /// </item>
     /// </list>
     /// </summary>
     public class TokenAwarePolicy : ILoadBalancingPolicy
     {
-        private ICluster _cluster;
         private readonly ThreadLocal<Random> _prng = new ThreadLocal<Random>(() => new Random(
             // Predictable random numbers are OK
             Environment.TickCount * Environment.CurrentManagedThreadId));
@@ -52,10 +51,9 @@ namespace Cassandra
 
         public ILoadBalancingPolicy ChildPolicy { get; }
 
-        public void Initialize(ICluster cluster)
+        public void Initialize(Metadata metadata)
         {
-            _cluster = cluster;
-            ChildPolicy.Initialize(cluster);
+            ChildPolicy.Initialize(metadata);
         }
 
         /// <summary>
@@ -77,16 +75,17 @@ namespace Cassandra
         ///  <c>IStatement.RoutingKey</c> is not <c>null</c>). Following what
         ///  it will return the plan of the child policy.</p>
         /// </summary>
+        /// <param name="metadata">The information about the session instance for which the policy is created.</param>
         /// <param name="loggedKeyspace">Keyspace on which the query is going to be executed</param>
         /// <param name="query"> the query for which to build the plan. </param>
         /// <returns>the new query plan.</returns>
-        public IEnumerable<Host> NewQueryPlan(string loggedKeyspace, IStatement query)
+        public IEnumerable<Host> NewQueryPlan(Metadata metadata, string loggedKeyspace, IStatement query)
         {
             var routingKey = query?.RoutingKey;
             IEnumerable<Host> childIterator;
             if (routingKey == null)
             {
-                childIterator = ChildPolicy.NewQueryPlan(loggedKeyspace, query);
+                childIterator = ChildPolicy.NewQueryPlan(metadata, loggedKeyspace, query);
                 foreach (var h in childIterator)
                 {
                     yield return h;
@@ -95,7 +94,7 @@ namespace Cassandra
             }
 
             var keyspace = query.Keyspace ?? loggedKeyspace;
-            var replicas = _cluster.GetReplicas(keyspace, routingKey.RawRoutingKey);
+            var replicas = metadata.GetReplicas(keyspace, routingKey.RawRoutingKey);
 
             var localReplicaSet = new HashSet<Host>();
             var localReplicaList = new List<Host>(replicas.Count);
@@ -117,7 +116,7 @@ namespace Cassandra
             }
 
             // Then, return the rest of child policy hosts
-            childIterator = ChildPolicy.NewQueryPlan(loggedKeyspace, query);
+            childIterator = ChildPolicy.NewQueryPlan(metadata, loggedKeyspace, query);
             foreach (var h in childIterator)
             {
                 if (localReplicaSet.Contains(h))

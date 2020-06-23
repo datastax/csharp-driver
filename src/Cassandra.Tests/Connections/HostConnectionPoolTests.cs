@@ -104,7 +104,7 @@ namespace Cassandra.Tests.Connections
                     new DefaultRetryPolicy(),
                     NoSpeculativeExecutionPolicy.Instance,
                     new AtomicMonotonicTimestampGenerator()),
-                PoolingOptions = PoolingOptions.Create(ProtocolVersion.V4).SetCoreConnectionsPerHost(HostDistance.Local, 2)
+                PoolingOptions = PoolingOptions.Get(ProtocolVersion.V4).SetCoreConnectionsPerHost(HostDistance.Local, 2)
             }.Build();
 
             var pool = new HostConnectionPool(

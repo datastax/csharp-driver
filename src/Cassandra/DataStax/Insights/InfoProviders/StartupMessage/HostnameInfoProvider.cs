@@ -21,7 +21,7 @@ namespace Cassandra.DataStax.Insights.InfoProviders.StartupMessage
 {
     internal class HostnameInfoProvider : IInsightsInfoProvider<string>
     {
-        public string GetInformation(IInternalCluster cluster, IInternalSession session)
+        public string GetInformation(IInternalCluster cluster, IInternalSession session, Metadata metadata)
         {
             return Dns.GetHostName();
         }

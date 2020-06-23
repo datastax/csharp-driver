@@ -29,6 +29,8 @@ namespace Cassandra.Requests
     /// </summary>
     internal interface IRequestHandler
     {
+        Metadata Metadata { get; }
+
         IRequestOptions RequestOptions { get; }
 
         IExtendedRetryPolicy RetryPolicy { get; }
@@ -46,6 +48,11 @@ namespace Cassandra.Requests
         /// Marks this instance as completed (if not already) and in a new Task using the default scheduler, it invokes the action and sets the result
         /// </summary>
         bool SetCompleted(RowSet result, Action action);
+        
+        /// <summary>
+        /// Marks this instance as completed (if not already) and in a new Task using the default scheduler, it awaits the task and sets the result
+        /// </summary>
+        bool SetCompletedWithTask(RowSet result, Func<Task> task);
 
         void SetNoMoreHosts(NoHostAvailableException ex, IRequestExecution execution);
 

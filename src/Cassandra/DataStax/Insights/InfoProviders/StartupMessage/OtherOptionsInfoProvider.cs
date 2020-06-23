@@ -21,7 +21,7 @@ namespace Cassandra.DataStax.Insights.InfoProviders.StartupMessage
 {
     internal class OtherOptionsInfoProvider : IInsightsInfoProvider<Dictionary<string, object>>
     {
-        public Dictionary<string, object> GetInformation(IInternalCluster cluster, IInternalSession session)
+        public Dictionary<string, object> GetInformation(IInternalCluster cluster, IInternalSession session, Metadata metadata)
         {
             return null;
         }

@@ -1,12 +1,12 @@
-﻿// 
+﻿//
 //       Copyright (C) DataStax Inc.
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //       http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,23 +16,24 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using Cassandra.SessionManagement;
 
 namespace Cassandra
 {
     internal class LocalDatacenterProvider : ILocalDatacenterProvider
     {
-        private bool _initialized = false;
+        private volatile bool _initialized = false;
 
-        private IInternalCluster _cluster;
-        private IEnumerable<string> _availableDcs;
-        private string _availableDcsStr;
-        private string _cachedDatacenter;
+        private volatile IInternalCluster _cluster;
+        private volatile IEnumerable<string> _availableDcs;
+        private volatile string _availableDcsStr;
+        private volatile string _cachedDatacenter;
 
-        public void Initialize(IInternalCluster cluster)
+        public void Initialize(IInternalCluster cluster, Metadata metadata)
         {
             _cluster = cluster;
-            _availableDcs = _cluster.AllHosts().Select(h => h.Datacenter).Where(dc => dc != null).Distinct().ToList();
+            _availableDcs = metadata.AllHosts().Select(h => h.Datacenter).Where(dc => dc != null).Distinct().ToList();
             _availableDcsStr = string.Join(", ", _availableDcs);
             _initialized = true;
         }
@@ -67,7 +68,7 @@ namespace Cassandra
                     "It can be specified in the load balancing policy constructor or " +
                     $"via the Builder.WithLocalDatacenter() method. Available datacenters: {_availableDcsStr}.");
             }
-            
+
             // implicit contact point so infer the local datacenter from the control connection host
             return InferLocalDatacenter();
         }
@@ -93,13 +94,13 @@ namespace Cassandra
             }
 
             // Use the host used by the control connection
-            _cachedDatacenter = 
-                cc.Host?.Datacenter ?? 
+            _cachedDatacenter =
+                cc.Host?.Datacenter ??
                 throw new InvalidOperationException(
                     "The local datacenter could not be inferred from the implicit contact point, " +
                     "please set it explicitly in the load balancing policy constructor or " +
                     $"via the Builder.WithLocalDatacenter() method. Available datacenters: {_availableDcsStr}.");
-            
+
             return _cachedDatacenter;
         }
     }

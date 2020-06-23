@@ -85,7 +85,7 @@ namespace Cassandra.Tests.Requests
             var distanceCount = Interlocked.Read(ref lbpCluster.DistanceCount);
             var request = new PrepareRequest(_serializer, "TEST", null, null);
 
-            await mockResult.PrepareHandler.Prepare(
+            await mockResult.PrepareHandler.PrepareAsync(
                 request, 
                 mockResult.Session, 
                 queryPlan.GetEnumerator()).ConfigureAwait(false);
@@ -156,7 +156,7 @@ namespace Cassandra.Tests.Requests
             var distanceCount = Interlocked.Read(ref lbpCluster.DistanceCount);
             var request = new PrepareRequest(_serializer, "TEST", null, null);
 
-            await mockResult.PrepareHandler.Prepare(
+            await mockResult.PrepareHandler.PrepareAsync(
                 request, 
                 mockResult.Session, 
                 queryPlan.GetEnumerator()).ConfigureAwait(false);
@@ -228,7 +228,7 @@ namespace Cassandra.Tests.Requests
             var distanceCount = Interlocked.Read(ref lbpCluster.DistanceCount);
             var request = new PrepareRequest(_serializer, "TEST", null, null);
 
-            await mockResult.PrepareHandler.Prepare(
+            await mockResult.PrepareHandler.PrepareAsync(
                 request, 
                 mockResult.Session, 
                 queryPlan.GetEnumerator()).ConfigureAwait(false);
@@ -299,7 +299,7 @@ namespace Cassandra.Tests.Requests
             var distanceCount = Interlocked.Read(ref lbpCluster.DistanceCount);
             var request = new PrepareRequest(_serializer, "TEST", null, null);
 
-            await mockResult.PrepareHandler.Prepare(
+            await mockResult.PrepareHandler.PrepareAsync(
                 request, 
                 mockResult.Session, 
                 queryPlan.GetEnumerator()).ConfigureAwait(false);
@@ -370,7 +370,7 @@ namespace Cassandra.Tests.Requests
             var distanceCount = Interlocked.Read(ref lbpCluster.DistanceCount);
             var request = new PrepareRequest(_serializer, "TEST", null, null);
 
-            await mockResult.PrepareHandler.Prepare(
+            await mockResult.PrepareHandler.PrepareAsync(
                 request, 
                 mockResult.Session, 
                 queryPlan.GetEnumerator()).ConfigureAwait(false);
@@ -442,7 +442,7 @@ namespace Cassandra.Tests.Requests
             var distanceCount = Interlocked.Read(ref lbpCluster.DistanceCount);
             var request = new PrepareRequest(_serializer, "TEST", null, null);
 
-            await mockResult.PrepareHandler.Prepare(
+            await mockResult.PrepareHandler.PrepareAsync(
                 request, 
                 mockResult.Session, 
                 queryPlan.GetEnumerator()).ConfigureAwait(false);
