@@ -46,13 +46,15 @@ namespace Cassandra
         private static readonly Logger Logger = new Logger(typeof(Session));
         private readonly IThreadSafeDictionary<IPEndPoint, IHostConnectionPool> _connectionPool;
         private readonly IInternalCluster _cluster;
-        private volatile string _keyspace;
         private readonly IMetricsManager _metricsManager;
         private readonly IObserverFactory _observerFactory;
         private readonly IInsightsClient _insightsClient;
 
         private readonly Task<Metadata> _initTask;
         private long _state = Session.Initializing;
+
+        private volatile Metadata _initializedMetadata;
+        private volatile string _keyspace;
 
         internal IInternalSession InternalRef => this;
 
@@ -199,7 +201,7 @@ namespace Cassandra
         {
             //Only dispose once
             var previousState = Interlocked.Exchange(ref _state, Session.Disposed);
-            if (previousState == Session.Disposed)
+            if (previousState != Session.Initialized)
             {
                 return;
             }
@@ -215,8 +217,8 @@ namespace Cassandra
             }
 
             _metricsManager?.Dispose();
-            
-            var metadata = await InternalRef.InternalCluster.GetMetadataAsync().ConfigureAwait(false);
+
+            var metadata = _initializedMetadata;
             metadata.HostRemoved -= OnHostRemoved;
 
             var pools = _connectionPool.ToArray();
@@ -258,11 +260,13 @@ namespace Cassandra
             }
 
             await _insightsClient.InitializeAsync().ConfigureAwait(false);
-
+            
+            _initializedMetadata = metadata;
             var previousState = Interlocked.CompareExchange(ref _state, Session.Initialized, Session.Initializing);
             if (previousState == Session.Disposed)
             {
                 await ShutdownInternalAsync().ConfigureAwait(false);
+                throw new ObjectDisposedException("Session instance was disposed before initialization finished.");
             }
 
             return metadata;
