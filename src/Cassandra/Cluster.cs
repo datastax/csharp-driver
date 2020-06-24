@@ -75,6 +75,8 @@ namespace Cassandra
             return _controlConnection;
         }
 
+        Exception IInternalCluster.InitException => _initException;
+
         /// <inheritdoc />
         ConcurrentDictionary<byte[], PreparedStatement> IInternalCluster.PreparedQueries { get; }
             = new ConcurrentDictionary<byte[], PreparedStatement>(new ByteArrayComparer());
@@ -199,15 +201,15 @@ namespace Cassandra
         Task<Metadata> IInternalCluster.TryInitAndGetMetadataAsync()
         {
             var currentState = Interlocked.Read(ref _state);
-            if (currentState == Cluster.Disposed)
-            {
-                throw new ObjectDisposedException("This cluster object has been disposed.");
-            }
-
             if (currentState == Cluster.Initialized)
             {
                 //It was already initialized
-                return Task.FromResult(_metadata);
+                return _initTask;
+            }
+
+            if (currentState == Cluster.Disposed)
+            {
+                throw new ObjectDisposedException("This cluster object has been disposed.");
             }
             
             if (_initException != null)

@@ -66,6 +66,34 @@ namespace Cassandra
         string SessionName { get; }
 
         /// <summary>
+        /// <para>
+        /// Waits until the initialization task is finished (this task is started when the Session is created).</para>
+        /// <para>
+        /// It is not necessary to call this method but you can use it if you want the initialization to happen
+        /// in a specific state of your application (e.g. during startup before your application listens for requests).
+        /// </para>
+        /// <para>
+        /// If your application uses the Task Parallel Library (e.g. async/await) please use <see cref="ConnectAsync"/> instead.
+        /// </para>
+        /// </summary>
+        /// <exception cref="NoHostAvailableException">If the initialization failed.</exception>
+        /// <exception cref="TimeoutException">If the initialization timed out.</exception>
+        /// <exception cref="InitFatalErrorException">If further attempts to connect are made after initialization has failed.</exception>
+        void Connect();
+
+        /// <summary>
+        /// <para>
+        /// Waits until the initialization task is finished (this task is started when the Session is created).</para>
+        /// <para>It is not necessary to call this method but you can use it if you want the initialization to happen
+        /// in a specific state of your application (e.g. during startup before your application listens for requests).
+        /// </para>
+        /// </summary>
+        /// <exception cref="NoHostAvailableException">If the initialization failed.</exception>
+        /// <exception cref="TimeoutException">If the initialization timed out.</exception>
+        /// <exception cref="InitFatalErrorException">If further attempts to connect are made after initialization has failed.</exception>
+        Task ConnectAsync();
+
+        /// <summary>
         /// Begins asynchronous execute operation.
         /// </summary>
         IAsyncResult BeginExecute(IStatement statement, AsyncCallback callback, object state);

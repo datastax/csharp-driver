@@ -29,8 +29,6 @@ using Cassandra.ExecutionProfiles;
 using Cassandra.Metrics;
 using Cassandra.Metrics.Internal;
 using Cassandra.Observers.Abstractions;
-using Cassandra.Requests;
-using Cassandra.Serialization;
 using Cassandra.SessionManagement;
 using Cassandra.Tasks;
 
@@ -99,6 +97,18 @@ namespace Cassandra
         public UdtMappingDefinitions UserDefinedTypes { get; private set; }
 
         public string SessionName { get; }
+
+        /// <inheritdoc />
+        public void Connect()
+        {
+            TaskHelper.WaitToComplete(ConnectAsync());
+        }
+
+        /// <inheritdoc />
+        public Task ConnectAsync()
+        {
+            return InternalRef.TryInitAndGetMetadataAsync();
+        }
 
         public Policies Policies => Configuration.Policies;
 
@@ -231,9 +241,22 @@ namespace Cassandra
         Task<Metadata> IInternalSession.TryInitAndGetMetadataAsync()
         {
             var currentState = Interlocked.Read(ref _state);
+            
+            if (currentState == Session.Initialized)
+            {
+                //It was already initialized
+                return _initTask;
+            }
+
             if (currentState == Session.Disposed)
             {
                 throw new ObjectDisposedException("This session object has been disposed.");
+            }
+            
+            if (_cluster.InitException != null)
+            {
+                //There was an exception that is not possible to recover from
+                throw _cluster.InitException;
             }
 
             return _initTask;
@@ -243,9 +266,9 @@ namespace Cassandra
         {
             var metadata = await InternalRef.InternalCluster.TryInitAndGetMetadataAsync().ConfigureAwait(false);
             metadata.HostRemoved += OnHostRemoved;
-            
+
             _metricsManager.InitializeMetrics(this);
-            
+
             var serializerManager = _cluster.SerializerManager;
             if (Configuration.GetOrCreatePoolingOptions(serializerManager.CurrentProtocolVersion).GetWarmup())
             {
@@ -260,7 +283,7 @@ namespace Cassandra
             }
 
             await _insightsClient.InitializeAsync().ConfigureAwait(false);
-            
+
             _initializedMetadata = metadata;
             var previousState = Interlocked.CompareExchange(ref _state, Session.Initialized, Session.Initializing);
             if (previousState == Session.Disposed)
