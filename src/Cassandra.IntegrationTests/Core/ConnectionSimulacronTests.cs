@@ -382,7 +382,7 @@ namespace Cassandra.IntegrationTests.Core
 
             public void Initialize(ICluster cluster)
             {
-                _parent.Initialize(cluster);
+                _parent.InitializeAsync(cluster);
             }
 
             public HostDistance Distance(Host host)

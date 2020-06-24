@@ -16,6 +16,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Cassandra
 {
@@ -84,9 +85,9 @@ namespace Cassandra
         /// <summary>
         /// Initializes the policy.
         /// </summary>
-        public void Initialize(Metadata metadata)
+        public Task InitializeAsync(Metadata metadata)
         {
-            ChildPolicy.Initialize(metadata);
+            return ChildPolicy.InitializeAsync(metadata);
         }
 
         /// <summary>

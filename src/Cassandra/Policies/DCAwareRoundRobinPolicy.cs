@@ -18,6 +18,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
+using Cassandra.Tasks;
 
 namespace Cassandra
 {
@@ -76,7 +78,7 @@ namespace Cassandra
         /// </summary>
         public string LocalDc { get; private set; }
 
-        public void Initialize(Metadata metadata)
+        public Task InitializeAsync(Metadata metadata)
         {
             //When the pool changes, it should clear the local cache
             metadata.HostAdded += _ => ClearHosts();
@@ -84,6 +86,8 @@ namespace Cassandra
 
             LocalDc = metadata.Configuration.LocalDatacenterProvider.DiscoverLocalDatacenter(
                 _inferLocalDc, LocalDc);
+
+            return TaskHelper.Completed;
         }
 
         /// <summary>

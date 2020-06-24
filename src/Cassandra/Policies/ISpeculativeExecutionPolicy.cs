@@ -15,6 +15,7 @@
 //
 
 using System;
+using System.Threading.Tasks;
 
 // ReSharper disable once CheckNamespace
 namespace Cassandra
@@ -28,7 +29,7 @@ namespace Cassandra
         /// <summary>
         /// Initializes the policy at cluster startup.
         /// </summary>
-        void Initialize(Metadata metadata);
+        Task InitializeAsync(Metadata metadata);
 
         /// <summary>
         /// Returns the plan to use for a new query.

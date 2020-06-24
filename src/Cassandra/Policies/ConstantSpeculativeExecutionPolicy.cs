@@ -15,6 +15,8 @@
 //
 
 using System;
+using System.Threading.Tasks;
+using Cassandra.Tasks;
 
 // ReSharper disable once CheckNamespace
 namespace Cassandra
@@ -54,9 +56,9 @@ namespace Cassandra
             
         }
 
-        public void Initialize(Metadata metadata)
+        public Task InitializeAsync(Metadata metadata)
         {
-            
+            return TaskHelper.Completed;
         }
 
         public ISpeculativeExecutionPlan NewPlan(string keyspace, IStatement statement)

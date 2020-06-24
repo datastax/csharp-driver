@@ -731,7 +731,7 @@ namespace Cassandra.Tests
             public void Initialize(ICluster cluster)
             {
                 _hosts = cluster.AllHosts();
-                _childPolicy.Initialize(cluster);
+                _childPolicy.InitializeAsync(cluster);
             }
 
             public HostDistance Distance(Host host)

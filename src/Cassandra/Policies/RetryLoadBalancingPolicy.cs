@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Cassandra
 {
@@ -34,9 +35,9 @@ namespace Cassandra
 
         public ILoadBalancingPolicy LoadBalancingPolicy { get; }
 
-        public void Initialize(Metadata metadata)
+        public Task InitializeAsync(Metadata metadata)
         {
-            LoadBalancingPolicy.Initialize(metadata);
+            return LoadBalancingPolicy.InitializeAsync(metadata);
         }
 
         public HostDistance Distance(Host host)

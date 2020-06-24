@@ -275,12 +275,12 @@ namespace Cassandra
                 // Initialize policies
                 foreach (var lbp in loadBalancingPolicies)
                 {
-                    lbp.Initialize(_metadata);
+                    await lbp.InitializeAsync(_metadata).ConfigureAwait(false);
                 }
 
                 foreach (var sep in speculativeExecutionPolicies)
                 {
-                    sep.Initialize(_metadata);
+                    await sep.InitializeAsync(_metadata).ConfigureAwait(false);
                 }
 
                 InitializeHostDistances();

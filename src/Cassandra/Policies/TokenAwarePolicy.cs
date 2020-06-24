@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Cassandra
 {
@@ -51,9 +52,9 @@ namespace Cassandra
 
         public ILoadBalancingPolicy ChildPolicy { get; }
 
-        public void Initialize(Metadata metadata)
+        public Task InitializeAsync(Metadata metadata)
         {
-            ChildPolicy.Initialize(metadata);
+            return ChildPolicy.InitializeAsync(metadata);
         }
 
         /// <summary>

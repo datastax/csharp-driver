@@ -213,7 +213,7 @@ namespace Cassandra.Tests.Connections.Control
                     .Setup(c => c.RetrieveAndSetDistance(It.IsAny<Host>()))
                     .Returns<Host>(h => config.Policies.LoadBalancingPolicy.Distance(h));
                 Mock.Get(cluster).Setup(c => c.AllHosts()).Returns(() => metadata.AllHosts());
-                config.Policies.LoadBalancingPolicy.Initialize(cluster);
+                config.Policies.LoadBalancingPolicy.InitializeAsync(cluster);
 
                 connectionOpenEnabled = false;
 
@@ -271,7 +271,7 @@ namespace Cassandra.Tests.Connections.Control
                         Mock.Get(cluster).Setup(c => c.AllHosts()).Returns(() => metadata.AllHosts());
                         Mock.Get(cluster).Setup(c => c.GetControlConnection()).Returns(cc);
                         config.LocalDatacenterProvider.Initialize(cluster);
-                        config.Policies.LoadBalancingPolicy.Initialize(cluster);
+                        config.Policies.LoadBalancingPolicy.InitializeAsync(cluster);
 
                         createResult.ConnectionFactory.CreatedConnections.Clear();
 

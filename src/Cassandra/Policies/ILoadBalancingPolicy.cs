@@ -15,6 +15,7 @@
 //
 
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Cassandra
 {
@@ -25,7 +26,12 @@ namespace Cassandra
     public interface ILoadBalancingPolicy
     {
         /// <summary>
+        /// <para>
         ///  Initialize this load balancing policy. 
+        /// </para>
+        /// <para>
+        /// If the implementation is not async, we recommend returning Task.CompletedTask or Task.FromResult(0);
+        /// </para>
         /// <para>
         ///  Note that the driver guarantees
         ///  that it will call this method exactly once per policy object and will do so
@@ -33,7 +39,7 @@ namespace Cassandra
         /// </para>
         /// </summary>
         /// <param name="metadata">The information about the session instance for which the policy is created.</param>
-        void Initialize(Metadata metadata);
+        Task InitializeAsync(Metadata metadata);
 
         /// <summary>
         ///  Returns the distance assigned by this policy to the provided host. <p> The

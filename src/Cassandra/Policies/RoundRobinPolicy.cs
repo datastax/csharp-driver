@@ -17,6 +17,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
+using Cassandra.Tasks;
 
 namespace Cassandra
 {
@@ -36,8 +38,9 @@ namespace Cassandra
     {
         private int _index;
 
-        public void Initialize(Metadata metadata)
+        public Task InitializeAsync(Metadata metadata)
         {
+            return TaskHelper.Completed;
         }
 
         /// <summary>
