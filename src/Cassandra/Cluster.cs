@@ -508,7 +508,7 @@ namespace Cassandra
 
             foreach (var sep in speculativeExecutionPolicies)
             {
-                sep.Dispose();
+                await sep.ShutdownAsync().ConfigureAwait(false);
             }
         }
 

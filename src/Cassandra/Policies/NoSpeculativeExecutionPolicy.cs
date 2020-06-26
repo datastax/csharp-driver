@@ -32,12 +32,7 @@ namespace Cassandra
         {
             
         }
-
-        public void Dispose()
-        {
-            
-        }
-
+        
         public Task InitializeAsync(Metadata metadata)
         {
             return TaskHelper.Completed;
@@ -46,6 +41,11 @@ namespace Cassandra
         public ISpeculativeExecutionPlan NewPlan(string keyspace, IStatement statement)
         {
             return Plan;
+        }
+
+        public Task ShutdownAsync()
+        {
+            return TaskHelper.Completed;
         }
 
         private class NoSpeculativeExecutionPlan : ISpeculativeExecutionPlan

@@ -103,7 +103,11 @@ namespace Cassandra
 
         internal IReadOnlyTokenMap TokenToReplicasMap => _tokenMap;
 
-        internal Metadata(IInternalCluster cluster, Configuration configuration, ISerializerManager serializerManager, IEnumerable<IContactPoint> parsedContactPoints)
+        internal Metadata(
+            IInternalCluster cluster, 
+            Configuration configuration, 
+            ISerializerManager serializerManager, 
+            IEnumerable<IContactPoint> parsedContactPoints)
         {
             _serializerManager = serializerManager;
             _queryAbortTimeout = configuration.DefaultRequestOptions.QueryAbortTimeout;

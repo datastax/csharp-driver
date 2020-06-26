@@ -50,12 +50,7 @@ namespace Cassandra
         public long Delay { get; }
 
         public int MaxSpeculativeExecutions { get; }
-
-        public void Dispose()
-        {
-            
-        }
-
+        
         public Task InitializeAsync(Metadata metadata)
         {
             return TaskHelper.Completed;
@@ -64,6 +59,11 @@ namespace Cassandra
         public ISpeculativeExecutionPlan NewPlan(string keyspace, IStatement statement)
         {
             return new ConstantSpeculativeExecutionPlan(Delay, MaxSpeculativeExecutions);
+        }
+
+        public Task ShutdownAsync()
+        {
+            return TaskHelper.Completed;
         }
 
         private class ConstantSpeculativeExecutionPlan : ISpeculativeExecutionPlan
