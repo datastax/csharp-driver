@@ -48,15 +48,13 @@ namespace Cassandra
         private static ProtocolVersion _maxProtocolVersion = ProtocolVersion.MaxSupported;
         internal static readonly Logger Logger = new Logger(typeof(Cluster));
         private readonly CopyOnWriteList<IInternalSession> _connectedSessions = new CopyOnWriteList<IInternalSession>();
-        private readonly IControlConnection _controlConnection;
         private readonly SerializerManager _serializerManager;
+        private readonly bool _implicitContactPoint = false;
         private volatile Exception _initException;
         private readonly SemaphoreSlim _sessionCreateLock = new SemaphoreSlim(1, 1);
         private long _sessionCounter = -1;
-        private readonly bool _implicitContactPoint = false;
 
         private readonly Metadata _metadata;
-        private readonly IProtocolEventDebouncer _protocolEventDebouncer;
         private IReadOnlyList<ILoadBalancingPolicy> _loadBalancingPolicies;
 
         private readonly Task<Metadata> _initTask;
@@ -68,13 +66,7 @@ namespace Cassandra
         private bool IsDisposed => Interlocked.Read(ref _state) == Cluster.Disposed;
 
         ISerializerManager IInternalCluster.SerializerManager => _serializerManager;
-
-        /// <inheritdoc />
-        IControlConnection IInternalCluster.GetControlConnection()
-        {
-            return _controlConnection;
-        }
-
+        
         Exception IInternalCluster.InitException => _initException;
 
         /// <inheritdoc />
@@ -162,11 +154,6 @@ namespace Cassandra
         {
             Configuration = configuration;
 
-            _protocolEventDebouncer = new ProtocolEventDebouncer(
-                configuration.TimerFactory,
-                TimeSpan.FromMilliseconds(configuration.MetadataSyncOptions.RefreshSchemaDelayIncrement),
-                TimeSpan.FromMilliseconds(configuration.MetadataSyncOptions.MaxTotalRefreshSchemaDelay));
-            
             var protocolVersion = _maxProtocolVersion;
             if (Configuration.ProtocolOptions.MaxProtocolVersionValue != null &&
                 Configuration.ProtocolOptions.MaxProtocolVersionValue.Value.IsSupported(configuration))
@@ -174,6 +161,8 @@ namespace Cassandra
                 protocolVersion = Configuration.ProtocolOptions.MaxProtocolVersionValue.Value;
             }
 
+            _serializerManager = new SerializerManager(protocolVersion, configuration.TypeSerializers);
+            
             var contactPointsList = contactPoints.ToList();
             if (contactPointsList.Count == 0)
             {
@@ -183,16 +172,8 @@ namespace Cassandra
             }
 
             var parsedContactPoints = configuration.ContactPointParser.ParseContactPoints(contactPointsList);
-            _serializerManager = new SerializerManager(protocolVersion, configuration.TypeSerializers);
-            _controlConnection = configuration.ControlConnectionFactory.Create(
-                this, 
-                _protocolEventDebouncer, 
-                _serializerManager, 
-                Configuration, 
-                _metadata, 
-                parsedContactPoints);
-
-            _metadata = new Metadata(configuration, _serializerManager, _controlConnection);
+            
+            _metadata = new Metadata(this, configuration, _serializerManager, parsedContactPoints);
 
             _initTask = Task.Run(InitAsync);
         }
@@ -240,7 +221,7 @@ namespace Cassandra
                 // Only abort the async operations when at least twice the time for ConnectTimeout per host passed
                 var initialAbortTimeout = Configuration.SocketOptions.ConnectTimeoutMillis * 2 * _metadata.Hosts.Count;
                 initialAbortTimeout = Math.Max(initialAbortTimeout, Configuration.SocketOptions.MetadataAbortTimeout);
-                var initTask = _controlConnection.InitAsync();
+                var initTask = _metadata.InitializeAsync();
                 try
                 {
                     await initTask.WaitToCompleteAsync(initialAbortTimeout).ConfigureAwait(false);
@@ -515,8 +496,7 @@ namespace Cassandra
 
         private async Task ShutdownInternalAsync()
         {
-            _controlConnection.Dispose();
-            await _protocolEventDebouncer.ShutdownAsync().ConfigureAwait(false);
+            await _metadata.ShutdownAsync().ConfigureAwait(false);
             Configuration.Timer.Dispose();
 
             // Dispose policies

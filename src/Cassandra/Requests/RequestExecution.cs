@@ -249,11 +249,11 @@ namespace Cassandra.Requests
                     result.Info.SetSchemaInAgreement(schemaAgreed);
                     try
                     {
-                        await _session.InternalCluster.GetControlConnection()
-                                      .HandleSchemaChangeEvent(schemaChange.SchemaChangeEventArgs, true)
-                                      .WaitToCompleteAsync(
-                                          _session.Cluster.Configuration.ProtocolOptions.MaxSchemaAgreementWaitSeconds * 1000)
-                                      .ConfigureAwait(false);
+                        await _parent.Metadata.ControlConnection
+                                     .HandleSchemaChangeEvent(schemaChange.SchemaChangeEventArgs, true)
+                                     .WaitToCompleteAsync(
+                                         _session.Cluster.Configuration.ProtocolOptions.MaxSchemaAgreementWaitSeconds * 1000)
+                                     .ConfigureAwait(false);
                     }
                     catch (TimeoutException)
                     {

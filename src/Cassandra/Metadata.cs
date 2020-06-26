@@ -25,8 +25,10 @@ using Cassandra.Collections;
 using Cassandra.Connections;
 using Cassandra.Connections.Control;
 using Cassandra.MetadataHelpers;
+using Cassandra.ProtocolEvents;
 using Cassandra.Requests;
 using Cassandra.Serialization;
+using Cassandra.SessionManagement;
 using Cassandra.Tasks;
 
 namespace Cassandra
@@ -44,6 +46,7 @@ namespace Cassandra
         private volatile TokenMap _tokenMap;
         private volatile ConcurrentDictionary<string, KeyspaceMetadata> _keyspaces = new ConcurrentDictionary<string, KeyspaceMetadata>();
         private volatile ISchemaParser _schemaParser;
+        private readonly IProtocolEventDebouncer _protocolEventDebouncer;
         private readonly int _queryAbortTimeout;
         private volatile CopyOnWriteDictionary<IContactPoint, IEnumerable<IConnectionEndPoint>> _resolvedContactPoints = 
             new CopyOnWriteDictionary<IContactPoint, IEnumerable<IConnectionEndPoint>>();
@@ -56,7 +59,7 @@ namespace Cassandra
         ///  Returns the name of currently connected cluster.
         /// </summary>
         /// <returns>the Cassandra name of currently connected cluster.</returns>
-        public String ClusterName { get; internal set; }
+        public string ClusterName { get; internal set; }
 
         /// <summary>
         /// Determines whether the cluster is provided as a service (DataStax Astra).
@@ -100,25 +103,50 @@ namespace Cassandra
 
         internal IReadOnlyTokenMap TokenToReplicasMap => _tokenMap;
 
-        internal Metadata(Configuration configuration, ISerializerManager serializerManager, IControlConnection controlConnection)
+        internal Metadata(IInternalCluster cluster, Configuration configuration, ISerializerManager serializerManager, IEnumerable<IContactPoint> parsedContactPoints)
         {
             _serializerManager = serializerManager;
             _queryAbortTimeout = configuration.DefaultRequestOptions.QueryAbortTimeout;
             Configuration = configuration;
             Hosts = new Hosts();
+            
+            _protocolEventDebouncer = new ProtocolEventDebouncer(
+                configuration.TimerFactory,
+                TimeSpan.FromMilliseconds(configuration.MetadataSyncOptions.RefreshSchemaDelayIncrement),
+                TimeSpan.FromMilliseconds(configuration.MetadataSyncOptions.MaxTotalRefreshSchemaDelay));
+            
+            ControlConnection = configuration.ControlConnectionFactory.Create(
+                cluster, 
+                _protocolEventDebouncer, 
+                _serializerManager, 
+                Configuration, 
+                this, 
+                parsedContactPoints);
+
             Hosts.Down += OnHostDown;
             Hosts.Up += OnHostUp;
-            ControlConnection = controlConnection;
         }
 
         internal Metadata(
+            IInternalCluster cluster,
             Configuration configuration, 
             ISerializerManager serializerManager, 
-            IControlConnection controlConnection, 
+            IEnumerable<IContactPoint> contactPoints, 
             SchemaParser schemaParser) 
-            : this(configuration, serializerManager, controlConnection)
+            : this(cluster, configuration, serializerManager, contactPoints)
         {
             _schemaParser = schemaParser;
+        }
+
+        internal Task InitializeAsync()
+        {
+            return ControlConnection.InitAsync();
+        }
+
+        internal Task ShutdownAsync()
+        {
+            ControlConnection.Dispose();
+            return _protocolEventDebouncer.ShutdownAsync();
         }
 
         internal void SetResolvedContactPoints(IDictionary<IContactPoint, IEnumerable<IConnectionEndPoint>> resolvedContactPoints)

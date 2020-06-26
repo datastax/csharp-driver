@@ -31,12 +31,7 @@ namespace Cassandra.SessionManagement
         ISerializerManager SerializerManager { get; }
 
         bool AnyOpenConnections(Host host);
-
-        /// <summary>
-        /// Gets the control connection used by the cluster
-        /// </summary>
-        IControlConnection GetControlConnection();
-
+        
         /// <summary>
         /// If contact points are not provided in the builder, the driver will use localhost
         /// as an implicit contact point.
