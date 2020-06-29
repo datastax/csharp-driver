@@ -20,8 +20,15 @@ namespace Cassandra.Connections.Control
 {
     internal interface IProtocolVersionNegotiator
     {
-        Task<IConnection> ChangeProtocolVersion(Configuration config, ISerializerManager serializer, ProtocolVersion nextVersion, IConnection previousConnection, UnsupportedProtocolVersionException ex = null, ProtocolVersion? previousVersion = null);
+        Task<IConnection> ChangeProtocolVersion(
+            Configuration config, 
+            ISerializerManager serializer, 
+            ProtocolVersion nextVersion, 
+            IConnection previousConnection, 
+            UnsupportedProtocolVersionException ex = null,
+            ProtocolVersion? previousVersion = null);
         
-        Task<IConnection> NegotiateVersionAsync(Configuration config, Metadata metadata, IConnection connection, ISerializerManager serializer);
+        Task<IConnection> NegotiateVersionAsync(
+            Configuration config, IInternalMetadata internalMetadata, IConnection connection, ISerializerManager serializer);
     }
 }

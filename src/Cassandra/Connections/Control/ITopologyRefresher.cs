@@ -19,7 +19,7 @@ using Cassandra.Serialization;
 namespace Cassandra.Connections.Control
 {
     /// <summary>
-    /// Class that issues system table queries and updates the hosts collection on <see cref="Metadata"/>.
+    /// Class that issues system table queries and updates the hosts collection on <see cref="IInternalMetadata"/>.
     /// </summary>
     internal interface ITopologyRefresher
     {

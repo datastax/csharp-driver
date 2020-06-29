@@ -15,12 +15,13 @@
 //
 
 using System;
+using Cassandra.Connections.Control;
 
 namespace Cassandra.DataStax.Insights
 {
     internal interface IInsightsSupportVerifier
     {
-        bool SupportsInsights(Metadata metadata);
+        bool SupportsInsights(IInternalMetadata internalMetadata);
 
         bool DseVersionSupportsInsights(Version dseVersion);
     }

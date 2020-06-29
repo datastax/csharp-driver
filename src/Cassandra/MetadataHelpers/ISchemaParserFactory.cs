@@ -15,12 +15,13 @@
 
 using System;
 using System.Threading.Tasks;
+using Cassandra.Connections.Control;
 
 namespace Cassandra.MetadataHelpers
 {
     internal interface ISchemaParserFactory
     {
-        ISchemaParser Create(Version cassandraVersion, Metadata parent,
+        ISchemaParser Create(Version cassandraVersion, InternalMetadata parent,
                                  Func<string, string, Task<UdtColumnInfo>> udtResolver,
                                  ISchemaParser currentInstance = null);
     }

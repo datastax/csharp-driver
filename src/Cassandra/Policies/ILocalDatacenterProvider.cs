@@ -13,6 +13,7 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
+using Cassandra.Connections.Control;
 using Cassandra.SessionManagement;
 
 namespace Cassandra
@@ -30,6 +31,6 @@ namespace Cassandra
         /// <summary>
         /// Should be called after we have an initialized cluster instance.
         /// </summary>
-        void Initialize(IInternalCluster cluster, Metadata metadata);
+        void Initialize(IInternalCluster cluster, IInternalMetadata internalMetadata);
     }
 }

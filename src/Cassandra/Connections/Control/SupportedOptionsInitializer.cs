@@ -26,11 +26,11 @@ namespace Cassandra.Connections.Control
         private const string SupportedProductTypeKey = "PRODUCT_TYPE";
         private const string SupportedDbaas = "DATASTAX_APOLLO";
 
-        private readonly Metadata _metadata;
+        private readonly IInternalMetadata _internalMetadata;
 
-        public SupportedOptionsInitializer(Metadata metadata)
+        public SupportedOptionsInitializer(IInternalMetadata internalMetadata)
         {
-            _metadata = metadata;
+            _internalMetadata = internalMetadata;
         }
 
         public async Task ApplySupportedOptionsAsync(IConnection connection)
@@ -65,7 +65,7 @@ namespace Cassandra.Connections.Control
 
             if (string.Compare(productTypeOptions[0], SupportedOptionsInitializer.SupportedDbaas, StringComparison.OrdinalIgnoreCase) == 0)
             {
-                _metadata.SetProductTypeAsDbaas();
+                _internalMetadata.SetProductTypeAsDbaas();
             }
         }
     }

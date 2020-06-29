@@ -17,6 +17,6 @@ namespace Cassandra.Connections.Control
 {
     internal interface ITopologyRefresherFactory
     {
-        ITopologyRefresher Create(Metadata metadata, Configuration config);
+        ITopologyRefresher Create(IInternalMetadata internalMetadata, Configuration config);
     }
 }

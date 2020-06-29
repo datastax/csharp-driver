@@ -54,14 +54,16 @@ namespace Cassandra
         private readonly SemaphoreSlim _sessionCreateLock = new SemaphoreSlim(1, 1);
         private long _sessionCounter = -1;
 
-        private readonly Metadata _metadata;
+        private readonly IInternalMetadata _internalMetadata;
         private IReadOnlyList<ILoadBalancingPolicy> _loadBalancingPolicies;
 
-        private readonly Task<Metadata> _initTask;
+        private readonly Task _initTask;
 
         private long _state = Cluster.Initializing;
         
         internal IInternalCluster InternalRef => this;
+
+        IInternalMetadata IInternalCluster.InternalMetadata => _internalMetadata;
         
         private bool IsDisposed => Interlocked.Read(ref _state) == Cluster.Disposed;
 
@@ -142,14 +144,8 @@ namespace Cassandra
         bool IInternalCluster.ImplicitContactPoint => _implicitContactPoint;
 
         /// <inheritdoc />
-        public Metadata Metadata => TaskHelper.WaitToComplete(GetMetadataAsync());
-
-        /// <inheritdoc />
-        public Task<Metadata> GetMetadataAsync()
-        {
-            return InternalRef.TryInitAndGetMetadataAsync();
-        }
-
+        public Metadata Metadata { get; }
+        
         private Cluster(IEnumerable<object> contactPoints, Configuration configuration)
         {
             Configuration = configuration;
@@ -173,13 +169,14 @@ namespace Cassandra
 
             var parsedContactPoints = configuration.ContactPointParser.ParseContactPoints(contactPointsList);
             
-            _metadata = new Metadata(this, configuration, _serializerManager, parsedContactPoints);
+            Metadata = new Metadata(this, configuration, _serializerManager, parsedContactPoints);
+            _internalMetadata = Metadata.InternalMetadata;
 
             _initTask = Task.Run(InitAsync);
         }
 
         /// <inheritdoc />
-        Task<Metadata> IInternalCluster.TryInitAndGetMetadataAsync()
+        Task IInternalCluster.TryInitializeAsync()
         {
             var currentState = Interlocked.Read(ref _state);
             if (currentState == Cluster.Initialized)
@@ -202,7 +199,7 @@ namespace Cassandra
             return _initTask;
         }
 
-        private async Task<Metadata> InitAsync()
+        private async Task InitAsync()
         {
             Cluster.Logger.Info("Connecting to cluster using {0}", Cluster.GetAssemblyInfo());
             try
@@ -219,9 +216,9 @@ namespace Cassandra
                 _loadBalancingPolicies = loadBalancingPolicies.ToList();
 
                 // Only abort the async operations when at least twice the time for ConnectTimeout per host passed
-                var initialAbortTimeout = Configuration.SocketOptions.ConnectTimeoutMillis * 2 * _metadata.Hosts.Count;
+                var initialAbortTimeout = Configuration.SocketOptions.ConnectTimeoutMillis * 2 * _internalMetadata.Hosts.Count;
                 initialAbortTimeout = Math.Max(initialAbortTimeout, Configuration.SocketOptions.MetadataAbortTimeout);
-                var initTask = _metadata.InitializeAsync();
+                var initTask = Metadata.TryInitializeAsync();
                 try
                 {
                     await initTask.WaitToCompleteAsync(initialAbortTimeout).ConfigureAwait(false);
@@ -253,17 +250,17 @@ namespace Cassandra
                 }
 
                 // initialize the local datacenter provider
-                Configuration.LocalDatacenterProvider.Initialize(this, _metadata);
+                Configuration.LocalDatacenterProvider.Initialize(this, _internalMetadata);
 
                 // Initialize policies
                 foreach (var lbp in loadBalancingPolicies)
                 {
-                    await lbp.InitializeAsync(_metadata).ConfigureAwait(false);
+                    await lbp.InitializeAsync(Metadata).ConfigureAwait(false);
                 }
 
                 foreach (var sep in speculativeExecutionPolicies)
                 {
-                    await sep.InitializeAsync(_metadata).ConfigureAwait(false);
+                    await sep.InitializeAsync(Metadata).ConfigureAwait(false);
                 }
 
                 InitializeHostDistances();
@@ -272,12 +269,10 @@ namespace Cassandra
                 SetMetadataDependentOptions();
 
                 Cluster.Logger.Info("Cluster Connected using binary protocol version: [" + _serializerManager.CurrentProtocolVersion + "]");
-                _metadata.Hosts.Added += _metadata.OnHostAdded;
-                _metadata.Hosts.Removed += _metadata.OnHostRemoved;
-                _metadata.Hosts.Up += OnHostUp;
-                Cluster.Logger.Info("Cluster [" + _metadata.ClusterName + "] has been initialized.");
-
-                return _metadata;
+                _internalMetadata.Hosts.Added += _internalMetadata.OnHostAdded;
+                _internalMetadata.Hosts.Removed += _internalMetadata.OnHostRemoved;
+                _internalMetadata.Hosts.Up += OnHostUp;
+                Cluster.Logger.Info("Cluster [" + _internalMetadata.ClusterName + "] has been initialized.");
             }
             catch (NoHostAvailableException)
             {
@@ -300,7 +295,7 @@ namespace Cassandra
 
         private void InitializeHostDistances()
         {
-            foreach (var host in _metadata.AllHosts())
+            foreach (var host in _internalMetadata.AllHosts())
             {
                 InternalRef.RetrieveAndSetDistance(host);
             }
@@ -315,7 +310,7 @@ namespace Cassandra
 
         IReadOnlyDictionary<IContactPoint, IEnumerable<IConnectionEndPoint>> IInternalCluster.GetResolvedEndpoints()
         {
-            return _metadata.ResolvedContactPoints;
+            return _internalMetadata.ResolvedContactPoints;
         }
         
         /// <summary>
@@ -393,7 +388,7 @@ namespace Cassandra
 
         private void SetMetadataDependentOptions()
         {
-            if (_metadata.IsDbaas)
+            if (_internalMetadata.IsDbaas)
             {
                 Configuration.SetDefaultConsistencyLevel(ConsistencyLevel.LocalQuorum);
             }
@@ -491,12 +486,12 @@ namespace Cassandra
 
             await ShutdownInternalAsync().ConfigureAwait(false);
 
-            Cluster.Logger.Info("Cluster [" + _metadata.ClusterName + "] has been shut down.");
+            Cluster.Logger.Info("Cluster [" + _internalMetadata.ClusterName + "] has been shut down.");
         }
 
         private async Task ShutdownInternalAsync()
         {
-            await _metadata.ShutdownAsync().ConfigureAwait(false);
+            await Metadata.ShutdownAsync().ConfigureAwait(false);
             Configuration.Timer.Dispose();
 
             // Dispose policies
@@ -535,9 +530,9 @@ namespace Cassandra
         async Task<PreparedStatement> IInternalCluster.PrepareAsync(
             IInternalSession session, string cqlQuery, string keyspace, IDictionary<string, byte[]> customPayload)
         {
-            var metadata = await InternalRef.TryInitAndGetMetadataAsync().ConfigureAwait(false);
+            await InternalRef.TryInitializeAsync().ConfigureAwait(false);
 
-            var serializer = metadata.SerializerManager.GetCurrentSerializer();
+            var serializer = _internalMetadata.SerializerManager.GetCurrentSerializer();
             var currentVersion = serializer.ProtocolVersion;
             if (!currentVersion.SupportsKeyspaceInRequest() && keyspace != null)
             {
@@ -548,18 +543,17 @@ namespace Cassandra
             }
             var request = new PrepareRequest(serializer, cqlQuery, keyspace, customPayload);
 
-            return await PrepareAsync(session, metadata, request).ConfigureAwait(false);
+            return await PrepareAsync(session, request).ConfigureAwait(false);
         }
 
-        private async Task<PreparedStatement> PrepareAsync(IInternalSession session, Metadata metadata, PrepareRequest request)
+        private async Task<PreparedStatement> PrepareAsync(IInternalSession session, PrepareRequest request)
         {
             var lbp = session.Cluster.Configuration.DefaultRequestOptions.LoadBalancingPolicy;
             var handler = InternalRef.Configuration.PrepareHandlerFactory.CreatePrepareHandler(_serializerManager, this);
             var ps = await handler.PrepareAsync(
                 request, 
-                session, 
-                metadata,
-                lbp.NewQueryPlan(_metadata, session.Keyspace, null).GetEnumerator()).ConfigureAwait(false);
+                session,
+                lbp.NewQueryPlan(Metadata, session.Keyspace, null).GetEnumerator()).ConfigureAwait(false);
             var psAdded = InternalRef.PreparedQueries.GetOrAdd(ps.Id, ps);
             if (ps != psAdded)
             {

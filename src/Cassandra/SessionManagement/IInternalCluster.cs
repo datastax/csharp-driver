@@ -30,6 +30,8 @@ namespace Cassandra.SessionManagement
     {
         ISerializerManager SerializerManager { get; }
 
+        IInternalMetadata InternalMetadata { get; }
+
         bool AnyOpenConnections(Host host);
         
         /// <summary>
@@ -61,8 +63,8 @@ namespace Cassandra.SessionManagement
         HostDistance RetrieveAndSetDistance(Host host);
         
         /// <summary>
-        /// Initializes once (Thread-safe) the control connection and returns the metadata associated with the Cluster instance
+        /// Initializes once (Thread-safe) the control connection
         /// </summary>
-        Task<Metadata> TryInitAndGetMetadataAsync();
+        Task TryInitializeAsync();
     }
 }

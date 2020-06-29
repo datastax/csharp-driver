@@ -28,7 +28,7 @@ namespace Cassandra.Connections.Control
             IProtocolEventDebouncer protocolEventDebouncer,
             ISerializerManager serializerManager, 
             Configuration config, 
-            Metadata metadata,
+            IInternalMetadata internalMetadata,
             IEnumerable<IContactPoint> contactPoints);
     }
 }

@@ -22,11 +22,11 @@ namespace Cassandra.Connections.Control
     {
         public async Task<IConnection> NegotiateVersionAsync(
             Configuration config,
-            Metadata metadata,
+            IInternalMetadata internalMetadata,
             IConnection connection,
             ISerializerManager serializer)
         {
-            var commonVersion = serializer.CurrentProtocolVersion.GetHighestCommon(config, metadata.Hosts);
+            var commonVersion = serializer.CurrentProtocolVersion.GetHighestCommon(config, internalMetadata.Hosts);
             if (commonVersion != serializer.CurrentProtocolVersion)
             {
                 // Current connection will be closed and reopened

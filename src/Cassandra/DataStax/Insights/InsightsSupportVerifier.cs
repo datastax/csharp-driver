@@ -16,6 +16,7 @@
 
 using System;
 using System.Linq;
+using Cassandra.Connections.Control;
 
 namespace Cassandra.DataStax.Insights
 {
@@ -25,9 +26,9 @@ namespace Cassandra.DataStax.Insights
         private static readonly Version MinDse51Version = new Version(5, 1, 13);
         private static readonly Version Dse600Version = new Version(6, 0, 0);
 
-        public bool SupportsInsights(Metadata metadata)
+        public bool SupportsInsights(IInternalMetadata internalMetadata)
         {
-            var allHosts = metadata.AllHosts();
+            var allHosts = internalMetadata.AllHosts();
             return allHosts.Count != 0 && allHosts.All(h => DseVersionSupportsInsights(h.DseVersion));
         }
 

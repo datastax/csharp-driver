@@ -33,7 +33,7 @@ namespace Cassandra.Connections.Control
     internal class ControlConnection : IControlConnection
     {
         private readonly IInternalCluster _cluster;
-        private readonly Metadata _metadata;
+        private readonly IInternalMetadata _internalMetadata;
         private volatile Host _host;
         private volatile IConnectionEndPoint _currentConnectionEndPoint;
         private volatile IConnection _connection;
@@ -71,11 +71,11 @@ namespace Cassandra.Connections.Control
             IProtocolEventDebouncer eventDebouncer,
             ISerializerManager serializerManager,
             Configuration config,
-            Metadata metadata,
+            IInternalMetadata internalMetadata,
             IEnumerable<IContactPoint> contactPoints)
         {
             _cluster = cluster;
-            _metadata = metadata;
+            _internalMetadata = internalMetadata;
             _reconnectionPolicy = config.Policies.ReconnectionPolicy;
             _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
             _reconnectionTimer = new Timer(ReconnectEventHandler, null, Timeout.Infinite, Timeout.Infinite);
@@ -83,8 +83,8 @@ namespace Cassandra.Connections.Control
             _serializer = serializerManager;
             _eventDebouncer = eventDebouncer;
             _contactPoints = contactPoints;
-            _topologyRefresher = config.TopologyRefresherFactory.Create(metadata, config);
-            _supportedOptionsInitializer = config.SupportedOptionsInitializerFactory.Create(metadata);
+            _topologyRefresher = config.TopologyRefresherFactory.Create(internalMetadata, config);
+            _supportedOptionsInitializer = config.SupportedOptionsInitializerFactory.Create(internalMetadata);
 
             if (!_config.KeepContactPointsUnresolved)
             {
@@ -106,7 +106,7 @@ namespace Cassandra.Connections.Control
 
         /// <summary>
         /// Resolves the contact points to a read only list of <see cref="IConnectionEndPoint"/> which will be used
-        /// during initialization. Also sets <see cref="Metadata.SetResolvedContactPoints"/>.
+        /// during initialization. Also sets <see cref="IInternalMetadata.SetResolvedContactPoints"/>.
         /// </summary>
         private async Task InitialContactPointResolutionAsync()
         {
@@ -116,7 +116,7 @@ namespace Cassandra.Connections.Control
 
             var resolvedContactPoints = tasksDictionary.ToDictionary(t => t.Key, t => t.Value.Result);
 
-            _metadata.SetResolvedContactPoints(resolvedContactPoints);
+            _internalMetadata.SetResolvedContactPoints(resolvedContactPoints);
 
             if (!resolvedContactPoints.Any(kvp => kvp.Value.Any()))
             {
@@ -127,7 +127,7 @@ namespace Cassandra.Connections.Control
 
         private bool TotalConnectivityLoss()
         {
-            var currentHosts = _metadata.AllHosts();
+            var currentHosts = _internalMetadata.AllHosts();
             return currentHosts.Count(h => h.IsUp) == 0 || currentHosts.All(h => !_cluster.AnyOpenConnections(h));
         }
 
@@ -143,7 +143,7 @@ namespace Cassandra.Connections.Control
 
             var endpoints = await contactPoint.GetConnectionEndPointsAsync(
                 _config.KeepContactPointsUnresolved || connectivityLoss).ConfigureAwait(false);
-            return _metadata.UpdateResolvedContactPoint(contactPoint, endpoints);
+            return _internalMetadata.UpdateResolvedContactPoint(contactPoint, endpoints);
         }
 
         private async Task<IEnumerable<IConnectionEndPoint>> ResolveHostContactPointOrConnectionEndpointAsync(
@@ -194,12 +194,11 @@ namespace Cassandra.Connections.Control
         }
 
         private IEnumerable<Task<IEnumerable<IConnectionEndPoint>>> DefaultLbpHostsEnumerable(
-            Metadata metadata,
             ConcurrentDictionary<IContactPoint, object> attemptedContactPoints,
             ConcurrentDictionary<Host, object> attemptedHosts,
             bool isInitializing)
         {
-            foreach (var host in _config.DefaultRequestOptions.LoadBalancingPolicy.NewQueryPlan(metadata, null, null))
+            foreach (var host in _config.DefaultRequestOptions.LoadBalancingPolicy.NewQueryPlan(_cluster.Metadata, null, null))
             {
                 if (attemptedHosts.TryAdd(host, null))
                 {
@@ -257,7 +256,7 @@ namespace Cassandra.Connections.Control
             // start with endpoints from the default LBP if it is already initialized
             if (!isInitializing)
             {
-                endPointResolutionTasksLazyIterator = DefaultLbpHostsEnumerable(_metadata, attemptedContactPoints, attemptedHosts, isInitializing);
+                endPointResolutionTasksLazyIterator = DefaultLbpHostsEnumerable(attemptedContactPoints, attemptedHosts, isInitializing);
             }
 
             // add contact points next
@@ -340,11 +339,11 @@ namespace Cassandra.Connections.Control
                         if (isInitializing)
                         {
                             await _config.ProtocolVersionNegotiator.NegotiateVersionAsync(
-                                _config, _metadata, connection, _serializer).ConfigureAwait(false);
+                                _config, _internalMetadata, connection, _serializer).ConfigureAwait(false);
                         }
 
                         await _config.ServerEventsSubscriber.SubscribeToServerEvents(connection, OnConnectionCassandraEvent).ConfigureAwait(false);
-                        await _metadata.RebuildTokenMapAsync(false, _config.MetadataSyncOptions.MetadataSyncEnabled).ConfigureAwait(false);
+                        await _internalMetadata.RebuildTokenMapAsync(false, _config.MetadataSyncOptions.MetadataSyncEnabled).ConfigureAwait(false);
 
                         _host.Down += OnHostDown;
 
@@ -472,7 +471,7 @@ namespace Cassandra.Connections.Control
                 
                 SetCurrentConnection(currentHost, currentEndPoint);
 
-                await _metadata.RebuildTokenMapAsync(false, _config.MetadataSyncOptions.MetadataSyncEnabled).ConfigureAwait(false);
+                await _internalMetadata.RebuildTokenMapAsync(false, _config.MetadataSyncOptions.MetadataSyncEnabled).ConfigureAwait(false);
                 _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
             }
             catch (SocketException ex)
@@ -577,18 +576,18 @@ namespace Cassandra.Connections.Control
                 handler = () =>
                 {
                     //Can be either a table or a view
-                    _metadata.ClearTable(ssc.Keyspace, ssc.Table);
-                    _metadata.ClearView(ssc.Keyspace, ssc.Table);
+                    _internalMetadata.ClearTable(ssc.Keyspace, ssc.Table);
+                    _internalMetadata.ClearView(ssc.Keyspace, ssc.Table);
                     return TaskHelper.Completed;
                 };
             }
             else if (ssc.FunctionName != null)
             {
-                handler = TaskHelper.ActionToAsync(() => _metadata.ClearFunction(ssc.Keyspace, ssc.FunctionName, ssc.Signature));
+                handler = TaskHelper.ActionToAsync(() => _internalMetadata.ClearFunction(ssc.Keyspace, ssc.FunctionName, ssc.Signature));
             }
             else if (ssc.AggregateName != null)
             {
-                handler = TaskHelper.ActionToAsync(() => _metadata.ClearAggregate(ssc.Keyspace, ssc.AggregateName, ssc.Signature));
+                handler = TaskHelper.ActionToAsync(() => _internalMetadata.ClearAggregate(ssc.Keyspace, ssc.AggregateName, ssc.Signature));
             }
             else if (ssc.Type != null)
             {
@@ -596,7 +595,7 @@ namespace Cassandra.Connections.Control
             }
             else if (ssc.What == SchemaChangeEventArgs.Reason.Dropped)
             {
-                handler = TaskHelper.ActionToAsync(() => _metadata.RemoveKeyspace(ssc.Keyspace));
+                handler = TaskHelper.ActionToAsync(() => _internalMetadata.RemoveKeyspace(ssc.Keyspace));
             }
             else
             {
@@ -611,7 +610,7 @@ namespace Cassandra.Connections.Control
             //The address in the Cassandra event message needs to be translated
             var address = TranslateAddress(e.Address);
             ControlConnection.Logger.Info("Received Node status change event: host {0} is {1}", address, e.What.ToString().ToUpper());
-            if (!_metadata.Hosts.TryGet(address, out var host))
+            if (!_internalMetadata.Hosts.TryGet(address, out var host))
             {
                 ControlConnection.Logger.Info("Received status change event for host {0} but it was not found", address);
                 return;
@@ -640,7 +639,7 @@ namespace Cassandra.Connections.Control
         {
             _host = host;
             _currentConnectionEndPoint = endPoint;
-            _metadata.SetCassandraVersion(host.CassandraVersion);
+            _internalMetadata.SetCassandraVersion(host.CassandraVersion);
         }
 
         /// <summary>
@@ -694,12 +693,12 @@ namespace Cassandra.Connections.Control
         private IEnumerable<Host> GetHostEnumerable()
         {
             var index = 0;
-            var hosts = _metadata.Hosts.ToArray();
+            var hosts = _internalMetadata.Hosts.ToArray();
             while (index < hosts.Length)
             {
                 yield return hosts[index++];
                 // Check that the collection changed
-                var newHosts = _metadata.Hosts.ToCollection();
+                var newHosts = _internalMetadata.Hosts.ToCollection();
                 if (newHosts.Count != hosts.Length)
                 {
                     index = 0;
@@ -713,7 +712,7 @@ namespace Cassandra.Connections.Control
         {
             var @event = new KeyspaceProtocolEvent(true, keyspace, async () =>
             {
-                await _metadata.RefreshSingleKeyspace(keyspace).ConfigureAwait(false);
+                await _internalMetadata.RefreshSingleKeyspaceAsync(keyspace).ConfigureAwait(false);
             });
             await _eventDebouncer.HandleEventAsync(@event, false).ConfigureAwait(false);
         }
@@ -721,7 +720,7 @@ namespace Cassandra.Connections.Control
         /// <inheritdoc />
         public Task ScheduleKeyspaceRefreshAsync(string keyspace, bool processNow)
         {
-            var @event = new KeyspaceProtocolEvent(true, keyspace, () => _metadata.RefreshSingleKeyspace(keyspace));
+            var @event = new KeyspaceProtocolEvent(true, keyspace, () => _internalMetadata.RefreshSingleKeyspaceAsync(keyspace));
             return processNow
                 ? _eventDebouncer.HandleEventAsync(@event, true)
                 : _eventDebouncer.ScheduleEventAsync(@event, false);
@@ -743,7 +742,7 @@ namespace Cassandra.Connections.Control
         /// <inheritdoc />
         public Task ScheduleAllKeyspacesRefreshAsync(bool processNow)
         {
-            var @event = new ProtocolEvent(() => _metadata.RebuildTokenMapAsync(false, true));
+            var @event = new ProtocolEvent(() => _internalMetadata.RebuildTokenMapAsync(false, true));
             return processNow
                 ? _eventDebouncer.HandleEventAsync(@event, true)
                 : _eventDebouncer.ScheduleEventAsync(@event, false);

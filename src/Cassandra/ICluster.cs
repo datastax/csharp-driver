@@ -44,25 +44,15 @@ namespace Cassandra
     public interface ICluster : IDisposable
     {
         /// <summary>
-        /// <para>This property may block while waiting for the creation of a connection if none has been established yet.
-        /// Use <see cref="GetMetadataAsync"/> instead if your application uses the Task Parallel Library (e.g. async/await).
+        /// <para>
+        /// Gets an utility class that allows you to fetch metadata about the connected cluster.
+        /// This includes the known nodes (with their status as seen by the driver) as well as the schema definitions.
         /// </para>
-        ///  <para>Gets read-only metadata on the connected cluster.</para>
-        /// <para>This includes the
-        ///  know nodes (with their status as seen by the driver) as well as the schema definitions.
+        /// <para>
+        /// It also allows you to subscribe to certain events (e.g. <see cref="Cassandra.Metadata.HostAdded"/>).
         /// </para>
         /// </summary>
         Metadata Metadata { get; }
-
-        /// <summary>
-        ///  Gets read-only metadata on the connected cluster.
-        /// <para>This includes the
-        ///  know nodes (with their status as seen by the driver) as well as the schema definitions.
-        /// </para>
-        /// <para>This method may trigger the creation of a connection if none has been established yet.
-        /// </para>
-        /// </summary>
-        Task<Metadata> GetMetadataAsync();
 
         /// <summary>
         /// Cluster client configuration

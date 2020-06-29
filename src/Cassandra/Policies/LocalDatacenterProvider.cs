@@ -16,7 +16,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using Cassandra.Connections.Control;
 using Cassandra.SessionManagement;
 
 namespace Cassandra
@@ -26,16 +26,16 @@ namespace Cassandra
         private volatile bool _initialized = false;
 
         private volatile IInternalCluster _cluster;
-        private volatile Metadata _metadata;
+        private volatile InternalMetadata _internalMetadata;
         private volatile IEnumerable<string> _availableDcs;
         private volatile string _availableDcsStr;
         private volatile string _cachedDatacenter;
 
-        public void Initialize(IInternalCluster cluster, Metadata metadata)
+        public void Initialize(IInternalCluster cluster, InternalMetadata internalMetadata)
         {
             _cluster = cluster;
-            _metadata = metadata;
-            _availableDcs = metadata.AllHosts().Select(h => h.Datacenter).Where(dc => dc != null).Distinct().ToList();
+            _internalMetadata = internalMetadata;
+            _availableDcs = internalMetadata.AllHosts().Select(h => h.Datacenter).Where(dc => dc != null).Distinct().ToList();
             _availableDcsStr = string.Join(", ", _availableDcs);
             _initialized = true;
         }
@@ -89,7 +89,7 @@ namespace Cassandra
 
         private string InferLocalDatacenter()
         {
-            var cc = _metadata.ControlConnection;
+            var cc = _internalMetadata.ControlConnection;
             if (cc == null)
             {
                 throw new DriverInternalError("ControlConnection was not correctly set");

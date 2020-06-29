@@ -20,7 +20,9 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
+
 using Cassandra.Connections;
+using Cassandra.Connections.Control;
 using Cassandra.Responses;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
@@ -43,9 +45,9 @@ namespace Cassandra.Requests
         }
 
         public async Task<PreparedStatement> PrepareAsync(
-            PrepareRequest request, IInternalSession session, Metadata metadata, IEnumerator<Host> queryPlan)
+            PrepareRequest request, IInternalSession session, IEnumerator<Host> queryPlan)
         {
-            var prepareResult = await SendRequestToOneNode(session, metadata, queryPlan, request).ConfigureAwait(false);
+            var prepareResult = await SendRequestToOneNode(session, queryPlan, request).ConfigureAwait(false);
 
             if (session.Cluster.Configuration.QueryOptions.IsPrepareOnAllHosts())
             {
@@ -56,7 +58,7 @@ namespace Cassandra.Requests
         }
 
         private async Task<PrepareResult> SendRequestToOneNode(
-            IInternalSession session, Metadata metadata, IEnumerator<Host> queryPlan, PrepareRequest request)
+            IInternalSession session, IEnumerator<Host> queryPlan, PrepareRequest request)
         {
             var triedHosts = new Dictionary<IPEndPoint, Exception>();
 
@@ -71,9 +73,9 @@ namespace Cassandra.Requests
                     var result = await connection.Send(request).ConfigureAwait(false);
                     return new PrepareResult
                     {
-                        PreparedStatement = 
+                        PreparedStatement =
                             await GetPreparedStatement(
-                                result, request, request.Keyspace ?? connection.Keyspace, metadata).ConfigureAwait(false),
+                                result, request, request.Keyspace ?? connection.Keyspace).ConfigureAwait(false),
                         TriedHosts = triedHosts,
                         HostAddress = host.Address
                     };
@@ -130,7 +132,7 @@ namespace Cassandra.Requests
         }
 
         private async Task<PreparedStatement> GetPreparedStatement(
-            Response response, PrepareRequest request, string keyspace, Metadata metadata)
+            Response response, PrepareRequest request, string keyspace)
         {
             if (response == null)
             {
@@ -148,20 +150,20 @@ namespace Cassandra.Requests
             }
             var prepared = (OutputPrepared)output;
             var ps = new PreparedStatement(
-                prepared.VariablesRowsMetadata, 
-                prepared.QueryId, 
+                prepared.VariablesRowsMetadata,
+                prepared.QueryId,
                 new ResultMetadata(prepared.ResultMetadataId, prepared.ResultRowsMetadata),
-                request.Query, 
-                keyspace, 
+                request.Query,
+                keyspace,
                 _serializerManager)
             {
                 IncomingPayload = resultResponse.CustomPayload
             };
-            await FillRoutingInfo(ps, metadata).ConfigureAwait(false);
+            await FillRoutingInfo(ps, _cluster.InternalMetadata).ConfigureAwait(false);
             return ps;
         }
 
-        private static async Task FillRoutingInfo(PreparedStatement ps, Metadata metadata)
+        private static async Task FillRoutingInfo(PreparedStatement ps, InternalMetadata internalMetadata)
         {
             var column = ps.Variables.Columns.FirstOrDefault();
             if (column?.Keyspace == null)
@@ -184,7 +186,7 @@ namespace Cassandra.Requests
             try
             {
                 const string msgRoutingNotSet = "Routing information could not be set for query \"{0}\"";
-                var table = await metadata.GetTableAsync(column.Keyspace, column.Table).ConfigureAwait(false);
+                var table = await internalMetadata.GetTableAsync(column.Keyspace, column.Table).ConfigureAwait(false);
                 if (table == null)
                 {
                     Logger.Info(msgRoutingNotSet, ps.Cql);
