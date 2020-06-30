@@ -28,15 +28,16 @@ namespace Cassandra
         /// <summary>
         /// Initializes the policy at cluster startup.
         /// </summary>
-        Task InitializeAsync(Metadata metadata);
+        Task InitializeAsync(IMetadata metadata);
 
         /// <summary>
         /// Returns the plan to use for a new query.
         /// </summary>
+        /// <param name="metadata">the metadata instance for the current session.</param>
         /// <param name="keyspace">the currently logged keyspace</param>
         /// <param name="statement">the query for which to build a plan.</param>
         /// <returns></returns>
-        ISpeculativeExecutionPlan NewPlan(string keyspace, IStatement statement);
+        ISpeculativeExecutionPlan NewPlan(IMetadata metadata, string keyspace, IStatement statement);
 
         /// <summary>
         /// Disposes the policy at cluster shutdown.

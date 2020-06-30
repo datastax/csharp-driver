@@ -77,7 +77,7 @@ namespace Cassandra.Data.Linq
 
         public static async Task<Batch> CreateBatchAsync(this ISession session, BatchType batchType)
         {
-            var metadata = await session.Cluster.GetMetadataAsync().ConfigureAwait(false);
+            var metadata = await session.Cluster.Metadata.GetClusterDescriptionAsync().ConfigureAwait(false);
             if (metadata.ProtocolVersion.SupportsBatch())
             {
                 return new BatchV2(session, batchType);

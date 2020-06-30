@@ -18,6 +18,7 @@ using System.Collections.Generic;
 using System.Text;
 using Cassandra.Collections;
 using Cassandra.Connections;
+using Cassandra.Connections.Control;
 using Cassandra.SessionManagement;
 
 namespace Cassandra
@@ -62,13 +63,13 @@ namespace Cassandra
             return builder.ToString();
         }
 
-        internal static SessionState From(IInternalSession session, Metadata metadata)
+        internal static SessionState From(IInternalSession session, IInternalMetadata internalMetadata)
         {
             var pools = session.GetPools();
             var result = new Dictionary<Host, HostStateInfo>();
             foreach (var kv in pools)
             {
-                var host = metadata.GetHost(kv.Key);
+                var host = internalMetadata.GetHost(kv.Key);
                 if (host == null)
                 {
                     continue;

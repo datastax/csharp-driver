@@ -78,7 +78,7 @@ namespace Cassandra
         /// </summary>
         public string LocalDc { get; private set; }
 
-        public Task InitializeAsync(Metadata metadata)
+        public Task InitializeAsync(IMetadata metadata)
         {
             //When the pool changes, it should clear the local cache
             metadata.HostAdded += _ => ClearHosts();
@@ -117,7 +117,7 @@ namespace Cassandra
         /// <param name="query"> the query for which to build the plan. </param>
         /// <returns>a new query plan, i.e. an iterator indicating which host to try
         ///  first for querying, which one to use as failover, etc...</returns>
-        public IEnumerable<Host> NewQueryPlan(Metadata metadata, string keyspace, IStatement query)
+        public IEnumerable<Host> NewQueryPlan(IMetadata metadata, string keyspace, IStatement query)
         {
             var startIndex = Interlocked.Increment(ref _index);
 
@@ -149,7 +149,7 @@ namespace Cassandra
         /// <summary>
         /// Gets a tuple containing the list of local and remote nodes
         /// </summary>
-        internal List<Host> GetHosts(Metadata metadata)
+        internal List<Host> GetHosts(IMetadata metadata)
         {
             var hosts = _hosts;
             if (hosts != null)
@@ -167,7 +167,7 @@ namespace Cassandra
                 }
 
                 //shallow copy the nodes
-                var allNodes = metadata.AllHosts().ToArray();
+                var allNodes = metadata.AllHostsSnapshot();
 
                 hosts = allNodes.Where(h => GetDatacenter(h) == LocalDc).ToList();
                 _hosts = hosts;

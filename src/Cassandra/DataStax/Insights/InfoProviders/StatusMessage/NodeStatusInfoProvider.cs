@@ -15,6 +15,8 @@
 //
 
 using System.Collections.Generic;
+
+using Cassandra.Connections.Control;
 using Cassandra.DataStax.Insights.Schema.StatusMessage;
 using Cassandra.SessionManagement;
 
@@ -23,10 +25,10 @@ namespace Cassandra.DataStax.Insights.InfoProviders.StatusMessage
     internal class NodeStatusInfoProvider : IInsightsInfoProvider<Dictionary<string, NodeStatusInfo>>
     {
         public Dictionary<string, NodeStatusInfo> GetInformation(
-            IInternalCluster cluster, IInternalSession session, Metadata metadata)
+            IInternalCluster cluster, IInternalSession session, IInternalMetadata internalMetadata)
         {
             var nodeStatusDictionary = new Dictionary<string, NodeStatusInfo>();
-            var state = session.GetState(metadata);
+            var state = session.GetState(internalMetadata);
             var connectedHosts = state.GetConnectedHosts();
 
             foreach (var h in connectedHosts)

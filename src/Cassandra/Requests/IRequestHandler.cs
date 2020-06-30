@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
 using Cassandra.Connections;
+using Cassandra.Connections.Control;
 using Cassandra.ExecutionProfiles;
 using Cassandra.Serialization;
 
@@ -29,7 +30,7 @@ namespace Cassandra.Requests
     /// </summary>
     internal interface IRequestHandler
     {
-        Metadata Metadata { get; }
+        IInternalMetadata InternalMetadata { get; }
 
         IRequestOptions RequestOptions { get; }
 

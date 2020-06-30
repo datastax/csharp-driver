@@ -163,7 +163,7 @@ namespace Cassandra.Requests
             return ps;
         }
 
-        private static async Task FillRoutingInfo(PreparedStatement ps, InternalMetadata internalMetadata)
+        private static async Task FillRoutingInfo(PreparedStatement ps, IInternalMetadata internalMetadata)
         {
             var column = ps.Variables.Columns.FirstOrDefault();
             if (column?.Keyspace == null)

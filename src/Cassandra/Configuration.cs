@@ -56,6 +56,8 @@ namespace Cassandra
         internal const string DefaultExecutionProfileName = "default";
         internal const string DefaultSessionName = "s";
 
+        internal static readonly ProtocolVersion MaxProtocolVersion = ProtocolVersion.MaxSupported;
+
         /// <summary>
         ///  Gets the policies set for the cluster.
         /// </summary>
@@ -139,6 +141,8 @@ namespace Cassandra
         /// Gets or sets the list of <see cref="TypeSerializer{T}"/> defined.
         /// </summary>
         internal IEnumerable<ITypeSerializer> TypeSerializers { get; set; }
+
+        internal ISerializerManager SerializerManager { get; }
 
         internal MetadataSyncOptions MetadataSyncOptions { get; }
 
@@ -420,12 +424,21 @@ namespace Cassandra
             EndPointResolver = endPointResolver ?? new EndPointResolver(ServerNameResolver);
             ContactPointParser = contactPointParser ?? new ContactPointParser(DnsResolver, ProtocolOptions, ServerNameResolver, KeepContactPointsUnresolved);
             LocalDatacenterProvider = localDatacenterProvider ?? new LocalDatacenterProvider();
-
+            
             // Create the buffer pool with 16KB for small buffers and 256Kb for large buffers.
             // The pool does not eagerly reserve the buffers, so it doesn't take unnecessary memory
             // to create the instance.
             BufferPool = new RecyclableMemoryStreamManager(16 * 1024, 256 * 1024, ProtocolOptions.MaximumFrameLength);
             Timer = new HashedWheelTimer();
+            
+            var protocolVersion = Configuration.MaxProtocolVersion;
+            if (ProtocolOptions.MaxProtocolVersionValue != null &&
+                ProtocolOptions.MaxProtocolVersionValue.Value.IsSupported(AllowBetaProtocolVersions))
+            {
+                protocolVersion = ProtocolOptions.MaxProtocolVersionValue.Value;
+            }
+
+            SerializerManager = new SerializerManager(protocolVersion, TypeSerializers);
         }
 
         /// <summary>

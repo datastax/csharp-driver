@@ -23,6 +23,7 @@ using System.Threading.Tasks;
 
 using Cassandra.Collections;
 using Cassandra.Connections;
+using Cassandra.Connections.Control;
 using Cassandra.DataStax.Graph;
 using Cassandra.DataStax.Insights;
 using Cassandra.ExecutionProfiles;
@@ -48,10 +49,9 @@ namespace Cassandra
         private readonly IObserverFactory _observerFactory;
         private readonly IInsightsClient _insightsClient;
 
-        private readonly Task<Metadata> _initTask;
+        private readonly Task<IInternalMetadata> _initTask;
         private long _state = Session.Initializing;
 
-        private volatile Metadata _initializedMetadata;
         private volatile string _keyspace;
 
         internal IInternalSession InternalRef => this;
@@ -101,7 +101,7 @@ namespace Cassandra
         /// <inheritdoc />
         public void Connect()
         {
-            TaskHelper.WaitToComplete(ConnectAsync());
+            InternalRef.TryInit();
         }
 
         /// <inheritdoc />
@@ -228,8 +228,7 @@ namespace Cassandra
 
             _metricsManager?.Dispose();
 
-            var metadata = _initializedMetadata;
-            metadata.HostRemoved -= OnHostRemoved;
+            _cluster.Metadata.HostRemoved -= OnHostRemoved;
 
             var pools = _connectionPool.ToArray();
             foreach (var pool in pools)
@@ -238,14 +237,35 @@ namespace Cassandra
             }
         }
 
-        Task<Metadata> IInternalSession.TryInitAndGetMetadataAsync()
+        Task<IInternalMetadata> IInternalSession.TryInitAndGetMetadataAsync()
+        {
+            ValidateState();
+            return _initTask;
+        }
+
+        void IInternalSession.TryInit()
+        {
+            if (ValidateState())
+            {
+                return;
+            }
+
+            TaskHelper.WaitToComplete(_initTask);
+        }
+
+        /// <summary>
+        /// Validates if the session is not disposed and checks whether it is already initialized.
+        /// Throws the initialization exception if the initialization failed.
+        /// </summary>
+        /// <returns>true if session is initialized, false otherwise</returns>
+        private bool ValidateState()
         {
             var currentState = Interlocked.Read(ref _state);
             
             if (currentState == Session.Initialized)
             {
                 //It was already initialized
-                return _initTask;
+                return true;
             }
 
             if (currentState == Session.Disposed)
@@ -259,32 +279,32 @@ namespace Cassandra
                 throw _cluster.InitException;
             }
 
-            return _initTask;
+            return false;
         }
-
-        private async Task<Metadata> InitInternalAsync()
+        
+        private async Task<IInternalMetadata> InitInternalAsync()
         {
-            var metadata = await InternalRef.InternalCluster.TryInitAndGetMetadataAsync().ConfigureAwait(false);
-            metadata.HostRemoved += OnHostRemoved;
+            var internalMetadata = await InternalRef.InternalCluster.TryInitAndGetMetadataAsync().ConfigureAwait(false);
+
+            InternalRef.InternalCluster.Metadata.HostRemoved += OnHostRemoved;
 
             _metricsManager.InitializeMetrics(this);
 
-            var serializerManager = _cluster.SerializerManager;
+            var serializerManager = _cluster.Configuration.SerializerManager;
             if (Configuration.GetOrCreatePoolingOptions(serializerManager.CurrentProtocolVersion).GetWarmup())
             {
-                await WarmupAsync().ConfigureAwait(false);
+                await WarmupAsync(internalMetadata).ConfigureAwait(false);
             }
 
             if (Keyspace != null)
             {
                 // Borrow a connection, trying to fail fast
-                var handler = Configuration.RequestHandlerFactory.Create(this, metadata, serializerManager.GetCurrentSerializer());
+                var handler = Configuration.RequestHandlerFactory.Create(this, internalMetadata, serializerManager.GetCurrentSerializer());
                 await handler.GetNextConnectionAsync(new Dictionary<IPEndPoint, Exception>()).ConfigureAwait(false);
             }
 
-            await _insightsClient.InitializeAsync().ConfigureAwait(false);
+            _insightsClient.Initialize(internalMetadata);
 
-            _initializedMetadata = metadata;
             var previousState = Interlocked.CompareExchange(ref _state, Session.Initialized, Session.Initializing);
             if (previousState == Session.Disposed)
             {
@@ -292,7 +312,7 @@ namespace Cassandra
                 throw new ObjectDisposedException("Session instance was disposed before initialization finished.");
             }
 
-            return metadata;
+            return internalMetadata;
         }
 
         /// <summary>
@@ -300,9 +320,8 @@ namespace Cassandra
         /// Returns a Task that is marked as completed after all pools were warmed up.
         /// In case, all the host pool warmup fail, it logs an error.
         /// </summary>
-        private async Task WarmupAsync()
+        private async Task WarmupAsync(IInternalMetadata metadata)
         {
-            var metadata = await _cluster.GetMetadataAsync().ConfigureAwait(false);
             var hosts = metadata.AllHosts().Where(h => _cluster.RetrieveAndSetDistance(h) == HostDistance.Local).ToArray();
             var tasks = new Task[hosts.Length];
             for (var i = 0; i < hosts.Length; i++)
@@ -401,7 +420,7 @@ namespace Cassandra
             return await ExecuteAsync(metadata, statement, requestOptions).ConfigureAwait(false);
         }
 
-        private Task<RowSet> ExecuteAsync(Metadata metadata, IStatement statement, IRequestOptions requestOptions)
+        private Task<RowSet> ExecuteAsync(IInternalMetadata metadata, IStatement statement, IRequestOptions requestOptions)
         {
             return Configuration.RequestHandlerFactory
                                 .Create(this, metadata, metadata.SerializerManager.GetCurrentSerializer(), statement, requestOptions)
@@ -414,7 +433,7 @@ namespace Cassandra
             var hostPool = _connectionPool.GetOrAdd(host.Address, address =>
             {
                 var newPool = Configuration.HostConnectionPoolFactory.Create(
-                    host, Configuration, _cluster.SerializerManager, _observerFactory);
+                    host, Configuration, _cluster.Configuration.SerializerManager, _observerFactory);
                 newPool.AllConnectionClosed += InternalRef.OnAllConnectionClosed;
                 newPool.SetDistance(distance);
                 _metricsManager.GetOrCreateNodeMetrics(host).InitializePoolGauges(newPool);
@@ -582,7 +601,7 @@ namespace Cassandra
         }
 
         private async Task<IStatement> GetAnalyticsPrimary(
-            Metadata metadata, IStatement statement, IGraphStatement graphStatement, IRequestOptions requestOptions)
+            IInternalMetadata internalMetadata, IStatement statement, IGraphStatement graphStatement, IRequestOptions requestOptions)
         {
             if (!(statement is TargettedSimpleStatement) || !requestOptions.GraphOptions.IsAnalyticsQuery(graphStatement))
             {
@@ -603,10 +622,10 @@ namespace Cassandra
                 return statement;
             }
 
-            return AdaptRpcPrimaryResult(metadata, rs, targetedSimpleStatement);
+            return AdaptRpcPrimaryResult(internalMetadata, rs, targetedSimpleStatement);
         }
 
-        private IStatement AdaptRpcPrimaryResult(Metadata metadata, RowSet rowSet, TargettedSimpleStatement statement)
+        private IStatement AdaptRpcPrimaryResult(IInternalMetadata internalMetadata, RowSet rowSet, TargettedSimpleStatement statement)
         {
             var row = rowSet.FirstOrDefault();
             if (row == null)
@@ -624,7 +643,7 @@ namespace Cassandra
             var hostName = location.Substring(0, location.LastIndexOf(':'));
             var address = Configuration.AddressTranslator.Translate(
                 new IPEndPoint(IPAddress.Parse(hostName), Configuration.ProtocolOptions.Port));
-            var host = metadata.GetHost(address);
+            var host = internalMetadata.GetHost(address);
             statement.PreferredHost = host;
             return statement;
         }

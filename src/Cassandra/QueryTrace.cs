@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
+using Cassandra.SessionManagement;
 using Cassandra.Tasks;
 
 namespace Cassandra
@@ -34,7 +35,7 @@ namespace Cassandra
     {
         private readonly object _fetchLock = new object();
         private readonly Guid _traceId;
-        private readonly ISession _session;
+        private readonly IInternalSession _session;
         private IPAddress _coordinator;
         private int _duration = int.MinValue;
         private List<Event> _events;
@@ -164,7 +165,7 @@ namespace Cassandra
             internal set { _clientAddress = value; }
         }
 
-        public QueryTrace(Guid traceId, ISession session)
+        internal QueryTrace(Guid traceId, IInternalSession session)
         {
             if (session == null)
             {
@@ -232,7 +233,7 @@ namespace Cassandra
             // mark as disconnected, guaranteeing that it wont make metadata fetches triggered by a property get
             // ReSharper disable once InconsistentlySynchronizedField : Can be both async and sync, don't mind
             _isDisconnected = false;
-            var metadata = await _session.Cluster.GetMetadataAsync().ConfigureAwait(false);
+            var metadata = await _session.TryInitAndGetMetadataAsync().ConfigureAwait(false);
             return await metadata.GetQueryTraceAsync(this).ConfigureAwait(false);
         }
 

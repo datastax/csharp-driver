@@ -343,7 +343,7 @@ namespace Cassandra.DataStax.Graph
         private static byte[] ToBuffer(long value)
         {
             var serializer = Serialization.TypeSerializer.PrimitiveLongSerializer;
-            return serializer.Serialize((ushort) Cluster.MaxProtocolVersion, value);
+            return serializer.Serialize((ushort) Configuration.MaxProtocolVersion, value);
         }
     }
 }

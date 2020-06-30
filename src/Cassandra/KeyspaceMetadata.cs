@@ -20,6 +20,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Cassandra.Connections.Control;
 using Cassandra.MetadataHelpers;
 using Cassandra.Tasks;
 
@@ -31,7 +32,7 @@ namespace Cassandra
         private readonly ConcurrentDictionary<string, MaterializedViewMetadata> _views = new ConcurrentDictionary<string, MaterializedViewMetadata>();
         private readonly ConcurrentDictionary<Tuple<string, string>, FunctionMetadata> _functions = new ConcurrentDictionary<Tuple<string, string>, FunctionMetadata>();
         private readonly ConcurrentDictionary<Tuple<string, string>, AggregateMetadata> _aggregates = new ConcurrentDictionary<Tuple<string, string>, AggregateMetadata>();
-        private readonly Metadata _parent;
+        private readonly IInternalMetadata _parent;
 
         /// <summary>
         ///  Gets the name of this keyspace.
@@ -73,14 +74,14 @@ namespace Cassandra
 
         internal IReplicationStrategy Strategy { get; }
 
-        internal KeyspaceMetadata(Metadata parent, string name, bool durableWrites, string strategyClass,
+        internal KeyspaceMetadata(IInternalMetadata parent, string name, bool durableWrites, string strategyClass,
                                   IDictionary<string, string> replicationOptions, bool isVirtual = false) 
             : this(parent, name, durableWrites, strategyClass, replicationOptions, new ReplicationStrategyFactory(), isVirtual)
         {
         }
 
         internal KeyspaceMetadata(
-            Metadata parent, 
+            IInternalMetadata parent, 
             string name, 
             bool durableWrites, 
             string strategyClass,

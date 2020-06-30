@@ -67,7 +67,9 @@ namespace Cassandra
 
         /// <summary>
         /// <para>
-        /// Waits until the initialization task is finished (this task is started when the Session is created).</para>
+        /// Waits until the initialization task is finished (this task is started when the Session is created).
+        /// If the session is already initialized, this method returns without blocking.
+        /// </para>
         /// <para>
         /// It is not necessary to call this method but you can use it if you want the initialization to happen
         /// in a specific state of your application (e.g. during startup before your application listens for requests).
@@ -83,8 +85,11 @@ namespace Cassandra
 
         /// <summary>
         /// <para>
-        /// Waits until the initialization task is finished (this task is started when the Session is created).</para>
-        /// <para>It is not necessary to call this method but you can use it if you want the initialization to happen
+        /// Waits until the initialization task is finished (this task is started when the Session is created).
+        /// If the session is already initialized, this method returns a completed Task.
+        /// </para>
+        /// <para>
+        /// It is not necessary to call this method but you can use it if you want the initialization to happen
         /// in a specific state of your application (e.g. during startup before your application listens for requests).
         /// </para>
         /// </summary>

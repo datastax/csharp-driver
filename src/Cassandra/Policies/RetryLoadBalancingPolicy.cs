@@ -35,7 +35,7 @@ namespace Cassandra
 
         public ILoadBalancingPolicy LoadBalancingPolicy { get; }
 
-        public Task InitializeAsync(Metadata metadata)
+        public Task InitializeAsync(IMetadata metadata)
         {
             return LoadBalancingPolicy.InitializeAsync(metadata);
         }
@@ -45,7 +45,7 @@ namespace Cassandra
             return LoadBalancingPolicy.Distance(host);
         }
 
-        public IEnumerable<Host> NewQueryPlan(Metadata metadata, string keyspace, IStatement query)
+        public IEnumerable<Host> NewQueryPlan(IMetadata metadata, string keyspace, IStatement query)
         {
             IReconnectionSchedule schedule = ReconnectionPolicy.NewSchedule();
             while (true)

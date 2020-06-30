@@ -17,11 +17,12 @@
 namespace Cassandra
 {
     /// <summary>
-    /// Provides a snapshot of cluster metadata properties. 
+    /// Provides a snapshot of cluster metadata properties.
     /// </summary>
     public class ClusterDescription
     {
-        public ClusterDescription(string clusterName, bool isDbaas, ProtocolVersion protocolVersion)
+        internal ClusterDescription(
+            string clusterName, bool isDbaas, ProtocolVersion protocolVersion)
         {
             ClusterName = clusterName;
             IsDbaas = isDbaas;

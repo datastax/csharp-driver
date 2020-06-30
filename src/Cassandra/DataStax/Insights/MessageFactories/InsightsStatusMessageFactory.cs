@@ -15,6 +15,8 @@
 //
 
 using System.Collections.Generic;
+
+using Cassandra.Connections.Control;
 using Cassandra.DataStax.Insights.InfoProviders;
 using Cassandra.DataStax.Insights.Schema;
 using Cassandra.DataStax.Insights.Schema.StatusMessage;
@@ -38,7 +40,7 @@ namespace Cassandra.DataStax.Insights.MessageFactories
             _connectedNodesInfoProvider = connectedNodesInfoProvider;
         }
 
-        public Insight<InsightsStatusData> CreateMessage(IInternalCluster cluster, IInternalSession session, Metadata metadata)
+        public Insight<InsightsStatusData> CreateMessage(IInternalCluster cluster, IInternalSession session, IInternalMetadata internalMetadata)
         {
             var insightsMetadata = _insightsMetadataFactory.CreateInsightsMetadata(
                 InsightsStatusMessageFactory.StatusMessageName, InsightsStatusMessageFactory.StatusV1MappingId, InsightType.Event);
@@ -47,8 +49,8 @@ namespace Cassandra.DataStax.Insights.MessageFactories
             {
                 ClientId = cluster.Configuration.ClusterId.ToString(),
                 SessionId = session.InternalSessionId.ToString(),
-                ControlConnection = metadata.ControlConnection.EndPoint?.GetHostIpEndPointWithFallback().ToString(),
-                ConnectedNodes = _connectedNodesInfoProvider.GetInformation(cluster, session, metadata)
+                ControlConnection = internalMetadata.ControlConnection.EndPoint?.GetHostIpEndPointWithFallback().ToString(),
+                ConnectedNodes = _connectedNodesInfoProvider.GetInformation(cluster, session, internalMetadata)
             };
 
             return new Insight<InsightsStatusData>

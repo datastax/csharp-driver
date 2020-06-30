@@ -31,7 +31,7 @@ namespace Cassandra.Requests
             IInternalSession session, PrepareRequest request, PrepareResult prepareResult)
         {
             var pools = session.GetPools();
-            var metadata = await session.Cluster.GetMetadataAsync().ConfigureAwait(false);
+            var metadata = await session.TryInitAndGetMetadataAsync().ConfigureAwait(false);
             var hosts = metadata.AllHosts();
             var poolsByHosts = pools.Join(
                 hosts, po => po.Key, 

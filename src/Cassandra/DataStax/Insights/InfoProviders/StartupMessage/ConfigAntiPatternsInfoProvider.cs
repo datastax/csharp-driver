@@ -12,11 +12,13 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-// 
+//
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
+using Cassandra.Connections.Control;
 using Cassandra.SessionManagement;
 
 namespace Cassandra.DataStax.Insights.InfoProviders.StartupMessage
@@ -27,7 +29,7 @@ namespace Cassandra.DataStax.Insights.InfoProviders.StartupMessage
         {
             ConfigAntiPatternsInfoProvider.AntiPatternsProviders = new Dictionary<Type, Func<object, Dictionary<string, string>, Dictionary<string, string>>>
             {
-                { 
+                {
 #pragma warning disable 618
                     typeof(DowngradingConsistencyRetryPolicy),
 #pragma warning restore 618
@@ -37,16 +39,16 @@ namespace Cassandra.DataStax.Insights.InfoProviders.StartupMessage
                         return antiPatterns;
                     }
                 },
-                { 
-                    typeof(DefaultLoadBalancingPolicy), 
+                {
+                    typeof(DefaultLoadBalancingPolicy),
                     (obj, antiPatterns) =>
                     {
                         var typedPolicy = (DefaultLoadBalancingPolicy) obj;
                         return ConfigAntiPatternsInfoProvider.AddAntiPatterns(typedPolicy.ChildPolicy, antiPatterns);
                     }
                 },
-                { 
-                    typeof(RetryLoadBalancingPolicy), 
+                {
+                    typeof(RetryLoadBalancingPolicy),
                     (obj, antiPatterns) =>
                     {
                         var typedPolicy = (RetryLoadBalancingPolicy) obj;
@@ -54,8 +56,8 @@ namespace Cassandra.DataStax.Insights.InfoProviders.StartupMessage
                         return ConfigAntiPatternsInfoProvider.AddAntiPatterns(typedPolicy.LoadBalancingPolicy, antiPatterns);
                     }
                 },
-                { 
-                    typeof(TokenAwarePolicy), 
+                {
+                    typeof(TokenAwarePolicy),
                     (obj, antiPatterns) =>
                     {
                         var typedPolicy = (TokenAwarePolicy) obj;
@@ -92,11 +94,12 @@ namespace Cassandra.DataStax.Insights.InfoProviders.StartupMessage
 
         public static IReadOnlyDictionary<Type, Func<object, Dictionary<string, string>, Dictionary<string, string>>> AntiPatternsProviders { get; }
 
-        public Dictionary<string, string> GetInformation(IInternalCluster cluster, IInternalSession session, Metadata metadata)
+        public Dictionary<string, string> GetInformation(
+            IInternalCluster cluster, IInternalSession session, IInternalMetadata internalMetadata)
         {
             var antiPatterns = new Dictionary<string, string>();
 
-            var resolvedContactPoints = metadata.ResolvedContactPoints;
+            var resolvedContactPoints = internalMetadata.ResolvedContactPoints;
 
             var contactPointsEndPoints = resolvedContactPoints
                                          .Values
@@ -104,9 +107,9 @@ namespace Cassandra.DataStax.Insights.InfoProviders.StartupMessage
                                          .Select(c => c.GetHostIpEndPointWithFallback())
                                          .ToList();
 
-            var contactPointsHosts = metadata
+            var contactPointsHosts = internalMetadata
                                      .AllHosts()
-                                     .Where(host => (host.ContactPoint != null && resolvedContactPoints.ContainsKey(host.ContactPoint)) 
+                                     .Where(host => (host.ContactPoint != null && resolvedContactPoints.ContainsKey(host.ContactPoint))
                                                     || contactPointsEndPoints.Contains(host.Address))
                                      .ToList();
 
@@ -126,8 +129,8 @@ namespace Cassandra.DataStax.Insights.InfoProviders.StartupMessage
 
         private static Dictionary<string, string> AddAntiPatterns(object obj, Dictionary<string, string> antiPatterns)
         {
-            return ConfigAntiPatternsInfoProvider.AntiPatternsProviders.TryGetValue(obj.GetType(), out var provider) 
-                ? provider.Invoke(obj, antiPatterns) 
+            return ConfigAntiPatternsInfoProvider.AntiPatternsProviders.TryGetValue(obj.GetType(), out var provider)
+                ? provider.Invoke(obj, antiPatterns)
                 : antiPatterns;
         }
     }

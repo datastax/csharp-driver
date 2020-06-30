@@ -38,7 +38,7 @@ namespace Cassandra
     {
         private int _index;
 
-        public Task InitializeAsync(Metadata metadata)
+        public Task InitializeAsync(IMetadata metadata)
         {
             return TaskHelper.Completed;
         }
@@ -67,10 +67,10 @@ namespace Cassandra
         /// <param name="query"> the query for which to build the plan. </param>
         /// <returns>a new query plan, i.e. an iterator indicating which host to try
         ///  first for querying, which one to use as failover, etc...</returns>
-        public IEnumerable<Host> NewQueryPlan(Metadata metadata, string keyspace, IStatement query)
+        public IEnumerable<Host> NewQueryPlan(IMetadata metadata, string keyspace, IStatement query)
         {
             //shallow copy the all hosts
-            var hosts = (from h in metadata.AllHosts() select h).ToArray();
+            var hosts = (from h in metadata.AllHostsSnapshot() select h).ToArray();
             var startIndex = Interlocked.Increment(ref _index);
 
             //Simplified overflow protection

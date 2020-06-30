@@ -52,7 +52,7 @@ namespace Cassandra
         /// It also allows you to subscribe to certain events (e.g. <see cref="Cassandra.Metadata.HostAdded"/>).
         /// </para>
         /// </summary>
-        Metadata Metadata { get; }
+        IMetadata Metadata { get; }
 
         /// <summary>
         /// Cluster client configuration

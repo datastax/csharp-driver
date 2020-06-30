@@ -245,11 +245,11 @@ namespace Cassandra.Requests
                 result,
                 async () =>
                 {
-                    var schemaAgreed = await _parent.Metadata.WaitForSchemaAgreementAsync(_connection).ConfigureAwait(false);
+                    var schemaAgreed = await _parent.InternalMetadata.WaitForSchemaAgreementAsync(_connection).ConfigureAwait(false);
                     result.Info.SetSchemaInAgreement(schemaAgreed);
                     try
                     {
-                        await _parent.Metadata.ControlConnection
+                        await _parent.InternalMetadata.ControlConnection
                                      .HandleSchemaChangeEvent(schemaChange.SchemaChangeEventArgs, true)
                                      .WaitToCompleteAsync(
                                          _session.Cluster.Configuration.ProtocolOptions.MaxSchemaAgreementWaitSeconds * 1000)
@@ -329,7 +329,7 @@ namespace Cassandra.Requests
                     var request = (IQueryRequest)_parent.BuildRequest();
                     request.PagingState = pagingState;
                     return _session.Cluster.Configuration.RequestHandlerFactory.Create(
-                        session, _parent.Metadata, _parent.Serializer, request, statement, _parent.RequestOptions).SendAsync();
+                        session, _parent.InternalMetadata, _parent.Serializer, request, statement, _parent.RequestOptions).SendAsync();
                 }, _parent.RequestOptions.QueryAbortTimeout, _session.MetricsManager);
             }
         }

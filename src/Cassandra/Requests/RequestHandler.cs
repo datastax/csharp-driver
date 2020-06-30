@@ -24,6 +24,7 @@ using System.Threading.Tasks;
 
 using Cassandra.Collections;
 using Cassandra.Connections;
+using Cassandra.Connections.Control;
 using Cassandra.ExecutionProfiles;
 using Cassandra.Observers.Abstractions;
 using Cassandra.Serialization;
@@ -58,21 +59,21 @@ namespace Cassandra.Requests
 
         public IRequestOptions RequestOptions { get; }
 
-        public Metadata Metadata { get; }
+        public IInternalMetadata InternalMetadata { get; }
 
         /// <summary>
         /// Creates a new instance using a request, the statement and the execution profile.
         /// </summary>
         public RequestHandler(
             IInternalSession session, 
-            Metadata metadata,
+            IInternalMetadata internalMetadata,
             ISerializer serializer, 
             IRequest request, 
             IStatement statement, 
             IRequestOptions requestOptions)
         {
             _session = session ?? throw new ArgumentNullException(nameof(session));
-            Metadata = metadata ?? throw new ArgumentNullException(nameof(metadata));
+            InternalMetadata = internalMetadata ?? throw new ArgumentNullException(nameof(internalMetadata));
             _requestObserver = session.ObserverFactory.CreateRequestObserver();
             _requestResultHandler = new TcsMetricsRequestResultHandler(_requestObserver);
             _request = request;
@@ -87,7 +88,8 @@ namespace Cassandra.Requests
                 RetryPolicy = statement.RetryPolicy.Wrap(RetryPolicy);
             }
 
-            _queryPlan = RequestHandler.GetQueryPlan(session, metadata, statement, RequestOptions.LoadBalancingPolicy).GetEnumerator();
+            _queryPlan = RequestHandler.GetQueryPlan(
+                session, _session.Cluster.Metadata, statement, RequestOptions.LoadBalancingPolicy).GetEnumerator();
         }
 
         /// <summary>
@@ -96,13 +98,13 @@ namespace Cassandra.Requests
         /// </summary>
         public RequestHandler(
             IInternalSession session, 
-            Metadata metadata, 
+            IInternalMetadata internalMetadata, 
             ISerializer serializer, 
             IStatement statement, 
             IRequestOptions requestOptions)
             : this(
                 session, 
-                metadata, 
+                internalMetadata, 
                 serializer, 
                 RequestHandler.GetRequest(statement, serializer, requestOptions), 
                 statement, 
@@ -113,8 +115,8 @@ namespace Cassandra.Requests
         /// <summary>
         /// Creates a new instance with no request, suitable for getting a connection.
         /// </summary>
-        public RequestHandler(IInternalSession session, Metadata metadata, ISerializer serializer)
-            : this(session, metadata, serializer, null, null, session.Cluster.Configuration.DefaultRequestOptions)
+        public RequestHandler(IInternalSession session, IInternalMetadata internalMetadata, ISerializer serializer)
+            : this(session, internalMetadata, serializer, null, null, session.Cluster.Configuration.DefaultRequestOptions)
         {
         }
 
@@ -123,7 +125,7 @@ namespace Cassandra.Requests
         /// In the special case when a Host is provided at Statement level, it will return a query plan with a single
         /// host.
         /// </summary>
-        private static IEnumerable<Host> GetQueryPlan(ISession session, Metadata metadata, IStatement statement, ILoadBalancingPolicy lbp)
+        private static IEnumerable<Host> GetQueryPlan(ISession session, IMetadata metadata, IStatement statement, ILoadBalancingPolicy lbp)
         {
             // Single host iteration
             var host = (statement as Statement)?.Host;
@@ -523,7 +525,8 @@ namespace Cassandra.Requests
             }
             if (_executionPlan == null)
             {
-                _executionPlan = RequestOptions.SpeculativeExecutionPolicy.NewPlan(_session.Keyspace, Statement);
+                _executionPlan = RequestOptions.SpeculativeExecutionPolicy.NewPlan(
+                    _session.Cluster.Metadata, _session.Keyspace, Statement);
             }
             var delay = _executionPlan.NextExecution(currentHost);
             if (delay <= 0)

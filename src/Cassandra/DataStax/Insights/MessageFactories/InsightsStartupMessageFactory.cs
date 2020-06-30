@@ -15,6 +15,8 @@
 //
 
 using System.Linq;
+
+using Cassandra.Connections.Control;
 using Cassandra.DataStax.Insights.InfoProviders;
 using Cassandra.DataStax.Insights.Schema;
 using Cassandra.DataStax.Insights.Schema.StartupMessage;
@@ -26,7 +28,7 @@ namespace Cassandra.DataStax.Insights.MessageFactories
     {
         private const string StartupMessageName = "driver.startup";
         private const string StartupV1MappingId = "v1";
-        
+
         private readonly IInsightsMetadataFactory _metadataFactory;
         private readonly InsightsInfoProvidersCollection _infoProviders;
 
@@ -36,12 +38,12 @@ namespace Cassandra.DataStax.Insights.MessageFactories
             _infoProviders = infoProviders;
         }
 
-        public Insight<InsightsStartupData> CreateMessage(IInternalCluster cluster, IInternalSession session, Metadata metadata)
+        public Insight<InsightsStartupData> CreateMessage(IInternalCluster cluster, IInternalSession session, IInternalMetadata internalMetadata)
         {
             var insightsMetadata = _metadataFactory.CreateInsightsMetadata(
                 InsightsStartupMessageFactory.StartupMessageName, InsightsStartupMessageFactory.StartupV1MappingId, InsightType.Event);
 
-            var driverInfo = _infoProviders.DriverInfoProvider.GetInformation(cluster, session, metadata);
+            var driverInfo = _infoProviders.DriverInfoProvider.GetInformation(cluster, session, internalMetadata);
             var startupData = new InsightsStartupData
             {
                 ClientId = cluster.Configuration.ClusterId.ToString(),
@@ -51,28 +53,28 @@ namespace Cassandra.DataStax.Insights.MessageFactories
                 ApplicationName = cluster.Configuration.ApplicationName,
                 ApplicationVersion = cluster.Configuration.ApplicationVersion,
                 ApplicationNameWasGenerated = cluster.Configuration.ApplicationNameWasGenerated,
-                ContactPoints = 
-                    metadata.ResolvedContactPoints.ToDictionary(
+                ContactPoints =
+                    internalMetadata.ResolvedContactPoints.ToDictionary(
                         kvp => kvp.Key.StringRepresentation, kvp => kvp.Value.Select(ipEndPoint => ipEndPoint.GetHostIpEndPointWithFallback().ToString()).ToList()),
-                DataCenters = _infoProviders.DataCentersInfoProvider.GetInformation(cluster, session, metadata),
-                InitialControlConnection = metadata.ControlConnection.EndPoint?.GetHostIpEndPointWithFallback().ToString(),
-                LocalAddress = metadata.ControlConnection.LocalAddress?.ToString(),
-                HostName = _infoProviders.HostnameProvider.GetInformation(cluster, session, metadata),
-                ProtocolVersion = (byte)metadata.ProtocolVersion,
-                ExecutionProfiles = _infoProviders.ExecutionProfileInfoProvider.GetInformation(cluster, session, metadata),
-                PoolSizeByHostDistance = _infoProviders.PoolSizeByHostDistanceInfoProvider.GetInformation(cluster, session, metadata),
-                HeartbeatInterval = 
+                DataCenters = _infoProviders.DataCentersInfoProvider.GetInformation(cluster, session, internalMetadata),
+                InitialControlConnection = internalMetadata.ControlConnection.EndPoint?.GetHostIpEndPointWithFallback().ToString(),
+                LocalAddress = internalMetadata.ControlConnection.LocalAddress?.ToString(),
+                HostName = _infoProviders.HostnameProvider.GetInformation(cluster, session, internalMetadata),
+                ProtocolVersion = (byte)internalMetadata.ProtocolVersion,
+                ExecutionProfiles = _infoProviders.ExecutionProfileInfoProvider.GetInformation(cluster, session, internalMetadata),
+                PoolSizeByHostDistance = _infoProviders.PoolSizeByHostDistanceInfoProvider.GetInformation(cluster, session, internalMetadata),
+                HeartbeatInterval =
                     cluster
                         .Configuration
-                        .GetOrCreatePoolingOptions(metadata.ProtocolVersion)
+                        .GetOrCreatePoolingOptions(internalMetadata.ProtocolVersion)
                         .GetHeartBeatInterval() ?? 0,
                 Compression = cluster.Configuration.ProtocolOptions.Compression,
-                ReconnectionPolicy = _infoProviders.ReconnectionPolicyInfoProvider.GetInformation(cluster, session, metadata),
+                ReconnectionPolicy = _infoProviders.ReconnectionPolicyInfoProvider.GetInformation(cluster, session, internalMetadata),
                 Ssl = new SslInfo { Enabled = cluster.Configuration.ProtocolOptions.SslOptions != null },
-                AuthProvider = _infoProviders.AuthProviderInfoProvider.GetInformation(cluster, session, metadata),
-                OtherOptions = _infoProviders.OtherOptionsInfoProvider.GetInformation(cluster, session, metadata),
-                PlatformInfo = _infoProviders.PlatformInfoProvider.GetInformation(cluster, session, metadata),
-                ConfigAntiPatterns = _infoProviders.ConfigAntiPatternsInfoProvider.GetInformation(cluster, session, metadata),
+                AuthProvider = _infoProviders.AuthProviderInfoProvider.GetInformation(cluster, session, internalMetadata),
+                OtherOptions = _infoProviders.OtherOptionsInfoProvider.GetInformation(cluster, session, internalMetadata),
+                PlatformInfo = _infoProviders.PlatformInfoProvider.GetInformation(cluster, session, internalMetadata),
+                ConfigAntiPatterns = _infoProviders.ConfigAntiPatternsInfoProvider.GetInformation(cluster, session, internalMetadata),
                 PeriodicStatusInterval = cluster.Configuration.MonitorReportingOptions.StatusEventDelayMilliseconds / 1000
             };
 

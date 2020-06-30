@@ -12,8 +12,9 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-// 
+//
 
+using Cassandra.Connections.Control;
 using Cassandra.DataStax.Insights.Schema;
 using Cassandra.SessionManagement;
 
@@ -21,6 +22,6 @@ namespace Cassandra.DataStax.Insights.MessageFactories
 {
     internal interface IInsightsMessageFactory<T>
     {
-        Insight<T> CreateMessage(IInternalCluster cluster, IInternalSession session, Metadata metadata);
+        Insight<T> CreateMessage(IInternalCluster cluster, IInternalSession session, IInternalMetadata internalMetadata);
     }
 }

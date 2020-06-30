@@ -12,16 +12,18 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-// 
+//
 
 using System.Net;
+
+using Cassandra.Connections.Control;
 using Cassandra.SessionManagement;
 
 namespace Cassandra.DataStax.Insights.InfoProviders.StartupMessage
 {
     internal class HostnameInfoProvider : IInsightsInfoProvider<string>
     {
-        public string GetInformation(IInternalCluster cluster, IInternalSession session, Metadata metadata)
+        public string GetInformation(IInternalCluster cluster, IInternalSession session, IInternalMetadata internalMetadata)
         {
             return Dns.GetHostName();
         }

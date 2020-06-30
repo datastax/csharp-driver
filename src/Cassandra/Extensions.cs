@@ -15,6 +15,7 @@
 //
 
 using System.Threading.Tasks;
+using Cassandra.Connections.Control;
 using Cassandra.SessionManagement;
 using Cassandra.Tasks;
 
@@ -62,13 +63,19 @@ namespace Cassandra
         public static async Task<ISessionState> GetStateAsync(this ISession instance)
         {
             var session = instance as IInternalSession;
-            var metadata = await instance.Cluster.GetMetadataAsync().ConfigureAwait(false);
-            return session == null ? SessionState.Empty() : SessionState.From(session, metadata);
+
+            if (session == null)
+            {
+                return SessionState.Empty();
+            }
+
+            var metadata = await session.TryInitAndGetMetadataAsync().ConfigureAwait(false);
+            return SessionState.From(session, metadata);
         }
 
-        internal static ISessionState GetState(this IInternalSession instance, Metadata metadata)
+        internal static ISessionState GetState(this IInternalSession instance, IInternalMetadata internalMetadata)
         {
-            return SessionState.From(instance, metadata);
+            return SessionState.From(instance, internalMetadata);
         }
     }
 }

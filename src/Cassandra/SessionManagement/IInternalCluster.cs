@@ -18,22 +18,19 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+
 using Cassandra.Connections;
 using Cassandra.Connections.Control;
-using Cassandra.Requests;
-using Cassandra.Serialization;
 
 namespace Cassandra.SessionManagement
 {
     /// <inheritdoc />
     internal interface IInternalCluster : ICluster
     {
-        ISerializerManager SerializerManager { get; }
-
         IInternalMetadata InternalMetadata { get; }
 
         bool AnyOpenConnections(Host host);
-        
+
         /// <summary>
         /// If contact points are not provided in the builder, the driver will use localhost
         /// as an implicit contact point.
@@ -54,17 +51,17 @@ namespace Cassandra.SessionManagement
         /// In case the statement was already in the prepared statements cache, logs an warning but prepares it anyway.
         /// </summary>
         Task<PreparedStatement> PrepareAsync(IInternalSession session, string cqlQuery, string keyspace, IDictionary<string, byte[]> customPayload);
-        
+
         IReadOnlyDictionary<IContactPoint, IEnumerable<IConnectionEndPoint>> GetResolvedEndpoints();
 
         /// <summary>
         /// Helper method to retrieve the aggregate distance from all configured LoadBalancingPolicies and set it at Host level.
         /// </summary>
         HostDistance RetrieveAndSetDistance(Host host);
-        
+
         /// <summary>
-        /// Initializes once (Thread-safe) the control connection
+        /// Initializes once (Thread-safe) the control connection and retrieve the internal metadata object.
         /// </summary>
-        Task TryInitializeAsync();
+        Task<IInternalMetadata> TryInitAndGetMetadataAsync();
     }
 }

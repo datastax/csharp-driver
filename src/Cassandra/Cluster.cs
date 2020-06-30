@@ -28,9 +28,7 @@ using Cassandra.Collections;
 using Cassandra.Connections;
 using Cassandra.Connections.Control;
 using Cassandra.Helpers;
-using Cassandra.ProtocolEvents;
 using Cassandra.Requests;
-using Cassandra.Serialization;
 using Cassandra.SessionManagement;
 using Cassandra.Tasks;
 
@@ -45,30 +43,27 @@ namespace Cassandra
 
         private static readonly IPEndPoint DefaultContactPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9042);
 
-        private static ProtocolVersion _maxProtocolVersion = ProtocolVersion.MaxSupported;
         internal static readonly Logger Logger = new Logger(typeof(Cluster));
         private readonly CopyOnWriteList<IInternalSession> _connectedSessions = new CopyOnWriteList<IInternalSession>();
-        private readonly SerializerManager _serializerManager;
         private readonly bool _implicitContactPoint = false;
         private volatile Exception _initException;
         private readonly SemaphoreSlim _sessionCreateLock = new SemaphoreSlim(1, 1);
         private long _sessionCounter = -1;
 
         private readonly IInternalMetadata _internalMetadata;
+        private readonly Metadata _lazyMetadata;
         private IReadOnlyList<ILoadBalancingPolicy> _loadBalancingPolicies;
 
-        private readonly Task _initTask;
+        private readonly Task<IInternalMetadata> _initTask;
 
         private long _state = Cluster.Initializing;
-        
+
         internal IInternalCluster InternalRef => this;
 
         IInternalMetadata IInternalCluster.InternalMetadata => _internalMetadata;
-        
+
         private bool IsDisposed => Interlocked.Read(ref _state) == Cluster.Disposed;
 
-        ISerializerManager IInternalCluster.SerializerManager => _serializerManager;
-        
         Exception IInternalCluster.InitException => _initException;
 
         /// <inheritdoc />
@@ -112,53 +107,20 @@ namespace Cassandra
             return new Builder();
         }
 
-        /// <summary>
-        /// Gets or sets the maximum protocol version used by this driver.
-        /// <para>
-        /// While property value is maintained for backward-compatibility,
-        /// use <see cref="ProtocolOptions.SetMaxProtocolVersion(ProtocolVersion)"/> to set the maximum protocol version used by the driver.
-        /// </para>
-        /// <para>
-        /// Protocol version used can not be higher than <see cref="ProtocolVersion.MaxSupported"/>.
-        /// </para>
-        /// </summary>
-        public static int MaxProtocolVersion
-        {
-            get { return (int)_maxProtocolVersion; }
-            set
-            {
-                if (value > (int)ProtocolVersion.MaxSupported)
-                {
-                    // Ignore
-                    return;
-                }
-                _maxProtocolVersion = (ProtocolVersion)value;
-            }
-        }
-
         /// <inheritdoc />
-        public Configuration Configuration { get; private set; }
+        public Configuration Configuration { get; }
 
         /// <inheritdoc />
         // ReSharper disable once ConvertToAutoProperty, reviewed
         bool IInternalCluster.ImplicitContactPoint => _implicitContactPoint;
 
         /// <inheritdoc />
-        public Metadata Metadata { get; }
-        
+        public IMetadata Metadata => _lazyMetadata;
+
         private Cluster(IEnumerable<object> contactPoints, Configuration configuration)
         {
             Configuration = configuration;
 
-            var protocolVersion = _maxProtocolVersion;
-            if (Configuration.ProtocolOptions.MaxProtocolVersionValue != null &&
-                Configuration.ProtocolOptions.MaxProtocolVersionValue.Value.IsSupported(configuration))
-            {
-                protocolVersion = Configuration.ProtocolOptions.MaxProtocolVersionValue.Value;
-            }
-
-            _serializerManager = new SerializerManager(protocolVersion, configuration.TypeSerializers);
-            
             var contactPointsList = contactPoints.ToList();
             if (contactPointsList.Count == 0)
             {
@@ -168,15 +130,15 @@ namespace Cassandra
             }
 
             var parsedContactPoints = configuration.ContactPointParser.ParseContactPoints(contactPointsList);
-            
-            Metadata = new Metadata(this, configuration, _serializerManager, parsedContactPoints);
-            _internalMetadata = Metadata.InternalMetadata;
+
+            _lazyMetadata = new Metadata(this, configuration, Configuration.SerializerManager, parsedContactPoints);
+            _internalMetadata = _lazyMetadata.InternalMetadata;
 
             _initTask = Task.Run(InitAsync);
         }
 
         /// <inheritdoc />
-        Task IInternalCluster.TryInitializeAsync()
+        Task<IInternalMetadata> IInternalCluster.TryInitAndGetMetadataAsync()
         {
             var currentState = Interlocked.Read(ref _state);
             if (currentState == Cluster.Initialized)
@@ -189,7 +151,7 @@ namespace Cassandra
             {
                 throw new ObjectDisposedException("This cluster object has been disposed.");
             }
-            
+
             if (_initException != null)
             {
                 //There was an exception that is not possible to recover from
@@ -199,7 +161,7 @@ namespace Cassandra
             return _initTask;
         }
 
-        private async Task InitAsync()
+        private async Task<IInternalMetadata> InitAsync()
         {
             Cluster.Logger.Info("Connecting to cluster using {0}", Cluster.GetAssemblyInfo());
             try
@@ -218,7 +180,7 @@ namespace Cassandra
                 // Only abort the async operations when at least twice the time for ConnectTimeout per host passed
                 var initialAbortTimeout = Configuration.SocketOptions.ConnectTimeoutMillis * 2 * _internalMetadata.Hosts.Count;
                 initialAbortTimeout = Math.Max(initialAbortTimeout, Configuration.SocketOptions.MetadataAbortTimeout);
-                var initTask = Metadata.TryInitializeAsync();
+                var initTask = _lazyMetadata.TryInitializeAsync();
                 try
                 {
                     await initTask.WaitToCompleteAsync(initialAbortTimeout).ConfigureAwait(false);
@@ -268,11 +230,15 @@ namespace Cassandra
                 // Set metadata dependent options
                 SetMetadataDependentOptions();
 
-                Cluster.Logger.Info("Cluster Connected using binary protocol version: [" + _serializerManager.CurrentProtocolVersion + "]");
+                Cluster.Logger.Info("Cluster Connected using binary protocol version: ["
+                                    + Configuration.SerializerManager.CurrentProtocolVersion
+                                    + "]");
                 _internalMetadata.Hosts.Added += _internalMetadata.OnHostAdded;
                 _internalMetadata.Hosts.Removed += _internalMetadata.OnHostRemoved;
                 _internalMetadata.Hosts.Up += OnHostUp;
                 Cluster.Logger.Info("Cluster [" + _internalMetadata.ClusterName + "] has been initialized.");
+
+                return _internalMetadata;
             }
             catch (NoHostAvailableException)
             {
@@ -312,7 +278,7 @@ namespace Cassandra
         {
             return _internalMetadata.ResolvedContactPoints;
         }
-        
+
         /// <summary>
         /// Creates a new session on this cluster.
         /// </summary>
@@ -358,7 +324,6 @@ namespace Cassandra
                 _connectedSessions.Add(session);
                 Cluster.Logger.Info("Session connected ({0})", session.GetHashCode());
                 return session;
-
             }
             finally
             {
@@ -441,7 +406,7 @@ namespace Cassandra
                     "that came UP:" + Environment.NewLine + "{1}", h?.Address?.ToString(), ex.ToString());
             }
         }
-        
+
         /// <inheritdoc />
         public void Shutdown(int timeoutMs = Timeout.Infinite)
         {
@@ -478,7 +443,7 @@ namespace Cassandra
             {
                 Cluster.Logger.Warning("Exception occured while disposing session instances: {0}", ex.ToString());
             }
-            
+
             if (previousState != Cluster.Initialized)
             {
                 return;
@@ -491,7 +456,7 @@ namespace Cassandra
 
         private async Task ShutdownInternalAsync()
         {
-            await Metadata.ShutdownAsync().ConfigureAwait(false);
+            await _lazyMetadata.ShutdownAsync().ConfigureAwait(false);
             Configuration.Timer.Dispose();
 
             // Dispose policies
@@ -530,7 +495,7 @@ namespace Cassandra
         async Task<PreparedStatement> IInternalCluster.PrepareAsync(
             IInternalSession session, string cqlQuery, string keyspace, IDictionary<string, byte[]> customPayload)
         {
-            await InternalRef.TryInitializeAsync().ConfigureAwait(false);
+            await InternalRef.TryInitAndGetMetadataAsync().ConfigureAwait(false);
 
             var serializer = _internalMetadata.SerializerManager.GetCurrentSerializer();
             var currentVersion = serializer.ProtocolVersion;
@@ -549,9 +514,9 @@ namespace Cassandra
         private async Task<PreparedStatement> PrepareAsync(IInternalSession session, PrepareRequest request)
         {
             var lbp = session.Cluster.Configuration.DefaultRequestOptions.LoadBalancingPolicy;
-            var handler = InternalRef.Configuration.PrepareHandlerFactory.CreatePrepareHandler(_serializerManager, this);
+            var handler = InternalRef.Configuration.PrepareHandlerFactory.CreatePrepareHandler(Configuration.SerializerManager, this);
             var ps = await handler.PrepareAsync(
-                request, 
+                request,
                 session,
                 lbp.NewQueryPlan(Metadata, session.Keyspace, null).GetEnumerator()).ConfigureAwait(false);
             var psAdded = InternalRef.PreparedQueries.GetOrAdd(ps.Id, ps);
@@ -574,7 +539,7 @@ namespace Cassandra
             {
                 return;
             }
-            
+
             // Get the first pool for that host that has open connections
             var pool = sessions.Select(s => s.GetExistingPool(host.Address)).Where(p => p != null).FirstOrDefault(p => p.HasConnections);
             if (pool == null)
@@ -586,7 +551,7 @@ namespace Cassandra
             PrepareHandler.Logger.Info($"Re-preparing {preparedQueries.Count} queries on {host.Address}");
             var tasks = new List<Task>(preparedQueries.Count);
             var handler = InternalRef.Configuration.PrepareHandlerFactory.CreateReprepareHandler();
-            var serializer = _serializerManager.GetCurrentSerializer();
+            var serializer = Configuration.SerializerManager.GetCurrentSerializer();
             using (var semaphore = new SemaphoreSlim(64, 64))
             {
                 foreach (var ps in preparedQueries)
@@ -594,10 +559,10 @@ namespace Cassandra
                     var request = new PrepareRequest(serializer, ps.Cql, ps.Keyspace, null);
                     await semaphore.WaitAsync().ConfigureAwait(false);
                     tasks.Add(Task.Run(() => handler.ReprepareOnSingleNodeAsync(
-                        new KeyValuePair<Host, IHostConnectionPool>(host, pool), 
-                        ps, 
-                        request, 
-                        semaphore, 
+                        new KeyValuePair<Host, IHostConnectionPool>(host, pool),
+                        ps,
+                        request,
+                        semaphore,
                         true)));
                 }
 

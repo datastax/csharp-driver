@@ -26,7 +26,7 @@ namespace Cassandra.Connections.Control
             IConnection connection,
             ISerializerManager serializer)
         {
-            var commonVersion = serializer.CurrentProtocolVersion.GetHighestCommon(config, internalMetadata.Hosts);
+            var commonVersion = serializer.CurrentProtocolVersion.GetHighestCommon(config.AllowBetaProtocolVersions, internalMetadata.Hosts);
             if (commonVersion != serializer.CurrentProtocolVersion)
             {
                 // Current connection will be closed and reopened
@@ -45,9 +45,9 @@ namespace Cassandra.Connections.Control
             UnsupportedProtocolVersionException ex = null,
             ProtocolVersion? previousVersion = null)
         {
-            if (!nextVersion.IsSupported(config) || nextVersion == previousVersion)
+            if (!nextVersion.IsSupported(config.AllowBetaProtocolVersions) || nextVersion == previousVersion)
             {
-                nextVersion = nextVersion.GetLowerSupported(config);
+                nextVersion = nextVersion.GetLowerSupported(config.AllowBetaProtocolVersions);
             }
 
             if (nextVersion == 0)

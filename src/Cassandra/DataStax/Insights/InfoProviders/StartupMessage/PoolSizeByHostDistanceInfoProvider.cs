@@ -14,6 +14,7 @@
 //   limitations under the License.
 // 
 
+using Cassandra.Connections.Control;
 using Cassandra.DataStax.Insights.Schema.StartupMessage;
 using Cassandra.SessionManagement;
 
@@ -21,17 +22,18 @@ namespace Cassandra.DataStax.Insights.InfoProviders.StartupMessage
 {
     internal class PoolSizeByHostDistanceInfoProvider : IInsightsInfoProvider<PoolSizeByHostDistance>
     {
-        public PoolSizeByHostDistance GetInformation(IInternalCluster cluster, IInternalSession session, Metadata metadata)
+        public PoolSizeByHostDistance GetInformation(
+            IInternalCluster cluster, IInternalSession session, IInternalMetadata internalMetadata)
         {
             return new PoolSizeByHostDistance
             {
                 Local = cluster
                         .Configuration
-                        .GetOrCreatePoolingOptions(metadata.ProtocolVersion)
+                        .GetOrCreatePoolingOptions(internalMetadata.ProtocolVersion)
                         .GetCoreConnectionsPerHost(HostDistance.Local),
                 Remote = cluster
                          .Configuration
-                         .GetOrCreatePoolingOptions(metadata.ProtocolVersion)
+                         .GetOrCreatePoolingOptions(internalMetadata.ProtocolVersion)
                          .GetCoreConnectionsPerHost(HostDistance.Remote)
             };
         }

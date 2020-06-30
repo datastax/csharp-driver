@@ -18,7 +18,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading.Tasks;
-
+using Cassandra.Connections.Control;
 using Cassandra.SessionManagement;
 using Cassandra.Tasks;
 
@@ -59,7 +59,7 @@ namespace Cassandra
             {
                 throw new ArgumentNullException("udtMaps");
             }
-            var metadata = await _cluster.GetMetadataAsync().ConfigureAwait(false);
+            var metadata = await _session.TryInitAndGetMetadataAsync().ConfigureAwait(false);
             var sessionKeyspace = _session.Keyspace;
             if (string.IsNullOrEmpty(sessionKeyspace) && udtMaps.Any(map => map.Keyspace == null))
             {
@@ -86,7 +86,7 @@ namespace Cassandra
         /// Gets the definition and validates the fields
         /// </summary>
         /// <exception cref="InvalidTypeException" />
-        private async Task<UdtColumnInfo> GetDefinitionAsync(string keyspace, UdtMap map, Metadata metadata)
+        private async Task<UdtColumnInfo> GetDefinitionAsync(string keyspace, UdtMap map, IInternalMetadata metadata)
         {
             var caseSensitiveUdtName = map.UdtName;
             if (map.IgnoreCase)

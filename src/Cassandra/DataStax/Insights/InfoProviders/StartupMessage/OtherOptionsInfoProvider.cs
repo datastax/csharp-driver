@@ -12,16 +12,19 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-// 
+//
 
 using System.Collections.Generic;
+
+using Cassandra.Connections.Control;
 using Cassandra.SessionManagement;
 
 namespace Cassandra.DataStax.Insights.InfoProviders.StartupMessage
 {
     internal class OtherOptionsInfoProvider : IInsightsInfoProvider<Dictionary<string, object>>
     {
-        public Dictionary<string, object> GetInformation(IInternalCluster cluster, IInternalSession session, Metadata metadata)
+        public Dictionary<string, object> GetInformation(
+            IInternalCluster cluster, IInternalSession session, IInternalMetadata internalMetadata)
         {
             return null;
         }

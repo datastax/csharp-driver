@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 
+using Cassandra.Connections.Control;
 using Cassandra.ExecutionProfiles;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
@@ -24,15 +25,15 @@ namespace Cassandra.Requests
     {
         IRequestHandler Create(
             IInternalSession session, 
-            Metadata metadata,
+            IInternalMetadata internalMetadata,
             ISerializer serializer, 
             IRequest request, 
             IStatement statement, 
             IRequestOptions options);
 
         IRequestHandler Create(
-            IInternalSession session, Metadata metadata, ISerializer serializer, IStatement statement, IRequestOptions options);
+            IInternalSession session, IInternalMetadata internalMetadata, ISerializer serializer, IStatement statement, IRequestOptions options);
 
-        IRequestHandler Create(IInternalSession session, Metadata metadata, ISerializer serializer);
+        IRequestHandler Create(IInternalSession session, IInternalMetadata internalMetadata, ISerializer serializer);
     }
 }

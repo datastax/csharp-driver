@@ -15,6 +15,7 @@
 
 using System;
 using System.Threading.Tasks;
+using Cassandra.Connections.Control;
 
 namespace Cassandra.MetadataHelpers
 {
@@ -27,7 +28,7 @@ namespace Cassandra.MetadataHelpers
         /// <summary>
         /// Creates a new instance if the currentInstance is not valid for the given Cassandra version
         /// </summary>
-        public ISchemaParser Create(Version cassandraVersion, Metadata parent,
+        public ISchemaParser Create(Version cassandraVersion, IInternalMetadata parent,
                                                Func<string, string, Task<UdtColumnInfo>> udtResolver,
                                                ISchemaParser currentInstance = null)
         {

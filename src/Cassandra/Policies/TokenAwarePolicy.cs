@@ -28,7 +28,7 @@ namespace Cassandra
     /// </para>
     /// <list type="number">
     /// <item>The <see cref="Distance(Host)"/> method is inherited  from the child policy.</item>
-    /// <item>The host yielded by the <see cref="NewQueryPlan(Metadata, string, IStatement)"/> method will first return the
+    /// <item>The host yielded by the <see cref="NewQueryPlan(IMetadata, string, IStatement)"/> method will first return the
     /// <see cref="HostDistance.Local"/> replicas for the statement, based on the <see cref="Statement.RoutingKey"/>.
     /// </item>
     /// </list>
@@ -52,7 +52,7 @@ namespace Cassandra
 
         public ILoadBalancingPolicy ChildPolicy { get; }
 
-        public Task InitializeAsync(Metadata metadata)
+        public Task InitializeAsync(IMetadata metadata)
         {
             return ChildPolicy.InitializeAsync(metadata);
         }
@@ -80,7 +80,7 @@ namespace Cassandra
         /// <param name="loggedKeyspace">Keyspace on which the query is going to be executed</param>
         /// <param name="query"> the query for which to build the plan. </param>
         /// <returns>the new query plan.</returns>
-        public IEnumerable<Host> NewQueryPlan(Metadata metadata, string loggedKeyspace, IStatement query)
+        public IEnumerable<Host> NewQueryPlan(IMetadata metadata, string loggedKeyspace, IStatement query)
         {
             var routingKey = query?.RoutingKey;
             IEnumerable<Host> childIterator;
@@ -95,7 +95,7 @@ namespace Cassandra
             }
 
             var keyspace = query.Keyspace ?? loggedKeyspace;
-            var replicas = metadata.GetReplicas(keyspace, routingKey.RawRoutingKey);
+            var replicas = metadata.GetReplicasSnapshot(keyspace, routingKey.RawRoutingKey);
 
             var localReplicaSet = new HashSet<Host>();
             var localReplicaList = new List<Host>(replicas.Count);

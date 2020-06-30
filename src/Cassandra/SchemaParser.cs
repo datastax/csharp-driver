@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
+using Cassandra.Connections.Control;
 using Cassandra.Serialization;
 using Cassandra.Tasks;
 using SortOrder = Cassandra.DataCollectionMetadata.SortOrder;
@@ -34,13 +35,13 @@ namespace Cassandra
         private const string SelectTraceEvents = "SELECT * FROM system_traces.events WHERE session_id = {0}";
         
         protected readonly IMetadataQueryProvider Cc;
-        protected readonly Metadata Parent;
+        protected readonly IInternalMetadata Parent;
         protected abstract string SelectAggregates { get; }
         protected abstract string SelectFunctions { get; }
         protected abstract string SelectTables { get; }
         protected abstract string SelectUdts { get; }
 
-        protected SchemaParser(Metadata parent)
+        protected SchemaParser(IInternalMetadata parent)
         {
             Cc = parent.ControlConnection;
             Parent = parent;
@@ -165,7 +166,7 @@ namespace Cassandra
         protected override string SelectUdts => "SELECT * FROM system.schema_usertypes WHERE keyspace_name='{0}' AND type_name = '{1}'";
 
 
-        internal SchemaParserV1(Metadata parent) : base(parent)
+        internal SchemaParserV1(IInternalMetadata parent) : base(parent)
         {
 
         }
@@ -536,7 +537,7 @@ namespace Cassandra
 
         protected override string SelectUdts => "SELECT * FROM system_schema.types WHERE keyspace_name='{0}' AND type_name = '{1}'";
         
-        internal SchemaParserV2(Metadata parent, Func<string, string, Task<UdtColumnInfo>> udtResolver)
+        internal SchemaParserV2(IInternalMetadata parent, Func<string, string, Task<UdtColumnInfo>> udtResolver)
             : base(parent)
         {
             _udtResolver = udtResolver;
@@ -914,7 +915,7 @@ namespace Cassandra
             "SELECT * FROM system_virtual_schema.columns WHERE keyspace_name = '{0}' AND table_name='{1}'";
         private const string SelectVirtualKeyspaceNames = "SELECT keyspace_name FROM system_virtual_schema.keyspaces";
 
-        internal SchemaParserV3(Metadata parent, Func<string, string, Task<UdtColumnInfo>> udtResolver)
+        internal SchemaParserV3(IInternalMetadata parent, Func<string, string, Task<UdtColumnInfo>> udtResolver)
             : base(parent, udtResolver)
         {
 

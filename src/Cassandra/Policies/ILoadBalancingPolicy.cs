@@ -39,7 +39,7 @@ namespace Cassandra
         /// </para>
         /// </summary>
         /// <param name="metadata">The information about the session instance for which the policy is created.</param>
-        Task InitializeAsync(Metadata metadata);
+        Task InitializeAsync(IMetadata metadata);
 
         /// <summary>
         ///  Returns the distance assigned by this policy to the provided host. <p> The
@@ -70,6 +70,6 @@ namespace Cassandra
         /// <returns>An iterator of Host. The query is tried against the hosts returned
         ///  by this iterator in order, until the query has been sent successfully to one
         ///  of the host.</returns>
-        IEnumerable<Host> NewQueryPlan(Metadata metadata, string keyspace, IStatement query);
+        IEnumerable<Host> NewQueryPlan(IMetadata metadata, string keyspace, IStatement query);
     }
 }

@@ -85,7 +85,7 @@ namespace Cassandra
         /// <summary>
         /// Initializes the policy.
         /// </summary>
-        public Task InitializeAsync(Metadata metadata)
+        public Task InitializeAsync(IMetadata metadata)
         {
             return ChildPolicy.InitializeAsync(metadata);
         }
@@ -93,7 +93,7 @@ namespace Cassandra
         /// <summary>
         /// Returns the hosts to used for a query.
         /// </summary>
-        public IEnumerable<Host> NewQueryPlan(Metadata metadata, string keyspace, IStatement statement)
+        public IEnumerable<Host> NewQueryPlan(IMetadata metadata, string keyspace, IStatement statement)
         {
             if (statement is TargettedSimpleStatement targetedStatement && targetedStatement.PreferredHost != null)
             {
@@ -104,7 +104,7 @@ namespace Cassandra
             return ChildPolicy.NewQueryPlan(metadata, keyspace, statement);
         }
 
-        private IEnumerable<Host> YieldPreferred(Metadata metadata, string keyspace, TargettedSimpleStatement statement)
+        private IEnumerable<Host> YieldPreferred(IMetadata metadata, string keyspace, TargettedSimpleStatement statement)
         {
             yield return statement.PreferredHost;
             foreach (var h in ChildPolicy.NewQueryPlan(metadata, keyspace, statement))

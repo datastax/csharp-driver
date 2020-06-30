@@ -21,7 +21,7 @@ namespace Cassandra.MetadataHelpers
 {
     internal interface ISchemaParserFactory
     {
-        ISchemaParser Create(Version cassandraVersion, InternalMetadata parent,
+        ISchemaParser Create(Version cassandraVersion, IInternalMetadata parent,
                                  Func<string, string, Task<UdtColumnInfo>> udtResolver,
                                  ISchemaParser currentInstance = null);
     }

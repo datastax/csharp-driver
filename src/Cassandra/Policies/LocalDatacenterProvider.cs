@@ -26,12 +26,12 @@ namespace Cassandra
         private volatile bool _initialized = false;
 
         private volatile IInternalCluster _cluster;
-        private volatile InternalMetadata _internalMetadata;
+        private volatile IInternalMetadata _internalMetadata;
         private volatile IEnumerable<string> _availableDcs;
         private volatile string _availableDcsStr;
         private volatile string _cachedDatacenter;
 
-        public void Initialize(IInternalCluster cluster, InternalMetadata internalMetadata)
+        public void Initialize(IInternalCluster cluster, IInternalMetadata internalMetadata)
         {
             _cluster = cluster;
             _internalMetadata = internalMetadata;

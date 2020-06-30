@@ -18,6 +18,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
+
+using Cassandra.Connections.Control;
 using Cassandra.DataStax.Insights.Schema.StartupMessage;
 using Cassandra.Helpers;
 using Cassandra.SessionManagement;
@@ -26,7 +28,8 @@ namespace Cassandra.DataStax.Insights.InfoProviders.StartupMessage
 {
     internal class PlatformInfoProvider : IInsightsInfoProvider<InsightsPlatformInfo>
     {
-        public InsightsPlatformInfo GetInformation(IInternalCluster cluster, IInternalSession session, Metadata metadata)
+        public InsightsPlatformInfo GetInformation(
+            IInternalCluster cluster, IInternalSession session, IInternalMetadata internalMetadata)
         {
             var cpuInfo = PlatformHelper.GetCpuInfo();
             var dependencies = typeof(PlatformInfoProvider).GetTypeInfo().Assembly.GetReferencedAssemblies().Select(name =>
