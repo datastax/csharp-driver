@@ -106,6 +106,8 @@ namespace Cassandra.Tests
 
         public IDnsResolver DnsResolver { get; set; }
 
+        public ISerializerManager SerializerManager { get; set; }
+
         public IMetadataRequestHandler MetadataRequestHandler { get; set; } = new MetadataRequestHandler();
 
         public ITopologyRefresherFactory TopologyRefresherFactory { get; set; } = new TopologyRefresherFactory();
@@ -177,7 +179,8 @@ namespace Cassandra.Tests
                 supportedOptionsInitializerFactory: SupportedOptionsInitializerFactory,
                 protocolVersionNegotiator: ProtocolVersionNegotiator,
                 serverEventsSubscriber: ServerEventsSubscriber,
-                localDatacenterProvider: LocalDatacenterProvider);
+                localDatacenterProvider: LocalDatacenterProvider,
+                serializerManager: SerializerManager);
         }
     }
 }

@@ -23,13 +23,19 @@ namespace Cassandra.Tests.Connections.TestHelpers
 {
     internal class FakeProtocolVersionNegotiator : IProtocolVersionNegotiator
     {
-        public Task<IConnection> ChangeProtocolVersion(Configuration config, ISerializerManager serializer, ProtocolVersion nextVersion, IConnection previousConnection,
-                                                       UnsupportedProtocolVersionException ex = null, ProtocolVersion? previousVersion = null)
+        public Task<IConnection> ChangeProtocolVersion(
+            Configuration config, 
+            ISerializerManager serializer, 
+            ProtocolVersion nextVersion, 
+            IConnection previousConnection, 
+            UnsupportedProtocolVersionException ex = null, 
+            ProtocolVersion? previousVersion = null)
         {
             return Task.FromResult(previousConnection);
         }
 
-        public Task<IConnection> NegotiateVersionAsync(Configuration config, Metadata metadata, IConnection connection, ISerializerManager serializer)
+        public Task<IConnection> NegotiateVersionAsync(
+            Configuration config, IInternalMetadata internalMetadata, IConnection connection, ISerializerManager serializer)
         {
             return Task.FromResult(connection);
         }

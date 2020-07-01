@@ -18,11 +18,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+
 using Cassandra.Connections;
 using Cassandra.Connections.Control;
 using Cassandra.ProtocolEvents;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
+
 using Moq;
 
 namespace Cassandra.Tests.Connections.TestHelpers
@@ -32,9 +34,9 @@ namespace Cassandra.Tests.Connections.TestHelpers
         public IControlConnection Create(
             IInternalCluster cluster,
             IProtocolEventDebouncer protocolEventDebouncer,
-            ProtocolVersion initialProtocolVersion,
+            ISerializerManager serializerManager,
             Configuration config,
-            Metadata metadata,
+            IInternalMetadata metadata,
             IEnumerable<IContactPoint> contactPoints)
         {
             var cc = Mock.Of<IControlConnection>();
@@ -54,8 +56,8 @@ namespace Cassandra.Tests.Connections.TestHelpers
                     }
                 }
                 metadata.SetResolvedContactPoints(cps);
+                serializerManager.ChangeProtocolVersion(ProtocolVersion.V3);
             }));
-            Mock.Get(cc).Setup(c => c.Serializer).Returns(new SerializerManager(ProtocolVersion.V3));
             return cc;
         }
 

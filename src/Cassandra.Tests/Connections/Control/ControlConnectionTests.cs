@@ -24,6 +24,7 @@ using System.Threading.Tasks;
 using Cassandra.Connections;
 using Cassandra.Connections.Control;
 using Cassandra.ProtocolEvents;
+using Cassandra.Serialization;
 using Cassandra.SessionManagement;
 using Cassandra.Tests.Connections.TestHelpers;
 using Cassandra.Tests.MetadataHelpers.TestHelpers;
@@ -103,10 +104,17 @@ namespace Cassandra.Tests.Connections.Control
             }
 
             Mock.Get(cluster).SetupGet(c => c.Configuration).Returns(config);
-            
+            var contactPoints = new List<IContactPoint>
+            {
+                new IpLiteralContactPoint(
+                    IPAddress.Parse("127.0.0.1"),
+                    config.ProtocolOptions,
+                    config.ServerNameResolver)
+            };
+
             if (metadata == null)
             {
-                metadata = new Metadata(config);
+                metadata = new Metadata(cluster, config, config.SerializerManager, contactPoints);
             }
 
             return new ControlConnectionCreateResult
@@ -115,19 +123,7 @@ namespace Cassandra.Tests.Connections.Control
                 Metadata = metadata,
                 Cluster = cluster,
                 Config = config,
-                ControlConnection = new ControlConnection(
-                    cluster,
-                    GetEventDebouncer(config),
-                    ProtocolVersion.MaxSupported,
-                    config,
-                    metadata,
-                    new List<IContactPoint>
-                    {
-                        new IpLiteralContactPoint(
-                            IPAddress.Parse("127.0.0.1"),
-                            config.ProtocolOptions,
-                            config.ServerNameResolver)
-                    })
+                ControlConnection = (ControlConnection)metadata.InternalMetadata.ControlConnection
             };
         }
 
@@ -211,9 +207,8 @@ namespace Cassandra.Tests.Connections.Control
 
                 Mock.Get(cluster)
                     .Setup(c => c.RetrieveAndSetDistance(It.IsAny<Host>()))
-                    .Returns<Host>(h => config.Policies.LoadBalancingPolicy.Distance(h));
-                Mock.Get(cluster).Setup(c => c.AllHosts()).Returns(() => metadata.AllHosts());
-                config.Policies.LoadBalancingPolicy.InitializeAsync(cluster);
+                    .Returns<Host>(h => config.Policies.LoadBalancingPolicy.Distance(metadata, h));
+                config.Policies.LoadBalancingPolicy.InitializeAsync(metadata);
 
                 connectionOpenEnabled = false;
 
@@ -267,11 +262,9 @@ namespace Cassandra.Tests.Connections.Control
 
                         Mock.Get(cluster)
                             .Setup(c => c.RetrieveAndSetDistance(It.IsAny<Host>()))
-                            .Returns<Host>(h => config.Policies.LoadBalancingPolicy.Distance(h));
-                        Mock.Get(cluster).Setup(c => c.AllHosts()).Returns(() => metadata.AllHosts());
-                        Mock.Get(cluster).Setup(c => c.GetControlConnection()).Returns(cc);
-                        config.LocalDatacenterProvider.Initialize(cluster);
-                        config.Policies.LoadBalancingPolicy.InitializeAsync(cluster);
+                            .Returns<Host>(h => config.Policies.LoadBalancingPolicy.Distance(metadata, h));
+                        config.LocalDatacenterProvider.Initialize(cluster, metadata.InternalMetadata);
+                        await config.Policies.LoadBalancingPolicy.InitializeAsync(metadata).ConfigureAwait(false);
 
                         createResult.ConnectionFactory.CreatedConnections.Clear();
 
@@ -343,7 +336,8 @@ namespace Cassandra.Tests.Connections.Control
             var config = new TestConfigurationBuilder
             {
                 ConnectionFactory = connectionFactory,
-                KeepContactPointsUnresolved = keepContactPointsUnresolved
+                KeepContactPointsUnresolved = keepContactPointsUnresolved,
+                SerializerManager = new SerializerManager(ProtocolVersion.V3, new TypeSerializerDefinitions().Definitions)
             }.Build();
             _cp1 = new TestContactPoint(new List<IConnectionEndPoint>
             {
@@ -358,22 +352,21 @@ namespace Cassandra.Tests.Connections.Control
                 new ConnectionEndPoint(_endpoint1, config.ServerNameResolver, _localhost),
                 new ConnectionEndPoint(_endpoint2, config.ServerNameResolver, _localhost)
             });
+            config.SerializerManager.ChangeProtocolVersion(ProtocolVersion.V3);
+            var metadata = new Metadata(
+                Mock.Of<IInternalCluster>(),
+                config,
+                config.SerializerManager,
+                new List<IContactPoint>
+                {
+                    _cp1,
+                    _cp2,
+                    _localhost
+                });
             return new ControlConnectionCreateResult
             {
                 ConnectionFactory = connectionFactory,
-                ControlConnection = new ControlConnection(
-                    Mock.Of<IInternalCluster>(),
-                    new ProtocolEventDebouncer(
-                        new FakeTimerFactory(), TimeSpan.Zero, TimeSpan.Zero),
-                    ProtocolVersion.V3,
-                    config,
-                    new Metadata(config),
-                    new List<IContactPoint>
-                    {
-                        _cp1,
-                        _cp2,
-                        _localhost
-                    })
+                ControlConnection = (ControlConnection)metadata.InternalMetadata.ControlConnection
             };
         }
 

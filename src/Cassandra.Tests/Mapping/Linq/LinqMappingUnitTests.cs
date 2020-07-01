@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Cassandra.Connections.Control;
 using Cassandra.Data.Linq;
 using Cassandra.Mapping;
 using Cassandra.Metrics.Internal;
@@ -37,6 +38,13 @@ namespace Cassandra.Tests.Mapping.Linq
             var clusterMock = new Mock<ICluster>();
             clusterMock.Setup(c => c.Configuration).Returns(new Configuration());
 
+            var metadataMock = new Mock<IMetadata>();
+            var metadataInternal = new Mock<IInternalMetadata>();
+            metadataInternal.SetupGet(m => m.ProtocolVersion).Returns(ProtocolVersion.V2);
+            metadataMock.Setup(m => m.GetClusterDescription()).Returns(new ClusterDescription(metadataInternal.Object));
+            metadataMock.Setup(m => m.GetClusterDescriptionAsync()).ReturnsAsync(new ClusterDescription(metadataInternal.Object));
+            clusterMock.SetupGet(c => c.Metadata).Returns(metadataMock.Object);
+
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock
@@ -48,7 +56,6 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Returns(TestHelper.DelayedTask(result, 200))
                 .Verifiable();
             sessionMock.Setup(s => s.PrepareAsync(It.IsAny<string>())).Returns(TaskHelper.ToTask(GetPrepared("Mock query")));
-            sessionMock.Setup(s => s.BinaryProtocolVersion).Returns(2);
             sessionMock.Setup(s => s.Cluster).Returns(clusterMock.Object);
             return sessionMock.Object;
         }
@@ -156,7 +163,11 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Callback<IStatement, string>((s, profile) => stmt = (BoundStatement)s)
                 .Verifiable();
             sessionMock.Setup(s => s.PrepareAsync(It.IsAny<string>())).Returns(TaskHelper.ToTask(GetPrepared("Mock query")));
-            sessionMock.Setup(s => s.BinaryProtocolVersion).Returns(2);
+            var metadataMock = new Mock<IMetadata>();
+            var metadataInternal = new Mock<IInternalMetadata>();
+            metadataInternal.SetupGet(m => m.ProtocolVersion).Returns(ProtocolVersion.V2);
+            metadataMock.Setup(m => m.GetClusterDescription()).Returns(new ClusterDescription(metadataInternal.Object));
+            clusterMock.SetupGet(c => c.Metadata).Returns(metadataMock.Object);
             rs.AutoPage = true;
             rs.PagingState = new byte[] { 0, 0, 0 };
             var counter = 0;

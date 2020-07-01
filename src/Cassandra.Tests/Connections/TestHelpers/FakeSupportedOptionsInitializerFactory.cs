@@ -19,9 +19,9 @@ namespace Cassandra.Tests.Connections.TestHelpers
 {
     internal class FakeSupportedOptionsInitializerFactory : ISupportedOptionsInitializerFactory
     {
-        public ISupportedOptionsInitializer Create(Metadata metadata)
+        public ISupportedOptionsInitializer Create(IInternalMetadata internalMetadata)
         {
-            return new FakeSupportedOptionsInitializer(metadata);
+            return new FakeSupportedOptionsInitializer(internalMetadata);
         }
     }
 }

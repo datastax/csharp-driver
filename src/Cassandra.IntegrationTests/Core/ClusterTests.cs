@@ -24,6 +24,7 @@ using Cassandra.IntegrationTests.TestBase;
 using Cassandra.SessionManagement;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
+using Cassandra.Tasks;
 using Cassandra.Tests;
 using NUnit.Framework;
 
@@ -115,7 +116,7 @@ namespace Cassandra.IntegrationTests.Core
                                                .AddContactPoint(_testCluster.InitialContactPoint)
                                                .Build())
             {
-                Assert.AreEqual(Cluster.MaxProtocolVersion, clusterDefault.Configuration.ProtocolOptions.MaxProtocolVersion);
+                Assert.AreEqual(Configuration.MaxProtocolVersion, clusterDefault.Configuration.ProtocolOptions.MaxProtocolVersion);
 
                 // MaxProtocolVersion set
                 var clusterMax = ClusterBuilder()
@@ -126,9 +127,9 @@ namespace Cassandra.IntegrationTests.Core
                 await Connect(clusterMax, asyncConnect, session =>
                 {
                     if (TestClusterManager.CheckCassandraVersion(false, Version.Parse("2.1"), Comparison.LessThan))
-                        Assert.AreEqual(2, session.BinaryProtocolVersion);
+                        Assert.AreEqual(2, session.Cluster.Metadata.GetClusterDescription().ProtocolVersion);
                     else
-                        Assert.AreEqual(3, session.BinaryProtocolVersion);
+                        Assert.AreEqual(3, session.Cluster.Metadata.GetClusterDescription().ProtocolVersion);
                 }).ConfigureAwait(false);
 
                 // Arbitary MaxProtocolVersion set, will negotiate down upon connect
@@ -163,7 +164,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 await Connect(cluster, false, session =>
                 {
-                    Assert.AreEqual(1, cluster.AllHosts().Count);
+                    Assert.AreEqual(1, cluster.Metadata.AllHosts().Count);
                     _realCluster.BootstrapNode(2);
                     Trace.TraceInformation("Node bootstrapped");
                     var newNodeAddress = _realCluster.ClusterIpPrefix + 2;
@@ -172,8 +173,8 @@ namespace Cassandra.IntegrationTests.Core
                         {
                             Assert.True(TestUtils.IsNodeReachable(newNodeIpAddress));
                             //New node should be part of the metadata
-                            Assert.AreEqual(2, cluster.AllHosts().Count);
-                            var host = cluster.AllHosts().FirstOrDefault(h => h.Address.Address.Equals(newNodeIpAddress));
+                            Assert.AreEqual(2, cluster.Metadata.AllHosts().Count);
+                            var host = cluster.Metadata.AllHosts().FirstOrDefault(h => h.Address.Address.Equals(newNodeIpAddress));
                             Assert.IsNotNull(host);
                         },
                         2000,
@@ -200,7 +201,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 await Connect(cluster, false, session =>
                 {
-                    Assert.AreEqual(numberOfNodes, cluster.AllHosts().Count);
+                    Assert.AreEqual(numberOfNodes, cluster.Metadata.AllHosts().Count);
                     if (TestClusterManager.SupportsDecommissionForcefully())
                     {
                         _realCluster.DecommissionNodeForcefully(numberOfNodes);
@@ -217,7 +218,7 @@ namespace Cassandra.IntegrationTests.Core
                         decommisionedNode = _realCluster.ClusterIpPrefix + 2;
                         Assert.False(TestUtils.IsNodeReachable(IPAddress.Parse(decommisionedNode)));
                         //New node should be part of the metadata
-                        Assert.AreEqual(1, cluster.AllHosts().Count);
+                        Assert.AreEqual(1, cluster.Metadata.AllHosts().Count);
                     }, 100, 100);
                     var queried = false;
                     for (var i = 0; i < 10; i++)
@@ -234,25 +235,24 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
     
-    private class TestLoadBalancingPolicy : ILoadBalancingPolicy
+        private class TestLoadBalancingPolicy : ILoadBalancingPolicy
         {
-            private ICluster _cluster;
             public Host ControlConnectionHost { get; private set; }
 
-            public void Initialize(ICluster cluster)
+            public Task InitializeAsync(IMetadata metadata)
             {
-                _cluster = cluster;
-                ControlConnectionHost = ((IInternalCluster)cluster).GetControlConnection().Host;
+                ControlConnectionHost = ((Metadata)metadata).InternalMetadata.ControlConnection.Host;
+                return TaskHelper.Completed;
             }
 
-            public HostDistance Distance(Host host)
+            public HostDistance Distance(IMetadata metadata, Host host)
             {
                 return HostDistance.Local;
             }
 
-            public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
+            public IEnumerable<Host> NewQueryPlan(IMetadata metadata, string keyspace, IStatement query)
             {
-                return _cluster.AllHosts();
+                return metadata.AllHosts();
             }
         }
     }

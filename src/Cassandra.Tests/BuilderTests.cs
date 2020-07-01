@@ -146,7 +146,7 @@ namespace Cassandra.Tests
             var builder = Cluster.Builder()
                 .AddContactPoint("192.168.1.10");
             var cluster = builder.Build();
-            Assert.AreEqual(Cluster.MaxProtocolVersion, cluster.Configuration.ProtocolOptions.MaxProtocolVersion);
+            Assert.AreEqual(Configuration.MaxProtocolVersion, cluster.Configuration.ProtocolOptions.MaxProtocolVersion);
             //Defaults to null
             Assert.Null(new ProtocolOptions().MaxProtocolVersion);
         }

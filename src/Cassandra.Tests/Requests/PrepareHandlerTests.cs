@@ -27,6 +27,7 @@ using Cassandra.Requests;
 using Cassandra.Responses;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
+using Cassandra.Tasks;
 using Cassandra.Tests.Connections.TestHelpers;
 using Moq;
 
@@ -500,7 +501,7 @@ namespace Cassandra.Tests.Requests
             factory.CreatedConnections.Clear();
             
             // create session
-            var session = new Session(cluster, config, null, SerializerManager.Default, null);
+            var session = new Session(cluster, config, null, null);
 
             // create prepare handler
             var prepareHandler = new PrepareHandler(new SerializerManager(ProtocolVersion.V3), cluster, new ReprepareHandler());
@@ -552,17 +553,18 @@ namespace Cassandra.Tests.Requests
             public long DistanceCount;
             public long NewQueryPlanCount;
 
-            public void Initialize(ICluster cluster)
+            public Task InitializeAsync(IMetadata metadata)
             {
+                return TaskHelper.Completed;
             }
 
-            public HostDistance Distance(Host host)
+            public HostDistance Distance(IMetadata metadata, Host host)
             {
                 Interlocked.Increment(ref DistanceCount);
                 return HostDistance.Local;
             }
 
-            public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
+            public IEnumerable<Host> NewQueryPlan(IMetadata metadata, string keyspace, IStatement query)
             {
                 Interlocked.Increment(ref NewQueryPlanCount);
                 throw new NotImplementedException();

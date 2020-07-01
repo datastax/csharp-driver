@@ -29,6 +29,7 @@ using Cassandra.Requests;
 using Cassandra.Responses;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
+using Cassandra.Tasks;
 using Cassandra.Tests.Connections.TestHelpers;
 using Cassandra.Tests.Requests;
 
@@ -279,14 +280,16 @@ namespace Cassandra.Tests.ExecutionProfiles
             cluster.Connect();
 
             // create session
-            var session = new Session(cluster, config, null, SerializerManager.Default, null);
+            var session = new Session(cluster, config, null, null);
 
             // create request handler
             var options = profile != null
-                ? new RequestOptions(profile, null, config.Policies, config.SocketOptions, config.QueryOptions, config.ClientOptions)
+                ? new RequestOptions(
+                    profile, null, config.Policies, config.SocketOptions, config.QueryOptions, config.ClientOptions)
                 : config.DefaultRequestOptions;
             var requestHandler = new RequestHandler(
                 session,
+                cluster.InternalRef.InternalMetadata,
                 new SerializerManager(ProtocolVersion.V3).GetCurrentSerializer(),
                 statement,
                 options);
@@ -368,16 +371,17 @@ namespace Cassandra.Tests.ExecutionProfiles
         {
             public long Count;
 
-            public void Initialize(ICluster cluster)
+            public Task InitializeAsync(IMetadata metadata)
             {
+                return TaskHelper.Completed;
             }
 
-            public HostDistance Distance(Host host)
+            public HostDistance Distance(IMetadata metadata, Host host)
             {
                 return HostDistance.Local;
             }
 
-            public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
+            public IEnumerable<Host> NewQueryPlan(IMetadata metadata, string keyspace, IStatement query)
             {
                 Interlocked.Increment(ref Count);
                 return new List<Host>
@@ -449,18 +453,20 @@ namespace Cassandra.Tests.ExecutionProfiles
         {
             public long Count;
 
-            public void Dispose()
+            public Task ShutdownAsync()
             {
+                return TaskHelper.Completed;
             }
 
-            public void Initialize(ICluster cluster)
+            public Task InitializeAsync(IMetadata metadata)
             {
+                return TaskHelper.Completed;
             }
 
-            public ISpeculativeExecutionPlan NewPlan(string keyspace, IStatement statement)
+            public ISpeculativeExecutionPlan NewPlan(IMetadata metadata, string keyspace, IStatement statement)
             {
                 Interlocked.Increment(ref Count);
-                return new ConstantSpeculativeExecutionPolicy(10, 1).NewPlan(keyspace, statement);
+                return new ConstantSpeculativeExecutionPolicy(10, 1).NewPlan(metadata, keyspace, statement);
             }
         }
     }

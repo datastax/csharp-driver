@@ -23,6 +23,7 @@ using Cassandra.Connections;
 using Cassandra.Connections.Control;
 using Cassandra.Requests;
 using Cassandra.Serialization;
+using Cassandra.SessionManagement;
 using Cassandra.Tests.Connections.TestHelpers;
 using Moq;
 using NUnit.Framework;
@@ -36,7 +37,7 @@ namespace Cassandra.Tests.Connections.Control
         private const string PeersQuery = "SELECT * FROM system.peers";
         private const string PeersV2Query = "SELECT * FROM system.peers_v2";
 
-        private Metadata _metadata;
+        private IInternalMetadata _internalMetadata;
 
         private ISerializer _serializer = new SerializerManager(ProtocolVersion.MaxSupported).GetCurrentSerializer();
 
@@ -102,9 +103,8 @@ namespace Cassandra.Tests.Connections.Control
             {
                 MetadataRequestHandler = fakeRequestHandler
             }.Build();
-            var metadata = new Metadata(config);
-            _metadata = metadata;
-            return new TopologyRefresher(metadata, config);
+            _internalMetadata = new Metadata(Mock.Of<IInternalCluster>(), config, config.SerializerManager, new List<IContactPoint>()).InternalMetadata;
+            return new TopologyRefresher(_internalMetadata, config);
         }
 
         [Test]
@@ -115,8 +115,8 @@ namespace Cassandra.Tests.Connections.Control
             {
                 MetadataRequestHandler = fakeRequestHandler
             }.Build();
-            _metadata = new Metadata(config);
-            var topologyRefresher = new TopologyRefresher(_metadata, config);
+            _internalMetadata = new Metadata(Mock.Of<IInternalCluster>(), config, config.SerializerManager, new List<IContactPoint>()).InternalMetadata;
+            var topologyRefresher = new TopologyRefresher(_internalMetadata, config);
             var connection = Mock.Of<IConnection>();
             
             await topologyRefresher
@@ -139,8 +139,8 @@ namespace Cassandra.Tests.Connections.Control
             {
                 MetadataRequestHandler = fakeRequestHandler
             }.Build();
-            _metadata = new Metadata(config);
-            var topologyRefresher = new TopologyRefresher(_metadata, config);
+            _internalMetadata = new Metadata(Mock.Of<IInternalCluster>(), config, config.SerializerManager, new List<IContactPoint>()).InternalMetadata;
+            var topologyRefresher = new TopologyRefresher(_internalMetadata, config);
             var connection = Mock.Of<IConnection>();
 
             await topologyRefresher
@@ -161,8 +161,8 @@ namespace Cassandra.Tests.Connections.Control
             {
                 MetadataRequestHandler = fakeRequestHandler
             }.Build();
-            _metadata = new Metadata(config);
-            var topologyRefresher = new TopologyRefresher(_metadata, config);
+            _internalMetadata = new Metadata(Mock.Of<IInternalCluster>(), config, config.SerializerManager, new List<IContactPoint>()).InternalMetadata;
+            var topologyRefresher = new TopologyRefresher(_internalMetadata, config);
             var connection = Mock.Of<IConnection>();
 
             await topologyRefresher
@@ -191,8 +191,8 @@ namespace Cassandra.Tests.Connections.Control
         {
             var fakeRequestHandler = CreateFakeMetadataRequestHandler();
             var config = new TestConfigurationBuilder { MetadataRequestHandler = fakeRequestHandler }.Build();
-            _metadata = new Metadata(config);
-            var topologyRefresher = new TopologyRefresher(_metadata, config);
+            _internalMetadata = new Metadata(Mock.Of<IInternalCluster>(), config, config.SerializerManager, new List<IContactPoint>()).InternalMetadata;
+            var topologyRefresher = new TopologyRefresher(_internalMetadata, config);
             var connection = Mock.Of<IConnection>();
             
             await topologyRefresher
@@ -226,7 +226,7 @@ namespace Cassandra.Tests.Connections.Control
             await topologyRefresher.RefreshNodeListAsync(
                 new FakeConnectionEndPoint("127.0.0.1", 9042), connection, _serializer).ConfigureAwait(false);
 
-            Assert.AreEqual("ut-cluster", _metadata.ClusterName);
+            Assert.AreEqual("ut-cluster", _internalMetadata.ClusterName);
         }
 
         [Test]
@@ -245,14 +245,14 @@ namespace Cassandra.Tests.Connections.Control
                                        new FakeConnectionEndPoint("127.0.0.1", 9042), Mock.Of<IConnection>(), _serializer)
                                    .ConfigureAwait(false);
 
-            Assert.AreEqual(3, _metadata.AllHosts().Count);
+            Assert.AreEqual(3, _internalMetadata.AllHosts().Count);
             //using rpc_address
-            var host2 = _metadata.GetHost(new IPEndPoint(hostAddress2, ProtocolOptions.DefaultPort));
+            var host2 = _internalMetadata.GetHost(new IPEndPoint(hostAddress2, ProtocolOptions.DefaultPort));
             Assert.NotNull(host2);
             Assert.AreEqual("ut-dc2", host2.Datacenter);
             Assert.AreEqual("ut-rack2", host2.Rack);
             //with rpc_address = 0.0.0.0, use peer
-            var host3 = _metadata.GetHost(new IPEndPoint(hostAddress3, ProtocolOptions.DefaultPort));
+            var host3 = _internalMetadata.GetHost(new IPEndPoint(hostAddress3, ProtocolOptions.DefaultPort));
             Assert.NotNull(host3);
             Assert.AreEqual("ut-dc3", host3.Datacenter);
             Assert.AreEqual("ut-rack3", host3.Rack);
@@ -273,7 +273,7 @@ namespace Cassandra.Tests.Connections.Control
                                    .ConfigureAwait(false);
 
             //Only local host present
-            Assert.AreEqual(1, _metadata.AllHosts().Count);
+            Assert.AreEqual(1, _internalMetadata.AllHosts().Count);
         }
 
         [Test]
@@ -285,9 +285,7 @@ namespace Cassandra.Tests.Connections.Control
                 .Setup(t => t.Translate(It.IsAny<IPEndPoint>()))
                 .Callback<IPEndPoint>(invokedEndPoints.Add)
                 .Returns<IPEndPoint>(e => e);
-            const int portNumber = 9999;
-            var metadata = new Metadata(new Configuration());
-            var hostAddress2 = IPAddress.Parse("127.0.0.2");
+            const int portNumber = 9999;var hostAddress2 = IPAddress.Parse("127.0.0.2");
             var hostAddress3 = IPAddress.Parse("127.0.0.3");
             var rows = TestHelper.CreateRows(new List<Dictionary<string, object>>
             {
@@ -303,13 +301,14 @@ namespace Cassandra.Tests.Connections.Control
                     StartupOptionsFactory = Mock.Of<IStartupOptionsFactory>(),
                     MetadataRequestHandler = requestHandler
                 }.Build();
-            var topologyRefresher = new TopologyRefresher(metadata, config);
+            _internalMetadata = new Metadata(Mock.Of<IInternalCluster>(), config, config.SerializerManager, new List<IContactPoint>()).InternalMetadata;
+            var topologyRefresher = new TopologyRefresher(_internalMetadata, config);
 
             await topologyRefresher.RefreshNodeListAsync(
                                        new FakeConnectionEndPoint("127.0.0.1", 9042), Mock.Of<IConnection>(), _serializer)
                                    .ConfigureAwait(false);
 
-            Assert.AreEqual(3, metadata.AllHosts().Count);
+            Assert.AreEqual(3, _internalMetadata.AllHosts().Count);
             Assert.AreEqual(2, invokedEndPoints.Count);
             Assert.AreEqual(hostAddress2, invokedEndPoints[0].Address);
             Assert.AreEqual(portNumber, invokedEndPoints[0].Port);
