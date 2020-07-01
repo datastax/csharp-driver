@@ -475,12 +475,12 @@ namespace Cassandra
         /// <inheritdoc />
         HostDistance IInternalCluster.RetrieveAndSetDistance(Host host)
         {
-            var distance = _loadBalancingPolicies[0].Distance(host);
+            var distance = _loadBalancingPolicies[0].Distance(Metadata, host);
 
             for (var i = 1; i < _loadBalancingPolicies.Count; i++)
             {
                 var lbp = _loadBalancingPolicies[i];
-                var lbpDistance = lbp.Distance(host);
+                var lbpDistance = lbp.Distance(Metadata, host);
                 if (lbpDistance < distance)
                 {
                     distance = lbpDistance;

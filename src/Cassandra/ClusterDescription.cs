@@ -14,6 +14,8 @@
 //   limitations under the License.
 //
 
+using Cassandra.Connections.Control;
+
 namespace Cassandra
 {
     /// <summary>
@@ -22,11 +24,11 @@ namespace Cassandra
     public class ClusterDescription
     {
         internal ClusterDescription(
-            string clusterName, bool isDbaas, ProtocolVersion protocolVersion)
+            IInternalMetadata internalMetadata)
         {
-            ClusterName = clusterName;
-            IsDbaas = isDbaas;
-            ProtocolVersion = protocolVersion;
+            ClusterName = internalMetadata.ClusterName;
+            IsDbaas = internalMetadata.IsDbaas;
+            ProtocolVersion = internalMetadata.ProtocolVersion;
         }
 
         /// <summary>

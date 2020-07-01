@@ -67,9 +67,10 @@ namespace Cassandra
         ///  in the local datacenter as <c>Local</c> and the rest
         ///  is <c>Ignored</c>.
         /// </summary>
+        /// <param name="metadata">The information about the session instance for which the policy is created.</param>
         /// <param name="host"> the host of which to return the distance of. </param>
         /// <returns>the HostDistance to <c>host</c>.</returns>
-        public HostDistance Distance(Host host)
+        public HostDistance Distance(IMetadata metadata, Host host)
         {
             var lastPreferredHost = _lastPreferredHost;
             if (lastPreferredHost != null && host == lastPreferredHost)
@@ -79,7 +80,7 @@ namespace Cassandra
                 return HostDistance.Local;
             }
 
-            return ChildPolicy.Distance(host);
+            return ChildPolicy.Distance(metadata, host);
         }
 
         /// <summary>

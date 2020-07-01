@@ -41,7 +41,7 @@ namespace Cassandra
 
         private long _state = Metadata.NotInitialized;
 
-        internal InternalMetadata InternalMetadata { get; }
+        internal IInternalMetadata InternalMetadata { get; }
 
         internal Metadata(
             IInternalCluster cluster,
@@ -121,8 +121,7 @@ namespace Cassandra
 
         private ClusterDescription GetClusterDescriptionInternal()
         {
-            return new ClusterDescription(
-                InternalMetadata.ClusterName, InternalMetadata.IsDbaas, InternalMetadata.ProtocolVersion);
+            return new ClusterDescription(InternalMetadata);
         }
 
         /// <inheritdoc />

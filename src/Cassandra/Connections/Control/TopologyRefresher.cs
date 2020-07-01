@@ -73,7 +73,7 @@ namespace Cassandra.Connections.Control
                 throw new DriverInternalError("Local host metadata could not be retrieved");
             }
 
-            _internalMetadata.Partitioner = localRow.GetValue<string>("partitioner");
+            _internalMetadata.SetPartitioner(localRow.GetValue<string>("partitioner"));
             var host = GetAndUpdateLocalHost(currentEndPoint, localRow);
             UpdatePeersInfo(localIsPeersV2, rsPeers, host);
             ControlConnection.Logger.Info("Node list retrieved successfully");

@@ -366,7 +366,8 @@ namespace Cassandra
                                ISupportedOptionsInitializerFactory supportedOptionsInitializerFactory = null,
                                IProtocolVersionNegotiator protocolVersionNegotiator = null,
                                IServerEventsSubscriber serverEventsSubscriber = null,
-                               ILocalDatacenterProvider localDatacenterProvider = null)
+                               ILocalDatacenterProvider localDatacenterProvider = null,
+                               ISerializerManager serializerManager = null)
         {
             AddressTranslator = addressTranslator ?? throw new ArgumentNullException(nameof(addressTranslator));
             QueryOptions = queryOptions ?? throw new ArgumentNullException(nameof(queryOptions));
@@ -438,7 +439,7 @@ namespace Cassandra
                 protocolVersion = ProtocolOptions.MaxProtocolVersionValue.Value;
             }
 
-            SerializerManager = new SerializerManager(protocolVersion, TypeSerializers);
+            SerializerManager = serializerManager ?? new SerializerManager(protocolVersion, TypeSerializers);
         }
 
         /// <summary>

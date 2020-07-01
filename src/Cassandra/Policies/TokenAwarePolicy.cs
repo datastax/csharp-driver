@@ -27,7 +27,7 @@ namespace Cassandra
     /// <para> This policy encapsulates another policy. The resulting policy works in the following way:
     /// </para>
     /// <list type="number">
-    /// <item>The <see cref="Distance(Host)"/> method is inherited  from the child policy.</item>
+    /// <item>The <see cref="Distance(IMetadata, Host)"/> method is inherited  from the child policy.</item>
     /// <item>The host yielded by the <see cref="NewQueryPlan(IMetadata, string, IStatement)"/> method will first return the
     /// <see cref="HostDistance.Local"/> replicas for the statement, based on the <see cref="Statement.RoutingKey"/>.
     /// </item>
@@ -60,13 +60,14 @@ namespace Cassandra
         /// <summary>
         ///  Return the HostDistance for the provided host.
         /// </summary>
+        /// <param name="metadata">The information about the session instance for which the policy is created.</param>
         /// <param name="host"> the host of which to return the distance of. </param>
         /// 
         /// <returns>the HostDistance to <c>host</c> as returned by the wrapped
         ///  policy.</returns>
-        public HostDistance Distance(Host host)
+        public HostDistance Distance(IMetadata metadata, Host host)
         {
-            return ChildPolicy.Distance(host);
+            return ChildPolicy.Distance(metadata, host);
         }
 
         /// <summary>
@@ -100,7 +101,7 @@ namespace Cassandra
             var localReplicaSet = new HashSet<Host>();
             var localReplicaList = new List<Host>(replicas.Count);
             // We can't do it lazily as we need to balance the load between local replicas
-            foreach (var localReplica in replicas.Where(h => ChildPolicy.Distance(h) == HostDistance.Local))
+            foreach (var localReplica in replicas.Where(h => ChildPolicy.Distance(metadata, h) == HostDistance.Local))
             {
                 localReplicaSet.Add(localReplica);
                 localReplicaList.Add(localReplica);

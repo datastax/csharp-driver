@@ -38,7 +38,7 @@ namespace Cassandra.Connections.Control
 
         ISchemaParser SchemaParser { get; }
 
-        string Partitioner { get; set; }
+        string Partitioner { get; }
 
         Hosts Hosts { get; }
 
@@ -221,6 +221,8 @@ namespace Cassandra.Connections.Control
         void SetProductTypeAsDbaas();
 
         void SetClusterName(string clusterName);
+
+        void SetPartitioner(string partitioner);
 
         IEnumerable<IConnectionEndPoint> UpdateResolvedContactPoint(
             IContactPoint contactPoint, IEnumerable<IConnectionEndPoint> endpoints);

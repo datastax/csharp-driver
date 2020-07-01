@@ -47,6 +47,7 @@ namespace Cassandra.Connections.Control
             new CopyOnWriteDictionary<IContactPoint, IEnumerable<IConnectionEndPoint>>();
         private volatile bool _isDbaas = false;
         private volatile string _clusterName;
+        private volatile string _partitioner;
 
         /// <inheritdoc />
         public Configuration Configuration { get; }
@@ -58,7 +59,7 @@ namespace Cassandra.Connections.Control
 
         public ISchemaParser SchemaParser => _schemaParser;
 
-        public string Partitioner { get; set; }
+        public string Partitioner => _partitioner;
 
         public Hosts Hosts { get; }
 
@@ -675,6 +676,11 @@ namespace Cassandra.Connections.Control
         public void SetClusterName(string clusterName)
         {
             _clusterName = clusterName;
+        }
+
+        public void SetPartitioner(string partitioner)
+        {
+            _partitioner = partitioner;
         }
 
         public IEnumerable<IConnectionEndPoint> UpdateResolvedContactPoint(IContactPoint contactPoint, IEnumerable<IConnectionEndPoint> endpoints)

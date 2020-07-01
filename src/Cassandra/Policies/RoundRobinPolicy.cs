@@ -49,9 +49,10 @@ namespace Cassandra
         ///  datacenter deployment. If you use multiple datacenter, see
         ///  <link>DCAwareRoundRobinPolicy</link> instead.</p>
         /// </summary>
+        /// <param name="metadata">The information about the session instance for which the policy is created.</param>
         /// <param name="host"> the host of which to return the distance of. </param>
         /// <returns>the HostDistance to <c>host</c>.</returns>
-        public HostDistance Distance(Host host)
+        public HostDistance Distance(IMetadata metadata, Host host)
         {
             return HostDistance.Local;
         }
