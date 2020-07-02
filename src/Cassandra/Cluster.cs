@@ -47,6 +47,7 @@ namespace Cassandra
         private readonly CopyOnWriteList<IInternalSession> _connectedSessions = new CopyOnWriteList<IInternalSession>();
         private readonly bool _implicitContactPoint = false;
         private volatile Exception _initException;
+        private volatile bool _initialized = false;
         private readonly SemaphoreSlim _sessionCreateLock = new SemaphoreSlim(1, 1);
         private long _sessionCounter = -1;
 
@@ -130,9 +131,9 @@ namespace Cassandra
             }
 
             var parsedContactPoints = configuration.ContactPointParser.ParseContactPoints(contactPointsList);
-
-            _lazyMetadata = new Metadata(this, configuration, Configuration.SerializerManager, parsedContactPoints);
-            _internalMetadata = _lazyMetadata.InternalMetadata;
+            
+            _internalMetadata = new InternalMetadata(this, configuration, parsedContactPoints);
+            _lazyMetadata = new Metadata(_internalMetadata);
 
             _initTask = Task.Run(InitAsync);
         }
@@ -140,13 +141,13 @@ namespace Cassandra
         /// <inheritdoc />
         Task<IInternalMetadata> IInternalCluster.TryInitAndGetMetadataAsync()
         {
-            var currentState = Interlocked.Read(ref _state);
-            if (currentState == Cluster.Initialized)
+            if (_initialized)
             {
                 //It was already initialized
                 return _initTask;
             }
-
+            
+            var currentState = Interlocked.Read(ref _state);
             if (currentState == Cluster.Disposed)
             {
                 throw new ObjectDisposedException("This cluster object has been disposed.");
@@ -203,14 +204,7 @@ namespace Cassandra
                     }, TaskContinuationOptions.ExecuteSynchronously).Forget();
                     throw newEx;
                 }
-
-                var previousState = Interlocked.CompareExchange(ref _state, Cluster.Initialized, Cluster.Initializing);
-                if (previousState == Cluster.Disposed)
-                {
-                    await ShutdownInternalAsync().ConfigureAwait(false);
-                    throw new ObjectDisposedException("Cluster instance was disposed before initialization finished.");
-                }
-
+                
                 // initialize the local datacenter provider
                 Configuration.LocalDatacenterProvider.Initialize(this, _internalMetadata);
 
@@ -230,12 +224,22 @@ namespace Cassandra
                 // Set metadata dependent options
                 SetMetadataDependentOptions();
 
-                Cluster.Logger.Info("Cluster Connected using binary protocol version: ["
-                                    + Configuration.SerializerManager.CurrentProtocolVersion
-                                    + "]");
                 _internalMetadata.Hosts.Added += _internalMetadata.OnHostAdded;
                 _internalMetadata.Hosts.Removed += _internalMetadata.OnHostRemoved;
                 _internalMetadata.Hosts.Up += OnHostUp;
+                
+                var previousState = Interlocked.CompareExchange(ref _state, Cluster.Initialized, Cluster.Initializing);
+                if (previousState == Cluster.Disposed)
+                {
+                    await ShutdownInternalAsync().ConfigureAwait(false);
+                    throw new ObjectDisposedException("Cluster instance was disposed before initialization finished.");
+                }
+
+                _initialized = true;
+                
+                Cluster.Logger.Info("Cluster Connected using binary protocol version: ["
+                                    + Configuration.SerializerManager.CurrentProtocolVersion
+                                    + "]");
                 Cluster.Logger.Info("Cluster [" + _internalMetadata.ClusterName + "] has been initialized.");
 
                 return _internalMetadata;
@@ -417,6 +421,7 @@ namespace Cassandra
         public async Task ShutdownAsync(int timeoutMs = Timeout.Infinite)
         {
             var previousState = Interlocked.Exchange(ref _state, Cluster.Disposed);
+            _initialized = false;
 
             IEnumerable<ISession> sessions;
             await _sessionCreateLock.WaitAsync().ConfigureAwait(false);

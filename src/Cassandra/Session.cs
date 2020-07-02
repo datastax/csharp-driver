@@ -53,6 +53,7 @@ namespace Cassandra
         private long _state = Session.Initializing;
 
         private volatile string _keyspace;
+        private volatile bool _initialized = false;
 
         internal IInternalSession InternalRef => this;
 
@@ -216,6 +217,7 @@ namespace Cassandra
         {
             //Only dispose once
             var previousState = Interlocked.Exchange(ref _state, Session.Disposed);
+            _initialized = false;
             if (previousState != Session.Initialized)
             {
                 return;
@@ -244,17 +246,23 @@ namespace Cassandra
 
         Task<IInternalMetadata> IInternalSession.TryInitAndGetMetadataAsync()
         {
+            if (_initialized)
+            {
+                return Task.FromResult(_cluster.InternalMetadata);
+            }
+
             ValidateState();
             return _initTask;
         }
 
         void IInternalSession.TryInit()
         {
-            if (ValidateState())
+            if (_initialized)
             {
                 return;
             }
 
+            ValidateState();
             TaskHelper.WaitToComplete(_initTask);
         }
 
@@ -263,16 +271,10 @@ namespace Cassandra
         /// Throws the initialization exception if the initialization failed.
         /// </summary>
         /// <returns>true if session is initialized, false otherwise</returns>
-        private bool ValidateState()
+        private void ValidateState()
         {
             var currentState = Interlocked.Read(ref _state);
             
-            if (currentState == Session.Initialized)
-            {
-                //It was already initialized
-                return true;
-            }
-
             if (currentState == Session.Disposed)
             {
                 throw new ObjectDisposedException("This session object has been disposed.");
@@ -283,8 +285,6 @@ namespace Cassandra
                 //There was an exception that is not possible to recover from
                 throw _cluster.InitException;
             }
-
-            return false;
         }
         
         private async Task<IInternalMetadata> InitInternalAsync()
@@ -314,6 +314,8 @@ namespace Cassandra
                 await ShutdownInternalAsync().ConfigureAwait(false);
                 throw new ObjectDisposedException("Session instance was disposed before initialization finished.");
             }
+
+            _initialized = true;
 
             return internalMetadata;
         }

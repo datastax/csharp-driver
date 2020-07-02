@@ -38,6 +38,7 @@ namespace Cassandra
         private readonly int _queryAbortTimeout;
 
         private volatile Task _initTask;
+        private volatile bool _initialized = false;
 
         private long _state = Metadata.NotInitialized;
 
@@ -318,30 +319,29 @@ namespace Cassandra
 
         internal Task TryInitializeAsync()
         {
-            var currentState = Interlocked.Read(ref _state);
-            if (currentState == Metadata.Initialized)
+            if (_initialized)
             {
                 //It was already initialized
                 return TaskHelper.Completed;
             }
 
-            return InitializeAsync(currentState);
+            return InitializeAsync();
         }
 
         internal void TryInitialize()
         {
-            var currentState = Interlocked.Read(ref _state);
-            if (currentState == Metadata.Initialized)
+            if (_initialized)
             {
                 //It was already initialized
                 return;
             }
 
-            TaskHelper.WaitToComplete(InitializeAsync(currentState), _queryAbortTimeout);
+            TaskHelper.WaitToComplete(InitializeAsync(), _queryAbortTimeout);
         }
 
-        private Task InitializeAsync(long currentState)
+        private Task InitializeAsync()
         {
+            var currentState = Interlocked.Read(ref _state);
             if (currentState == Metadata.Disposed)
             {
                 throw new ObjectDisposedException("This metadata object has been disposed.");
@@ -365,12 +365,14 @@ namespace Cassandra
                 await InternalMetadata.ShutdownAsync().ConfigureAwait(false);
                 throw new ObjectDisposedException("Metadata instance was disposed before initialization finished.");
             }
+
+            _initialized = true;
         }
 
         internal async Task ShutdownAsync()
         {
             var previousState = Interlocked.Exchange(ref _state, Metadata.Disposed);
-
+            _initialized = false;
             if (previousState != Metadata.Initialized)
             {
                 return;
