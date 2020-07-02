@@ -46,7 +46,6 @@ namespace Cassandra
         {
             Configuration = internalMetadata.Configuration;
             _queryAbortTimeout = Configuration.DefaultRequestOptions.QueryAbortTimeout;
-            Configuration = Configuration;
             InternalMetadata = internalMetadata;
         }
 

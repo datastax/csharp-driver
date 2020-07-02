@@ -643,7 +643,7 @@ namespace Cassandra.Connections.Control
                             null);
                     var queries = new[] { connection.Send(schemaVersionLocalQuery), connection.Send(schemaVersionPeersQuery) };
                     // ReSharper disable once CoVariantArrayConversion
-                    await Task.WhenAll(queries);
+                    await Task.WhenAll(queries).ConfigureAwait(false);
 
                     if (InternalMetadata.CheckSchemaVersionResults(
                         Configuration.MetadataRequestHandler.GetRowSet(await queries[0].ConfigureAwait(false)),
