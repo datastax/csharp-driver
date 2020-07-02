@@ -239,7 +239,7 @@ namespace Cassandra
             await TryInitializeAsync().ConfigureAwait(false);
             return await InternalMetadata.GetMaterializedViewAsync(keyspace, name).ConfigureAwait(false);
         }
-        
+
         /// <inheritdoc />
         public UdtColumnInfo GetUdtDefinition(string keyspace, string typeName)
         {
@@ -341,6 +341,8 @@ namespace Cassandra
         private async Task InitializeInternalAsync()
         {
             await InternalMetadata.InitAsync().ConfigureAwait(false);
+            SetupEventForwarding(InternalMetadata);
+
             var previousState = Interlocked.CompareExchange(ref _state, Metadata.Initialized, Metadata.Initializing);
             if (previousState == Metadata.Disposed)
             {
@@ -363,29 +365,32 @@ namespace Cassandra
             await InternalMetadata.ShutdownAsync().ConfigureAwait(false);
         }
 
-        internal void OnHostRemoved(Host h)
+        private void OnInternalHostRemoved(Host h)
         {
             HostRemoved?.Invoke(h);
         }
 
-        internal void OnHostAdded(Host h)
+        private void OnInternalHostAdded(Host h)
         {
             HostAdded?.Invoke(h);
         }
 
-        internal void FireSchemaChangedEvent(SchemaChangedEventArgs.Kind what, string keyspace, string table, object sender = null)
+        private void OnInternalHostsEvent(object sender, HostsEventArgs args)
         {
-            SchemaChangedEvent?.Invoke(sender ?? this, new SchemaChangedEventArgs { Keyspace = keyspace, What = what, Table = table });
+            HostsEvent?.Invoke(sender, args);
         }
 
-        internal void OnHostDown(Host h)
+        private void OnInternalSchemaChangedEvent(object sender, SchemaChangedEventArgs args)
         {
-            HostsEvent?.Invoke(this, new HostsEventArgs { Address = h.Address, What = HostsEventArgs.Kind.Down });
+            SchemaChangedEvent?.Invoke(sender, args);
         }
 
-        internal void OnHostUp(Host h)
+        private void SetupEventForwarding(IInternalMetadata internalMetadata)
         {
-            HostsEvent?.Invoke(h, new HostsEventArgs { Address = h.Address, What = HostsEventArgs.Kind.Up });
+            internalMetadata.HostAdded += OnInternalHostAdded;
+            internalMetadata.HostRemoved += OnInternalHostRemoved;
+            internalMetadata.HostsEvent += OnInternalHostsEvent;
+            internalMetadata.SchemaChangedEvent += OnInternalSchemaChangedEvent;
         }
     }
 }
