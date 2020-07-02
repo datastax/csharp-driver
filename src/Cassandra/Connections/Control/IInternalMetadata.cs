@@ -24,6 +24,14 @@ namespace Cassandra.Connections.Control
 {
     internal interface IInternalMetadata
     {
+        event HostsEventHandler HostsEvent;
+
+        event SchemaChangedEventHandler SchemaChangedEvent;
+
+        event Action<Host> HostAdded;
+
+        event Action<Host> HostRemoved;
+
         /// <summary>
         /// Gets the configuration associated with this instance.
         /// </summary>

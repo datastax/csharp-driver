@@ -22,7 +22,6 @@ using System.Threading.Tasks;
 
 using Cassandra.Collections;
 using Cassandra.MetadataHelpers;
-using Cassandra.ProtocolEvents;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
@@ -36,15 +35,16 @@ namespace Cassandra.Connections.Control
 
         private static readonly Logger Logger = new Logger(typeof(ControlConnection));
 
-        private readonly Metadata _parent;
-        private readonly IProtocolEventDebouncer _protocolEventDebouncer;
-
         private volatile TokenMap _tokenMap;
+
         private volatile ConcurrentDictionary<string, KeyspaceMetadata> _keyspaces =
             new ConcurrentDictionary<string, KeyspaceMetadata>();
+
         private volatile ISchemaParser _schemaParser;
+
         private volatile CopyOnWriteDictionary<IContactPoint, IEnumerable<IConnectionEndPoint>> _resolvedContactPoints =
             new CopyOnWriteDictionary<IContactPoint, IEnumerable<IConnectionEndPoint>>();
+
         private volatile bool _isDbaas = false;
         private volatile string _clusterName;
         private volatile string _partitioner;
@@ -74,44 +74,50 @@ namespace Cassandra.Connections.Control
 
         public ProtocolVersion ProtocolVersion => SerializerManager.CurrentProtocolVersion;
 
+        public event HostsEventHandler HostsEvent;
+
+        public event SchemaChangedEventHandler SchemaChangedEvent;
+
+        public event Action<Host> HostAdded;
+
+        public event Action<Host> HostRemoved;
+
         internal InternalMetadata(
             IInternalCluster cluster,
-            Metadata parent,
             Configuration configuration,
-            ISerializerManager serializerManager,
-            IEnumerable<IContactPoint> parsedContactPoints)
+            IEnumerable<IContactPoint> parsedContactPoints,
+            SchemaParser schemaParser = null)
         {
-            _parent = parent;
-            SerializerManager = serializerManager;
+            SerializerManager = configuration.SerializerManager;
             Configuration = configuration;
             Hosts = new Hosts();
 
-            _protocolEventDebouncer = new ProtocolEventDebouncer(
-                configuration.TimerFactory,
-                TimeSpan.FromMilliseconds(configuration.MetadataSyncOptions.RefreshSchemaDelayIncrement),
-                TimeSpan.FromMilliseconds(configuration.MetadataSyncOptions.MaxTotalRefreshSchemaDelay));
-
             ControlConnection = configuration.ControlConnectionFactory.Create(
                 cluster,
-                _protocolEventDebouncer,
-                SerializerManager,
                 Configuration,
                 this,
                 parsedContactPoints);
 
             Hosts.Down += OnHostDown;
             Hosts.Up += OnHostUp;
-        }
 
+            _schemaParser = schemaParser;
+        }
+        
         internal InternalMetadata(
-            IInternalCluster cluster,
-            Metadata parent,
+            IControlConnection cc,
             Configuration configuration,
-            ISerializerManager serializerManager,
-            IEnumerable<IContactPoint> contactPoints,
-            SchemaParser schemaParser)
-            : this(cluster, parent, configuration, serializerManager, contactPoints)
+            SchemaParser schemaParser = null)
         {
+            SerializerManager = configuration.SerializerManager;
+            Configuration = configuration;
+            Hosts = new Hosts();
+
+            ControlConnection = cc;
+
+            Hosts.Down += OnHostDown;
+            Hosts.Up += OnHostUp;
+
             _schemaParser = schemaParser;
         }
 
@@ -123,24 +129,14 @@ namespace Cassandra.Connections.Control
         public Task ShutdownAsync()
         {
             ControlConnection.Dispose();
-            return _protocolEventDebouncer.ShutdownAsync();
+            return Configuration.ProtocolEventDebouncer.ShutdownAsync();
         }
 
         public void SetResolvedContactPoints(
             IDictionary<IContactPoint, IEnumerable<IConnectionEndPoint>> resolvedContactPoints)
         {
-            _resolvedContactPoints = 
+            _resolvedContactPoints =
                 new CopyOnWriteDictionary<IContactPoint, IEnumerable<IConnectionEndPoint>>(resolvedContactPoints);
-        }
-
-        public void OnHostRemoved(Host h)
-        {
-            _parent.OnHostRemoved(h);
-        }
-
-        public void OnHostAdded(Host h)
-        {
-            _parent.OnHostAdded(h);
         }
 
         public Host GetHost(IPEndPoint address)
@@ -163,19 +159,29 @@ namespace Cassandra.Connections.Control
             Hosts.RemoveIfExists(address);
         }
 
+        public void OnHostRemoved(Host h)
+        {
+            HostRemoved?.Invoke(h);
+        }
+
+        public void OnHostAdded(Host h)
+        {
+            HostAdded?.Invoke(h);
+        }
+
         public void FireSchemaChangedEvent(SchemaChangedEventArgs.Kind what, string keyspace, string table, object sender = null)
         {
-            _parent.FireSchemaChangedEvent(what, keyspace, table, sender);
+            SchemaChangedEvent?.Invoke(sender ?? this, new SchemaChangedEventArgs { Keyspace = keyspace, What = what, Table = table });
         }
 
         public void OnHostDown(Host h)
         {
-            _parent.OnHostDown(h);
+            HostsEvent?.Invoke(this, new HostsEventArgs { Address = h.Address, What = HostsEventArgs.Kind.Down });
         }
 
         public void OnHostUp(Host h)
         {
-            _parent.OnHostUp(h);
+            HostsEvent?.Invoke(h, new HostsEventArgs { Address = h.Address, What = HostsEventArgs.Kind.Up });
         }
 
         /// <summary>
@@ -683,7 +689,8 @@ namespace Cassandra.Connections.Control
             _partitioner = partitioner;
         }
 
-        public IEnumerable<IConnectionEndPoint> UpdateResolvedContactPoint(IContactPoint contactPoint, IEnumerable<IConnectionEndPoint> endpoints)
+        public IEnumerable<IConnectionEndPoint> UpdateResolvedContactPoint(
+            IContactPoint contactPoint, IEnumerable<IConnectionEndPoint> endpoints)
         {
             return _resolvedContactPoints.AddOrUpdate(contactPoint, _ => endpoints, (_, __) => endpoints);
         }

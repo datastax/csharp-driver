@@ -15,8 +15,7 @@
 //
 
 using System.Collections.Generic;
-using Cassandra.ProtocolEvents;
-using Cassandra.Serialization;
+
 using Cassandra.SessionManagement;
 
 namespace Cassandra.Connections.Control
@@ -25,18 +24,14 @@ namespace Cassandra.Connections.Control
     {
         public IControlConnection Create(
             IInternalCluster cluster,
-            IProtocolEventDebouncer protocolEventDebouncer, 
-            ISerializerManager serializerManager, 
-            Configuration config, 
-            IInternalMetadata metadata,
+            Configuration config,
+            IInternalMetadata internalMetadata,
             IEnumerable<IContactPoint> contactPoints)
         {
             return new ControlConnection(
                 cluster,
-                protocolEventDebouncer, 
-                serializerManager, 
-                config, 
-                metadata,
+                config,
+                internalMetadata,
                 contactPoints);
         }
     }

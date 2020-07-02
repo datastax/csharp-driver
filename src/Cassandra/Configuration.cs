@@ -288,6 +288,8 @@ namespace Cassandra
 
         internal ILocalDatacenterProvider LocalDatacenterProvider { get; }
 
+        internal IProtocolEventDebouncer ProtocolEventDebouncer { get; }
+
         internal Configuration() :
             this(policies: Policies.DefaultPolicies,
                  protocolOptions: new ProtocolOptions(),
@@ -367,7 +369,8 @@ namespace Cassandra
                                IProtocolVersionNegotiator protocolVersionNegotiator = null,
                                IServerEventsSubscriber serverEventsSubscriber = null,
                                ILocalDatacenterProvider localDatacenterProvider = null,
-                               ISerializerManager serializerManager = null)
+                               ISerializerManager serializerManager = null, 
+                               IProtocolEventDebouncer protocolEventDebouncer = null)
         {
             AddressTranslator = addressTranslator ?? throw new ArgumentNullException(nameof(addressTranslator));
             QueryOptions = queryOptions ?? throw new ArgumentNullException(nameof(queryOptions));
@@ -440,6 +443,11 @@ namespace Cassandra
             }
 
             SerializerManager = serializerManager ?? new SerializerManager(protocolVersion, TypeSerializers);
+            
+            ProtocolEventDebouncer = protocolEventDebouncer ?? new ProtocolEventDebouncer(
+                TimerFactory,
+                TimeSpan.FromMilliseconds(MetadataSyncOptions.RefreshSchemaDelayIncrement),
+                TimeSpan.FromMilliseconds(MetadataSyncOptions.MaxTotalRefreshSchemaDelay));
         }
 
         /// <summary>

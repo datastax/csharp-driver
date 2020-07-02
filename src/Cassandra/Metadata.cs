@@ -21,8 +21,6 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using Cassandra.Connections.Control;
-using Cassandra.Serialization;
-using Cassandra.SessionManagement;
 using Cassandra.Tasks;
 
 namespace Cassandra
@@ -44,28 +42,12 @@ namespace Cassandra
 
         internal IInternalMetadata InternalMetadata { get; }
 
-        internal Metadata(
-            IInternalCluster cluster,
-            Configuration configuration,
-            ISerializerManager serializerManager,
-            IEnumerable<IContactPoint> parsedContactPoints)
+        internal Metadata(IInternalMetadata internalMetadata)
         {
-            _queryAbortTimeout = configuration.DefaultRequestOptions.QueryAbortTimeout;
-            Configuration = configuration;
-            InternalMetadata = new InternalMetadata(cluster, this, configuration, serializerManager, parsedContactPoints);
-        }
-
-        internal Metadata(
-            IInternalCluster cluster,
-            Configuration configuration,
-            ISerializerManager serializerManager,
-            IEnumerable<IContactPoint> parsedContactPoints,
-            SchemaParser schemaParser)
-        {
-            _queryAbortTimeout = configuration.DefaultRequestOptions.QueryAbortTimeout;
-            Configuration = configuration;
-            InternalMetadata = new InternalMetadata(
-                cluster, this, configuration, serializerManager, parsedContactPoints, schemaParser);
+            Configuration = internalMetadata.Configuration;
+            _queryAbortTimeout = Configuration.DefaultRequestOptions.QueryAbortTimeout;
+            Configuration = Configuration;
+            InternalMetadata = internalMetadata;
         }
 
         public Configuration Configuration { get; }
