@@ -16,6 +16,7 @@
 
 using System;
 using System.Linq;
+
 using Cassandra.Metrics.Abstractions;
 using Cassandra.SessionManagement;
 
@@ -27,29 +28,18 @@ namespace Cassandra.Metrics.Registries
         private readonly IDriverMetricsProvider _driverMetricsProvider;
         private readonly string _context;
 
-        public SessionMetrics(IDriverMetricsProvider driverMetricsProvider, DriverMetricsOptions metricsOptions, bool metricsEnabled, string context)
+        public SessionMetrics(
+            IInternalSession session,
+            IDriverMetricsProvider driverMetricsProvider,
+            DriverMetricsOptions metricsOptions,
+            bool metricsEnabled,
+            string context)
         {
             _driverMetricsProvider = driverMetricsProvider;
             _context = context;
             MetricsRegistry = new InternalMetricsRegistry<SessionMetric>(
                 driverMetricsProvider, SessionMetric.AllSessionMetrics.Except(metricsOptions.EnabledSessionMetrics), metricsEnabled);
-        }
 
-        public IDriverTimer CqlRequests { get; private set; }
-
-        public IDriverCounter CqlClientTimeouts { get; private set; }
-
-        public IDriverMeter BytesSent { get; private set; }
-
-        public IDriverMeter BytesReceived { get; private set; }
-
-        public IDriverGauge ConnectedNodes { get; private set; }
-
-        /// <inheritdoc />
-        public IInternalMetricsRegistry<SessionMetric> MetricsRegistry { get; }
-
-        public void InitializeMetrics(IInternalSession session)
-        {
             try
             {
                 CqlRequests = MetricsRegistry.Timer(_context, SessionMetric.Timers.CqlRequests);
@@ -58,8 +48,6 @@ namespace Cassandra.Metrics.Registries
                 BytesReceived = MetricsRegistry.Meter(_context, SessionMetric.Meters.BytesReceived);
                 ConnectedNodes = MetricsRegistry.Gauge(
                     _context, SessionMetric.Gauges.ConnectedNodes, () => session.ConnectedNodes);
-
-                MetricsRegistry.OnMetricsAdded();
             }
             catch (Exception)
             {
@@ -67,6 +55,19 @@ namespace Cassandra.Metrics.Registries
                 throw;
             }
         }
+
+        public IDriverTimer CqlRequests { get; }
+
+        public IDriverCounter CqlClientTimeouts { get; }
+
+        public IDriverMeter BytesSent { get; }
+
+        public IDriverMeter BytesReceived { get; }
+
+        public IDriverGauge ConnectedNodes { get; }
+
+        /// <inheritdoc />
+        public IInternalMetricsRegistry<SessionMetric> MetricsRegistry { get; }
 
         public void Dispose()
         {

@@ -126,7 +126,12 @@ namespace Cassandra
             Keyspace = keyspace;
             SessionName = sessionName;
             _connectionPool = new CopyOnWriteDictionary<IPEndPoint, IHostConnectionPool>();
-            _metricsManager = new MetricsManager(configuration.MetricsProvider, Configuration.MetricsOptions, Configuration.MetricsEnabled, SessionName);
+            _metricsManager = new MetricsManager(
+                this, 
+                configuration.MetricsProvider, 
+                Configuration.MetricsOptions, 
+                Configuration.MetricsEnabled, 
+                SessionName);
             _observerFactory = configuration.ObserverFactoryBuilder.Build(_metricsManager);
             _insightsClient = configuration.InsightsClientFactory.Create(cluster, this);
             UserDefinedTypes = new UdtMappingDefinitions(this);
@@ -287,8 +292,6 @@ namespace Cassandra
             var internalMetadata = await InternalRef.InternalCluster.TryInitAndGetMetadataAsync().ConfigureAwait(false);
 
             InternalRef.InternalCluster.Metadata.HostRemoved += OnHostRemoved;
-
-            _metricsManager.InitializeMetrics(this);
 
             var serializerManager = _cluster.Configuration.SerializerManager;
             if (Configuration.GetOrCreatePoolingOptions(serializerManager.CurrentProtocolVersion).GetWarmup())

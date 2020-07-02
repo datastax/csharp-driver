@@ -80,8 +80,6 @@ namespace Cassandra.Metrics.Registries
                 
                 InFlight = MetricsRegistry.Gauge(
                     _bucketName, NodeMetric.Gauges.InFlight, () => _hostConnectionPool?.InFlight);
-
-                MetricsRegistry.OnMetricsAdded();
             }
             catch (Exception)
             {

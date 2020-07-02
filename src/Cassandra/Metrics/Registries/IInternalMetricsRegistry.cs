@@ -35,10 +35,5 @@ namespace Cassandra.Metrics.Registries
         IDriverGauge Gauge(string bucket, TMetric metric, Func<double?> valueProvider);
 
         IDriverMetric GetMetric(TMetric metric);
-
-        /// <summary>
-        /// Used to notify the registry that no more metrics will be added. (Concurrency optimization).
-        /// </summary>
-        void OnMetricsAdded();
     }
 }
