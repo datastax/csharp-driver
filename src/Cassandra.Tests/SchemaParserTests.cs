@@ -19,10 +19,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
+
 using Cassandra.Connections.Control;
+using Cassandra.SessionManagement;
 using Cassandra.Tasks;
+
 using Moq;
+
 using NUnit.Framework;
+
 using SortOrder = Cassandra.DataCollectionMetadata.SortOrder;
 
 namespace Cassandra.Tests
@@ -32,24 +37,18 @@ namespace Cassandra.Tests
     {
         private static SchemaParserV1 GetV1Instance(IControlConnection cc)
         {
-            var metadata = new Metadata(new Configuration())
-            {
-                ControlConnection = cc
-            };
+            var metadata = new InternalMetadata(cc, new Configuration());
             metadata.SetCassandraVersion(new Version(2, 0));
             return new SchemaParserV1(metadata);
         }
 
         private static SchemaParserV2 GetV2Instance(IControlConnection cc, Func<string, string, Task<UdtColumnInfo>> udtResolver = null)
         {
-            var metadata = new Metadata(new Configuration())
-            {
-                ControlConnection = cc
-            };
+            var metadata = new InternalMetadata(cc, new Configuration());
             metadata.SetCassandraVersion(new Version(3, 0));
             return new SchemaParserV2(metadata, udtResolver);
         }
-        
+
         /// <summary>
         /// Helper method to get a QueryTrace instance..
         /// </summary>
@@ -57,7 +56,7 @@ namespace Cassandra.Tests
         {
             var clusterMock = new Mock<ICluster>();
             clusterMock.Setup(c => c.Configuration).Returns(new Configuration());
-            var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            var sessionMock = new Mock<IInternalSession>(MockBehavior.Strict);
             sessionMock.Setup(s => s.Cluster).Returns(clusterMock.Object);
             return new QueryTrace(Guid.NewGuid(), sessionMock.Object);
         }
@@ -96,7 +95,7 @@ namespace Cassandra.Tests
             Assert.AreEqual(ksName, ks.Name);
             Assert.AreEqual(true, ks.DurableWrites);
             Assert.AreEqual("Simple", ks.StrategyClass);
-            CollectionAssert.AreEqual(new Dictionary<string, int> {{"replication_factor", 4}}, ks.Replication);
+            CollectionAssert.AreEqual(new Dictionary<string, int> { { "replication_factor", 4 } }, ks.Replication);
         }
 
         [Test]
@@ -135,7 +134,7 @@ namespace Cassandra.Tests
                 {"type","Standard"},
                 {"value_alias",null}
             });
-            var columnRows = new [] {
+            var columnRows = new[] {
               new Dictionary<string, object>{{"keyspace_name","ks_tbl_meta"},{"columnfamily_name","tbl1"},{"column_name","id"   },{"component_index",null},{"index_name",null},{"index_options",null},{"index_type",null},{"type","partition_key"},{"validator","org.apache.cassandra.db.marshal.UUIDType"}},
               new Dictionary<string, object>{{"keyspace_name","ks_tbl_meta"},{"columnfamily_name","tbl1"},{"column_name","text1"},{"component_index",null},{"index_name",null},{"index_options",null},{"index_type",null},{"type","regular"      },{"validator","org.apache.cassandra.db.marshal.UTF8Type"}},
               new Dictionary<string, object>{{"keyspace_name","ks_tbl_meta"},{"columnfamily_name","tbl1"},{"column_name","text2"},{"component_index",null},{"index_name",null},{"index_options",null},{"index_type",null},{"type","regular"      },{"validator","org.apache.cassandra.db.marshal.UTF8Type"}}
@@ -247,14 +246,14 @@ namespace Cassandra.Tests
         [Test]
         public void SchemaParserV1_GetTable_Should_Parse_1_2_Table_With_Partition_And_Clustering_Keys()
         {
-            var tableRow = TestHelper.CreateRow(new Dictionary<string, object> 
-            { 
-                {"keyspace_name", "ks_tbl_meta"}, {"columnfamily_name", "tbl1"}, {"bloom_filter_fp_chance", 0.01}, {"caching", "KEYS_ONLY"}, 
+            var tableRow = TestHelper.CreateRow(new Dictionary<string, object>
+            {
+                {"keyspace_name", "ks_tbl_meta"}, {"columnfamily_name", "tbl1"}, {"bloom_filter_fp_chance", 0.01}, {"caching", "KEYS_ONLY"},
                 {"column_aliases", "[\"zck\"]"}, {"comment", ""}, {"compaction_strategy_class", "org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy"}, {"compaction_strategy_options", "{}"},
                 {"comparator", "org.apache.cassandra.db.marshal.CompositeType(org.apache.cassandra.db.marshal.TimeUUIDType,org.apache.cassandra.db.marshal.UTF8Type)"}, {"compression_parameters", "{\"sstable_compression\":\"org.apache.cassandra.io.compress.SnappyCompressor\"}"}, {"default_validator", "org.apache.cassandra.db.marshal.BytesType"}, {"gc_grace_seconds", 864000}, {"id", null}, {"key_alias", null},
                 {"key_aliases", "[\"pk1\",\"apk2\"]"}, {"key_validator", "org.apache.cassandra.db.marshal.CompositeType(org.apache.cassandra.db.marshal.UUIDType,org.apache.cassandra.db.marshal.UTF8Type)"}, {"local_read_repair_chance", 0D}, {"max_compaction_threshold", 32}, {"min_compaction_threshold", 4}, {"populate_io_cache_on_flush", false}, {"read_repair_chance", 0.1}, {"replicate_on_write", true}, {"subcomparator", null}, {"type", "Standard"}, {"value_alias", null}
             });
-            var columnRows = new []
+            var columnRows = new[]
             {
               new Dictionary<string, object> { {"keyspace_name", "ks_tbl_meta"}, {"columnfamily_name", "tbl1"}, {"column_name", "val2" }, {"component_index", 1}, {"index_name", null}, {"index_options", null}, {"index_type", null}, {"validator", "org.apache.cassandra.db.marshal.BytesType"}},
               new Dictionary<string, object> { {"keyspace_name", "ks_tbl_meta"}, {"columnfamily_name", "tbl1"}, {"column_name", "valz1"}, {"component_index", 1}, {"index_name", null}, {"index_options", null}, {"index_type", null}, {"validator", "org.apache.cassandra.db.marshal.Int32Type"}}
@@ -636,13 +635,13 @@ namespace Cassandra.Tests
                 .Returns(() => TestHelper.DelayedTask(columnRows));
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.indexes.*ks1"), It.IsAny<bool>()))
-                .Returns(() => TestHelper.DelayedTask<IEnumerable<IRow>>(new[] {indexRow}));
+                .Returns(() => TestHelper.DelayedTask<IEnumerable<IRow>>(new[] { indexRow }));
             var parser = GetV2Instance(queryProviderMock.Object);
             var ks = TaskHelper.WaitToComplete(parser.GetKeyspaceAsync("ks1"));
             Assert.NotNull(ks);
             var table = ks.GetTableMetadata("tbl4");
             Assert.False(table.Options.IsCompactStorage);
-            CollectionAssert.AreEquivalent(new[] { "pk", "ck", "val"}, table.TableColumns.Select(c => c.Name));
+            CollectionAssert.AreEquivalent(new[] { "pk", "ck", "val" }, table.TableColumns.Select(c => c.Name));
             CollectionAssert.AreEqual(new[] { "pk" }, table.PartitionKeys.Select(c => c.Name));
             CollectionAssert.AreEqual(new[] { "ck" }, table.ClusteringKeys.Select(c => c.Item1.Name));
             CollectionAssert.AreEqual(new[] { SortOrder.Descending }, table.ClusteringKeys.Select(c => c.Item2));
@@ -672,7 +671,7 @@ namespace Cassandra.Tests
             //This will cause the task to be faulted
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.columns.*ks1"), It.IsAny<bool>()))
-                .Returns(() => TaskHelper.FromException<IEnumerable<IRow>>(new NoHostAvailableException(new Dictionary<IPEndPoint,Exception>())));
+                .Returns(() => TaskHelper.FromException<IEnumerable<IRow>>(new NoHostAvailableException(new Dictionary<IPEndPoint, Exception>())));
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.indexes.*ks1"), It.IsAny<bool>()))
                 .Returns(() => TestHelper.DelayedTask(Enumerable.Empty<IRow>()));
@@ -784,7 +783,7 @@ namespace Cassandra.Tests
                         {"parameters", null},
                         {"started_at", DateTimeOffset.Now}
                     });
-                    return TestHelper.DelayedTask<IEnumerable<IRow>>(new[] {sessionRow});
+                    return TestHelper.DelayedTask<IEnumerable<IRow>>(new[] { sessionRow });
                 });
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_traces\\.events"), It.IsAny<bool>()))

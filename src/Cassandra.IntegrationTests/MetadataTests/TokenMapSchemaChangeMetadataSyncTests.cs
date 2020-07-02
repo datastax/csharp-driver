@@ -65,19 +65,20 @@ namespace Cassandra.IntegrationTests.MetadataTests
                                            .Build())
             {
                 var newSession = newCluster.Connect();
-                var oldTokenMap = newCluster.Metadata.TokenToReplicasMap;
-                Assert.AreEqual(3, newCluster.Metadata.Hosts.Count);
+                newSession.Connect();
+                var oldTokenMap = newCluster.InternalRef.InternalMetadata.TokenToReplicasMap;
+                Assert.AreEqual(3, newCluster.InternalRef.InternalMetadata.Hosts.Count);
 
-                Assert.IsNull(newCluster.Metadata.TokenToReplicasMap.GetByKeyspace(keyspaceName));
+                Assert.IsNull(newCluster.InternalRef.InternalMetadata.TokenToReplicasMap.GetByKeyspace(keyspaceName));
                 var createKeyspaceCql = $"CREATE KEYSPACE {keyspaceName} WITH replication = {{'class': 'SimpleStrategy', 'replication_factor' : 3}}";
 
                 newSession.Execute(createKeyspaceCql);
                 TestUtils.WaitForSchemaAgreement(newCluster);
                 newSession.ChangeKeyspace(keyspaceName);
 
-                Assert.IsNull(newCluster.Metadata.TokenToReplicasMap.GetByKeyspace(keyspaceName));
-                Assert.AreEqual(1, newCluster.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123")).Count);
-                Assert.IsTrue(object.ReferenceEquals(newCluster.Metadata.TokenToReplicasMap, oldTokenMap));
+                Assert.IsNull(newCluster.InternalRef.InternalMetadata.TokenToReplicasMap.GetByKeyspace(keyspaceName));
+                Assert.AreEqual(1, newCluster.InternalRef.InternalMetadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123")).Count);
+                Assert.IsTrue(object.ReferenceEquals(newCluster.InternalRef.InternalMetadata.TokenToReplicasMap, oldTokenMap));
             }
         }
 
@@ -99,10 +100,10 @@ namespace Cassandra.IntegrationTests.MetadataTests
                 var removeKeyspaceCql = $"DROP KEYSPACE {keyspaceName}";
                 newSession.Execute(removeKeyspaceCql);
                 TestUtils.WaitForSchemaAgreement(newCluster);
-                var oldTokenMap = newCluster.Metadata.TokenToReplicasMap;
-                Assert.IsNull(newCluster.Metadata.TokenToReplicasMap.GetByKeyspace(keyspaceName));
+                var oldTokenMap = newCluster.InternalRef.InternalMetadata.TokenToReplicasMap;
+                Assert.IsNull(newCluster.InternalRef.InternalMetadata.TokenToReplicasMap.GetByKeyspace(keyspaceName));
                 Assert.AreEqual(1, newCluster.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123")).Count);
-                Assert.IsTrue(object.ReferenceEquals(newCluster.Metadata.TokenToReplicasMap, oldTokenMap));
+                Assert.IsTrue(object.ReferenceEquals(newCluster.InternalRef.InternalMetadata.TokenToReplicasMap, oldTokenMap));
             }
         }
 
@@ -121,27 +122,28 @@ namespace Cassandra.IntegrationTests.MetadataTests
                                            .Build())
             {
                 var newSession = newCluster.Connect(keyspaceName);
+                newSession.Connect();
                 TestHelper.RetryAssert(() =>
                 {
-                    var replicas = newCluster.Metadata.TokenToReplicasMap.GetByKeyspace(keyspaceName);
+                    var replicas = newCluster.InternalRef.InternalMetadata.TokenToReplicasMap.GetByKeyspace(keyspaceName);
                     Assert.IsNull(replicas);
                     Assert.AreEqual(1, newCluster.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123")).Count);
                 });
 
-                Assert.AreEqual(3, newCluster.Metadata.Hosts.Count(h => h.IsUp));
-                var oldTokenMap = newCluster.Metadata.TokenToReplicasMap;
+                Assert.AreEqual(3, newCluster.InternalRef.InternalMetadata.Hosts.Count(h => h.IsUp));
+                var oldTokenMap = newCluster.InternalRef.InternalMetadata.TokenToReplicasMap;
                 var alterKeyspaceCql = $"ALTER KEYSPACE {keyspaceName} WITH replication = {{'class': 'SimpleStrategy', 'replication_factor' : 2}}";
                 newSession.Execute(alterKeyspaceCql);
                 TestUtils.WaitForSchemaAgreement(newCluster);
                 TestHelper.RetryAssert(() =>
                 {
-                    var replicas = newCluster.Metadata.TokenToReplicasMap.GetByKeyspace(keyspaceName);
+                    var replicas = newCluster.InternalRef.InternalMetadata.TokenToReplicasMap.GetByKeyspace(keyspaceName);
                     Assert.IsNull(replicas);
                     Assert.AreEqual(1, newCluster.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123")).Count);
                 });
 
-                Assert.AreEqual(3, newCluster.Metadata.Hosts.Count(h => h.IsUp));
-                Assert.IsTrue(object.ReferenceEquals(newCluster.Metadata.TokenToReplicasMap, oldTokenMap));
+                Assert.AreEqual(3, newCluster.InternalRef.InternalMetadata.Hosts.Count(h => h.IsUp));
+                Assert.IsTrue(object.ReferenceEquals(newCluster.InternalRef.InternalMetadata.TokenToReplicasMap, oldTokenMap));
             }
         }
 
@@ -163,24 +165,25 @@ namespace Cassandra.IntegrationTests.MetadataTests
                                            .WithQueryTimeout(60000)
                                            .Build())
             {
-                var newSession = newCluster.Connect(keyspaceName);
-                var oldTokenMap = newCluster.Metadata.TokenToReplicasMap;
-                var replicas = newCluster.Metadata.TokenToReplicasMap.GetByKeyspace(keyspaceName);
+                var newSession = await newCluster.ConnectAsync(keyspaceName).ConfigureAwait(false);
+                await newSession.ConnectAsync().ConfigureAwait(false);
+                var oldTokenMap = newCluster.InternalRef.InternalMetadata.TokenToReplicasMap;
+                var replicas = newCluster.InternalRef.InternalMetadata.TokenToReplicasMap.GetByKeyspace(keyspaceName);
                 Assert.IsNull(replicas);
                 Assert.AreEqual(1, newCluster.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123")).Count);
-                Assert.AreEqual(3, newCluster.Metadata.Hosts.Count(h => h.IsUp));
+                Assert.AreEqual(3, newCluster.InternalRef.InternalMetadata.Hosts.Count(h => h.IsUp));
                 Assert.AreEqual(1, newCluster.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123")).Count);
 
-                await newCluster.RefreshSchemaAsync(keyspaceName).ConfigureAwait(false);
+                await newCluster.Metadata.RefreshSchemaAsync(keyspaceName).ConfigureAwait(false);
 
-                Assert.AreEqual(1, newCluster.Metadata.KeyspacesSnapshot.Length);
+                Assert.AreEqual(1, newCluster.InternalRef.InternalMetadata.KeyspacesSnapshot.Length);
 
-                replicas = newCluster.Metadata.TokenToReplicasMap.GetByKeyspace(keyspaceName);
-                Assert.AreEqual(newCluster.Metadata.Hosts.Sum(h => h.Tokens.Count()), replicas.Count);
+                replicas = newCluster.InternalRef.InternalMetadata.TokenToReplicasMap.GetByKeyspace(keyspaceName);
+                Assert.AreEqual(newCluster.InternalRef.InternalMetadata.Hosts.Sum(h => h.Tokens.Count()), replicas.Count);
                 Assert.AreEqual(3, newCluster.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123")).Count);
 
-                Assert.AreEqual(3, newCluster.Metadata.Hosts.Count(h => h.IsUp));
-                Assert.IsTrue(object.ReferenceEquals(newCluster.Metadata.TokenToReplicasMap, oldTokenMap));
+                Assert.AreEqual(3, newCluster.InternalRef.InternalMetadata.Hosts.Count(h => h.IsUp));
+                Assert.IsTrue(object.ReferenceEquals(newCluster.InternalRef.InternalMetadata.TokenToReplicasMap, oldTokenMap));
             }
         }
 
@@ -202,28 +205,29 @@ namespace Cassandra.IntegrationTests.MetadataTests
                                            .WithQueryTimeout(60000)
                                            .Build())
             {
-                var newSession = newCluster.Connect(keyspaceName);
-                var replicas = newCluster.Metadata.TokenToReplicasMap.GetByKeyspace(keyspaceName);
+                var newSession = await newCluster.ConnectAsync(keyspaceName).ConfigureAwait(false);
+                await newSession.ConnectAsync().ConfigureAwait(false);
+                var replicas = newCluster.InternalRef.InternalMetadata.TokenToReplicasMap.GetByKeyspace(keyspaceName);
                 Assert.IsNull(replicas);
                 Assert.AreEqual(1, newCluster.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123")).Count);
-                var oldTokenMap = newCluster.Metadata.TokenToReplicasMap;
-                Assert.AreEqual(3, newCluster.Metadata.Hosts.Count(h => h.IsUp));
+                var oldTokenMap = newCluster.InternalRef.InternalMetadata.TokenToReplicasMap;
+                Assert.AreEqual(3, newCluster.InternalRef.InternalMetadata.Hosts.Count(h => h.IsUp));
                 Assert.AreEqual(1, newCluster.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123")).Count);
 
-                await newCluster.RefreshSchemaAsync().ConfigureAwait(false);
+                await newCluster.Metadata.RefreshSchemaAsync().ConfigureAwait(false);
 
-                Assert.GreaterOrEqual(newCluster.Metadata.KeyspacesSnapshot.Length, 2);
+                Assert.GreaterOrEqual(newCluster.InternalRef.InternalMetadata.KeyspacesSnapshot.Length, 2);
 
-                replicas = newCluster.Metadata.TokenToReplicasMap.GetByKeyspace(keyspaceName);
-                Assert.AreEqual(newCluster.Metadata.Hosts.Sum(h => h.Tokens.Count()), replicas.Count);
+                replicas = newCluster.InternalRef.InternalMetadata.TokenToReplicasMap.GetByKeyspace(keyspaceName);
+                Assert.AreEqual(newCluster.InternalRef.InternalMetadata.Hosts.Sum(h => h.Tokens.Count()), replicas.Count);
                 Assert.AreEqual(3, newCluster.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123")).Count);
 
-                replicas = newCluster.Metadata.TokenToReplicasMap.GetByKeyspace(keyspaceName1);
-                Assert.AreEqual(newCluster.Metadata.Hosts.Sum(h => h.Tokens.Count()), replicas.Count);
+                replicas = newCluster.InternalRef.InternalMetadata.TokenToReplicasMap.GetByKeyspace(keyspaceName1);
+                Assert.AreEqual(newCluster.InternalRef.InternalMetadata.Hosts.Sum(h => h.Tokens.Count()), replicas.Count);
                 Assert.AreEqual(3, newCluster.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123")).Count);
 
-                Assert.AreEqual(3, newCluster.Metadata.Hosts.Count(h => h.IsUp));
-                Assert.IsFalse(object.ReferenceEquals(newCluster.Metadata.TokenToReplicasMap, oldTokenMap));
+                Assert.AreEqual(3, newCluster.InternalRef.InternalMetadata.Hosts.Count(h => h.IsUp));
+                Assert.IsFalse(object.ReferenceEquals(newCluster.InternalRef.InternalMetadata.TokenToReplicasMap, oldTokenMap));
             }
         }
     }

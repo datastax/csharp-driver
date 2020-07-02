@@ -21,7 +21,9 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
+using Cassandra.Tasks;
 using Cassandra.Tests;
 
 using NUnit.Framework;
@@ -67,7 +69,7 @@ namespace Cassandra.IntegrationTests.Core
         public SpeculativeExecutionShortTests() : base(false, new SimulacronOptions { Nodes = "2" }, false)
         {
         }
-        
+
         public override void SetUp()
         {
             base.SetUp();
@@ -111,7 +113,7 @@ namespace Cassandra.IntegrationTests.Core
 
             TestCluster.GetNode(1).PrimeFluent(
                 b => b.WhenQuery(QueryLocal)
-                      .ThenRowsSuccess(new[] {"key"}, r => r.WithRow("local")).WithDelayInMs(1000));
+                      .ThenRowsSuccess(new[] { "key" }, r => r.WithRow("local")).WithDelayInMs(1000));
 
             var rs = await session.ExecuteAsync(new SimpleStatement(QueryLocal).SetIdempotence(false)).ConfigureAwait(false);
 
@@ -154,15 +156,17 @@ namespace Cassandra.IntegrationTests.Core
                 get { return _scheduledMore.Values; }
             }
 
-            public void Dispose()
+            public Task ShutdownAsync()
             {
+                return TaskHelper.Completed;
             }
 
-            public void Initialize(ICluster cluster)
+            public Task InitializeAsync(IMetadata metadata)
             {
+                return TaskHelper.Completed;
             }
 
-            public ISpeculativeExecutionPlan NewPlan(string keyspace, IStatement statement)
+            public ISpeculativeExecutionPlan NewPlan(IMetadata metadata, string keyspace, IStatement statement)
             {
                 return new LoggedSpeculativeExecutionPlan(this);
             }
@@ -192,7 +196,6 @@ namespace Cassandra.IntegrationTests.Core
         private class OrderedLoadBalancingPolicy : ILoadBalancingPolicy
         {
             private readonly string[] _addresses;
-            private ICluster _cluster;
             private int _hostYielded;
 
             public int HostYielded
@@ -205,19 +208,19 @@ namespace Cassandra.IntegrationTests.Core
                 _addresses = addresses;
             }
 
-            public void Initialize(ICluster cluster)
+            public Task InitializeAsync(IMetadata metadata)
             {
-                _cluster = cluster;
+                return TaskHelper.Completed;
             }
 
-            public HostDistance Distance(Host host)
+            public HostDistance Distance(IMetadata metadata, Host host)
             {
                 return HostDistance.Local;
             }
 
-            public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
+            public IEnumerable<Host> NewQueryPlan(IMetadata metadata, string keyspace, IStatement query)
             {
-                var hosts = _cluster.AllHosts().ToArray();
+                var hosts = metadata.AllHostsSnapshot().ToArray();
                 foreach (var addr in _addresses)
                 {
                     var host = hosts.Single(h => h.Address.Address.ToString() == addr);

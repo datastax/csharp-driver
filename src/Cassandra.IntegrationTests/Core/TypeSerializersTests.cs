@@ -189,7 +189,10 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     var statement = ps.Bind(v);
                     Assert.NotNull(statement.RoutingKey);
-                    CollectionAssert.AreEqual(new BigDecimalSerializer().Serialize((ushort)session.BinaryProtocolVersion, v), statement.RoutingKey.RawRoutingKey);
+                    CollectionAssert.AreEqual(
+                        new BigDecimalSerializer().Serialize(
+                            (ushort)session.Cluster.Metadata.GetClusterDescription().ProtocolVersion, v), 
+                        statement.RoutingKey.RawRoutingKey);
                     session.Execute(statement);
                     var row = session.Execute(new SimpleStatement("SELECT * FROM tbl_decimal_key WHERE id = ?", v)).First();
                     Assert.AreEqual(row.GetValue<BigDecimal>("id"), v);

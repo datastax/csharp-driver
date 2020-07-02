@@ -80,7 +80,7 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.AreEqual(Query, ps.Cql);
                 var firstRow = session.Execute(ps.Bind()).FirstOrDefault();
                 Assert.NotNull(firstRow);
-                var node = simulacronCluster.GetNode(cluster.AllHosts().First().Address);
+                var node = simulacronCluster.GetNode(cluster.Metadata.AllHosts().First().Address);
                 // Executed on first node
                 Assert.AreEqual(1, node.GetQueries(Query, QueryType.Prepare).Count);
                 // Only executed on the first node
@@ -135,8 +135,8 @@ namespace Cassandra.IntegrationTests.Core
                                         .WithLoadBalancingPolicy(new TestHelper.OrderedLoadBalancingPolicy()).Build())
             {
                 var session = cluster.Connect();
-                var firstHost = cluster.AllHosts().First();
-                foreach (var h in cluster.AllHosts())
+                var firstHost = cluster.Metadata.AllHosts().First();
+                foreach (var h in cluster.Metadata.AllHosts())
                 {
                     var node = simulacronCluster.GetNode(h.Address);
                     node.Prime(h == firstHost ? PrepareSimulatorTests.IsBootstrappingPrime : QueryPrime());
@@ -157,8 +157,8 @@ namespace Cassandra.IntegrationTests.Core
                                         .WithLoadBalancingPolicy(new TestHelper.OrderedLoadBalancingPolicy()).Build())
             {
                 var session = cluster.Connect();
-                var secondHost = cluster.AllHosts().Skip(1).First();
-                foreach (var h in cluster.AllHosts())
+                var secondHost = cluster.Metadata.AllHosts().Skip(1).First();
+                foreach (var h in cluster.Metadata.AllHosts())
                 {
                     var node = simulacronCluster.GetNode(h.Address);
                     node.Prime(h == secondHost ? PrepareSimulatorTests.IsBootstrappingPrime : QueryPrime());
@@ -181,8 +181,8 @@ namespace Cassandra.IntegrationTests.Core
                                         .WithLoadBalancingPolicy(new TestHelper.OrderedLoadBalancingPolicy()).Build())
             {
                 var session = cluster.Connect();
-                var firstHost = cluster.AllHosts().First();
-                foreach (var h in cluster.AllHosts())
+                var firstHost = cluster.Metadata.AllHosts().First();
+                foreach (var h in cluster.Metadata.AllHosts())
                 {
                     var node = simulacronCluster.GetNode(h.Address);
                     node.Prime(QueryPrime(h == firstHost ? 10000 : 0));
@@ -212,11 +212,11 @@ namespace Cassandra.IntegrationTests.Core
                 // It should have been prepared once on the node we are about to stop
                 Assert.AreEqual(1, node.GetQueries(Query, QueryType.Prepare).Count);
                 await node.Stop().ConfigureAwait(false);
-                await TestHelper.WaitUntilAsync(() => cluster.AllHosts().Any(h => !h.IsUp)).ConfigureAwait(false);
-                Assert.AreEqual(1, cluster.AllHosts().Count(h => !h.IsUp));
+                await TestHelper.WaitUntilAsync(() => cluster.Metadata.AllHosts().Any(h => !h.IsUp)).ConfigureAwait(false);
+                Assert.AreEqual(1, cluster.Metadata.AllHosts().Count(h => !h.IsUp));
                 await node.Start().ConfigureAwait(false);
-                await TestHelper.WaitUntilAsync(() => cluster.AllHosts().All(h => h.IsUp)).ConfigureAwait(false);
-                Assert.AreEqual(0, cluster.AllHosts().Count(h => !h.IsUp));
+                await TestHelper.WaitUntilAsync(() => cluster.Metadata.AllHosts().All(h => h.IsUp)).ConfigureAwait(false);
+                Assert.AreEqual(0, cluster.Metadata.AllHosts().Count(h => !h.IsUp));
                 TestHelper.WaitUntil(() => node.GetQueries(Query, QueryType.Prepare).Count == 2);
                 // It should be prepared 2 times
                 Assert.AreEqual(2, node.GetQueries(Query, QueryType.Prepare).Count);
@@ -249,8 +249,8 @@ namespace Cassandra.IntegrationTests.Core
 
                 var node = simulacronCluster.GetNodes().Skip(1).First();
                 await node.Stop().ConfigureAwait(false);
-                await TestHelper.WaitUntilAsync(() => cluster.AllHosts().Any(h => !h.IsUp)).ConfigureAwait(false);
-                Assert.AreEqual(1, cluster.AllHosts().Count(h => !h.IsUp));
+                await TestHelper.WaitUntilAsync(() => cluster.Metadata.AllHosts().Any(h => !h.IsUp)).ConfigureAwait(false);
+                Assert.AreEqual(1, cluster.Metadata.AllHosts().Count(h => !h.IsUp));
                 
                 // still only 1 USE and Prepare requests
                 Assert.AreEqual(1, node.GetQueries($"USE \"{PrepareSimulatorTests.Keyspace}\"").Count);
@@ -261,8 +261,8 @@ namespace Cassandra.IntegrationTests.Core
                 await node.Start().ConfigureAwait(false);
 
                 // wait until node is up
-                await TestHelper.WaitUntilAsync(() => cluster.AllHosts().All(h => h.IsUp)).ConfigureAwait(false);
-                Assert.AreEqual(0, cluster.AllHosts().Count(h => !h.IsUp));
+                await TestHelper.WaitUntilAsync(() => cluster.Metadata.AllHosts().All(h => h.IsUp)).ConfigureAwait(false);
+                Assert.AreEqual(0, cluster.Metadata.AllHosts().Count(h => !h.IsUp));
 
                 // wait until driver reprepares the statement
                 TestHelper.WaitUntil(() => 

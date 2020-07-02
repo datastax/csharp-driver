@@ -132,7 +132,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
 
             Assert.AreEqual(1, listOfExecutionParameters.Count);
             var parameter = Convert.FromBase64String((string)listOfExecutionParameters.Single().Single());
-            var actualParameter = (string) Session.Cluster.Metadata.ControlConnection.Serializer.GetCurrentSerializer().Deserialize(parameter, 0, parameter.Length, ColumnTypeCode.Text, null);
+            var actualParameter = (string) Session.Cluster.Configuration.SerializerManager.GetCurrentSerializer().Deserialize(parameter, 0, parameter.Length, ColumnTypeCode.Text, null);
             Assert.AreNotEqual(entityToDelete.StringType, actualParameter);
             Assert.IsTrue(actualParameter.StartsWith(entityToDelete.StringType));
             Assert.IsTrue(actualParameter.Length > entityToDelete.StringType.Length);

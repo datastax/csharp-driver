@@ -17,6 +17,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
+using Cassandra.Connections.Control;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
@@ -325,25 +327,25 @@ namespace Cassandra.Tests
         }
 
         [Test]
-        public void BatchStatement_Should_UseRoutingKeyAndKeyspaceOfFirstStatement_When_TokenAwareLbpIsUsed()
+        public async Task BatchStatement_Should_UseRoutingKeyAndKeyspaceOfFirstStatement_When_TokenAwareLbpIsUsed()
         {
             var rawRoutingKey = new byte[] {1, 2, 3, 4};
             var lbp = new TokenAwarePolicy(new ClusterTests.FakeLoadBalancingPolicy());
-            var clusterMock = Mock.Of<IInternalCluster>();
-            Mock.Get(clusterMock).Setup(c => c.GetReplicas(It.IsAny<string>(), It.IsAny<byte[]>()))
+            var metadataMock = Mock.Of<IMetadata>();
+            Mock.Get(metadataMock).Setup(c => c.GetReplicas(It.IsAny<string>(), It.IsAny<byte[]>()))
                 .Returns(new List<Host>());
-            Mock.Get(clusterMock).Setup(c => c.AllHosts())
+            Mock.Get(metadataMock).Setup(c => c.AllHosts())
                 .Returns(new List<Host>());
-            lbp.Initialize(clusterMock);
+            await lbp.InitializeAsync(metadataMock).ConfigureAwait(false);
             
             var s1Mock = new Mock<Statement>(MockBehavior.Loose);
             s1Mock.Setup(s => s.RoutingKey).Returns(new RoutingKey(rawRoutingKey));
             s1Mock.Setup(s => s.Keyspace).Returns("ks1");
             var batch = new BatchStatement().Add(s1Mock.Object);
 
-            var _ = lbp.NewQueryPlan("ks2", batch).ToList();
+            var _ = lbp.NewQueryPlan(metadataMock, "ks2", batch).ToList();
 
-            Mock.Get(clusterMock).Verify(c => c.GetReplicas("ks1", rawRoutingKey), Times.Once);
+            Mock.Get(metadataMock).Verify(c => c.GetReplicas("ks1", rawRoutingKey), Times.Once);
         }
     }
 }

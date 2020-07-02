@@ -103,7 +103,7 @@ namespace Cassandra.Tests.Connections.Control
             {
                 MetadataRequestHandler = fakeRequestHandler
             }.Build();
-            _internalMetadata = new Metadata(Mock.Of<IInternalCluster>(), config, config.SerializerManager, new List<IContactPoint>()).InternalMetadata;
+            _internalMetadata = new InternalMetadata(Mock.Of<IInternalCluster>(), config, new List<IContactPoint>());
             return new TopologyRefresher(_internalMetadata, config);
         }
 
@@ -115,7 +115,7 @@ namespace Cassandra.Tests.Connections.Control
             {
                 MetadataRequestHandler = fakeRequestHandler
             }.Build();
-            _internalMetadata = new Metadata(Mock.Of<IInternalCluster>(), config, config.SerializerManager, new List<IContactPoint>()).InternalMetadata;
+            _internalMetadata = new InternalMetadata(Mock.Of<IInternalCluster>(), config, new List<IContactPoint>());
             var topologyRefresher = new TopologyRefresher(_internalMetadata, config);
             var connection = Mock.Of<IConnection>();
             
@@ -139,7 +139,7 @@ namespace Cassandra.Tests.Connections.Control
             {
                 MetadataRequestHandler = fakeRequestHandler
             }.Build();
-            _internalMetadata = new Metadata(Mock.Of<IInternalCluster>(), config, config.SerializerManager, new List<IContactPoint>()).InternalMetadata;
+            _internalMetadata = new InternalMetadata(Mock.Of<IInternalCluster>(), config, new List<IContactPoint>());
             var topologyRefresher = new TopologyRefresher(_internalMetadata, config);
             var connection = Mock.Of<IConnection>();
 
@@ -161,7 +161,7 @@ namespace Cassandra.Tests.Connections.Control
             {
                 MetadataRequestHandler = fakeRequestHandler
             }.Build();
-            _internalMetadata = new Metadata(Mock.Of<IInternalCluster>(), config, config.SerializerManager, new List<IContactPoint>()).InternalMetadata;
+            _internalMetadata = new InternalMetadata(Mock.Of<IInternalCluster>(), config, new List<IContactPoint>());
             var topologyRefresher = new TopologyRefresher(_internalMetadata, config);
             var connection = Mock.Of<IConnection>();
 
@@ -191,7 +191,7 @@ namespace Cassandra.Tests.Connections.Control
         {
             var fakeRequestHandler = CreateFakeMetadataRequestHandler();
             var config = new TestConfigurationBuilder { MetadataRequestHandler = fakeRequestHandler }.Build();
-            _internalMetadata = new Metadata(Mock.Of<IInternalCluster>(), config, config.SerializerManager, new List<IContactPoint>()).InternalMetadata;
+            _internalMetadata = new InternalMetadata(Mock.Of<IInternalCluster>(), config, new List<IContactPoint>());
             var topologyRefresher = new TopologyRefresher(_internalMetadata, config);
             var connection = Mock.Of<IConnection>();
             
@@ -301,7 +301,7 @@ namespace Cassandra.Tests.Connections.Control
                     StartupOptionsFactory = Mock.Of<IStartupOptionsFactory>(),
                     MetadataRequestHandler = requestHandler
                 }.Build();
-            _internalMetadata = new Metadata(Mock.Of<IInternalCluster>(), config, config.SerializerManager, new List<IContactPoint>()).InternalMetadata;
+            _internalMetadata = new InternalMetadata(Mock.Of<IInternalCluster>(), config, new List<IContactPoint>());
             var topologyRefresher = new TopologyRefresher(_internalMetadata, config);
 
             await topologyRefresher.RefreshNodeListAsync(

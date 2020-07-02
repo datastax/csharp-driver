@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
+using Cassandra.Connections.Control;
 using Cassandra.Metrics;
 using Cassandra.Metrics.Internal;
 using Cassandra.Metrics.Providers.Null;
@@ -42,7 +43,14 @@ namespace Cassandra.Tests
             var clusterMock = new Mock<IInternalCluster>();
             sessionMock.Setup(x => x.InternalCluster).Returns(clusterMock.Object);
             sessionMock.Setup(x => x.ObserverFactory)
-                       .Returns(new MetricsObserverFactory(new MetricsManager(new NullDriverMetricsProvider(), new DriverMetricsOptions(), true, "s1")));
+                       .Returns(
+                           new MetricsObserverFactory(
+                               new MetricsManager(
+                                   sessionMock.Object, 
+                                   new NullDriverMetricsProvider(), 
+                                   new DriverMetricsOptions(), 
+                                   true, 
+                                   "s1")));
             return sessionMock.Object;
         }
         private static Configuration GetConfig(ILoadBalancingPolicy lbp)
@@ -67,6 +75,7 @@ namespace Cassandra.Tests
         public void Should_ThrowNoHostAvailableException_When_QueryPlanMoveNextReturnsFalse()
         {
             var sessionMock = GetMockInternalSession();
+            var metadata = Mock.Of<IInternalMetadata>();
             var lbpMock = Mock.Of<ILoadBalancingPolicy>();
             Mock.Get(sessionMock).SetupGet(m => m.Cluster.Configuration).Returns(RequestHandlerMockTests.GetConfig(lbpMock));
             var enumerable = Mock.Of<IEnumerable<Host>>();
@@ -75,11 +84,11 @@ namespace Cassandra.Tests
             Mock.Get(enumerator).Setup(m => m.MoveNext()).Returns(false);
             Mock.Get(enumerable).Setup(m => m.GetEnumerator()).Returns(enumerator);
             Mock.Get(lbpMock)
-                .Setup(m => m.NewQueryPlan(It.IsAny<string>(), It.IsAny<IStatement>()))
+                .Setup(m => m.NewQueryPlan(It.IsAny<IMetadata>(), It.IsAny<string>(), It.IsAny<IStatement>()))
                 .Returns(enumerable);
             var triedHosts = new Dictionary<IPEndPoint, Exception>();
 
-            var sut = new RequestHandler(sessionMock, new SerializerManager(ProtocolVersion.V4).GetCurrentSerializer());
+            var sut = new RequestHandler(sessionMock, metadata, new SerializerManager(ProtocolVersion.V4).GetCurrentSerializer());
             Assert.Throws<NoHostAvailableException>(() => sut.GetNextValidHost(triedHosts));
         }
 
@@ -87,6 +96,7 @@ namespace Cassandra.Tests
         public void Should_ThrowNoHostAvailableException_When_QueryPlanMoveNextReturnsTrueButCurrentReturnsNull()
         {
             var sessionMock = GetMockInternalSession();
+            var metadata = Mock.Of<IInternalMetadata>();
             var lbpMock = Mock.Of<ILoadBalancingPolicy>();
             Mock.Get(sessionMock).SetupGet(m => m.Cluster.Configuration).Returns(RequestHandlerMockTests.GetConfig(lbpMock));
             var enumerable = Mock.Of<IEnumerable<Host>>();
@@ -96,11 +106,11 @@ namespace Cassandra.Tests
             Mock.Get(enumerator).SetupGet(m => m.Current).Returns((Host)null);
             Mock.Get(enumerable).Setup(m => m.GetEnumerator()).Returns(enumerator);
             Mock.Get(lbpMock)
-                .Setup(m => m.NewQueryPlan(It.IsAny<string>(), It.IsAny<IStatement>()))
+                .Setup(m => m.NewQueryPlan(It.IsAny<IMetadata>(), It.IsAny<string>(), It.IsAny<IStatement>()))
                 .Returns(enumerable);
             var triedHosts = new Dictionary<IPEndPoint, Exception>();
 
-            var sut = new RequestHandler(sessionMock, new SerializerManager(ProtocolVersion.V4).GetCurrentSerializer());
+            var sut = new RequestHandler(sessionMock, metadata, new SerializerManager(ProtocolVersion.V4).GetCurrentSerializer());
             Assert.Throws<NoHostAvailableException>(() => sut.GetNextValidHost(triedHosts));
         }
 
@@ -108,6 +118,7 @@ namespace Cassandra.Tests
         public void Should_ReturnHost_When_QueryPlanMoveNextReturnsTrueAndCurrentReturnsHost()
         {
             var sessionMock = GetMockInternalSession();
+            var metadata = Mock.Of<IInternalMetadata>();
             var lbpMock = Mock.Of<ILoadBalancingPolicy>();
             Mock.Get(sessionMock).SetupGet(m => m.Cluster.Configuration).Returns(RequestHandlerMockTests.GetConfig(lbpMock));
             var enumerable = Mock.Of<IEnumerable<Host>>();
@@ -117,12 +128,12 @@ namespace Cassandra.Tests
             Mock.Get(enumerator).SetupGet(m => m.Current).Returns(host);
             Mock.Get(enumerable).Setup(m => m.GetEnumerator()).Returns(enumerator);
             Mock.Get(lbpMock)
-                .Setup(m => m.NewQueryPlan(It.IsAny<string>(), It.IsAny<IStatement>()))
+                .Setup(m => m.NewQueryPlan(It.IsAny<IMetadata>(), It.IsAny<string>(), It.IsAny<IStatement>()))
                 .Returns(enumerable);
-            Mock.Get(lbpMock).Setup(m => m.Distance(host)).Returns(HostDistance.Local);
+            Mock.Get(lbpMock).Setup(m => m.Distance(It.IsAny<IMetadata>(), host)).Returns(HostDistance.Local);
             var triedHosts = new Dictionary<IPEndPoint, Exception>();
 
-            var sut = new RequestHandler(sessionMock, new SerializerManager(ProtocolVersion.V4).GetCurrentSerializer());
+            var sut = new RequestHandler(sessionMock, metadata, new SerializerManager(ProtocolVersion.V4).GetCurrentSerializer());
             var validHost = sut.GetNextValidHost(triedHosts);
             Assert.NotNull(validHost);
             Assert.AreEqual(host, validHost.Host);

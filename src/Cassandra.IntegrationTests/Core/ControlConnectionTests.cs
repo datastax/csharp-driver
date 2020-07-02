@@ -25,6 +25,7 @@ using NUnit.Framework;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.SessionManagement;
 using Cassandra.Tests;
+using Cassandra.Tests.Connections.TestHelpers;
 using Moq;
 
 namespace Cassandra.IntegrationTests.Core
@@ -44,9 +45,9 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Should_Use_Maximum_Protocol_Version_Supported()
         {
-            var cc = NewInstance();
+            var cc = NewInstance(ProtocolVersion.MaxSupported, out var config);
             cc.InitAsync().Wait(InitTimeout);
-            Assert.AreEqual(GetProtocolVersion(), cc.ProtocolVersion);
+            Assert.AreEqual(GetProtocolVersion(), config.SerializerManager.CurrentProtocolVersion);
             cc.Dispose();
         }
 
@@ -59,9 +60,9 @@ namespace Cassandra.IntegrationTests.Core
                 //protocol 2 is not supported in Cassandra 3.0+
                 version = ProtocolVersion.V3;
             }
-            var cc = NewInstance(version);
+            var cc = NewInstance(version, out var config);
             cc.InitAsync().Wait(InitTimeout);
-            Assert.AreEqual(version, cc.ProtocolVersion);
+            Assert.AreEqual(version, config.SerializerManager.CurrentProtocolVersion);
             cc.Dispose();
         }
 
@@ -70,9 +71,9 @@ namespace Cassandra.IntegrationTests.Core
         {
             //Use a higher protocol version
             var version = (ProtocolVersion)(GetProtocolVersion() + 1);
-            var cc = NewInstance(version);
+            var cc = NewInstance(version, out var config);
             cc.InitAsync().Wait(InitTimeout);
-            Assert.AreEqual(version - 1, cc.ProtocolVersion);
+            Assert.AreEqual(version - 1, config.SerializerManager.CurrentProtocolVersion);
         }
 
         [Test, TestCassandraVersion(3, 0)]
@@ -80,33 +81,25 @@ namespace Cassandra.IntegrationTests.Core
         {
             // Use a non-existent higher cassandra protocol version
             var version = (ProtocolVersion)0x0f;
-            var cc = NewInstance(version);
+            var cc = NewInstance(version, out var config);
             cc.InitAsync().Wait(InitTimeout);
-            Assert.AreEqual(ProtocolVersion.V4, cc.ProtocolVersion);
+            Assert.AreEqual(ProtocolVersion.V4, config.SerializerManager.CurrentProtocolVersion);
         }
 
-        private ControlConnection NewInstance(
-            ProtocolVersion version = ProtocolVersion.MaxSupported,
-            Configuration config = null,
-            Metadata metadata = null)
+        private ControlConnection NewInstance(ProtocolVersion version, out Configuration config)
         {
-            config = config ?? new Configuration();
-            if (metadata == null)
-            {
-                metadata = new Metadata(config);
-                metadata.AddHost(new IPEndPoint(IPAddress.Parse(_testCluster.InitialContactPoint), ProtocolOptions.DefaultPort));
-            }
+            config = new Configuration();
+            config.SerializerManager.ChangeProtocolVersion(version);
+            var internalMetadata = new FakeInternalMetadata(config);
+            internalMetadata.AddHost(new IPEndPoint(IPAddress.Parse(_testCluster.InitialContactPoint), ProtocolOptions.DefaultPort));
             var cc = new ControlConnection(
                 Mock.Of<IInternalCluster>(), 
-                GetEventDebouncer(config), 
-                version, 
                 config,
-                metadata,
+                internalMetadata,
                 new List<IContactPoint>
                 {
                     new IpLiteralContactPoint(IPAddress.Parse(_testCluster.InitialContactPoint), config.ProtocolOptions, config.ServerNameResolver )
                 });
-            metadata.ControlConnection = cc;
             return cc;
         }
 

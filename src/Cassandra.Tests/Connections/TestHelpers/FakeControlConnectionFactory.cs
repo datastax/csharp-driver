@@ -33,8 +33,6 @@ namespace Cassandra.Tests.Connections.TestHelpers
     {
         public IControlConnection Create(
             IInternalCluster cluster,
-            IProtocolEventDebouncer protocolEventDebouncer,
-            ISerializerManager serializerManager,
             Configuration config,
             IInternalMetadata metadata,
             IEnumerable<IContactPoint> contactPoints)
@@ -56,7 +54,7 @@ namespace Cassandra.Tests.Connections.TestHelpers
                     }
                 }
                 metadata.SetResolvedContactPoints(cps);
-                serializerManager.ChangeProtocolVersion(ProtocolVersion.V3);
+                config.SerializerManager.ChangeProtocolVersion(ProtocolVersion.V3);
             }));
             return cc;
         }

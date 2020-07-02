@@ -54,7 +54,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     var session = cluster.Connect();
                     Parallel.For(0, 10, _ => session.Execute("SELECT * FROM system.local"));
-                    Assert.AreEqual(version, cluster.InternalRef.GetControlConnection().ProtocolVersion);
+                    Assert.AreEqual(version, cluster.InternalRef.InternalMetadata.ProtocolVersion);
                 }
                 else
                 {
@@ -83,7 +83,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 var session = cluster.Connect();
                 Parallel.For(0, 10, _ => session.Execute("SELECT * FROM system.local"));
-                Assert.AreEqual(version, cluster.InternalRef.GetControlConnection().ProtocolVersion);
+                Assert.AreEqual(version, cluster.InternalRef.InternalMetadata.ProtocolVersion);
             }
         }
 

@@ -54,13 +54,13 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public async Task Session_GetState_Should_Return_A_Snapshot_Of_The_Pools_State()
         {
-            var poolingOptions = PoolingOptions.Get().SetCoreConnectionsPerHost(HostDistance.Local, 2);
+            var poolingOptions = PoolingOptions.Create().SetCoreConnectionsPerHost(HostDistance.Local, 2);
             using (var cluster = ClusterBuilder()
                                         .AddContactPoint(_testCluster.InitialContactPoint)
                                         .WithPoolingOptions(poolingOptions)
                                         .Build())
             {
-                var session = cluster.Connect();
+                var session = await cluster.ConnectAsync().ConfigureAwait(false);
                 var counter = 0;
                 ISessionState state = null;
                 // Warmup
@@ -79,13 +79,13 @@ namespace Cassandra.IntegrationTests.Core
                 }, 280, 100).ConfigureAwait(false);
                 Assert.NotNull(state);
                 var stringState = state.ToString();
-                CollectionAssert.AreEquivalent(cluster.AllHosts(), state.GetConnectedHosts());
-                foreach (var host in cluster.AllHosts())
+                CollectionAssert.AreEquivalent(cluster.Metadata.AllHosts(), state.GetConnectedHosts());
+                foreach (var host in cluster.Metadata.AllHosts())
                 {
                     Assert.AreEqual(2, state.GetOpenConnections(host));
                     StringAssert.Contains($"\"{host.Address}\": {{", stringState);
                 }
-                var totalInFlight = cluster.AllHosts().Sum(h => state.GetInFlightQueries(h));
+                var totalInFlight = cluster.Metadata.AllHosts().Sum(h => state.GetInFlightQueries(h));
                 Assert.Greater(totalInFlight, 0);
                 Assert.LessOrEqual(totalInFlight, limit);
             }
@@ -104,7 +104,7 @@ namespace Cassandra.IntegrationTests.Core
                 session = cluster.Connect();
                 state = session.GetState();
                 Assert.AreNotEqual(SessionState.Empty(), state);
-                hosts = cluster.AllHosts();
+                hosts = cluster.Metadata.AllHosts();
             }
             state = session.GetState();
             Assert.NotNull(hosts);

@@ -25,6 +25,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using Cassandra.IntegrationTests.TestClusterManagement;
+using Cassandra.SessionManagement;
 using Cassandra.Tests;
 using NUnit.Framework;
 
@@ -197,7 +198,7 @@ namespace Cassandra.IntegrationTests.TestBase
                 try
                 {
                     // Are all nodes in the cluster accounted for?
-                    bool disconnected = !cluster.RefreshSchema();
+                    bool disconnected = !cluster.Metadata.RefreshSchema();
                     if (disconnected)
                     {
                         string warnStr = "While waiting for host " + nodeHost + " to be " + expectedFinalNodeState + ", the cluster is now totally down, returning now ... ";
@@ -205,7 +206,7 @@ namespace Cassandra.IntegrationTests.TestBase
                         return;
                     }
 
-                    Metadata metadata = cluster.Metadata;
+                    var metadata = cluster.Metadata;
                     foreach (Host host in metadata.AllHosts())
                     {
                         bool hostFound = false;
@@ -621,18 +622,17 @@ namespace Cassandra.IntegrationTests.TestBase
         public static void WaitForSchemaAgreement(
             ICluster cluster, bool ignoreDownNodes = true, bool throwOnMaxRetries = false, int maxRetries = 20)
         {
-            var hostsLength = cluster.AllHosts().Count;
+            var hostsLength = cluster.Metadata.AllHosts().Count;
             if (hostsLength == 1)
             {
                 return;
             }
-            var cc = cluster.Metadata.ControlConnection;
+            var cc = ((IInternalCluster)cluster).InternalMetadata.ControlConnection;
             var counter = 0;
-            var nodesDown = ignoreDownNodes ? cluster.AllHosts().Count(h => !h.IsConsiderablyUp) : 0;
+            var nodesDown = ignoreDownNodes ? cluster.Metadata.AllHosts().Count(h => !h.IsConsiderablyUp) : 0;
             while (counter++ < maxRetries)
             {
                 Trace.TraceInformation("Waiting for test schema agreement");
-                Thread.Sleep(500);
                 var schemaVersions = new List<Guid>();
                 //peers
                 schemaVersions.AddRange(cc.Query("SELECT peer, schema_version FROM system.peers").Select(r => r.GetValue<Guid>("schema_version")));
@@ -645,6 +645,8 @@ namespace Cassandra.IntegrationTests.TestBase
                     //There is 1 schema version or 1 + nodes that are considered as down
                     return;
                 }
+
+                Thread.Sleep(500);
             }
 
             if (throwOnMaxRetries)

@@ -59,7 +59,7 @@ namespace Cassandra.Tests.Connections.Control
             IDictionary<IPEndPoint, IRow> rows = null,
             IInternalCluster cluster = null,
             Configuration config = null,
-            Metadata metadata = null,
+            IInternalMetadata internalMetadata = null,
             Action<TestConfigurationBuilder> configBuilderAct = null)
         {
             if (rows == null)
@@ -112,18 +112,19 @@ namespace Cassandra.Tests.Connections.Control
                     config.ServerNameResolver)
             };
 
-            if (metadata == null)
+            if (internalMetadata == null)
             {
-                metadata = new Metadata(cluster, config, config.SerializerManager, contactPoints);
+                internalMetadata = new InternalMetadata(cluster, config, contactPoints);
             }
 
             return new ControlConnectionCreateResult
             {
                 ConnectionFactory = connectionFactory,
-                Metadata = metadata,
+                Metadata = new FakeMetadata(internalMetadata),
                 Cluster = cluster,
                 Config = config,
-                ControlConnection = (ControlConnection)metadata.InternalMetadata.ControlConnection
+                ControlConnection = (ControlConnection)internalMetadata.ControlConnection,
+                InternalMetadata = internalMetadata
             };
         }
 
@@ -263,7 +264,7 @@ namespace Cassandra.Tests.Connections.Control
                         Mock.Get(cluster)
                             .Setup(c => c.RetrieveAndSetDistance(It.IsAny<Host>()))
                             .Returns<Host>(h => config.Policies.LoadBalancingPolicy.Distance(metadata, h));
-                        config.LocalDatacenterProvider.Initialize(cluster, metadata.InternalMetadata);
+                        config.LocalDatacenterProvider.Initialize(cluster, createResult.InternalMetadata);
                         await config.Policies.LoadBalancingPolicy.InitializeAsync(metadata).ConfigureAwait(false);
 
                         createResult.ConnectionFactory.CreatedConnections.Clear();
@@ -353,20 +354,22 @@ namespace Cassandra.Tests.Connections.Control
                 new ConnectionEndPoint(_endpoint2, config.ServerNameResolver, _localhost)
             });
             config.SerializerManager.ChangeProtocolVersion(ProtocolVersion.V3);
-            var metadata = new Metadata(
+            var internalMetadata = new InternalMetadata(
                 Mock.Of<IInternalCluster>(),
                 config,
-                config.SerializerManager,
                 new List<IContactPoint>
                 {
                     _cp1,
                     _cp2,
                     _localhost
                 });
+            var metadata = new FakeMetadata(internalMetadata);
             return new ControlConnectionCreateResult
             {
                 ConnectionFactory = connectionFactory,
-                ControlConnection = (ControlConnection)metadata.InternalMetadata.ControlConnection
+                ControlConnection = (ControlConnection)metadata.InternalMetadata.ControlConnection,
+                Metadata = new Metadata(internalMetadata),
+                InternalMetadata = internalMetadata
             };
         }
 
@@ -374,7 +377,9 @@ namespace Cassandra.Tests.Connections.Control
         {
             public ControlConnection ControlConnection { get; set; }
 
-            public Metadata Metadata { get; set; }
+            public IMetadata Metadata { get; set; }
+
+            public IInternalMetadata InternalMetadata { get; set; }
 
             public Configuration Config { get; set; }
 

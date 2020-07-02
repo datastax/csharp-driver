@@ -68,13 +68,13 @@ namespace Cassandra.IntegrationTests.Core
         {
             var rs = Session.Execute(new SimpleStatement("SELECT * from system.local").EnableTracing());
             Assert.NotNull(rs.Info.QueryTrace);
-            var hosts = Session.Cluster.AllHosts();
+            var hosts = Session.Cluster.Metadata.AllHosts();
             Assert.NotNull(hosts);
             var coordinator = hosts.FirstOrDefault();
             Assert.NotNull(coordinator);
             Assert.AreEqual(coordinator.Address.Address, rs.Info.QueryTrace.Coordinator);
             Assert.Greater(rs.Info.QueryTrace.Events.Count, 0);
-            if (Session.BinaryProtocolVersion >= 4)
+            if (Session.Cluster.Metadata.GetClusterDescription().ProtocolVersion >= ProtocolVersion.V4)
             {
                 Assert.NotNull(rs.Info.QueryTrace.ClientAddress);   
             }

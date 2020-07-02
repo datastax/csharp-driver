@@ -133,9 +133,6 @@ namespace Cassandra.Tests.Mapping
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
                 .Returns<string>(query => TaskHelper.ToTask(GetPrepared(query)))
                 .Verifiable();
-            sessionMock
-                .Setup(s => s.BinaryProtocolVersion)
-                .Returns((int)protocolVersion);
             return sessionMock.Object;
         }
 

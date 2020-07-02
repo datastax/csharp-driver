@@ -737,7 +737,7 @@ namespace Cassandra.IntegrationTests.Core
             var cluster = GetNewTemporaryCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
             var _ = cluster.Connect();
 
-            foreach (var host in Cluster.AllHosts())
+            foreach (var host in Cluster.Metadata.AllHosts())
             {
                 Assert.NotNull(host.CassandraVersion);
                 Assert.Greater(host.CassandraVersion, new Version(1, 2));

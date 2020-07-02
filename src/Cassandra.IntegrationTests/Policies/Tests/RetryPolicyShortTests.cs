@@ -23,6 +23,7 @@ using Cassandra.IntegrationTests.SimulacronAPI;
 using Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.Then;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
+using Cassandra.Tasks;
 using Cassandra.Tests;
 using Newtonsoft.Json;
 
@@ -266,7 +267,6 @@ namespace Cassandra.IntegrationTests.Policies.Tests
 
         private class CustomLoadBalancingPolicy : ILoadBalancingPolicy
         {
-            private ICluster _cluster;
             private readonly string[] _hosts;
 
             public CustomLoadBalancingPolicy(string[] hosts)
@@ -274,20 +274,20 @@ namespace Cassandra.IntegrationTests.Policies.Tests
                 _hosts = hosts;
             }
 
-            public void Initialize(ICluster cluster)
+            public Task InitializeAsync(IMetadata metadata)
             {
-                _cluster = cluster;
+                return TaskHelper.Completed;
             }
 
-            public HostDistance Distance(Host host)
+            public HostDistance Distance(IMetadata metadata, Host host)
             {
                 return HostDistance.Local;
             }
 
-            public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
+            public IEnumerable<Host> NewQueryPlan(IMetadata metadata, string keyspace, IStatement query)
             {
                 var queryPlan = new List<Host>();
-                var allHosts = _cluster.AllHosts();
+                var allHosts = metadata.AllHostsSnapshot();
                 foreach (var host in _hosts)
                 {
                     queryPlan.Add(allHosts.Single(h => h.Address.ToString() == host));

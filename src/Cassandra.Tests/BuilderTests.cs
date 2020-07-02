@@ -165,7 +165,7 @@ namespace Cassandra.Tests
         public void PoolingOptions_Create_Based_On_Protocol_Version(ProtocolVersion protocolVersion,
             int coreConnections, int maxConnections)
         {
-            var options1 = PoolingOptions.Get(protocolVersion);
+            var options1 = PoolingOptions.Create(protocolVersion);
             var cluster1 = Cluster.Builder()
                                   .AddContactPoint("::1")
                                   .WithPoolingOptions(options1)

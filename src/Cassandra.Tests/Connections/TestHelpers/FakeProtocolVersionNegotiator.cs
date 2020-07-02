@@ -15,27 +15,26 @@
 //
 
 using System.Threading.Tasks;
+
 using Cassandra.Connections;
 using Cassandra.Connections.Control;
-using Cassandra.Serialization;
 
 namespace Cassandra.Tests.Connections.TestHelpers
 {
     internal class FakeProtocolVersionNegotiator : IProtocolVersionNegotiator
     {
         public Task<IConnection> ChangeProtocolVersion(
-            Configuration config, 
-            ISerializerManager serializer, 
-            ProtocolVersion nextVersion, 
-            IConnection previousConnection, 
-            UnsupportedProtocolVersionException ex = null, 
+            Configuration config,
+            ProtocolVersion nextVersion,
+            IConnection previousConnection,
+            UnsupportedProtocolVersionException ex = null,
             ProtocolVersion? previousVersion = null)
         {
             return Task.FromResult(previousConnection);
         }
 
         public Task<IConnection> NegotiateVersionAsync(
-            Configuration config, IInternalMetadata internalMetadata, IConnection connection, ISerializerManager serializer)
+            Configuration config, IInternalMetadata internalMetadata, IConnection connection)
         {
             return Task.FromResult(connection);
         }

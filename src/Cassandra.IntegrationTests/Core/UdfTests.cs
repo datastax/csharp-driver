@@ -21,6 +21,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
+using Cassandra.SessionManagement;
 using Cassandra.Tests;
 using NUnit.Framework;
 
@@ -32,7 +33,7 @@ namespace Cassandra.IntegrationTests.Core
         private ITestCluster _testCluster;
         private readonly List<ICluster> _clusters = new List<ICluster>();
 
-        private ICluster GetCluster(bool metadataSync)
+        private IInternalCluster GetCluster(bool metadataSync)
         {
             var cluster = ClusterBuilder()
                                  .AddContactPoint(_testCluster.InitialContactPoint)
@@ -202,9 +203,9 @@ namespace Cassandra.IntegrationTests.Core
             var cluster2 = GetCluster(metadataSync);
             var session2 = cluster.Connect("ks_udf");
             session.Execute("CREATE OR REPLACE FUNCTION stringify(i int) RETURNS NULL ON NULL INPUT RETURNS text LANGUAGE java AS 'return Integer.toString(i);'");
-            cluster2.RefreshSchema("ks_udf");
+            cluster2.Metadata.RefreshSchema("ks_udf");
             Task.Delay(500).GetAwaiter().GetResult(); // wait for events to be processed
-            var _ = cluster2.Metadata.KeyspacesSnapshot // cache 
+            var _ = cluster2.InternalMetadata.KeyspacesSnapshot // cache 
                                 .Single(kvp => kvp.Key == "ks_udf")
                                 .Value
                                 .GetFunction("stringify", new[] { "int" });
@@ -226,7 +227,7 @@ namespace Cassandra.IntegrationTests.Core
             else
             {
                 Task.Delay(2000).GetAwaiter().GetResult();
-                func = cluster2.Metadata.KeyspacesSnapshot
+                func = cluster2.InternalMetadata.KeyspacesSnapshot
                                .Single(kvp => kvp.Key == "ks_udf")
                                .Value
                                .GetFunction("stringify", new[] { "int" });
@@ -291,9 +292,9 @@ namespace Cassandra.IntegrationTests.Core
             var cluster2 = GetCluster(metadataSync);
             var session2 = cluster2.Connect("ks_udf");
             session.Execute("CREATE OR REPLACE AGGREGATE ks_udf.sum2(int) SFUNC plus STYPE int INITCOND 0");
-            cluster2.RefreshSchema("ks_udf");
+            cluster2.Metadata.RefreshSchema("ks_udf");
             Task.Delay(500).GetAwaiter().GetResult(); // wait for events to be processed
-            var _ = cluster2.Metadata.KeyspacesSnapshot // cache
+            var _ = cluster2.InternalMetadata.KeyspacesSnapshot // cache
                             .Single(kvp => kvp.Key == "ks_udf")
                             .Value
                             .GetAggregate("sum2", new[] { "int" });
@@ -315,7 +316,7 @@ namespace Cassandra.IntegrationTests.Core
             else
             {
                 Task.Delay(2000).GetAwaiter().GetResult();
-                aggregate = cluster2.Metadata.KeyspacesSnapshot
+                aggregate = cluster2.InternalMetadata.KeyspacesSnapshot
                                     .Single(kvp => kvp.Key == "ks_udf")
                                     .Value
                                     .GetAggregate("sum2", new[] { "int" });

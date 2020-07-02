@@ -59,7 +59,7 @@ namespace Cassandra.IntegrationTests.DataStax.Cloud
                        .WithReconnectionPolicy(new ConstantReconnectionPolicy(40))
                        .WithQueryOptions(new QueryOptions().SetDefaultIdempotence(true))).ConfigureAwait(false);
 
-            Assert.IsTrue(session.Cluster.AllHosts().All(h => h.IsUp));
+            Assert.IsTrue((await session.Cluster.Metadata.AllHostsAsync().ConfigureAwait(false)).All(h => h.IsUp));
             var restarted = true;
             var t = Task.Run(async () =>
             {
@@ -72,10 +72,10 @@ namespace Cassandra.IntegrationTests.DataStax.Cloud
                     TestHelper.RetryAssert(
                         () =>
                         {
-                            var dict = Session.Cluster.Metadata.TokenToReplicasMap.GetByKeyspace("system_distributed");
+                            var dict = session.InternalCluster.InternalMetadata.TokenToReplicasMap.GetByKeyspace("system_distributed");
                             Assert.AreEqual(3, dict.First().Value.Count);
-                            Assert.AreEqual(3, Session.Cluster.AllHosts().Count);
-                            Assert.IsTrue(Session.Cluster.AllHosts().All(h => h.IsUp));
+                            Assert.AreEqual(3, session.Cluster.Metadata.AllHosts().Count);
+                            Assert.IsTrue(session.Cluster.Metadata.AllHosts().All(h => h.IsUp));
                         },
                         20,
                         500);
@@ -168,7 +168,7 @@ namespace Cassandra.IntegrationTests.DataStax.Cloud
             {
                 var rs = await session.ExecuteAsync(new SimpleStatement("SELECT * FROM system.local")).ConfigureAwait(false);
                 var row = rs.First();
-                var host = session.Cluster.GetHost(new IPEndPoint(rs.Info.QueriedHost.Address, rs.Info.QueriedHost.Port));
+                var host = await session.Cluster.Metadata.GetHostAsync(new IPEndPoint(rs.Info.QueriedHost.Address, rs.Info.QueriedHost.Port)).ConfigureAwait(false);
                 Assert.IsNotNull(host);
                 queriedHosts.Add(rs.Info.QueriedHost.Address);
                 Assert.AreEqual(host.HostId, row.GetValue<Guid>("host_id"));

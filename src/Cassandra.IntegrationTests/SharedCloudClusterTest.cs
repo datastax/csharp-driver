@@ -18,6 +18,7 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using Cassandra.IntegrationTests.TestClusterManagement;
+using Cassandra.SessionManagement;
 
 namespace Cassandra.IntegrationTests
 {
@@ -99,7 +100,7 @@ namespace Cassandra.IntegrationTests
             return cluster;
         }
         
-        protected async Task<ISession> CreateSessionAsync(
+        internal async Task<IInternalSession> CreateSessionAsync(
             string creds = "creds-v1.zip", int retries = SharedCloudClusterTest.MaxRetries, Action<Builder> act = null)
         {
             Exception last = null;
@@ -109,7 +110,7 @@ namespace Cassandra.IntegrationTests
                 try
                 {
                     cluster = CreateTemporaryCluster(creds, act);
-                    return await cluster.ConnectAsync().ConfigureAwait(false);
+                    return (IInternalSession) await cluster.ConnectAsync().ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {

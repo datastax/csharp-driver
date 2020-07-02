@@ -47,7 +47,7 @@ namespace Cassandra.Tests.Connections.TestHelpers
                 }
             }
 
-            _internalMetadata.Partitioner = "Murmur3Partitioner";
+            _internalMetadata.SetPartitioner("Murmur3Partitioner");
             return Task.FromResult(_internalMetadata.Hosts.First());
         }
     }

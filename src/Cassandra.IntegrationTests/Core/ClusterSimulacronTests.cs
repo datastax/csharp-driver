@@ -55,26 +55,28 @@ namespace Cassandra.IntegrationTests.Core
                 var peersV2Queries = TestCluster.GetQueries("SELECT * FROM system.peers_v2");
                 var peersQueries = TestCluster.GetQueries("SELECT * FROM system.peers");
 
-                await TestCluster.GetNode(Session.Cluster.Metadata.ControlConnection.Host.Address).Stop().ConfigureAwait(false);
+                await TestCluster.GetNode(InternalSession.InternalCluster.InternalMetadata.ControlConnection.Host.Address)
+                                 .Stop().ConfigureAwait(false);
 
                 // wait until control connection reconnection is done
                 TestHelper.RetryAssert(
                     () =>
                     {
-                        Assert.AreEqual(1, Session.Cluster.AllHosts().Count(h => !h.IsUp));
-                        Assert.IsTrue(Session.Cluster.Metadata.ControlConnection.Host.IsUp);
+                        Assert.AreEqual(1, Session.Cluster.Metadata.AllHosts().Count(h => !h.IsUp));
+                        Assert.IsTrue(InternalSession.InternalCluster.InternalMetadata.ControlConnection.Host.IsUp);
                     },
                     200,
                     100);
 
-                await TestCluster.GetNode(Session.Cluster.Metadata.ControlConnection.Host.Address).Stop().ConfigureAwait(false);
+                await TestCluster.GetNode(InternalSession.InternalCluster.InternalMetadata.ControlConnection.Host.Address)
+                                 .Stop().ConfigureAwait(false);
 
                 // wait until control connection reconnection is done
                 TestHelper.RetryAssert(
                     () =>
                     {
-                        Assert.AreEqual(2, Session.Cluster.AllHosts().Count(h => !h.IsUp));
-                        Assert.IsTrue(Session.Cluster.Metadata.ControlConnection.Host.IsUp);
+                        Assert.AreEqual(2, Session.Cluster.Metadata.AllHosts().Count(h => !h.IsUp));
+                        Assert.IsTrue(InternalSession.InternalCluster.InternalMetadata.ControlConnection.Host.IsUp);
                     },
                     200,
                     100);
@@ -125,7 +127,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 var session = cluster.Connect();
                 session.Execute("select * from system.local");
-                Assert.That(cluster.AllHosts().Count, Is.EqualTo(3));
+                Assert.That(cluster.Metadata.AllHosts().Count, Is.EqualTo(3));
             }
         }
 
@@ -206,8 +208,8 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     cluster.Connect("system");
                     Assert.IsTrue(
-                        cluster.AllHosts().Any(h => addressList.Contains(h.Address.Address)),
-                        string.Join(";", cluster.AllHosts().Select(h => h.Address.ToString())) + " | " + TestCluster.InitialContactPoint.Address);
+                        cluster.Metadata.AllHosts().Any(h => addressList.Contains(h.Address.Address)),
+                        string.Join(";", cluster.Metadata.AllHosts().Select(h => h.Address.ToString())) + " | " + TestCluster.InitialContactPoint.Address);
                 }
                 catch (NoHostAvailableException ex)
                 {

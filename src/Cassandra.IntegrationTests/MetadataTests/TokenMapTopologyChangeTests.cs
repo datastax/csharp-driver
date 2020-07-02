@@ -21,6 +21,7 @@ using System.Text;
 
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
+using Cassandra.SessionManagement;
 using Cassandra.Tests;
 
 using NUnit.Framework;
@@ -31,8 +32,8 @@ namespace Cassandra.IntegrationTests.MetadataTests
     public class TokenMapTopologyChangeTests : TestGlobals
     {
         private ITestCluster TestCluster { get; set; }
-        private ICluster ClusterObjSync { get; set; }
-        private ICluster ClusterObjNotSync { get; set; }
+        private IInternalCluster ClusterObjSync { get; set; }
+        private IInternalCluster ClusterObjNotSync { get; set; }
 
         [Test]
         public void TokenMap_Should_RebuildTokenMap_When_NodeIsDecommissioned()
@@ -74,8 +75,8 @@ namespace Cassandra.IntegrationTests.MetadataTests
 
                 TestHelper.RetryAssert(() =>
                 {
-                    Assert.AreEqual(3, ClusterObjSync.Metadata.Hosts.Count);
-                    Assert.AreEqual(3, ClusterObjNotSync.Metadata.Hosts.Count);
+                    Assert.AreEqual(3, ClusterObjSync.InternalMetadata.Hosts.Count);
+                    Assert.AreEqual(3, ClusterObjNotSync.InternalMetadata.Hosts.Count);
 
                     replicasSync = ClusterObjSync.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123"));
                     replicasNotSync = ClusterObjNotSync.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123"));
@@ -84,8 +85,8 @@ namespace Cassandra.IntegrationTests.MetadataTests
                     Assert.AreEqual(1, replicasNotSync.Count);
                 }, 100, 150);
 
-                var oldTokenMapNotSync = ClusterObjNotSync.Metadata.TokenToReplicasMap;
-                var oldTokenMapSync = ClusterObjSync.Metadata.TokenToReplicasMap;
+                var oldTokenMapNotSync = ClusterObjNotSync.InternalMetadata.TokenToReplicasMap;
+                var oldTokenMapSync = ClusterObjSync.InternalMetadata.TokenToReplicasMap;
                 
                 if (TestClusterManager.SupportsDecommissionForcefully())
                 {
@@ -100,8 +101,8 @@ namespace Cassandra.IntegrationTests.MetadataTests
 
                 TestHelper.RetryAssert(() =>
                 {
-                    Assert.AreEqual(2, ClusterObjSync.Metadata.Hosts.Count, "ClusterObjSync.Metadata.Hosts.Count");
-                    Assert.AreEqual(2, ClusterObjNotSync.Metadata.Hosts.Count, "ClusterObjNotSync.Metadata.Hosts.Count");
+                    Assert.AreEqual(2, ClusterObjSync.InternalMetadata.Hosts.Count, "ClusterObjSync.Metadata.Hosts.Count");
+                    Assert.AreEqual(2, ClusterObjNotSync.InternalMetadata.Hosts.Count, "ClusterObjNotSync.Metadata.Hosts.Count");
 
                     replicasSync = ClusterObjSync.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123"));
                     replicasNotSync = ClusterObjNotSync.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123"));
@@ -109,18 +110,18 @@ namespace Cassandra.IntegrationTests.MetadataTests
                     Assert.AreEqual(2, replicasSync.Count, "replicasSync.Count");
                     Assert.AreEqual(1, replicasNotSync.Count, "replicasNotSync.Count");
 
-                    Assert.IsFalse(object.ReferenceEquals(ClusterObjNotSync.Metadata.TokenToReplicasMap, oldTokenMapNotSync));
-                    Assert.IsFalse(object.ReferenceEquals(ClusterObjSync.Metadata.TokenToReplicasMap, oldTokenMapSync));
+                    Assert.IsFalse(object.ReferenceEquals(ClusterObjNotSync.InternalMetadata.TokenToReplicasMap, oldTokenMapNotSync));
+                    Assert.IsFalse(object.ReferenceEquals(ClusterObjSync.InternalMetadata.TokenToReplicasMap, oldTokenMapSync));
                 }, 1000, 360);
 
-                oldTokenMapNotSync = ClusterObjNotSync.Metadata.TokenToReplicasMap;
-                oldTokenMapSync = ClusterObjSync.Metadata.TokenToReplicasMap;
+                oldTokenMapNotSync = ClusterObjNotSync.InternalMetadata.TokenToReplicasMap;
+                oldTokenMapSync = ClusterObjSync.InternalMetadata.TokenToReplicasMap;
 
                 this.TestCluster.BootstrapNode(4);
                 TestHelper.RetryAssert(() =>
                 {
-                    Assert.AreEqual(3, ClusterObjSync.Metadata.Hosts.Count);
-                    Assert.AreEqual(3, ClusterObjNotSync.Metadata.Hosts.Count);
+                    Assert.AreEqual(3, ClusterObjSync.InternalMetadata.Hosts.Count);
+                    Assert.AreEqual(3, ClusterObjNotSync.InternalMetadata.Hosts.Count);
 
                     replicasSync = ClusterObjSync.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123"));
                     replicasNotSync = ClusterObjNotSync.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123"));
@@ -128,8 +129,8 @@ namespace Cassandra.IntegrationTests.MetadataTests
                     Assert.AreEqual(3, replicasSync.Count);
                     Assert.AreEqual(1, replicasNotSync.Count);
 
-                    Assert.IsFalse(object.ReferenceEquals(ClusterObjNotSync.Metadata.TokenToReplicasMap, oldTokenMapNotSync));
-                    Assert.IsFalse(object.ReferenceEquals(ClusterObjSync.Metadata.TokenToReplicasMap, oldTokenMapSync));
+                    Assert.IsFalse(object.ReferenceEquals(ClusterObjNotSync.InternalMetadata.TokenToReplicasMap, oldTokenMapNotSync));
+                    Assert.IsFalse(object.ReferenceEquals(ClusterObjSync.InternalMetadata.TokenToReplicasMap, oldTokenMapSync));
                 }, 1000, 360);
 
             }

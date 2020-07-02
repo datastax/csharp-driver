@@ -321,7 +321,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             try
             {
                 var session = cluster.Connect();
-                Assert.AreEqual(256, cluster.AllHosts().First().Tokens.Count());
+                Assert.AreEqual(256, cluster.Metadata.AllHosts().First().Tokens.Count());
                 var ks = TestUtils.GetUniqueKeyspaceName();
                 session.Execute($"CREATE KEYSPACE \"{ks}\" WITH replication = {{'class': 'SimpleStrategy', 'replication_factor' : 1}}");
                 session.ChangeKeyspace(ks);
@@ -380,7 +380,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
                 // Manually calculate the routing key
                 var routingKey = SerializerManager.Default.GetCurrentSerializer().Serialize(id);
                 // Get the replicas
-                var replicas = cluster.GetReplicas(ks, routingKey);
+                var replicas = cluster.Metadata.GetReplicas(ks, routingKey);
                 Assert.AreEqual(metadataSync ? 2 : 1, replicas.Count);
                 CollectionAssert.AreEquivalent(replicas.Select(h => h.Address), coordinators);
             }
