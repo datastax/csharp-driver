@@ -16,7 +16,6 @@
 
 using System.Text;
 using System.Threading.Tasks;
-using Cassandra.Tasks;
 
 namespace Cassandra.Data.Linq
 {
@@ -41,17 +40,23 @@ namespace Cassandra.Data.Linq
             }
             _batchScript.Add(cqlCommand);
         }
-        
-        protected override Task<RowSet> InternalExecuteAsync()
+
+        protected override RowSet InternalExecute(string executionProfile)
         {
-            return InternalExecuteAsync(Configuration.DefaultExecutionProfileName);
+            if (_batchScript.IsEmpty)
+            {
+                throw new RequestInvalidException("The Batch must contain queries to execute");
+            }
+            _batchScript.SetBatchType(_batchType);
+            this.CopyQueryPropertiesTo(_batchScript);
+            return _session.Execute(_batchScript, executionProfile);
         }
 
         protected override Task<RowSet> InternalExecuteAsync(string executionProfile)
         {
             if (_batchScript.IsEmpty)
             {
-                return TaskHelper.FromException<RowSet>(new RequestInvalidException("The Batch must contain queries to execute"));
+                throw new RequestInvalidException("The Batch must contain queries to execute");
             }
             _batchScript.SetBatchType(_batchType);
             this.CopyQueryPropertiesTo(_batchScript);

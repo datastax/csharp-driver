@@ -85,16 +85,16 @@ namespace Cassandra.Data.Linq
         
         public void Execute(string executionProfile)
         {
-            WaitToCompleteWithMetrics(InternalExecuteAsync(executionProfile), QueryAbortTimeout);
+            InternalExecute(executionProfile);
         }
-
-        protected abstract Task<RowSet> InternalExecuteAsync();
         
         protected abstract Task<RowSet> InternalExecuteAsync(string executionProfile);
         
+        protected abstract RowSet InternalExecute(string executionProfile);
+        
         public Task ExecuteAsync()
         {
-            return InternalExecuteAsync();
+            return InternalExecuteAsync(Configuration.DefaultExecutionProfileName);
         }
         
         public Task ExecuteAsync(string executionProfile)
@@ -104,7 +104,7 @@ namespace Cassandra.Data.Linq
 
         public IAsyncResult BeginExecute(AsyncCallback callback, object state)
         {
-            return InternalExecuteAsync().ToApm(callback, state);
+            return InternalExecuteAsync(Configuration.DefaultExecutionProfileName).ToApm(callback, state);
         }
 
         public void EndExecute(IAsyncResult ar)
@@ -124,11 +124,6 @@ namespace Cassandra.Data.Linq
                 default:
                     throw new ArgumentException();
             }
-        }
-
-        internal T WaitToCompleteWithMetrics<T>(Task<T> task, int timeout = Timeout.Infinite)
-        {
-            return TaskHelper.WaitToCompleteWithMetrics(_metricsManager, task, timeout);
         }
     }
 }

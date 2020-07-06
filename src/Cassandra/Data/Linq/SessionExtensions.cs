@@ -65,9 +65,8 @@ namespace Cassandra.Data.Linq
         /// </summary>
         public static Batch CreateBatch(this ISession session, BatchType batchType)
         {
-            return TaskHelper.WaitToComplete(
-                session.CreateBatchAsync(batchType),
-                session.Cluster.Configuration.DefaultRequestOptions.QueryAbortTimeout);
+            var metadata = session.Cluster.Metadata.GetClusterDescription();
+            return session.CreateBatch(metadata, batchType);
         }
         
         public static Task<Batch> CreateBatchAsync(this ISession session)
@@ -78,7 +77,12 @@ namespace Cassandra.Data.Linq
         public static async Task<Batch> CreateBatchAsync(this ISession session, BatchType batchType)
         {
             var metadata = await session.Cluster.Metadata.GetClusterDescriptionAsync().ConfigureAwait(false);
-            if (metadata.ProtocolVersion.SupportsBatch())
+            return session.CreateBatch(metadata, batchType);
+        }
+
+        private static Batch CreateBatch(this ISession session, ClusterDescription description, BatchType batchType)
+        {
+            if (description.ProtocolVersion.SupportsBatch())
             {
                 return new BatchV2(session, batchType);
             }

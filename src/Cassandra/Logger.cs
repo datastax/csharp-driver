@@ -64,6 +64,11 @@ namespace Cassandra
             _loggerHandler.Error(message, args);
         }
 
+        public void Error(Exception ex, string message, params object[] args)
+        {
+            _loggerHandler.Error(ex, message, args);
+        }
+
         public void Warning(string message, params object[] args)
         {
             _loggerHandler.Warning(message, args);
@@ -86,6 +91,7 @@ namespace Cassandra
         {
             void Error(Exception ex);
             void Error(string message, Exception ex = null);
+            void Error(Exception ex, string message, params object[] args);
             void Error(string message, params object[] args);
             void Verbose(string message, params object[] args);
             void Info(string message, params object[] args);
@@ -114,6 +120,11 @@ namespace Cassandra
             public void Error(string message, params object[] args)
             {
                 _logger.LogError(message, args);
+            }
+
+            public void Error(Exception ex, string message, params object[] args)
+            {
+                _logger.LogError(0, ex, message, args);
             }
 
             public void Verbose(string message, params object[] args)
@@ -209,6 +220,21 @@ namespace Cassandra
                     message = string.Format(message, args);
                 }
                 Trace.WriteLine(string.Format("{0} #ERROR: {1}", DateTimeOffset.Now.DateTime.ToString(DateFormat), message), _category);
+            }
+
+            public void Error(Exception ex, string message, params object[] args)
+            {
+                if (!Diagnostics.CassandraTraceSwitch.TraceError)
+                {
+                    return;
+                }
+                if (args != null && args.Length > 0)
+                {
+                    message = string.Format(message, args);
+                }
+                Trace.WriteLine(
+                    string.Format("{0} #ERROR: {1}", DateTimeOffset.Now.DateTime.ToString(DateFormat),
+                        message + (ex != null ? "\nEXCEPTION:\n " + GetExceptionAndAllInnerEx(ex) : string.Empty)), _category);
             }
 
             public void Warning(string message, params object[] args)

@@ -39,6 +39,10 @@ namespace Cassandra.SessionManagement
         
         void TryInit();
 
+        Task TryInitAsync();
+
+        IInternalMetadata TryInitAndGetMetadata();
+
         Task<IInternalMetadata> TryInitAndGetMetadataAsync();
 
         /// <summary>

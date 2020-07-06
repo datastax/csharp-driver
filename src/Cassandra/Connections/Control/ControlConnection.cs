@@ -93,10 +93,10 @@ namespace Cassandra.Connections.Control
         }
 
         /// <inheritdoc />
-        public async Task InitAsync()
+        public async Task InitAsync(CancellationToken token = default(CancellationToken))
         {
             ControlConnection.Logger.Info("Trying to connect the ControlConnection");
-            await Connect(true).ConfigureAwait(false);
+            await Connect(true, token).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -171,38 +171,36 @@ namespace Cassandra.Connections.Control
 
         private IEnumerable<Task<IEnumerable<IConnectionEndPoint>>> AllHostsEndPointResolutionTasksEnumerable(
             ConcurrentDictionary<IContactPoint, object> attemptedContactPoints,
-            ConcurrentDictionary<Host, object> attemptedHosts,
-            bool isInitializing)
+            ConcurrentDictionary<Host, object> attemptedHosts)
         {
             foreach (var host in GetHostEnumerable())
             {
                 if (attemptedHosts.TryAdd(host, null))
                 {
-                    if (!IsHostValid(host, isInitializing))
+                    if (!IsHostValid(host, true))
                     {
                         continue;
                     }
 
-                    yield return ResolveHostContactPointOrConnectionEndpointAsync(attemptedContactPoints, host, isInitializing);
+                    yield return ResolveHostContactPointOrConnectionEndpointAsync(attemptedContactPoints, host, true);
                 }
             }
         }
 
         private IEnumerable<Task<IEnumerable<IConnectionEndPoint>>> DefaultLbpHostsEnumerable(
             ConcurrentDictionary<IContactPoint, object> attemptedContactPoints,
-            ConcurrentDictionary<Host, object> attemptedHosts,
-            bool isInitializing)
+            ConcurrentDictionary<Host, object> attemptedHosts)
         {
             foreach (var host in _config.DefaultRequestOptions.LoadBalancingPolicy.NewQueryPlan(_cluster.Metadata, null, null))
             {
                 if (attemptedHosts.TryAdd(host, null))
                 {
-                    if (!IsHostValid(host, isInitializing))
+                    if (!IsHostValid(host, false))
                     {
                         continue;
                     }
 
-                    yield return ResolveHostContactPointOrConnectionEndpointAsync(attemptedContactPoints, host, isInitializing);
+                    yield return ResolveHostContactPointOrConnectionEndpointAsync(attemptedContactPoints, host, false);
                 }
             }
         }
@@ -237,9 +235,10 @@ namespace Cassandra.Connections.Control
         /// <param name="isInitializing">
         /// Determines whether the ControlConnection is connecting for the first time as part of the initialization.
         /// </param>
+        /// <param name="token">Used to cancel initialization</param>
         /// <exception cref="NoHostAvailableException" />
         /// <exception cref="DriverInternalError" />
-        private async Task Connect(bool isInitializing)
+        private async Task Connect(bool isInitializing, CancellationToken token = default(CancellationToken))
         {
             // lazy iterator of endpoints to try for the control connection
             IEnumerable<Task<IEnumerable<IConnectionEndPoint>>> endPointResolutionTasksLazyIterator =
@@ -251,7 +250,8 @@ namespace Cassandra.Connections.Control
             // start with endpoints from the default LBP if it is already initialized
             if (!isInitializing)
             {
-                endPointResolutionTasksLazyIterator = DefaultLbpHostsEnumerable(attemptedContactPoints, attemptedHosts, isInitializing);
+                await _cluster.TryInitAndGetMetadataAsync().ConfigureAwait(false);
+                endPointResolutionTasksLazyIterator = DefaultLbpHostsEnumerable(attemptedContactPoints, attemptedHosts);
             }
 
             // add contact points next
@@ -262,7 +262,7 @@ namespace Cassandra.Connections.Control
             if (isInitializing)
             {
                 endPointResolutionTasksLazyIterator = endPointResolutionTasksLazyIterator.Concat(
-                    AllHostsEndPointResolutionTasksEnumerable(attemptedContactPoints, attemptedHosts, isInitializing));
+                    AllHostsEndPointResolutionTasksEnumerable(attemptedContactPoints, attemptedHosts));
             }
 
             var triedHosts = new Dictionary<IPEndPoint, Exception>();
@@ -271,6 +271,11 @@ namespace Cassandra.Connections.Control
                 var endPoints = await endPointResolutionTask.ConfigureAwait(false);
                 foreach (var endPoint in endPoints)
                 {
+                    if (token.IsCancellationRequested)
+                    {
+                        throw new TaskCanceledException();
+                    }
+
                     ControlConnection.Logger.Verbose("Attempting to connect to {0}.", endPoint.EndpointFriendlyName);
                     var connection = _config.ConnectionFactory.CreateUnobserved(_config.SerializerManager.GetCurrentSerializer(), endPoint, _config);
                     try
@@ -528,6 +533,9 @@ namespace Cassandra.Connections.Control
         {
             try
             {
+                // make sure the cluster object has finished initializing before processing protocol events
+                await _cluster.TryInitAndGetMetadataAsync().ConfigureAwait(false);
+
                 //This event is invoked from a worker thread (not a IO thread)
                 if (e is TopologyChangeEventArgs tce)
                 {
@@ -635,15 +643,7 @@ namespace Cassandra.Connections.Control
             _currentConnectionEndPoint = endPoint;
             _internalMetadata.SetCassandraVersion(host.CassandraVersion);
         }
-
-        /// <summary>
-        /// Uses the active connection to execute a query
-        /// </summary>
-        public IEnumerable<IRow> Query(string cqlQuery, bool retry = false)
-        {
-            return TaskHelper.WaitToComplete(QueryAsync(cqlQuery, retry), _config.SocketOptions.MetadataAbortTimeout);
-        }
-
+        
         public async Task<IEnumerable<IRow>> QueryAsync(string cqlQuery, bool retry = false)
         {
             return _config.MetadataRequestHandler.GetRowSet(

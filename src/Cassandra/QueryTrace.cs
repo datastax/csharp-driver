@@ -216,7 +216,7 @@ namespace Cassandra
         {
             try
             {
-                TaskHelper.WaitToComplete(LoadAsync(), _metadataFetchSyncTimeout);
+                Load();
             }
             catch (Exception ex)
             {
@@ -226,6 +226,14 @@ namespace Cassandra
             {
                 _isDisconnected = false;   
             }
+        }
+        internal QueryTrace Load()
+        {
+            // mark as disconnected, guaranteeing that it wont make metadata fetches triggered by a property get
+            // ReSharper disable once InconsistentlySynchronizedField : Can be both async and sync, don't mind
+            _isDisconnected = false;
+            var metadata = _session.TryInitAndGetMetadata();
+            return TaskHelper.WaitToComplete(metadata.GetQueryTraceAsync(this), _metadataFetchSyncTimeout);
         }
 
         internal async Task<QueryTrace> LoadAsync()

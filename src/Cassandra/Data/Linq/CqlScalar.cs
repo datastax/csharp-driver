@@ -43,6 +43,7 @@ namespace Cassandra.Data.Linq
         
         public new TEntity Execute(string executionProfile)
         {
+            GetTable().GetSession().Connect();
             return WaitToCompleteWithMetrics(ExecuteAsync(executionProfile), QueryAbortTimeout);
         }
 

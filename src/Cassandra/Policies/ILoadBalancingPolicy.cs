@@ -38,8 +38,8 @@ namespace Cassandra
         ///  before any call to another of the methods of the policy.
         /// </para>
         /// </summary>
-        /// <param name="metadata">Metadata instance of the session for which the policy is created.</param>
-        Task InitializeAsync(IMetadata metadata);
+        /// <param name="metadata">Metadata snapshot provider of the session for which the policy is created.</param>
+        Task InitializeAsync(IMetadataSnapshotProvider metadata);
 
         /// <summary>
         ///  Returns the distance assigned by this policy to the provided host. <p> The
@@ -52,11 +52,11 @@ namespace Cassandra
         ///  host in remote datacenters when the policy itself always picks host in the
         ///  local datacenter first.</p>
         /// </summary>
-        /// <param name="metadata">Metadata instance of the session for which the policy is created.</param>
+        /// <param name="cluster">Cluster instance for which the policy is created.</param>
         /// <param name="host"> the host of which to return the distance of. </param>
         /// 
         /// <returns>the HostDistance to <c>host</c>.</returns>
-        HostDistance Distance(IMetadata metadata, Host host);
+        HostDistance Distance(ICluster cluster, Host host);
 
         /// <summary>
         ///  Returns the hosts to use for a new query. <p> Each new query will call this
@@ -65,12 +65,12 @@ namespace Cassandra
         ///  be so), the next host will be used. If all hosts of the returned
         ///  <c>Iterator</c> are down, the query will fail.</p>
         /// </summary>
-        /// <param name="metadata">Metadata instance of the session for which the policy is created.</param>
+        /// <param name="cluster">Cluster instance for which the policy is created.</param>
         /// <param name="query">The query for which to build a plan, it can be null.</param>
         /// <param name="keyspace">Keyspace on which the query is going to be executed, it can be null.</param>
         /// <returns>An iterator of Host. The query is tried against the hosts returned
         ///  by this iterator in order, until the query has been sent successfully to one
         ///  of the host.</returns>
-        IEnumerable<Host> NewQueryPlan(IMetadata metadata, string keyspace, IStatement query);
+        IEnumerable<Host> NewQueryPlan(ICluster cluster, string keyspace, IStatement query);
     }
 }

@@ -18,6 +18,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 
 using Cassandra.Collections;
@@ -121,9 +122,9 @@ namespace Cassandra.Connections.Control
             _schemaParser = schemaParser;
         }
 
-        public Task InitAsync()
+        public Task InitAsync(CancellationToken token = default(CancellationToken))
         {
-            return ControlConnection.InitAsync();
+            return ControlConnection.InitAsync(token);
         }
 
         public Task ShutdownAsync()

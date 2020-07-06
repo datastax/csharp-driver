@@ -81,6 +81,7 @@ namespace Cassandra
         private bool? _keepContactPointsUnresolved;
         private bool? _allowBetaProtocolVersions;
         private string _localDatacenter;
+        private long? _initializationTimeoutMs;
 
         public Builder()
         {
@@ -204,7 +205,8 @@ namespace Cassandra
                 typeSerializerDefinitions,
                 _keepContactPointsUnresolved,
                 _allowBetaProtocolVersions,
-                _localDatacenter);
+                _localDatacenter,
+                _initializationTimeoutMs);
 
             return config;
         }
@@ -1180,6 +1182,12 @@ namespace Cassandra
         public Builder WithMonitorReporting(bool enabled)
         {
             return WithMonitorReporting(_monitorReportingOptions.SetMonitorReportingEnabled(enabled));
+        }
+
+        public Builder WithInitializationTimeout(long milliseconds)
+        {
+            _initializationTimeoutMs = milliseconds;
+            return this;
         }
 
         /// <summary>

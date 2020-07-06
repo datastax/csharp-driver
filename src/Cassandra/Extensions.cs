@@ -46,9 +46,15 @@ namespace Cassandra
         /// <returns></returns>
         public static ISessionState GetState(this ISession instance)
         {
-            return TaskHelper.WaitToComplete(
-                instance.GetStateAsync(), 
-                instance.Cluster.Configuration.DefaultRequestOptions.QueryAbortTimeout);
+            var session = instance as IInternalSession;
+
+            if (session == null)
+            {
+                return SessionState.Empty();
+            }
+
+            var metadata = session.TryInitAndGetMetadata();
+            return SessionState.From(session, metadata);
         }
 
         /// <summary>

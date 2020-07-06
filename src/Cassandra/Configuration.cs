@@ -127,6 +127,8 @@ namespace Cassandra
         /// </summary>
         public string LocalDatacenter { get; }
 
+        public long? InitializationTimeoutMs { get; }
+
         /// <summary>
         /// Shared reusable timer
         /// </summary>
@@ -314,7 +316,8 @@ namespace Cassandra
                  typeSerializerDefinitions: null,
                  keepContactPointsUnresolved: null,
                  allowBetaProtocolVersions: null,
-                 localDatacenter: null)
+                 localDatacenter: null,
+                 initializationTimeoutMs: null)
         {
         }
 
@@ -346,6 +349,7 @@ namespace Cassandra
                                bool? keepContactPointsUnresolved,
                                bool? allowBetaProtocolVersions,
                                string localDatacenter,
+                               long? initializationTimeoutMs,
                                ISessionFactory sessionFactory = null,
                                IRequestOptionsMapper requestOptionsMapper = null,
                                IStartupOptionsFactory startupOptionsFactory = null,
@@ -420,7 +424,8 @@ namespace Cassandra
             RequestOptions = RequestOptionsMapper.BuildRequestOptionsDictionary(executionProfiles, policies, socketOptions, clientOptions, queryOptions, GraphOptions);
             ExecutionProfiles = BuildExecutionProfilesDictionary(executionProfiles, RequestOptions);
             LocalDatacenter = localDatacenter;
-            
+            InitializationTimeoutMs = initializationTimeoutMs;
+
             MonitorReportingOptions = monitorReportingOptions ?? new MonitorReportingOptions();
             InsightsSupportVerifier = insightsSupportVerifier ?? Configuration.DefaultInsightsSupportVerifier;
             InsightsClientFactory = insightsClientFactory ?? Configuration.DefaultInsightsClientFactory;

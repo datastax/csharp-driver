@@ -30,6 +30,7 @@ using Cassandra.ExecutionProfiles;
 using Cassandra.Metrics;
 using Cassandra.Metrics.Internal;
 using Cassandra.Observers.Abstractions;
+using Cassandra.Requests;
 using Cassandra.SessionManagement;
 using Cassandra.Tasks;
 
@@ -137,6 +138,7 @@ namespace Cassandra
             _insightsClient = configuration.InsightsClientFactory.Create(cluster, this);
             UserDefinedTypes = new UdtMappingDefinitions(this);
             _initTask = Task.Run(InitInternalAsync);
+
         }
 
         /// <inheritdoc />
@@ -243,6 +245,17 @@ namespace Cassandra
                 pool.Value.Dispose();
             }
         }
+        
+        Task IInternalSession.TryInitAsync()
+        {
+            if (_initialized)
+            {
+                return TaskHelper.Completed;
+            }
+
+            ValidateState();
+            return WaitInitAsync();
+        }
 
         Task<IInternalMetadata> IInternalSession.TryInitAndGetMetadataAsync()
         {
@@ -252,7 +265,7 @@ namespace Cassandra
             }
 
             ValidateState();
-            return _initTask;
+            return WaitInitAndGetMetadataAsync();
         }
 
         void IInternalSession.TryInit()
@@ -263,7 +276,18 @@ namespace Cassandra
             }
 
             ValidateState();
-            TaskHelper.WaitToComplete(_initTask);
+            WaitInit();
+        }
+
+        IInternalMetadata IInternalSession.TryInitAndGetMetadata()
+        {
+            if (_initialized)
+            {
+                return _cluster.InternalMetadata;
+            }
+
+            ValidateState();
+            return WaitInitAndGetMetadata();
         }
 
         /// <summary>
@@ -285,6 +309,52 @@ namespace Cassandra
                 //There was an exception that is not possible to recover from
                 throw _cluster.InitException;
             }
+        }
+
+        private void WaitInit()
+        {
+            using (var waiter = new TaskTimeoutHelper(_initTask, _cluster.GetInitTimeout()))
+            {
+                waiter.WaitWithTimeout();
+            }
+
+            throw new InitializationTimeoutException();
+        }
+
+        private IInternalMetadata WaitInitAndGetMetadata()
+        {
+            using (var waiter = new TaskTimeoutHelper(_initTask, _cluster.GetInitTimeout()))
+            {
+                if (waiter.WaitWithTimeout())
+                {
+                    return _initTask.Result;
+                }
+            }
+
+            throw new InitializationTimeoutException();
+        }
+
+        private async Task<IInternalMetadata> WaitInitAndGetMetadataAsync()
+        {
+            using (var waiter = new TaskTimeoutHelper(_initTask, _cluster.GetInitTimeout()))
+            {
+                if (await waiter.WaitWithTimeoutAsync().ConfigureAwait(false))
+                {
+                    return _initTask.Result;
+                }
+            }
+
+            throw new InitializationTimeoutException();
+        }
+
+        private async Task<IInternalMetadata> WaitInitAsync()
+        {
+            using (var waiter = new TaskTimeoutHelper(_initTask, _cluster.GetInitTimeout()))
+            {
+                await waiter.WaitWithTimeoutAsync().ConfigureAwait(false);
+            }
+
+            throw new InitializationTimeoutException();
         }
         
         private async Task<IInternalMetadata> InitInternalAsync()
@@ -357,7 +427,11 @@ namespace Cassandra
         public RowSet EndExecute(IAsyncResult ar)
         {
             var task = (Task<RowSet>)ar;
-            TaskHelper.WaitToCompleteWithMetrics(_metricsManager, task, Configuration.DefaultRequestOptions.QueryAbortTimeout);
+            var initTimeout = _cluster.GetInitTimeout();
+            var timeout = _initialized 
+                ? Configuration.DefaultRequestOptions.QueryAbortTimeout + initTimeout.TotalMilliseconds 
+                : initTimeout.TotalMilliseconds;
+            TaskHelper.WaitToCompleteWithMetrics(_metricsManager, task, (int)timeout);
             return task.Result;
         }
 
@@ -365,14 +439,19 @@ namespace Cassandra
         public PreparedStatement EndPrepare(IAsyncResult ar)
         {
             var task = (Task<PreparedStatement>)ar;
-            TaskHelper.WaitToCompleteWithMetrics(_metricsManager, task, Configuration.DefaultRequestOptions.QueryAbortTimeout);
+            var initTimeout = _cluster.GetInitTimeout();
+            var timeout = _initialized 
+                ? Configuration.DefaultRequestOptions.QueryAbortTimeout + initTimeout.TotalMilliseconds 
+                : initTimeout.TotalMilliseconds;
+            TaskHelper.WaitToCompleteWithMetrics(_metricsManager, task, (int)timeout);
             return task.Result;
         }
 
         /// <inheritdoc />
         public RowSet Execute(IStatement statement, string executionProfileName)
         {
-            var task = ExecuteAsync(statement, executionProfileName);
+            var metadata = InternalRef.TryInitAndGetMetadata();
+            var task = ExecuteInternalAsync(metadata, statement, InternalRef.GetRequestOptions(executionProfileName));
             TaskHelper.WaitToCompleteWithMetrics(_metricsManager, task, Configuration.DefaultRequestOptions.QueryAbortTimeout);
             return task.Result;
         }
@@ -414,18 +493,15 @@ namespace Cassandra
         }
 
         /// <inheritdoc />
-        public Task<RowSet> ExecuteAsync(IStatement statement, string executionProfileName)
-        {
-            return ExecuteAsync(statement, InternalRef.GetRequestOptions(executionProfileName));
-        }
-
-        private async Task<RowSet> ExecuteAsync(IStatement statement, IRequestOptions requestOptions)
+        public async Task<RowSet> ExecuteAsync(IStatement statement, string executionProfileName)
         {
             var metadata = await InternalRef.TryInitAndGetMetadataAsync().ConfigureAwait(false);
-            return await ExecuteAsync(metadata, statement, requestOptions).ConfigureAwait(false);
+            return await ExecuteInternalAsync(
+                metadata, statement, InternalRef.GetRequestOptions(executionProfileName)).ConfigureAwait(false);
         }
-
-        private Task<RowSet> ExecuteAsync(IInternalMetadata metadata, IStatement statement, IRequestOptions requestOptions)
+        
+        private Task<RowSet> ExecuteInternalAsync(
+            IInternalMetadata metadata, IStatement statement, IRequestOptions requestOptions)
         {
             return Configuration.RequestHandlerFactory
                                 .Create(this, metadata, metadata.SerializerManager.GetCurrentSerializer(), statement, requestOptions)
@@ -520,7 +596,8 @@ namespace Cassandra
         /// <inheritdoc />
         public PreparedStatement Prepare(string cqlQuery, string keyspace, IDictionary<string, byte[]> customPayload)
         {
-            var task = PrepareAsync(cqlQuery, keyspace, customPayload);
+            InternalRef.TryInit();
+            var task = _cluster.PrepareAsync(this, cqlQuery, keyspace, customPayload);
             TaskHelper.WaitToCompleteWithMetrics(_metricsManager, task, Configuration.ClientOptions.QueryAbortTimeout);
             return task.Result;
         }
@@ -547,6 +624,7 @@ namespace Cassandra
         public async Task<PreparedStatement> PrepareAsync(
             string cqlQuery, string keyspace, IDictionary<string, byte[]> customPayload)
         {
+            await InternalRef.TryInitAsync().ConfigureAwait(false);
             return await _cluster.PrepareAsync(this, cqlQuery, keyspace, customPayload).ConfigureAwait(false);
         }
 
@@ -591,17 +669,25 @@ namespace Cassandra
         /// <inheritdoc />
         public GraphResultSet ExecuteGraph(IGraphStatement statement, string executionProfileName)
         {
-            return TaskHelper.WaitToCompleteWithMetrics(_metricsManager, ExecuteGraphAsync(statement, executionProfileName));
+            var metadata = InternalRef.TryInitAndGetMetadata();
+            return TaskHelper.WaitToCompleteWithMetrics(
+                _metricsManager, ExecuteGraphInternalAsync(metadata, statement, executionProfileName));
         }
 
         /// <inheritdoc />
         public async Task<GraphResultSet> ExecuteGraphAsync(IGraphStatement graphStatement, string executionProfileName)
         {
             var metadata = await InternalRef.TryInitAndGetMetadataAsync().ConfigureAwait(false);
+            return await ExecuteGraphInternalAsync(metadata, graphStatement, executionProfileName).ConfigureAwait(false);
+        }
+
+        private async Task<GraphResultSet> ExecuteGraphInternalAsync(
+            IInternalMetadata metadata, IGraphStatement graphStatement, string executionProfileName)
+        {
             var requestOptions = InternalRef.GetRequestOptions(executionProfileName);
             var stmt = graphStatement.ToIStatement(requestOptions.GraphOptions);
             await GetAnalyticsPrimary(metadata, stmt, graphStatement, requestOptions).ConfigureAwait(false);
-            var rs = await ExecuteAsync(stmt, requestOptions).ConfigureAwait(false);
+            var rs = await ExecuteInternalAsync(metadata, stmt, requestOptions).ConfigureAwait(false);
             return GraphResultSet.CreateNew(rs, graphStatement, requestOptions.GraphOptions);
         }
 
@@ -618,8 +704,8 @@ namespace Cassandra
             RowSet rs;
             try
             {
-                rs = await ExecuteAsync(
-                    new SimpleStatement("CALL DseClientTool.getAnalyticsGraphServer()"), requestOptions).ConfigureAwait(false);
+                rs = await ExecuteInternalAsync(
+                    internalMetadata, new SimpleStatement("CALL DseClientTool.getAnalyticsGraphServer()"), requestOptions).ConfigureAwait(false);
             }
             catch (Exception ex)
             {

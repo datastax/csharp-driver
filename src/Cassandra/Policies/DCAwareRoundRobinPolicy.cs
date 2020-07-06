@@ -78,7 +78,7 @@ namespace Cassandra
         /// </summary>
         public string LocalDc { get; private set; }
 
-        public Task InitializeAsync(IMetadata metadata)
+        public Task InitializeAsync(IMetadataSnapshotProvider metadata)
         {
             //When the pool changes, it should clear the local cache
             metadata.HostAdded += _ => ClearHosts();
@@ -97,10 +97,10 @@ namespace Cassandra
         ///  is <c>Ignored</c>. </p><p> To configure how many host in each remote
         ///  datacenter is considered <c>Remote</c>.</p>
         /// </summary>
-        /// <param name="metadata">The information about the session instance for which the policy is created.</param>
+        /// <param name="cluster">The cluster instance for which the policy is created.</param>
         /// <param name="host"> the host of which to return the distance of. </param>
         /// <returns>the HostDistance to <c>host</c>.</returns>
-        public HostDistance Distance(IMetadata metadata, Host host)
+        public HostDistance Distance(ICluster cluster, Host host)
         {
             var dc = GetDatacenter(host);
             return dc == LocalDc ? HostDistance.Local : HostDistance.Remote;
@@ -113,12 +113,12 @@ namespace Cassandra
         ///  per remote datacenter. The order of the local node in the returned query plan
         ///  will follow a Round-robin algorithm.</p>
         /// </summary>
-        /// <param name="metadata">The information about the session instance for which the policy is created.</param>
+        /// <param name="cluster">The information about the session instance for which the policy is created.</param>
         /// <param name="keyspace">Keyspace on which the query is going to be executed</param>
         /// <param name="query"> the query for which to build the plan. </param>
         /// <returns>a new query plan, i.e. an iterator indicating which host to try
         ///  first for querying, which one to use as failover, etc...</returns>
-        public IEnumerable<Host> NewQueryPlan(IMetadata metadata, string keyspace, IStatement query)
+        public IEnumerable<Host> NewQueryPlan(ICluster cluster, string keyspace, IStatement query)
         {
             var startIndex = Interlocked.Increment(ref _index);
 
@@ -128,7 +128,7 @@ namespace Cassandra
                 Interlocked.Exchange(ref _index, 0);
             }
 
-            var hosts = GetHosts(metadata);
+            var hosts = GetHosts(cluster.Metadata);
             //Round-robin through local nodes
             for (var i = 0; i < hosts.Count; i++)
             {
@@ -150,7 +150,7 @@ namespace Cassandra
         /// <summary>
         /// Gets a tuple containing the list of local and remote nodes
         /// </summary>
-        internal List<Host> GetHosts(IMetadata metadata)
+        internal List<Host> GetHosts(IMetadataSnapshotProvider metadata)
         {
             var hosts = _hosts;
             if (hosts != null)

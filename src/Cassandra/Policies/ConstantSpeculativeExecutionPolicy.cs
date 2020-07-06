@@ -51,7 +51,7 @@ namespace Cassandra
 
         public int MaxSpeculativeExecutions { get; }
         
-        public Task InitializeAsync(IMetadata metadata)
+        public Task InitializeAsync(IMetadataSnapshotProvider metadata)
         {
             return TaskHelper.Completed;
         }

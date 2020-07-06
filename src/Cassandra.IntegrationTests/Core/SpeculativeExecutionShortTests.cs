@@ -161,7 +161,7 @@ namespace Cassandra.IntegrationTests.Core
                 return TaskHelper.Completed;
             }
 
-            public Task InitializeAsync(IMetadata metadata)
+            public Task InitializeAsync(IMetadataSnapshotProvider metadata)
             {
                 return TaskHelper.Completed;
             }

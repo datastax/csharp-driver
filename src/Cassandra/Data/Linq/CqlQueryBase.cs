@@ -182,6 +182,7 @@ namespace Cassandra.Data.Linq
         
         private IEnumerable<TEntity> ExecuteCqlQuery(string executionProfile)
         {
+            GetTable().GetSession().Connect();
             return WaitToCompleteWithMetrics(ExecuteCqlQueryAsync(executionProfile), QueryAbortTimeout);
         }
         

@@ -149,6 +149,7 @@ namespace Cassandra.Data.Linq
 
         public void Create()
         {
+            _session.Connect();
             WaitToCompleteWithMetrics(CreateAsync(), QueryAbortTimeout);
         }
 

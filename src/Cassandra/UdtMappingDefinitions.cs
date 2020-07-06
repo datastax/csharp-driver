@@ -46,7 +46,14 @@ namespace Cassandra
         /// <exception cref="ArgumentException" />
         public void Define(params UdtMap[] udtMaps)
         {
-            TaskHelper.WaitToComplete(DefineAsync(udtMaps), _cluster.Configuration.DefaultRequestOptions.QueryAbortTimeout);
+            if (udtMaps == null)
+            {
+                throw new ArgumentNullException("udtMaps");
+            }
+
+            var metadata = _session.TryInitAndGetMetadata();
+            TaskHelper.WaitToComplete(
+                DefineInternalAsync(metadata, udtMaps), _cluster.Configuration.DefaultRequestOptions.QueryAbortTimeout);
         }
 
         /// <summary>
@@ -60,6 +67,11 @@ namespace Cassandra
                 throw new ArgumentNullException("udtMaps");
             }
             var metadata = await _session.TryInitAndGetMetadataAsync().ConfigureAwait(false);
+            await DefineInternalAsync(metadata, udtMaps).ConfigureAwait(false);
+        }
+
+        private async Task DefineInternalAsync(IInternalMetadata metadata, UdtMap[] udtMaps)
+        {
             var sessionKeyspace = _session.Keyspace;
             if (string.IsNullOrEmpty(sessionKeyspace) && udtMaps.Any(map => map.Keyspace == null))
             {

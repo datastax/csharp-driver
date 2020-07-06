@@ -48,6 +48,7 @@ namespace Cassandra
         private readonly bool _implicitContactPoint = false;
         private volatile Exception _initException;
         private volatile bool _initialized = false;
+        private volatile TaskCompletionSource<IInternalMetadata> _initTaskCompletionSource;
         private readonly SemaphoreSlim _sessionCreateLock = new SemaphoreSlim(1, 1);
         private long _sessionCounter = -1;
 
@@ -56,6 +57,7 @@ namespace Cassandra
         private IReadOnlyList<ILoadBalancingPolicy> _loadBalancingPolicies;
 
         private readonly Task<IInternalMetadata> _initTask;
+        private readonly CancellationTokenSource _initCancellationTokenSource = new CancellationTokenSource();
 
         private long _state = Cluster.Initializing;
 
@@ -135,7 +137,8 @@ namespace Cassandra
             _internalMetadata = new InternalMetadata(this, configuration, parsedContactPoints);
             _lazyMetadata = new Metadata(_internalMetadata);
 
-            _initTask = Task.Run(InitAsync);
+            _initTaskCompletionSource = new TaskCompletionSource<IInternalMetadata>();
+            _initTask = Task.Run(InitInternalAsync);
         }
 
         /// <inheritdoc />
@@ -144,7 +147,7 @@ namespace Cassandra
             if (_initialized)
             {
                 //It was already initialized
-                return _initTask;
+                return Task.FromResult(_internalMetadata);
             }
             
             var currentState = Interlocked.Read(ref _state);
@@ -159,10 +162,10 @@ namespace Cassandra
                 throw _initException;
             }
 
-            return _initTask;
+            return _initTaskCompletionSource.Task;
         }
 
-        private async Task<IInternalMetadata> InitAsync()
+        private async Task<IInternalMetadata> InitInternalAsync()
         {
             Cluster.Logger.Info("Connecting to cluster using {0}", Cluster.GetAssemblyInfo());
             try
@@ -178,31 +181,48 @@ namespace Cassandra
 
                 _loadBalancingPolicies = loadBalancingPolicies.ToList();
 
-                // Only abort the async operations when at least twice the time for ConnectTimeout per host passed
-                var initialAbortTimeout = Configuration.SocketOptions.ConnectTimeoutMillis * 2 * _internalMetadata.Hosts.Count;
-                initialAbortTimeout = Math.Max(initialAbortTimeout, Configuration.SocketOptions.MetadataAbortTimeout);
-                var initTask = _lazyMetadata.TryInitializeAsync();
-                try
+                var reconnectionSchedule = Configuration.Policies.ReconnectionPolicy.NewSchedule();
+
+                do
                 {
-                    await initTask.WaitToCompleteAsync(initialAbortTimeout).ConfigureAwait(false);
-                }
-                catch (TimeoutException ex)
-                {
-                    var newEx = new TimeoutException(
-                        "Cluster initialization was aborted after timing out. This mechanism is put in place to" +
-                        " avoid blocking the calling thread forever. This usually caused by a networking issue" +
-                        " between the client driver instance and the cluster. You can increase this timeout via " +
-                        "the SocketOptions.ConnectTimeoutMillis config setting. This can also be related to deadlocks " +
-                        "caused by mixing synchronous and asynchronous code.", ex);
-                    _initException = new InitFatalErrorException(newEx);
-                    initTask.ContinueWith(t =>
+                    try
                     {
-                        if (t.IsFaulted && t.Exception != null)
+                        await _lazyMetadata.TryInitializeAsync(_initCancellationTokenSource.Token).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        if (IsDisposed)
                         {
-                            _initException = new InitFatalErrorException(t.Exception.InnerException);
+                            throw new ObjectDisposedException("Cluster instance was disposed before initialization finished.");
                         }
-                    }, TaskContinuationOptions.ExecuteSynchronously).Forget();
-                    throw newEx;
+
+                        var currentTcs = _initTaskCompletionSource;
+                        
+                        var delay = reconnectionSchedule.NextDelayMs();
+                        Cluster.Logger.Error(ex, "Cluster initialization failed. Retrying in {0} ms.", delay);
+                        Task.Run(() => currentTcs.TrySetException(
+                            new InitializationErrorException(
+                                "Cluster initialization failed. See inner exception. " +
+                                "The driver will attempt to retry the initialization according to the reconnection policy " +
+                                "schedule."))).Forget();
+
+                        try
+                        {
+                            await Task.Delay(
+                                TimeSpan.FromMilliseconds(delay), 
+                                _initCancellationTokenSource.Token).ConfigureAwait(false);
+                        }
+                        finally
+                        {
+                            _initTaskCompletionSource = new TaskCompletionSource<IInternalMetadata>();
+                        }
+                        
+                    }
+                } while (!IsDisposed);
+                
+                if (IsDisposed)
+                {
+                    throw new ObjectDisposedException("Cluster instance was disposed before initialization finished.");
                 }
                 
                 // initialize the local datacenter provider
@@ -221,11 +241,6 @@ namespace Cassandra
 
                 InitializeHostDistances();
 
-                // Set metadata dependent options
-                SetMetadataDependentOptions();
-
-                _internalMetadata.Hosts.Added += _internalMetadata.OnHostAdded;
-                _internalMetadata.Hosts.Removed += _internalMetadata.OnHostRemoved;
                 _internalMetadata.Hosts.Up += OnHostUp;
                 
                 var previousState = Interlocked.CompareExchange(ref _state, Cluster.Initialized, Cluster.Initializing);
@@ -242,23 +257,23 @@ namespace Cassandra
                                     + "]");
                 Cluster.Logger.Info("Cluster [" + _internalMetadata.ClusterName + "] has been initialized.");
 
+                Task.Run(() => _initTaskCompletionSource.TrySetResult(_internalMetadata)).Forget();
                 return _internalMetadata;
-            }
-            catch (NoHostAvailableException)
-            {
-                //No host available now, maybe later it can recover from
-                throw;
-            }
-            catch (TimeoutException)
-            {
-                throw;
             }
             catch (Exception ex)
             {
+                if (IsDisposed)
+                {
+                    var newEx = new ObjectDisposedException("Cluster instance was disposed before initialization finished.");
+                    Task.Run(() => _initTaskCompletionSource.TrySetException(newEx)).Forget();
+                    throw newEx;
+                }
+
                 //There was an error that the driver is not able to recover from
                 //Store the exception for the following times
                 _initException = new InitFatalErrorException(ex);
                 //Throw the actual exception for the first time
+                Task.Run(() => _initTaskCompletionSource.TrySetException(ex)).Forget();
                 throw;
             }
         }
@@ -269,6 +284,19 @@ namespace Cassandra
             {
                 InternalRef.RetrieveAndSetDistance(host);
             }
+        }
+        
+        TimeSpan IInternalCluster.GetInitTimeout()
+        {
+            if (Configuration.InitializationTimeoutMs.HasValue)
+            {
+                return TimeSpan.FromMilliseconds(Configuration.InitializationTimeoutMs.Value);
+            }
+
+            // Only abort the async operations when at least twice the time for ConnectTimeout per host passed
+            var initialAbortTimeoutMs = Configuration.SocketOptions.ConnectTimeoutMillis * 2 * _internalMetadata.Hosts.Count;
+            initialAbortTimeoutMs = Math.Max(initialAbortTimeoutMs, Configuration.SocketOptions.MetadataAbortTimeoutMs);
+            return TimeSpan.FromMilliseconds(initialAbortTimeoutMs);
         }
 
         private static string GetAssemblyInfo()
@@ -353,14 +381,6 @@ namespace Cassandra
 
             // Math.Abs just to avoid negative counters if it overflows
             return newCounter < 0 ? Math.Abs(newCounter) : newCounter;
-        }
-
-        private void SetMetadataDependentOptions()
-        {
-            if (_internalMetadata.IsDbaas)
-            {
-                Configuration.SetDefaultConsistencyLevel(ConsistencyLevel.LocalQuorum);
-            }
         }
 
         /// <summary>
@@ -449,12 +469,23 @@ namespace Cassandra
                 Cluster.Logger.Warning("Exception occured while disposing session instances: {0}", ex.ToString());
             }
 
-            if (previousState != Cluster.Initialized)
-            {
-                return;
-            }
+            _initCancellationTokenSource.Cancel();
 
-            await ShutdownInternalAsync().ConfigureAwait(false);
+            if (previousState == Cluster.Initialized)
+            {
+                await ShutdownInternalAsync().ConfigureAwait(false);
+            }
+            else
+            {
+                try
+                {
+                    await _initTask.ConfigureAwait(false);
+                }
+                catch (Exception)
+                {
+                    // ignored
+                }
+            }
 
             Cluster.Logger.Info("Cluster [" + _internalMetadata.ClusterName + "] has been shut down.");
         }
@@ -480,12 +511,12 @@ namespace Cassandra
         /// <inheritdoc />
         HostDistance IInternalCluster.RetrieveAndSetDistance(Host host)
         {
-            var distance = _loadBalancingPolicies[0].Distance(Metadata, host);
+            var distance = _loadBalancingPolicies[0].Distance(this, host);
 
             for (var i = 1; i < _loadBalancingPolicies.Count; i++)
             {
                 var lbp = _loadBalancingPolicies[i];
-                var lbpDistance = lbp.Distance(Metadata, host);
+                var lbpDistance = lbp.Distance(this, host);
                 if (lbpDistance < distance)
                 {
                     distance = lbpDistance;
@@ -500,8 +531,6 @@ namespace Cassandra
         async Task<PreparedStatement> IInternalCluster.PrepareAsync(
             IInternalSession session, string cqlQuery, string keyspace, IDictionary<string, byte[]> customPayload)
         {
-            await InternalRef.TryInitAndGetMetadataAsync().ConfigureAwait(false);
-
             var serializer = _internalMetadata.SerializerManager.GetCurrentSerializer();
             var currentVersion = serializer.ProtocolVersion;
             if (!currentVersion.SupportsKeyspaceInRequest() && keyspace != null)
@@ -523,7 +552,7 @@ namespace Cassandra
             var ps = await handler.PrepareAsync(
                 request,
                 session,
-                lbp.NewQueryPlan(Metadata, session.Keyspace, null).GetEnumerator()).ConfigureAwait(false);
+                lbp.NewQueryPlan(this, session.Keyspace, null).GetEnumerator()).ConfigureAwait(false);
             var psAdded = InternalRef.PreparedQueries.GetOrAdd(ps.Id, ps);
             if (ps != psAdded)
             {

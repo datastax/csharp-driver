@@ -23,76 +23,12 @@ namespace Cassandra
     /// <summary>
     /// Allows for fetching of metadata about the connected cluster, including known nodes and schema definitions.
     /// </summary>
-    public interface IMetadata
+    public interface IMetadata : IMetadataSnapshotProvider
     {
-        event HostsEventHandler HostsEvent;
-
-        event SchemaChangedEventHandler SchemaChangedEvent;
-
-        /// <summary>
-        /// Event that gets triggered when a new host is added to the cluster
-        /// </summary>
-        event Action<Host> HostAdded;
-
-        /// <summary>
-        /// Event that gets triggered when a host has been removed from the cluster
-        /// </summary>
-        event Action<Host> HostRemoved;
-
-        Configuration Configuration { get; }
-
         Task<ClusterDescription> GetClusterDescriptionAsync();
 
         ClusterDescription GetClusterDescription();
-
-        /// <summary>
-        /// <para>
-        ///  Returns all known hosts of this cluster from the driver's cache. The driver's cache
-        /// is kept up to date using server protocol events so it will not be populated until the initialization is done
-        /// and a connection is open.
-        /// </para> 
-        /// <para>
-        /// This method might return an empty collection if the initialization has not finished yet.
-        /// </para>
-        /// </summary>
-        ICollection<Host> AllHostsSnapshot();
-
-        /// <summary>
-        /// <para>
-        /// Get the replicas without performing any I/O (it will use the driver's cache). The driver's cache
-        /// is kept up to date using server protocol events so it will not be populated until the initialization is done
-        /// and a connection is open.
-        /// </para> 
-        /// <para>
-        /// This method might return an empty collection if the initialization has not finished yet.
-        /// </para>
-        /// </summary>
-        IEnumerable<IPEndPoint> AllReplicasSnapshot();
-
-        /// <summary>
-        /// <para>
-        /// Get the replicas for a given keyspace and partition key without performing any I/O (it will use the driver's cache).
-        /// The driver's cache is kept up to date using server protocol events so it will not be populated
-        /// until the initialization is done and a connection is open.
-        /// </para> 
-        /// <para>
-        /// This method might return an empty collection if the initialization has not finished yet.
-        /// </para>
-        /// </summary>
-        ICollection<Host> GetReplicasSnapshot(string keyspaceName, byte[] partitionKey);
-
-        /// <summary>
-        /// <para>
-        /// Get the replicas for a partition key without performing any I/O (it will use the driver's cache).
-        /// The driver's cache is kept up to date using server protocol events so it will not be populated
-        /// until the initialization is done and a connection is open.
-        /// </para> 
-        /// <para>
-        /// This method might return an empty collection if the initialization has not finished yet.
-        /// </para>
-        /// </summary>
-        ICollection<Host> GetReplicasSnapshot(byte[] partitionKey);
-
+        
         Host GetHost(IPEndPoint address);
 
         Task<Host> GetHostAsync(IPEndPoint address);

@@ -177,7 +177,8 @@ namespace Cassandra
         /// <inheritdoc />
         public KeyspaceMetadata GetKeyspace(string keyspace)
         {
-            return TaskHelper.WaitToComplete(GetKeyspaceAsync(keyspace), _queryAbortTimeout);
+            TryInitialize();
+            return TaskHelper.WaitToComplete(InternalMetadata.GetKeyspaceAsync(keyspace), _queryAbortTimeout);
         }
 
         /// <inheritdoc />
@@ -190,7 +191,8 @@ namespace Cassandra
         /// <inheritdoc />
         public ICollection<string> GetKeyspaces()
         {
-            return TaskHelper.WaitToComplete(GetKeyspacesAsync(), _queryAbortTimeout);
+            TryInitialize();
+            return TaskHelper.WaitToComplete(InternalMetadata.GetKeyspacesAsync(), _queryAbortTimeout);
         }
 
         /// <inheritdoc />
@@ -203,7 +205,8 @@ namespace Cassandra
         /// <inheritdoc />
         public ICollection<string> GetTables(string keyspace)
         {
-            return TaskHelper.WaitToComplete(GetTablesAsync(keyspace), _queryAbortTimeout);
+            TryInitialize();
+            return TaskHelper.WaitToComplete(InternalMetadata.GetTablesAsync(keyspace), _queryAbortTimeout);
         }
 
         /// <inheritdoc />
@@ -216,7 +219,8 @@ namespace Cassandra
         /// <inheritdoc />
         public TableMetadata GetTable(string keyspace, string tableName)
         {
-            return TaskHelper.WaitToComplete(GetTableAsync(keyspace, tableName), _queryAbortTimeout * 2);
+            TryInitialize();
+            return TaskHelper.WaitToComplete(InternalMetadata.GetTableAsync(keyspace, tableName), _queryAbortTimeout * 2);
         }
 
         /// <inheritdoc />
@@ -229,7 +233,8 @@ namespace Cassandra
         /// <inheritdoc />
         public MaterializedViewMetadata GetMaterializedView(string keyspace, string name)
         {
-            return TaskHelper.WaitToComplete(GetMaterializedViewAsync(keyspace, name), _queryAbortTimeout * 2);
+            TryInitialize();
+            return TaskHelper.WaitToComplete(InternalMetadata.GetMaterializedViewAsync(keyspace, name), _queryAbortTimeout * 2);
         }
 
         /// <inheritdoc />
@@ -242,7 +247,8 @@ namespace Cassandra
         /// <inheritdoc />
         public UdtColumnInfo GetUdtDefinition(string keyspace, string typeName)
         {
-            return TaskHelper.WaitToComplete(GetUdtDefinitionAsync(keyspace, typeName), _queryAbortTimeout);
+            TryInitialize();
+            return TaskHelper.WaitToComplete(InternalMetadata.GetUdtDefinitionAsync(keyspace, typeName), _queryAbortTimeout);
         }
 
         /// <inheritdoc />
@@ -255,7 +261,8 @@ namespace Cassandra
         /// <inheritdoc />
         public FunctionMetadata GetFunction(string keyspace, string name, string[] signature)
         {
-            return TaskHelper.WaitToComplete(GetFunctionAsync(keyspace, name, signature), _queryAbortTimeout);
+            TryInitialize();
+            return TaskHelper.WaitToComplete(InternalMetadata.GetFunctionAsync(keyspace, name, signature), _queryAbortTimeout);
         }
 
         /// <inheritdoc />
@@ -268,7 +275,8 @@ namespace Cassandra
         /// <inheritdoc />
         public AggregateMetadata GetAggregate(string keyspace, string name, string[] signature)
         {
-            return TaskHelper.WaitToComplete(GetAggregateAsync(keyspace, name, signature), _queryAbortTimeout);
+            TryInitialize();
+            return TaskHelper.WaitToComplete(InternalMetadata.GetAggregateAsync(keyspace, name, signature), _queryAbortTimeout);
         }
 
         /// <inheritdoc />
@@ -281,7 +289,8 @@ namespace Cassandra
         /// <inheritdoc />
         public bool RefreshSchema(string keyspace = null, string table = null)
         {
-            return TaskHelper.WaitToComplete(RefreshSchemaAsync(keyspace, table), _queryAbortTimeout * 2);
+            TryInitialize();
+            return TaskHelper.WaitToComplete(InternalMetadata.RefreshSchemaAsync(keyspace, table), _queryAbortTimeout * 2);
         }
 
         /// <inheritdoc />
@@ -298,7 +307,7 @@ namespace Cassandra
             return await InternalMetadata.CheckSchemaAgreementAsync().ConfigureAwait(false);
         }
 
-        internal Task TryInitializeAsync()
+        internal Task TryInitializeAsync(CancellationToken token = default(CancellationToken))
         {
             if (_initialized)
             {
@@ -306,7 +315,8 @@ namespace Cassandra
                 return TaskHelper.Completed;
             }
 
-            return InitializeAsync();
+            TryLaunchInitTask(token);
+            return _initTask;
         }
 
         internal void TryInitialize()
@@ -317,10 +327,11 @@ namespace Cassandra
                 return;
             }
 
-            TaskHelper.WaitToComplete(InitializeAsync(), _queryAbortTimeout);
+            TryLaunchInitTask();
+            _initTask.GetAwaiter().GetResult();
         }
 
-        private Task InitializeAsync()
+        private void TryLaunchInitTask(CancellationToken token = default(CancellationToken))
         {
             var currentState = Interlocked.Read(ref _state);
             if (currentState == Metadata.Disposed)
@@ -331,15 +342,13 @@ namespace Cassandra
             if (Interlocked.CompareExchange(ref _state, Metadata.Initializing, Metadata.NotInitialized)
                 == Metadata.NotInitialized)
             {
-                _initTask = Task.Run(InitializeInternalAsync);
+                _initTask = Task.Run(() => InitializeInternalAsync(token));
             }
-
-            return _initTask;
         }
 
-        private async Task InitializeInternalAsync()
+        private async Task InitializeInternalAsync(CancellationToken token = default(CancellationToken))
         {
-            await InternalMetadata.InitAsync().ConfigureAwait(false);
+            await InternalMetadata.InitAsync(token).ConfigureAwait(false);
             SetupEventForwarding(InternalMetadata);
 
             var previousState = Interlocked.CompareExchange(ref _state, Metadata.Initialized, Metadata.Initializing);
@@ -348,6 +357,9 @@ namespace Cassandra
                 await InternalMetadata.ShutdownAsync().ConfigureAwait(false);
                 throw new ObjectDisposedException("Metadata instance was disposed before initialization finished.");
             }
+            
+            // Set metadata dependent options
+            SetMetadataDependentOptions();
 
             _initialized = true;
         }
@@ -386,10 +398,20 @@ namespace Cassandra
 
         private void SetupEventForwarding(IInternalMetadata internalMetadata)
         {
+            internalMetadata.Hosts.Added += internalMetadata.OnHostAdded;
+            internalMetadata.Hosts.Removed += internalMetadata.OnHostRemoved;
             internalMetadata.HostAdded += OnInternalHostAdded;
             internalMetadata.HostRemoved += OnInternalHostRemoved;
             internalMetadata.HostsEvent += OnInternalHostsEvent;
             internalMetadata.SchemaChangedEvent += OnInternalSchemaChangedEvent;
+        }
+
+        private void SetMetadataDependentOptions()
+        {
+            if (InternalMetadata.IsDbaas)
+            {
+                Configuration.SetDefaultConsistencyLevel(ConsistencyLevel.LocalQuorum);
+            }
         }
     }
 }

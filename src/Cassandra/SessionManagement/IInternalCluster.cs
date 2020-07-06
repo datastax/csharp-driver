@@ -63,5 +63,7 @@ namespace Cassandra.SessionManagement
         /// Initializes once (Thread-safe) the control connection and retrieve the internal metadata object.
         /// </summary>
         Task<IInternalMetadata> TryInitAndGetMetadataAsync();
+
+        TimeSpan GetInitTimeout();
     }
 }

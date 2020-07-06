@@ -16,6 +16,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.MetadataHelpers;
 using Cassandra.Serialization;
@@ -62,7 +63,7 @@ namespace Cassandra.Connections.Control
 
         KeyValuePair<string, KeyspaceMetadata>[] KeyspacesSnapshot { get; }
 
-        Task InitAsync();
+        Task InitAsync(CancellationToken token = default(CancellationToken));
 
         Task ShutdownAsync();
 

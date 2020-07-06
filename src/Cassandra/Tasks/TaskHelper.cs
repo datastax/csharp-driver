@@ -171,13 +171,13 @@ namespace Cassandra.Tasks
         /// It throws a TimeoutException when the task didn't complete in the expected time.
         /// </summary>
         /// <param name="task">the task to wait upon</param>
-        /// <param name="timeout">timeout in milliseconds</param>
+        /// <param name="timeoutMs">timeout in milliseconds</param>
         /// <exception cref="TimeoutException" />
         /// <exception cref="AggregateException" />
-        public static async Task WaitToCompleteAsync(this Task task, int timeout = Timeout.Infinite)
+        public static async Task WaitToCompleteAsync(this Task task, int timeoutMs = Timeout.Infinite)
         {
             //It should wait and throw any exception
-            if (timeout == Timeout.Infinite)
+            if (timeoutMs == Timeout.Infinite)
             {
                 await task.ConfigureAwait(false);
                 return;
@@ -185,7 +185,7 @@ namespace Cassandra.Tasks
 
             try
             {
-                var timeoutTask = Task.Delay(TimeSpan.FromMilliseconds(timeout));
+                var timeoutTask = Task.Delay(TimeSpan.FromMilliseconds(timeoutMs));
                 var finishedTask = await Task.WhenAny(task, timeoutTask).ConfigureAwait(false);
                 if (finishedTask == timeoutTask)
                 {
