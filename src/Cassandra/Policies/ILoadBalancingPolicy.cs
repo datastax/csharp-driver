@@ -52,11 +52,11 @@ namespace Cassandra
         ///  host in remote datacenters when the policy itself always picks host in the
         ///  local datacenter first.</p>
         /// </summary>
-        /// <param name="cluster">Cluster instance for which the policy is created.</param>
+        /// <param name="metadata">Metadata snapshot provider of the session for which the policy is created.</param>
         /// <param name="host"> the host of which to return the distance of. </param>
         /// 
         /// <returns>the HostDistance to <c>host</c>.</returns>
-        HostDistance Distance(ICluster cluster, Host host);
+        HostDistance Distance(IMetadataSnapshotProvider metadata, Host host);
 
         /// <summary>
         ///  Returns the hosts to use for a new query. <p> Each new query will call this

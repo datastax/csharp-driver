@@ -387,9 +387,9 @@ namespace Cassandra.IntegrationTests.Core
                 return _parent.InitializeAsync(metadata);
             }
 
-            public HostDistance Distance(ICluster cluster, Host host)
+            public HostDistance Distance(IMetadataSnapshotProvider metadata, Host host)
             {
-                return _parent.Distance(cluster, host);
+                return _parent.Distance(metadata, host);
             }
 
             public IEnumerable<Host> NewQueryPlan(ICluster cluster, string keyspace, IStatement query)

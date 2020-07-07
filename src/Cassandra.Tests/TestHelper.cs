@@ -738,9 +738,9 @@ namespace Cassandra.Tests
                 return _childPolicy.InitializeAsync(metadata);
             }
 
-            public HostDistance Distance(ICluster cluster, Host host)
+            public HostDistance Distance(IMetadataSnapshotProvider metadata, Host host)
             {
-                return _childPolicy.Distance(cluster, host);
+                return _childPolicy.Distance(metadata, host);
             }
 
             public IEnumerable<Host> NewQueryPlan(ICluster cluster, string keyspace, IStatement query)
@@ -756,12 +756,12 @@ namespace Cassandra.Tests
         internal class CustomLoadBalancingPolicy : ILoadBalancingPolicy
         {
             private volatile IMetadataSnapshotProvider _metadata;
-            private readonly Func<ICluster, Host, HostDistance> _distanceHandler;
+            private readonly Func<IMetadataSnapshotProvider, Host, HostDistance> _distanceHandler;
             private readonly Func<ICluster, string, IStatement, IEnumerable<Host>> _queryPlanHandler;
 
             public CustomLoadBalancingPolicy(
                 Func<ICluster, string, IStatement, IEnumerable<Host>> queryPlanHandler = null,
-                Func<ICluster, Host, HostDistance> distanceHandler = null)
+                Func<IMetadataSnapshotProvider, Host, HostDistance> distanceHandler = null)
             {
                 _queryPlanHandler = queryPlanHandler ?? ((cluster, ks, statement) => cluster.Metadata.AllHostsSnapshot());
                 _distanceHandler = distanceHandler ?? ((_, __) => HostDistance.Local);
@@ -773,9 +773,9 @@ namespace Cassandra.Tests
                 return TaskHelper.Completed;
             }
 
-            public HostDistance Distance(ICluster cluster, Host host)
+            public HostDistance Distance(IMetadataSnapshotProvider metadata, Host host)
             {
-                return _distanceHandler(cluster, host);
+                return _distanceHandler(metadata, host);
             }
 
             public IEnumerable<Host> NewQueryPlan(ICluster cluster, string keyspace, IStatement query)

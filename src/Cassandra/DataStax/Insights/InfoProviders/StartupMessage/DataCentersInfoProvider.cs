@@ -40,7 +40,7 @@ namespace Cassandra.DataStax.Insights.InfoProviders.StartupMessage
                     continue;
                 }
 
-                var distance = cluster.Configuration.Policies.LoadBalancingPolicy.Distance(cluster, h);
+                var distance = cluster.Configuration.Policies.LoadBalancingPolicy.Distance(cluster.Metadata, h);
                 if (distance == HostDistance.Local || (distance == HostDistance.Remote && remoteConnectionsLength > 0))
                 {
                     dataCenters.Add(h.Datacenter);

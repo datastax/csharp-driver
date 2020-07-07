@@ -313,7 +313,7 @@ namespace Cassandra.IntegrationTests.Core
                 return _childPolicy.InitializeAsync(metadata);
             }
 
-            public HostDistance Distance(ICluster cluster, Host host)
+            public HostDistance Distance(IMetadataSnapshotProvider metadata, Host host)
             {
                 return host == _ignoredHost ? HostDistance.Ignored : HostDistance.Local;
             }

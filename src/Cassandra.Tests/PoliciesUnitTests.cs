@@ -132,8 +132,8 @@ namespace Cassandra.Tests
             var metadataMock = CreateMetadataMock(hostList, implicitContactPoint: implicitContactPoint);
             var policy = new DcInferringLoadBalancingPolicy();
             await policy.InitializeAsync(metadataMock).ConfigureAwait(false);
-            Assert.AreEqual(HostDistance.Local, policy.Distance(metadataMock.Cluster, hostList[0]));
-            Assert.AreEqual(HostDistance.Remote, policy.Distance(metadataMock.Cluster, hostList[1]));
+            Assert.AreEqual(HostDistance.Local, policy.Distance(metadataMock, hostList[0]));
+            Assert.AreEqual(HostDistance.Remote, policy.Distance(metadataMock, hostList[1]));
         }
 
         [Test]
@@ -184,8 +184,8 @@ namespace Cassandra.Tests
             var metadataMock = CreateMetadataMock(hostList, "dc2");
             var policy = new DCAwareRoundRobinPolicy();
             await policy.InitializeAsync(metadataMock).ConfigureAwait(false);
-            Assert.AreEqual(HostDistance.Remote, policy.Distance(metadataMock.Cluster, hostList[0]));
-            Assert.AreEqual(HostDistance.Local, policy.Distance(metadataMock.Cluster, hostList[1]));
+            Assert.AreEqual(HostDistance.Remote, policy.Distance(metadataMock, hostList[0]));
+            Assert.AreEqual(HostDistance.Local, policy.Distance(metadataMock, hostList[1]));
         }
 
         [Test]
@@ -218,8 +218,8 @@ namespace Cassandra.Tests
             var metadataMock = CreateMetadataMock(hostList, implicitContactPoint: true);
             var policy = new DCAwareRoundRobinPolicy();
             await policy.InitializeAsync(metadataMock).ConfigureAwait(false);
-            Assert.AreEqual(HostDistance.Local, policy.Distance(metadataMock.Cluster, hostList[0]));
-            Assert.AreEqual(HostDistance.Remote, policy.Distance(metadataMock.Cluster, hostList[1]));
+            Assert.AreEqual(HostDistance.Local, policy.Distance(metadataMock, hostList[0]));
+            Assert.AreEqual(HostDistance.Remote, policy.Distance(metadataMock, hostList[1]));
         }
 
         [Test]
@@ -601,14 +601,14 @@ namespace Cassandra.Tests
             //No routing key
             var hosts = policy.NewQueryPlan(metadataMock.Cluster, null, new SimpleStatement()).ToList();
             //2 localhosts
-            Assert.AreEqual(2, hosts.Count(h => policy.Distance(metadataMock.Cluster, h) == HostDistance.Local));
+            Assert.AreEqual(2, hosts.Count(h => policy.Distance(metadataMock, h) == HostDistance.Local));
             Assert.AreEqual("dc1", hosts[0].Datacenter);
             Assert.AreEqual("dc1", hosts[1].Datacenter);
             Mock.Get(metadataMock).Verify();
             //No statement
             hosts = policy.NewQueryPlan(metadataMock.Cluster, null, null).ToList();
             //2 localhosts
-            Assert.AreEqual(2, hosts.Count(h => policy.Distance(metadataMock.Cluster, h) == HostDistance.Local));
+            Assert.AreEqual(2, hosts.Count(h => policy.Distance(metadataMock, h) == HostDistance.Local));
             Assert.AreEqual("dc1", hosts[0].Datacenter);
             Assert.AreEqual("dc1", hosts[1].Datacenter);
             Mock.Get(metadataMock).Verify();

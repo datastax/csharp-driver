@@ -27,7 +27,7 @@ namespace Cassandra
     /// <para> This policy encapsulates another policy. The resulting policy works in the following way:
     /// </para>
     /// <list type="number">
-    /// <item>The <see cref="Distance(ICluster, Host)"/> method is inherited  from the child policy.</item>
+    /// <item>The <see cref="Distance(IMetadataSnapshotProvider, Host)"/> method is inherited  from the child policy.</item>
     /// <item>The host yielded by the <see cref="NewQueryPlan(ICluster, string, IStatement)"/> method will first return the
     /// <see cref="HostDistance.Local"/> replicas for the statement, based on the <see cref="Statement.RoutingKey"/>.
     /// </item>
@@ -60,14 +60,14 @@ namespace Cassandra
         /// <summary>
         ///  Return the HostDistance for the provided host.
         /// </summary>
-        /// <param name="cluster">The cluster instance for which the policy is created.</param>
+        /// <param name="metadata">The metadata instance associated with the cluster for which the policy is created.</param>
         /// <param name="host"> the host of which to return the distance of. </param>
         /// 
         /// <returns>the HostDistance to <c>host</c> as returned by the wrapped
         ///  policy.</returns>
-        public HostDistance Distance(ICluster cluster, Host host)
+        public HostDistance Distance(IMetadataSnapshotProvider metadata, Host host)
         {
-            return ChildPolicy.Distance(cluster, host);
+            return ChildPolicy.Distance(metadata, host);
         }
 
         /// <summary>
@@ -101,7 +101,7 @@ namespace Cassandra
             var localReplicaSet = new HashSet<Host>();
             var localReplicaList = new List<Host>(replicas.Count);
             // We can't do it lazily as we need to balance the load between local replicas
-            foreach (var localReplica in replicas.Where(h => ChildPolicy.Distance(cluster, h) == HostDistance.Local))
+            foreach (var localReplica in replicas.Where(h => ChildPolicy.Distance(cluster.Metadata, h) == HostDistance.Local))
             {
                 localReplicaSet.Add(localReplica);
                 localReplicaList.Add(localReplica);

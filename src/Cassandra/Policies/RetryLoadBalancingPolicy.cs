@@ -40,9 +40,9 @@ namespace Cassandra
             return LoadBalancingPolicy.InitializeAsync(metadata);
         }
 
-        public HostDistance Distance(ICluster cluster, Host host)
+        public HostDistance Distance(IMetadataSnapshotProvider metadata, Host host)
         {
-            return LoadBalancingPolicy.Distance(cluster, host);
+            return LoadBalancingPolicy.Distance(metadata, host);
         }
 
         public IEnumerable<Host> NewQueryPlan(ICluster cluster, string keyspace, IStatement query)

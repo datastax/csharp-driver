@@ -558,7 +558,7 @@ namespace Cassandra.Tests.Requests
                 return TaskHelper.Completed;
             }
 
-            public HostDistance Distance(ICluster cluster, Host host)
+            public HostDistance Distance(IMetadataSnapshotProvider metadata, Host host)
             {
                 Interlocked.Increment(ref DistanceCount);
                 return HostDistance.Local;

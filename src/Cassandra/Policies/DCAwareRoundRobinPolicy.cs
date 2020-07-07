@@ -97,10 +97,10 @@ namespace Cassandra
         ///  is <c>Ignored</c>. </p><p> To configure how many host in each remote
         ///  datacenter is considered <c>Remote</c>.</p>
         /// </summary>
-        /// <param name="cluster">The cluster instance for which the policy is created.</param>
+        /// <param name="metadata">The metadata instance associated with the cluster for which the policy is created.</param>
         /// <param name="host"> the host of which to return the distance of. </param>
         /// <returns>the HostDistance to <c>host</c>.</returns>
-        public HostDistance Distance(ICluster cluster, Host host)
+        public HostDistance Distance(IMetadataSnapshotProvider metadata, Host host)
         {
             var dc = GetDatacenter(host);
             return dc == LocalDc ? HostDistance.Local : HostDistance.Remote;

@@ -593,7 +593,7 @@ namespace Cassandra.IntegrationTests.Core
             // Mark the last host as ignored
             var lbp = new TestHelper.CustomLoadBalancingPolicy(
                 (cluster, ks, stmt) => cluster.Metadata.AllHosts(),
-                (cluster, host) => host.Equals(cluster.Metadata.AllHosts().Last()) ? HostDistance.Ignored : HostDistance.Local);
+                (metadata, host) => host.Equals(metadata.AllHostsSnapshot().Last()) ? HostDistance.Ignored : HostDistance.Local);
             var builder = ClusterBuilder().WithLoadBalancingPolicy(lbp);
 
             using (var testCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" }))

@@ -130,7 +130,7 @@ namespace Cassandra.Tests
             Mock.Get(lbpMock)
                 .Setup(m => m.NewQueryPlan(It.IsAny<ICluster>(), It.IsAny<string>(), It.IsAny<IStatement>()))
                 .Returns(enumerable);
-            Mock.Get(lbpMock).Setup(m => m.Distance(It.IsAny<ICluster>(), host)).Returns(HostDistance.Local);
+            Mock.Get(lbpMock).Setup(m => m.Distance(It.IsAny<IMetadataSnapshotProvider>(), host)).Returns(HostDistance.Local);
             var triedHosts = new Dictionary<IPEndPoint, Exception>();
 
             var sut = new RequestHandler(sessionMock, metadata, new SerializerManager(ProtocolVersion.V4).GetCurrentSerializer());

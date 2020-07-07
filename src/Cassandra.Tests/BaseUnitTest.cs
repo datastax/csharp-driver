@@ -75,7 +75,7 @@ namespace Cassandra.Tests
                 return TaskHelper.Completed;
             }
 
-            public HostDistance Distance(ICluster cluster, Host host)
+            public HostDistance Distance(IMetadataSnapshotProvider metadata, Host host)
             {
                 return _distance;
             }
