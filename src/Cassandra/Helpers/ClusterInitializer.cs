@@ -135,11 +135,7 @@ namespace Cassandra.Helpers
                         
                         var delay = reconnectionSchedule.NextDelayMs();
                         ClusterInitializer.Logger.Error(ex, "Cluster initialization failed. Retrying in {0} ms.", delay);
-                        Task.Run(() => currentTcs.TrySetException(
-                            new InitializationErrorException(
-                                "Cluster initialization failed. See inner exception. " +
-                                "The driver will attempt to retry the initialization according to the reconnection policy " +
-                                "schedule.", ex))).Forget();
+                        Task.Run(() => currentTcs.TrySetException(ex)).Forget();
 
                         try
                         {
@@ -254,11 +250,12 @@ namespace Cassandra.Helpers
         {
             ValidateState();
 
-            using (var waiter = new TaskTimeoutHelper(_initTaskCompletionSource.Task, _cluster.GetInitTimeout()))
+            using (var waiter = new TaskTimeoutHelper<IInternalMetadata>(
+                _initTaskCompletionSource.Task, _cluster.GetInitTimeout()))
             {
                 if (waiter.WaitWithTimeout())
                 {
-                    return _initTaskCompletionSource.Task.GetAwaiter().GetResult();
+                    return waiter.TaskToWait.GetAwaiter().GetResult();
                 }
             }
 
@@ -269,11 +266,12 @@ namespace Cassandra.Helpers
         {
             ValidateState();
 
-            using (var waiter = new TaskTimeoutHelper(_initTaskCompletionSource.Task, _cluster.GetInitTimeout()))
+            using (var waiter = new TaskTimeoutHelper<IInternalMetadata>(
+                _initTaskCompletionSource.Task, _cluster.GetInitTimeout()))
             {
                 if (await waiter.WaitWithTimeoutAsync().ConfigureAwait(false))
                 {
-                    return _initTaskCompletionSource.Task.GetAwaiter().GetResult();
+                    return await waiter.TaskToWait.ConfigureAwait(false);
                 }
             }
 

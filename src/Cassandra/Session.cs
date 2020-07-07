@@ -265,7 +265,14 @@ namespace Cassandra
             {
                 await WarmupAsync(_cluster.InternalMetadata).ConfigureAwait(false);
             }
-            
+
+            if (Keyspace != null)
+            {
+                // Borrow a connection, trying to fail fast if keyspace is invalid
+                var handler = Configuration.RequestHandlerFactory.Create(this, _cluster.InternalMetadata, serializerManager.GetCurrentSerializer());
+                await handler.GetNextConnectionAsync(new Dictionary<IPEndPoint, Exception>()).ConfigureAwait(false);
+            }
+
             _insightsClient.Initialize(_cluster.InternalMetadata);
         }
 

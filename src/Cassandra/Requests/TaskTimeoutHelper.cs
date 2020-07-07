@@ -20,26 +20,25 @@ using System.Threading.Tasks;
 
 namespace Cassandra.Requests
 {
-    internal class TaskTimeoutHelper : IDisposable
+    internal class TaskTimeoutHelper<T> : IDisposable
     {
-        private readonly Task _taskToWait;
         private readonly CancellationTokenSource _tcs;
         private readonly Task _timeoutTask;
 
-        public TaskTimeoutHelper(Task taskToWait, TimeSpan timeout)
+        public TaskTimeoutHelper(Task<T> taskToWait, TimeSpan timeout)
         {
-            _taskToWait = taskToWait;
+            TaskToWait = taskToWait;
             _tcs = new CancellationTokenSource();
             _timeoutTask = Task.Delay(timeout, _tcs.Token);
         }
         
-        public TaskTimeoutHelper(IEnumerable<Task> tasksToWait, TimeSpan timeout)
+        public TaskTimeoutHelper(IEnumerable<Task<T>> tasksToWait, TimeSpan timeout)
         {
             foreach (var task in tasksToWait)
             {
-                _taskToWait = _taskToWait == null 
+                TaskToWait = TaskToWait == null 
                     ? task 
-                    : _taskToWait.ContinueWith(
+                    : TaskToWait.ContinueWith(
                         prevTask => prevTask.IsFaulted 
                             ? prevTask 
                             : task, TaskContinuationOptions.ExecuteSynchronously).Unwrap();
@@ -48,14 +47,16 @@ namespace Cassandra.Requests
             _timeoutTask = Task.Delay(timeout, _tcs.Token);
         }
 
+        public Task<T> TaskToWait { get; }
+
         public bool WaitWithTimeout()
-        {
-            return Task.WaitAny(_taskToWait, _timeoutTask) == 0;
+        { 
+            return Task.WaitAny(TaskToWait, _timeoutTask) == 0;
         }
 
         public async Task<bool> WaitWithTimeoutAsync()
         {
-            return (await Task.WhenAny(_taskToWait, _timeoutTask).ConfigureAwait(false)) == _taskToWait;
+            return (await Task.WhenAny(TaskToWait, _timeoutTask).ConfigureAwait(false)) == TaskToWait;
         }
 
         public void Dispose()

@@ -22,7 +22,7 @@ namespace Cassandra
     [Serializable]
     public class InitializationTimeoutException : DriverException
     {
-        internal InitializationTimeoutException() : base("Cluster initialization was aborted after timing out. This mechanism is put in place to" +
+        internal InitializationTimeoutException() : base("Timed out while waiting for cluster initialization to finish. This mechanism is put in place to" +
                                                          " avoid blocking the calling thread forever. This usually caused by a networking issue" +
                                                          " between the client driver instance and the cluster. You can increase this timeout via " +
                                                          "the SocketOptions.ConnectTimeoutMillis config setting. This can also be related to deadlocks " +

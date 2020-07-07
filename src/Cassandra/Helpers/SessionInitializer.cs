@@ -1,12 +1,12 @@
-﻿// 
+﻿//
 //       Copyright (C) DataStax Inc.
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //       http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -14,10 +14,9 @@
 //    limitations under the License.
 
 using System;
-using System.Diagnostics;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+
 using Cassandra.Connections.Control;
 using Cassandra.Requests;
 using Cassandra.SessionManagement;
@@ -38,7 +37,8 @@ namespace Cassandra.Helpers
 
         private volatile bool _initialized = false;
         private volatile Task _initTask;
-        private volatile TaskCompletionSource<IInternalMetadata> _initTaskCompletionSource 
+
+        private volatile TaskCompletionSource<IInternalMetadata> _initTaskCompletionSource
             = new TaskCompletionSource<IInternalMetadata>();
 
         private volatile InitFatalErrorException _initException;
@@ -66,7 +66,7 @@ namespace Cassandra.Helpers
 
             _initTask = Task.Run(InitInternalAsync);
         }
-        
+
         public bool IsDisposed => Interlocked.Read(ref _state) == SessionInitializer.Disposed;
 
         private async Task InitInternalAsync()
@@ -80,7 +80,7 @@ namespace Cassandra.Helpers
                 }
 
                 await _session.PostInitializeAsync().ConfigureAwait(false);
-                
+
                 var previousState = Interlocked.CompareExchange(ref _state, SessionInitializer.Initialized, SessionInitializer.Initializing);
                 if (previousState == SessionInitializer.Disposed)
                 {
@@ -89,7 +89,7 @@ namespace Cassandra.Helpers
                 }
 
                 _initialized = true;
-                
+
                 SessionInitializer.Logger.Info("Session [{0}] has been initialized.", _session.SessionName);
 
                 Task.Run(() => _initTaskCompletionSource.TrySetResult(_session.InternalCluster.InternalMetadata)).Forget();
@@ -112,7 +112,7 @@ namespace Cassandra.Helpers
                 throw;
             }
         }
-        
+
         public void WaitInit()
         {
             if (_initialized)
@@ -156,21 +156,22 @@ namespace Cassandra.Helpers
 
             return WaitInitInternalAsync();
         }
+
         private IInternalMetadata WaitInitInternal()
         {
             ValidateState();
-            
-            using (var waiter = new TaskTimeoutHelper(
-                new []
+
+            using (var waiter = new TaskTimeoutHelper<IInternalMetadata>(
+                new[]
                 {
-                    _session.InternalCluster.ClusterInitializer.WaitInitAsync(),
+                    _session.InternalCluster.ClusterInitializer.WaitInitAndGetMetadataAsync(),
                     _initTaskCompletionSource.Task
-                }, 
+                },
                 _session.InternalCluster.GetInitTimeout()))
             {
                 if (waiter.WaitWithTimeout())
                 {
-                    return _initTaskCompletionSource.Task.GetAwaiter().GetResult();
+                    return waiter.TaskToWait.GetAwaiter().GetResult();
                 }
             }
 
@@ -180,18 +181,18 @@ namespace Cassandra.Helpers
         private async Task<IInternalMetadata> WaitInitInternalAsync()
         {
             ValidateState();
-            
-            using (var waiter = new TaskTimeoutHelper(
-                new []
+
+            using (var waiter = new TaskTimeoutHelper<IInternalMetadata>(
+                new[]
                 {
-                    _session.InternalCluster.ClusterInitializer.WaitInitAsync(),
+                    _session.InternalCluster.ClusterInitializer.WaitInitAndGetMetadataAsync(),
                     _initTaskCompletionSource.Task
-                }, 
+                },
                 _session.InternalCluster.GetInitTimeout()))
             {
                 if (await waiter.WaitWithTimeoutAsync().ConfigureAwait(false))
                 {
-                    return _initTaskCompletionSource.Task.GetAwaiter().GetResult();
+                    return await waiter.TaskToWait.ConfigureAwait(false);
                 }
             }
 
@@ -217,7 +218,7 @@ namespace Cassandra.Helpers
         {
             var previousState = Interlocked.Exchange(ref _state, SessionInitializer.Disposed);
             _initialized = false;
-            
+
             if (previousState == SessionInitializer.Initializing)
             {
                 _initCancellationTokenSource.Cancel();
@@ -237,7 +238,7 @@ namespace Cassandra.Helpers
                     // ignored
                 }
             }
-            
+
             if (previousState != SessionInitializer.Disposed)
             {
                 _initCancellationTokenSource.Dispose();
@@ -257,7 +258,7 @@ namespace Cassandra.Helpers
         bool IsInitialized { get; }
 
         void Initialize();
-        
+
         void WaitInit();
 
         IInternalMetadata WaitInitAndGetMetadata();
