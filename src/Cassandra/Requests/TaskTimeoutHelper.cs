@@ -14,6 +14,7 @@
 //    limitations under the License.
 
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -28,6 +29,21 @@ namespace Cassandra.Requests
         public TaskTimeoutHelper(Task taskToWait, TimeSpan timeout)
         {
             _taskToWait = taskToWait;
+            _tcs = new CancellationTokenSource();
+            _timeoutTask = Task.Delay(timeout, _tcs.Token);
+        }
+        
+        public TaskTimeoutHelper(IEnumerable<Task> tasksToWait, TimeSpan timeout)
+        {
+            foreach (var task in tasksToWait)
+            {
+                _taskToWait = _taskToWait == null 
+                    ? task 
+                    : _taskToWait.ContinueWith(
+                        prevTask => prevTask.IsFaulted 
+                            ? prevTask 
+                            : task, TaskContinuationOptions.ExecuteSynchronously).Unwrap();
+            }
             _tcs = new CancellationTokenSource();
             _timeoutTask = Task.Delay(timeout, _tcs.Token);
         }

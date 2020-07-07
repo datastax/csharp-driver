@@ -121,18 +121,7 @@ namespace Cassandra.Connections.Control
 
             _schemaParser = schemaParser;
         }
-
-        public Task InitAsync(CancellationToken token = default(CancellationToken))
-        {
-            return ControlConnection.InitAsync(token);
-        }
-
-        public Task ShutdownAsync()
-        {
-            ControlConnection.Dispose();
-            return Configuration.ProtocolEventDebouncer.ShutdownAsync();
-        }
-
+        
         public void SetResolvedContactPoints(
             IDictionary<IContactPoint, IEnumerable<IConnectionEndPoint>> resolvedContactPoints)
         {

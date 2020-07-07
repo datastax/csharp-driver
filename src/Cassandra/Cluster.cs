@@ -46,8 +46,6 @@ namespace Cassandra
         internal static readonly Logger Logger = new Logger(typeof(Cluster));
         private readonly CopyOnWriteList<IInternalSession> _connectedSessions = new CopyOnWriteList<IInternalSession>();
         private readonly bool _implicitContactPoint = false;
-        private volatile InitFatalErrorException _initException;
-        private volatile bool _initialized = false;
         private volatile TaskCompletionSource<IInternalMetadata> _initTaskCompletionSource 
             = new TaskCompletionSource<IInternalMetadata>();
         private readonly SemaphoreSlim _sessionCreateLock = new SemaphoreSlim(1, 1);
@@ -55,21 +53,16 @@ namespace Cassandra
 
         private readonly IInternalMetadata _internalMetadata;
         private readonly Metadata _lazyMetadata;
-        private IReadOnlyList<ILoadBalancingPolicy> _loadBalancingPolicies;
-
-        private readonly Task<IInternalMetadata> _initTask;
-        private readonly CancellationTokenSource _initCancellationTokenSource = new CancellationTokenSource();
-
-        private long _state = Cluster.Initializing;
+        private readonly IClusterInitializer _clusterInitializer;
+        private readonly IReadOnlyList<ILoadBalancingPolicy> _loadBalancingPolicies;
+        private readonly IReadOnlyList<ISpeculativeExecutionPolicy> _speculativeExecutionPolicies;
 
         internal IInternalCluster InternalRef => this;
 
         IInternalMetadata IInternalCluster.InternalMetadata => _internalMetadata;
 
-        private bool IsDisposed => Interlocked.Read(ref _state) == Cluster.Disposed;
-
-        InitFatalErrorException IInternalCluster.InitException => _initException;
-
+        IClusterInitializer IInternalCluster.ClusterInitializer => _clusterInitializer;
+        
         /// <inheritdoc />
         ConcurrentDictionary<byte[], PreparedStatement> IInternalCluster.PreparedQueries { get; }
             = new ConcurrentDictionary<byte[], PreparedStatement>(new ByteArrayComparer());
@@ -124,6 +117,18 @@ namespace Cassandra
         private Cluster(IEnumerable<object> contactPoints, Configuration configuration)
         {
             Configuration = configuration;
+            
+            // Collect all policies in collections
+            var loadBalancingPolicies = new HashSet<ILoadBalancingPolicy>(new ReferenceEqualityComparer<ILoadBalancingPolicy>());
+            var speculativeExecutionPolicies = new HashSet<ISpeculativeExecutionPolicy>(new ReferenceEqualityComparer<ISpeculativeExecutionPolicy>());
+            foreach (var options in Configuration.RequestOptions.Values)
+            {
+                loadBalancingPolicies.Add(options.LoadBalancingPolicy);
+                speculativeExecutionPolicies.Add(options.SpeculativeExecutionPolicy);
+            }
+
+            _loadBalancingPolicies = loadBalancingPolicies.ToList();
+            _speculativeExecutionPolicies = speculativeExecutionPolicies.ToList();
 
             var contactPointsList = contactPoints.ToList();
             if (contactPointsList.Count == 0)
@@ -136,146 +141,41 @@ namespace Cassandra
             var parsedContactPoints = configuration.ContactPointParser.ParseContactPoints(contactPointsList);
             
             _internalMetadata = new InternalMetadata(this, configuration, parsedContactPoints);
-            _lazyMetadata = new Metadata(_internalMetadata, _initCancellationTokenSource.Token);
+            _clusterInitializer = new ClusterInitializer(this, _internalMetadata);
+            _lazyMetadata = new Metadata(_clusterInitializer, _internalMetadata);
 
-            _initTask = Task.Run(InitInternalAsync);
+            _clusterInitializer.Initialize();
         }
-
-        /// <inheritdoc />
-        Task<IInternalMetadata> IInternalCluster.TryInitAndGetMetadataAsync()
+        
+        async Task IInternalCluster.PostInitializeAsync()
         {
-            if (_initialized)
+            _lazyMetadata.SetupEventForwarding();
+            SetMetadataDependentOptions();
+
+            // initialize the local datacenter provider
+            Configuration.LocalDatacenterProvider.Initialize(this, _internalMetadata);
+
+            // Initialize policies
+            foreach (var lbp in _loadBalancingPolicies)
             {
-                //It was already initialized
-                return Task.FromResult(_internalMetadata);
-            }
-            
-            var currentState = Interlocked.Read(ref _state);
-            if (currentState == Cluster.Disposed)
-            {
-                throw new ObjectDisposedException("This cluster object has been disposed.");
+                await lbp.InitializeAsync(Metadata).ConfigureAwait(false);
             }
 
-            if (_initException != null)
+            foreach (var sep in _speculativeExecutionPolicies)
             {
-                //There was an exception that is not possible to recover from
-                throw _initException;
+                await sep.InitializeAsync(Metadata).ConfigureAwait(false);
             }
 
-            return _initTaskCompletionSource.Task;
+            InitializeHostDistances();
+
+            _internalMetadata.Hosts.Up += OnHostUp;
         }
-
-        private async Task<IInternalMetadata> InitInternalAsync()
+        
+        private void SetMetadataDependentOptions()
         {
-            Cluster.Logger.Info("Connecting to cluster using {0}", Cluster.GetAssemblyInfo());
-            try
+            if (_internalMetadata.IsDbaas)
             {
-                // Collect all policies in collections
-                var loadBalancingPolicies = new HashSet<ILoadBalancingPolicy>(new ReferenceEqualityComparer<ILoadBalancingPolicy>());
-                var speculativeExecutionPolicies = new HashSet<ISpeculativeExecutionPolicy>(new ReferenceEqualityComparer<ISpeculativeExecutionPolicy>());
-                foreach (var options in Configuration.RequestOptions.Values)
-                {
-                    loadBalancingPolicies.Add(options.LoadBalancingPolicy);
-                    speculativeExecutionPolicies.Add(options.SpeculativeExecutionPolicy);
-                }
-
-                _loadBalancingPolicies = loadBalancingPolicies.ToList();
-
-                var reconnectionSchedule = Configuration.Policies.ReconnectionPolicy.NewSchedule();
-
-                do
-                {
-                    try
-                    {
-                        await _lazyMetadata.TryInitializeAsync().ConfigureAwait(false);
-                        break;
-                    }
-                    catch (Exception ex)
-                    {
-                        if (IsDisposed)
-                        {
-                            throw new ObjectDisposedException("Cluster instance was disposed before initialization finished.");
-                        }
-
-                        var currentTcs = _initTaskCompletionSource;
-                        
-                        var delay = reconnectionSchedule.NextDelayMs();
-                        Cluster.Logger.Error(ex, "Cluster initialization failed. Retrying in {0} ms.", delay);
-                        Task.Run(() => currentTcs.TrySetException(
-                            new InitializationErrorException(
-                                "Cluster initialization failed. See inner exception. " +
-                                "The driver will attempt to retry the initialization according to the reconnection policy " +
-                                "schedule."))).Forget();
-
-                        try
-                        {
-                            await Task.Delay(
-                                TimeSpan.FromMilliseconds(delay), 
-                                _initCancellationTokenSource.Token).ConfigureAwait(false);
-                        }
-                        finally
-                        {
-                            _initTaskCompletionSource = new TaskCompletionSource<IInternalMetadata>();
-                        }
-                        
-                    }
-                } while (!IsDisposed);
-                
-                if (IsDisposed)
-                {
-                    throw new ObjectDisposedException("Cluster instance was disposed before initialization finished.");
-                }
-                
-                // initialize the local datacenter provider
-                Configuration.LocalDatacenterProvider.Initialize(this, _internalMetadata);
-
-                // Initialize policies
-                foreach (var lbp in loadBalancingPolicies)
-                {
-                    await lbp.InitializeAsync(Metadata).ConfigureAwait(false);
-                }
-
-                foreach (var sep in speculativeExecutionPolicies)
-                {
-                    await sep.InitializeAsync(Metadata).ConfigureAwait(false);
-                }
-
-                InitializeHostDistances();
-
-                _internalMetadata.Hosts.Up += OnHostUp;
-                
-                var previousState = Interlocked.CompareExchange(ref _state, Cluster.Initialized, Cluster.Initializing);
-                if (previousState == Cluster.Disposed)
-                {
-                    await ShutdownInternalAsync().ConfigureAwait(false);
-                    throw new ObjectDisposedException("Cluster instance was disposed before initialization finished.");
-                }
-
-                _initialized = true;
-                
-                Cluster.Logger.Info("Cluster Connected using binary protocol version: ["
-                                    + Configuration.SerializerManager.CurrentProtocolVersion
-                                    + "]");
-                Cluster.Logger.Info("Cluster [" + _internalMetadata.ClusterName + "] has been initialized.");
-
-                Task.Run(() => _initTaskCompletionSource.TrySetResult(_internalMetadata)).Forget();
-                return _internalMetadata;
-            }
-            catch (Exception ex)
-            {
-                if (IsDisposed)
-                {
-                    var newEx = new ObjectDisposedException("Cluster instance was disposed before initialization finished.");
-                    Task.Run(() => _initTaskCompletionSource.TrySetException(newEx)).Forget();
-                    throw newEx;
-                }
-
-                //There was an error that the driver is not able to recover from
-                //Store the exception for the following times
-                _initException = new InitFatalErrorException(ex);
-                //Throw the actual exception for the first time
-                Task.Run(() => _initTaskCompletionSource.TrySetException(ex)).Forget();
-                throw;
+                Configuration.SetDefaultConsistencyLevel(ConsistencyLevel.LocalQuorum);
             }
         }
 
@@ -299,14 +199,7 @@ namespace Cassandra
             initialAbortTimeoutMs = Math.Max(initialAbortTimeoutMs, Configuration.SocketOptions.MetadataAbortTimeoutMs);
             return TimeSpan.FromMilliseconds(initialAbortTimeoutMs);
         }
-
-        private static string GetAssemblyInfo()
-        {
-            var assembly = typeof(ISession).GetTypeInfo().Assembly;
-            var info = FileVersionInfo.GetVersionInfo(assembly.Location);
-            return $"{info.ProductName} v{info.FileVersion}";
-        }
-
+        
         IReadOnlyDictionary<IContactPoint, IEnumerable<IConnectionEndPoint>> IInternalCluster.GetResolvedEndpoints()
         {
             return _internalMetadata.ResolvedContactPoints;
@@ -346,7 +239,7 @@ namespace Cassandra
             await _sessionCreateLock.WaitAsync().ConfigureAwait(false);
             try
             {
-                if (IsDisposed)
+                if (_clusterInitializer.IsDisposed)
                 {
                     throw new ObjectDisposedException("This cluster instance is disposed.");
                 }
@@ -439,11 +332,13 @@ namespace Cassandra
         }
 
         /// <inheritdoc />
-        public async Task ShutdownAsync(int timeoutMs = Timeout.Infinite)
+        public Task ShutdownAsync(int timeoutMs = Timeout.Infinite)
         {
-            var previousState = Interlocked.Exchange(ref _state, Cluster.Disposed);
-            _initialized = false;
+            return _clusterInitializer.ShutdownAsync(timeoutMs);
+        }
 
+        async Task IInternalCluster.PreShutdownAsync(int timeoutMs)
+        {
             IEnumerable<ISession> sessions;
             await _sessionCreateLock.WaitAsync().ConfigureAwait(false);
             try
@@ -469,50 +364,14 @@ namespace Cassandra
             {
                 Cluster.Logger.Warning("Exception occured while disposing session instances: {0}", ex.ToString());
             }
-            
-            if (previousState == Cluster.Initializing)
-            {
-                _initCancellationTokenSource.Cancel();
-            }
-
-            if (previousState != Cluster.Initialized)
-            {
-                try
-                {
-                    await _initTask.ConfigureAwait(false);
-                }
-                catch (Exception)
-                {
-                    // ignored
-                }
-            }
-            
-            if (previousState != Cluster.Disposed)
-            {
-                _initCancellationTokenSource.Dispose();
-            }
-
-            if (previousState == Cluster.Initialized)
-            {
-                await ShutdownInternalAsync().ConfigureAwait(false);
-            }
-
-            Cluster.Logger.Info("Cluster [" + _internalMetadata.ClusterName + "] has been shut down.");
         }
 
-        private async Task ShutdownInternalAsync()
+        async Task IInternalCluster.PostShutdownAsync()
         {
-            await _lazyMetadata.ShutdownAsync().ConfigureAwait(false);
             Configuration.Timer.Dispose();
 
             // Dispose policies
-            var speculativeExecutionPolicies = new HashSet<ISpeculativeExecutionPolicy>(new ReferenceEqualityComparer<ISpeculativeExecutionPolicy>());
-            foreach (var options in Configuration.RequestOptions.Values)
-            {
-                speculativeExecutionPolicies.Add(options.SpeculativeExecutionPolicy);
-            }
-
-            foreach (var sep in speculativeExecutionPolicies)
+            foreach (var sep in _speculativeExecutionPolicies)
             {
                 await sep.ShutdownAsync().ConfigureAwait(false);
             }

@@ -19,11 +19,13 @@ using System.Collections.Generic;
 using System.Net;
 using Cassandra.Connections;
 using Cassandra.Connections.Control;
+using Cassandra.Helpers;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.ProtocolEvents;
 using NUnit.Framework;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.SessionManagement;
+using Cassandra.Tasks;
 using Cassandra.Tests;
 using Cassandra.Tests.Connections.TestHelpers;
 using Moq;
@@ -35,18 +37,21 @@ namespace Cassandra.IntegrationTests.Core
     {
         private const int InitTimeout = 2000;
         private ITestCluster _testCluster;
+        private IClusterInitializer _clusterInitializer;
 
         [OneTimeSetUp]
         public void SetupFixture()
         {
             _testCluster = TestClusterManager.CreateNew();
+            _clusterInitializer = Mock.Of<IClusterInitializer>();
+            Mock.Get(_clusterInitializer).Setup(c => c.PostInitializeAsync()).Returns(TaskHelper.Completed);
         }
 
         [Test]
         public void Should_Use_Maximum_Protocol_Version_Supported()
         {
             var cc = NewInstance(ProtocolVersion.MaxSupported, out var config);
-            cc.InitAsync().Wait(InitTimeout);
+            cc.InitAsync(_clusterInitializer).Wait(InitTimeout);
             Assert.AreEqual(GetProtocolVersion(), config.SerializerManager.CurrentProtocolVersion);
             cc.Dispose();
         }
@@ -61,7 +66,7 @@ namespace Cassandra.IntegrationTests.Core
                 version = ProtocolVersion.V3;
             }
             var cc = NewInstance(version, out var config);
-            cc.InitAsync().Wait(InitTimeout);
+            cc.InitAsync(_clusterInitializer).Wait(InitTimeout);
             Assert.AreEqual(version, config.SerializerManager.CurrentProtocolVersion);
             cc.Dispose();
         }
@@ -72,7 +77,7 @@ namespace Cassandra.IntegrationTests.Core
             //Use a higher protocol version
             var version = (ProtocolVersion)(GetProtocolVersion() + 1);
             var cc = NewInstance(version, out var config);
-            cc.InitAsync().Wait(InitTimeout);
+            cc.InitAsync(_clusterInitializer).Wait(InitTimeout);
             Assert.AreEqual(version - 1, config.SerializerManager.CurrentProtocolVersion);
         }
 
@@ -82,7 +87,7 @@ namespace Cassandra.IntegrationTests.Core
             // Use a non-existent higher cassandra protocol version
             var version = (ProtocolVersion)0x0f;
             var cc = NewInstance(version, out var config);
-            cc.InitAsync().Wait(InitTimeout);
+            cc.InitAsync(_clusterInitializer).Wait(InitTimeout);
             Assert.AreEqual(ProtocolVersion.V4, config.SerializerManager.CurrentProtocolVersion);
         }
 

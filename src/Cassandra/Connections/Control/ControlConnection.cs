@@ -22,7 +22,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-
+using Cassandra.Helpers;
 using Cassandra.ProtocolEvents;
 using Cassandra.Responses;
 using Cassandra.SessionManagement;
@@ -51,6 +51,7 @@ namespace Cassandra.Connections.Control
         private volatile Host _host;
         private volatile IConnectionEndPoint _currentConnectionEndPoint;
         private volatile IConnection _connection;
+        private volatile IClusterInitializer _clusterInitializer;
 
         private bool IsShutdown => Interlocked.Read(ref _isShutdown) > 0L;
 
@@ -93,8 +94,9 @@ namespace Cassandra.Connections.Control
         }
 
         /// <inheritdoc />
-        public async Task InitAsync(CancellationToken token = default(CancellationToken))
+        public async Task InitAsync(IClusterInitializer clusterInitializer, CancellationToken token = default)
         {
+            _clusterInitializer = clusterInitializer;
             ControlConnection.Logger.Info("Trying to connect the ControlConnection");
             await Connect(true, token).ConfigureAwait(false);
         }
@@ -233,12 +235,12 @@ namespace Cassandra.Connections.Control
         /// and Connection events.
         /// </summary>
         /// <param name="isInitializing">
-        /// Determines whether the ControlConnection is connecting for the first time as part of the initialization.
+        /// Whether this connection attempt is part of the initialization process.
         /// </param>
         /// <param name="token">Used to cancel initialization</param>
         /// <exception cref="NoHostAvailableException" />
         /// <exception cref="DriverInternalError" />
-        private async Task Connect(bool isInitializing, CancellationToken token = default(CancellationToken))
+        private async Task Connect(bool isInitializing, CancellationToken token = default)
         {
             // lazy iterator of endpoints to try for the control connection
             IEnumerable<Task<IEnumerable<IConnectionEndPoint>>> endPointResolutionTasksLazyIterator =
@@ -250,7 +252,6 @@ namespace Cassandra.Connections.Control
             // start with endpoints from the default LBP if it is already initialized
             if (!isInitializing)
             {
-                await _cluster.TryInitAndGetMetadataAsync().ConfigureAwait(false);
                 endPointResolutionTasksLazyIterator = DefaultLbpHostsEnumerable(attemptedContactPoints, attemptedHosts);
             }
 
@@ -329,7 +330,8 @@ namespace Cassandra.Connections.Control
                         {
                             await _supportedOptionsInitializer.ApplySupportedOptionsAsync(connection).ConfigureAwait(false);
                         }
-
+                        
+                        await _config.ServerEventsSubscriber.SubscribeToServerEvents(connection, OnConnectionCassandraEvent).ConfigureAwait(false);
                         var currentHost = await _topologyRefresher.RefreshNodeListAsync(
                             endPoint, connection, _config.SerializerManager.GetCurrentSerializer()).ConfigureAwait(false);
 
@@ -340,12 +342,16 @@ namespace Cassandra.Connections.Control
                             await _config.ProtocolVersionNegotiator.NegotiateVersionAsync(
                                 _config, _internalMetadata, connection).ConfigureAwait(false);
                         }
-
-                        await _config.ServerEventsSubscriber.SubscribeToServerEvents(connection, OnConnectionCassandraEvent).ConfigureAwait(false);
+                        
                         await _internalMetadata.RebuildTokenMapAsync(false, _config.MetadataSyncOptions.MetadataSyncEnabled).ConfigureAwait(false);
 
-                        _host.Down += OnHostDown;
+                        if (isInitializing)
+                        {
+                            await _clusterInitializer.PostInitializeAsync().ConfigureAwait(false);
+                        }
 
+                        _host.Down += OnHostDown;
+                        
                         return;
                     }
                     catch (Exception ex)
@@ -534,7 +540,7 @@ namespace Cassandra.Connections.Control
             try
             {
                 // make sure the cluster object has finished initializing before processing protocol events
-                await _cluster.TryInitAndGetMetadataAsync().ConfigureAwait(false);
+                await _clusterInitializer.WaitInitAsync().ConfigureAwait(false);
 
                 //This event is invoked from a worker thread (not a IO thread)
                 if (e is TopologyChangeEventArgs tce)

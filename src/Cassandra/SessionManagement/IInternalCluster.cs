@@ -21,6 +21,7 @@ using System.Threading.Tasks;
 
 using Cassandra.Connections;
 using Cassandra.Connections.Control;
+using Cassandra.Helpers;
 
 namespace Cassandra.SessionManagement
 {
@@ -28,6 +29,8 @@ namespace Cassandra.SessionManagement
     internal interface IInternalCluster : ICluster
     {
         IInternalMetadata InternalMetadata { get; }
+
+        IClusterInitializer ClusterInitializer { get; }
 
         bool AnyOpenConnections(Host host);
 
@@ -41,9 +44,7 @@ namespace Cassandra.SessionManagement
         /// Gets the the prepared statements cache
         /// </summary>
         ConcurrentDictionary<byte[], PreparedStatement> PreparedQueries { get; }
-
-        InitFatalErrorException InitException { get; }
-
+        
         /// <summary>
         /// Executes the prepare request on the first host selected by the load balancing policy.
         /// When <see cref="QueryOptions.IsPrepareOnAllHosts"/> is enabled, it prepares on the rest of the hosts in
@@ -58,12 +59,13 @@ namespace Cassandra.SessionManagement
         /// Helper method to retrieve the aggregate distance from all configured LoadBalancingPolicies and set it at Host level.
         /// </summary>
         HostDistance RetrieveAndSetDistance(Host host);
-
-        /// <summary>
-        /// Initializes once (Thread-safe) the control connection and retrieve the internal metadata object.
-        /// </summary>
-        Task<IInternalMetadata> TryInitAndGetMetadataAsync();
-
+        
         TimeSpan GetInitTimeout();
+
+        Task PostInitializeAsync();
+
+        Task PreShutdownAsync(int timeoutMs);
+
+        Task PostShutdownAsync();
     }
 }

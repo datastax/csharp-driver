@@ -17,6 +17,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Cassandra.Helpers;
 
 namespace Cassandra.Connections.Control
 {
@@ -34,7 +35,7 @@ namespace Cassandra.Connections.Control
         /// <exception cref="NoHostAvailableException" />
         /// <exception cref="TimeoutException" />
         /// <exception cref="DriverInternalError" />
-        Task InitAsync(CancellationToken token = default(CancellationToken));
+        Task InitAsync(IClusterInitializer clusterInitializer, CancellationToken token = default);
         
         /// <summary>
         /// Updates keyspace metadata and token map if necessary.

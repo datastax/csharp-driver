@@ -62,11 +62,7 @@ namespace Cassandra.Connections.Control
         ProtocolVersion ProtocolVersion { get; }
 
         KeyValuePair<string, KeyspaceMetadata>[] KeyspacesSnapshot { get; }
-
-        Task InitAsync(CancellationToken token = default(CancellationToken));
-
-        Task ShutdownAsync();
-
+        
         void SetResolvedContactPoints(
             IDictionary<IContactPoint, IEnumerable<IConnectionEndPoint>> resolvedContactPoints);
 

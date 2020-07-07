@@ -21,6 +21,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using Cassandra.Connections.Control;
+using Cassandra.Helpers;
 using Cassandra.Tasks;
 
 namespace Cassandra
@@ -28,24 +29,14 @@ namespace Cassandra
     /// <inheritdoc />
     internal class Metadata : IMetadata
     {
-        private const int Disposed = 10;
-        private const int Initialized = 5;
-        private const int Initializing = 1;
-        private const int NotInitialized = 0;
-
+        private readonly IClusterInitializer _clusterInitializer;
         private readonly int _queryAbortTimeout;
-        private readonly CancellationToken _cancellationToken;
-
-        private volatile Task _initTask;
-        private volatile bool _initialized = false;
-
-        private long _state = Metadata.NotInitialized;
 
         internal IInternalMetadata InternalMetadata { get; }
 
-        internal Metadata(IInternalMetadata internalMetadata, CancellationToken cancellationToken)
+        internal Metadata(IClusterInitializer clusterInitializer, IInternalMetadata internalMetadata)
         {
-            _cancellationToken = cancellationToken;
+            _clusterInitializer = clusterInitializer;
             Configuration = internalMetadata.Configuration;
             _queryAbortTimeout = Configuration.DefaultRequestOptions.QueryAbortTimeout;
             InternalMetadata = internalMetadata;
@@ -311,71 +302,12 @@ namespace Cassandra
 
         internal Task TryInitializeAsync()
         {
-            if (_initialized)
-            {
-                //It was already initialized
-                return TaskHelper.Completed;
-            }
-
-            TryLaunchInitTask();
-            return _initTask;
+            return _clusterInitializer.WaitInitAsync();
         }
 
         internal void TryInitialize()
         {
-            if (_initialized)
-            {
-                //It was already initialized
-                return;
-            }
-
-            TryLaunchInitTask();
-            _initTask.GetAwaiter().GetResult();
-        }
-
-        private void TryLaunchInitTask()
-        {
-            var currentState = Interlocked.Read(ref _state);
-            if (currentState == Metadata.Disposed)
-            {
-                throw new ObjectDisposedException("This metadata object has been disposed.");
-            }
-
-            if (Interlocked.CompareExchange(ref _state, Metadata.Initializing, Metadata.NotInitialized)
-                == Metadata.NotInitialized)
-            {
-                _initTask = Task.Run(() => InitializeInternalAsync(_cancellationToken));
-            }
-        }
-
-        private async Task InitializeInternalAsync(CancellationToken token = default(CancellationToken))
-        {
-            await InternalMetadata.InitAsync(token).ConfigureAwait(false);
-            SetupEventForwarding(InternalMetadata);
-
-            var previousState = Interlocked.CompareExchange(ref _state, Metadata.Initialized, Metadata.Initializing);
-            if (previousState == Metadata.Disposed)
-            {
-                await InternalMetadata.ShutdownAsync().ConfigureAwait(false);
-                throw new ObjectDisposedException("Metadata instance was disposed before initialization finished.");
-            }
-            
-            // Set metadata dependent options
-            SetMetadataDependentOptions();
-
-            _initialized = true;
-        }
-
-        internal async Task ShutdownAsync()
-        {
-            var previousState = Interlocked.Exchange(ref _state, Metadata.Disposed);
-            _initialized = false;
-            if (previousState != Metadata.Initialized)
-            {
-                return;
-            }
-
-            await InternalMetadata.ShutdownAsync().ConfigureAwait(false);
+            _clusterInitializer.WaitInit();
         }
 
         private void OnInternalHostRemoved(Host h)
@@ -398,22 +330,14 @@ namespace Cassandra
             SchemaChangedEvent?.Invoke(sender, args);
         }
 
-        private void SetupEventForwarding(IInternalMetadata internalMetadata)
+        internal void SetupEventForwarding()
         {
-            internalMetadata.Hosts.Added += internalMetadata.OnHostAdded;
-            internalMetadata.Hosts.Removed += internalMetadata.OnHostRemoved;
-            internalMetadata.HostAdded += OnInternalHostAdded;
-            internalMetadata.HostRemoved += OnInternalHostRemoved;
-            internalMetadata.HostsEvent += OnInternalHostsEvent;
-            internalMetadata.SchemaChangedEvent += OnInternalSchemaChangedEvent;
-        }
-
-        private void SetMetadataDependentOptions()
-        {
-            if (InternalMetadata.IsDbaas)
-            {
-                Configuration.SetDefaultConsistencyLevel(ConsistencyLevel.LocalQuorum);
-            }
+            InternalMetadata.Hosts.Added += InternalMetadata.OnHostAdded;
+            InternalMetadata.Hosts.Removed += InternalMetadata.OnHostRemoved;
+            InternalMetadata.HostAdded += OnInternalHostAdded;
+            InternalMetadata.HostRemoved += OnInternalHostRemoved;
+            InternalMetadata.HostsEvent += OnInternalHostsEvent;
+            InternalMetadata.SchemaChangedEvent += OnInternalSchemaChangedEvent;
         }
     }
 }
