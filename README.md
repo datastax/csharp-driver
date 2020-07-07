@@ -55,19 +55,34 @@ If you are upgrading from the [DSE C# driver][dse-driver] (which has been unifie
 ## Basic Usage
 
 ```csharp
+// Configure the builder with your cluster's contact points
 var cluster = Cluster.Builder()
                      .AddContactPoints("host1")
                      .Build();
+
 // Connect to the nodes using a keyspace
 var session = cluster.Connect("sample_keyspace");
+
 // Execute a query on a connection synchronously
 var rs = session.Execute("SELECT * FROM sample_table");
+
 // Iterate through the RowSet
 foreach (var row in rs)
 {
-  var value = row.GetValue<int>("sample_int_column");
-  // Do something with the value
+    var value = row.GetValue<int>("sample_int_column");
+
+    // Do something with the value
 }
+```
+
+**If you are using [DataStax Astra][astra]** you can configure your cluster instance by setting the secure bundle and the user credentials:
+
+```csharp
+// Configure the builder with your cluster's cloud secure connection bundle and credentials
+var cluster = Cluster.Builder()
+                     .WithCloudSecureConnectionBundle("path/to/secure-connect-DATABASE_NAME.zip")
+                     .WithCredentials("user_name", "p@ssword1")
+                     .Build();
 ```
 
 ### Prepared statements
@@ -397,6 +412,7 @@ Licensed under the Apache License, Version 2.0 (the “License”); you may not 
 
 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an “AS IS” BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
+[astra]: https://www.datastax.com/products/datastax-astra
 [apidocs]: https://docs.datastax.com/en/latest-csharp-driver-api/
 [docindex]: https://docs.datastax.com/en/developer/csharp-driver/latest/
 [features]: https://docs.datastax.com/en/developer/csharp-driver/latest/features/
