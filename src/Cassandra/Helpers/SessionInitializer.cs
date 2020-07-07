@@ -170,7 +170,7 @@ namespace Cassandra.Helpers
             {
                 if (waiter.WaitWithTimeout())
                 {
-                    return _initTaskCompletionSource.Task.Result;
+                    return _initTaskCompletionSource.Task.GetAwaiter().GetResult();
                 }
             }
 
@@ -191,7 +191,7 @@ namespace Cassandra.Helpers
             {
                 if (await waiter.WaitWithTimeoutAsync().ConfigureAwait(false))
                 {
-                    return _initTaskCompletionSource.Task.Result;
+                    return _initTaskCompletionSource.Task.GetAwaiter().GetResult();
                 }
             }
 
