@@ -54,12 +54,25 @@ using Dse;
 ```
 
 ```csharp
-IDseCluster cluster = DseCluster.Builder()
-                                .AddContactPoint("127.0.0.1")
-                                .Build();
-IDseSession session = cluster.Connect();
-Row row = session.Execute("select * from system.local").First();
+// Configure the builder with your cluster's contact points
+var cluster = DseCluster.Builder()
+                        .AddContactPoint("127.0.0.1")
+                        .Build();
+
+var session = cluster.Connect();
+
+var row = session.Execute("select * from system.local").First();
 Console.WriteLine(row.GetValue<string>("cluster_name"));
+```
+
+**If you are using [DataStax Astra][astra]** you can configure your cluster instance by setting the secure bundle and the user credentials:
+
+```csharp
+// Configure the builder with your cluster's cloud secure connection bundle and credentials
+var cluster = DseCluster.Builder()
+                        .WithCloudSecureConnectionBundle("path/to/secure-connect-DATABASE_NAME.zip")
+                        .WithCredentials("user_name", "p@ssword1")
+                        .Build();
 ```
 
 ## Authentication
@@ -234,6 +247,7 @@ Note: DataStax products do not support big-endian systems.
 
 The full license terms are available at http://www.datastax.com/terms/datastax-dse-driver-license-terms
 
+[astra]: https://www.datastax.com/products/datastax-astra
 [dse]: https://www.datastax.com/products/datastax-enterprise
 [dse-graph]: https://www.datastax.com/products/datastax-enterprise-graph
 [cassandra-driver]: https://github.com/datastax/csharp-driver
