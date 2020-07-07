@@ -139,7 +139,7 @@ namespace Cassandra.Helpers
                             new InitializationErrorException(
                                 "Cluster initialization failed. See inner exception. " +
                                 "The driver will attempt to retry the initialization according to the reconnection policy " +
-                                "schedule."))).Forget();
+                                "schedule.", ex))).Forget();
 
                         try
                         {
