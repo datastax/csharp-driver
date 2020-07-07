@@ -342,7 +342,10 @@ namespace Cassandra
         {
             using (var waiter = new TaskTimeoutHelper(_initTaskCompletionSource.Task, _cluster.GetInitTimeout()))
             {
-                waiter.WaitWithTimeout();
+                if (waiter.WaitWithTimeout())
+                {
+                    return;
+                }
             }
 
             throw new InitializationTimeoutException();
@@ -374,11 +377,14 @@ namespace Cassandra
             throw new InitializationTimeoutException();
         }
 
-        private async Task<IInternalMetadata> WaitInitAsync()
+        private async Task WaitInitAsync()
         {
             using (var waiter = new TaskTimeoutHelper(_initTaskCompletionSource.Task, _cluster.GetInitTimeout()))
             {
-                await waiter.WaitWithTimeoutAsync().ConfigureAwait(false);
+                if (await waiter.WaitWithTimeoutAsync().ConfigureAwait(false))
+                {
+                    return;
+                }
             }
 
             throw new InitializationTimeoutException();
