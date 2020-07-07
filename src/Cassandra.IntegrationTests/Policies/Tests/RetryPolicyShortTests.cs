@@ -274,20 +274,20 @@ namespace Cassandra.IntegrationTests.Policies.Tests
                 _hosts = hosts;
             }
 
-            public Task InitializeAsync(IMetadata metadata)
+            public Task InitializeAsync(IMetadataSnapshotProvider metadata)
             {
                 return TaskHelper.Completed;
             }
 
-            public HostDistance Distance(IMetadata metadata, Host host)
+            public HostDistance Distance(ICluster cluster, Host host)
             {
                 return HostDistance.Local;
             }
 
-            public IEnumerable<Host> NewQueryPlan(IMetadata metadata, string keyspace, IStatement query)
+            public IEnumerable<Host> NewQueryPlan(ICluster cluster, string keyspace, IStatement query)
             {
                 var queryPlan = new List<Host>();
-                var allHosts = metadata.AllHostsSnapshot();
+                var allHosts = cluster.Metadata.AllHostsSnapshot();
                 foreach (var host in _hosts)
                 {
                     queryPlan.Add(allHosts.Single(h => h.Address.ToString() == host));

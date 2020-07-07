@@ -84,7 +84,7 @@ namespace Cassandra.Tests
             Mock.Get(enumerator).Setup(m => m.MoveNext()).Returns(false);
             Mock.Get(enumerable).Setup(m => m.GetEnumerator()).Returns(enumerator);
             Mock.Get(lbpMock)
-                .Setup(m => m.NewQueryPlan(It.IsAny<IMetadata>(), It.IsAny<string>(), It.IsAny<IStatement>()))
+                .Setup(m => m.NewQueryPlan(It.IsAny<ICluster>(), It.IsAny<string>(), It.IsAny<IStatement>()))
                 .Returns(enumerable);
             var triedHosts = new Dictionary<IPEndPoint, Exception>();
 
@@ -106,7 +106,7 @@ namespace Cassandra.Tests
             Mock.Get(enumerator).SetupGet(m => m.Current).Returns((Host)null);
             Mock.Get(enumerable).Setup(m => m.GetEnumerator()).Returns(enumerator);
             Mock.Get(lbpMock)
-                .Setup(m => m.NewQueryPlan(It.IsAny<IMetadata>(), It.IsAny<string>(), It.IsAny<IStatement>()))
+                .Setup(m => m.NewQueryPlan(It.IsAny<ICluster>(), It.IsAny<string>(), It.IsAny<IStatement>()))
                 .Returns(enumerable);
             var triedHosts = new Dictionary<IPEndPoint, Exception>();
 
@@ -128,9 +128,9 @@ namespace Cassandra.Tests
             Mock.Get(enumerator).SetupGet(m => m.Current).Returns(host);
             Mock.Get(enumerable).Setup(m => m.GetEnumerator()).Returns(enumerator);
             Mock.Get(lbpMock)
-                .Setup(m => m.NewQueryPlan(It.IsAny<IMetadata>(), It.IsAny<string>(), It.IsAny<IStatement>()))
+                .Setup(m => m.NewQueryPlan(It.IsAny<ICluster>(), It.IsAny<string>(), It.IsAny<IStatement>()))
                 .Returns(enumerable);
-            Mock.Get(lbpMock).Setup(m => m.Distance(It.IsAny<IMetadata>(), host)).Returns(HostDistance.Local);
+            Mock.Get(lbpMock).Setup(m => m.Distance(It.IsAny<ICluster>(), host)).Returns(HostDistance.Local);
             var triedHosts = new Dictionary<IPEndPoint, Exception>();
 
             var sut = new RequestHandler(sessionMock, metadata, new SerializerManager(ProtocolVersion.V4).GetCurrentSerializer());

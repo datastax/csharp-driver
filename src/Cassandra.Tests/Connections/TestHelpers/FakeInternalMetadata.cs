@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 
 using Cassandra.Collections;
@@ -73,7 +74,7 @@ namespace Cassandra.Tests.Connections.TestHelpers
 
         public KeyValuePair<string, KeyspaceMetadata>[] KeyspacesSnapshot => throw new NotImplementedException();
 
-        public Task InitAsync()
+        public Task InitAsync(CancellationToken token)
         {
             throw new NotImplementedException();
         }

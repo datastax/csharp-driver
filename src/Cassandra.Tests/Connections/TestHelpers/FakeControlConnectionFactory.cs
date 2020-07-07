@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 using Cassandra.Connections;
@@ -38,7 +39,7 @@ namespace Cassandra.Tests.Connections.TestHelpers
             IEnumerable<IContactPoint> contactPoints)
         {
             var cc = Mock.Of<IControlConnection>();
-            Mock.Get(cc).Setup(c => c.InitAsync()).Returns(Task.Run(async () =>
+            Mock.Get(cc).Setup(c => c.InitAsync(It.IsAny<CancellationToken>())).Returns(Task.Run(async () =>
             {
                 var cps = new Dictionary<IContactPoint, IEnumerable<IConnectionEndPoint>>();
                 foreach (var cp in contactPoints)

@@ -42,7 +42,7 @@ namespace Cassandra.SessionManagement
         /// </summary>
         ConcurrentDictionary<byte[], PreparedStatement> PreparedQueries { get; }
 
-        Exception InitException { get; }
+        InitFatalErrorException InitException { get; }
 
         /// <summary>
         /// Executes the prepare request on the first host selected by the load balancing policy.

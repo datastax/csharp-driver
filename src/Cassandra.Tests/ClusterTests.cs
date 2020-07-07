@@ -250,19 +250,19 @@ namespace Cassandra.Tests
                 _distances = distances;
             }
 
-            public Task InitializeAsync(IMetadata metadata)
+            public Task InitializeAsync(IMetadataSnapshotProvider metadata)
             {
                 return TaskHelper.Completed;
             }
 
-            public HostDistance Distance(IMetadata metadata, Host host)
+            public HostDistance Distance(ICluster cluster, Host host)
             {
                 return _distances[host.Address.Address.ToString()];
             }
 
-            public IEnumerable<Host> NewQueryPlan(IMetadata metadata, string keyspace, IStatement query)
+            public IEnumerable<Host> NewQueryPlan(ICluster cluster, string keyspace, IStatement query)
             {
-                return metadata.AllHosts().OrderBy(h => Guid.NewGuid().GetHashCode()).Take(_distances.Count);
+                return cluster.Metadata.AllHosts().OrderBy(h => Guid.NewGuid().GetHashCode()).Take(_distances.Count);
             }
         }
     }

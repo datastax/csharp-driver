@@ -332,13 +332,13 @@ namespace Cassandra.Tests.ExecutionProfiles
                 return TaskHelper.Completed;
             }
 
-            public Task InitializeAsync(IMetadata metadata)
+            public Task InitializeAsync(IMetadataSnapshotProvider metadata)
             {
                 InitializeCount++;
                 return TaskHelper.Completed;
             }
 
-            public ISpeculativeExecutionPlan NewPlan(IMetadata metadata, string keyspace, IStatement statement)
+            public ISpeculativeExecutionPlan NewPlan(ICluster cluster, string keyspace, IStatement statement)
             {
                 throw new System.NotImplementedException();
             }
@@ -348,20 +348,20 @@ namespace Cassandra.Tests.ExecutionProfiles
         {
             public volatile int InitializeCount;
 
-            public Task InitializeAsync(IMetadata metadata)
+            public Task InitializeAsync(IMetadataSnapshotProvider metadata)
             {
                 InitializeCount++;
                 return TaskHelper.Completed;
             }
 
-            public HostDistance Distance(IMetadata metadata, Host host)
+            public HostDistance Distance(ICluster cluster, Host host)
             {
                 return HostDistance.Local;
             }
 
-            public IEnumerable<Host> NewQueryPlan(IMetadata metadata, string keyspace, IStatement query)
+            public IEnumerable<Host> NewQueryPlan(ICluster cluster, string keyspace, IStatement query)
             {
-                return metadata.AllHosts();
+                return cluster.Metadata.AllHosts();
             }
         }
     }

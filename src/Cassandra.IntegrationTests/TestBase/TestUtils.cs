@@ -635,9 +635,11 @@ namespace Cassandra.IntegrationTests.TestBase
                 Trace.TraceInformation("Waiting for test schema agreement");
                 var schemaVersions = new List<Guid>();
                 //peers
-                schemaVersions.AddRange(cc.Query("SELECT peer, schema_version FROM system.peers").Select(r => r.GetValue<Guid>("schema_version")));
+                schemaVersions.AddRange(cc.QueryAsync("SELECT peer, schema_version FROM system.peers").GetAwaiter().GetResult()
+                                          .Select(r => r.GetValue<Guid>("schema_version")));
                 //local
-                schemaVersions.Add(cc.Query("SELECT schema_version FROM system.local").Select(r => r.GetValue<Guid>("schema_version")).First());
+                schemaVersions.Add(cc.QueryAsync("SELECT schema_version FROM system.local").GetAwaiter().GetResult()
+                                     .Select(r => r.GetValue<Guid>("schema_version")).First());
 
                 var differentSchemas = schemaVersions.Distinct().Count();
                 if (differentSchemas <= 1 + nodesDown)

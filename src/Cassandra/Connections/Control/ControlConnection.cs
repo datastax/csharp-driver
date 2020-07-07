@@ -191,7 +191,7 @@ namespace Cassandra.Connections.Control
             ConcurrentDictionary<IContactPoint, object> attemptedContactPoints,
             ConcurrentDictionary<Host, object> attemptedHosts)
         {
-            foreach (var host in _config.DefaultRequestOptions.LoadBalancingPolicy.NewQueryPlan(_cluster.Metadata, null, null))
+            foreach (var host in _config.DefaultRequestOptions.LoadBalancingPolicy.NewQueryPlan(_cluster, null, null))
             {
                 if (attemptedHosts.TryAdd(host, null))
                 {

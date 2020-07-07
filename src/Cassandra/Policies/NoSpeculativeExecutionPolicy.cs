@@ -33,12 +33,12 @@ namespace Cassandra
             
         }
         
-        public Task InitializeAsync(IMetadata metadata)
+        public Task InitializeAsync(IMetadataSnapshotProvider metadata)
         {
             return TaskHelper.Completed;
         }
 
-        public ISpeculativeExecutionPlan NewPlan(IMetadata metadata, string keyspace, IStatement statement)
+        public ISpeculativeExecutionPlan NewPlan(ICluster cluster, string keyspace, IStatement statement)
         {
             return Plan;
         }

@@ -20,6 +20,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Connections;
 using Cassandra.Connections.Control;
@@ -117,10 +118,13 @@ namespace Cassandra.Tests.Connections.Control
                 internalMetadata = new InternalMetadata(cluster, config, contactPoints);
             }
 
+            var metadata = new FakeMetadata(internalMetadata);
+            Mock.Get(cluster).SetupGet(c => c.Metadata).Returns(metadata);
+
             return new ControlConnectionCreateResult
             {
                 ConnectionFactory = connectionFactory,
-                Metadata = new FakeMetadata(internalMetadata),
+                Metadata = metadata,
                 Cluster = cluster,
                 Config = config,
                 ControlConnection = (ControlConnection)internalMetadata.ControlConnection,
@@ -208,7 +212,7 @@ namespace Cassandra.Tests.Connections.Control
 
                 Mock.Get(cluster)
                     .Setup(c => c.RetrieveAndSetDistance(It.IsAny<Host>()))
-                    .Returns<Host>(h => config.Policies.LoadBalancingPolicy.Distance(metadata, h));
+                    .Returns<Host>(h => config.Policies.LoadBalancingPolicy.Distance(cluster, h));
                 config.Policies.LoadBalancingPolicy.InitializeAsync(metadata);
 
                 connectionOpenEnabled = false;
@@ -263,7 +267,7 @@ namespace Cassandra.Tests.Connections.Control
 
                         Mock.Get(cluster)
                             .Setup(c => c.RetrieveAndSetDistance(It.IsAny<Host>()))
-                            .Returns<Host>(h => config.Policies.LoadBalancingPolicy.Distance(metadata, h));
+                            .Returns<Host>(h => config.Policies.LoadBalancingPolicy.Distance(cluster, h));
                         config.LocalDatacenterProvider.Initialize(cluster, createResult.InternalMetadata);
                         await config.Policies.LoadBalancingPolicy.InitializeAsync(metadata).ConfigureAwait(false);
 
@@ -364,12 +368,15 @@ namespace Cassandra.Tests.Connections.Control
                     _localhost
                 });
             var metadata = new FakeMetadata(internalMetadata);
+            var cluster = Mock.Of<IInternalCluster>();
+            Mock.Get(cluster).SetupGet(c => c.Metadata).Returns(metadata);
             return new ControlConnectionCreateResult
             {
                 ConnectionFactory = connectionFactory,
                 ControlConnection = (ControlConnection)metadata.InternalMetadata.ControlConnection,
-                Metadata = new Metadata(internalMetadata),
-                InternalMetadata = internalMetadata
+                Metadata = new Metadata(internalMetadata, default),
+                InternalMetadata = internalMetadata,
+                Cluster = cluster
             };
         }
 

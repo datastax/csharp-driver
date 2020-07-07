@@ -46,11 +46,13 @@ namespace Cassandra.Tests
                 .Setup(c => c.AllHostsSnapshot())
                 .Returns(hostList)
                 .Verifiable();
+            var clusterMock = new Mock<ICluster>();
+            clusterMock.SetupGet(c => c.Metadata).Returns(metadataMock.Object);
 
             //Initialize the balancing policy
             var policy = new RoundRobinPolicy();
             await policy.InitializeAsync(metadataMock.Object).ConfigureAwait(false);
-            var balancedHosts = policy.NewQueryPlan(metadataMock.Object, null, new SimpleStatement());
+            var balancedHosts = policy.NewQueryPlan(clusterMock.Object, null, new SimpleStatement());
 
             //Take a list of hosts of 4, it should get 1 of every one in a cyclic order.
             var firstRound = balancedHosts.ToList();
@@ -65,7 +67,7 @@ namespace Cassandra.Tests
             var followingRounds = new List<Host>();
             for (var i = 0; i < 10; i++)
             {
-                followingRounds.AddRange(policy.NewQueryPlan(metadataMock.Object, null, new SimpleStatement()));
+                followingRounds.AddRange(policy.NewQueryPlan(clusterMock.Object, null, new SimpleStatement()));
             }
             Assert.AreEqual(10 * hostLength, followingRounds.Count);
 
@@ -91,6 +93,8 @@ namespace Cassandra.Tests
                 .Setup(c => c.AllHostsSnapshot())
                 .Returns(hostList)
                 .Verifiable();
+            var clusterMock = new Mock<ICluster>();
+            clusterMock.SetupGet(c => c.Metadata).Returns(metadataMock.Object);
 
             //Initialize the balancing policy
             var policy = new RoundRobinPolicy();
@@ -99,7 +103,7 @@ namespace Cassandra.Tests
             Func<int, Task> action = async _ =>
             {
                 var resultingHosts = new List<Host>();
-                var hostEnumerator = policy.NewQueryPlan(metadataMock.Object, null, new SimpleStatement());
+                var hostEnumerator = policy.NewQueryPlan(clusterMock.Object, null, new SimpleStatement());
                 foreach (var h in hostEnumerator)
                 {
                     //Slow down to try to execute it at the same time
@@ -128,8 +132,8 @@ namespace Cassandra.Tests
             var metadataMock = CreateMetadataMock(hostList, implicitContactPoint: implicitContactPoint);
             var policy = new DcInferringLoadBalancingPolicy();
             await policy.InitializeAsync(metadataMock).ConfigureAwait(false);
-            Assert.AreEqual(HostDistance.Local, policy.Distance(metadataMock, hostList[0]));
-            Assert.AreEqual(HostDistance.Remote, policy.Distance(metadataMock, hostList[1]));
+            Assert.AreEqual(HostDistance.Local, policy.Distance(metadataMock.Cluster, hostList[0]));
+            Assert.AreEqual(HostDistance.Remote, policy.Distance(metadataMock.Cluster, hostList[1]));
         }
 
         [Test]
@@ -150,7 +154,7 @@ namespace Cassandra.Tests
             //0 used nodes per remote dc
             var policy = new DCAwareRoundRobinPolicy("local");
             await policy.InitializeAsync(metadataMock).ConfigureAwait(false);
-            var balancedHosts = policy.NewQueryPlan(metadataMock, null, new SimpleStatement());
+            var balancedHosts = policy.NewQueryPlan(metadataMock.Cluster, null, new SimpleStatement());
             var firstRound = balancedHosts.ToList();
 
             //Returns only local hosts
@@ -161,7 +165,7 @@ namespace Cassandra.Tests
             var followingRounds = new List<Host>();
             for (var i = 0; i < 10; i++)
             {
-                followingRounds.AddRange(policy.NewQueryPlan(metadataMock, null, new SimpleStatement()).ToList());
+                followingRounds.AddRange(policy.NewQueryPlan(metadataMock.Cluster, null, new SimpleStatement()).ToList());
             }
             Assert.AreEqual(10 * (hostLength - 2), followingRounds.Count);
 
@@ -180,8 +184,8 @@ namespace Cassandra.Tests
             var metadataMock = CreateMetadataMock(hostList, "dc2");
             var policy = new DCAwareRoundRobinPolicy();
             await policy.InitializeAsync(metadataMock).ConfigureAwait(false);
-            Assert.AreEqual(HostDistance.Remote, policy.Distance(metadataMock, hostList[0]));
-            Assert.AreEqual(HostDistance.Local, policy.Distance(metadataMock, hostList[1]));
+            Assert.AreEqual(HostDistance.Remote, policy.Distance(metadataMock.Cluster, hostList[0]));
+            Assert.AreEqual(HostDistance.Local, policy.Distance(metadataMock.Cluster, hostList[1]));
         }
 
         [Test]
@@ -214,8 +218,8 @@ namespace Cassandra.Tests
             var metadataMock = CreateMetadataMock(hostList, implicitContactPoint: true);
             var policy = new DCAwareRoundRobinPolicy();
             await policy.InitializeAsync(metadataMock).ConfigureAwait(false);
-            Assert.AreEqual(HostDistance.Local, policy.Distance(metadataMock, hostList[0]));
-            Assert.AreEqual(HostDistance.Remote, policy.Distance(metadataMock, hostList[1]));
+            Assert.AreEqual(HostDistance.Local, policy.Distance(metadataMock.Cluster, hostList[0]));
+            Assert.AreEqual(HostDistance.Remote, policy.Distance(metadataMock.Cluster, hostList[1]));
         }
 
         [Test]
@@ -279,7 +283,7 @@ namespace Cassandra.Tests
             var firstHosts = new ConcurrentBag<Host>();
             Action action = () =>
             {
-                var hosts = policy.NewQueryPlan(metadataMock, null, null).ToList();
+                var hosts = policy.NewQueryPlan(metadataMock.Cluster, null, null).ToList();
                 //Check that the value is not repeated
                 Assert.AreEqual(0, hosts.GroupBy(x => x)
                     .Where(g => g.Count() > 1)
@@ -378,7 +382,7 @@ namespace Cassandra.Tests
             await policy.InitializeAsync(metadataMock).ConfigureAwait(false);
 
             var hostYielded = new ConcurrentBag<IEnumerable<Host>>();
-            Action action = () => hostYielded.Add(policy.NewQueryPlan(metadataMock, null, null).ToList());
+            Action action = () => hostYielded.Add(policy.NewQueryPlan(metadataMock.Cluster, null, null).ToList());
 
             //Invoke without nodes changing
             TestHelper.ParallelInvoke(action, 100);
@@ -505,7 +509,7 @@ namespace Cassandra.Tests
 
             //key for host :::1 and :::3
             var k = new RoutingKey { RawRoutingKey = new byte[] { 1 } };
-            var hosts = policy.NewQueryPlan(metadataMock, null, new SimpleStatement().SetRoutingKey(k)).ToList();
+            var hosts = policy.NewQueryPlan(metadataMock.Cluster, null, new SimpleStatement().SetRoutingKey(k)).ToList();
             //5 local hosts
             Assert.AreEqual(5, hosts.Count);
             //local replica first
@@ -515,7 +519,7 @@ namespace Cassandra.Tests
             //key for host :::2 and :::5
             k = new RoutingKey { RawRoutingKey = new byte[] { 2 } };
             n = 3;
-            hosts = policy.NewQueryPlan(metadataMock, null, new SimpleStatement().SetRoutingKey(k)).ToList();
+            hosts = policy.NewQueryPlan(metadataMock.Cluster, null, new SimpleStatement().SetRoutingKey(k)).ToList();
             Assert.AreEqual(5, hosts.Count);
             //local replicas first
             CollectionAssert.AreEquivalent(new[] { 2, 5 }, hosts.Take(2).Select(TestHelper.GetLastAddressByte));
@@ -566,7 +570,7 @@ namespace Cassandra.Tests
             const int times = 10000;
             Action action = () =>
             {
-                var h = policy.NewQueryPlan(metadataMock, null, new SimpleStatement().SetRoutingKey(k)).First();
+                var h = policy.NewQueryPlan(metadataMock.Cluster, null, new SimpleStatement().SetRoutingKey(k)).First();
                 firstHosts.Add(h);
             };
             TestHelper.ParallelInvoke(action, times);
@@ -595,16 +599,16 @@ namespace Cassandra.Tests
             var policy = new TokenAwarePolicy(new DCAwareRoundRobinPolicy("dc1"));
             await policy.InitializeAsync(metadataMock).ConfigureAwait(false);
             //No routing key
-            var hosts = policy.NewQueryPlan(metadataMock, null, new SimpleStatement()).ToList();
+            var hosts = policy.NewQueryPlan(metadataMock.Cluster, null, new SimpleStatement()).ToList();
             //2 localhosts
-            Assert.AreEqual(2, hosts.Count(h => policy.Distance(metadataMock, h) == HostDistance.Local));
+            Assert.AreEqual(2, hosts.Count(h => policy.Distance(metadataMock.Cluster, h) == HostDistance.Local));
             Assert.AreEqual("dc1", hosts[0].Datacenter);
             Assert.AreEqual("dc1", hosts[1].Datacenter);
             Mock.Get(metadataMock).Verify();
             //No statement
-            hosts = policy.NewQueryPlan(metadataMock, null, null).ToList();
+            hosts = policy.NewQueryPlan(metadataMock.Cluster, null, null).ToList();
             //2 localhosts
-            Assert.AreEqual(2, hosts.Count(h => policy.Distance(metadataMock, h) == HostDistance.Local));
+            Assert.AreEqual(2, hosts.Count(h => policy.Distance(metadataMock.Cluster, h) == HostDistance.Local));
             Assert.AreEqual("dc1", hosts[0].Datacenter);
             Assert.AreEqual("dc1", hosts[1].Datacenter);
             Mock.Get(metadataMock).Verify();
@@ -666,7 +670,7 @@ namespace Cassandra.Tests
             var config = new TestConfigurationBuilder { LocalDatacenter = localDc }.Build();
             var cluster = Mock.Of<IInternalCluster>();
             var internalMetadata = Mock.Of<IInternalMetadata>();
-            var metadata = new FakeMetadata(internalMetadata);
+            var metadata = new FakeMetadata(cluster, internalMetadata);
             Mock.Get(cluster).SetupGet(c => c.Configuration).Returns(config);
             Mock.Get(cluster).SetupGet(c => c.InternalMetadata).Returns(internalMetadata);
             Mock.Get(cluster).SetupGet(c => c.Metadata).Returns(metadata);

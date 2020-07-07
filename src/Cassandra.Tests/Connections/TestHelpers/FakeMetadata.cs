@@ -32,11 +32,16 @@ namespace Cassandra.Tests.Connections.TestHelpers
             SetupEventForwarding(InternalMetadata);
         }
 
-        public FakeMetadata(IInternalMetadata internalMetadata)
+        public FakeMetadata(ICluster cluster, IInternalMetadata internalMetadata)
         {
+            Cluster = cluster;
             Configuration = internalMetadata.Configuration;
             InternalMetadata = internalMetadata;
             SetupEventForwarding(internalMetadata);
+        }
+        
+        public FakeMetadata(IInternalMetadata internalMetadata) : this(null, internalMetadata)
+        {
         }
 
         public event HostsEventHandler HostsEvent;
@@ -46,6 +51,8 @@ namespace Cassandra.Tests.Connections.TestHelpers
         public event Action<Host> HostAdded;
 
         public event Action<Host> HostRemoved;
+
+        public ICluster Cluster { get; }
 
         public Configuration Configuration { get; }
 

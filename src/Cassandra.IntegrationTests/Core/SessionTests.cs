@@ -308,19 +308,19 @@ namespace Cassandra.IntegrationTests.Core
                 _ignoredHost = h;
             }
 
-            public Task InitializeAsync(IMetadata metadata)
+            public Task InitializeAsync(IMetadataSnapshotProvider metadata)
             {
                 return _childPolicy.InitializeAsync(metadata);
             }
 
-            public HostDistance Distance(IMetadata metadata, Host host)
+            public HostDistance Distance(ICluster cluster, Host host)
             {
                 return host == _ignoredHost ? HostDistance.Ignored : HostDistance.Local;
             }
 
-            public IEnumerable<Host> NewQueryPlan(IMetadata metadata, string keyspace, IStatement query)
+            public IEnumerable<Host> NewQueryPlan(ICluster cluster, string keyspace, IStatement query)
             {
-                return _childPolicy.NewQueryPlan(metadata, keyspace, query);
+                return _childPolicy.NewQueryPlan(cluster, keyspace, query);
             }
         }
 

@@ -49,12 +49,16 @@ namespace Cassandra
         private readonly IMetricsManager _metricsManager;
         private readonly IObserverFactory _observerFactory;
         private readonly IInsightsClient _insightsClient;
+        private readonly CancellationTokenSource _initCancellationTokenSource = new CancellationTokenSource();
 
         private readonly Task<IInternalMetadata> _initTask;
         private long _state = Session.Initializing;
 
         private volatile string _keyspace;
         private volatile bool _initialized = false;
+        
+        private volatile TaskCompletionSource<IInternalMetadata> _initTaskCompletionSource 
+            = new TaskCompletionSource<IInternalMetadata>();
 
         internal IInternalSession InternalRef => this;
 
@@ -220,12 +224,35 @@ namespace Cassandra
             //Only dispose once
             var previousState = Interlocked.Exchange(ref _state, Session.Disposed);
             _initialized = false;
-            if (previousState != Session.Initialized)
+
+            if (previousState == Session.Initializing)
             {
-                return;
+                _initCancellationTokenSource.Cancel();
             }
 
-            await ShutdownInternalAsync().ConfigureAwait(false);
+            if (previousState != Session.Initialized)
+            {
+                try
+                {
+                    await _initTask.ConfigureAwait(false);
+                }
+                catch (Exception)
+                {
+                    // ignored
+                }
+            }
+            
+            if (previousState != Session.Disposed)
+            {
+                _initCancellationTokenSource.Dispose();
+            }
+
+            if (previousState == Session.Initialized)
+            {
+                await ShutdownInternalAsync().ConfigureAwait(false);
+            }
+
+            Logger.Info("Session [" + SessionName + "] has been shut down.");
         }
 
         private async Task ShutdownInternalAsync()
@@ -313,7 +340,7 @@ namespace Cassandra
 
         private void WaitInit()
         {
-            using (var waiter = new TaskTimeoutHelper(_initTask, _cluster.GetInitTimeout()))
+            using (var waiter = new TaskTimeoutHelper(_initTaskCompletionSource.Task, _cluster.GetInitTimeout()))
             {
                 waiter.WaitWithTimeout();
             }
@@ -323,11 +350,11 @@ namespace Cassandra
 
         private IInternalMetadata WaitInitAndGetMetadata()
         {
-            using (var waiter = new TaskTimeoutHelper(_initTask, _cluster.GetInitTimeout()))
+            using (var waiter = new TaskTimeoutHelper(_initTaskCompletionSource.Task, _cluster.GetInitTimeout()))
             {
                 if (waiter.WaitWithTimeout())
                 {
-                    return _initTask.Result;
+                    return _initTaskCompletionSource.Task.Result;
                 }
             }
 
@@ -336,11 +363,11 @@ namespace Cassandra
 
         private async Task<IInternalMetadata> WaitInitAndGetMetadataAsync()
         {
-            using (var waiter = new TaskTimeoutHelper(_initTask, _cluster.GetInitTimeout()))
+            using (var waiter = new TaskTimeoutHelper(_initTaskCompletionSource.Task, _cluster.GetInitTimeout()))
             {
                 if (await waiter.WaitWithTimeoutAsync().ConfigureAwait(false))
                 {
-                    return _initTask.Result;
+                    return _initTaskCompletionSource.Task.Result;
                 }
             }
 
@@ -349,7 +376,7 @@ namespace Cassandra
 
         private async Task<IInternalMetadata> WaitInitAsync()
         {
-            using (var waiter = new TaskTimeoutHelper(_initTask, _cluster.GetInitTimeout()))
+            using (var waiter = new TaskTimeoutHelper(_initTaskCompletionSource.Task, _cluster.GetInitTimeout()))
             {
                 await waiter.WaitWithTimeoutAsync().ConfigureAwait(false);
             }
@@ -359,35 +386,86 @@ namespace Cassandra
         
         private async Task<IInternalMetadata> InitInternalAsync()
         {
-            var internalMetadata = await InternalRef.InternalCluster.TryInitAndGetMetadataAsync().ConfigureAwait(false);
-
-            InternalRef.InternalCluster.Metadata.HostRemoved += OnHostRemoved;
-
-            var serializerManager = _cluster.Configuration.SerializerManager;
-            if (Configuration.GetOrCreatePoolingOptions(serializerManager.CurrentProtocolVersion).GetWarmup())
+            try
             {
-                await WarmupAsync(internalMetadata).ConfigureAwait(false);
-            }
+                IInternalMetadata internalMetadata = null;
+                do
+                {
+                    try
+                    {
+                        internalMetadata = 
+                            await InternalRef.InternalCluster
+                                             .TryInitAndGetMetadataAsync()
+                                             .WithCancellation(_initCancellationTokenSource.Token).ConfigureAwait(false);
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        if (InternalRef.InternalCluster.InitException != null)
+                        {
+                            throw InternalRef.InternalCluster.InitException;
+                        }
 
-            if (Keyspace != null)
+                        if (IsDisposed)
+                        {
+                            throw new ObjectDisposedException("Session instance was disposed before initialization finished.");
+                        }
+
+                        var currentTcs = _initTaskCompletionSource;
+                        Task.Run(() => currentTcs.TrySetException(ex)).Forget();
+                        await Task.Delay(500, _initCancellationTokenSource.Token).ConfigureAwait(false);
+                        _initTaskCompletionSource = new TaskCompletionSource<IInternalMetadata>();
+                    }
+                } while (!IsDisposed);
+
+                if (IsDisposed)
+                {
+                    throw new ObjectDisposedException("Session instance was disposed before initialization finished.");
+                }
+
+                InternalRef.InternalCluster.Metadata.HostRemoved += OnHostRemoved;
+
+                var serializerManager = _cluster.Configuration.SerializerManager;
+                if (Configuration.GetOrCreatePoolingOptions(serializerManager.CurrentProtocolVersion).GetWarmup())
+                {
+                    await WarmupAsync(internalMetadata).ConfigureAwait(false);
+                }
+
+                if (Keyspace != null)
+                {
+                    // Borrow a connection, trying to fail fast
+                    var handler = Configuration.RequestHandlerFactory.Create(this, internalMetadata, serializerManager.GetCurrentSerializer());
+                    await handler.GetNextConnectionAsync(new Dictionary<IPEndPoint, Exception>()).ConfigureAwait(false);
+                }
+
+                _insightsClient.Initialize(internalMetadata);
+
+                var previousState = Interlocked.CompareExchange(ref _state, Session.Initialized, Session.Initializing);
+                if (previousState == Session.Disposed)
+                {
+                    await ShutdownInternalAsync().ConfigureAwait(false);
+                    throw new ObjectDisposedException("Session instance was disposed before initialization finished.");
+                }
+
+                _initialized = true;
+
+                Task.Run(() => _initTaskCompletionSource.TrySetResult(internalMetadata)).Forget();
+
+                return internalMetadata;
+
+            }
+            catch (Exception ex)
             {
-                // Borrow a connection, trying to fail fast
-                var handler = Configuration.RequestHandlerFactory.Create(this, internalMetadata, serializerManager.GetCurrentSerializer());
-                await handler.GetNextConnectionAsync(new Dictionary<IPEndPoint, Exception>()).ConfigureAwait(false);
+                if (IsDisposed)
+                {
+                    var newEx = new ObjectDisposedException("Session instance was disposed before initialization finished.");
+                    Task.Run(() => _initTaskCompletionSource.TrySetException(newEx)).Forget();
+                    throw newEx;
+                }
+
+                Task.Run(() => _initTaskCompletionSource.TrySetException(ex)).Forget();
+                throw;
             }
-
-            _insightsClient.Initialize(internalMetadata);
-
-            var previousState = Interlocked.CompareExchange(ref _state, Session.Initialized, Session.Initializing);
-            if (previousState == Session.Disposed)
-            {
-                await ShutdownInternalAsync().ConfigureAwait(false);
-                throw new ObjectDisposedException("Session instance was disposed before initialization finished.");
-            }
-
-            _initialized = true;
-
-            return internalMetadata;
         }
 
         /// <summary>

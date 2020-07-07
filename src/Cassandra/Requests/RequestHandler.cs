@@ -131,7 +131,7 @@ namespace Cassandra.Requests
             var host = (statement as Statement)?.Host;
 
             return host == null
-                ? lbp.NewQueryPlan(metadata, session.Keyspace, statement)
+                ? lbp.NewQueryPlan(session.Cluster, session.Keyspace, statement)
                 : Enumerable.Repeat(host, 1);
         }
 
@@ -526,7 +526,7 @@ namespace Cassandra.Requests
             if (_executionPlan == null)
             {
                 _executionPlan = RequestOptions.SpeculativeExecutionPolicy.NewPlan(
-                    _session.Cluster.Metadata, _session.Keyspace, Statement);
+                    _session.Cluster, _session.Keyspace, Statement);
             }
             var delay = _executionPlan.NextExecution(currentHost);
             if (delay <= 0)

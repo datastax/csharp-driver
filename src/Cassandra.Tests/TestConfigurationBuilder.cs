@@ -98,6 +98,8 @@ namespace Cassandra.Tests
 
         public string LocalDatacenter { get; set; }
 
+        public long? InitializationTimeoutMs { get; set; }
+
         public IContactPointParser ContactPointParser { get; set; }
 
         public ILocalDatacenterProvider LocalDatacenterProvider { get; set; } = new LocalDatacenterProvider();
@@ -180,7 +182,8 @@ namespace Cassandra.Tests
                 protocolVersionNegotiator: ProtocolVersionNegotiator,
                 serverEventsSubscriber: ServerEventsSubscriber,
                 localDatacenterProvider: LocalDatacenterProvider,
-                serializerManager: SerializerManager);
+                serializerManager: SerializerManager,
+                initializationTimeoutMs: InitializationTimeoutMs);
         }
     }
 }

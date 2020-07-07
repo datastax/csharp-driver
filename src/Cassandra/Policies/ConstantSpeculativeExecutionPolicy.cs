@@ -56,7 +56,7 @@ namespace Cassandra
             return TaskHelper.Completed;
         }
 
-        public ISpeculativeExecutionPlan NewPlan(IMetadata metadata, string keyspace, IStatement statement)
+        public ISpeculativeExecutionPlan NewPlan(ICluster cluster, string keyspace, IStatement statement)
         {
             return new ConstantSpeculativeExecutionPlan(Delay, MaxSpeculativeExecutions);
         }

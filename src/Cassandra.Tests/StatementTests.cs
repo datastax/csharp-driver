@@ -336,6 +336,8 @@ namespace Cassandra.Tests
                 .Returns(new List<Host>());
             Mock.Get(metadataMock).Setup(c => c.AllHosts())
                 .Returns(new List<Host>());
+            var clusterMock = Mock.Of<ICluster>();
+            Mock.Get(clusterMock).SetupGet(c => c.Metadata).Returns(metadataMock);
             await lbp.InitializeAsync(metadataMock).ConfigureAwait(false);
             
             var s1Mock = new Mock<Statement>(MockBehavior.Loose);
@@ -343,7 +345,7 @@ namespace Cassandra.Tests
             s1Mock.Setup(s => s.Keyspace).Returns("ks1");
             var batch = new BatchStatement().Add(s1Mock.Object);
 
-            var _ = lbp.NewQueryPlan(metadataMock, "ks2", batch).ToList();
+            var _ = lbp.NewQueryPlan(clusterMock, "ks2", batch).ToList();
 
             Mock.Get(metadataMock).Verify(c => c.GetReplicas("ks1", rawRoutingKey), Times.Once);
         }

@@ -34,6 +34,7 @@ namespace Cassandra
         private const int NotInitialized = 0;
 
         private readonly int _queryAbortTimeout;
+        private readonly CancellationToken _cancellationToken;
 
         private volatile Task _initTask;
         private volatile bool _initialized = false;
@@ -42,8 +43,9 @@ namespace Cassandra
 
         internal IInternalMetadata InternalMetadata { get; }
 
-        internal Metadata(IInternalMetadata internalMetadata)
+        internal Metadata(IInternalMetadata internalMetadata, CancellationToken cancellationToken)
         {
+            _cancellationToken = cancellationToken;
             Configuration = internalMetadata.Configuration;
             _queryAbortTimeout = Configuration.DefaultRequestOptions.QueryAbortTimeout;
             InternalMetadata = internalMetadata;
@@ -307,7 +309,7 @@ namespace Cassandra
             return await InternalMetadata.CheckSchemaAgreementAsync().ConfigureAwait(false);
         }
 
-        internal Task TryInitializeAsync(CancellationToken token = default(CancellationToken))
+        internal Task TryInitializeAsync()
         {
             if (_initialized)
             {
@@ -315,7 +317,7 @@ namespace Cassandra
                 return TaskHelper.Completed;
             }
 
-            TryLaunchInitTask(token);
+            TryLaunchInitTask();
             return _initTask;
         }
 
@@ -331,7 +333,7 @@ namespace Cassandra
             _initTask.GetAwaiter().GetResult();
         }
 
-        private void TryLaunchInitTask(CancellationToken token = default(CancellationToken))
+        private void TryLaunchInitTask()
         {
             var currentState = Interlocked.Read(ref _state);
             if (currentState == Metadata.Disposed)
@@ -342,7 +344,7 @@ namespace Cassandra
             if (Interlocked.CompareExchange(ref _state, Metadata.Initializing, Metadata.NotInitialized)
                 == Metadata.NotInitialized)
             {
-                _initTask = Task.Run(() => InitializeInternalAsync(token));
+                _initTask = Task.Run(() => InitializeInternalAsync(_cancellationToken));
             }
         }
 

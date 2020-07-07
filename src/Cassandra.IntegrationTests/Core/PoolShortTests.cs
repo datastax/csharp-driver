@@ -592,8 +592,8 @@ namespace Cassandra.IntegrationTests.Core
             const string query = "SELECT * FROM system.local";
             // Mark the last host as ignored
             var lbp = new TestHelper.CustomLoadBalancingPolicy(
-                (cluster, ks, stmt) => cluster.AllHosts(),
-                (cluster, host) => host.Equals(cluster.AllHosts().Last()) ? HostDistance.Ignored : HostDistance.Local);
+                (cluster, ks, stmt) => cluster.Metadata.AllHosts(),
+                (cluster, host) => host.Equals(cluster.Metadata.AllHosts().Last()) ? HostDistance.Ignored : HostDistance.Local);
             var builder = ClusterBuilder().WithLoadBalancingPolicy(lbp);
 
             using (var testCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" }))
@@ -706,7 +706,7 @@ namespace Cassandra.IntegrationTests.Core
             var lbp = new TestHelper.CustomLoadBalancingPolicy((cluster, ks, stmt) =>
             {
                 Interlocked.Increment(ref queryPlanCounter);
-                return cluster.AllHosts();
+                return cluster.Metadata.AllHosts();
             });
 
             var builder = ClusterBuilder().WithLoadBalancingPolicy(lbp);

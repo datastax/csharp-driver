@@ -46,9 +46,10 @@ namespace Cassandra
         internal static readonly Logger Logger = new Logger(typeof(Cluster));
         private readonly CopyOnWriteList<IInternalSession> _connectedSessions = new CopyOnWriteList<IInternalSession>();
         private readonly bool _implicitContactPoint = false;
-        private volatile Exception _initException;
+        private volatile InitFatalErrorException _initException;
         private volatile bool _initialized = false;
-        private volatile TaskCompletionSource<IInternalMetadata> _initTaskCompletionSource;
+        private volatile TaskCompletionSource<IInternalMetadata> _initTaskCompletionSource 
+            = new TaskCompletionSource<IInternalMetadata>();
         private readonly SemaphoreSlim _sessionCreateLock = new SemaphoreSlim(1, 1);
         private long _sessionCounter = -1;
 
@@ -67,7 +68,7 @@ namespace Cassandra
 
         private bool IsDisposed => Interlocked.Read(ref _state) == Cluster.Disposed;
 
-        Exception IInternalCluster.InitException => _initException;
+        InitFatalErrorException IInternalCluster.InitException => _initException;
 
         /// <inheritdoc />
         ConcurrentDictionary<byte[], PreparedStatement> IInternalCluster.PreparedQueries { get; }
@@ -135,9 +136,8 @@ namespace Cassandra
             var parsedContactPoints = configuration.ContactPointParser.ParseContactPoints(contactPointsList);
             
             _internalMetadata = new InternalMetadata(this, configuration, parsedContactPoints);
-            _lazyMetadata = new Metadata(_internalMetadata);
+            _lazyMetadata = new Metadata(_internalMetadata, _initCancellationTokenSource.Token);
 
-            _initTaskCompletionSource = new TaskCompletionSource<IInternalMetadata>();
             _initTask = Task.Run(InitInternalAsync);
         }
 
@@ -187,7 +187,8 @@ namespace Cassandra
                 {
                     try
                     {
-                        await _lazyMetadata.TryInitializeAsync(_initCancellationTokenSource.Token).ConfigureAwait(false);
+                        await _lazyMetadata.TryInitializeAsync().ConfigureAwait(false);
+                        break;
                     }
                     catch (Exception ex)
                     {
@@ -468,14 +469,13 @@ namespace Cassandra
             {
                 Cluster.Logger.Warning("Exception occured while disposing session instances: {0}", ex.ToString());
             }
-
-            _initCancellationTokenSource.Cancel();
-
-            if (previousState == Cluster.Initialized)
+            
+            if (previousState == Cluster.Initializing)
             {
-                await ShutdownInternalAsync().ConfigureAwait(false);
+                _initCancellationTokenSource.Cancel();
             }
-            else
+
+            if (previousState != Cluster.Initialized)
             {
                 try
                 {
@@ -485,6 +485,16 @@ namespace Cassandra
                 {
                     // ignored
                 }
+            }
+            
+            if (previousState != Cluster.Disposed)
+            {
+                _initCancellationTokenSource.Dispose();
+            }
+
+            if (previousState == Cluster.Initialized)
+            {
+                await ShutdownInternalAsync().ConfigureAwait(false);
             }
 
             Cluster.Logger.Info("Cluster [" + _internalMetadata.ClusterName + "] has been shut down.");

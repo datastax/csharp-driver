@@ -166,7 +166,7 @@ namespace Cassandra.IntegrationTests.Core
                 return TaskHelper.Completed;
             }
 
-            public ISpeculativeExecutionPlan NewPlan(IMetadata metadata, string keyspace, IStatement statement)
+            public ISpeculativeExecutionPlan NewPlan(ICluster cluster, string keyspace, IStatement statement)
             {
                 return new LoggedSpeculativeExecutionPlan(this);
             }
@@ -208,19 +208,19 @@ namespace Cassandra.IntegrationTests.Core
                 _addresses = addresses;
             }
 
-            public Task InitializeAsync(IMetadata metadata)
+            public Task InitializeAsync(IMetadataSnapshotProvider metadata)
             {
                 return TaskHelper.Completed;
             }
 
-            public HostDistance Distance(IMetadata metadata, Host host)
+            public HostDistance Distance(ICluster cluster, Host host)
             {
                 return HostDistance.Local;
             }
 
-            public IEnumerable<Host> NewQueryPlan(IMetadata metadata, string keyspace, IStatement query)
+            public IEnumerable<Host> NewQueryPlan(ICluster cluster, string keyspace, IStatement query)
             {
-                var hosts = metadata.AllHostsSnapshot().ToArray();
+                var hosts = cluster.Metadata.AllHostsSnapshot().ToArray();
                 foreach (var addr in _addresses)
                 {
                     var host = hosts.Single(h => h.Address.Address.ToString() == addr);
