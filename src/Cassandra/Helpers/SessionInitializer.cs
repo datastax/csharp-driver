@@ -170,19 +170,16 @@ namespace Cassandra.Helpers
         private IInternalMetadata WaitInitInternal()
         {
             ValidateState();
-
-            using (var waiter = new TaskTimeoutHelper<IInternalMetadata>(
+            var waiter = new TaskTimeoutHelper<IInternalMetadata>(
                 new[]
                 {
                     _session.InternalCluster.ClusterInitializer.WaitInitAndGetMetadataAsync(),
                     _initTaskCompletionSource.Task
-                },
-                _session.InternalCluster.GetInitTimeout()))
+                });
+
+            if (waiter.WaitWithTimeout(_session.InternalCluster.GetInitTimeout()))
             {
-                if (waiter.WaitWithTimeout())
-                {
-                    return waiter.TaskToWait.GetAwaiter().GetResult();
-                }
+                return waiter.TaskToWait.GetAwaiter().GetResult();
             }
 
             throw new InitializationTimeoutException();
@@ -191,19 +188,17 @@ namespace Cassandra.Helpers
         private async Task<IInternalMetadata> WaitInitInternalAsync()
         {
             ValidateState();
-
-            using (var waiter = new TaskTimeoutHelper<IInternalMetadata>(
+            
+            var waiter = new TaskTimeoutHelper<IInternalMetadata>(
                 new[]
                 {
                     _session.InternalCluster.ClusterInitializer.WaitInitAndGetMetadataAsync(),
                     _initTaskCompletionSource.Task
-                },
-                _session.InternalCluster.GetInitTimeout()))
+                });
+
+            if (await waiter.WaitWithTimeoutAsync(_session.InternalCluster.GetInitTimeout()).ConfigureAwait(false))
             {
-                if (await waiter.WaitWithTimeoutAsync().ConfigureAwait(false))
-                {
-                    return await waiter.TaskToWait.ConfigureAwait(false);
-                }
+                return await waiter.TaskToWait.ConfigureAwait(false);
             }
 
             throw new InitializationTimeoutException();

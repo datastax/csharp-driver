@@ -20,19 +20,14 @@ using System.Threading.Tasks;
 
 namespace Cassandra.Requests
 {
-    internal class TaskTimeoutHelper<T> : IDisposable
+    internal class TaskTimeoutHelper<T>
     {
-        private readonly CancellationTokenSource _tcs;
-        private readonly Task _timeoutTask;
-
-        public TaskTimeoutHelper(Task<T> taskToWait, TimeSpan timeout)
+        public TaskTimeoutHelper(Task<T> taskToWait)
         {
             TaskToWait = taskToWait;
-            _tcs = new CancellationTokenSource();
-            _timeoutTask = Task.Delay(timeout, _tcs.Token);
         }
         
-        public TaskTimeoutHelper(IEnumerable<Task<T>> tasksToWait, TimeSpan timeout)
+        public TaskTimeoutHelper(IEnumerable<Task<T>> tasksToWait)
         {
             foreach (var task in tasksToWait)
             {
@@ -43,25 +38,50 @@ namespace Cassandra.Requests
                             ? prevTask 
                             : task, TaskContinuationOptions.ExecuteSynchronously).Unwrap();
             }
-            _tcs = new CancellationTokenSource();
-            _timeoutTask = Task.Delay(timeout, _tcs.Token);
         }
 
         public Task<T> TaskToWait { get; }
 
-        public bool WaitWithTimeout()
-        { 
-            return Task.WaitAny(TaskToWait, _timeoutTask) == 0;
+        public bool WaitWithTimeout(TimeSpan timeout)
+        {
+            using (var tcs = new CancellationTokenSource())
+            {
+                var timeoutTask = Task.Delay(timeout, tcs.Token);
+
+                var finishedTask = Task.WaitAny(TaskToWait, timeoutTask);
+
+                tcs.Cancel();
+                try
+                {
+                    timeoutTask.GetAwaiter().GetResult();
+                }
+                catch
+                {
+                }
+
+                return finishedTask == 0;
+            }
         }
 
-        public async Task<bool> WaitWithTimeoutAsync()
+        public async Task<bool> WaitWithTimeoutAsync(TimeSpan timeout)
         {
-            return (await Task.WhenAny(TaskToWait, _timeoutTask).ConfigureAwait(false)) == TaskToWait;
-        }
+            using (var tcs = new CancellationTokenSource())
+            {
+                var timeoutTask = Task.Delay(timeout, tcs.Token);
 
-        public void Dispose()
-        {
-            _tcs.Dispose();
+                var finishedTask = await Task.WhenAny(TaskToWait, timeoutTask).ConfigureAwait(false);
+
+                tcs.Cancel();
+                try
+                {
+                    await timeoutTask.ConfigureAwait(false);
+                }
+                catch
+                {
+                }
+
+                return finishedTask == TaskToWait;
+            }
         }
     }
 }

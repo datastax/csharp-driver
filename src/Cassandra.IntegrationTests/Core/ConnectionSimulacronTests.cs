@@ -246,6 +246,7 @@ namespace Cassandra.IntegrationTests.Core
                                     .SetReadTimeoutMillis(360000)
                                     .SetStreamMode(streamMode)));
 
+            await Session.ConnectAsync().ConfigureAwait(false);
             var clusterDescription = await Session.Cluster.Metadata.GetClusterDescriptionAsync().ConfigureAwait(false);
 
             var maxRequestsPerConnection = Session.Cluster.Configuration
@@ -344,7 +345,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         private async Task AssertRetryUntilWriteQueueStabilizesAsync(
-            IEnumerable<IConnection> connections, int? maxPerConnection = null, int msPerRetry = 1000, int maxRetries = 30)
+            IEnumerable<IConnection> connections, int? maxPerConnection = null, int msPerRetry = 5000, int maxRetries = 30)
         {
             foreach (var connection in connections)
             {

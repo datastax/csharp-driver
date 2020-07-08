@@ -349,7 +349,7 @@ namespace Cassandra.IntegrationTests.Core
 
                 decimal initialMemory = GC.GetTotalMemory(true);
                 
-                const int length = 100;
+                const int length = 200;
                 
                 tasks = clusters.Select(c => Task.Run(async () =>
                 {
@@ -385,7 +385,7 @@ namespace Cassandra.IntegrationTests.Core
                 }
 
                 tasks = null;
-
+                
                 GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, true);
 
                 Assert.Less(GC.GetTotalMemory(true) / initialMemory, 1.5M,
