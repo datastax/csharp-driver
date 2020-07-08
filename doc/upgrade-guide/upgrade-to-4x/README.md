@@ -29,52 +29,62 @@ In C# driver 4.0, when you create an `ISession` instance, the initialization tas
 
 If you want to explicitely wait for the initialization to be finished, you can use one of these new methods: `ISession.ConnectAsync()` / `ISession.Connect()`.
 
-## Addition of several async methods (e.g. `ICluster.GetMetadataAsync()`)
+## Session initialization retries
+
+When the control connection initialization fails because it wasn't able to reach any of the contact points, the driver will retry the initialization according to the configured reconnection policy.
+
+While an initialization attempt is in progress, the session methods that require initialization (e.g. `session.Execute()`) block until it is finished. If the initialization fails, the methods that were blocked will throw an exception. Until a new initialization attempt begins, any call to a method that requires initialization will throw the same exception.
+
+## Addition of several async methods (e.g. `Metadata.AllHostsAsync()`)
 
 The `ICluster.Metadata` property has always blocked until the initialization task is finished but until now there weren't many issues with this behavior because the user would create a session right away which would initialize the `ICluster` instance in a blocking manner.
 
-Now that the initialization happens in the background, it's more likely that the user faces a scenario where the `ICluster.Metadata` blocks which is really bad if the application uses TPL (e.g. `async/await`) because it could block a thread of the shared threadpool.
+Now that the initialization happens in the background, the `ICluster.Metadata` property no longer blocks but the methods on `IMetadata` block until the initialization is finished. For users who use `async/await` we added `async` variants for all methods (e.g. `Metadata.AllHostsAsync()`).
 
-To fix this, we added an `async` way to retrieve the `Metadata` instance: `ICluster.GetMetadataAsync()`.
+Some methods were added that return a snapshot of the current metadata cache (e.g. `Metadata.AllHostsSnapshot()`). These methods do not block but will return empty collections if the initialization is not done:
 
-If you would like to keep using the `ICluster.Metadata` property, please make sure that you explicitly initialize the session before accessing it in case your application uses `async/await` to avoid blocking the thread.
+- `IMetadata.AllHostsSnapshot()`
+- `IMetadata.AllReplicasSnapshot()`
+- `IMetadata.GetReplicasSnapshot()`
 
-There were some methods that used the `ICluster.Metadata` property so we have added async variants of those methods as well:
+There are also some extension methods that require a session to be initialized so we have added async variants of those methods as well:
 
 | Existing method              | New async method              | Namespace             |
 |------------------------------|-------------------------------|-----------------------|
 | `CreateBatch(this ISession)` | `ISession.CreateBatchAsync()` | `Cassandra.Data.Linq` |
 | `GetState(this ISession)`    | `ISession.GetStateAsync()`    | `Cassandra`           |
 
+There are also some properties that were moved to the `ClusterDescription` class. You can obtain a `ClusterDescription` instance via the `IMetadata.GetClusterDescriptionAsync()` method (or `IMetadata.GetClusterDescription()`).
+
+| `Metadata.ClusterName`       | `ClusterDescription.ClusterName`   | `Cassandra`           |
+| `Metadata.IsDbaas`           | `ClusterDescription.IsDbaas`       | `Cassandra`           |
+
 ## `Metadata` API changes
 
-Several methods of the `ICluster` interface were actually wrappers around methods that are implemented in the `Metadata` class. We decided to move all metadata related elements from `ICluster`/`ISession` to `Metadata` because of two reasons:
+Several methods of the `ICluster` interface were actually wrappers around methods that are implemented in the `Metadata` class. We decided to move all metadata related elements from `ICluster`/`ISession` to the new `IMetadata` interface to simplify the driver's API, it makes more sense to have metadata related methods, properties and events on the `IMetadata` interface.
 
-- Simplification of the driver's API, it makes more sense to have metadata related methods, properties and events on the `Metadata` class
-- The cluster/session initialization happens in the background, which means that we would have to add a lot of `async` methods to the `ICluster` interface if we kept them (similar to what we did with `GetMetadataAsync()`)
-
-If you are using one of theses elements that were moved to the `Metadata` class, you can use `ICluster.Metadata` or `ICluster.GetMetadataAsync()` to access it (see previous section for a brief explanation about this).
+If you are using one of theses elements that were moved to the `IMetadata` interface, you can use `ICluster.Metadata` to access it. Note that some of these methods now block until the initialization is done so we added `async` variants for them (see previous section for an explanation about this).
 
 These are the methods, properties and events that were affected:
 
 | Old API                            | New API                           |
 |------------------------------------|-----------------------------------|
-| `ICluster.AllHosts()`              | `Metadata.AllHosts()`             |
-| `ICluster.GetHost()`               | `Metadata.GetHost()`              |
-| `ICluster.GetReplicas()`           | `Metadata.GetReplicas()`          |
-| `ICluster.RefreshSchema()`         | `Metadata.RefreshSchema()`        |
-| `ICluster.RefreshSchemaAsync()`    | `Metadata.RefreshSchemaAsync()`   |
-| `ICluster.HostAdded`               | `Metadata.HostAdded`              |
-| `ICluster.HostRemoved`             | `Metadata.HostRemoved`            |
-| `ISession.BinaryProtocolVersion`   | `Metadata.ProtocolVersion`        |
+| `ICluster.AllHosts()`              | `IMetadata.AllHosts()`             |
+| `ICluster.GetHost()`               | `IMetadata.GetHost()`              |
+| `ICluster.GetReplicas()`           | `IMetadata.GetReplicas()`          |
+| `ICluster.RefreshSchema()`         | `IMetadata.RefreshSchema()`        |
+| `ICluster.RefreshSchemaAsync()`    | `IMetadata.RefreshSchemaAsync()`   |
+| `ICluster.HostAdded`               | `IMetadata.HostAdded`              |
+| `ICluster.HostRemoved`             | `IMetadata.HostRemoved`            |
+| `ISession.BinaryProtocolVersion`   | `IMetadata.GetClusterDescription().ProtocolVersion`        |
 
-Note: `Metadata.ProtocolVersion` returns an `enum` instead of `int`, you can cast this `enum` to `int` if you need it (`ISession.BinaryProtocolVersion` did this internally).
+Note: `ClusterDescription.ProtocolVersion` returns an `enum` instead of `int`, you can cast this `enum` to `int` if you need it (`ISession.BinaryProtocolVersion` did this internally).
 
 ## Removal of `ISession.WaitForSchemaAgreement()`
 
 When a DDL request is executed, the driver will wait for schema agreement before returning control to the user. See `ProtocolOptions.MaxSchemaAgreementWaitSeconds` for more info.
 
-If you want to manually check for schema agreement you can use the `Metadata.CheckSchemaAgreementAsync()` method.
+If you want to manually check for schema agreement you can use the `IMetadata.CheckSchemaAgreementAsync()` method.
 
 ## `Metadata` no longer implements `IDisposable`
 
@@ -90,15 +100,15 @@ You are only affected by these changes if you implemented a custom load balancin
 
 The `Initialize()` method is now `InitializeAsync()` and returns a `Task`. If the implementation is not async, we recommend returning `Task.CompletedTask` or `Task.FromResult(0)`.
 
- `InitializeAsync()` now has a `Metadata` parameter instead of `ICluster`. You can obtain the hosts collection and replicas using the `Metadata` class (see the earlier section related to `Metadata` API changes for more information on these changes).
+ `InitializeAsync()` now has a `IMetadataSnapshotProvider` parameter instead of `ICluster`. You can obtain the hosts collection and replicas using this instance (see the earlier section related to `Metadata` API changes for more information on these changes).
 
-### `ILoadBalancingPolicy.NewQueryPlan()`
+### `ILoadBalancingPolicy.NewQueryPlan()` and `ILoadBalancingPolicy.Distance()`
 
-The `NewQueryPlan()` method now has a `Metadata` parameter in addition to `string` (keyspace) and `IStatement`.
+The `NewQueryPlan()` and `Distance()` methods now have a `ICluster` parameter.
 
 This is to simplify the process of implementing a custom load balancing policy. Previously, all implementations had to be stateful and threadsafe, i.e., the `cluster` object that was provided in the `Initialize()` was necessary in order to implement the `NewQueryPlan()` method.
 
-Now you can build a completely stateless load balancing policy (which is guaranteed to be threadsafe) by obtaining the hosts / replicas via the `Metadata` parameter in the `NewQueryPlan()` method. In this scenario you can have an implementation of the `InitializeAsync()` method that just returns `Task.CompletedTask` or `Task.FromResult(0)`.
+Now you can build a completely stateless load balancing policy (which is guaranteed to be threadsafe) by obtaining the hosts / replicas via the `ICluster` parameter in the `NewQueryPlan()` method. In this scenario you can have an implementation of the `InitializeAsync()` method that just returns `Task.CompletedTask` or `Task.FromResult(0)`.
 
 You can still build more complex load balancing policies that access some kind of metadata service for example by implementing the `InitializeAsync()` method.
 
