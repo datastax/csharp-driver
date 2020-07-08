@@ -51,6 +51,7 @@ namespace Cassandra.IntegrationTests.Core
                                     .SetStreamMode(streamMode)
                                     .SetDefunctReadTimeoutThreshold(int.MaxValue)));
 
+            await Session.ConnectAsync().ConfigureAwait(false);
             var clusterDescription = await Session.Cluster.Metadata.GetClusterDescriptionAsync().ConfigureAwait(false);
 
             var maxRequestsPerConnection = Session.Cluster.Configuration
@@ -101,6 +102,7 @@ namespace Cassandra.IntegrationTests.Core
                          .SetStreamMode(streamMode)
                          .SetDefunctReadTimeoutThreshold(int.MaxValue)));
 
+            await Session.ConnectAsync().ConfigureAwait(false);
             var clusterDescription = await Session.Cluster.Metadata.GetClusterDescriptionAsync().ConfigureAwait(false);
             var pausedNode = TestCluster.GetNode(2);
 
@@ -165,7 +167,8 @@ namespace Cassandra.IntegrationTests.Core
                          .WithLoadBalancingPolicy(
                              new TestDisallowListLbp(
                                  Cassandra.Policies.NewDefaultLoadBalancingPolicy("dc1"))))));
-            
+
+            await Session.ConnectAsync().ConfigureAwait(false);
             var clusterDescription = await Session.Cluster.Metadata.GetClusterDescriptionAsync().ConfigureAwait(false);
             var pausedNode = TestCluster.GetNode(2);
 
