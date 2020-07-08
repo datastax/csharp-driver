@@ -306,6 +306,7 @@ namespace Cassandra.IntegrationTests.Core
             var clusters = Enumerable.Range(0, 100).Select(
                 b => ClusterBuilder()
                      .AddContactPoint(_testCluster.InitialContactPoint)
+                     .WithReconnectionPolicy(new ConstantReconnectionPolicy(120 * 1000))
                      .WithSocketOptions(socketOptions)
                      .Build()).ToList();
             
@@ -315,7 +316,15 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     try
                     {
-                        await c.ConnectAsync().ConfigureAwait(false);
+                        var session = await c.ConnectAsync().ConfigureAwait(false);
+                        try
+                        {
+                            await session.ConnectAsync().ConfigureAwait(false);
+                        }
+                        finally
+                        {
+                            await session.ShutdownAsync().ConfigureAwait(false);
+                        }
                     }
                     catch (NoHostAvailableException ex)
                     {
@@ -332,11 +341,11 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     t.Dispose();
                 }
-
+                
                 tasks = null;
                 
-                GC.Collect();
-                Thread.Sleep(1000);
+                Thread.Sleep(3000);
+                GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, true, true);
 
                 decimal initialMemory = GC.GetTotalMemory(true);
                 
@@ -348,7 +357,15 @@ namespace Cassandra.IntegrationTests.Core
                     {
                         try
                         {
-                            await c.ConnectAsync().ConfigureAwait(false);
+                            var session = await c.ConnectAsync().ConfigureAwait(false);
+                            try
+                            {
+                                await session.ConnectAsync().ConfigureAwait(false);
+                            }
+                            finally
+                            {
+                                await session.ShutdownAsync().ConfigureAwait(false);
+                            }
                         }
                         catch (NoHostAvailableException ex)
                         {
@@ -368,19 +385,16 @@ namespace Cassandra.IntegrationTests.Core
                 }
 
                 tasks = null;
-                
-                GC.Collect();
-                Thread.Sleep(1000);
+
+                GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, true);
+
                 Assert.Less(GC.GetTotalMemory(true) / initialMemory, 1.5M,
                     "Should not exceed a 50% (1.5) more than was previously allocated");
 
             }
             finally
             {
-                foreach (var c in clusters)
-                {
-                    c.Dispose();
-                }
+                Task.WhenAll(clusters.Select(c => Task.Run(() => c.ShutdownAsync()))).GetAwaiter().GetResult();
             }
         }
     }

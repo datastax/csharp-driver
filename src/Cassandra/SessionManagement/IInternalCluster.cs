@@ -67,5 +67,7 @@ namespace Cassandra.SessionManagement
         Task PreShutdownAsync(int timeoutMs);
 
         Task PostShutdownAsync();
+
+        Task OnSessionShutdownAsync(IInternalSession session);
     }
 }

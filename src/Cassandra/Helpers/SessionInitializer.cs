@@ -43,6 +43,8 @@ namespace Cassandra.Helpers
 
         private volatile InitFatalErrorException _initException;
 
+        private volatile bool _addedCallback = true;
+
         private long _state = SessionInitializer.Initializing;
 
         public SessionInitializer(IInternalSession session)
@@ -54,8 +56,9 @@ namespace Cassandra.Helpers
 
         public void Initialize()
         {
-            if (_session.InternalCluster.ClusterInitializer.TryAttachInitCallback(InitInternalAsync))
+            if (_session.InternalCluster.ClusterInitializer.TryAttachInitCallback(this))
             {
+                _addedCallback = true;
                 return;
             }
 
@@ -67,10 +70,17 @@ namespace Cassandra.Helpers
             _initTask = Task.Run(InitInternalAsync);
         }
 
+        public Task ClusterInitCallbackAsync()
+        {
+            return InitInternalAsync();
+        }
+
         public bool IsDisposed => Interlocked.Read(ref _state) == SessionInitializer.Disposed;
 
         private async Task InitInternalAsync()
         {
+            _addedCallback = false;
+
             SessionInitializer.Logger.Info("Connecting to session [{0}]", _session.SessionName);
             try
             {
@@ -223,25 +233,30 @@ namespace Cassandra.Helpers
             {
                 _initCancellationTokenSource.Cancel();
             }
-
-            if (previousState != SessionInitializer.Initialized)
+            
+            try
             {
-                try
+                if (_initTask != null)
                 {
-                    if (_initTask != null)
-                    {
-                        await _initTask.ConfigureAwait(false);
-                    }
+                    await _initTask.ConfigureAwait(false);
                 }
-                catch (Exception)
-                {
-                    // ignored
-                }
+            }
+            catch (Exception)
+            {
+                // ignored
+            }
+
+            _initialized = false;
+
+            if (_addedCallback)
+            {
+                _session.InternalCluster.ClusterInitializer.RemoveCallback(this);
             }
 
             if (previousState != SessionInitializer.Disposed)
             {
                 _initCancellationTokenSource.Dispose();
+                await _session.InternalCluster.OnSessionShutdownAsync(_session).ConfigureAwait(false);
             }
 
             if (previousState == SessionInitializer.Initialized)
@@ -268,5 +283,7 @@ namespace Cassandra.Helpers
         Task WaitInitAsync();
 
         Task ShutdownAsync(int timeoutMs = Timeout.Infinite);
+
+        Task ClusterInitCallbackAsync();
     }
 }

@@ -248,7 +248,6 @@ namespace Cassandra
                 var session =
                     Configuration.SessionFactory.CreateSession(this, keyspace, newSessionName);
                 _connectedSessions.Add(session);
-                Cluster.Logger.Info("Session connected ({0})", session.GetHashCode());
                 return session;
             }
             finally
@@ -394,6 +393,29 @@ namespace Cassandra
 
             host.SetDistance(distance);
             return distance;
+        }
+
+        async Task IInternalCluster.OnSessionShutdownAsync(IInternalSession session)
+        {
+            await _sessionCreateLock.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                var list = new List<IInternalSession>();
+                foreach (var s in _connectedSessions)
+                {
+                    if (!ReferenceEquals(s, session))
+                    {
+                        list.Add(s);
+                    }
+                }
+
+                _connectedSessions.ClearAndGet();
+                _connectedSessions.AddRange(list.ToArray());
+            }
+            finally
+            {
+                _sessionCreateLock.Release();
+            }
         }
 
         /// <inheritdoc />

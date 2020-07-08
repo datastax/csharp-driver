@@ -45,7 +45,9 @@ namespace Cassandra
         private readonly IInternalCluster _cluster;
         private readonly IMetricsManager _metricsManager;
         private readonly IObserverFactory _observerFactory;
+        
         private readonly IInsightsClient _insightsClient;
+        private readonly UdtMappingDefinitions _udtMappingDefinitions;
 
         private readonly SessionInitializer _sessionInitializer;
 
@@ -94,7 +96,18 @@ namespace Cassandra
         }
 
         /// <inheritdoc />
-        public UdtMappingDefinitions UserDefinedTypes { get; private set; }
+        public UdtMappingDefinitions UserDefinedTypes
+        {
+            get
+            {
+                if (IsDisposed)
+                {
+                    throw new ObjectDisposedException("Session is disposed.");
+                }
+
+                return _udtMappingDefinitions;
+            }
+        }
 
         public string SessionName { get; }
 
@@ -134,7 +147,7 @@ namespace Cassandra
                 SessionName);
             _observerFactory = configuration.ObserverFactoryBuilder.Build(_metricsManager);
             _insightsClient = configuration.InsightsClientFactory.Create(cluster, this);
-            UserDefinedTypes = new UdtMappingDefinitions(this);
+            _udtMappingDefinitions = new UdtMappingDefinitions(this);
             _sessionInitializer = new SessionInitializer(this);
             _sessionInitializer.Initialize();
         }

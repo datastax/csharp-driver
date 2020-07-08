@@ -39,7 +39,8 @@ namespace Cassandra.Helpers
         private readonly IInternalCluster _cluster;
         private readonly IInternalMetadata _internalMetadata;
         private readonly CancellationTokenSource _initCancellationTokenSource = new CancellationTokenSource();
-        private readonly IList<Func<Task>> _initCallbacks = new List<Func<Task>>();
+        private readonly ISet<ISessionInitializer> _initCallbacks = 
+            new HashSet<ISessionInitializer>(new ReferenceEqualityComparer<ISessionInitializer>());
         private readonly object _initCallbackLock = new object();
 
         private volatile bool _initialized = false;
@@ -79,7 +80,35 @@ namespace Cassandra.Helpers
             return $"{info.ProductName} v{info.FileVersion}";
         }
 
-        public bool TryAttachInitCallback(Func<Task> callback)
+        public void RemoveCallback(ISessionInitializer callback)
+        {
+            if (_initialized)
+            {
+                return;
+            }
+            
+            if (IsDisposed)
+            {
+                return;
+            }
+
+            lock (_initCallbackLock)
+            {
+                if (_initialized)
+                {
+                    return;
+                }
+
+                if (IsDisposed)
+                {
+                    return;
+                }
+
+                _initCallbacks.Remove(callback);
+            }
+        }
+
+        public bool TryAttachInitCallback(ISessionInitializer callback)
         {
             if (_initialized)
             {
@@ -128,7 +157,7 @@ namespace Cassandra.Helpers
                     {
                         if (IsDisposed)
                         {
-                            throw new ObjectDisposedException("Cluster instance was disposed before initialization finished.");
+                            break;
                         }
 
                         var currentTcs = _initTaskCompletionSource;
@@ -151,11 +180,6 @@ namespace Cassandra.Helpers
                     }
                 } while (!IsDisposed);
                 
-                if (IsDisposed)
-                {
-                    throw new ObjectDisposedException("Cluster instance was disposed before initialization finished.");
-                }
-                
                 var previousState = Interlocked.CompareExchange(ref _state, ClusterInitializer.Initialized, ClusterInitializer.Initializing);
                 if (previousState == ClusterInitializer.Disposed)
                 {
@@ -174,14 +198,14 @@ namespace Cassandra.Helpers
 
                 Task.Run(async () =>
                 {
-                    IList<Func<Task>> callbacks;
+                    IList<ISessionInitializer> callbacks;
                     lock (_initCallbackLock)
                     {
-                        callbacks = new List<Func<Task>>(_initCallbacks);
+                        callbacks = new List<ISessionInitializer>(_initCallbacks);
                         _initCallbacks.Clear();
                     }
 
-                    await Task.WhenAll(callbacks.Select(c => c.Invoke())).ConfigureAwait(false);
+                    await Task.WhenAll(callbacks.Select(c => c.ClusterInitCallbackAsync())).ConfigureAwait(false);
                 }).Forget();
                 return;
             }
@@ -307,18 +331,17 @@ namespace Cassandra.Helpers
             {
                 _initCancellationTokenSource.Cancel();
             }
-
-            if (previousState != ClusterInitializer.Initialized)
+            
+            try
             {
-                try
-                {
-                    await _initTask.ConfigureAwait(false);
-                }
-                catch (Exception)
-                {
-                    // ignored
-                }
+                await _initTask.ConfigureAwait(false);
             }
+            catch (Exception)
+            {
+                // ignored
+            }
+
+            _initialized = false;
             
             if (previousState != ClusterInitializer.Disposed)
             {
@@ -342,7 +365,9 @@ namespace Cassandra.Helpers
 
     internal interface IClusterInitializer
     {
-        bool TryAttachInitCallback(Func<Task> callback);
+        bool TryAttachInitCallback(ISessionInitializer callback);
+
+        void RemoveCallback(ISessionInitializer callback);
 
         bool IsDisposed { get; }
 

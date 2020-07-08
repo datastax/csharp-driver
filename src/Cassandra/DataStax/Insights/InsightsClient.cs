@@ -122,15 +122,18 @@ namespace Cassandra.DataStax.Insights
             _insightsTask = Task.Run(() => MainLoopAsync(internalMetadata));
         }
 
-        public Task ShutdownAsync()
+        public async Task ShutdownAsync()
         {
             if (!Initialized)
             {
-                return TaskHelper.Completed;
+                return;
             }
 
             _cancellationTokenSource.Cancel();
-            return _insightsTask;
+
+            await _insightsTask.ConfigureAwait(false);
+
+            _cancellationTokenSource.Dispose();
         }
 
         public void Dispose()

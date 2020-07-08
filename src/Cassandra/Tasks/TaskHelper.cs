@@ -467,20 +467,7 @@ namespace Cassandra.Tasks
 
             return await task.ConfigureAwait(false);
         }
-
-        /// <summary>
-        /// Simple helper to create a CancellationToken that is cancelled after
-        /// the provided <paramref name="timespan"/>.
-        /// </summary>
-        /// <param name="timespan">Timespan after which the returned <see cref="CancellationToken"/>
-        /// is canceled.</param>
-        /// <returns>A newly created <see cref="CancellationToken"/> that will be canceled
-        /// after the specified <paramref name="timespan"/>.</returns>
-        public static CancellationToken CancelTokenAfterDelay(TimeSpan timespan)
-        {
-            return new CancellationTokenSource(timespan).Token;
-        }
-
+        
         /// <summary>
         /// Calls <code>Task.Delay</code> with a cancellation token.
         /// </summary>
