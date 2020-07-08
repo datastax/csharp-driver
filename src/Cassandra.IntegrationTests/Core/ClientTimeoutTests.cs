@@ -345,7 +345,7 @@ namespace Cassandra.IntegrationTests.Core
                 tasks = null;
                 
                 Thread.Sleep(3000);
-                GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, true, true);
+                GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, true);
 
                 decimal initialMemory = GC.GetTotalMemory(true);
                 
