@@ -20,6 +20,7 @@ using System.Net;
 using System.Threading.Tasks;
 
 using Cassandra.Connections;
+using Cassandra.Connections.Control;
 using Cassandra.ExecutionProfiles;
 using Cassandra.Metrics.Internal;
 using Cassandra.Observers.Abstractions;
@@ -36,10 +37,13 @@ namespace Cassandra.SessionManagement
         /// </summary>
         Guid InternalSessionId { get; }
 
-        /// <summary>
-        /// Initialize the session
-        /// </summary>
-        Task Init();
+        Task PostInitializeAsync();
+
+        Task OnShutdownAsync();
+
+        IInternalMetadata TryInitAndGetMetadata();
+
+        Task<IInternalMetadata> TryInitAndGetMetadataAsync();
 
         /// <summary>
         /// Gets or creates the connection pool for a given host

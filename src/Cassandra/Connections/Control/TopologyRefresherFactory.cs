@@ -17,9 +17,9 @@ namespace Cassandra.Connections.Control
 {
     internal class TopologyRefresherFactory : ITopologyRefresherFactory
     {
-        public ITopologyRefresher Create(Metadata metadata, Configuration config)
+        public ITopologyRefresher Create(IInternalMetadata internalMetadata, Configuration config)
         {
-            return new TopologyRefresher(metadata, config);
+            return new TopologyRefresher(internalMetadata, config);
         }
     }
 }

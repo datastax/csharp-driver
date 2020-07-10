@@ -46,7 +46,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             {
                 var session = cluster.Connect();
                 var ks = TestUtils.GetUniqueKeyspaceName();
-                session.Execute($"CREATE KEYSPACE \"{ks}\" WITH replication = {{'class': 'NetworkTopologyStrategy', '{cluster.AllHosts().First().Datacenter}' : '3/1'}}");
+                session.Execute($"CREATE KEYSPACE \"{ks}\" WITH replication = {{'class': 'NetworkTopologyStrategy', '{cluster.Metadata.AllHosts().First().Datacenter}' : '3/1'}}");
                 session.ChangeKeyspace(ks);
                 session.Execute("CREATE TABLE tbl1 (id uuid primary key) WITH read_repair='NONE' AND additional_write_policy='NEVER'");
                 var ps = session.Prepare("INSERT INTO tbl1 (id) VALUES (?)");

@@ -684,6 +684,10 @@ namespace Cassandra.Tests
             {
             }
 
+            public void Error(Exception ex, string message, params object[] args)
+            {
+            }
+
             public void Error(string message, params object[] args)
             {
             }
@@ -728,20 +732,20 @@ namespace Cassandra.Tests
                 _childPolicy = new RoundRobinPolicy();
             }
 
-            public void Initialize(ICluster cluster)
+            public Task InitializeAsync(IMetadataSnapshotProvider metadata)
             {
-                _hosts = cluster.AllHosts();
-                _childPolicy.Initialize(cluster);
+                _hosts = metadata.AllHostsSnapshot();
+                return _childPolicy.InitializeAsync(metadata);
             }
 
-            public HostDistance Distance(Host host)
+            public HostDistance Distance(IMetadataSnapshotProvider metadata, Host host)
             {
-                return _childPolicy.Distance(host);
+                return _childPolicy.Distance(metadata, host);
             }
 
-            public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
+            public IEnumerable<Host> NewQueryPlan(ICluster cluster, string keyspace, IStatement query)
             {
-                return !_useRoundRobin ? _hosts : _childPolicy.NewQueryPlan(keyspace, query);
+                return !_useRoundRobin ? _hosts : _childPolicy.NewQueryPlan(cluster, keyspace, query);
             }
         }
 
@@ -751,31 +755,32 @@ namespace Cassandra.Tests
         /// </summary>
         internal class CustomLoadBalancingPolicy : ILoadBalancingPolicy
         {
-            private ICluster _cluster;
-            private readonly Func<ICluster, Host, HostDistance> _distanceHandler;
+            private volatile IMetadataSnapshotProvider _metadata;
+            private readonly Func<IMetadataSnapshotProvider, Host, HostDistance> _distanceHandler;
             private readonly Func<ICluster, string, IStatement, IEnumerable<Host>> _queryPlanHandler;
 
             public CustomLoadBalancingPolicy(
                 Func<ICluster, string, IStatement, IEnumerable<Host>> queryPlanHandler = null,
-                Func<ICluster, Host, HostDistance> distanceHandler = null)
+                Func<IMetadataSnapshotProvider, Host, HostDistance> distanceHandler = null)
             {
-                _queryPlanHandler = queryPlanHandler ?? ((cluster, ks, statement) => cluster.AllHosts());
+                _queryPlanHandler = queryPlanHandler ?? ((cluster, ks, statement) => cluster.Metadata.AllHostsSnapshot());
                 _distanceHandler = distanceHandler ?? ((_, __) => HostDistance.Local);
             }
 
-            public void Initialize(ICluster cluster)
+            public Task InitializeAsync(IMetadataSnapshotProvider metadata)
             {
-                _cluster = cluster;
+                _metadata = metadata;
+                return TaskHelper.Completed;
             }
 
-            public HostDistance Distance(Host host)
+            public HostDistance Distance(IMetadataSnapshotProvider metadata, Host host)
             {
-                return _distanceHandler(_cluster, host);
+                return _distanceHandler(metadata, host);
             }
 
-            public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
+            public IEnumerable<Host> NewQueryPlan(ICluster cluster, string keyspace, IStatement query)
             {
-                return _queryPlanHandler(_cluster, keyspace, query);
+                return _queryPlanHandler(cluster, keyspace, query);
             }
         }
     }

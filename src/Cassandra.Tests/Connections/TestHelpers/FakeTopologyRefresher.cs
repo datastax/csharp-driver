@@ -25,30 +25,30 @@ namespace Cassandra.Tests.Connections.TestHelpers
 {
     internal class FakeTopologyRefresher : ITopologyRefresher
     {
-        private readonly Metadata _metadata;
-        private readonly Configuration _config;
+        private readonly IInternalMetadata _internalMetadata;
         private readonly IDictionary<IPEndPoint, IRow> _hosts;
 
-        public FakeTopologyRefresher(Metadata metadata, Configuration config, IDictionary<IPEndPoint, IRow> hosts)
+        public FakeTopologyRefresher(
+            IInternalMetadata internalMetadata, IDictionary<IPEndPoint, IRow> hosts)
         {
-            _metadata = metadata;
-            _config = config;
+            _internalMetadata = internalMetadata;
             _hosts = hosts;
         }
 
-        public Task<Host> RefreshNodeListAsync(IConnectionEndPoint currentEndPoint, IConnection connection, ISerializer serializer)
+        public Task<Host> RefreshNodeListAsync(
+            IConnectionEndPoint currentEndPoint, IConnection connection, ISerializer serializer)
         {
             foreach (var h in _hosts)
             {
-                if (_metadata.GetHost(h.Key) == null)
+                if (_internalMetadata.GetHost(h.Key) == null)
                 {
-                    var host = _metadata.AddHost(h.Key);
+                    var host = _internalMetadata.AddHost(h.Key);
                     host.SetInfo(h.Value);
                 }
             }
 
-            _metadata.Partitioner = "Murmur3Partitioner";
-            return Task.FromResult(_metadata.Hosts.First());
+            _internalMetadata.SetPartitioner("Murmur3Partitioner");
+            return Task.FromResult(_internalMetadata.Hosts.First());
         }
     }
 }

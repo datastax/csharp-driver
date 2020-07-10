@@ -51,8 +51,11 @@ namespace Cassandra.IntegrationTests.Core
                                     .SetStreamMode(streamMode)
                                     .SetDefunctReadTimeoutThreshold(int.MaxValue)));
 
+            await Session.ConnectAsync().ConfigureAwait(false);
+            var clusterDescription = await Session.Cluster.Metadata.GetClusterDescriptionAsync().ConfigureAwait(false);
+
             var maxRequestsPerConnection = Session.Cluster.Configuration
-                                                  .GetOrCreatePoolingOptions(Session.Cluster.Metadata.ControlConnection.ProtocolVersion)
+                                                  .GetOrCreatePoolingOptions(clusterDescription.ProtocolVersion)
                                                   .GetMaxRequestsPerConnection();
             var tenKbBuffer = new byte[10240];
 
@@ -60,7 +63,7 @@ namespace Cassandra.IntegrationTests.Core
 
             // send number of requests = max pending
             var requests =
-                Enumerable.Repeat(0, maxRequestsPerConnection * Session.Cluster.AllHosts().Count)
+                Enumerable.Repeat(0, maxRequestsPerConnection * Session.Cluster.Metadata.AllHosts().Count)
                           .Select(i => Session.ExecuteAsync(new SimpleStatement("INSERT INTO table1 (id) VALUES (?)", tenKbBuffer))).ToList();
 
             var taskAll = Task.WhenAll(requests);
@@ -88,8 +91,6 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public async Task Should_RetryOnNextNodes_When_ANodeIsPaused(bool streamMode)
         {
-            var pausedNode = TestCluster.GetNode(2);
-
             SetupNewSession(b =>
                 b.WithPoolingOptions(
                      new PoolingOptions()
@@ -101,9 +102,13 @@ namespace Cassandra.IntegrationTests.Core
                          .SetStreamMode(streamMode)
                          .SetDefunctReadTimeoutThreshold(int.MaxValue)));
 
+            await Session.ConnectAsync().ConfigureAwait(false);
+            var clusterDescription = await Session.Cluster.Metadata.GetClusterDescriptionAsync().ConfigureAwait(false);
+            var pausedNode = TestCluster.GetNode(2);
+
             var maxRequestsPerConnection =
                 Session.Cluster.Configuration
-                       .GetOrCreatePoolingOptions(Session.Cluster.Metadata.ControlConnection.ProtocolVersion)
+                       .GetOrCreatePoolingOptions(clusterDescription.ProtocolVersion)
                        .GetMaxRequestsPerConnection();
 
             var tenKbBuffer = new byte[10240];
@@ -112,7 +117,7 @@ namespace Cassandra.IntegrationTests.Core
 
             // send number of requests = max pending
             var requests =
-                Enumerable.Repeat(0, maxRequestsPerConnection * Session.Cluster.AllHosts().Count)
+                Enumerable.Repeat(0, maxRequestsPerConnection * Session.Cluster.Metadata.AllHosts().Count)
                           .Select(i => Session.ExecuteAsync(new SimpleStatement("INSERT INTO table1 (id) VALUES (?)", tenKbBuffer))).ToList();
 
             var pools = InternalSession.GetPools().ToList();
@@ -146,8 +151,6 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public async Task Should_ContinueRoutingTrafficToNonPausedNodes_When_ANodeIsPaused(bool streamMode)
         {
-            var pausedNode = TestCluster.GetNode(2);
-
             const string profileName = "running-nodes";
 
             SetupNewSession(b =>
@@ -165,9 +168,13 @@ namespace Cassandra.IntegrationTests.Core
                              new TestDisallowListLbp(
                                  Cassandra.Policies.NewDefaultLoadBalancingPolicy("dc1"))))));
 
+            await Session.ConnectAsync().ConfigureAwait(false);
+            var clusterDescription = await Session.Cluster.Metadata.GetClusterDescriptionAsync().ConfigureAwait(false);
+            var pausedNode = TestCluster.GetNode(2);
+
             var maxRequestsPerConnection =
                 Session.Cluster.Configuration
-                       .GetOrCreatePoolingOptions(Session.Cluster.Metadata.ControlConnection.ProtocolVersion)
+                       .GetOrCreatePoolingOptions(clusterDescription.ProtocolVersion)
                        .GetMaxRequestsPerConnection();
 
             var tenKbBuffer = new byte[10240];
@@ -176,7 +183,7 @@ namespace Cassandra.IntegrationTests.Core
 
             // send number of requests = max pending
             var requests =
-                Enumerable.Repeat(0, maxRequestsPerConnection * Session.Cluster.AllHosts().Count)
+                Enumerable.Repeat(0, maxRequestsPerConnection * Session.Cluster.Metadata.AllHosts().Count)
                           .Select(i => Session.ExecuteAsync(new SimpleStatement("INSERT INTO table1 (id) VALUES (?)", tenKbBuffer))).ToList();
 
             try
@@ -242,8 +249,11 @@ namespace Cassandra.IntegrationTests.Core
                                     .SetReadTimeoutMillis(360000)
                                     .SetStreamMode(streamMode)));
 
+            await Session.ConnectAsync().ConfigureAwait(false);
+            var clusterDescription = await Session.Cluster.Metadata.GetClusterDescriptionAsync().ConfigureAwait(false);
+
             var maxRequestsPerConnection = Session.Cluster.Configuration
-                                                  .GetOrCreatePoolingOptions(Session.Cluster.Metadata.ControlConnection.ProtocolVersion)
+                                                  .GetOrCreatePoolingOptions(clusterDescription.ProtocolVersion)
                                                   .GetMaxRequestsPerConnection();
             
             var tenKbBuffer = new byte[10240];
@@ -296,7 +306,7 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.Greater(moreFailedRequests.Count, 1);
                 Assert.AreEqual(moreRequests.Count, moreFailedRequests.Count);
                 
-                Assert.GreaterOrEqual(connections.Sum(c => c.InFlight), maxRequestsPerConnection * Session.Cluster.AllHosts().Count);
+                Assert.GreaterOrEqual(connections.Sum(c => c.InFlight), maxRequestsPerConnection * InternalSession.Cluster.Metadata.AllHosts().Count);
                 
                 // ReSharper disable once PossibleNullReferenceException
                 Assert.IsTrue(moreFailedRequests.All(t => t.IsFaulted && ((NoHostAvailableException)t.Exception.InnerException).Errors.All(e => e.Value is BusyPoolException)));
@@ -338,7 +348,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         private async Task AssertRetryUntilWriteQueueStabilizesAsync(
-            IEnumerable<IConnection> connections, int? maxPerConnection = null, int msPerRetry = 1000, int maxRetries = 30)
+            IEnumerable<IConnection> connections, int? maxPerConnection = null, int msPerRetry = 5000, int maxRetries = 30)
         {
             foreach (var connection in connections)
             {
@@ -376,19 +386,19 @@ namespace Cassandra.IntegrationTests.Core
                 _disallowed = disallowed;
             }
 
-            public void Initialize(ICluster cluster)
+            public Task InitializeAsync(IMetadataSnapshotProvider metadata)
             {
-                _parent.Initialize(cluster);
+                return _parent.InitializeAsync(metadata);
             }
 
-            public HostDistance Distance(Host host)
+            public HostDistance Distance(IMetadataSnapshotProvider metadata, Host host)
             {
-                return _parent.Distance(host);
+                return _parent.Distance(metadata, host);
             }
 
-            public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
+            public IEnumerable<Host> NewQueryPlan(ICluster cluster, string keyspace, IStatement query)
             {
-                var plan = _parent.NewQueryPlan(keyspace, query);
+                var plan = _parent.NewQueryPlan(cluster, keyspace, query);
                 return plan.Where(h => !_disallowed.Contains(h.Address));
             }
         }

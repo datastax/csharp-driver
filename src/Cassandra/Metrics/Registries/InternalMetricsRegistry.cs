@@ -16,8 +16,8 @@
 
 using System;
 using System.Collections.Generic;
-using System.Threading;
 
+using Cassandra.Collections;
 using Cassandra.Metrics.Abstractions;
 using Cassandra.Metrics.Providers.Null;
 
@@ -30,15 +30,23 @@ namespace Cassandra.Metrics.Registries
         private readonly bool _metricsEnabled;
         private readonly HashSet<TMetric> _disabledMetrics;
 
-        private readonly Dictionary<TMetric, IDriverGauge> _gauges = new Dictionary<TMetric, IDriverGauge>();
-        private readonly Dictionary<TMetric, IDriverCounter> _counters = new Dictionary<TMetric, IDriverCounter>();
-        private readonly Dictionary<TMetric, IDriverMeter> _meters = new Dictionary<TMetric, IDriverMeter>();
-        private readonly Dictionary<TMetric, IDriverTimer> _timers = new Dictionary<TMetric, IDriverTimer>();
-        private readonly Dictionary<TMetric, IDriverMetric> _metrics = new Dictionary<TMetric, IDriverMetric>();
+        private readonly CopyOnWriteDictionary<TMetric, IDriverGauge> _gauges =
+            new CopyOnWriteDictionary<TMetric, IDriverGauge>();
 
-        private bool _initialized = false;
+        private readonly CopyOnWriteDictionary<TMetric, IDriverCounter> _counters =
+            new CopyOnWriteDictionary<TMetric, IDriverCounter>();
 
-        public InternalMetricsRegistry(IDriverMetricsProvider driverMetricsProvider, IEnumerable<TMetric> disabledMetrics, bool metricsEnabled)
+        private readonly CopyOnWriteDictionary<TMetric, IDriverMeter> _meters =
+            new CopyOnWriteDictionary<TMetric, IDriverMeter>();
+
+        private readonly CopyOnWriteDictionary<TMetric, IDriverTimer> _timers =
+            new CopyOnWriteDictionary<TMetric, IDriverTimer>();
+
+        private readonly CopyOnWriteDictionary<TMetric, IDriverMetric> _metrics =
+            new CopyOnWriteDictionary<TMetric, IDriverMetric>();
+
+        public InternalMetricsRegistry(
+            IDriverMetricsProvider driverMetricsProvider, IEnumerable<TMetric> disabledMetrics, bool metricsEnabled)
         {
             _disabledMetrics = new HashSet<TMetric>(disabledMetrics);
             _driverMetricsProvider = driverMetricsProvider;
@@ -50,7 +58,7 @@ namespace Cassandra.Metrics.Registries
 
         /// <inheritdoc />
         public IReadOnlyDictionary<TMetric, IDriverGauge> Gauges => _gauges;
-        
+
         /// <inheritdoc />
         public IReadOnlyDictionary<TMetric, IDriverMeter> Meters => _meters;
 
@@ -62,7 +70,6 @@ namespace Cassandra.Metrics.Registries
 
         public IDriverTimer Timer(string bucket, TMetric metric)
         {
-            ThrowIfInitialized();
             if (!IsMetricEnabled(metric))
             {
                 return NullDriverTimer.Instance;
@@ -73,10 +80,9 @@ namespace Cassandra.Metrics.Registries
             _metrics.Add(metric, timer);
             return timer;
         }
-        
+
         public IDriverMeter Meter(string bucket, TMetric metric)
         {
-            ThrowIfInitialized();
             if (!IsMetricEnabled(metric))
             {
                 return NullDriverMeter.Instance;
@@ -90,7 +96,6 @@ namespace Cassandra.Metrics.Registries
 
         public IDriverCounter Counter(string bucket, TMetric metric)
         {
-            ThrowIfInitialized();
             if (!IsMetricEnabled(metric))
             {
                 return NullDriverCounter.Instance;
@@ -104,7 +109,6 @@ namespace Cassandra.Metrics.Registries
 
         public IDriverGauge Gauge(string bucket, TMetric metric, Func<double?> valueProvider)
         {
-            ThrowIfInitialized();
             if (!IsMetricEnabled(metric))
             {
                 return NullDriverGauge.Instance;
@@ -120,21 +124,6 @@ namespace Cassandra.Metrics.Registries
         {
             _metrics.TryGetValue(metric, out var driverMetric);
             return driverMetric;
-        }
-
-        /// <inheritdoc />
-        public void OnMetricsAdded()
-        {
-            _initialized = true;
-            Interlocked.MemoryBarrier();
-        }
-
-        private void ThrowIfInitialized()
-        {
-            if (_initialized)
-            {
-                throw new DriverInternalError("Can not add metrics after initialization is complete.");
-            }
         }
 
         private bool IsMetricEnabled(TMetric metric)

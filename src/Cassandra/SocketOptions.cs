@@ -44,7 +44,7 @@ namespace Cassandra
         private bool _useStreamMode;
         private int _readTimeoutMillis = DefaultReadTimeoutMillis;
         private int _defunctReadTimeoutThreshold = DefaultDefunctReadTimeoutThreshold;
-        private int _metadataAbortTimeout =  5 * 60000;
+        private int _metadataAbortTimeoutMs =  5 * 60000;
 
         /// <summary>
         /// Gets the number of milliseconds to wait for the socket to connect
@@ -122,7 +122,7 @@ namespace Cassandra
             get { return _readTimeoutMillis; }
         }
 
-        internal int MetadataAbortTimeout => _metadataAbortTimeout;
+        internal int MetadataAbortTimeoutMs => _metadataAbortTimeoutMs;
 
         /// <summary>
         /// Gets the amount of requests that simultaneously have to timeout before closing the connection.
@@ -227,7 +227,7 @@ namespace Cassandra
 
         internal SocketOptions SetMetadataAbortTimeout(int metadataAbortTimeout)
         {
-            _metadataAbortTimeout = metadataAbortTimeout;
+            _metadataAbortTimeoutMs = metadataAbortTimeout;
             return this;
         }
     }

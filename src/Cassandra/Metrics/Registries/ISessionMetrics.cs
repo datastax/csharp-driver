@@ -40,7 +40,5 @@ namespace Cassandra.Metrics.Registries
         /// Internal MetricsRegistry used to create metrics internally.
         /// </summary>
         IInternalMetricsRegistry<SessionMetric> MetricsRegistry { get; }
-
-        void InitializeMetrics(IInternalSession session);
     }
 }

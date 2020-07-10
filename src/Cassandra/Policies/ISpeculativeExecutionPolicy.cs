@@ -14,7 +14,7 @@
 //   limitations under the License.
 //
 
-using System;
+using System.Threading.Tasks;
 
 // ReSharper disable once CheckNamespace
 namespace Cassandra
@@ -23,19 +23,25 @@ namespace Cassandra
     /// The policy that decides if the driver will send speculative queries to the next hosts when the current host takes too long to respond.
     /// only idempotent statements will be speculatively retried, see <see cref="IStatement.IsIdempotent"/> for more information.
     /// </summary>
-    public interface ISpeculativeExecutionPolicy : IDisposable
+    public interface ISpeculativeExecutionPolicy
     {
         /// <summary>
         /// Initializes the policy at cluster startup.
         /// </summary>
-        void Initialize(ICluster cluster);
+        Task InitializeAsync(IMetadataSnapshotProvider metadata);
 
         /// <summary>
         /// Returns the plan to use for a new query.
         /// </summary>
+        /// <param name="cluster">the cluster instance.</param>
         /// <param name="keyspace">the currently logged keyspace</param>
         /// <param name="statement">the query for which to build a plan.</param>
         /// <returns></returns>
-        ISpeculativeExecutionPlan NewPlan(string keyspace, IStatement statement);
+        ISpeculativeExecutionPlan NewPlan(ICluster cluster, string keyspace, IStatement statement);
+
+        /// <summary>
+        /// Disposes the policy at cluster shutdown.
+        /// </summary>
+        Task ShutdownAsync();
     }
 }

@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
+using Cassandra.SessionManagement;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests
@@ -56,6 +57,8 @@ namespace Cassandra.IntegrationTests
         /// The shared Session instance of the fixture
         /// </summary>
         protected ISession Session { get; set; }
+
+        internal IInternalSession InternalSession => (IInternalSession) Session;
 
         /// <summary>
         /// It executes the queries provided on test fixture setup.
@@ -135,9 +138,9 @@ namespace Cassandra.IntegrationTests
             ClusterInstances.Clear();
         }
         
-        protected ISession GetNewTemporarySession(string keyspace = null)
+        internal IInternalSession GetNewTemporarySession(string keyspace = null)
         {
-            return GetNewTemporaryCluster().Connect(keyspace);
+            return (IInternalSession) GetNewTemporaryCluster().Connect(keyspace);
         }
         
         [TearDown]
@@ -157,7 +160,7 @@ namespace Cassandra.IntegrationTests
             ClusterInstances.Clear();
         }
 
-        protected virtual ICluster GetNewTemporaryCluster(Action<Builder> build = null)
+        internal virtual IInternalCluster GetNewTemporaryCluster(Action<Builder> build = null)
         {
             var builder = 
                 ClusterBuilder()

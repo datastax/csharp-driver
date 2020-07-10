@@ -182,6 +182,7 @@ namespace Cassandra.Data.Linq
         
         private IEnumerable<TEntity> ExecuteCqlQuery(string executionProfile)
         {
+            GetTable().GetSession().Connect();
             return WaitToCompleteWithMetrics(ExecuteCqlQueryAsync(executionProfile), QueryAbortTimeout);
         }
         
@@ -196,6 +197,11 @@ namespace Cassandra.Data.Linq
         internal T WaitToCompleteWithMetrics<T>(Task<T> task, int timeout = Timeout.Infinite)
         {
             return TaskHelper.WaitToCompleteWithMetrics(_metricsManager, task, timeout);
+        }
+
+        internal void WaitToCompleteWithMetrics(Task task, int timeout = Timeout.Infinite)
+        {
+            TaskHelper.WaitToCompleteWithMetrics(_metricsManager, task, timeout);
         }
     }
 }

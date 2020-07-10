@@ -17,6 +17,6 @@ namespace Cassandra.Connections.Control
 {
     internal interface ISupportedOptionsInitializerFactory
     {
-        ISupportedOptionsInitializer Create(Metadata metadata);
+        ISupportedOptionsInitializer Create(IInternalMetadata internalMetadata);
     }
 }

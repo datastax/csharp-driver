@@ -56,6 +56,8 @@ namespace Cassandra
         internal const string DefaultExecutionProfileName = "default";
         internal const string DefaultSessionName = "s";
 
+        internal static readonly ProtocolVersion MaxProtocolVersion = ProtocolVersion.MaxSupported;
+
         /// <summary>
         ///  Gets the policies set for the cluster.
         /// </summary>
@@ -125,6 +127,8 @@ namespace Cassandra
         /// </summary>
         public string LocalDatacenter { get; }
 
+        public long? InitializationTimeoutMs { get; }
+
         /// <summary>
         /// Shared reusable timer
         /// </summary>
@@ -139,6 +143,8 @@ namespace Cassandra
         /// Gets or sets the list of <see cref="TypeSerializer{T}"/> defined.
         /// </summary>
         internal IEnumerable<ITypeSerializer> TypeSerializers { get; set; }
+
+        internal ISerializerManager SerializerManager { get; }
 
         internal MetadataSyncOptions MetadataSyncOptions { get; }
 
@@ -284,6 +290,8 @@ namespace Cassandra
 
         internal ILocalDatacenterProvider LocalDatacenterProvider { get; }
 
+        internal IProtocolEventDebouncer ProtocolEventDebouncer { get; }
+
         internal Configuration() :
             this(policies: Policies.DefaultPolicies,
                  protocolOptions: new ProtocolOptions(),
@@ -308,7 +316,8 @@ namespace Cassandra
                  typeSerializerDefinitions: null,
                  keepContactPointsUnresolved: null,
                  allowBetaProtocolVersions: null,
-                 localDatacenter: null)
+                 localDatacenter: null,
+                 initializationTimeoutMs: null)
         {
         }
 
@@ -340,6 +349,7 @@ namespace Cassandra
                                bool? keepContactPointsUnresolved,
                                bool? allowBetaProtocolVersions,
                                string localDatacenter,
+                               long? initializationTimeoutMs,
                                ISessionFactory sessionFactory = null,
                                IRequestOptionsMapper requestOptionsMapper = null,
                                IStartupOptionsFactory startupOptionsFactory = null,
@@ -362,7 +372,9 @@ namespace Cassandra
                                ISupportedOptionsInitializerFactory supportedOptionsInitializerFactory = null,
                                IProtocolVersionNegotiator protocolVersionNegotiator = null,
                                IServerEventsSubscriber serverEventsSubscriber = null,
-                               ILocalDatacenterProvider localDatacenterProvider = null)
+                               ILocalDatacenterProvider localDatacenterProvider = null,
+                               ISerializerManager serializerManager = null, 
+                               IProtocolEventDebouncer protocolEventDebouncer = null)
         {
             AddressTranslator = addressTranslator ?? throw new ArgumentNullException(nameof(addressTranslator));
             QueryOptions = queryOptions ?? throw new ArgumentNullException(nameof(queryOptions));
@@ -412,7 +424,8 @@ namespace Cassandra
             RequestOptions = RequestOptionsMapper.BuildRequestOptionsDictionary(executionProfiles, policies, socketOptions, clientOptions, queryOptions, GraphOptions);
             ExecutionProfiles = BuildExecutionProfilesDictionary(executionProfiles, RequestOptions);
             LocalDatacenter = localDatacenter;
-            
+            InitializationTimeoutMs = initializationTimeoutMs;
+
             MonitorReportingOptions = monitorReportingOptions ?? new MonitorReportingOptions();
             InsightsSupportVerifier = insightsSupportVerifier ?? Configuration.DefaultInsightsSupportVerifier;
             InsightsClientFactory = insightsClientFactory ?? Configuration.DefaultInsightsClientFactory;
@@ -420,12 +433,26 @@ namespace Cassandra
             EndPointResolver = endPointResolver ?? new EndPointResolver(ServerNameResolver);
             ContactPointParser = contactPointParser ?? new ContactPointParser(DnsResolver, ProtocolOptions, ServerNameResolver, KeepContactPointsUnresolved);
             LocalDatacenterProvider = localDatacenterProvider ?? new LocalDatacenterProvider();
-
+            
             // Create the buffer pool with 16KB for small buffers and 256Kb for large buffers.
             // The pool does not eagerly reserve the buffers, so it doesn't take unnecessary memory
             // to create the instance.
             BufferPool = new RecyclableMemoryStreamManager(16 * 1024, 256 * 1024, ProtocolOptions.MaximumFrameLength);
             Timer = new HashedWheelTimer();
+            
+            var protocolVersion = Configuration.MaxProtocolVersion;
+            if (ProtocolOptions.MaxProtocolVersionValue != null &&
+                ProtocolOptions.MaxProtocolVersionValue.Value.IsSupported(AllowBetaProtocolVersions))
+            {
+                protocolVersion = ProtocolOptions.MaxProtocolVersionValue.Value;
+            }
+
+            SerializerManager = serializerManager ?? new SerializerManager(protocolVersion, TypeSerializers);
+            
+            ProtocolEventDebouncer = protocolEventDebouncer ?? new ProtocolEventDebouncer(
+                TimerFactory,
+                TimeSpan.FromMilliseconds(MetadataSyncOptions.RefreshSchemaDelayIncrement),
+                TimeSpan.FromMilliseconds(MetadataSyncOptions.MaxTotalRefreshSchemaDelay));
         }
 
         /// <summary>

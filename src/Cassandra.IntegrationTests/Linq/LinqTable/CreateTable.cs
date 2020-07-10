@@ -546,7 +546,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
                     new StubTableColumn("t", StubColumnKind.Regular, DataType.Frozen(DataType.Tuple(DataType.BigInt, DataType.BigInt, DataType.Text)))
                 });
 
-            SessionCluster.RefreshSchema(_uniqueKsName, "tbl_frozen_tuple");
+            SessionCluster.Metadata.RefreshSchema(_uniqueKsName, "tbl_frozen_tuple");
 
             var tableMeta = SessionCluster.Metadata.GetTable(_uniqueKsName, "tbl_frozen_tuple");
             Assert.NotNull(tableMeta);
@@ -590,7 +590,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
                     new StubTableColumn("id2", StubColumnKind.ClusteringKey, DataType.Text)
                 });
 
-            SessionCluster.RefreshSchema(_uniqueKsName, "tbl_with_counter_static");
+            SessionCluster.Metadata.RefreshSchema(_uniqueKsName, "tbl_with_counter_static");
 
             var tableMeta = SessionCluster.Metadata.GetTable(_uniqueKsName, "tbl_with_counter_static");
             Assert.AreEqual(4, tableMeta.TableColumns.Length);

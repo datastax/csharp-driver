@@ -51,30 +51,33 @@ namespace Cassandra.IntegrationTests.Core
                           .ThenServerError(ServerError.Invalid, "error"));
 
                 SetupNewSession(b => b.WithPoolingOptions(new PoolingOptions().SetHeartBeatInterval(3000)));
+                await Session.ConnectAsync().ConfigureAwait(false);
 
                 var peersV2Queries = TestCluster.GetQueries("SELECT * FROM system.peers_v2");
                 var peersQueries = TestCluster.GetQueries("SELECT * FROM system.peers");
 
-                await TestCluster.GetNode(Session.Cluster.Metadata.ControlConnection.Host.Address).Stop().ConfigureAwait(false);
+                await TestCluster.GetNode(InternalSession.InternalCluster.InternalMetadata.ControlConnection.Host.Address)
+                                 .Stop().ConfigureAwait(false);
 
                 // wait until control connection reconnection is done
                 TestHelper.RetryAssert(
                     () =>
                     {
-                        Assert.AreEqual(1, Session.Cluster.AllHosts().Count(h => !h.IsUp));
-                        Assert.IsTrue(Session.Cluster.Metadata.ControlConnection.Host.IsUp);
+                        Assert.AreEqual(1, Session.Cluster.Metadata.AllHosts().Count(h => !h.IsUp));
+                        Assert.IsTrue(InternalSession.InternalCluster.InternalMetadata.ControlConnection.Host.IsUp);
                     },
                     200,
                     100);
 
-                await TestCluster.GetNode(Session.Cluster.Metadata.ControlConnection.Host.Address).Stop().ConfigureAwait(false);
+                await TestCluster.GetNode(InternalSession.InternalCluster.InternalMetadata.ControlConnection.Host.Address)
+                                 .Stop().ConfigureAwait(false);
 
                 // wait until control connection reconnection is done
                 TestHelper.RetryAssert(
                     () =>
                     {
-                        Assert.AreEqual(2, Session.Cluster.AllHosts().Count(h => !h.IsUp));
-                        Assert.IsTrue(Session.Cluster.Metadata.ControlConnection.Host.IsUp);
+                        Assert.AreEqual(2, Session.Cluster.Metadata.AllHosts().Count(h => !h.IsUp));
+                        Assert.IsTrue(InternalSession.InternalCluster.InternalMetadata.ControlConnection.Host.IsUp);
                     },
                     200,
                     100);
@@ -125,7 +128,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 var session = cluster.Connect();
                 session.Execute("select * from system.local");
-                Assert.That(cluster.AllHosts().Count, Is.EqualTo(3));
+                Assert.That(cluster.Metadata.AllHosts().Count, Is.EqualTo(3));
             }
         }
 
@@ -179,8 +182,8 @@ namespace Cassandra.IntegrationTests.Core
                                         .WithDefaultKeyspace("MY_WRONG_KEYSPACE")
                                         .Build())
             {
-                Assert.Throws<InvalidQueryException>(() => cluster.Connect());
-                Assert.Throws<InvalidQueryException>(() => cluster.Connect("ANOTHER_THAT_DOES_NOT_EXIST"));
+                Assert.Throws<InvalidQueryException>(() => cluster.Connect().Connect());
+                Assert.Throws<InvalidQueryException>(() => cluster.Connect("ANOTHER_THAT_DOES_NOT_EXIST").Connect());
             }
         }
 
@@ -204,10 +207,10 @@ namespace Cassandra.IntegrationTests.Core
             {
                 try
                 {
-                    cluster.Connect("system");
+                    cluster.Connect("system").Connect();
                     Assert.IsTrue(
-                        cluster.AllHosts().Any(h => addressList.Contains(h.Address.Address)),
-                        string.Join(";", cluster.AllHosts().Select(h => h.Address.ToString())) + " | " + TestCluster.InitialContactPoint.Address);
+                        cluster.Metadata.AllHosts().Any(h => addressList.Contains(h.Address.Address)),
+                        string.Join(";", cluster.Metadata.AllHosts().Select(h => h.Address.ToString())) + " | " + TestCluster.InitialContactPoint.Address);
                 }
                 catch (NoHostAvailableException ex)
                 {
@@ -215,36 +218,7 @@ namespace Cassandra.IntegrationTests.Core
                 }
             }
         }
-
-        [Test]
-        public void RepeatedClusterConnectCallsAfterTimeoutErrorThrowCachedInitErrorException()
-        {
-            TestCluster.DisableConnectionListener(type: "reject_startup");
-            var timeoutMessage = "Cluster initialization was aborted after timing out. This mechanism is put in place to" +
-                                 " avoid blocking the calling thread forever. This usually caused by a networking issue" +
-                                 " between the client driver instance and the cluster. You can increase this timeout via " +
-                                 "the SocketOptions.ConnectTimeoutMillis config setting. This can also be related to deadlocks " +
-                                 "caused by mixing synchronous and asynchronous code.";
-            var cachedError = "An error occured during the initialization of the cluster instance. Further initialization attempts " +
-                              "for this cluster instance will never succeed and will return this exception instead. The InnerException property holds " +
-                              "a reference to the exception that originally caused the initialization error.";
-            using (var cluster = CreateClusterAndWaitUntilConnectException(
-                b => b
-                     .WithSocketOptions(
-                         new SocketOptions()
-                             .SetConnectTimeoutMillis(500)
-                             .SetMetadataAbortTimeout(500)),
-                out var ex))
-            {
-                Assert.AreEqual(typeof(TimeoutException), ex.GetType());
-                Assert.AreEqual(timeoutMessage, ex.Message);
-                var ex2 = Assert.Throws<InitFatalErrorException>(() => cluster.Connect("sample_ks"));
-                Assert.AreEqual(cachedError, ex2.Message);
-                Assert.AreEqual(typeof(TimeoutException), ex2.InnerException.GetType());
-                Assert.AreEqual(timeoutMessage, ex2.InnerException.Message);
-            }
-        }
-
+        
         [Test]
         public void RepeatedClusterConnectCallsAfterTimeoutErrorEventuallyThrowNoHostException()
         {
@@ -257,12 +231,11 @@ namespace Cassandra.IntegrationTests.Core
                                .SetMetadataAbortTimeout(500)),
                 out var ex))
             {
-                Assert.AreEqual(typeof(TimeoutException), ex.GetType());
+                Assert.AreEqual(typeof(InitializationTimeoutException), ex.GetType());
                 TestHelper.RetryAssert(
                     () =>
                     {
-                        var ex2 = Assert.Throws<InitFatalErrorException>(() => cluster.Connect("sample_ks"));
-                        Assert.AreEqual(typeof(NoHostAvailableException), ex2.InnerException.GetType());
+                        var ex2 = Assert.Throws<NoHostAvailableException>(() => cluster.Connect("sample_ks").Connect());
                     },
                     1000,
                     30);
@@ -274,12 +247,20 @@ namespace Cassandra.IntegrationTests.Core
         {
             TestCluster.DisableConnectionListener(type: "reject_startup");
             using (var cluster = CreateClusterAndWaitUntilConnectException(
-                b => b.WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(1).SetReadTimeoutMillis(1)),
+                b => b
+                     .WithReconnectionPolicy(new ConstantReconnectionPolicy(5000))
+                    .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(1).SetReadTimeoutMillis(1)),
                 out _))
             {
-                var ex = Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
-                var ex2 = Assert.Throws<NoHostAvailableException>(() => cluster.Connect("sample_ks"));
-                Assert.AreNotSame(ex, ex2);
+                var ex = Assert.Throws<NoHostAvailableException>(() => cluster.Connect().Connect());
+                var ex2 = Assert.Throws<NoHostAvailableException>(() => cluster.Connect("sample_ks").Connect());
+                Assert.AreSame(ex, ex2);
+                Task.Delay(5000).GetAwaiter().GetResult();
+                TestHelper.RetryAssert(() =>
+                {
+                    var ex3 = Assert.Throws<NoHostAvailableException>(() => cluster.Connect("sample_ks3").Connect());
+                    Assert.AreNotSame(ex2, ex3);
+                }, 100, 20);
             }
         }
 
@@ -295,7 +276,7 @@ namespace Cassandra.IntegrationTests.Core
                     cluster = builder.Build();
                     try
                     {
-                        tempEx = Assert.Catch<Exception>(() => cluster.Connect());
+                        tempEx = Assert.Catch<Exception>(() => cluster.Connect().Connect());
                     }
                     catch (Exception)
                     {

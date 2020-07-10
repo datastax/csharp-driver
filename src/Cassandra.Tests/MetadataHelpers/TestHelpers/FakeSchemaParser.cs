@@ -18,6 +18,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Cassandra.Tests.Connections.TestHelpers;
 
 namespace Cassandra.Tests.MetadataHelpers.TestHelpers
 {
@@ -26,7 +27,7 @@ namespace Cassandra.Tests.MetadataHelpers.TestHelpers
         private readonly ConcurrentDictionary<string, KeyspaceMetadata> _keyspaces;
 
         public FakeSchemaParser(
-            ConcurrentDictionary<string, KeyspaceMetadata> keyspaces) : base(new Metadata(new Configuration()))
+            ConcurrentDictionary<string, KeyspaceMetadata> keyspaces) : base(new FakeInternalMetadata(new Configuration()))
         {
             _keyspaces = keyspaces;
         }

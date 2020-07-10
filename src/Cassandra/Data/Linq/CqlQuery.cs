@@ -147,6 +147,7 @@ namespace Cassandra.Data.Linq
                 throw new ArgumentNullException(nameof(executionProfile));
             }
             
+            GetTable().GetSession().Connect();
             return WaitToCompleteWithMetrics(ExecutePagedAsync(executionProfile), QueryAbortTimeout);
         }
         

@@ -40,11 +40,6 @@ namespace Cassandra
     public interface ISession: IDisposable
     {
         /// <summary>
-        /// Gets the Cassandra native binary protocol version
-        /// </summary>
-        int BinaryProtocolVersion { get; }
-
-        /// <summary>
         /// Gets the cluster information and state
         /// </summary>
         ICluster Cluster { get; }
@@ -69,6 +64,39 @@ namespace Cassandra
         /// This is used as part of the metric bucket name, for example, which can be used to separate metric paths per session.
         /// </summary>
         string SessionName { get; }
+
+        /// <summary>
+        /// <para>
+        /// Waits until the initialization task is finished (this task is started when the Session is created).
+        /// If the session is already initialized, this method returns without blocking.
+        /// </para>
+        /// <para>
+        /// It is not necessary to call this method but you can use it if you want the initialization to happen
+        /// in a specific state of your application (e.g. during startup before your application listens for requests).
+        /// </para>
+        /// <para>
+        /// If your application uses the Task Parallel Library (e.g. async/await) please use <see cref="ConnectAsync"/> instead.
+        /// </para>
+        /// </summary>
+        /// <exception cref="NoHostAvailableException">If the initialization failed.</exception>
+        /// <exception cref="TimeoutException">If the initialization timed out.</exception>
+        /// <exception cref="InitFatalErrorException">If further attempts to connect are made after initialization has failed.</exception>
+        void Connect();
+
+        /// <summary>
+        /// <para>
+        /// Waits until the initialization task is finished (this task is started when the Session is created).
+        /// If the session is already initialized, this method returns a completed Task.
+        /// </para>
+        /// <para>
+        /// It is not necessary to call this method but you can use it if you want the initialization to happen
+        /// in a specific state of your application (e.g. during startup before your application listens for requests).
+        /// </para>
+        /// </summary>
+        /// <exception cref="NoHostAvailableException">If the initialization failed.</exception>
+        /// <exception cref="TimeoutException">If the initialization timed out.</exception>
+        /// <exception cref="InitFatalErrorException">If further attempts to connect are made after initialization has failed.</exception>
+        Task ConnectAsync();
 
         /// <summary>
         /// Begins asynchronous execute operation.
@@ -318,10 +346,5 @@ namespace Cassandra
         /// Disposes the session asynchronously.
         /// </summary>
         Task ShutdownAsync();
-
-        [Obsolete("Method deprecated. The driver internally waits for schema agreement when there is an schema change. See ProtocolOptions.MaxSchemaAgreementWaitSeconds for more info.")]
-        void WaitForSchemaAgreement(RowSet rs);
-        [Obsolete("Method deprecated. The driver internally waits for schema agreement when there is an schema change. See ProtocolOptions.MaxSchemaAgreementWaitSeconds for more info.")]
-        bool WaitForSchemaAgreement(IPEndPoint forHost);
     }
 }

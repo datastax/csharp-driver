@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Cassandra
 {
@@ -26,15 +27,14 @@ namespace Cassandra
     /// <para> This policy encapsulates another policy. The resulting policy works in the following way:
     /// </para>
     /// <list type="number">
-    /// <item>The <see cref="Distance(Host)"/> method is inherited  from the child policy.</item>
-    /// <item>The host yielded by the <see cref="NewQueryPlan(string, IStatement)"/> method will first return the
+    /// <item>The <see cref="Distance(IMetadataSnapshotProvider, Host)"/> method is inherited  from the child policy.</item>
+    /// <item>The host yielded by the <see cref="NewQueryPlan(ICluster, string, IStatement)"/> method will first return the
     /// <see cref="HostDistance.Local"/> replicas for the statement, based on the <see cref="Statement.RoutingKey"/>.
     /// </item>
     /// </list>
     /// </summary>
     public class TokenAwarePolicy : ILoadBalancingPolicy
     {
-        private ICluster _cluster;
         private readonly ThreadLocal<Random> _prng = new ThreadLocal<Random>(() => new Random(
             // Predictable random numbers are OK
             Environment.TickCount * Environment.CurrentManagedThreadId));
@@ -52,22 +52,22 @@ namespace Cassandra
 
         public ILoadBalancingPolicy ChildPolicy { get; }
 
-        public void Initialize(ICluster cluster)
+        public Task InitializeAsync(IMetadataSnapshotProvider metadata)
         {
-            _cluster = cluster;
-            ChildPolicy.Initialize(cluster);
+            return ChildPolicy.InitializeAsync(metadata);
         }
 
         /// <summary>
         ///  Return the HostDistance for the provided host.
         /// </summary>
+        /// <param name="metadata">The metadata instance associated with the cluster for which the policy is created.</param>
         /// <param name="host"> the host of which to return the distance of. </param>
         /// 
         /// <returns>the HostDistance to <c>host</c> as returned by the wrapped
         ///  policy.</returns>
-        public HostDistance Distance(Host host)
+        public HostDistance Distance(IMetadataSnapshotProvider metadata, Host host)
         {
-            return ChildPolicy.Distance(host);
+            return ChildPolicy.Distance(metadata, host);
         }
 
         /// <summary>
@@ -77,16 +77,17 @@ namespace Cassandra
         ///  <c>IStatement.RoutingKey</c> is not <c>null</c>). Following what
         ///  it will return the plan of the child policy.</p>
         /// </summary>
+        /// <param name="cluster">The cluster instance for which the policy is created.</param>
         /// <param name="loggedKeyspace">Keyspace on which the query is going to be executed</param>
         /// <param name="query"> the query for which to build the plan. </param>
         /// <returns>the new query plan.</returns>
-        public IEnumerable<Host> NewQueryPlan(string loggedKeyspace, IStatement query)
+        public IEnumerable<Host> NewQueryPlan(ICluster cluster, string loggedKeyspace, IStatement query)
         {
             var routingKey = query?.RoutingKey;
             IEnumerable<Host> childIterator;
             if (routingKey == null)
             {
-                childIterator = ChildPolicy.NewQueryPlan(loggedKeyspace, query);
+                childIterator = ChildPolicy.NewQueryPlan(cluster, loggedKeyspace, query);
                 foreach (var h in childIterator)
                 {
                     yield return h;
@@ -95,12 +96,12 @@ namespace Cassandra
             }
 
             var keyspace = query.Keyspace ?? loggedKeyspace;
-            var replicas = _cluster.GetReplicas(keyspace, routingKey.RawRoutingKey);
+            var replicas = cluster.Metadata.GetReplicasSnapshot(keyspace, routingKey.RawRoutingKey);
 
             var localReplicaSet = new HashSet<Host>();
             var localReplicaList = new List<Host>(replicas.Count);
             // We can't do it lazily as we need to balance the load between local replicas
-            foreach (var localReplica in replicas.Where(h => ChildPolicy.Distance(h) == HostDistance.Local))
+            foreach (var localReplica in replicas.Where(h => ChildPolicy.Distance(cluster.Metadata, h) == HostDistance.Local))
             {
                 localReplicaSet.Add(localReplica);
                 localReplicaList.Add(localReplica);
@@ -117,7 +118,7 @@ namespace Cassandra
             }
 
             // Then, return the rest of child policy hosts
-            childIterator = ChildPolicy.NewQueryPlan(loggedKeyspace, query);
+            childIterator = ChildPolicy.NewQueryPlan(cluster, loggedKeyspace, query);
             foreach (var h in childIterator)
             {
                 if (localReplicaSet.Contains(h))

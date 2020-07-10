@@ -24,6 +24,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using Cassandra.IntegrationTests.TestBase;
+using Cassandra.SessionManagement;
 using SortOrder = Cassandra.DataCollectionMetadata.SortOrder;
 
 namespace Cassandra.IntegrationTests.Core
@@ -53,7 +54,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.Greater(initialLength, 0);
 
             //GetReplicas should yield the primary replica when the Keyspace is not found
-            Assert.AreEqual(1, cluster.GetReplicas("ks2", new byte[] {0, 0, 0, 1}).Count);
+            Assert.AreEqual(1, cluster.Metadata.GetReplicas("ks2", new byte[] {0, 0, 0, 1}).Count);
 
             const string createKeyspaceQuery = "CREATE KEYSPACE {0} WITH replication = {{ 'class' : '{1}', {2} }}";
             session.Execute(string.Format(createKeyspaceQuery, "ks1", "SimpleStrategy", "'replication_factor' : 1"));
@@ -70,7 +71,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.NotNull(ks2);
             Assert.AreEqual(ks2.Replication["replication_factor"], 3);
             //GetReplicas should yield the 2 replicas (rf=3 but cluster=2) when the Keyspace is found
-            Assert.AreEqual(2, cluster.GetReplicas("ks2", new byte[] {0, 0, 0, 1}).Count);
+            Assert.AreEqual(2, cluster.Metadata.GetReplicas("ks2", new byte[] {0, 0, 0, 1}).Count);
             var ks3 = cluster.Metadata.GetKeyspace("ks3");
             Assert.NotNull(ks3);
             Assert.AreEqual(ks3.Replication["dc1"], 1);
@@ -84,17 +85,20 @@ namespace Cassandra.IntegrationTests.Core
             ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(2);
             var cluster = testCluster.Cluster;
             //The control connection is connected to host 1
-            Assert.AreEqual(1, TestHelper.GetLastAddressByte(cluster.Metadata.ControlConnection.EndPoint.GetHostIpEndPointWithFallback()));
+            Assert.AreEqual(1, TestHelper.GetLastAddressByte(
+                cluster.InternalRef.InternalMetadata.ControlConnection.EndPoint.GetHostIpEndPointWithFallback()));
             testCluster.StopForce(1);
             Thread.Sleep(10000);
 
             //The control connection is still connected to host 1
-            Assert.AreEqual(1, TestHelper.GetLastAddressByte(cluster.Metadata.ControlConnection.EndPoint.GetHostIpEndPointWithFallback()));
+            Assert.AreEqual(1, TestHelper.GetLastAddressByte(
+                cluster.InternalRef.InternalMetadata.ControlConnection.EndPoint.GetHostIpEndPointWithFallback()));
             var t = cluster.Metadata.GetTable("system", "local");
             Assert.NotNull(t);
 
             //The control connection should be connected to host 2
-            Assert.AreEqual(2, TestHelper.GetLastAddressByte(cluster.Metadata.ControlConnection.EndPoint.GetHostIpEndPointWithFallback()));
+            Assert.AreEqual(2, TestHelper.GetLastAddressByte(
+                cluster.InternalRef.InternalMetadata.ControlConnection.EndPoint.GetHostIpEndPointWithFallback()));
         }
 
         [Test]
@@ -113,7 +117,7 @@ namespace Cassandra.IntegrationTests.Core
 
             //The control connection is connected to host 1
             //All host are up
-            Assert.True(cluster.AllHosts().All(h => h.IsUp));
+            Assert.True(cluster.Metadata.AllHosts().All(h => h.IsUp));
             testCluster.StopForce(2);
 
             var counter = 0;
@@ -121,13 +125,13 @@ namespace Cassandra.IntegrationTests.Core
             //No query to avoid getting a socket exception
             while (counter++ < maxWait)
             {
-                if (cluster.AllHosts().Any(h => TestHelper.GetLastAddressByte(h) == 2 && !h.IsUp))
+                if (cluster.Metadata.AllHosts().Any(h => TestHelper.GetLastAddressByte(h) == 2 && !h.IsUp))
                 {
                     break;
                 }
                 Thread.Sleep(1000);
             }
-            Assert.True(cluster.AllHosts().Any(h => TestHelper.GetLastAddressByte(h) == 2 && !h.IsUp));
+            Assert.True(cluster.Metadata.AllHosts().Any(h => TestHelper.GetLastAddressByte(h) == 2 && !h.IsUp));
             Assert.AreNotEqual(counter, maxWait, "Waited but it was never notified via events");
             Assert.True(downEventFired);
         }
@@ -157,7 +161,8 @@ namespace Cassandra.IntegrationTests.Core
                 }
             };
             //The host not used by the control connection
-            int hostToKill = TestHelper.GetLastAddressByte(cluster.Metadata.ControlConnection.EndPoint.GetHostIpEndPointWithFallback());
+            int hostToKill = TestHelper.GetLastAddressByte(
+                cluster.InternalRef.InternalMetadata.ControlConnection.EndPoint.GetHostIpEndPointWithFallback());
             if (!useControlConnectionHost)
             {
                 hostToKill = hostToKill == 1 ? 2 : 1;
@@ -165,18 +170,19 @@ namespace Cassandra.IntegrationTests.Core
             testCluster.Stop(hostToKill);
             Thread.Sleep(10000);
             TestHelper.Invoke(() => session.Execute("SELECT key from system.local"), 10);
-            Assert.True(cluster.AllHosts().Any(h => TestHelper.GetLastAddressByte(h) == hostToKill && !h.IsUp));
+            Assert.True(cluster.Metadata.AllHosts().Any(h => TestHelper.GetLastAddressByte(h) == hostToKill && !h.IsUp));
             Assert.True(downEventFired);
             testCluster.Start(hostToKill);
             Thread.Sleep(20000);
             TestHelper.Invoke(() => session.Execute("SELECT key from system.local"), 10);
-            Assert.True(cluster.AllHosts().All(h => h.IsConsiderablyUp));
+            Assert.True(cluster.Metadata.AllHosts().All(h => h.IsConsiderablyUp));
             //When the host of the control connection is used
             //It can result that event UP is not fired as it is not received by the control connection (it reconnected but missed the event) 
             Assert.True(upEventFired || useControlConnectionHost);
         }
 
-        private void CheckPureMetadata(Cluster cluster, ISession session, string tableName, string keyspaceName, TableOptions tableOptions = null)
+        private void CheckPureMetadata(
+            Cluster cluster, ISession session, string tableName, string keyspaceName, TableOptions tableOptions = null)
         {
             // build create table cql
             tableName = TestUtils.GetUniqueTableName().ToLower();
@@ -219,7 +225,7 @@ namespace Cassandra.IntegrationTests.Core
             stringBuilder.Append("))" + opt + ";");
 
             QueryTools.ExecuteSyncNonQuery(session, stringBuilder.ToString());
-            TestUtils.WaitForSchemaAgreement(session.Cluster);
+            TestUtils.WaitForSchemaAgreement(cluster);
 
             var table = cluster.Metadata.GetTable(keyspaceName, tableName);
             Assert.AreEqual(tableName, table.Name);
@@ -544,7 +550,7 @@ namespace Cassandra.IntegrationTests.Core
             var testCluster = TestClusterManager.GetNonShareableTestCluster(2, DefaultMaxClusterCreateRetries, true, false);
             using (var cluster = ClusterBuilder().AddContactPoint(testCluster.InitialContactPoint).Build())
             {
-                CollectionAssert.DoesNotContain(cluster.Metadata.Hosts.Select(h => h.CassandraVersion), null);
+                CollectionAssert.DoesNotContain(cluster.InternalRef.InternalMetadata.Hosts.Select(h => h.CassandraVersion), null);
             }
         }
 

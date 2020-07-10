@@ -17,7 +17,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Threading.Tasks;
 using Cassandra.ExecutionProfiles;
+using Cassandra.Tasks;
 using Cassandra.Tests.Connections.TestHelpers;
 using Moq;
 using NUnit.Framework;
@@ -324,17 +326,19 @@ namespace Cassandra.Tests.ExecutionProfiles
             public volatile int InitializeCount;
             public volatile int DisposeCount;
 
-            public void Dispose()
+            public Task ShutdownAsync()
             {
                 DisposeCount++;
+                return TaskHelper.Completed;
             }
 
-            public void Initialize(ICluster cluster)
+            public Task InitializeAsync(IMetadataSnapshotProvider metadata)
             {
                 InitializeCount++;
+                return TaskHelper.Completed;
             }
 
-            public ISpeculativeExecutionPlan NewPlan(string keyspace, IStatement statement)
+            public ISpeculativeExecutionPlan NewPlan(ICluster cluster, string keyspace, IStatement statement)
             {
                 throw new System.NotImplementedException();
             }
@@ -343,22 +347,21 @@ namespace Cassandra.Tests.ExecutionProfiles
         internal class FakeLoadBalancingPolicy : ILoadBalancingPolicy
         {
             public volatile int InitializeCount;
-            private ICluster _cluster;
 
-            public void Initialize(ICluster cluster)
+            public Task InitializeAsync(IMetadataSnapshotProvider metadata)
             {
-                _cluster = cluster;
                 InitializeCount++;
+                return TaskHelper.Completed;
             }
 
-            public HostDistance Distance(Host host)
+            public HostDistance Distance(IMetadataSnapshotProvider metadata, Host host)
             {
                 return HostDistance.Local;
             }
 
-            public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
+            public IEnumerable<Host> NewQueryPlan(ICluster cluster, string keyspace, IStatement query)
             {
-                return _cluster.AllHosts();
+                return cluster.Metadata.AllHosts();
             }
         }
     }

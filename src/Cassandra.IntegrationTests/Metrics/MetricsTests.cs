@@ -98,13 +98,14 @@ namespace Cassandra.IntegrationTests.Metrics
             _metricsRoot = new MetricsBuilder().Build();
             var cluster = GetNewTemporaryCluster(b => b.WithMetrics(_metricsRoot.CreateDriverMetricsProvider()));
             var session = cluster.Connect();
+            session.Connect();
             var metrics = session.GetMetrics();
-            Assert.AreEqual(3, cluster.Metadata.Hosts.Count);
+            Assert.AreEqual(3, cluster.InternalMetadata.Hosts.Count);
             Assert.AreEqual(3, metrics.NodeMetrics.Count);
 
             // get address for host that will be removed from the cluster in this test
             var address = TestCluster.ClusterIpPrefix + "2";
-            var hostToBeRemoved = cluster.Metadata.Hosts.First(h => h.Address.Address.Equals(IPAddress.Parse(address)));
+            var hostToBeRemoved = cluster.InternalMetadata.Hosts.First(h => h.Address.Address.Equals(IPAddress.Parse(address)));
 
             // check node metrics are valid
             var gauge = metrics.GetNodeGauge(hostToBeRemoved, NodeMetric.Gauges.OpenConnections);
@@ -130,7 +131,7 @@ namespace Cassandra.IntegrationTests.Metrics
             TestCluster.Stop(2);
             try
             {
-                TestHelper.RetryAssert(() => { Assert.AreEqual(2, cluster.Metadata.Hosts.Count, "metadata hosts count failed"); }, 200, 50);
+                TestHelper.RetryAssert(() => { Assert.AreEqual(2, cluster.InternalMetadata.Hosts.Count, "metadata hosts count failed"); }, 200, 50);
                 TestHelper.RetryAssert(() => { Assert.AreEqual(2, metrics.NodeMetrics.Count, "Node metrics count failed"); }, 10, 500);
             }
             catch
@@ -146,7 +147,7 @@ namespace Cassandra.IntegrationTests.Metrics
 
             TestCluster.Start(2, "--jvm_arg=\"-Dcassandra.override_decommission=true\"");
 
-            TestHelper.RetryAssert(() => { Assert.AreEqual(3, cluster.Metadata.Hosts.Count, "metadata hosts count after bootstrap failed"); },
+            TestHelper.RetryAssert(() => { Assert.AreEqual(3, cluster.InternalMetadata.Hosts.Count, "metadata hosts count after bootstrap failed"); },
                 200, 50);
 
             // when new host is chosen by LBP, connection pool is created
@@ -177,6 +178,7 @@ namespace Cassandra.IntegrationTests.Metrics
                         .SetEnabledNodeMetrics(NodeMetric.AllNodeMetrics)
                         .SetEnabledSessionMetrics(SessionMetric.AllSessionMetrics)));
             var session = cluster.Connect();
+            session.Connect();
             Assert.AreEqual(25, NodeMetric.AllNodeMetrics.Count());
             Assert.AreEqual(25,
                 MetricsTests.Counters.Concat(MetricsTests.Gauges.Concat(MetricsTests.Timers.Concat(MetricsTests.Meters)))
@@ -192,7 +194,7 @@ namespace Cassandra.IntegrationTests.Metrics
 
             var waitedForRefresh = false;
             var metrics = session.GetMetrics();
-            foreach (var h in cluster.AllHosts())
+            foreach (var h in cluster.Metadata.AllHosts())
             {
                 foreach (var c in MetricsTests.Counters)
                 {
@@ -231,6 +233,7 @@ namespace Cassandra.IntegrationTests.Metrics
             _metricsRoot = new MetricsBuilder().Build();
             var cluster = GetNewTemporaryCluster(b => b.WithMetrics(_metricsRoot.CreateDriverMetricsProvider()));
             var session = cluster.Connect();
+            session.Connect();
             Assert.AreEqual(24, NodeMetric.DefaultNodeMetrics.Count());
             Assert.IsTrue(NodeMetric.DefaultNodeMetrics.SequenceEqual(NodeMetric.DefaultNodeMetrics.Distinct()));
             Assert.AreEqual(NodeMetric.Timers.CqlMessages, NodeMetric.AllNodeMetrics.Except(NodeMetric.DefaultNodeMetrics).Single());
@@ -248,7 +251,7 @@ namespace Cassandra.IntegrationTests.Metrics
             }
 
             var metrics = session.GetMetrics();
-            foreach (var h in cluster.AllHosts())
+            foreach (var h in cluster.Metadata.AllHosts())
             {
                 foreach (var c in MetricsTests.Counters)
                 {
@@ -293,8 +296,8 @@ namespace Cassandra.IntegrationTests.Metrics
                 }
 
                 var metrics = session.GetMetrics();
-                var downNode = session.Cluster.AllHosts().Single(h => h.Address.Address.ToString() == (TestCluster.ClusterIpPrefix + "2"));
-                foreach (var h in cluster.AllHosts())
+                var downNode = session.Cluster.Metadata.AllHosts().Single(h => h.Address.Address.ToString() == (TestCluster.ClusterIpPrefix + "2"));
+                foreach (var h in cluster.Metadata.AllHosts())
                 {
                     foreach (var c in MetricsTests.Counters)
                     {

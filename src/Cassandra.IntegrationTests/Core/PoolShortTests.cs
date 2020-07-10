@@ -67,7 +67,7 @@ namespace Cassandra.IntegrationTests.Core
                     Assert.AreEqual(2, t.Result.Length, "The 2 hosts must have been used");
                     // Wait for all connections to be opened
                     Thread.Sleep(1000);
-                    var hosts = cluster.AllHosts().ToArray();
+                    var hosts = cluster.Metadata.AllHosts().ToArray();
                     TestHelper.WaitUntil(() =>
                         hosts.Sum(h => session
                             .GetOrCreateConnectionPool(h, HostDistance.Local)
@@ -150,7 +150,7 @@ namespace Cassandra.IntegrationTests.Core
                 using (var cluster = builder.Build())
                 {
                     var session = (IInternalSession)cluster.Connect();
-                    var allHosts = cluster.AllHosts();
+                    var allHosts = cluster.Metadata.AllHosts();
 
                     TestHelper.WaitUntil(() =>
                         allHosts.Sum(h => session
@@ -264,7 +264,7 @@ namespace Cassandra.IntegrationTests.Core
                                        .Build())
             {
                 var session = (IInternalSession)cluster.Connect();
-                var allHosts = cluster.AllHosts();
+                var allHosts = cluster.Metadata.AllHosts();
                 var host = allHosts.First();
                 var pool = session.GetOrCreateConnectionPool(host, HostDistance.Local);
 
@@ -319,7 +319,7 @@ namespace Cassandra.IntegrationTests.Core
             using (var cluster = builder.AddContactPoint(testCluster.InitialContactPoint).Build())
             {
                 var session = (Session)cluster.Connect();
-                var allHosts = cluster.AllHosts();
+                var allHosts = cluster.Metadata.AllHosts();
                 Assert.AreEqual(3, allHosts.Count);
                 await TestHelper.TimesLimit(() =>
                     session.ExecuteAsync(new SimpleStatement("SELECT * FROM system.local")), 100, 16).ConfigureAwait(false);
@@ -330,27 +330,28 @@ namespace Cassandra.IntegrationTests.Core
                     Assert.AreEqual(4, (await testCluster.GetConnectedPortsAsync().ConfigureAwait(false)).Count);
                 }, 100, 200).ConfigureAwait(false);
 
-                var ccAddress = cluster.InternalRef.GetControlConnection().EndPoint.GetHostIpEndPointWithFallback();
+                var cc = cluster.InternalRef.InternalMetadata.ControlConnection;
+                var ccAddress = cc.EndPoint.GetHostIpEndPointWithFallback();
                 Assert.NotNull(ccAddress);
                 var simulacronNode = testCluster.GetNode(ccAddress);
 
                 // Disable new connections to the first host
                 await simulacronNode.Stop().ConfigureAwait(false);
 
-                TestHelper.WaitUntil(() => !cluster.GetHost(ccAddress).IsUp);
+                TestHelper.WaitUntil(() => !cluster.Metadata.GetHost(ccAddress).IsUp);
 
-                Assert.False(cluster.GetHost(ccAddress).IsUp);
+                Assert.False(cluster.Metadata.GetHost(ccAddress).IsUp);
 
-                TestHelper.WaitUntil(() => !cluster.InternalRef.GetControlConnection().EndPoint.GetHostIpEndPointWithFallback().Address.Equals(ccAddress.Address));
-                Assert.NotNull(cluster.InternalRef.GetControlConnection().EndPoint.GetHostIpEndPointWithFallback());
-                Assert.AreNotEqual(ccAddress.Address, cluster.InternalRef.GetControlConnection().EndPoint.GetHostIpEndPointWithFallback().Address);
+                TestHelper.WaitUntil(() => !cc.EndPoint.GetHostIpEndPointWithFallback().Address.Equals(ccAddress.Address));
+                Assert.NotNull(cc.EndPoint.GetHostIpEndPointWithFallback());
+                Assert.AreNotEqual(ccAddress.Address, cc.EndPoint.GetHostIpEndPointWithFallback().Address);
 
                 // Previous host is still DOWN
-                Assert.False(cluster.GetHost(ccAddress).IsUp);
+                Assert.False(cluster.Metadata.GetHost(ccAddress).IsUp);
 
                 // New host is UP
-                ccAddress = cluster.InternalRef.GetControlConnection().EndPoint.GetHostIpEndPointWithFallback();
-                Assert.True(cluster.GetHost(ccAddress).IsUp);
+                ccAddress = cc.EndPoint.GetHostIpEndPointWithFallback();
+                Assert.True(cluster.Metadata.GetHost(ccAddress).IsUp);
             }
         }
 
@@ -368,7 +369,7 @@ namespace Cassandra.IntegrationTests.Core
             using (var cluster = builder.AddContactPoint(testCluster.InitialContactPoint).Build())
             {
                 var session = (Session)cluster.Connect();
-                var allHosts = cluster.AllHosts();
+                var allHosts = cluster.Metadata.AllHosts();
                 Assert.AreEqual(3, allHosts.Count);
                 await TestHelper.TimesLimit(() =>
                     session.ExecuteAsync(new SimpleStatement("SELECT * FROM system.local")), 100, 16).ConfigureAwait(false);
@@ -385,7 +386,7 @@ namespace Cassandra.IntegrationTests.Core
                 // Disable all connections
                 await testCluster.DisableConnectionListener().ConfigureAwait(false);
 
-                var ccAddress = cluster.InternalRef.GetControlConnection().EndPoint.GetHostIpEndPointWithFallback();
+                var ccAddress = cluster.InternalRef.InternalMetadata.ControlConnection.EndPoint.GetHostIpEndPointWithFallback();
 
                 // Drop all connections to hosts
                 foreach (var connection in serverConnections)
@@ -393,20 +394,20 @@ namespace Cassandra.IntegrationTests.Core
                     await testCluster.DropConnection(connection).ConfigureAwait(false);
                 }
 
-                TestHelper.WaitUntil(() => !cluster.GetHost(ccAddress).IsUp);
+                TestHelper.WaitUntil(() => !cluster.Metadata.GetHost(ccAddress).IsUp);
 
                 // All host should be down by now
-                TestHelper.WaitUntil(() => cluster.AllHosts().All(h => !h.IsUp));
+                TestHelper.WaitUntil(() => cluster.Metadata.AllHosts().All(h => !h.IsUp));
 
-                Assert.False(cluster.GetHost(ccAddress).IsUp);
+                Assert.False(cluster.Metadata.GetHost(ccAddress).IsUp);
 
                 // Allow new connections to be created
                 await testCluster.EnableConnectionListener().ConfigureAwait(false);
 
-                TestHelper.WaitUntil(() => cluster.AllHosts().All(h => h.IsUp));
+                TestHelper.WaitUntil(() => cluster.Metadata.AllHosts().All(h => h.IsUp));
 
-                ccAddress = cluster.InternalRef.GetControlConnection().EndPoint.GetHostIpEndPointWithFallback();
-                Assert.True(cluster.GetHost(ccAddress).IsUp);
+                ccAddress = cluster.InternalRef.InternalMetadata.ControlConnection.EndPoint.GetHostIpEndPointWithFallback();
+                Assert.True(cluster.Metadata.GetHost(ccAddress).IsUp);
 
                 // Once all connections are created, the control connection should be usable
                 await TestHelper.RetryAssertAsync(async () =>
@@ -418,7 +419,7 @@ namespace Cassandra.IntegrationTests.Core
 
                 TestHelper.RetryAssert(() =>
                 {
-                    Assert.DoesNotThrowAsync(() => cluster.InternalRef.GetControlConnection().QueryAsync("SELECT * FROM system.local"));
+                    Assert.DoesNotThrowAsync(() => cluster.InternalRef.InternalMetadata.ControlConnection.QueryAsync("SELECT * FROM system.local"));
                 }, 100, 100);
             }
         }
@@ -443,7 +444,7 @@ namespace Cassandra.IntegrationTests.Core
                 testCluster.PrimeFluent(b => b.WhenQuery(query).ThenVoidSuccess().WithDelayInMs(3000));
 
                 var session = await cluster.ConnectAsync().ConfigureAwait(false);
-                var hosts = cluster.AllHosts().ToArray();
+                var hosts = cluster.Metadata.AllHosts().ToArray();
 
                 // Wait until all connections to first host are created
                 await TestHelper.WaitUntilAsync(() =>
@@ -495,7 +496,7 @@ namespace Cassandra.IntegrationTests.Core
                 testCluster.PrimeFluent(b => b.WhenQuery(query).ThenVoidSuccess().WithDelayInMs(3000));
 
                 var session = await cluster.ConnectAsync().ConfigureAwait(false);
-                var hosts = cluster.AllHosts().ToArray();
+                var hosts = cluster.Metadata.AllHosts().ToArray();
 
                 await TestHelper.TimesLimit(() =>
                     session.ExecuteAsync(new SimpleStatement("SELECT key FROM system.local")), 100, 16).ConfigureAwait(false);
@@ -562,8 +563,8 @@ namespace Cassandra.IntegrationTests.Core
             using (var cluster = builder.AddContactPoint(testCluster.InitialContactPoint).Build())
             {
                 var session = await cluster.ConnectAsync().ConfigureAwait(false);
-                var firstHost = cluster.AllHosts().First();
-                var lastHost = cluster.AllHosts().Last();
+                var firstHost = cluster.Metadata.AllHosts().First();
+                var lastHost = cluster.Metadata.AllHosts().Last();
 
                 // The test load-balancing policy targets always the first host
                 await TestHelper.TimesLimit(async () =>
@@ -591,15 +592,15 @@ namespace Cassandra.IntegrationTests.Core
             const string query = "SELECT * FROM system.local";
             // Mark the last host as ignored
             var lbp = new TestHelper.CustomLoadBalancingPolicy(
-                (cluster, ks, stmt) => cluster.AllHosts(),
-                (cluster, host) => host.Equals(cluster.AllHosts().Last()) ? HostDistance.Ignored : HostDistance.Local);
+                (cluster, ks, stmt) => cluster.Metadata.AllHosts(),
+                (metadata, host) => host.Equals(metadata.AllHostsSnapshot().Last()) ? HostDistance.Ignored : HostDistance.Local);
             var builder = ClusterBuilder().WithLoadBalancingPolicy(lbp);
 
             using (var testCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" }))
             using (var cluster = builder.AddContactPoint(testCluster.InitialContactPoint).Build())
             {
                 var session = cluster.Connect();
-                var lastHost = cluster.AllHosts().Last();
+                var lastHost = cluster.Metadata.AllHosts().Last();
 
                 // Use the last host
                 var statement = new SimpleStatement(query).SetHost(lastHost);
@@ -620,7 +621,7 @@ namespace Cassandra.IntegrationTests.Core
             using (var cluster = builder.AddContactPoint(testCluster.InitialContactPoint).Build())
             {
                 var session = await cluster.ConnectAsync().ConfigureAwait(false);
-                var lastHost = cluster.AllHosts().Last();
+                var lastHost = cluster.Metadata.AllHosts().Last();
 
                 // 1 for the control connection and 1 connection per each host 
                 await TestHelper.RetryAssertAsync(async () =>
@@ -650,7 +651,7 @@ namespace Cassandra.IntegrationTests.Core
 
                 TestHelper.RetryAssert(() =>
                 {
-                    var openConnections = session.GetState().GetOpenConnections(session.Cluster.GetHost(simulacronNode.IpEndPoint));
+                    var openConnections = session.GetState().GetOpenConnections(session.Cluster.Metadata.GetHost(simulacronNode.IpEndPoint));
                     Assert.AreEqual(0, openConnections);
                 }, 100, 200);
 
@@ -684,7 +685,7 @@ namespace Cassandra.IntegrationTests.Core
                 testCluster.PrimeFluent(b => b.WhenQuery(query).ThenOverloaded("Test overloaded error"));
 
                 var session = cluster.Connect();
-                var host = cluster.AllHosts().Last();
+                var host = cluster.Metadata.AllHosts().Last();
 
                 var statement = new SimpleStatement(query).SetHost(host).SetIdempotence(true);
 
@@ -705,7 +706,7 @@ namespace Cassandra.IntegrationTests.Core
             var lbp = new TestHelper.CustomLoadBalancingPolicy((cluster, ks, stmt) =>
             {
                 Interlocked.Increment(ref queryPlanCounter);
-                return cluster.AllHosts();
+                return cluster.Metadata.AllHosts();
             });
 
             var builder = ClusterBuilder().WithLoadBalancingPolicy(lbp);
@@ -714,7 +715,7 @@ namespace Cassandra.IntegrationTests.Core
             using (var cluster = builder.AddContactPoint(testCluster.InitialContactPoint).Build())
             {
                 var session = await cluster.ConnectAsync().ConfigureAwait(false);
-                var host = cluster.AllHosts().Last();
+                var host = cluster.Metadata.AllHosts().Last();
                 Interlocked.Exchange(ref queryPlanCounter, 0);
 
                 await TestHelper.TimesLimit(() =>

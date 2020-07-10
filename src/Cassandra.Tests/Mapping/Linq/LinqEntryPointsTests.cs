@@ -14,12 +14,12 @@
 //   limitations under the License.
 //
 
-using Cassandra.Connections.Control;
 using Cassandra.Data.Linq;
 using Cassandra.Mapping;
-using Cassandra.Serialization;
 using Cassandra.Tests.Mapping.Pocos;
+
 using Moq;
+
 using NUnit.Framework;
 
 namespace Cassandra.Tests.Mapping.Linq
@@ -58,7 +58,7 @@ namespace Cassandra.Tests.Mapping.Linq
         public void Deprecated_EntryPoint_Uses_Table_Provided()
         {
             MappingConfiguration.Global.Define(new Map<AllTypesEntity>().TableName("tbl1"));
-            var table = _session.GetTable<AllTypesEntity>( "linqTable");
+            var table = _session.GetTable<AllTypesEntity>("linqTable");
             Assert.AreEqual(
                 @"SELECT BooleanValue, DateTimeValue, DecimalValue, DoubleValue, Int64Value, IntValue, StringValue, UuidValue FROM linqTable",
                 table.ToString());
@@ -68,7 +68,7 @@ namespace Cassandra.Tests.Mapping.Linq
         public void Deprecated_EntryPoint_Uses_Keyspace_Provided()
         {
             MappingConfiguration.Global.Define(new Map<AllTypesEntity>().TableName("tbl1"));
-            var table = _session.GetTable<AllTypesEntity>( "linqTable", "linqKs");
+            var table = _session.GetTable<AllTypesEntity>("linqTable", "linqKs");
             Assert.AreEqual(
                 @"SELECT BooleanValue, DateTimeValue, DecimalValue, DoubleValue, Int64Value, IntValue, StringValue, UuidValue FROM linqKs.linqTable",
                 table.ToString());
@@ -124,20 +124,11 @@ namespace Cassandra.Tests.Mapping.Linq
                 table.Where(t => t.Int64Value == 1).ToString());
         }
 
-        private static Mock<ISession> GetSessionMock(ISerializerManager serializer = null)
+        private static Mock<ISession> GetSessionMock()
         {
-            if (serializer == null)
-            {
-                serializer = new SerializerManager(ProtocolVersion.MaxSupported);
-            }
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             var config = new Configuration();
-            var metadata = new Metadata(config);
-            var ccMock = new Mock<IControlConnection>(MockBehavior.Strict);
-            ccMock.Setup(cc => cc.Serializer).Returns(serializer);
-            metadata.ControlConnection = ccMock.Object;
             var clusterMock = new Mock<ICluster>();
-            clusterMock.Setup(c => c.Metadata).Returns(metadata);
             clusterMock.Setup(c => c.Configuration).Returns(config);
             sessionMock.Setup(s => s.Cluster).Returns(clusterMock.Object);
             return sessionMock;

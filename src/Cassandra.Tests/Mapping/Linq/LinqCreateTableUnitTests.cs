@@ -18,6 +18,7 @@ using Cassandra.Connections.Control;
 using Cassandra.Data.Linq;
 using Cassandra.Mapping;
 using Cassandra.Serialization;
+using Cassandra.Tests.Connections.TestHelpers;
 using Cassandra.Tests.Mapping.Pocos;
 using Moq;
 using NUnit.Framework;
@@ -585,13 +586,8 @@ namespace Cassandra.Tests.Mapping.Linq
                 serializer = new SerializerManager(ProtocolVersion.MaxSupported);
             }
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
-            var config = new Configuration();
-            var metadata = new Metadata(config);
-            var ccMock = new Mock<IControlConnection>(MockBehavior.Strict);
-            ccMock.Setup(cc => cc.Serializer).Returns(serializer);
-            metadata.ControlConnection = ccMock.Object;
+            var config = new TestConfigurationBuilder { SerializerManager = serializer }.Build();
             var clusterMock = new Mock<ICluster>();
-            clusterMock.Setup(c => c.Metadata).Returns(metadata);
             clusterMock.Setup(c => c.Configuration).Returns(config);
             sessionMock.Setup(s => s.Cluster).Returns(clusterMock.Object);
             return sessionMock;

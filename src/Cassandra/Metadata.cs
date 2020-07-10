@@ -15,654 +15,329 @@
 //
 
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using Cassandra.Collections;
-using Cassandra.Connections;
+
 using Cassandra.Connections.Control;
-using Cassandra.MetadataHelpers;
-using Cassandra.Requests;
+using Cassandra.Helpers;
 using Cassandra.Tasks;
 
 namespace Cassandra
 {
-    /// <summary>
-    ///  Keeps metadata on the connected cluster, including known nodes and schema
-    ///  definitions.
-    /// </summary>
-    public class Metadata : IDisposable
+    /// <inheritdoc />
+    internal class Metadata : IMetadata
     {
-        private const string SelectSchemaVersionPeers = "SELECT schema_version FROM system.peers";
-        private const string SelectSchemaVersionLocal = "SELECT schema_version FROM system.local";
-        private static readonly Logger Logger = new Logger(typeof(ControlConnection));
-        private volatile TokenMap _tokenMap;
-        private volatile ConcurrentDictionary<string, KeyspaceMetadata> _keyspaces = new ConcurrentDictionary<string, KeyspaceMetadata>();
-        private volatile ISchemaParser _schemaParser;
+        private readonly IClusterInitializer _clusterInitializer;
         private readonly int _queryAbortTimeout;
-        private volatile CopyOnWriteDictionary<IContactPoint, IEnumerable<IConnectionEndPoint>> _resolvedContactPoints = 
-            new CopyOnWriteDictionary<IContactPoint, IEnumerable<IConnectionEndPoint>>();
 
+        internal IInternalMetadata InternalMetadata { get; }
+
+        internal Metadata(IClusterInitializer clusterInitializer, IInternalMetadata internalMetadata)
+        {
+            _clusterInitializer = clusterInitializer;
+            Configuration = internalMetadata.Configuration;
+            _queryAbortTimeout = Configuration.DefaultRequestOptions.QueryAbortTimeout;
+            InternalMetadata = internalMetadata;
+        }
+
+        public Configuration Configuration { get; }
+
+        /// <inheritdoc />
         public event HostsEventHandler HostsEvent;
 
+        /// <inheritdoc />
         public event SchemaChangedEventHandler SchemaChangedEvent;
 
-        /// <summary>
-        ///  Returns the name of currently connected cluster.
-        /// </summary>
-        /// <returns>the Cassandra name of currently connected cluster.</returns>
-        public String ClusterName { get; internal set; }
+        /// <inheritdoc />
+        public event Action<Host> HostAdded;
 
-        /// <summary>
-        /// Determines whether the cluster is provided as a service (DataStax Astra).
-        /// </summary>
-        public bool IsDbaas { get; private set; } = false;
+        /// <inheritdoc />
+        public event Action<Host> HostRemoved;
 
-        /// <summary>
-        /// Gets the configuration associated with this instance.
-        /// </summary>
-        internal Configuration Configuration { get; private set; }
-
-        /// <summary>
-        /// Control connection to be used to execute the queries to retrieve the metadata
-        /// </summary>
-        internal IControlConnection ControlConnection { get; set; }
-
-        internal ISchemaParser SchemaParser { get { return _schemaParser; } }
-
-        internal string Partitioner { get; set; }
-
-        internal Hosts Hosts { get; private set; }
-
-        internal IReadOnlyDictionary<IContactPoint, IEnumerable<IConnectionEndPoint>> ResolvedContactPoints => _resolvedContactPoints;
-
-        internal IReadOnlyTokenMap TokenToReplicasMap => _tokenMap;
-
-        internal Metadata(Configuration configuration)
+        /// <inheritdoc />
+        public async Task<ClusterDescription> GetClusterDescriptionAsync()
         {
-            _queryAbortTimeout = configuration.DefaultRequestOptions.QueryAbortTimeout;
-            Configuration = configuration;
-            Hosts = new Hosts();
-            Hosts.Down += OnHostDown;
-            Hosts.Up += OnHostUp;
+            await TryInitializeAsync().ConfigureAwait(false);
+            return GetClusterDescriptionInternal();
         }
 
-        internal Metadata(Configuration configuration, SchemaParser schemaParser) : this(configuration)
+        /// <inheritdoc />
+        public ClusterDescription GetClusterDescription()
         {
-            _schemaParser = schemaParser;
+            TryInitialize();
+            return GetClusterDescriptionInternal();
         }
 
-        public void Dispose()
+        /// <inheritdoc />
+        public ICollection<Host> AllHostsSnapshot()
         {
-            ShutDown();
+            return InternalMetadata.AllHosts();
         }
 
-        internal void SetResolvedContactPoints(IDictionary<IContactPoint, IEnumerable<IConnectionEndPoint>> resolvedContactPoints)
+        /// <inheritdoc />
+        public IEnumerable<IPEndPoint> AllReplicasSnapshot()
         {
-            _resolvedContactPoints = new CopyOnWriteDictionary<IContactPoint, IEnumerable<IConnectionEndPoint>>(resolvedContactPoints);
+            return InternalMetadata.AllReplicas();
         }
 
+        /// <inheritdoc />
+        public ICollection<Host> GetReplicasSnapshot(string keyspaceName, byte[] partitionKey)
+        {
+            return InternalMetadata.GetReplicas(keyspaceName, partitionKey);
+        }
+
+        /// <inheritdoc />
+        public ICollection<Host> GetReplicasSnapshot(byte[] partitionKey)
+        {
+            return GetReplicasSnapshot(null, partitionKey);
+        }
+
+        private ClusterDescription GetClusterDescriptionInternal()
+        {
+            return new ClusterDescription(InternalMetadata);
+        }
+
+        /// <inheritdoc />
         public Host GetHost(IPEndPoint address)
         {
-            if (Hosts.TryGet(address, out var host))
-                return host;
-            return null;
+            TryInitialize();
+            return InternalMetadata.GetHost(address);
         }
 
-        internal Host AddHost(IPEndPoint address)
+        /// <inheritdoc />
+        public async Task<Host> GetHostAsync(IPEndPoint address)
         {
-            return Hosts.Add(address);
+            await TryInitializeAsync().ConfigureAwait(false);
+            return InternalMetadata.GetHost(address);
         }
 
-        internal Host AddHost(IPEndPoint address, IContactPoint contactPoint)
-        {
-            return Hosts.Add(address, contactPoint);
-        }
-
-        internal void RemoveHost(IPEndPoint address)
-        {
-            Hosts.RemoveIfExists(address);
-        }
-
-        internal void FireSchemaChangedEvent(SchemaChangedEventArgs.Kind what, string keyspace, string table, object sender = null)
-        {
-            SchemaChangedEvent?.Invoke(sender ?? this, new SchemaChangedEventArgs { Keyspace = keyspace, What = what, Table = table });
-        }
-
-        private void OnHostDown(Host h)
-        {
-            HostsEvent?.Invoke(this, new HostsEventArgs { Address = h.Address, What = HostsEventArgs.Kind.Down });
-        }
-
-        private void OnHostUp(Host h)
-        {
-            HostsEvent?.Invoke(h, new HostsEventArgs { Address = h.Address, What = HostsEventArgs.Kind.Up });
-        }
-
-        /// <summary>
-        ///  Returns all known hosts of this cluster.
-        /// </summary>
-        /// <returns>collection of all known hosts of this cluster.</returns>
+        /// <inheritdoc />
         public ICollection<Host> AllHosts()
         {
-            return Hosts.ToCollection();
+            TryInitialize();
+            return InternalMetadata.AllHosts();
         }
 
+        /// <inheritdoc />
+        public async Task<ICollection<Host>> AllHostsAsync()
+        {
+            await TryInitializeAsync().ConfigureAwait(false);
+            return InternalMetadata.AllHosts();
+        }
+
+        /// <inheritdoc />
         public IEnumerable<IPEndPoint> AllReplicas()
         {
-            return Hosts.AllEndPointsToCollection();
+            TryInitialize();
+            return InternalMetadata.AllReplicas();
         }
 
-        // for tests
-        internal KeyValuePair<string, KeyspaceMetadata>[] KeyspacesSnapshot => _keyspaces.ToArray();
-
-        internal async Task RebuildTokenMapAsync(bool retry, bool fetchKeyspaces)
+        /// <inheritdoc />
+        public async Task<IEnumerable<IPEndPoint>> AllReplicasAsync()
         {
-            IEnumerable<KeyspaceMetadata> ksList = null;
-            if (fetchKeyspaces)
-            {
-                Metadata.Logger.Info("Retrieving keyspaces metadata");
-                ksList = await _schemaParser.GetKeyspacesAsync(retry).ConfigureAwait(false);
-            }
-
-            ConcurrentDictionary<string, KeyspaceMetadata> keyspaces;
-            if (ksList != null)
-            {
-                Metadata.Logger.Info("Updating keyspaces metadata");
-                var ksMap = ksList.Select(ks => new KeyValuePair<string, KeyspaceMetadata>(ks.Name, ks));
-                keyspaces = new ConcurrentDictionary<string, KeyspaceMetadata>(ksMap);
-            }
-            else
-            {
-                keyspaces = _keyspaces;
-            }
-
-            Metadata.Logger.Info("Rebuilding token map");
-            if (Partitioner == null)
-            {
-                throw new DriverInternalError("Partitioner can not be null");
-            }
-
-            var tokenMap = TokenMap.Build(Partitioner, Hosts.ToCollection(), keyspaces.Values);
-            _keyspaces = keyspaces;
-            _tokenMap = tokenMap;
+            await TryInitializeAsync().ConfigureAwait(false);
+            return InternalMetadata.AllReplicas();
         }
 
-        /// <summary>
-        /// this method should be called by the event debouncer
-        /// </summary>
-        internal bool RemoveKeyspaceFromTokenMap(string name)
-        {
-            Metadata.Logger.Verbose("Removing keyspace metadata: " + name);
-            var dropped = _keyspaces.TryRemove(name, out _);
-            _tokenMap?.RemoveKeyspace(name);
-            return dropped;
-        }
-
-        internal async Task<KeyspaceMetadata> UpdateTokenMapForKeyspace(string name)
-        {
-            var keyspaceMetadata = await _schemaParser.GetKeyspaceAsync(name).ConfigureAwait(false);
-
-            var dropped = false;
-            var updated = false;
-            if (_tokenMap == null)
-            {
-                await RebuildTokenMapAsync(false, false).ConfigureAwait(false);
-            }
-
-            if (keyspaceMetadata == null)
-            {
-                Metadata.Logger.Verbose("Removing keyspace metadata: " + name);
-                dropped = _keyspaces.TryRemove(name, out _);
-                _tokenMap?.RemoveKeyspace(name);
-            }
-            else
-            {
-                Metadata.Logger.Verbose("Updating keyspace metadata: " + name);
-                _keyspaces.AddOrUpdate(keyspaceMetadata.Name, keyspaceMetadata, (k, v) =>
-                {
-                    updated = true;
-                    return keyspaceMetadata;
-                });
-                Metadata.Logger.Info("Rebuilding token map for keyspace {0}", keyspaceMetadata.Name);
-                if (Partitioner == null)
-                {
-                    throw new DriverInternalError("Partitioner can not be null");
-                }
-
-                _tokenMap.UpdateKeyspace(keyspaceMetadata);
-            }
-
-            if (Configuration.MetadataSyncOptions.MetadataSyncEnabled)
-            {
-                if (dropped)
-                {
-                    FireSchemaChangedEvent(SchemaChangedEventArgs.Kind.Dropped, name, null, this);
-                }
-                else if (updated)
-                {
-                    FireSchemaChangedEvent(SchemaChangedEventArgs.Kind.Updated, name, null, this);
-                }
-                else
-                {
-                    FireSchemaChangedEvent(SchemaChangedEventArgs.Kind.Created, name, null, this);
-                }
-            }
-
-            return keyspaceMetadata;
-        }
-
-        /// <summary>
-        /// Get the replicas for a given partition key and keyspace
-        /// </summary>
+        /// <inheritdoc />
         public ICollection<Host> GetReplicas(string keyspaceName, byte[] partitionKey)
         {
-            if (_tokenMap == null)
-            {
-                Metadata.Logger.Warning("Metadata.GetReplicas was called but there was no token map.");
-                return new Host[0];
-            }
-            return _tokenMap.GetReplicas(keyspaceName, _tokenMap.Factory.Hash(partitionKey));
+            TryInitialize();
+            return InternalMetadata.GetReplicas(keyspaceName, partitionKey);
         }
 
+        /// <inheritdoc />
         public ICollection<Host> GetReplicas(byte[] partitionKey)
         {
             return GetReplicas(null, partitionKey);
         }
 
-        /// <summary>
-        ///  Returns metadata of specified keyspace.
-        /// </summary>
-        /// <param name="keyspace"> the name of the keyspace for which metadata should be
-        ///  returned. </param>
-        /// <returns>the metadata of the requested keyspace or <c>null</c> if
-        ///  <c>* keyspace</c> is not a known keyspace.</returns>
+        /// <inheritdoc />
+        public async Task<ICollection<Host>> GetReplicasAsync(string keyspaceName, byte[] partitionKey)
+        {
+            await TryInitializeAsync().ConfigureAwait(false);
+            return InternalMetadata.GetReplicas(keyspaceName, partitionKey);
+        }
+
+        /// <inheritdoc />
+        public Task<ICollection<Host>> GetReplicasAsync(byte[] partitionKey)
+        {
+            return GetReplicasAsync(null, partitionKey);
+        }
+
+        /// <inheritdoc />
         public KeyspaceMetadata GetKeyspace(string keyspace)
         {
-            if (Configuration.MetadataSyncOptions.MetadataSyncEnabled)
-            {
-                //Use local cache
-                _keyspaces.TryGetValue(keyspace, out var ksInfo);
-                return ksInfo;
-            }
-
-            return TaskHelper.WaitToComplete(SchemaParser.GetKeyspaceAsync(keyspace), _queryAbortTimeout);
+            TryInitialize();
+            return TaskHelper.WaitToComplete(InternalMetadata.GetKeyspaceAsync(keyspace), _queryAbortTimeout);
         }
 
-        /// <summary>
-        ///  Returns a collection of all defined keyspaces names.
-        /// </summary>
-        /// <returns>a collection of all defined keyspaces names.</returns>
+        /// <inheritdoc />
+        public async Task<KeyspaceMetadata> GetKeyspaceAsync(string keyspace)
+        {
+            await TryInitializeAsync().ConfigureAwait(false);
+            return await InternalMetadata.GetKeyspaceAsync(keyspace).ConfigureAwait(false);
+        }
+
+        /// <inheritdoc />
         public ICollection<string> GetKeyspaces()
         {
-            if (Configuration.MetadataSyncOptions.MetadataSyncEnabled)
-            {
-                //Use local cache
-                return _keyspaces.Keys;
-            }
-
-            return TaskHelper.WaitToComplete(SchemaParser.GetKeyspacesNamesAsync(), _queryAbortTimeout);
+            TryInitialize();
+            return TaskHelper.WaitToComplete(InternalMetadata.GetKeyspacesAsync(), _queryAbortTimeout);
         }
 
-        /// <summary>
-        ///  Returns names of all tables which are defined within specified keyspace.
-        /// </summary>
-        /// <param name="keyspace">the name of the keyspace for which all tables metadata should be
-        ///  returned.</param>
-        /// <returns>an ICollection of the metadata for the tables defined in this
-        ///  keyspace.</returns>
+        /// <inheritdoc />
+        public async Task<ICollection<string>> GetKeyspacesAsync()
+        {
+            await TryInitializeAsync().ConfigureAwait(false);
+            return await InternalMetadata.GetKeyspacesAsync().ConfigureAwait(false);
+        }
+
+        /// <inheritdoc />
         public ICollection<string> GetTables(string keyspace)
         {
-            if (Configuration.MetadataSyncOptions.MetadataSyncEnabled)
-            {
-                return !_keyspaces.TryGetValue(keyspace, out var ksMetadata)
-                    ? new string[0]
-                    : ksMetadata.GetTablesNames();
-            }
-
-            return TaskHelper.WaitToComplete(SchemaParser.GetTableNamesAsync(keyspace), _queryAbortTimeout);
+            TryInitialize();
+            return TaskHelper.WaitToComplete(InternalMetadata.GetTablesAsync(keyspace), _queryAbortTimeout);
         }
 
-        /// <summary>
-        ///  Returns TableMetadata for specified table in specified keyspace.
-        /// </summary>
-        /// <param name="keyspace">name of the keyspace within specified table is defined.</param>
-        /// <param name="tableName">name of table for which metadata should be returned.</param>
-        /// <returns>a TableMetadata for the specified table in the specified keyspace.</returns>
+        /// <inheritdoc />
+        public async Task<ICollection<string>> GetTablesAsync(string keyspace)
+        {
+            await TryInitializeAsync().ConfigureAwait(false);
+            return await InternalMetadata.GetTablesAsync(keyspace).ConfigureAwait(false);
+        }
+
+        /// <inheritdoc />
         public TableMetadata GetTable(string keyspace, string tableName)
         {
-            return TaskHelper.WaitToComplete(GetTableAsync(keyspace, tableName), _queryAbortTimeout * 2);
+            TryInitialize();
+            return TaskHelper.WaitToComplete(InternalMetadata.GetTableAsync(keyspace, tableName), _queryAbortTimeout * 2);
         }
 
-        internal Task<TableMetadata> GetTableAsync(string keyspace, string tableName)
+        /// <inheritdoc />
+        public async Task<TableMetadata> GetTableAsync(string keyspace, string tableName)
         {
-            if (Configuration.MetadataSyncOptions.MetadataSyncEnabled)
-            {
-                return !_keyspaces.TryGetValue(keyspace, out var ksMetadata)
-                    ? Task.FromResult<TableMetadata>(null)
-                    : ksMetadata.GetTableMetadataAsync(tableName);
-            }
-
-            return SchemaParser.GetTableAsync(keyspace, tableName);
+            await TryInitializeAsync().ConfigureAwait(false);
+            return await InternalMetadata.GetTableAsync(keyspace, tableName).ConfigureAwait(false);
         }
 
-        /// <summary>
-        ///  Returns the view metadata for the provided view name in the keyspace.
-        /// </summary>
-        /// <param name="keyspace">name of the keyspace within specified view is defined.</param>
-        /// <param name="name">name of view.</param>
-        /// <returns>a MaterializedViewMetadata for the view in the specified keyspace.</returns>
+        /// <inheritdoc />
         public MaterializedViewMetadata GetMaterializedView(string keyspace, string name)
         {
-            if (Configuration.MetadataSyncOptions.MetadataSyncEnabled)
-            {
-                return !_keyspaces.TryGetValue(keyspace, out var ksMetadata)
-                    ? null
-                    : ksMetadata.GetMaterializedViewMetadata(name);
-            }
-
-            return TaskHelper.WaitToComplete(SchemaParser.GetViewAsync(keyspace, name), _queryAbortTimeout * 2);
+            TryInitialize();
+            return TaskHelper.WaitToComplete(InternalMetadata.GetMaterializedViewAsync(keyspace, name), _queryAbortTimeout * 2);
         }
 
-        /// <summary>
-        /// Gets the definition associated with a User Defined Type from Cassandra
-        /// </summary>
+        /// <inheritdoc />
+        public async Task<MaterializedViewMetadata> GetMaterializedViewAsync(string keyspace, string name)
+        {
+            await TryInitializeAsync().ConfigureAwait(false);
+            return await InternalMetadata.GetMaterializedViewAsync(keyspace, name).ConfigureAwait(false);
+        }
+
+        /// <inheritdoc />
         public UdtColumnInfo GetUdtDefinition(string keyspace, string typeName)
         {
-            return TaskHelper.WaitToComplete(GetUdtDefinitionAsync(keyspace, typeName), _queryAbortTimeout);
+            TryInitialize();
+            return TaskHelper.WaitToComplete(InternalMetadata.GetUdtDefinitionAsync(keyspace, typeName), _queryAbortTimeout);
         }
 
-        /// <summary>
-        /// Gets the definition associated with a User Defined Type from Cassandra
-        /// </summary>
-        public Task<UdtColumnInfo> GetUdtDefinitionAsync(string keyspace, string typeName)
+        /// <inheritdoc />
+        public async Task<UdtColumnInfo> GetUdtDefinitionAsync(string keyspace, string typeName)
         {
-            if (Configuration.MetadataSyncOptions.MetadataSyncEnabled)
-            {
-                return !_keyspaces.TryGetValue(keyspace, out var ksMetadata)
-                    ? Task.FromResult<UdtColumnInfo>(null)
-                    : ksMetadata.GetUdtDefinitionAsync(typeName);
-            }
-
-            return SchemaParser.GetUdtDefinitionAsync(keyspace, typeName);
+            await TryInitializeAsync().ConfigureAwait(false);
+            return await InternalMetadata.GetUdtDefinitionAsync(keyspace, typeName).ConfigureAwait(false);
         }
 
-        /// <summary>
-        /// Gets the definition associated with a User Defined Function from Cassandra
-        /// </summary>
-        /// <returns>The function metadata or null if not found.</returns>
+        /// <inheritdoc />
         public FunctionMetadata GetFunction(string keyspace, string name, string[] signature)
         {
-            if (Configuration.MetadataSyncOptions.MetadataSyncEnabled)
-            {
-                return !_keyspaces.TryGetValue(keyspace, out var ksMetadata)
-                    ? null
-                    : ksMetadata.GetFunction(name, signature);
-            }
-
-            var signatureString = SchemaParser.ComputeFunctionSignatureString(signature);
-            return TaskHelper.WaitToComplete(SchemaParser.GetFunctionAsync(keyspace, name, signatureString), _queryAbortTimeout);
+            TryInitialize();
+            return TaskHelper.WaitToComplete(InternalMetadata.GetFunctionAsync(keyspace, name, signature), _queryAbortTimeout);
         }
 
-        /// <summary>
-        /// Gets the definition associated with a aggregate from Cassandra
-        /// </summary>
-        /// <returns>The aggregate metadata or null if not found.</returns>
+        /// <inheritdoc />
+        public async Task<FunctionMetadata> GetFunctionAsync(string keyspace, string name, string[] signature)
+        {
+            await TryInitializeAsync().ConfigureAwait(false);
+            return await InternalMetadata.GetFunctionAsync(keyspace, name, signature).ConfigureAwait(false);
+        }
+
+        /// <inheritdoc />
         public AggregateMetadata GetAggregate(string keyspace, string name, string[] signature)
         {
-            if (Configuration.MetadataSyncOptions.MetadataSyncEnabled)
-            {
-                return !_keyspaces.TryGetValue(keyspace, out var ksMetadata)
-                    ? null
-                    : ksMetadata.GetAggregate(name, signature);
-            }
-
-            var signatureString = SchemaParser.ComputeFunctionSignatureString(signature);
-            return TaskHelper.WaitToComplete(SchemaParser.GetAggregateAsync(keyspace, name, signatureString), _queryAbortTimeout);
+            TryInitialize();
+            return TaskHelper.WaitToComplete(InternalMetadata.GetAggregateAsync(keyspace, name, signature), _queryAbortTimeout);
         }
 
-        /// <summary>
-        /// Gets the query trace.
-        /// </summary>
-        /// <param name="trace">The query trace that contains the id, which properties are going to be populated.</param>
-        /// <returns></returns>
-        internal Task<QueryTrace> GetQueryTraceAsync(QueryTrace trace)
+        /// <inheritdoc />
+        public async Task<AggregateMetadata> GetAggregateAsync(string keyspace, string name, string[] signature)
         {
-            return _schemaParser.GetQueryTraceAsync(trace, Configuration.Timer);
+            await TryInitializeAsync().ConfigureAwait(false);
+            return await InternalMetadata.GetAggregateAsync(keyspace, name, signature).ConfigureAwait(false);
         }
 
-        /// <summary>
-        /// Updates the keyspace and token information
-        /// </summary>
+        /// <inheritdoc />
         public bool RefreshSchema(string keyspace = null, string table = null)
         {
-            return TaskHelper.WaitToComplete(RefreshSchemaAsync(keyspace, table), Configuration.DefaultRequestOptions.QueryAbortTimeout * 2);
+            TryInitialize();
+            return TaskHelper.WaitToComplete(InternalMetadata.RefreshSchemaAsync(keyspace, table), _queryAbortTimeout * 2);
         }
 
-        /// <summary>
-        /// Updates the keyspace and token information
-        /// </summary>
+        /// <inheritdoc />
         public async Task<bool> RefreshSchemaAsync(string keyspace = null, string table = null)
         {
-            if (keyspace == null)
-            {
-                await ControlConnection.ScheduleAllKeyspacesRefreshAsync(true).ConfigureAwait(false);
-                return true;
-            }
-
-            await ControlConnection.ScheduleKeyspaceRefreshAsync(keyspace, true).ConfigureAwait(false);
-            _keyspaces.TryGetValue(keyspace, out var ks);
-            if (ks == null)
-            {
-                return false;
-            }
-
-            if (table != null)
-            {
-                ks.ClearTableMetadata(table);
-            }
-            return true;
+            await TryInitializeAsync().ConfigureAwait(false);
+            return await InternalMetadata.RefreshSchemaAsync(keyspace, table).ConfigureAwait(false);
         }
 
-        public void ShutDown(int timeoutMs = Timeout.Infinite)
-        {
-            //it is really not required to be called, left as it is part of the public API
-            //dereference the control connection
-            ControlConnection = null;
-        }
-
-        /// <summary>
-        /// this method should be called by the event debouncer
-        /// </summary>
-        internal bool RemoveKeyspace(string name)
-        {
-            var existed = RemoveKeyspaceFromTokenMap(name);
-            if (!existed)
-            {
-                return false;
-            }
-
-            FireSchemaChangedEvent(SchemaChangedEventArgs.Kind.Dropped, name, null, this);
-            return true;
-        }
-
-        /// <summary>
-        /// this method should be called by the event debouncer
-        /// </summary>
-        internal Task<KeyspaceMetadata> RefreshSingleKeyspace(string name)
-        {
-            return UpdateTokenMapForKeyspace(name);
-        }
-
-        internal void ClearTable(string keyspaceName, string tableName)
-        {
-            if (_keyspaces.TryGetValue(keyspaceName, out var ksMetadata))
-            {
-                ksMetadata.ClearTableMetadata(tableName);
-            }
-        }
-
-        internal void ClearView(string keyspaceName, string name)
-        {
-            if (_keyspaces.TryGetValue(keyspaceName, out var ksMetadata))
-            {
-                ksMetadata.ClearViewMetadata(name);
-            }
-        }
-
-        internal void ClearFunction(string keyspaceName, string functionName, string[] signature)
-        {
-            if (_keyspaces.TryGetValue(keyspaceName, out var ksMetadata))
-            {
-                ksMetadata.ClearFunction(functionName, signature);
-            }
-        }
-
-        internal void ClearAggregate(string keyspaceName, string aggregateName, string[] signature)
-        {
-            if (_keyspaces.TryGetValue(keyspaceName, out var ksMetadata))
-            {
-                ksMetadata.ClearAggregate(aggregateName, signature);
-            }
-        }
-
-        /// <summary>
-        /// Initiates a schema agreement check.
-        /// <para/>
-        /// Schema changes need to be propagated to all nodes in the cluster.
-        /// Once they have settled on a common version, we say that they are in agreement.
-        /// <para/>
-        /// This method does not perform retries so
-        /// <see cref="ProtocolOptions.MaxSchemaAgreementWaitSeconds"/> does not apply.
-        /// </summary>
-        /// <returns>True if schema agreement was successful and false if it was not successful.</returns>
+        /// <inheritdoc />
         public async Task<bool> CheckSchemaAgreementAsync()
         {
-            if (Hosts.Count == 1)
-            {
-                // If there is just one node, the schema is up to date in all nodes :)
-                return true;
-            }
-
-            try
-            {
-                var queries = new[]
-                {
-                    ControlConnection.QueryAsync(SelectSchemaVersionLocal),
-                    ControlConnection.QueryAsync(SelectSchemaVersionPeers)
-                };
-
-                await Task.WhenAll(queries).ConfigureAwait(false);
-
-                return CheckSchemaVersionResults(queries[0].Result, queries[1].Result);
-            }
-            catch (Exception ex)
-            {
-                Logger.Error("Error while checking schema agreement.", ex);
-            }
-
-            return false;
+            await TryInitializeAsync().ConfigureAwait(false);
+            return await InternalMetadata.CheckSchemaAgreementAsync().ConfigureAwait(false);
         }
 
-        /// <summary>
-        /// Checks if there is only one schema version between the provided query results.
-        /// </summary>
-        /// <param name="localVersionQuery">
-        /// Results obtained from a query to <code>system.local</code> table.
-        /// Must contain the <code>schema_version</code> column.
-        /// </param>
-        /// <param name="peerVersionsQuery">
-        /// Results obtained from a query to <code>system.peers</code> table.
-        /// Must contain the <code>schema_version</code> column.
-        /// </param>
-        /// <returns><code>True</code> if there is a schema agreement (only 1 schema version). <code>False</code> otherwise.</returns>
-        private static bool CheckSchemaVersionResults(
-            IEnumerable<IRow> localVersionQuery, IEnumerable<IRow> peerVersionsQuery)
+        internal Task TryInitializeAsync()
         {
-            return new HashSet<Guid>(
-               peerVersionsQuery
-                   .Concat(localVersionQuery)
-                   .Select(r => r.GetValue<Guid>("schema_version"))).Count == 1;
+            return _clusterInitializer.WaitInitAsync();
         }
 
-        /// <summary>
-        /// Waits until that the schema version in all nodes is the same or the waiting time passed.
-        /// This method blocks the calling thread.
-        /// </summary>
-        internal bool WaitForSchemaAgreement(IConnection connection)
+        internal void TryInitialize()
         {
-            if (Hosts.Count == 1)
-            {
-                //If there is just one node, the schema is up to date in all nodes :)
-                return true;
-            }
-            var start = DateTime.Now;
-            var waitSeconds = Configuration.ProtocolOptions.MaxSchemaAgreementWaitSeconds;
-            Metadata.Logger.Info("Waiting for schema agreement");
-            try
-            {
-                var totalVersions = 0;
-                while (DateTime.Now.Subtract(start).TotalSeconds < waitSeconds)
-                {
-                    var serializer = ControlConnection.Serializer.GetCurrentSerializer();
-                    var schemaVersionLocalQuery = 
-                        new QueryRequest(
-                            serializer, 
-                            Metadata.SelectSchemaVersionLocal, 
-                            QueryProtocolOptions.Default,
-                            false, 
-                            null);
-                    var schemaVersionPeersQuery = 
-                        new QueryRequest(
-                            serializer, 
-                            Metadata.SelectSchemaVersionPeers, 
-                            QueryProtocolOptions.Default,
-                            false, 
-                            null);
-                    var queries = new[] { connection.Send(schemaVersionLocalQuery), connection.Send(schemaVersionPeersQuery) };
-                    // ReSharper disable once CoVariantArrayConversion
-                    Task.WaitAll(queries, Configuration.DefaultRequestOptions.QueryAbortTimeout);
-
-                    if (Metadata.CheckSchemaVersionResults(
-                        Configuration.MetadataRequestHandler.GetRowSet(queries[0].Result),
-                        Configuration.MetadataRequestHandler.GetRowSet(queries[1].Result)))
-                    {
-                        return true;
-                    }
-
-                    Thread.Sleep(500);
-                }
-                Metadata.Logger.Info($"Waited for schema agreement, still {totalVersions} schema versions in the cluster.");
-            }
-            catch (Exception ex)
-            {
-                //Exceptions are not fatal
-                Metadata.Logger.Error("There was an exception while trying to retrieve schema versions", ex);
-            }
-
-            return false;
+            _clusterInitializer.WaitInit();
         }
 
-        /// <summary>
-        /// Sets the Cassandra version in order to identify how to parse the metadata information
-        /// </summary>
-        /// <param name="version"></param>
-        internal void SetCassandraVersion(Version version)
+        private void OnInternalHostRemoved(Host h)
         {
-            _schemaParser = Configuration.SchemaParserFactory.Create(version, this, GetUdtDefinitionAsync, _schemaParser);
+            HostRemoved?.Invoke(h);
         }
 
-        internal void SetProductTypeAsDbaas()
+        private void OnInternalHostAdded(Host h)
         {
-            IsDbaas = true;
+            HostAdded?.Invoke(h);
         }
 
-        internal IEnumerable<IConnectionEndPoint> UpdateResolvedContactPoint(IContactPoint contactPoint, IEnumerable<IConnectionEndPoint> endpoints)
+        private void OnInternalHostsEvent(object sender, HostsEventArgs args)
         {
-            return _resolvedContactPoints.AddOrUpdate(contactPoint, _ => endpoints, (_, __) => endpoints);
+            HostsEvent?.Invoke(sender, args);
+        }
+
+        private void OnInternalSchemaChangedEvent(object sender, SchemaChangedEventArgs args)
+        {
+            SchemaChangedEvent?.Invoke(sender, args);
+        }
+
+        internal void SetupEventForwarding()
+        {
+            InternalMetadata.Hosts.Added += InternalMetadata.OnHostAdded;
+            InternalMetadata.Hosts.Removed += InternalMetadata.OnHostRemoved;
+            InternalMetadata.HostAdded += OnInternalHostAdded;
+            InternalMetadata.HostRemoved += OnInternalHostRemoved;
+            InternalMetadata.HostsEvent += OnInternalHostsEvent;
+            InternalMetadata.SchemaChangedEvent += OnInternalSchemaChangedEvent;
         }
     }
 }

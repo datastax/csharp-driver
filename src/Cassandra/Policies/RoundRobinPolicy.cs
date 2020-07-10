@@ -14,15 +14,16 @@
 //   limitations under the License.
 //
 
-﻿using System.Collections.Generic;
-using System.Threading;
+using System.Collections.Generic;
 using System.Linq;
-
+using System.Threading;
+using System.Threading.Tasks;
+using Cassandra.Tasks;
 
 namespace Cassandra
 {
     /// <summary>
-    ///  A Round-robin load balancing policy. 
+    ///  A Round-robin load balancing policy.
     /// <para> This policy queries nodes in a
     ///  round-robin fashion. For a given query, if an host fail, the next one
     ///  (following the round-robin order) is tried, until all hosts have been tried.
@@ -35,12 +36,11 @@ namespace Cassandra
     /// </summary>
     public class RoundRobinPolicy : ILoadBalancingPolicy
     {
-        ICluster _cluster;
-        int _index;
+        private int _index;
 
-        public void Initialize(ICluster cluster)
+        public Task InitializeAsync(IMetadataSnapshotProvider metadata)
         {
-            this._cluster = cluster;
+            return TaskHelper.Completed;
         }
 
         /// <summary>
@@ -49,9 +49,10 @@ namespace Cassandra
         ///  datacenter deployment. If you use multiple datacenter, see
         ///  <link>DCAwareRoundRobinPolicy</link> instead.</p>
         /// </summary>
+        /// <param name="metadata">The metadata instance associated with the cluster for which the policy is created.</param>
         /// <param name="host"> the host of which to return the distance of. </param>
         /// <returns>the HostDistance to <c>host</c>.</returns>
-        public HostDistance Distance(Host host)
+        public HostDistance Distance(IMetadataSnapshotProvider metadata, Host host)
         {
             return HostDistance.Local;
         }
@@ -62,14 +63,15 @@ namespace Cassandra
         ///  plans returned will cycle over all the host of the cluster in a round-robin
         ///  fashion.</p>
         /// </summary>
+        /// <param name="cluster">The cluster instance for which the policy is created.</param>
         /// <param name="keyspace">Keyspace on which the query is going to be executed</param>
         /// <param name="query"> the query for which to build the plan. </param>
         /// <returns>a new query plan, i.e. an iterator indicating which host to try
         ///  first for querying, which one to use as failover, etc...</returns>
-        public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
+        public IEnumerable<Host> NewQueryPlan(ICluster cluster, string keyspace, IStatement query)
         {
             //shallow copy the all hosts
-            var hosts = (from h in _cluster.AllHosts() select h).ToArray();
+            var hosts = (from h in cluster.Metadata.AllHostsSnapshot() select h).ToArray();
             var startIndex = Interlocked.Increment(ref _index);
 
             //Simplified overflow protection

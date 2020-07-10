@@ -15,6 +15,7 @@
 //
 
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Cassandra
 {
@@ -25,15 +26,20 @@ namespace Cassandra
     public interface ILoadBalancingPolicy
     {
         /// <summary>
+        /// <para>
         ///  Initialize this load balancing policy. 
+        /// </para>
+        /// <para>
+        /// If the implementation is not async, we recommend returning Task.CompletedTask or Task.FromResult(0);
+        /// </para>
         /// <para>
         ///  Note that the driver guarantees
         ///  that it will call this method exactly once per policy object and will do so
         ///  before any call to another of the methods of the policy.
         /// </para>
         /// </summary>
-        /// <param name="cluster">The information about the session instance for which the policy is created.</param>
-        void Initialize(ICluster cluster);
+        /// <param name="metadata">Metadata snapshot provider of the session for which the policy is created.</param>
+        Task InitializeAsync(IMetadataSnapshotProvider metadata);
 
         /// <summary>
         ///  Returns the distance assigned by this policy to the provided host. <p> The
@@ -46,10 +52,11 @@ namespace Cassandra
         ///  host in remote datacenters when the policy itself always picks host in the
         ///  local datacenter first.</p>
         /// </summary>
+        /// <param name="metadata">Metadata snapshot provider of the session for which the policy is created.</param>
         /// <param name="host"> the host of which to return the distance of. </param>
         /// 
         /// <returns>the HostDistance to <c>host</c>.</returns>
-        HostDistance Distance(Host host);
+        HostDistance Distance(IMetadataSnapshotProvider metadata, Host host);
 
         /// <summary>
         ///  Returns the hosts to use for a new query. <p> Each new query will call this
@@ -58,11 +65,12 @@ namespace Cassandra
         ///  be so), the next host will be used. If all hosts of the returned
         ///  <c>Iterator</c> are down, the query will fail.</p>
         /// </summary>
+        /// <param name="cluster">Cluster instance for which the policy is created.</param>
         /// <param name="query">The query for which to build a plan, it can be null.</param>
         /// <param name="keyspace">Keyspace on which the query is going to be executed, it can be null.</param>
         /// <returns>An iterator of Host. The query is tried against the hosts returned
         ///  by this iterator in order, until the query has been sent successfully to one
         ///  of the host.</returns>
-        IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query);
+        IEnumerable<Host> NewQueryPlan(ICluster cluster, string keyspace, IStatement query);
     }
 }

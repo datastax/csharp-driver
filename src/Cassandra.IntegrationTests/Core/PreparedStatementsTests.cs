@@ -25,6 +25,7 @@ using System.Net;
 using System.Collections;
 using System.Threading;
 using Cassandra.IntegrationTests.TestBase;
+using Cassandra.SessionManagement;
 using Cassandra.Tests;
 
 namespace Cassandra.IntegrationTests.Core
@@ -182,7 +183,7 @@ namespace Cassandra.IntegrationTests.Core
                 var selectPs1 = session1.Prepare("SELECT * FROM table1");
                 var selectPs2 = session2.Prepare("SELECT * FROM table1");
 
-                var protocolVersion = (ProtocolVersion)session1.BinaryProtocolVersion;
+                var protocolVersion = session1.Cluster.Metadata.GetClusterDescription().ProtocolVersion;
                 if (protocolVersion.SupportsResultMetadataId())
                 {
                     originalResultMetadataId = selectPs1.ResultMetadata.ResultMetadataId;
@@ -841,7 +842,7 @@ namespace Cassandra.IntegrationTests.Core
             }
             Assert.AreEqual("system", ps.Keyspace);
 
-            for (var i = 0; i < Cluster.AllHosts().Count; i++)
+            for (var i = 0; i < Cluster.Metadata.AllHosts().Count; i++)
             {
                 var boundStatement = ps.Bind();
                 Assert.AreEqual("system", boundStatement.Keyspace);
@@ -875,7 +876,7 @@ namespace Cassandra.IntegrationTests.Core
                 var rs = await Session.ExecuteAsync(boundStatement).ConfigureAwait(false);
                 Assert.NotNull(rs.First().GetValue<string>("key"));
                 return rs;
-            }, Cluster.AllHosts().Count, Cluster.AllHosts().Count).ConfigureAwait(false);
+            }, Cluster.Metadata.AllHosts().Count, Cluster.Metadata.AllHosts().Count).ConfigureAwait(false);
         }
 
         [Test]
@@ -966,7 +967,7 @@ namespace Cassandra.IntegrationTests.Core
                     tweet_id int PRIMARY KEY,
                     numb double,
                     label text);", tableName));
-                TestUtils.WaitForSchemaAgreement(Session.Cluster);
+                TestUtils.WaitForSchemaAgreement(InternalSession.InternalCluster);
             }
             catch (AlreadyExistsException)
             {
@@ -1146,7 +1147,7 @@ namespace Cassandra.IntegrationTests.Core
                 value {1}
                 );", tableName, cassandraDataTypeName));
 
-            TestUtils.WaitForSchemaAgreement(Session.Cluster);
+            TestUtils.WaitForSchemaAgreement(InternalSession.InternalCluster);
 
             var toInsert = new List<object[]>(1);
             object val = Randomm.RandomVal(tp);
@@ -1174,17 +1175,17 @@ namespace Cassandra.IntegrationTests.Core
 
         private void CreateTable(string tableName)
         {
-            CreateTable(Session, tableName);
+            CreateTable(InternalSession, tableName);
         }
 
-        private void CreateTable(ISession session, string tableName)
+        private void CreateTable(IInternalSession session, string tableName)
         {
             QueryTools.ExecuteSyncNonQuery(session, $@"CREATE TABLE {tableName}(
                                                                 id int PRIMARY KEY,
                                                                 label text,
                                                                 number int
                                                                 );");
-            TestUtils.WaitForSchemaAgreement(session.Cluster);
+            TestUtils.WaitForSchemaAgreement(session.InternalCluster);
         }
     }
 }

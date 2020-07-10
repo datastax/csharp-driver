@@ -14,7 +14,9 @@
 //   limitations under the License.
 //
 
+using System.Threading.Tasks;
 using Cassandra.Mapping;
+using Cassandra.Tasks;
 
 namespace Cassandra.Data.Linq
 {
@@ -45,17 +47,46 @@ namespace Cassandra.Data.Linq
             return new Table<TEntity>(session, config, tableName, keyspaceName);
         }
 
+        /// <summary>
+        /// This method might block if there is no open connection.
+        /// Please use <see cref="CreateBatchAsync(ISession)"/> instead if your application
+        /// uses the Task Parallel Library (e.g. async/await).
+        /// </summary>
         public static Batch CreateBatch(this ISession session)
         {
-            return CreateBatch(session, BatchType.Logged);
+            return session.CreateBatch(BatchType.Logged);
         } 
+        
 
+        /// <summary>
+        /// This method might block if there is no open connection.
+        /// Please use <see cref="CreateBatchAsync(ISession, BatchType)"/> instead if your application
+        /// uses the Task Parallel Library (e.g. async/await).
+        /// </summary>
         public static Batch CreateBatch(this ISession session, BatchType batchType)
         {
-            if (session == null || session.BinaryProtocolVersion > 1)
+            var metadata = session.Cluster.Metadata.GetClusterDescription();
+            return session.CreateBatch(metadata, batchType);
+        }
+        
+        public static Task<Batch> CreateBatchAsync(this ISession session)
+        {
+            return session.CreateBatchAsync(BatchType.Logged);
+        } 
+
+        public static async Task<Batch> CreateBatchAsync(this ISession session, BatchType batchType)
+        {
+            var metadata = await session.Cluster.Metadata.GetClusterDescriptionAsync().ConfigureAwait(false);
+            return session.CreateBatch(metadata, batchType);
+        }
+
+        private static Batch CreateBatch(this ISession session, ClusterDescription description, BatchType batchType)
+        {
+            if (description.ProtocolVersion.SupportsBatch())
             {
                 return new BatchV2(session, batchType);
             }
+
             return new BatchV1(session, batchType);
         }
     }

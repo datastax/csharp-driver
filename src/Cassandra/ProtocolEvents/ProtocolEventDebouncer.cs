@@ -16,6 +16,7 @@
 
 using System;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 
@@ -32,7 +33,8 @@ namespace Cassandra.ProtocolEvents
         private readonly ActionBlock<Tuple<TaskCompletionSource<bool>, ProtocolEvent, bool>> _enqueueBlock;
         private readonly ActionBlock<EventQueue> _processQueueBlock;
         private readonly SlidingWindowExclusiveTimer _timer;
-
+        
+        private int _disposed = 0;
         private volatile EventQueue _queue = null;
 
         public ProtocolEventDebouncer(ITimerFactory timerFactory, TimeSpan delay, TimeSpan maxDelay)
@@ -114,6 +116,12 @@ namespace Cassandra.ProtocolEvents
         /// <inheritdoc />
         public async Task ShutdownAsync()
         {
+            // Dispose once
+            if (Interlocked.Increment(ref _disposed) != 1)
+            {
+                return;
+            }
+
             _enqueueBlock.Complete();
             await _enqueueBlock.Completion.ConfigureAwait(false);
 

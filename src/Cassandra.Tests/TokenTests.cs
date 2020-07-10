@@ -417,7 +417,7 @@ namespace Cassandra.Tests
 
         [Test]
         [Repeat(1)]
-        public void Should_UpdateKeyspacesAndTokenMapCorrectly_When_MultipleThreadsCallingRefreshKeyspace()
+        public async Task Should_UpdateKeyspacesAndTokenMapCorrectly_When_MultipleThreadsCallingRefreshKeyspace()
         {
             var keyspaces = new ConcurrentDictionary<string, KeyspaceMetadata>();
 
@@ -439,31 +439,30 @@ namespace Cassandra.Tests
             var schemaParser = new FakeSchemaParser(keyspaces);
             var config = new TestConfigurationBuilder
             {
-                ConnectionFactory = new FakeConnectionFactory()
+                ConnectionFactory = new FakeConnectionFactory(),
+                MetadataSyncOptions = new MetadataSyncOptions().SetRefreshSchemaDelayIncrement(20).SetMaxTotalRefreshSchemaDelay(100)
             }.Build();
-            var metadata = new Metadata(config, schemaParser) {Partitioner = "Murmur3Partitioner"};
-            metadata.ControlConnection = new ControlConnection(
-                Mock.Of<IInternalCluster>(),
-                new ProtocolEventDebouncer(new TaskBasedTimerFactory(), TimeSpan.FromMilliseconds(20), TimeSpan.FromSeconds(100)), 
-                ProtocolVersion.V3, 
+            var internalMetadata = new InternalMetadata(
+                Mock.Of<IInternalCluster>(), 
                 config, 
-                metadata,
                 new List<IContactPoint>
                 {
                     new IpLiteralContactPoint(IPAddress.Parse("127.0.0.1"), config.ProtocolOptions, config.ServerNameResolver)
-                });
-            metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.1"), 9042));
-            metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.2"), 9042));
-            metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.3"), 9042));
-            metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.4"), 9042));
-            metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.5"), 9042));
-            metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.6"), 9042));
-            metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.7"), 9042));
-            metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.8"), 9042));
-            metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.9"), 9042));
-            metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.10"), 9042));
+                }, 
+                schemaParser);
+            internalMetadata.SetPartitioner("Murmur3Partitioner");
+            internalMetadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.1"), 9042));
+            internalMetadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.2"), 9042));
+            internalMetadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.3"), 9042));
+            internalMetadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.4"), 9042));
+            internalMetadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.5"), 9042));
+            internalMetadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.6"), 9042));
+            internalMetadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.7"), 9042));
+            internalMetadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.8"), 9042));
+            internalMetadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.9"), 9042));
+            internalMetadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.10"), 9042));
             var initialToken = 1;
-            foreach (var h in metadata.Hosts)
+            foreach (var h in internalMetadata.Hosts)
             {
                 h.SetInfo(new TestHelper.DictionaryBasedRow(new Dictionary<string, object>
                 {
@@ -474,8 +473,8 @@ namespace Cassandra.Tests
                 }));
                 initialToken++;
             }
-            metadata.RebuildTokenMapAsync(false, true).GetAwaiter().GetResult();
-            var expectedTokenMap = metadata.TokenToReplicasMap;
+            internalMetadata.RebuildTokenMapAsync(false, true).GetAwaiter().GetResult();
+            var expectedTokenMap = internalMetadata.TokenToReplicasMap;
             Assert.NotNull(expectedTokenMap);
             var bag = new ConcurrentBag<string>();
             var tasks = new List<Task>();
@@ -483,13 +482,13 @@ namespace Cassandra.Tests
             {
                 var index = i;
                 tasks.Add(Task.Factory.StartNew(
-                    () =>
+                    async () =>
                     {
                         for (var j = 0; j < 35; j++)
                         {
                             if (j % 10 == 0 && index % 2 == 0)
                             {
-                                metadata.RefreshSchemaAsync().GetAwaiter().GetResult();
+                                await internalMetadata.RefreshSchemaAsync().ConfigureAwait(false);
                             }
                             else if (j % 16 == 0)
                             {
@@ -497,8 +496,8 @@ namespace Cassandra.Tests
                                 {
                                     if (keyspaces.TryRemove(ksName, out var ks))
                                     {
-                                        metadata.RefreshSchemaAsync(ksName).GetAwaiter().GetResult();
-                                        ks = metadata.GetKeyspace(ksName);
+                                        await internalMetadata.RefreshSchemaAsync(ksName).ConfigureAwait(false);
+                                        ks = await internalMetadata.GetKeyspaceAsync(ksName).ConfigureAwait(false);
                                         if (ks != null)
                                         {
                                             throw new Exception($"refresh for {ks.Name} returned non null after refresh single.");
@@ -513,8 +512,8 @@ namespace Cassandra.Tests
                                 {
                                     if (keyspaces.TryRemove(ksName, out var ks))
                                     {
-                                        metadata.ControlConnection.HandleKeyspaceRefreshLaterAsync(ks.Name).GetAwaiter().GetResult();
-                                        ks = metadata.GetKeyspace(ksName);
+                                        await internalMetadata.ControlConnection.HandleKeyspaceRefreshLaterAsync(ks.Name).ConfigureAwait(false);
+                                        ks = await internalMetadata.GetKeyspaceAsync(ksName).ConfigureAwait(false);
                                         if (ks != null)
                                         {
                                             throw new Exception($"refresh for {ks.Name} returned non null after remove.");
@@ -530,8 +529,8 @@ namespace Cassandra.Tests
                                     keyspaceName,
                                     ks,
                                     (s, keyspaceMetadata) => ks);
-                                metadata.ControlConnection.HandleKeyspaceRefreshLaterAsync(ks.Name).GetAwaiter().GetResult();
-                                ks = metadata.GetKeyspace(ks.Name);
+                                await internalMetadata.ControlConnection.HandleKeyspaceRefreshLaterAsync(ks.Name).ConfigureAwait(false);
+                                ks = await internalMetadata.GetKeyspaceAsync(ks.Name).ConfigureAwait(false);
                                 if (ks == null)
                                 {
                                     throw new Exception($"refresh for {keyspaceName} returned null after add.");
@@ -540,19 +539,21 @@ namespace Cassandra.Tests
                             }
                         }
                     },
-                    TaskCreationOptions.LongRunning | TaskCreationOptions.DenyChildAttach));
+                    TaskCreationOptions.LongRunning | TaskCreationOptions.DenyChildAttach).Unwrap());
             }
-            Task.WaitAll(tasks.ToArray());
-            AssertSameReplicas(keyspaces.Values, expectedTokenMap, metadata.TokenToReplicasMap);
+            await Task.WhenAll(tasks).ConfigureAwait(false);
+            AssertSameReplicas(keyspaces.Values, expectedTokenMap, internalMetadata.TokenToReplicasMap);
         }
 
         [Test]
-        public void RefreshSingleKeyspace_Should_BuildTokenMap_When_TokenMapIsNull()
+        public async Task RefreshSingleKeyspace_Should_BuildTokenMap_When_TokenMapIsNull()
         {
             var keyspaces = new ConcurrentDictionary<string, KeyspaceMetadata>();
             keyspaces.GetOrAdd("ks1", FakeSchemaParserFactory.CreateSimpleKeyspace("ks1", 1));
             var schemaParser = new FakeSchemaParser(keyspaces);
-            var metadata = new Metadata(new Configuration(), schemaParser) { Partitioner = "Murmur3Partitioner" };
+            var metadata = new InternalMetadata(
+                Mock.Of<IInternalCluster>(), new Configuration(), new List<IContactPoint>(), schemaParser);
+            metadata.SetPartitioner("Murmur3Partitioner");
             metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.1"), 9042)); ;
             metadata.Hosts.First().SetInfo(new TestHelper.DictionaryBasedRow(new Dictionary<string, object>
             {
@@ -563,11 +564,12 @@ namespace Cassandra.Tests
             }));
 
             Assert.IsNull(metadata.TokenToReplicasMap);
-            metadata.RefreshSingleKeyspace("ks1").GetAwaiter().GetResult();
+            await metadata.RefreshSingleKeyspaceAsync("ks1").ConfigureAwait(false);
             Assert.NotNull(metadata.TokenToReplicasMap);
         }
 
-        private void AssertSameReplicas(IEnumerable<KeyspaceMetadata> keyspaces, IReadOnlyTokenMap expectedTokenMap, IReadOnlyTokenMap actualTokenMap)
+        private void AssertSameReplicas(
+            IEnumerable<KeyspaceMetadata> keyspaces, IReadOnlyTokenMap expectedTokenMap, IReadOnlyTokenMap actualTokenMap)
         {
             foreach (var k in keyspaces)
             {
@@ -598,7 +600,8 @@ namespace Cassandra.Tests
             }
         }
 
-        private void AssertOnlyOneStrategyIsCalled(IList<ProxyReplicationStrategy> strategies, params int[] equalStrategiesIndexes)
+        private void AssertOnlyOneStrategyIsCalled(
+            IList<ProxyReplicationStrategy> strategies, params int[] equalStrategiesIndexes)
         {
             var sameStrategies = equalStrategiesIndexes.Select(t => strategies[t]).ToList();
             Assert.AreEqual(1, sameStrategies.Count(strategy => strategy.Calls == 1));

@@ -18,6 +18,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
+using Cassandra.Tasks;
 using NUnit.Framework;
 
 namespace Cassandra.Tests
@@ -69,17 +70,17 @@ namespace Cassandra.Tests
                 _distance = distance;
             }
 
-            public void Initialize(ICluster cluster)
+            public Task InitializeAsync(IMetadataSnapshotProvider metadata)
             {
-
+                return TaskHelper.Completed;
             }
 
-            public HostDistance Distance(Host host)
+            public HostDistance Distance(IMetadataSnapshotProvider metadata, Host host)
             {
                 return _distance;
             }
 
-            public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
+            public IEnumerable<Host> NewQueryPlan(ICluster cluster, string keyspace, IStatement query)
             {
                 return new[]
                 {

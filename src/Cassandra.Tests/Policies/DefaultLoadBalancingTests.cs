@@ -29,7 +29,7 @@ namespace Cassandra.Tests.Policies
 #pragma warning restore 618
             var statement = new TargettedSimpleStatement("Q");
             statement.PreferredHost = new Host(new IPEndPoint(201, 9042), ReconnectionPolicy);
-            var hosts = lbp.NewQueryPlan(null, statement);
+            var hosts = lbp.NewQueryPlan(null, null, statement);
             CollectionAssert.AreEqual(
                 new[] { "201.0.0.0:9042", "101.0.0.0:9042", "102.0.0.0:9042" }, 
                 hosts.Select(h => h.Address.ToString()));
@@ -42,7 +42,7 @@ namespace Cassandra.Tests.Policies
             var lbp = new DefaultLoadBalancingPolicy(new TestLoadBalancingPolicy());
 #pragma warning restore 618
             var statement = new TargettedSimpleStatement("Q");
-            var hosts = lbp.NewQueryPlan(null, statement);
+            var hosts = lbp.NewQueryPlan(null, null, statement);
             CollectionAssert.AreEqual(
                 new[] { "101.0.0.0:9042", "102.0.0.0:9042" },
                 hosts.Select(h => h.Address.ToString()));
@@ -54,12 +54,12 @@ namespace Cassandra.Tests.Policies
 #pragma warning disable 618
             var lbp = new DefaultLoadBalancingPolicy(new TestLoadBalancingPolicy(HostDistance.Ignored));
 #pragma warning restore 618
-            Assert.AreEqual(HostDistance.Ignored, lbp.Distance(new Host(new IPEndPoint(200L, 9042), ReconnectionPolicy)));
+            Assert.AreEqual(HostDistance.Ignored, lbp.Distance(null, new Host(new IPEndPoint(200L, 9042), ReconnectionPolicy)));
             var statement = new TargettedSimpleStatement("Q");
             // Use 201 as preferred
             statement.PreferredHost = new Host(new IPEndPoint(201L, 9042), ReconnectionPolicy);
-            lbp.NewQueryPlan(null, statement);
-            Assert.AreEqual(HostDistance.Local, lbp.Distance(statement.PreferredHost));
+            lbp.NewQueryPlan(null, null, statement);
+            Assert.AreEqual(HostDistance.Local, lbp.Distance(null, statement.PreferredHost));
         }
     }
 }

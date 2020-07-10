@@ -14,12 +14,13 @@
 //   limitations under the License.
 // 
 
+using Cassandra.Connections.Control;
 using Cassandra.SessionManagement;
 
 namespace Cassandra.DataStax.Insights.InfoProviders
 {
     internal interface IInsightsInfoProvider<out T>
     {
-        T GetInformation(IInternalCluster cluster, IInternalSession session);
+        T GetInformation(IInternalCluster cluster, IInternalSession session, IInternalMetadata internalMetadata);
     }
 }

@@ -98,6 +98,8 @@ namespace Cassandra.Tests
 
         public string LocalDatacenter { get; set; }
 
+        public long? InitializationTimeoutMs { get; set; }
+
         public IContactPointParser ContactPointParser { get; set; }
 
         public ILocalDatacenterProvider LocalDatacenterProvider { get; set; } = new LocalDatacenterProvider();
@@ -105,6 +107,8 @@ namespace Cassandra.Tests
         public IServerNameResolver ServerNameResolver { get; set; }
 
         public IDnsResolver DnsResolver { get; set; }
+
+        public ISerializerManager SerializerManager { get; set; }
 
         public IMetadataRequestHandler MetadataRequestHandler { get; set; } = new MetadataRequestHandler();
 
@@ -177,7 +181,9 @@ namespace Cassandra.Tests
                 supportedOptionsInitializerFactory: SupportedOptionsInitializerFactory,
                 protocolVersionNegotiator: ProtocolVersionNegotiator,
                 serverEventsSubscriber: ServerEventsSubscriber,
-                localDatacenterProvider: LocalDatacenterProvider);
+                localDatacenterProvider: LocalDatacenterProvider,
+                serializerManager: SerializerManager,
+                initializationTimeoutMs: InitializationTimeoutMs);
         }
     }
 }

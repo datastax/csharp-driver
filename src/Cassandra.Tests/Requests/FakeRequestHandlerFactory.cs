@@ -16,10 +16,12 @@
 
 using System;
 using System.Threading.Tasks;
+using Cassandra.Connections.Control;
 using Cassandra.ExecutionProfiles;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
+
 using Moq;
 
 namespace Cassandra.Tests.Requests
@@ -28,24 +30,35 @@ namespace Cassandra.Tests.Requests
     {
         private readonly Action<IStatement> _executeCallback;
         private readonly Func<IStatement, RowSet> _rs;
-        
+
         public FakeRequestHandlerFactory(Action<IStatement> executeCallback, Func<IStatement, RowSet> rs = null)
         {
             _executeCallback = executeCallback;
             _rs = rs ?? (stmt => new RowSet());
         }
 
-        public IRequestHandler Create(IInternalSession session, ISerializer serializer, IRequest request, IStatement statement, IRequestOptions options)
+        public IRequestHandler Create(
+            IInternalSession session, 
+            IInternalMetadata internalMetadata,
+            ISerializer serializer, 
+            IRequest request, 
+            IStatement statement, 
+            IRequestOptions options)
         {
             return CreateMockHandler(statement);
         }
 
-        public IRequestHandler Create(IInternalSession session, ISerializer serializer, IStatement statement, IRequestOptions options)
+        public IRequestHandler Create(
+            IInternalSession session, 
+            IInternalMetadata internalMetadata, 
+            ISerializer serializer, 
+            IStatement statement, 
+            IRequestOptions options)
         {
             return CreateMockHandler(statement);
         }
 
-        public IRequestHandler Create(IInternalSession session, ISerializer serializer)
+        public IRequestHandler Create(IInternalSession session, IInternalMetadata internalMetadata, ISerializer serializer)
         {
             return CreateMockHandler();
         }
@@ -68,7 +81,7 @@ namespace Cassandra.Tests.Requests
 
             return handler;
         }
-        
+
         private static Task<T> TaskOf<T>(T value)
         {
             var tcs = new TaskCompletionSource<T>();

@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
+using Cassandra.SessionManagement;
 using Cassandra.Tasks;
 
 namespace Cassandra
@@ -33,8 +34,8 @@ namespace Cassandra
     public class QueryTrace
     {
         private readonly object _fetchLock = new object();
-        private readonly Metadata _metadata;
         private readonly Guid _traceId;
+        private readonly IInternalSession _session;
         private IPAddress _coordinator;
         private int _duration = int.MinValue;
         private List<Event> _events;
@@ -164,7 +165,7 @@ namespace Cassandra
             internal set { _clientAddress = value; }
         }
 
-        public QueryTrace(Guid traceId, ISession session)
+        internal QueryTrace(Guid traceId, IInternalSession session)
         {
             if (session == null)
             {
@@ -177,7 +178,7 @@ namespace Cassandra
             //The instance is created before fetching the actual trace metadata
             //The properties will be populated later.
             _traceId = traceId;
-            _metadata = session.Cluster.Metadata;
+            _session = session;
             _metadataFetchSyncTimeout = session.Cluster.Configuration.DefaultRequestOptions.QueryAbortTimeout;
         }
 
@@ -215,7 +216,7 @@ namespace Cassandra
         {
             try
             {
-                TaskHelper.WaitToComplete(LoadAsync(), _metadataFetchSyncTimeout);
+                Load();
             }
             catch (Exception ex)
             {
@@ -226,13 +227,22 @@ namespace Cassandra
                 _isDisconnected = false;   
             }
         }
-
-        internal Task<QueryTrace> LoadAsync()
+        internal QueryTrace Load()
         {
             // mark as disconnected, guaranteeing that it wont make metadata fetches triggered by a property get
             // ReSharper disable once InconsistentlySynchronizedField : Can be both async and sync, don't mind
             _isDisconnected = false;
-            return _metadata.GetQueryTraceAsync(this);
+            var metadata = _session.TryInitAndGetMetadata();
+            return TaskHelper.WaitToComplete(metadata.GetQueryTraceAsync(this), _metadataFetchSyncTimeout);
+        }
+
+        internal async Task<QueryTrace> LoadAsync()
+        {
+            // mark as disconnected, guaranteeing that it wont make metadata fetches triggered by a property get
+            // ReSharper disable once InconsistentlySynchronizedField : Can be both async and sync, don't mind
+            _isDisconnected = false;
+            var metadata = await _session.TryInitAndGetMetadataAsync().ConfigureAwait(false);
+            return await metadata.GetQueryTraceAsync(this).ConfigureAwait(false);
         }
 
         /// <summary>

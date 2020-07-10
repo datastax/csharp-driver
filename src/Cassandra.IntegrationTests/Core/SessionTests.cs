@@ -171,7 +171,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public void Should_Create_The_Right_Amount_Of_Connections()
+        public async Task Should_Create_The_Right_Amount_Of_Connections()
         {
             var localCluster1 = GetNewTemporaryCluster(
                 builder => builder
@@ -180,7 +180,7 @@ namespace Cassandra.IntegrationTests.Core
                             .SetCoreConnectionsPerHost(HostDistance.Local, 3)));
 
             var localSession1 = (IInternalSession)localCluster1.Connect();
-            var hosts1 = localCluster1.AllHosts().ToList();
+            var hosts1 = (await localCluster1.Metadata.AllHostsAsync().ConfigureAwait(false)).ToList();
             Assert.AreEqual(3, hosts1.Count);
             //Execute multiple times a query on the newly created keyspace
             for (var i = 0; i < 12; i++)
@@ -188,7 +188,7 @@ namespace Cassandra.IntegrationTests.Core
                 localSession1.Execute("SELECT * FROM system.local");
             }
 
-            Thread.Sleep(2000);
+            await Task.Delay(2000).ConfigureAwait(false);
             var pool11 = localSession1.GetOrCreateConnectionPool(hosts1[0], HostDistance.Local);
             var pool12 = localSession1.GetOrCreateConnectionPool(hosts1[1], HostDistance.Local);
             Assert.That(pool11.OpenConnections, Is.EqualTo(3));
@@ -200,7 +200,7 @@ namespace Cassandra.IntegrationTests.Core
                                               .Build())
             {
                 var localSession2 = (IInternalSession)localCluster2.Connect();
-                var hosts2 = localCluster2.AllHosts().ToList();
+                var hosts2 = (await localCluster2.Metadata.AllHostsAsync().ConfigureAwait(false)).ToList();
                 Assert.AreEqual(3, hosts2.Count);
                 //Execute multiple times a query on the newly created keyspace
                 for (var i = 0; i < 6; i++)
@@ -208,7 +208,7 @@ namespace Cassandra.IntegrationTests.Core
                     localSession2.Execute("SELECT * FROM system.local");
                 }
 
-                Thread.Sleep(2000);
+                await Task.Delay(2000).ConfigureAwait(false);
                 var pool21 = localSession2.GetOrCreateConnectionPool(hosts2[0], HostDistance.Local);
                 var pool22 = localSession2.GetOrCreateConnectionPool(hosts2[1], HostDistance.Local);
                 Assert.That(pool21.OpenConnections, Is.EqualTo(1));
@@ -237,12 +237,14 @@ namespace Cassandra.IntegrationTests.Core
             var counter = 0;
             using (var localCluster = builder.Build())
             {
-                var localSession = (IInternalSession)localCluster.Connect();
-                var remoteHost = localCluster.AllHosts().First(h => TestHelper.GetLastAddressByte(h) == 2);
+                var localSession = (IInternalSession) await localCluster.ConnectAsync().ConfigureAwait(false);
+                var remoteHost = 
+                    (await localCluster.Metadata.AllHostsAsync().ConfigureAwait(false))
+                    .First(h => TestHelper.GetLastAddressByte(h) == 2);
                 var stopWatch = new Stopwatch();
                 var distanceReset = 0;
                 TestHelper.Invoke(() => localSession.Execute("SELECT key FROM system.local"), 10);
-                var hosts = localCluster.AllHosts().ToArray();
+                var hosts = localCluster.Metadata.AllHosts().ToArray();
                 var pool1 = localSession.GetOrCreateConnectionPool(hosts[0], HostDistance.Local);
                 var pool2 = localSession.GetOrCreateConnectionPool(hosts[1], HostDistance.Local);
                 var tcs = new TaskCompletionSource<RowSet>();
@@ -306,23 +308,19 @@ namespace Cassandra.IntegrationTests.Core
                 _ignoredHost = h;
             }
 
-            public void Initialize(ICluster cluster)
+            public Task InitializeAsync(IMetadataSnapshotProvider metadata)
             {
-                _childPolicy.Initialize(cluster);
+                return _childPolicy.InitializeAsync(metadata);
             }
 
-            public HostDistance Distance(Host host)
+            public HostDistance Distance(IMetadataSnapshotProvider metadata, Host host)
             {
-                if (host == _ignoredHost)
-                {
-                    return HostDistance.Ignored;
-                }
-                return HostDistance.Local;
+                return host == _ignoredHost ? HostDistance.Ignored : HostDistance.Local;
             }
 
-            public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
+            public IEnumerable<Host> NewQueryPlan(ICluster cluster, string keyspace, IStatement query)
             {
-                return _childPolicy.NewQueryPlan(keyspace, query);
+                return _childPolicy.NewQueryPlan(cluster, keyspace, query);
             }
         }
 
@@ -336,7 +334,7 @@ namespace Cassandra.IntegrationTests.Core
             var session1 = cluster.Connect();
             var session2 = cluster.Connect();
             var isDown = 0;
-            foreach (var host in cluster.AllHosts())
+            foreach (var host in await cluster.Metadata.AllHostsAsync().ConfigureAwait(false))
             {
                 host.Down += _ => Interlocked.Increment(ref isDown);
             }
@@ -347,10 +345,10 @@ namespace Cassandra.IntegrationTests.Core
             session1.Dispose();
 
             // All nodes should be up
-            Assert.AreEqual(cluster.AllHosts().Count, cluster.AllHosts().Count(h => h.IsUp));
+            Assert.AreEqual(cluster.Metadata.AllHosts().Count, cluster.Metadata.AllHosts().Count(h => h.IsUp));
             // And session2 should be queryable
             await TestHelper.TimesLimit(() => session2.ExecuteAsync(new SimpleStatement(query)), 100, 32).ConfigureAwait(false);
-            Assert.AreEqual(cluster.AllHosts().Count, cluster.AllHosts().Count(h => h.IsUp));
+            Assert.AreEqual(cluster.Metadata.AllHosts().Count, cluster.Metadata.AllHosts().Count(h => h.IsUp));
             cluster.Dispose();
             Assert.AreEqual(0, Volatile.Read(ref isDown));
         }

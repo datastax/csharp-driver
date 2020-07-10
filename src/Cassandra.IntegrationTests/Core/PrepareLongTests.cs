@@ -36,7 +36,7 @@ namespace Cassandra.IntegrationTests.Core
                 // Connect using a keyspace
                 var session = cluster.Connect("system");
                 var ps = session.Prepare("SELECT key FROM local");
-                var host = cluster.AllHosts().First();
+                var host = cluster.Metadata.AllHosts().First();
                 var row = session.Execute(ps.Bind()).First();
                 Assert.NotNull(row.GetValue<string>("key"));
 

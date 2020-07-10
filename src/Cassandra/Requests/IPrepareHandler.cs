@@ -23,7 +23,7 @@ namespace Cassandra.Requests
 {
     internal interface IPrepareHandler
     {
-        Task<PreparedStatement> Prepare(
+        Task<PreparedStatement> PrepareAsync(
             PrepareRequest request, IInternalSession session, IEnumerator<Host> queryPlan);
     }
 }

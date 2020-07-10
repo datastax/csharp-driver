@@ -146,7 +146,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     actions.Add(selectAction);
                     //Check that the control connection is using first host
-                    StringAssert.StartsWith(nonShareableTestCluster.ClusterIpPrefix + "1", nonShareableTestCluster.Cluster.Metadata.ControlConnection.EndPoint.GetHostIpEndPointWithFallback().ToString());
+                    StringAssert.StartsWith(nonShareableTestCluster.ClusterIpPrefix + "1", nonShareableTestCluster.Cluster.InternalRef.InternalMetadata.ControlConnection.EndPoint.GetHostIpEndPointWithFallback().ToString());
 
                     //Kill some nodes
                     //Including the one used by the control connection
@@ -198,7 +198,7 @@ namespace Cassandra.IntegrationTests.Core
                     Assert.Contains(nonShareableTestCluster.ClusterIpPrefix + "3:" + DefaultCassandraPort, queriedHosts);
                     Assert.Contains(nonShareableTestCluster.ClusterIpPrefix + "4:" + DefaultCassandraPort, queriedHosts);
                     //Check that the control connection is still using last host
-                    StringAssert.StartsWith(nonShareableTestCluster.ClusterIpPrefix + "4", nonShareableTestCluster.Cluster.Metadata.ControlConnection.EndPoint.GetHostIpEndPointWithFallback().ToString());
+                    StringAssert.StartsWith(nonShareableTestCluster.ClusterIpPrefix + "4", nonShareableTestCluster.Cluster.InternalRef.InternalMetadata.ControlConnection.EndPoint.GetHostIpEndPointWithFallback().ToString());
                 }
             }
         }
@@ -218,7 +218,7 @@ namespace Cassandra.IntegrationTests.Core
                 .WithReconnectionPolicy(new ConstantReconnectionPolicy(reconnectionDelay))
                 .Build();
             var connectionAttempts = 0;
-            cluster.Metadata.Hosts.Down += h =>
+            cluster.InternalRef.InternalMetadata.Hosts.Down += h =>
             {
                 //Every time there is a connection attempt, it is marked as down
                 connectionAttempts++;
@@ -275,12 +275,12 @@ namespace Cassandra.IntegrationTests.Core
             cluster.Connect();
             //2 peers translated
             Assert.AreEqual(2, invokedEndPoints.Count);
-            Assert.True(cluster.AllHosts().All(h => h.IsUp));
+            Assert.True(cluster.Metadata.AllHosts().All(h => h.IsUp));
             testCluster.Stop(3);
             //Wait for the C* event to notify the control connection
             Thread.Sleep(30000);
             //Should be down
-            Assert.False(cluster.AllHosts().First(h => TestHelper.GetLastAddressByte(h) == 3).IsUp);
+            Assert.False(cluster.Metadata.AllHosts().First(h => TestHelper.GetLastAddressByte(h) == 3).IsUp);
             
             //Should have been translated
             Assert.AreEqual(3, invokedEndPoints.Count);

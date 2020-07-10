@@ -71,14 +71,14 @@ namespace Cassandra.Tests.DataStax.Insights
                     cc => cc.UnsafeSendQueryRequestAsync(
                         "CALL InsightsRpc.reportInsight(?)",
                         It.IsAny<QueryProtocolOptions>());
-                Mock.Get(cluster.Metadata.ControlConnection).Setup(mockExpression).ReturnsAsync((Response)null);
+                Mock.Get(cluster.InternalMetadata.ControlConnection).Setup(mockExpression).ReturnsAsync((Response)null);
 
-                target.Init();
+                target.Initialize(cluster.InternalMetadata);
 
                 TestHelper.RetryAssert(
                     () =>
                     {
-                        Mock.Get(cluster.Metadata.ControlConnection).Verify(mockExpression, Times.AtLeast(10));
+                        Mock.Get(cluster.InternalMetadata.ControlConnection).Verify(mockExpression, Times.AtLeast(10));
                     },
                     30);
 
@@ -104,7 +104,7 @@ namespace Cassandra.Tests.DataStax.Insights
                     cc => cc.UnsafeSendQueryRequestAsync(
                         "CALL InsightsRpc.reportInsight(?)",
                         It.IsAny<QueryProtocolOptions>());
-                Mock.Get(cluster.Metadata.ControlConnection)
+                Mock.Get(cluster.InternalMetadata.ControlConnection)
                     .SetupSequence(mockExpression)
                         .ReturnsAsync((Response)null)
                         .ReturnsAsync(new FakeResultResponse(ResultResponse.ResultResponseKind.Void))
@@ -113,12 +113,12 @@ namespace Cassandra.Tests.DataStax.Insights
                         .ReturnsAsync(new FakeResultResponse(ResultResponse.ResultResponseKind.Void))
                         .ReturnsAsync((Response)null);
 
-                target.Init();
+                target.Initialize(cluster.InternalMetadata);
 
                 TestHelper.RetryAssert(
                     () =>
                     {
-                        Mock.Get(cluster.Metadata.ControlConnection).Verify(mockExpression, Times.AtLeast(20));
+                        Mock.Get(cluster.InternalMetadata.ControlConnection).Verify(mockExpression, Times.AtLeast(20));
                     },
                     30);
 
@@ -251,13 +251,13 @@ namespace Cassandra.Tests.DataStax.Insights
             using (var target = InsightsClientTests.GetInsightsClient(cluster, session))
             {
                 var queryProtocolOptions = new ConcurrentQueue<QueryProtocolOptions>();
-                Mock.Get(cluster.Metadata.ControlConnection).Setup(cc => cc.UnsafeSendQueryRequestAsync(
+                Mock.Get(cluster.InternalMetadata.ControlConnection).Setup(cc => cc.UnsafeSendQueryRequestAsync(
                         "CALL InsightsRpc.reportInsight(?)",
                         It.IsAny<QueryProtocolOptions>()))
                     .ReturnsAsync(new FakeResultResponse(ResultResponse.ResultResponseKind.Void))
                     .Callback<string, QueryProtocolOptions>((query, opts) => { queryProtocolOptions.Enqueue(opts); });
 
-                target.Init();
+                target.Initialize(cluster.InternalMetadata);
 
                 TestHelper.RetryAssert(
                     () => { Assert.GreaterOrEqual(queryProtocolOptions.Count, 1); }, 10, 50);
@@ -375,13 +375,13 @@ namespace Cassandra.Tests.DataStax.Insights
             using (var target = InsightsClientTests.GetInsightsClient(cluster, session))
             {
                 var queryProtocolOptions = new ConcurrentQueue<QueryProtocolOptions>();
-                Mock.Get(cluster.Metadata.ControlConnection).Setup(cc => cc.UnsafeSendQueryRequestAsync(
+                Mock.Get(cluster.InternalMetadata.ControlConnection).Setup(cc => cc.UnsafeSendQueryRequestAsync(
                         "CALL InsightsRpc.reportInsight(?)",
                         It.IsAny<QueryProtocolOptions>()))
                     .ReturnsAsync(new FakeResultResponse(ResultResponse.ResultResponseKind.Void))
                     .Callback<string, QueryProtocolOptions>((query, opts) => { queryProtocolOptions.Enqueue(opts); });
 
-                target.Init();
+                target.Initialize(cluster.InternalMetadata);
 
                 TestHelper.RetryAssert(
                     () => { Assert.GreaterOrEqual(queryProtocolOptions.Count, 1); }, 10, 50);
@@ -412,13 +412,13 @@ namespace Cassandra.Tests.DataStax.Insights
             using (var target = InsightsClientTests.GetInsightsClient(cluster, session))
             {
                 var queryProtocolOptions = new ConcurrentQueue<QueryProtocolOptions>();
-                Mock.Get(cluster.Metadata.ControlConnection).Setup(cc => cc.UnsafeSendQueryRequestAsync(
+                Mock.Get(cluster.InternalMetadata.ControlConnection).Setup(cc => cc.UnsafeSendQueryRequestAsync(
                         "CALL InsightsRpc.reportInsight(?)",
                         It.IsAny<QueryProtocolOptions>()))
                     .ReturnsAsync(new FakeResultResponse(ResultResponse.ResultResponseKind.Void))
                     .Callback<string, QueryProtocolOptions>((query, opts) => { queryProtocolOptions.Enqueue(opts); });
 
-                target.Init();
+                target.Initialize(cluster.InternalMetadata);
 
                 TestHelper.RetryAssert(() => { Assert.GreaterOrEqual(queryProtocolOptions.Count, 5); }, 5, 400);
                 queryProtocolOptions.TryDequeue(out var result); // ignore startup message
@@ -434,14 +434,14 @@ namespace Cassandra.Tests.DataStax.Insights
             var timestampGeneratorMock = Mock.Of<IInsightsMetadataTimestampGenerator>();
             var platformInfoMock = Mock.Of<IInsightsInfoProvider<InsightsPlatformInfo>>();
 
-            Mock.Get(hostnameInfoMock).Setup(m => m.GetInformation(cluster, session)).Returns("awesome_hostname");
-            Mock.Get(driverInfoMock).Setup(m => m.GetInformation(cluster, session)).Returns(new DriverInfo
+            Mock.Get(hostnameInfoMock).Setup(m => m.GetInformation(cluster, session, cluster.InternalMetadata)).Returns("awesome_hostname");
+            Mock.Get(driverInfoMock).Setup(m => m.GetInformation(cluster, session, cluster.InternalMetadata)).Returns(new DriverInfo
             {
                 DriverVersion = "1.1.2",
                 DriverName = "Driver Name"
             });
             Mock.Get(timestampGeneratorMock).Setup(m => m.GenerateTimestamp()).Returns(124219041);
-            Mock.Get(platformInfoMock).Setup(m => m.GetInformation(cluster, session)).Returns(new InsightsPlatformInfo
+            Mock.Get(platformInfoMock).Setup(m => m.GetInformation(cluster, session, cluster.InternalMetadata)).Returns(new InsightsPlatformInfo
             {
                 CentralProcessingUnits = new CentralProcessingUnitsInfo
                 {
@@ -507,8 +507,8 @@ namespace Cassandra.Tests.DataStax.Insights
                 { host1, mockPool1 },
                 { host2, mockPool2 }
             };
-            Mock.Get(cluster).Setup(m => m.GetHost(host1)).Returns(new Host(host1, contactPoint: null));
-            Mock.Get(cluster).Setup(m => m.GetHost(host2)).Returns(new Host(host2, contactPoint: null));
+            Mock.Get(cluster.InternalMetadata).Setup(m => m.GetHost(host1)).Returns(new Host(host1, contactPoint: null));
+            Mock.Get(cluster.InternalMetadata).Setup(m => m.GetHost(host2)).Returns(new Host(host2, contactPoint: null));
             Mock.Get(session).Setup(s => s.GetPools()).Returns(pools.ToArray());
             Mock.Get(session).Setup(m => m.Cluster).Returns(cluster);
             Mock.Get(session).SetupGet(m => m.InternalSessionId).Returns(Guid.Parse("E21EAB96-D91E-4790-80BD-1D5FB5472258"));
@@ -519,17 +519,16 @@ namespace Cassandra.Tests.DataStax.Insights
         {
             var cluster = Mock.Of<IInternalCluster>();
             var config = GetConfig(eventDelayMilliseconds, withProfiles);
-            var metadata = new Metadata(config)
-            {
-                ControlConnection = Mock.Of<IControlConnection>()
-            };
-            Mock.Get(metadata.ControlConnection).SetupGet(cc => cc.ProtocolVersion).Returns(ProtocolVersion.V4);
-            Mock.Get(metadata.ControlConnection).SetupGet(cc => cc.EndPoint)
+            var metadata = Mock.Of<IInternalMetadata>();
+            var controlConnection = Mock.Of<IControlConnection>();
+            Mock.Get(metadata).SetupGet(m => m.ControlConnection).Returns(controlConnection);
+            Mock.Get(metadata).SetupGet(cc => cc.ProtocolVersion).Returns(ProtocolVersion.V4);
+            Mock.Get(controlConnection).SetupGet(cc => cc.EndPoint)
                 .Returns(new ConnectionEndPoint(new IPEndPoint(IPAddress.Parse("10.10.10.10"), 9011), config.ServerNameResolver, null));
-            Mock.Get(metadata.ControlConnection).SetupGet(cc => cc.LocalAddress).Returns(new IPEndPoint(IPAddress.Parse("10.10.10.2"), 9015));
+            Mock.Get(controlConnection).SetupGet(cc => cc.LocalAddress).Returns(new IPEndPoint(IPAddress.Parse("10.10.10.2"), 9015));
             var hostIp = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9042);
             var hostIp2 = new IPEndPoint(IPAddress.Parse("127.0.0.2"), 9042);
-            metadata.SetResolvedContactPoints(new Dictionary<IContactPoint, IEnumerable<IConnectionEndPoint>>
+            Mock.Get(metadata).SetupGet(cc => cc.ResolvedContactPoints).Returns(new Dictionary<IContactPoint, IEnumerable<IConnectionEndPoint>>
             {
                 { 
                     new HostnameContactPoint(
@@ -540,12 +539,14 @@ namespace Cassandra.Tests.DataStax.Insights
                         "localhost"), 
                     new[] { new ConnectionEndPoint(hostIp, config.ServerNameResolver, null) } }
             });
-            metadata.AddHost(hostIp);
-            metadata.AddHost(hostIp2);
-            metadata.Hosts.ToCollection().First().Datacenter = "dc123";
+            var hosts = new Hosts();
+            hosts.Add(hostIp);
+            hosts.Add(hostIp2);
+            hosts.ToCollection().First().Datacenter = "dc123";
+            Mock.Get(metadata).SetupGet(m => m.Hosts).Returns(hosts);
+            Mock.Get(metadata).Setup(m => m.AllHosts()).Returns(hosts.ToCollection);
             Mock.Get(cluster).SetupGet(m => m.Configuration).Returns(config);
-            Mock.Get(cluster).SetupGet(m => m.Metadata).Returns(metadata);
-            Mock.Get(cluster).Setup(c => c.AllHosts()).Returns(metadata.AllHosts);
+            Mock.Get(cluster).SetupGet(m => m.InternalMetadata).Returns(metadata);
             return cluster;
         }
 
@@ -553,7 +554,7 @@ namespace Cassandra.Tests.DataStax.Insights
         {
             var graphOptions = new GraphOptions().SetName("testGraphName").SetReadConsistencyLevel(ConsistencyLevel.All);
             var supportVerifier = Mock.Of<IInsightsSupportVerifier>();
-            Mock.Get(supportVerifier).Setup(m => m.SupportsInsights(It.IsAny<IInternalCluster>())).Returns(true);
+            Mock.Get(supportVerifier).Setup(m => m.SupportsInsights(It.IsAny<IInternalMetadata>())).Returns(true);
             return new TestConfigurationBuilder
             {
                 Policies = new Cassandra.Policies(

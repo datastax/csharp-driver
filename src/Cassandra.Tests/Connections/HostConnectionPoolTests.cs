@@ -111,7 +111,9 @@ namespace Cassandra.Tests.Connections
                 _host, 
                 config, 
                 SerializerManager.Default,
-                new MetricsObserverFactory(new MetricsManager(new NullDriverMetricsProvider(), new DriverMetricsOptions(), false, "s1"))
+                new MetricsObserverFactory(
+                    new MetricsManager(
+                        null, new NullDriverMetricsProvider(), new DriverMetricsOptions(), false, "s1"))
                 );
             pool.SetDistance(HostDistance.Local); // set expected connections length
 

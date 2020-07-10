@@ -16,6 +16,8 @@
 
 using System.Collections.Generic;
 using System.Linq;
+
+using Cassandra.Connections.Control;
 using Cassandra.DataStax.Insights.Schema.Converters;
 using Cassandra.DataStax.Insights.Schema.StartupMessage;
 using Cassandra.SessionManagement;
@@ -37,8 +39,9 @@ namespace Cassandra.DataStax.Insights.InfoProviders.StartupMessage
             _speculativeExecutionPolicyInfoProvider = speculativeExecutionPolicyInfoProvider;
             _retryPolicyInfoProvider = retryPolicyInfoProvider;
         }
-        
-        public Dictionary<string, ExecutionProfileInfo> GetInformation(IInternalCluster cluster, IInternalSession session)
+
+        public Dictionary<string, ExecutionProfileInfo> GetInformation(
+            IInternalCluster cluster, IInternalSession session, IInternalMetadata internalMetadata)
         {
             // add default first so that it is on top
             var dict = new Dictionary<string, ExecutionProfileInfo>

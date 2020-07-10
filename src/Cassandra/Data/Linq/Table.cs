@@ -18,6 +18,7 @@ using System;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
+
 using Cassandra.Mapping;
 using Cassandra.Mapping.Statements;
 
@@ -68,10 +69,10 @@ namespace Cassandra.Data.Linq
             _keyspaceName = keyspaceName;
             //In case no mapping has been defined for the type, determine if the attributes used are Linq or Cassandra.Mapping
             //Linq attributes are marked as Obsolete
-            #pragma warning disable 612
+#pragma warning disable 612
             config.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(TEntity),
                  () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(TEntity)));
-            #pragma warning restore 612
+#pragma warning restore 612
             var pocoData = config.MapperFactory.GetPocoData<TEntity>();
             InternalInitialize(Expression.Constant(this), this, config.MapperFactory, config.StatementFactory, pocoData);
         }
@@ -90,7 +91,6 @@ namespace Cassandra.Data.Linq
         public Table(ISession session, MappingConfiguration config, string tableName)
             : this(session, config, tableName, null)
         {
-
         }
 
         /// <summary>
@@ -105,7 +105,6 @@ namespace Cassandra.Data.Linq
         public Table(ISession session, MappingConfiguration config)
             : this(session, config, null, null)
         {
-
         }
 
         /// <summary>
@@ -145,17 +144,13 @@ namespace Cassandra.Data.Linq
 
         public Type GetEntityType()
         {
-            return typeof (TEntity);
+            return typeof(TEntity);
         }
 
         public void Create()
         {
-            var serializer = _session.Cluster.Metadata.ControlConnection.Serializer.GetCurrentSerializer();
-            var cqlQueries = CqlGenerator.GetCreate(serializer, PocoData, Name, KeyspaceName, false);
-            foreach (var cql in cqlQueries)
-            {
-                _session.Execute(cql);
-            }
+            _session.Connect();
+            WaitToCompleteWithMetrics(CreateAsync(), QueryAbortTimeout);
         }
 
         public void CreateIfNotExists()
@@ -172,7 +167,9 @@ namespace Cassandra.Data.Linq
 
         public async Task CreateAsync()
         {
-            var serializer = _session.Cluster.Metadata.ControlConnection.Serializer.GetCurrentSerializer();
+            // ensure that session is connected before retrieving the current serializer (depends on negotiated protocol version)
+            await _session.ConnectAsync().ConfigureAwait(false);
+            var serializer = _session.Cluster.Configuration.SerializerManager.GetCurrentSerializer();
             var cqlQueries = CqlGenerator.GetCreate(serializer, PocoData, Name, KeyspaceName, false);
             foreach (var cql in cqlQueries)
             {
@@ -217,12 +214,12 @@ namespace Cassandra.Data.Linq
         /// </summary>
         /// <param name="entity">The entity to insert</param>
         /// <param name="insertNulls">
-        /// Determines if the query must be generated using <c>NULL</c> values for <c>null</c> 
-        /// entity members. 
+        /// Determines if the query must be generated using <c>NULL</c> values for <c>null</c>
+        /// entity members.
         /// <para>
         /// Use <c>false</c> if you don't want to consider <c>null</c> values for the INSERT
         /// operation (recommended).
-        /// </para> 
+        /// </para>
         /// <para>
         /// Use <c>true</c> if you want to override all the values in the table,
         /// generating tombstones for null values.

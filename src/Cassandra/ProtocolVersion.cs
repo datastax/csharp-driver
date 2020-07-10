@@ -79,11 +79,11 @@ namespace Cassandra
         /// <summary>
         /// Determines if the protocol version is supported by this driver.
         /// </summary>
-        public static bool IsSupported(this ProtocolVersion version, Configuration config)
+        public static bool IsSupported(this ProtocolVersion version, bool allowBetaProtocolVersions)
         {
             if (version.IsBeta())
             {
-                return config.AllowBetaProtocolVersions;
+                return allowBetaProtocolVersions;
             }
 
             return version >= ProtocolVersion.MinSupported && version <= ProtocolVersion.MaxSupported;
@@ -94,7 +94,7 @@ namespace Cassandra
         /// Returns zero when there isn't a lower supported version.
         /// </summary>
         /// <returns></returns>
-        public static ProtocolVersion GetLowerSupported(this ProtocolVersion version, Configuration config)
+        public static ProtocolVersion GetLowerSupported(this ProtocolVersion version, bool allowBetaProtocolVersions)
         {
             var lowerVersion = version;
             do
@@ -111,7 +111,7 @@ namespace Cassandra
                 {
                     lowerVersion = lowerVersion - 1;
                 }
-            } while (lowerVersion > 0 && !lowerVersion.IsSupported(config));
+            } while (lowerVersion > 0 && !lowerVersion.IsSupported(allowBetaProtocolVersions));
 
             return lowerVersion;
         }
@@ -119,7 +119,8 @@ namespace Cassandra
         /// <summary>
         /// Gets the highest supported protocol version collectively by the given hosts.
         /// </summary>
-        public static ProtocolVersion GetHighestCommon(this ProtocolVersion version, Configuration config, IEnumerable<Host> hosts)
+        public static ProtocolVersion GetHighestCommon(
+            this ProtocolVersion version, bool allowBetaProtocolVersions, IEnumerable<Host> hosts)
         {
             var maxVersion = (byte)version;
             var v3Requirement = false;
@@ -141,7 +142,7 @@ namespace Cassandra
                 {
                     // Anything 4.0.0+ has a max protocol version of V5 and requires at least V3.
                     v3Requirement = true;
-                    maxVersion = config.AllowBetaProtocolVersions 
+                    maxVersion = allowBetaProtocolVersions 
                         ? Math.Min((byte)ProtocolVersion.V5, maxVersion) 
                         : Math.Min((byte)ProtocolVersion.V4, maxVersion);
                     maxVersionWith3OrMore = maxVersion;
@@ -311,6 +312,14 @@ namespace Cassandra
         public static bool CanStartupResponseErrorBeWrapped(this ProtocolVersion version)
         {
             return version >= ProtocolVersion.V4;
+        }
+
+        /// <summary>
+        /// Determines whether UDTs are supported in the provided protocol version.
+        /// </summary>
+        public static bool SupportsUserDefinedTypes(this ProtocolVersion version)
+        {
+            return version >= ProtocolVersion.V3;
         }
 
         public static int GetHeaderSize(this ProtocolVersion version)

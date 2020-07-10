@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Cassandra
 {
@@ -34,22 +35,22 @@ namespace Cassandra
 
         public ILoadBalancingPolicy LoadBalancingPolicy { get; }
 
-        public void Initialize(ICluster cluster)
+        public Task InitializeAsync(IMetadataSnapshotProvider metadata)
         {
-            LoadBalancingPolicy.Initialize(cluster);
+            return LoadBalancingPolicy.InitializeAsync(metadata);
         }
 
-        public HostDistance Distance(Host host)
+        public HostDistance Distance(IMetadataSnapshotProvider metadata, Host host)
         {
-            return LoadBalancingPolicy.Distance(host);
+            return LoadBalancingPolicy.Distance(metadata, host);
         }
 
-        public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
+        public IEnumerable<Host> NewQueryPlan(ICluster cluster, string keyspace, IStatement query)
         {
             IReconnectionSchedule schedule = ReconnectionPolicy.NewSchedule();
             while (true)
             {
-                IEnumerable<Host> childQueryPlan = LoadBalancingPolicy.NewQueryPlan(keyspace, query);
+                IEnumerable<Host> childQueryPlan = LoadBalancingPolicy.NewQueryPlan(cluster, keyspace, query);
                 foreach (Host host in childQueryPlan)
                     yield return host;
 

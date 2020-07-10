@@ -107,9 +107,9 @@ namespace Cassandra.Connections
 
         /// <inheritdoc />
         public IConnection[] ConnectionsSnapshot => _connections.GetSnapshot();
-
-
-        public HostConnectionPool(Host host, Configuration config, ISerializerManager serializerManager, IObserverFactory observerFactory)
+        
+        public HostConnectionPool(
+            Host host, Configuration config, ISerializerManager serializerManager, IObserverFactory observerFactory)
         {
             _host = host;
             _host.Down += OnHostDown;

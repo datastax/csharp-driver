@@ -12,11 +12,11 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-// 
+//
 
 using System;
 using System.Linq;
-using Cassandra.SessionManagement;
+using Cassandra.Connections.Control;
 
 namespace Cassandra.DataStax.Insights
 {
@@ -26,12 +26,12 @@ namespace Cassandra.DataStax.Insights
         private static readonly Version MinDse51Version = new Version(5, 1, 13);
         private static readonly Version Dse600Version = new Version(6, 0, 0);
 
-        public bool SupportsInsights(IInternalCluster cluster)
+        public bool SupportsInsights(IInternalMetadata internalMetadata)
         {
-            var allHosts = cluster.AllHosts();
+            var allHosts = internalMetadata.AllHosts();
             return allHosts.Count != 0 && allHosts.All(h => DseVersionSupportsInsights(h.DseVersion));
         }
-        
+
         public bool DseVersionSupportsInsights(Version dseVersion)
         {
             if (dseVersion == null)
@@ -54,6 +54,5 @@ namespace Cassandra.DataStax.Insights
 
             return false;
         }
-
     }
 }

@@ -171,13 +171,13 @@ namespace Cassandra.Tasks
         /// It throws a TimeoutException when the task didn't complete in the expected time.
         /// </summary>
         /// <param name="task">the task to wait upon</param>
-        /// <param name="timeout">timeout in milliseconds</param>
+        /// <param name="timeoutMs">timeout in milliseconds</param>
         /// <exception cref="TimeoutException" />
         /// <exception cref="AggregateException" />
-        public static async Task WaitToCompleteAsync(this Task task, int timeout = Timeout.Infinite)
+        public static async Task WaitToCompleteAsync(this Task task, int timeoutMs = Timeout.Infinite)
         {
             //It should wait and throw any exception
-            if (timeout == Timeout.Infinite)
+            if (timeoutMs == Timeout.Infinite)
             {
                 await task.ConfigureAwait(false);
                 return;
@@ -185,7 +185,7 @@ namespace Cassandra.Tasks
 
             try
             {
-                var timeoutTask = Task.Delay(TimeSpan.FromMilliseconds(timeout));
+                var timeoutTask = Task.Delay(TimeSpan.FromMilliseconds(timeoutMs));
                 var finishedTask = await Task.WhenAny(task, timeoutTask).ConfigureAwait(false);
                 if (finishedTask == timeoutTask)
                 {
@@ -467,20 +467,7 @@ namespace Cassandra.Tasks
 
             return await task.ConfigureAwait(false);
         }
-
-        /// <summary>
-        /// Simple helper to create a CancellationToken that is cancelled after
-        /// the provided <paramref name="timespan"/>.
-        /// </summary>
-        /// <param name="timespan">Timespan after which the returned <see cref="CancellationToken"/>
-        /// is canceled.</param>
-        /// <returns>A newly created <see cref="CancellationToken"/> that will be canceled
-        /// after the specified <paramref name="timespan"/>.</returns>
-        public static CancellationToken CancelTokenAfterDelay(TimeSpan timespan)
-        {
-            return new CancellationTokenSource(timespan).Token;
-        }
-
+        
         /// <summary>
         /// Calls <code>Task.Delay</code> with a cancellation token.
         /// </summary>

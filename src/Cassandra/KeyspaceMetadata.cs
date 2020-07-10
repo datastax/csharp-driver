@@ -20,6 +20,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Cassandra.Connections.Control;
 using Cassandra.MetadataHelpers;
 using Cassandra.Tasks;
 
@@ -31,7 +32,7 @@ namespace Cassandra
         private readonly ConcurrentDictionary<string, MaterializedViewMetadata> _views = new ConcurrentDictionary<string, MaterializedViewMetadata>();
         private readonly ConcurrentDictionary<Tuple<string, string>, FunctionMetadata> _functions = new ConcurrentDictionary<Tuple<string, string>, FunctionMetadata>();
         private readonly ConcurrentDictionary<Tuple<string, string>, AggregateMetadata> _aggregates = new ConcurrentDictionary<Tuple<string, string>, AggregateMetadata>();
-        private readonly Metadata _parent;
+        private readonly IInternalMetadata _parent;
 
         /// <summary>
         ///  Gets the name of this keyspace.
@@ -73,14 +74,14 @@ namespace Cassandra
 
         internal IReplicationStrategy Strategy { get; }
 
-        internal KeyspaceMetadata(Metadata parent, string name, bool durableWrites, string strategyClass,
+        internal KeyspaceMetadata(IInternalMetadata parent, string name, bool durableWrites, string strategyClass,
                                   IDictionary<string, string> replicationOptions, bool isVirtual = false) 
             : this(parent, name, durableWrites, strategyClass, replicationOptions, new ReplicationStrategyFactory(), isVirtual)
         {
         }
 
         internal KeyspaceMetadata(
-            Metadata parent, 
+            IInternalMetadata parent, 
             string name, 
             bool durableWrites, 
             string strategyClass,
@@ -127,8 +128,14 @@ namespace Cassandra
             return TaskHelper.WaitToComplete(
                 GetTableMetadataAsync(tableName), _parent.Configuration.DefaultRequestOptions.GetQueryAbortTimeout(2));
         }
-
-        internal async Task<TableMetadata> GetTableMetadataAsync(string tableName)
+        
+        /// <summary>
+        ///  Returns metadata of specified table in this keyspace.
+        /// </summary>
+        /// <param name="tableName"> the name of table to retrieve </param>
+        /// <returns>the metadata for table <c>tableName</c> in this keyspace if it
+        ///  exists, <c>null</c> otherwise.</returns>
+        public async Task<TableMetadata> GetTableMetadataAsync(string tableName)
         {
             if (_tables.TryGetValue(tableName, out var tableMetadata))
             {
@@ -159,8 +166,14 @@ namespace Cassandra
             return TaskHelper.WaitToComplete(
                 GetMaterializedViewMetadataAsync(viewName), _parent.Configuration.DefaultRequestOptions.GetQueryAbortTimeout(2));
         }
-
-        private async Task<MaterializedViewMetadata> GetMaterializedViewMetadataAsync(string viewName)
+        
+        /// <summary>
+        ///  Returns metadata of specified view in this keyspace.
+        /// </summary>
+        /// <param name="viewName">the name of view to retrieve </param>
+        /// <returns>the metadata for view <c>viewName</c> in this keyspace if it
+        ///  exists, <c>null</c> otherwise.</returns>
+        public async Task<MaterializedViewMetadata> GetMaterializedViewMetadataAsync(string viewName)
         {
             if (_views.TryGetValue(viewName, out var v))
             {
@@ -218,11 +231,20 @@ namespace Cassandra
         ///  keyspace.</returns>
         public IEnumerable<TableMetadata> GetTablesMetadata()
         {
-            var tableNames = GetTablesNames();
+            return TaskHelper.WaitToComplete(GetTablesMetadataAsync());
+        }
+        
+        /// <summary>
+        ///  Returns metadata of all tables defined in this keyspace.
+        /// </summary>
+        /// <returns>an IEnumerable of TableMetadata for the tables defined in this
+        ///  keyspace.</returns>
+        public async Task<IEnumerable<TableMetadata>> GetTablesMetadataAsync()
+        {
+            var tableNames = await GetTablesNamesAsync().ConfigureAwait(false);
             return tableNames.Select(GetTableMetadata);
         }
-
-
+        
         /// <summary>
         ///  Returns names of all tables defined in this keyspace.
         /// </summary>
@@ -231,7 +253,18 @@ namespace Cassandra
         ///  keyspace tables names.</returns>
         public ICollection<string> GetTablesNames()
         {
-            return TaskHelper.WaitToComplete(_parent.SchemaParser.GetTableNamesAsync(Name));
+            return TaskHelper.WaitToComplete(GetTablesNamesAsync());
+        }
+
+        /// <summary>
+        ///  Returns names of all tables defined in this keyspace.
+        /// </summary>
+        /// 
+        /// <returns>a collection of all, defined in this
+        ///  keyspace tables names.</returns>
+        public Task<ICollection<string>> GetTablesNamesAsync()
+        {
+            return _parent.SchemaParser.GetTableNamesAsync(Name);
         }
         
         /// <summary>
@@ -305,8 +338,12 @@ namespace Cassandra
             return TaskHelper.WaitToComplete(
                 GetFunctionAsync(functionName, signature), _parent.Configuration.DefaultRequestOptions.QueryAbortTimeout);
         }
-
-        private async Task<FunctionMetadata> GetFunctionAsync(string functionName, string[] signature)
+        
+        /// <summary>
+        /// Gets a CQL function by name and signature
+        /// </summary>
+        /// <returns>The function metadata or null if not found.</returns>
+        public async Task<FunctionMetadata> GetFunctionAsync(string functionName, string[] signature)
         {
             if (signature == null)
             {
@@ -339,8 +376,12 @@ namespace Cassandra
             return TaskHelper.WaitToComplete(
                 GetAggregateAsync(aggregateName, signature), _parent.Configuration.DefaultRequestOptions.QueryAbortTimeout);
         }
-
-        private async Task<AggregateMetadata> GetAggregateAsync(string aggregateName, string[] signature)
+        
+        /// <summary>
+        /// Gets a CQL aggregate by name and signature
+        /// </summary>
+        /// <returns>The aggregate metadata or null if not found.</returns>
+        public async Task<AggregateMetadata> GetAggregateAsync(string aggregateName, string[] signature)
         {
             if (signature == null)
             {

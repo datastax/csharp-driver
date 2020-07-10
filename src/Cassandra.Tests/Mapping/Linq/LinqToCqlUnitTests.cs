@@ -449,12 +449,7 @@ APPLY BATCH".Replace("\r", ""));
             var actualCqlQueries = new List<string>();
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             var config = new Configuration();
-            var metadata = new Metadata(config);
-            var ccMock = new Mock<IControlConnection>(MockBehavior.Strict);
-            ccMock.Setup(cc => cc.Serializer).Returns(new SerializerManager(ProtocolVersion.MaxSupported));
-            metadata.ControlConnection = ccMock.Object;
             var clusterMock = new Mock<ICluster>();
-            clusterMock.Setup(c => c.Metadata).Returns(metadata);
             clusterMock.Setup(c => c.Configuration).Returns(config);
             sessionMock.Setup(s => s.Cluster).Returns(clusterMock.Object);
             sessionMock
@@ -462,6 +457,7 @@ APPLY BATCH".Replace("\r", ""));
                 .Returns(() => new RowSet())
                 .Callback<string>(actualCqlQueries.Add)
                 .Verifiable();
+            sessionMock.Setup(s => s.ConnectAsync()).Returns(TaskHelper.Completed);
 
             var session = sessionMock.Object;
             var table1 = SessionExtensions.GetTable<CounterTestTable1>(session);
@@ -485,13 +481,9 @@ APPLY BATCH".Replace("\r", ""));
             var query2 = (from e in table where e.Id == 1 && e.Name == "MyName" select new { e.Id, e.Name, e.Description });
             Assert.AreEqual("SELECT \"Id\", \"Name\", \"Description\" FROM \"InheritedEntity\" WHERE \"Id\" = ? AND \"Name\" = ?", query2.ToString());
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock.Setup(s => s.ConnectAsync()).Returns(TaskHelper.Completed);
             var config = new Configuration();
-            var metadata = new Metadata(config);
-            var ccMock = new Mock<IControlConnection>(MockBehavior.Strict);
-            ccMock.Setup(cc => cc.Serializer).Returns(new SerializerManager(ProtocolVersion.MaxSupported));
-            metadata.ControlConnection = ccMock.Object;
             var clusterMock = new Mock<ICluster>();
-            clusterMock.Setup(c => c.Metadata).Returns(metadata);
             clusterMock.Setup(c => c.Configuration).Returns(config);
             sessionMock.Setup(s => s.Cluster).Returns(clusterMock.Object);
             string createQuery = null;

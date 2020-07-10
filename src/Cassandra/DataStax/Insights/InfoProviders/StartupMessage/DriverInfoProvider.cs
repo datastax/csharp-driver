@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 
+using Cassandra.Connections.Control;
 using Cassandra.Helpers;
 using Cassandra.SessionManagement;
 
@@ -21,7 +22,8 @@ namespace Cassandra.DataStax.Insights.InfoProviders.StartupMessage
 {
     internal class DriverInfoProvider : IInsightsInfoProvider<DriverInfo>
     {
-        public DriverInfo GetInformation(IInternalCluster cluster, IInternalSession session)
+        public DriverInfo GetInformation(
+            IInternalCluster cluster, IInternalSession session, IInternalMetadata internalMetadata)
         {
             return new DriverInfo
             {

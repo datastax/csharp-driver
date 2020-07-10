@@ -86,7 +86,7 @@ namespace Cassandra.IntegrationTests.Core
                 //Another session to have multiple pools
                 var dummySession = cluster.Connect();
                 TestHelper.Invoke(() => dummySession.Execute("SELECT * FROM system.local"), 10);
-                var host = cluster.AllHosts().First();
+                var host = cluster.Metadata.AllHosts().First();
                 var upCounter = 0;
                 var downCounter = 0;
                 cluster.Metadata.HostsEvent += (sender, e) =>
@@ -157,7 +157,7 @@ namespace Cassandra.IntegrationTests.Core
                 //Another session to have multiple pools
                 var dummySession = cluster.Connect();
                 TestHelper.Invoke(() => dummySession.Execute("SELECT * FROM system.local"), 10);
-                var hosts = cluster.AllHosts().ToList();
+                var hosts = cluster.Metadata.AllHosts().ToList();
                 var host1 = hosts[0];
                 var host2 = hosts[1];
                 var upCounter = new ConcurrentDictionary<string, int>();
@@ -235,7 +235,7 @@ namespace Cassandra.IntegrationTests.Core
                 var session2 = (IInternalSession)cluster.Connect();
                 TestHelper.Invoke(() => session1.Execute("SELECT * FROM system.local"), 10);
                 TestHelper.Invoke(() => session2.Execute("SELECT * FROM system.local"), 10);
-                var hosts = cluster.AllHosts().ToList();
+                var hosts = cluster.Metadata.AllHosts().ToList();
                 var host1 = hosts[0];
                 var host2 = hosts[1];
                 var upCounter = new ConcurrentDictionary<string, int>();
@@ -309,7 +309,7 @@ namespace Cassandra.IntegrationTests.Core
                 session.Execute("CREATE TABLE test_table (id text, PRIMARY KEY (id))");
 
                 // Assert that there are 2 pools, one for each host
-                var hosts = session.Cluster.AllHosts().ToList();
+                var hosts = session.Cluster.Metadata.AllHosts().ToList();
                 var pool1 = session.GetExistingPool(hosts[0].Address);
                 Assert.AreEqual(2, pool1.OpenConnections);
                 var pool2 = session.GetExistingPool(hosts[1].Address);
@@ -352,7 +352,7 @@ namespace Cassandra.IntegrationTests.Core
                 // Assert that there are 2 hosts
                 TestHelper.RetryAssert(() =>
                 {
-                    Assert.AreEqual(2, cluster.AllHosts().Count);
+                    Assert.AreEqual(2, cluster.Metadata.AllHosts().Count);
                 }, 1000, 180);
                 
                 // Assert that queries use both hosts again
@@ -402,12 +402,12 @@ namespace Cassandra.IntegrationTests.Core
             {
                 var session = (IInternalSession)cluster.Connect();
                 session.CreateKeyspaceIfNotExists("ks1");
-                var hosts = session.Cluster.AllHosts().OrderBy(h => h.Address.ToString()).ToArray();
+                var hosts = session.Cluster.Metadata.AllHosts().OrderBy(h => h.Address.ToString()).ToArray();
                 Assert.AreEqual(3, hosts.Length);
                 Assert.AreEqual(3, session.GetPools().Count());
                 Assert.IsNotNull(session.GetExistingPool(oldEndPoint));
                 Assert.IsTrue(hosts.Select(h => h.Address.Address.ToString()).SequenceEqual(addresses));
-                var tokenMap = session.Cluster.Metadata.TokenToReplicasMap;
+                var tokenMap = session.InternalCluster.InternalMetadata.TokenToReplicasMap;
                 var oldHostTokens = tokenMap.GetByKeyspace("ks1")
                                      .Where(kvp =>
                                          kvp.Value.First().Address.Address.ToString().Equals(oldIp));
@@ -424,20 +424,20 @@ namespace Cassandra.IntegrationTests.Core
                     () =>
                     {
                         Assert.AreEqual(1,
-                            session.Cluster.AllHosts()
+                            session.Cluster.Metadata.AllHosts()
                                    .Count(h => h.Address.Address.ToString().Equals($"{_realCluster.Value.ClusterIpPrefix}4")),
-                            string.Join(";", session.Cluster.AllHosts().Select(h => h.Address.Address.ToString())));
-                        Assert.AreNotSame(tokenMap, session.Cluster.Metadata.TokenToReplicasMap);
+                            string.Join(";", session.Cluster.Metadata.AllHosts().Select(h => h.Address.Address.ToString())));
+                        Assert.AreNotSame(tokenMap, session.InternalCluster.InternalMetadata.TokenToReplicasMap);
                     },
                     500,
                     100);
                 
-                var newTokenMap = session.Cluster.Metadata.TokenToReplicasMap;
+                var newTokenMap = session.InternalCluster.InternalMetadata.TokenToReplicasMap;
                 var newHostTokens = newTokenMap.GetByKeyspace("ks1")
                                             .Where(kvp =>
                                                 kvp.Value.First().Address.Address.ToString().Equals(newIp)).ToList();
 
-                hosts = session.Cluster.AllHosts().ToArray();
+                hosts = session.Cluster.Metadata.AllHosts().ToArray();
                 Assert.AreEqual(3, hosts.Length);
                 Assert.IsTrue(hosts.Select(h => h.Address.Address.ToString()).SequenceEqual(newAddresses));
                 Assert.IsTrue(newHostTokens.Select(h => h.Key).SequenceEqual(oldHostTokens.Select(h => h.Key)));

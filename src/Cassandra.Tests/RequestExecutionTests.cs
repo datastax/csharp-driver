@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using Cassandra.Connections;
+using Cassandra.Connections.Control;
 using Cassandra.ExecutionProfiles;
 using Cassandra.Observers;
 using Cassandra.Requests;
@@ -40,6 +41,7 @@ namespace Cassandra.Tests
             Mock.Get(requestHandlerFactory)
                 .Setup(r => r.Create(
                     It.IsAny<IInternalSession>(), 
+                    It.IsAny<IInternalMetadata>(), 
                     It.IsAny<ISerializer>(), 
                     It.IsAny<IRequest>(),
                     It.IsAny<IStatement>(),
@@ -68,6 +70,7 @@ namespace Cassandra.Tests
             Mock.Get(requestHandlerFactory)
                 .Setup(r => r.Create(
                     It.IsAny<IInternalSession>(), 
+                    It.IsAny<IInternalMetadata>(), 
                     It.IsAny<ISerializer>(), 
                     It.IsAny<IRequest>(),
                     It.IsAny<IStatement>(),
@@ -103,6 +106,7 @@ namespace Cassandra.Tests
             Mock.Get(requestHandlerFactory)
                 .Setup(r => r.Create(
                     It.IsAny<IInternalSession>(), 
+                    It.IsAny<IInternalMetadata>(), 
                     It.IsAny<ISerializer>(), 
                     It.IsAny<IRequest>(),
                     It.IsAny<IStatement>(),
@@ -152,6 +156,7 @@ namespace Cassandra.Tests
             Mock.Get(requestHandlerFactory)
                 .Setup(r => r.Create(
                     It.IsAny<IInternalSession>(), 
+                    It.IsAny<IInternalMetadata>(), 
                     It.IsAny<ISerializer>(), 
                     It.IsAny<IRequest>(),
                     It.IsAny<IStatement>(),

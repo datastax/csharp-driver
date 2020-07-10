@@ -19,7 +19,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
+using System.Threading.Tasks;
 using Cassandra.ExecutionProfiles;
+using Cassandra.Tasks;
 using Cassandra.Tests.Connections.TestHelpers;
 using Moq;
 using NUnit.Framework;
@@ -76,7 +78,7 @@ namespace Cassandra.Tests
              .AddContactPoint(ip)
              .Build();
             //No ring was discovered
-            Assert.AreEqual(0, cluster.AllHosts().Count);
+            Assert.AreEqual(0, cluster.Metadata.AllHosts().Count);
         }
 
         [Test]
@@ -233,7 +235,7 @@ namespace Cassandra.Tests
             cluster.Connect();
             cluster.Dispose();
 
-            foreach (var h in cluster.AllHosts())
+            foreach (var h in cluster.Metadata.AllHosts())
             {
                 Assert.AreEqual(expected[h.Address.Address.ToString()], h.GetDistanceUnsafe());
             }
@@ -242,26 +244,25 @@ namespace Cassandra.Tests
         internal class FakeHostDistanceLbp : ILoadBalancingPolicy
         {
             private readonly IDictionary<string, HostDistance> _distances;
-            private ICluster _cluster;
 
             public FakeHostDistanceLbp(IDictionary<string, HostDistance> distances)
             {
                 _distances = distances;
             }
 
-            public void Initialize(ICluster cluster)
+            public Task InitializeAsync(IMetadataSnapshotProvider metadata)
             {
-                _cluster = cluster;
+                return TaskHelper.Completed;
             }
 
-            public HostDistance Distance(Host host)
+            public HostDistance Distance(IMetadataSnapshotProvider metadata, Host host)
             {
                 return _distances[host.Address.Address.ToString()];
             }
 
-            public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
+            public IEnumerable<Host> NewQueryPlan(ICluster cluster, string keyspace, IStatement query)
             {
-                return _cluster.AllHosts().OrderBy(h => Guid.NewGuid().GetHashCode()).Take(_distances.Count);
+                return cluster.Metadata.AllHosts().OrderBy(h => Guid.NewGuid().GetHashCode()).Take(_distances.Count);
             }
         }
     }

@@ -16,12 +16,13 @@
 
 using System;
 using System.Threading.Tasks;
+using Cassandra.Connections.Control;
 
 namespace Cassandra.DataStax.Insights
 {
     internal interface IInsightsClient : IDisposable
     {
-        void Init();
+        void Initialize(IInternalMetadata internalMetadata);
 
         Task ShutdownAsync();
     }

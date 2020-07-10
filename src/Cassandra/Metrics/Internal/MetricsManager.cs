@@ -29,11 +29,8 @@ namespace Cassandra.Metrics.Internal
     /// <inheritdoc />
     internal class MetricsManager : IMetricsManager
     {
-        private static readonly Logger Logger = new Logger(typeof(MetricsManager));
-
         private readonly IDriverMetricsProvider _driverMetricsProvider;
         private readonly DriverMetricsOptions _metricsOptions;
-        private readonly bool _metricsEnabled;
         private readonly string _sessionBucket;
         private readonly ISessionMetrics _sessionMetrics;
         private readonly CopyOnWriteDictionary<Host, IMetricsRegistry<NodeMetric>> _nodeMetricsRegistryCollection;
@@ -41,13 +38,18 @@ namespace Cassandra.Metrics.Internal
         private readonly bool _disabledSessionTimerMetrics;
         private readonly bool _disabledNodeTimerMetrics;
 
-        public MetricsManager(IDriverMetricsProvider driverMetricsProvider, DriverMetricsOptions metricsOptions, bool metricsEnabled, string sessionName)
+        public MetricsManager(
+            IInternalSession session,
+            IDriverMetricsProvider driverMetricsProvider, 
+            DriverMetricsOptions metricsOptions, 
+            bool metricsEnabled, 
+            string sessionName)
         {
             _driverMetricsProvider = driverMetricsProvider;
             _metricsOptions = metricsOptions;
-            _metricsEnabled = metricsEnabled;
+            AreMetricsEnabled = metricsEnabled;
             _sessionBucket = metricsOptions.BucketPrefix != null ? $"{metricsOptions.BucketPrefix}.{sessionName}" : sessionName;
-            _sessionMetrics = new SessionMetrics(_driverMetricsProvider, metricsOptions, metricsEnabled, _sessionBucket);
+            _sessionMetrics = new SessionMetrics(session, _driverMetricsProvider, metricsOptions, metricsEnabled, _sessionBucket);
             _nodeMetricsRegistryCollection = new CopyOnWriteDictionary<Host, IMetricsRegistry<NodeMetric>>();
             _nodeMetricsCollection = new CopyOnWriteDictionary<Host, INodeMetrics>();
             _disabledSessionTimerMetrics = !metricsEnabled || !metricsOptions.EnabledSessionMetrics.Contains(SessionMetric.Timers.CqlRequests);
@@ -59,9 +61,9 @@ namespace Cassandra.Metrics.Internal
         
         /// <inheritdoc/>
         public IReadOnlyDictionary<Host, IMetricsRegistry<NodeMetric>> NodeMetrics => _nodeMetricsRegistryCollection;
-        
+
         /// <inheritdoc/>
-        public bool AreMetricsEnabled => _metricsEnabled;
+        public bool AreMetricsEnabled { get; }
 
         /// <inheritdoc />
         public TMetricType GetNodeMetric<TMetricType>(Host host, NodeMetric nodeMetric) where TMetricType : class, IDriverMetric
@@ -103,13 +105,7 @@ namespace Cassandra.Metrics.Internal
 
             return typedMetric;
         }
-
-        /// <inheritdoc />
-        public void InitializeMetrics(IInternalSession session)
-        {
-            _sessionMetrics.InitializeMetrics(session);
-        }
-
+        
         /// <inheritdoc />
         public void RemoveNodeMetrics(Host host)
         {
@@ -141,7 +137,7 @@ namespace Cassandra.Metrics.Internal
             {
                 var nodeBucket = $"{_sessionBucket}.nodes.{MetricsManager.BuildHostAddressMetricPath(host.Address)}";
 
-                var newRegistry = new NodeMetrics(_driverMetricsProvider, _metricsOptions, _metricsEnabled, nodeBucket);
+                var newRegistry = new NodeMetrics(_driverMetricsProvider, _metricsOptions, AreMetricsEnabled, nodeBucket);
                 _nodeMetricsRegistryCollection.Add(host, newRegistry.MetricsRegistry);
 
                 return newRegistry;

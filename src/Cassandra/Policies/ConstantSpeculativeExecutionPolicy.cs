@@ -15,6 +15,8 @@
 //
 
 using System;
+using System.Threading.Tasks;
+using Cassandra.Tasks;
 
 // ReSharper disable once CheckNamespace
 namespace Cassandra
@@ -48,20 +50,20 @@ namespace Cassandra
         public long Delay { get; }
 
         public int MaxSpeculativeExecutions { get; }
-
-        public void Dispose()
+        
+        public Task InitializeAsync(IMetadataSnapshotProvider metadata)
         {
-            
+            return TaskHelper.Completed;
         }
 
-        public void Initialize(ICluster cluster)
-        {
-            
-        }
-
-        public ISpeculativeExecutionPlan NewPlan(string keyspace, IStatement statement)
+        public ISpeculativeExecutionPlan NewPlan(ICluster cluster, string keyspace, IStatement statement)
         {
             return new ConstantSpeculativeExecutionPlan(Delay, MaxSpeculativeExecutions);
+        }
+
+        public Task ShutdownAsync()
+        {
+            return TaskHelper.Completed;
         }
 
         private class ConstantSpeculativeExecutionPlan : ISpeculativeExecutionPlan

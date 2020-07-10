@@ -14,25 +14,25 @@
 //   limitations under the License.
 //
 
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+
 using Cassandra.Connections;
 using Cassandra.Connections.Control;
-using Cassandra.Requests;
-using Cassandra.Serialization;
+using Cassandra.Helpers;
 
 namespace Cassandra.SessionManagement
 {
     /// <inheritdoc />
     internal interface IInternalCluster : ICluster
     {
-        bool AnyOpenConnections(Host host);
+        IInternalMetadata InternalMetadata { get; }
 
-        /// <summary>
-        /// Gets the control connection used by the cluster
-        /// </summary>
-        IControlConnection GetControlConnection();
+        IClusterInitializer ClusterInitializer { get; }
+
+        bool AnyOpenConnections(Host host);
 
         /// <summary>
         /// If contact points are not provided in the builder, the driver will use localhost
@@ -44,20 +44,30 @@ namespace Cassandra.SessionManagement
         /// Gets the the prepared statements cache
         /// </summary>
         ConcurrentDictionary<byte[], PreparedStatement> PreparedQueries { get; }
-
+        
         /// <summary>
         /// Executes the prepare request on the first host selected by the load balancing policy.
         /// When <see cref="QueryOptions.IsPrepareOnAllHosts"/> is enabled, it prepares on the rest of the hosts in
         /// parallel.
         /// In case the statement was already in the prepared statements cache, logs an warning but prepares it anyway.
         /// </summary>
-        Task<PreparedStatement> Prepare(IInternalSession session, ISerializerManager serializerManager, PrepareRequest request);
-        
+        Task<PreparedStatement> PrepareAsync(IInternalSession session, string cqlQuery, string keyspace, IDictionary<string, byte[]> customPayload);
+
         IReadOnlyDictionary<IContactPoint, IEnumerable<IConnectionEndPoint>> GetResolvedEndpoints();
 
         /// <summary>
         /// Helper method to retrieve the aggregate distance from all configured LoadBalancingPolicies and set it at Host level.
         /// </summary>
         HostDistance RetrieveAndSetDistance(Host host);
+        
+        TimeSpan GetInitTimeout();
+
+        Task PostInitializeAsync();
+
+        Task PreShutdownAsync(int timeoutMs);
+
+        Task PostShutdownAsync();
+
+        Task OnSessionShutdownAsync(IInternalSession session);
     }
 }

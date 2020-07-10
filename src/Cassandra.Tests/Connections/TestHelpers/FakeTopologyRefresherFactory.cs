@@ -53,9 +53,9 @@ namespace Cassandra.Tests.Connections.TestHelpers
             _rows = rows;
         }
 
-        public ITopologyRefresher Create(Metadata metadata, Configuration config)
+        public ITopologyRefresher Create(IInternalMetadata internalMetadata, Configuration config)
         {
-            return new FakeTopologyRefresher(metadata, config, _rows);
+            return new FakeTopologyRefresher(internalMetadata, _rows);
         }
     }
 }

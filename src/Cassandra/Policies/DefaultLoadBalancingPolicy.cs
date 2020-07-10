@@ -16,6 +16,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Cassandra
 {
@@ -66,9 +67,10 @@ namespace Cassandra
         ///  in the local datacenter as <c>Local</c> and the rest
         ///  is <c>Ignored</c>.
         /// </summary>
+        /// <param name="metadata">The metadata instance associated with the cluster for which the policy is created.</param>
         /// <param name="host"> the host of which to return the distance of. </param>
         /// <returns>the HostDistance to <c>host</c>.</returns>
-        public HostDistance Distance(Host host)
+        public HostDistance Distance(IMetadataSnapshotProvider metadata, Host host)
         {
             var lastPreferredHost = _lastPreferredHost;
             if (lastPreferredHost != null && host == lastPreferredHost)
@@ -78,35 +80,35 @@ namespace Cassandra
                 return HostDistance.Local;
             }
 
-            return ChildPolicy.Distance(host);
+            return ChildPolicy.Distance(metadata, host);
         }
 
         /// <summary>
         /// Initializes the policy.
         /// </summary>
-        public void Initialize(ICluster cluster)
+        public Task InitializeAsync(IMetadataSnapshotProvider metadata)
         {
-            ChildPolicy.Initialize(cluster);
+            return ChildPolicy.InitializeAsync(metadata);
         }
 
         /// <summary>
         /// Returns the hosts to used for a query.
         /// </summary>
-        public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement statement)
+        public IEnumerable<Host> NewQueryPlan(ICluster cluster, string keyspace, IStatement statement)
         {
             if (statement is TargettedSimpleStatement targetedStatement && targetedStatement.PreferredHost != null)
             {
                 _lastPreferredHost = targetedStatement.PreferredHost;
-                return YieldPreferred(keyspace, targetedStatement);
+                return YieldPreferred(cluster, keyspace, targetedStatement);
             }
 
-            return ChildPolicy.NewQueryPlan(keyspace, statement);
+            return ChildPolicy.NewQueryPlan(cluster, keyspace, statement);
         }
 
-        private IEnumerable<Host> YieldPreferred(string keyspace, TargettedSimpleStatement statement)
+        private IEnumerable<Host> YieldPreferred(ICluster cluster, string keyspace, TargettedSimpleStatement statement)
         {
             yield return statement.PreferredHost;
-            foreach (var h in ChildPolicy.NewQueryPlan(keyspace, statement))
+            foreach (var h in ChildPolicy.NewQueryPlan(cluster, keyspace, statement))
             {
                 yield return h;
             }

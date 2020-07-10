@@ -22,11 +22,11 @@ namespace Cassandra.Tests.Connections.TestHelpers
 {
     internal class FakeSupportedOptionsInitializer : ISupportedOptionsInitializer
     {
-        private Metadata _metadata;
+        private IInternalMetadata _internalMetadata;
 
-        public FakeSupportedOptionsInitializer(Metadata metadata)
+        public FakeSupportedOptionsInitializer(IInternalMetadata internalMetadata)
         {
-            _metadata = metadata;
+            _internalMetadata = internalMetadata;
         }
 
         public Task ApplySupportedOptionsAsync(IConnection connection)

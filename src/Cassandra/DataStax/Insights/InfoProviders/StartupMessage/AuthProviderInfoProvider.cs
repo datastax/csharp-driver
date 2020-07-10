@@ -14,6 +14,7 @@
 //   limitations under the License.
 // 
 
+using Cassandra.Connections.Control;
 using Cassandra.DataStax.Insights.Schema.StartupMessage;
 using Cassandra.SessionManagement;
 
@@ -21,7 +22,8 @@ namespace Cassandra.DataStax.Insights.InfoProviders.StartupMessage
 {
     internal class AuthProviderInfoProvider : IInsightsInfoProvider<AuthProviderInfo>
     {
-        public AuthProviderInfo GetInformation(IInternalCluster cluster, IInternalSession session)
+        public AuthProviderInfo GetInformation(
+            IInternalCluster cluster, IInternalSession session, IInternalMetadata internalMetadata)
         {
             var type = cluster.Configuration.AuthProvider.GetType();
             return new AuthProviderInfo

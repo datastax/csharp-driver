@@ -428,17 +428,18 @@ namespace Cassandra.Mapping
         /// <inheritdoc />
         public void Execute(ICqlBatch batch)
         {
-            //Wait async method to be completed or throw
-            TaskHelper.WaitToCompleteWithMetrics(_metricsManager, ExecuteAsync(batch), _queryAbortTimeout);
+            Execute(batch, Configuration.DefaultExecutionProfileName);
         }
 
         /// <inheritdoc />
         public void Execute(ICqlBatch batch, string executionProfile)
         {
+            _session.Connect();
+
             //Wait async method to be completed or throw
             TaskHelper.WaitToCompleteWithMetrics(_metricsManager, ExecuteAsync(batch, executionProfile), _queryAbortTimeout);
         }
-
+        
         /// <inheritdoc />
         public Task ExecuteAsync(ICqlBatch batch)
         {
@@ -479,6 +480,7 @@ namespace Cassandra.Mapping
         /// <inheritdoc />
         public AppliedInfo<T> DeleteIf<T>(Cql cql)
         {
+            _session.Connect();
             return TaskHelper.WaitToCompleteWithMetrics(_metricsManager, DeleteIfAsync<T>(cql), _queryAbortTimeout);
         }
 
@@ -511,6 +513,8 @@ namespace Cassandra.Mapping
         /// <inheritdoc />
         public IEnumerable<T> Fetch<T>(Cql cql)
         {
+            _session.Connect();
+
             //Use the async method
             var t = FetchAsync<T>(cql);
             //Wait for it to be completed or throw
@@ -533,6 +537,8 @@ namespace Cassandra.Mapping
         /// <inheritdoc />
         public IPage<T> FetchPage<T>(Cql cql)
         {
+            _session.Connect();
+
             //Use the async method
             var t = FetchPageAsync<T>(cql);
             //Wait for it to be completed or throw
@@ -549,6 +555,8 @@ namespace Cassandra.Mapping
         /// <inheritdoc />
         public T Single<T>(Cql cql)
         {
+            _session.Connect();
+
             //Use the async method
             var t = SingleAsync<T>(cql);
             //Wait for it to be completed or throw
@@ -565,6 +573,8 @@ namespace Cassandra.Mapping
         /// <inheritdoc />
         public T SingleOrDefault<T>(Cql cql)
         {
+            _session.Connect();
+
             //Use async method
             var t = SingleOrDefaultAsync<T>(cql);
             //Wait for it to be completed or throw
@@ -581,6 +591,8 @@ namespace Cassandra.Mapping
         /// <inheritdoc />
         public T First<T>(Cql cql)
         {
+            _session.Connect();
+
             //Use async method
             var t = FirstAsync<T>(cql);
             //Wait for it to be completed or throw
@@ -597,6 +609,8 @@ namespace Cassandra.Mapping
         /// <inheritdoc />
         public T FirstOrDefault<T>(Cql cql)
         {
+            _session.Connect();
+
             //Use async method
             var t = FirstOrDefaultAsync<T>(cql);
             //Wait for it to be completed or throw
@@ -642,6 +656,8 @@ namespace Cassandra.Mapping
                 throw new ArgumentNullException(nameof(executionProfile));
             }
 
+            _session.Connect();
+
             //Wait async method to be completed or throw
             TaskHelper.WaitToCompleteWithMetrics(_metricsManager, InsertAsync(poco, executionProfile, insertNulls, ttl, queryOptions), _queryAbortTimeout);
         }
@@ -673,18 +689,21 @@ namespace Cassandra.Mapping
         /// <inheritdoc />
         public AppliedInfo<T> InsertIfNotExists<T>(T poco, bool insertNulls, int? ttl, CqlQueryOptions queryOptions = null)
         {
+            _session.Connect();
             return TaskHelper.WaitToCompleteWithMetrics(_metricsManager, InsertIfNotExistsAsync(poco, insertNulls, ttl, queryOptions), _queryAbortTimeout);
         }
 
         /// <inheritdoc />
         public AppliedInfo<T> InsertIfNotExists<T>(T poco, string executionProfile, bool insertNulls, int? ttl, CqlQueryOptions queryOptions = null)
         {
+            _session.Connect();
             return TaskHelper.WaitToCompleteWithMetrics(_metricsManager, InsertIfNotExistsAsync(poco, executionProfile, insertNulls, ttl, queryOptions), _queryAbortTimeout);
         }
 
         /// <inheritdoc />
         public void Update<T>(T poco, CqlQueryOptions queryOptions = null)
         {
+            _session.Connect();
             //Wait async method to be completed or throw
             TaskHelper.WaitToCompleteWithMetrics(_metricsManager, UpdateAsync(poco, queryOptions), _queryAbortTimeout);
         }
@@ -692,6 +711,7 @@ namespace Cassandra.Mapping
         /// <inheritdoc />
         public void Update<T>(T poco, string executionProfile, CqlQueryOptions queryOptions = null)
         {
+            _session.Connect();
             //Wait async method to be completed or throw
             TaskHelper.WaitToCompleteWithMetrics(_metricsManager, UpdateAsync(poco, executionProfile, queryOptions), _queryAbortTimeout);
         }
@@ -705,6 +725,7 @@ namespace Cassandra.Mapping
         /// <inheritdoc />
         public void Update<T>(Cql cql)
         {
+            _session.Connect();
             //Wait async method to be completed or throw
             TaskHelper.WaitToCompleteWithMetrics(_metricsManager, UpdateAsync<T>(cql), _queryAbortTimeout);
         }
@@ -718,6 +739,7 @@ namespace Cassandra.Mapping
         /// <inheritdoc />
         public AppliedInfo<T> UpdateIf<T>(Cql cql)
         {
+            _session.Connect();
             //Wait async method to be completed or throw
             return TaskHelper.WaitToCompleteWithMetrics(_metricsManager, UpdateIfAsync<T>(cql), _queryAbortTimeout);
         }
@@ -725,6 +747,7 @@ namespace Cassandra.Mapping
         /// <inheritdoc />
         public void Delete<T>(T poco, CqlQueryOptions queryOptions = null)
         {
+            _session.Connect();
             //Wait async method to be completed or throw
             TaskHelper.WaitToCompleteWithMetrics(_metricsManager, DeleteAsync(poco, queryOptions), _queryAbortTimeout);
         }
@@ -732,6 +755,7 @@ namespace Cassandra.Mapping
         /// <inheritdoc />
         public void Delete<T>(T poco, string executionProfile, CqlQueryOptions queryOptions = null)
         {
+            _session.Connect();
             //Wait async method to be completed or throw
             TaskHelper.WaitToCompleteWithMetrics(_metricsManager, DeleteAsync(poco, executionProfile, queryOptions), _queryAbortTimeout);
         }
@@ -745,6 +769,7 @@ namespace Cassandra.Mapping
         /// <inheritdoc />
         public void Delete<T>(Cql cql)
         {
+            _session.Connect();
             //Wait async method to be completed or throw
             TaskHelper.WaitToCompleteWithMetrics(_metricsManager, DeleteAsync<T>(cql), _queryAbortTimeout);
         }
@@ -758,6 +783,7 @@ namespace Cassandra.Mapping
         /// <inheritdoc />
         public void Execute(Cql cql)
         {
+            _session.Connect();
             //Wait async method to be completed or throw
             TaskHelper.WaitToCompleteWithMetrics(_metricsManager, ExecuteAsync(cql), _queryAbortTimeout);
         }
@@ -794,12 +820,14 @@ namespace Cassandra.Mapping
         /// <inheritdoc />
         public AppliedInfo<T> ExecuteConditional<T>(ICqlBatch batch)
         {
+            _session.Connect();
             return TaskHelper.WaitToCompleteWithMetrics(_metricsManager, ExecuteConditionalAsync<T>(batch), _queryAbortTimeout);
         }
 
         /// <inheritdoc />
         public AppliedInfo<T> ExecuteConditional<T>(ICqlBatch batch, string executionProfile)
         {
+            _session.Connect();
             return TaskHelper.WaitToCompleteWithMetrics(_metricsManager, ExecuteConditionalAsync<T>(batch, executionProfile), _queryAbortTimeout);
         }
 

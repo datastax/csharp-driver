@@ -14,6 +14,8 @@
 //   limitations under the License.
 //
 
+using System.Threading.Tasks;
+using Cassandra.Tasks;
 
 // ReSharper disable once CheckNamespace
 namespace Cassandra
@@ -30,20 +32,20 @@ namespace Cassandra
         {
             
         }
-
-        public void Dispose()
+        
+        public Task InitializeAsync(IMetadataSnapshotProvider metadata)
         {
-            
+            return TaskHelper.Completed;
         }
 
-        public void Initialize(ICluster cluster)
-        {
-            
-        }
-
-        public ISpeculativeExecutionPlan NewPlan(string keyspace, IStatement statement)
+        public ISpeculativeExecutionPlan NewPlan(ICluster cluster, string keyspace, IStatement statement)
         {
             return Plan;
+        }
+
+        public Task ShutdownAsync()
+        {
+            return TaskHelper.Completed;
         }
 
         private class NoSpeculativeExecutionPlan : ISpeculativeExecutionPlan
