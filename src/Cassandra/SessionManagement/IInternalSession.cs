@@ -40,10 +40,6 @@ namespace Cassandra.SessionManagement
         Task PostInitializeAsync();
 
         Task OnShutdownAsync();
-        
-        void TryInit();
-
-        Task TryInitAsync();
 
         IInternalMetadata TryInitAndGetMetadata();
 

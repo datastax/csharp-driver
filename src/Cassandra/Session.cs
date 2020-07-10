@@ -114,7 +114,7 @@ namespace Cassandra
         /// <inheritdoc />
         public void Connect()
         {
-            InternalRef.TryInit();
+            _sessionInitializer.WaitInit();
         }
 
         /// <inheritdoc />
@@ -249,21 +249,11 @@ namespace Cassandra
             }
         }
         
-        Task IInternalSession.TryInitAsync()
-        {
-            return _sessionInitializer.WaitInitAsync();
-        }
-
         Task<IInternalMetadata> IInternalSession.TryInitAndGetMetadataAsync()
         {
             return _sessionInitializer.WaitInitAndGetMetadataAsync();
         }
-
-        void IInternalSession.TryInit()
-        {
-            _sessionInitializer.WaitInit();
-        }
-
+        
         IInternalMetadata IInternalSession.TryInitAndGetMetadata()
         {
             return _sessionInitializer.WaitInitAndGetMetadata();
@@ -495,7 +485,7 @@ namespace Cassandra
         /// <inheritdoc />
         public PreparedStatement Prepare(string cqlQuery, string keyspace, IDictionary<string, byte[]> customPayload)
         {
-            InternalRef.TryInit();
+            _sessionInitializer.WaitInit();
             var task = _cluster.PrepareAsync(this, cqlQuery, keyspace, customPayload);
             TaskHelper.WaitToCompleteWithMetrics(_metricsManager, task, Configuration.ClientOptions.QueryAbortTimeout);
             return task.Result;
@@ -523,7 +513,7 @@ namespace Cassandra
         public async Task<PreparedStatement> PrepareAsync(
             string cqlQuery, string keyspace, IDictionary<string, byte[]> customPayload)
         {
-            await InternalRef.TryInitAsync().ConfigureAwait(false);
+            await _sessionInitializer.WaitInitAsync().ConfigureAwait(false);
             return await _cluster.PrepareAsync(this, cqlQuery, keyspace, customPayload).ConfigureAwait(false);
         }
 
