@@ -20,8 +20,10 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Numerics;
 using System.Reflection;
 using Cassandra.Collections;
+using Cassandra.DataStax.Graph;
 
 namespace Cassandra.Mapping.TypeConversion
 {
@@ -43,7 +45,7 @@ namespace Cassandra.Mapping.TypeConversion
 
         private const BindingFlags PrivateStatic = BindingFlags.NonPublic | BindingFlags.Static;
         private const BindingFlags PrivateInstance = BindingFlags.NonPublic | BindingFlags.Instance;
-
+        
         private static readonly MethodInfo FindFromDbConverterMethod = typeof (TypeConverter).GetTypeInfo()
             .GetMethod(nameof(FindFromDbConverter), PrivateInstance);
 
@@ -199,8 +201,7 @@ namespace Cassandra.Mapping.TypeConversion
 
             return (Func<TSource, TResult>) converter;
         }
-
-
+        
         /// <summary>
         /// Gets a Function that can convert a source type value on a POCO to a destination type value for storage in C*.
         /// </summary>
@@ -316,7 +317,7 @@ namespace Cassandra.Mapping.TypeConversion
                     }
                 }
             }
-            
+
             return null;
         }
 

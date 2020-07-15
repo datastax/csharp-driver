@@ -134,6 +134,7 @@ namespace Cassandra.Serialization.Graph
             return new VertexProperty(
                 graphNode.Get<GraphNode>("id", true), graphNode.Get<string>("label"),
                 graphNode.Get<GraphNode>("value", true),
+                graphNode.Get<GraphNode>("vertex"),
                 graphNode.Get<GraphNode>("properties")?.GetProperties() ?? EmptyProperties);
         }
 
@@ -141,7 +142,8 @@ namespace Cassandra.Serialization.Graph
         {
             return new Property(
                 ToString(token, "key", true),
-                ToGraphNode(token, "value"));
+                ToGraphNode(token, "value"),
+                ToGraphNode(token, "element"));
         }
 
         protected TimeUuid ParseTimeUuid(string value)

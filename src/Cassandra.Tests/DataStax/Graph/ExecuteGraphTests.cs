@@ -171,8 +171,8 @@ namespace Cassandra.Tests.DataStax.Graph
             Assert.NotNull(coreStatement);
             Assert.NotNull(coreStatement.OutgoingPayload);
             //The default graph payload
-            Assert.AreEqual(2, coreStatement.OutgoingPayload.Count);
-            CollectionAssert.AreEqual(new[] { "graph-language", "graph-source" }, coreStatement.OutgoingPayload.Keys);
+            Assert.AreEqual(3, coreStatement.OutgoingPayload.Count);
+            CollectionAssert.AreEqual(new[] { "graph-language", "graph-source", "graph-results" }, coreStatement.OutgoingPayload.Keys);
         }
 
         [Test]
@@ -352,9 +352,9 @@ namespace Cassandra.Tests.DataStax.Graph
                                ExecuteGraphTests.GetGremlin(10, "{\"@type\": \"g:Int64\", \"@value\": 1}"));
             _cluster = ExecuteGraphTests.GetCluster(stmt => { }, null, rs);
             var session = _cluster.Connect();
-            var graphStatement = new SimpleGraphStatement("g.V()").SetGraphLanguage(GraphOptions.GraphSON2Language);
+            var graphStatement = new SimpleGraphStatement("g.V()").SetGraphLanguage(GraphOptions.BytecodeJson);
             var result = await session.ExecuteGraphAsync(graphStatement).ConfigureAwait(false);
-            Assert.That(result.To<int>(), Is.EquivalentTo(new[] { 1, 2, 2, 3, 3, 3, 10 }));
+            Assert.That(result.To<long>(), Is.EquivalentTo(new[] { 1, 2, 2, 3, 3, 3, 10 }));
         }
 
         private static byte[] ToBuffer(long value)

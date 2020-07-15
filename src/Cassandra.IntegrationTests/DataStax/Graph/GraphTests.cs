@@ -40,7 +40,7 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
         private int _idGenerator;
         private ICluster _cluster;
         private ISession _session;
-
+        
         [OneTimeSetUp]
         public void OneTimeSetUp()
         {

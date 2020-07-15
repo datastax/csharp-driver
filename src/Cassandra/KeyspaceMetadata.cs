@@ -70,15 +70,14 @@ namespace Cassandra
         /// Determines whether the keyspace is a virtual keyspace or not.
         /// </summary>
         public bool IsVirtual { get; }
+        
+        /// <summary>
+        /// Returns the graph engine associated with this keyspace. Returns null if there isn't one.
+        /// </summary>
+        public string GraphEngine { get; }
 
         internal IReplicationStrategy Strategy { get; }
-
-        internal KeyspaceMetadata(Metadata parent, string name, bool durableWrites, string strategyClass,
-                                  IDictionary<string, string> replicationOptions, bool isVirtual = false) 
-            : this(parent, name, durableWrites, strategyClass, replicationOptions, new ReplicationStrategyFactory(), isVirtual)
-        {
-        }
-
+        
         internal KeyspaceMetadata(
             Metadata parent, 
             string name, 
@@ -86,6 +85,7 @@ namespace Cassandra
             string strategyClass,
             IDictionary<string, string> replicationOptions,
             IReplicationStrategyFactory replicationStrategyFactory,
+            string graphEngine,
             bool isVirtual = false)
         {
             //Can not directly reference to schemaParser as it might change
@@ -114,6 +114,8 @@ namespace Cassandra
                 (strategyClass == null || parsedReplicationOptions == null) 
                 ? null 
                 : replicationStrategyFactory.Create(StrategyClass, parsedReplicationOptions);
+
+            GraphEngine = graphEngine;
         }
 
         /// <summary>

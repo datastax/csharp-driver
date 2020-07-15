@@ -37,27 +37,43 @@ namespace Cassandra.DataStax.Graph
         public ExecutionInfo Info => _rs.Info;
 
         /// <summary>
+        /// Gets the graph protocol version that will be considered when deserializing this result set.
+        /// </summary>
+        public GraphProtocol GraphProtocol { get; }
+
+        /// <summary>
         /// Creates a new instance of <see cref="GraphResultSet"/>.
         /// </summary>
-        public GraphResultSet(RowSet rs) : this(rs, null)
+        public GraphResultSet(RowSet rs) : this(rs, GraphProtocol.GraphSON1)
         {
 
         }
 
-        private GraphResultSet(RowSet rs, string language)
+        private GraphResultSet(RowSet rs, GraphProtocol version)
         {
             _rs = rs ?? throw new ArgumentNullException(nameof(rs));
-            Func<Row, GraphNode> factory = GraphResultSet.GetGraphSON1Node;
-            if (language == GraphOptions.GraphSON2Language)
+            GraphProtocol = version;
+
+            if (version == GraphProtocol.GraphSON1)
             {
-                factory = GraphResultSet.GetGraphSON2Node;
+                _factory = GraphResultSet.GetGraphSON1Node;
             }
-            _factory = factory;
+            else
+            {
+                _factory = GraphResultSet.GetGraphSONNode;
+            }
         }
 
         internal static GraphResultSet CreateNew(RowSet rs, IGraphStatement statement, GraphOptions options)
         {
-            return new GraphResultSet(rs, statement.GraphLanguage ?? options.Language);
+            var graphProtocolVersion = statement.GraphProtocolVersion ?? options.GraphProtocolVersion;
+
+            if (graphProtocolVersion == null)
+            {
+                throw new DriverInternalError("Unable to determine graph protocol version. This is a bug, please report.");
+            }
+
+            return new GraphResultSet(rs, graphProtocolVersion.Value);
         }
 
         /// <summary>
@@ -95,12 +111,12 @@ namespace Cassandra.DataStax.Graph
 
         private static GraphNode GetGraphSON1Node(Row row)
         {
-            return new GraphNode(new GraphSON1Node(row.GetValue<string>("gremlin")));
+            return new GraphNode(new GraphSON1Node(row.GetValue<string>("gremlin"), false));
         }
 
-        private static GraphNode GetGraphSON2Node(Row row)
+        private static GraphNode GetGraphSONNode(Row row)
         {
-            return new GraphNode(new GraphSON2Node(row.GetValue<string>("gremlin")));
+            return new GraphNode(new GraphSONNode(row.GetValue<string>("gremlin")));
         }
 
         IEnumerator IEnumerable.GetEnumerator()

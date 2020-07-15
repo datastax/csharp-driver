@@ -16,7 +16,10 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using Cassandra.Serialization.Graph;
 using Cassandra.Serialization.Graph.GraphSON1;
+using Cassandra.Serialization.Graph.GraphSON2;
 using Newtonsoft.Json;
 
 namespace Cassandra.DataStax.Graph
@@ -88,11 +91,39 @@ namespace Cassandra.DataStax.Graph
 
         internal override IStatement GetIStatement(GraphOptions options)
         {
-            var parameters = ValuesDictionary ?? Values;
+            IDictionary<string, object> parameters = null;
+            if (ValuesDictionary != null)
+            {
+                parameters = ValuesDictionary;
+            }
+            else if (Values != null)
+            {
+                parameters = Utils.GetValues(Values);
+            }
+
+            var graphProtocol = GraphProtocolVersion ?? options.GraphProtocolVersion;
+
             IStatement stmt;
             if (parameters != null)
             {
-                var jsonParams = JsonConvert.SerializeObject(parameters, GraphSON1ContractResolver.Settings);
+                string jsonParams;
+                switch (graphProtocol)
+                {
+                    case GraphProtocol.GraphSON1:
+                        jsonParams = JsonConvert.SerializeObject(parameters, GraphSON1ContractResolver.Settings);
+                        break;
+                    case GraphProtocol.GraphSON2:
+                    case GraphProtocol.GraphSON3:
+                        jsonParams = JsonConvert.SerializeObject(
+                            parameters.ToDictionary(
+                                kvp => kvp.Key,
+                                kvp => GraphSONTypeConverter.DefaultInstance.ToDb(kvp.Value)),
+                            GraphSONNode.GraphSONSerializerSettings);
+                        break;
+                    default:
+                        throw new DriverInternalError(
+                            "Could not resolve graph protocol version. This is a bug, please report.");
+                }
                 stmt = new TargettedSimpleStatement(Query, jsonParams);
             }
             else

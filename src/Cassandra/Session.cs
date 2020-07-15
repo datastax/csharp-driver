@@ -529,10 +529,19 @@ namespace Cassandra
         public async Task<GraphResultSet> ExecuteGraphAsync(IGraphStatement graphStatement, string executionProfileName)
         {
             var requestOptions = InternalRef.GetRequestOptions(executionProfileName);
-            var stmt = graphStatement.ToIStatement(requestOptions.GraphOptions);
+            var graphOptions = requestOptions.GraphOptions;
+
+            if (graphStatement.GraphProtocolVersion == null && requestOptions.GraphOptions.GraphProtocolVersion == null)
+            {
+                var version = Configuration.GraphProtocolResolver.GetDefaultGraphProtocol(
+                    this, graphStatement, requestOptions.GraphOptions);
+                graphOptions = new GraphOptions(graphOptions, version);
+            }
+
+            var stmt = graphStatement.ToIStatement(graphOptions);
             await GetAnalyticsPrimary(stmt, graphStatement, requestOptions).ConfigureAwait(false);
             var rs = await ExecuteAsync(stmt, requestOptions).ConfigureAwait(false);
-            return GraphResultSet.CreateNew(rs, graphStatement, requestOptions.GraphOptions);
+            return GraphResultSet.CreateNew(rs, graphStatement, graphOptions);
         }
 
         private async Task<IStatement> GetAnalyticsPrimary(

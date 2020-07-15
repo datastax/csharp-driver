@@ -82,7 +82,7 @@ namespace Cassandra.DataStax.Graph
         /// </summary>
         public IProperty GetProperty(string name)
         {
-            return Properties.TryGetValue(name, out var result) ? new Property(name, result) : null;
+            return Properties.TryGetValue(name, out var result) ? new Property(name, result, null) : null;
         }
 
         /// <summary>
@@ -90,7 +90,7 @@ namespace Cassandra.DataStax.Graph
         /// </summary>
         public IEnumerable<IProperty> GetProperties()
         {
-            return Properties.Select(item => (IProperty)new Property(item.Key, item.Value));
+            return Properties.Select(item => (IProperty)new Property(item.Key, item.Value, null));
         }
     }
 }

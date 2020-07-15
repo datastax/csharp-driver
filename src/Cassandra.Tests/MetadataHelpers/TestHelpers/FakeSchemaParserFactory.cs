@@ -43,7 +43,8 @@ namespace Cassandra.Tests.MetadataHelpers.TestHelpers
                 true,
                 ReplicationStrategies.SimpleStrategy,
                 new Dictionary<string, string> { { "replication_factor", replicationFactor.ToString() } },
-                factory ?? new ReplicationStrategyFactory());
+                factory ?? new ReplicationStrategyFactory(),
+                null);
         }
 
         public static KeyspaceMetadata CreateNetworkTopologyKeyspace(string name, IDictionary<string, string> replicationFactors, IReplicationStrategyFactory factory = null)
@@ -54,7 +55,8 @@ namespace Cassandra.Tests.MetadataHelpers.TestHelpers
                 true,
                 ReplicationStrategies.NetworkTopologyStrategy,
                 replicationFactors,
-                factory ?? new ReplicationStrategyFactory());
+                factory ?? new ReplicationStrategyFactory(), 
+                null);
         }
     }
 }

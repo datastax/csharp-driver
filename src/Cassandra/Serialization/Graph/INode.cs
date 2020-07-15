@@ -82,6 +82,11 @@ namespace Cassandra.Serialization.Graph
         object To(Type type);
 
         /// <summary>
+        /// Returns the representation of the node as an instance of the type provided.
+        /// </summary>
+        T To<T>();
+
+        /// <summary>
         /// Returns the current representation as an Array
         /// </summary>
         GraphNode[] ToArray();

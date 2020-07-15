@@ -188,13 +188,13 @@ namespace Cassandra.Tests
             var keyspaces = new List<KeyspaceMetadata>
             {
                 //network strategy with rf 2 per dc
-                new KeyspaceMetadata(null, "ks1", true, strategy, new Dictionary<string, string> {{"dc1", "2"}, {"dc2", "2"}}),
+                CreateKeyspaceMetadata(null, "ks1", true, strategy, new Dictionary<string, string> {{"dc1", "2"}, {"dc2", "2"}}),
                 //Testing simple (even it is not supposed to be)
-                new KeyspaceMetadata(null, "ks2", true, ReplicationStrategies.SimpleStrategy, new Dictionary<string, string> {{"replication_factor", "3"}}),
+                CreateKeyspaceMetadata(null, "ks2", true, ReplicationStrategies.SimpleStrategy, new Dictionary<string, string> {{"replication_factor", "3"}}),
                 //network strategy with rf 3 dc1 and 1 dc2
-                new KeyspaceMetadata(null, "ks3", true, strategy, new Dictionary<string, string> {{"dc1", "3"}, {"dc2", "1"}, {"dc3", "5"}}),
+                CreateKeyspaceMetadata(null, "ks3", true, strategy, new Dictionary<string, string> {{"dc1", "3"}, {"dc2", "1"}, {"dc3", "5"}}),
                 //network strategy with rf 4 dc1
-                new KeyspaceMetadata(null, "ks4", true, strategy, new Dictionary<string, string> {{"dc1", "5"}})
+                CreateKeyspaceMetadata(null, "ks4", true, strategy, new Dictionary<string, string> {{"dc1", "5"}})
             };
             var tokenMap = TokenMap.Build("Murmur3Partitioner", hosts, keyspaces);
             //KS1
@@ -235,7 +235,7 @@ namespace Cassandra.Tests
                 TestHelper.CreateHost("192.168.0.2", "dc1", "rack1", new HashSet<string> {"200",      "2000", "20000"}),
                 TestHelper.CreateHost("192.168.0.3", "dc1", "rack1", new HashSet<string> {"300",      "3000", "30000"})
             };
-            var ks = new KeyspaceMetadata(null, "ks1", true, strategy, new Dictionary<string, string> { { "dc1", "2" } });
+            var ks = CreateKeyspaceMetadata(null, "ks1", true, strategy, new Dictionary<string, string> { { "dc1", "2" } });
             var map = TokenMap.Build("Murmur3Partitioner", hosts, new[] { ks });
             var replicas = map.GetReplicas("ks1", new M3PToken(0));
             Assert.AreEqual(2, replicas.Count);
@@ -256,9 +256,9 @@ namespace Cassandra.Tests
                 TestHelper.CreateHost("192.168.0.4", "dc2", "dc2_rack1", new HashSet<string> {"400", "4000", "40000"}),
                 TestHelper.CreateHost("192.168.0.5", "dc2", "dc2_rack2", new HashSet<string> {"500", "5000", "50000"})
             };
-            var ks1 = new KeyspaceMetadata(null, "ks1", true, strategy, new Dictionary<string, string> { { "dc1", "2" }, { "dc2", "1" } });
-            var ks2 = new KeyspaceMetadata(null, "ks2", true, strategy, new Dictionary<string, string> { { "dc1", "2" }, { "dc2", "1" } });
-            var ks3 = new KeyspaceMetadata(null, "ks3", true, strategy, new Dictionary<string, string> { { "dc1", "2" } });
+            var ks1 = CreateKeyspaceMetadata(null, "ks1", true, strategy, new Dictionary<string, string> { { "dc1", "2" }, { "dc2", "1" } });
+            var ks2 = CreateKeyspaceMetadata(null, "ks2", true, strategy, new Dictionary<string, string> { { "dc1", "2" }, { "dc2", "1" } });
+            var ks3 = CreateKeyspaceMetadata(null, "ks3", true, strategy, new Dictionary<string, string> { { "dc1", "2" } });
             var map = TokenMap.Build("Murmur3Partitioner", hosts, new[] { ks1, ks2, ks3 });
             var tokens1 = map.GetByKeyspace("ks1");
             var tokens2 = map.GetByKeyspace("ks2");
@@ -284,7 +284,7 @@ namespace Cassandra.Tests
                 TestHelper.CreateHost("192.168.0.6", "dc1", "dc1_rack2", new HashSet<string> {"6"}),
                 TestHelper.CreateHost("192.168.0.7", "dc2", "dc2_rack2", new HashSet<string> {"7"})
             };
-            var ks = new KeyspaceMetadata(null, "ks1", true, strategy, new Dictionary<string, string>
+            var ks = CreateKeyspaceMetadata(null, "ks1", true, strategy, new Dictionary<string, string>
             {
                 { "dc1", "3" },
                 { "dc2", "2" }
@@ -311,7 +311,7 @@ namespace Cassandra.Tests
                 TestHelper.CreateHost("192.168.0.6", "dc1", "dc1_rack2", new HashSet<string> {"6"}),
                 TestHelper.CreateHost("192.168.0.7", "dc2", "dc2_rack2", new HashSet<string> {"7"})
             };
-            var ks = new KeyspaceMetadata(null, "ks1", true, strategy, new Dictionary<string, string>
+            var ks = CreateKeyspaceMetadata(null, "ks1", true, strategy, new Dictionary<string, string>
             {
                 { "dc1", "3" },
                 { "dc2", "2" }
@@ -344,7 +344,7 @@ namespace Cassandra.Tests
                 var tokens = (HashSet<string>)hosts[i % hosts.Length].Tokens;
                 tokens.Add(i.ToString());
             }
-            var ks = new KeyspaceMetadata(null, "ks1", true, strategy, new Dictionary<string, string>
+            var ks = CreateKeyspaceMetadata(null, "ks1", true, strategy, new Dictionary<string, string>
             {
                 { "dc1", "3" },
                 { "dc2", "2" },
@@ -565,6 +565,25 @@ namespace Cassandra.Tests
             Assert.IsNull(metadata.TokenToReplicasMap);
             metadata.RefreshSingleKeyspace("ks1").GetAwaiter().GetResult();
             Assert.NotNull(metadata.TokenToReplicasMap);
+        }
+
+        private KeyspaceMetadata CreateKeyspaceMetadata(
+            Metadata parent, 
+            string name, 
+            bool durableWrites, 
+            string strategyClass,
+            IDictionary<string, string> replicationOptions,
+            bool isVirtual = false)
+        {
+            return new KeyspaceMetadata(
+                parent, 
+                name, 
+                durableWrites, 
+                strategyClass, 
+                replicationOptions, 
+                new ReplicationStrategyFactory(), 
+                null, 
+                isVirtual);
         }
 
         private void AssertSameReplicas(IEnumerable<KeyspaceMetadata> keyspaces, IReadOnlyTokenMap expectedTokenMap, IReadOnlyTokenMap actualTokenMap)

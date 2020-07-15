@@ -100,6 +100,12 @@ namespace Cassandra
             ShutDown();
         }
 
+        internal KeyspaceMetadata GetKeyspaceFromCache(string keyspace)
+        {
+            _keyspaces.TryGetValue(keyspace, out var ks);
+            return ks;
+        }
+
         internal void SetResolvedContactPoints(IDictionary<IContactPoint, IEnumerable<IConnectionEndPoint>> resolvedContactPoints)
         {
             _resolvedContactPoints = new CopyOnWriteDictionary<IContactPoint, IEnumerable<IConnectionEndPoint>>(resolvedContactPoints);

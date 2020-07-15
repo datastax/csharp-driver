@@ -82,7 +82,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 {
                     process.StartInfo.WorkingDirectory = workDir;
                 }
-                
+
                 process.Start();
 
                 var processEndTokenSource = new CancellationTokenSource();
@@ -113,8 +113,8 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 var stdOut = tStandardOutput.GetAwaiter().GetResult();
                 var stdErr = tStandardError.GetAwaiter().GetResult();
 
-                output.SetOutput(stdOut + Environment.NewLine + 
-                                 "STDERR:" + Environment.NewLine + 
+                output.SetOutput(stdOut + Environment.NewLine +
+                                 "STDERR:" + Environment.NewLine +
                                  stdErr);
             }
             return output;

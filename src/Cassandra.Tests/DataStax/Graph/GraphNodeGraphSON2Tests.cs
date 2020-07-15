@@ -15,6 +15,7 @@
 //
 
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Net;
@@ -34,7 +35,7 @@ namespace Cassandra.Tests.DataStax.Graph
         [TestCase("\"something\"", "something")]
         [TestCase("true", true)]
         [TestCase("false", false)]
-        [TestCase("{\"@type\": \"g:Int16\", \"@value\": 12}", (short)12)]
+        [TestCase("{\"@type\": \"gx:Int16\", \"@value\": 12}", (short)12)]
         [TestCase("{\"@type\": \"g:Int32\", \"@value\": 123}", 123)]
         [TestCase("{\"@type\": \"g:Int64\", \"@value\": 456}", 456L)]
         [TestCase("{\"@type\": \"g:Float\", \"@value\": 123.1}", 123.1f)]
@@ -49,19 +50,17 @@ namespace Cassandra.Tests.DataStax.Graph
         [Test]
         public void Implicit_Conversion_Operators_Test()
         {
-            var intNode = GraphNodeGraphSON2Tests.GetGraphNode("{\"@type\": \"g:Int16\", \"@value\": 123}");
-            Assert.AreEqual(123, (int) intNode);
-            Assert.AreEqual(123L, (long) intNode);
-            Assert.AreEqual((short)123, (short) intNode);
-            Assert.AreEqual(123, (int) intNode);
+            var intNode = GraphNodeGraphSON2Tests.GetGraphNode("{\"@type\": \"gx:Int16\", \"@value\": 123}");
+            Assert.AreEqual(123, (int)intNode);
+            Assert.AreEqual(123L, (long)intNode);
+            Assert.AreEqual((short)123, (short)intNode);
             string stringValue = GraphNodeGraphSON2Tests.GetGraphNode("\"something\"");
             Assert.AreEqual("something", stringValue);
             bool boolValue = GraphNodeGraphSON2Tests.GetGraphNode("true");
             Assert.True(boolValue);
             var floatNode = GraphNodeGraphSON2Tests.GetGraphNode("{\"@type\": \"g:Float\", \"@value\": 123.1}");
             Assert.AreEqual(123.1f, (float) floatNode);
-            Assert.AreEqual(123.1D, (double) floatNode);
-        }
+            Assert.AreEqual((double)123.1f, (double) floatNode);        }
 
         [Test]
         public void To_Should_Throw_For_Structs_With_Null()
@@ -78,11 +77,26 @@ namespace Cassandra.Tests.DataStax.Graph
             Assert.Throws<InvalidOperationException>(() => node.To<BigInteger>());
             Assert.Throws<InvalidOperationException>(() => node.To<Duration>());
         }
+        [Test]
+        public void To_Should_Not_Throw_For_Nullables_With_Null()
+        {
+            var node = GraphNodeGraphSON2Tests.GetGraphNode("null");
+            Assert.IsNull(node.To<short?>());
+            Assert.IsNull(node.To<int?>());
+            Assert.IsNull(node.To<long?>());
+            Assert.IsNull(node.To<decimal?>());
+            Assert.IsNull(node.To<float?>());
+            Assert.IsNull(node.To<double?>());
+            Assert.IsNull(node.To<Guid?>());
+            Assert.IsNull(node.To<TimeUuid?>());
+            Assert.IsNull(node.To<BigInteger?>());
+            Assert.IsNull(node.To<Duration?>());
+        }
 
         [Test]
         public void To_Should_Parse_Nullable_Values()
         {
-            var nodes = new[] { GraphNodeGraphSON2Tests.GetGraphNode("null"), GraphNodeGraphSON2Tests.GetGraphNode("{\"@type\": \"gz:Obj\", \"@value\": null}") };
+            var nodes = new[] { GraphNodeGraphSON2Tests.GetGraphNode("null"), GraphNodeGraphSON2Tests.GetGraphNode("{\"@type\": \"g:Vertex\", \"@value\": null}") };
             foreach (var node in nodes)
             {
                 Assert.Null(node.To<short?>());
@@ -97,22 +111,22 @@ namespace Cassandra.Tests.DataStax.Graph
                 Assert.Null(node.To<Duration?>());
                 Assert.Null(node.To<DateTimeOffset?>());
             }
-            Assert.AreEqual(1, GraphNodeGraphSON2Tests.GetGraphNode("{\"@type\": \"g:Int16\", \"@value\": 1}").To<short?>());
+            Assert.AreEqual(1, GraphNodeGraphSON2Tests.GetGraphNode("{\"@type\": \"gx:Int16\", \"@value\": 1}").To<short?>());
             Assert.AreEqual(1, GraphNodeGraphSON2Tests.GetGraphNode("{\"@type\": \"g:Int32\", \"@value\": 1}").To<int?>());
             Assert.AreEqual(1L, GraphNodeGraphSON2Tests.GetGraphNode("{\"@type\": \"g:Int64\", \"@value\": 1}").To<long?>());
-            Assert.AreEqual(1M, GraphNodeGraphSON2Tests.GetGraphNode("{\"@type\": \"g:BigDecimal\", \"@value\": 1}").To<decimal?>());
+            Assert.AreEqual(1M, GraphNodeGraphSON2Tests.GetGraphNode("{\"@type\": \"gx:BigDecimal\", \"@value\": 1}").To<decimal?>());
             Assert.AreEqual(1F, GraphNodeGraphSON2Tests.GetGraphNode("{\"@type\": \"g:Float\", \"@value\": 1}").To<float?>());
             Assert.AreEqual(1D, GraphNodeGraphSON2Tests.GetGraphNode("{\"@type\": \"g:Double\", \"@value\": 1}").To<double?>());
-            Assert.AreEqual(Guid.Parse("2cc83ef0-5da4-11e7-8c51-2578d2fa5d3a"), GraphNodeGraphSON2Tests.GetGraphNode(
-                "{\"@type\": \"g:Int16\", \"@value\": \"2cc83ef0-5da4-11e7-8c51-2578d2fa5d3a\"}").To<Guid?>());
+            Assert.AreEqual(null, GraphNodeGraphSON2Tests.GetGraphNode(
+                "{\"@type\": \"gx:Int16\", \"@value\": null}").To<Guid?>());
             Assert.AreEqual((TimeUuid) Guid.Parse("2cc83ef0-5da4-11e7-8c51-2578d2fa5d3a"), GraphNodeGraphSON2Tests.GetGraphNode(
                 "{\"@type\": \"g:UUID\", \"@value\": \"2cc83ef0-5da4-11e7-8c51-2578d2fa5d3a\"}").To<TimeUuid?>());
             Assert.AreEqual(BigInteger.Parse("1"), 
-                            GraphNodeGraphSON2Tests.GetGraphNode("{\"@type\": \"g:Int16\", \"@value\": 1}").To<BigInteger?>());
+                            GraphNodeGraphSON2Tests.GetGraphNode("{\"@type\": \"gx:Int16\", \"@value\": 1}").To<BigInteger?>());
             Assert.AreEqual(Duration.Parse("12h"), 
-                            GraphNodeGraphSON2Tests.GetGraphNode("{\"@type\": \"g:Duration\", \"@value\": \"12h\"}").To<Duration?>());
+                            GraphNodeGraphSON2Tests.GetGraphNode("{\"@type\": \"gx:Duration\", \"@value\": \"12h\"}").To<Duration?>());
             Assert.AreEqual(DateTimeOffset.Parse("1970-01-01 00:00:01Z"), 
-                GraphNodeGraphSON2Tests.GetGraphNode("{\"@type\": \"gx:Instant\", \"@value\": 1000}").To<DateTimeOffset?>());
+                GraphNodeGraphSON2Tests.GetGraphNode("{\"@type\": \"g:Timestamp\", \"@value\": 1000}").To<DateTimeOffset?>());
         }
 
         [TestCase("\"something\"", "something")]
@@ -251,12 +265,41 @@ namespace Cassandra.Tests.DataStax.Graph
             CollectionAssert.AreEqual(Encoding.UTF8.GetBytes(stringValue), node.To<byte[]>());
         }
 
-        [TestCase("{\"@type\": \"gx:Instant\", \"@value\": 1000}", 
+        [TestCase("{\"@type\": \"g:Timestamp\", \"@value\": 1000}", 
             "1970-01-01 00:00:01Z")]
+        [TestCase("{\"@type\": \"gx:Instant\", \"@value\": \"2016-12-14T16:39:19.349Z\"}", 
+            "2016-12-14T16:39:19.349Z")]
+        [TestCase("null", null)]
         public void To_Should_Parse_DateTimeOffset_Values(string json, string stringValue)
         {
             var node = GraphNodeGraphSON2Tests.GetGraphNode(json);
-            Assert.AreEqual(DateTimeOffset.Parse(stringValue), node.To<DateTimeOffset>());
+            if (stringValue == null)
+            {
+                Assert.AreEqual(null, node.To<DateTimeOffset?>());
+            }
+            else
+            {
+                Assert.AreEqual(DateTimeOffset.Parse(stringValue, CultureInfo.InvariantCulture), node.To<DateTimeOffset>());
+                Assert.AreEqual(DateTimeOffset.Parse(stringValue, CultureInfo.InvariantCulture), node.To<DateTimeOffset?>());
+            }
+        }
+        
+        [TestCase("{\"@type\": \"gx:Instant\", \"@value\": \"2016-12-14T16:39:19.349Z\"}", 
+            "2016-12-14T16:39:19.349Z")]
+        [TestCase("null", null)]
+        public void To_Should_Parse_Instant_Values(string json, string stringValue)
+        {
+            var node = GraphNodeGraphSON2Tests.GetGraphNode(json);
+            if (stringValue == null)
+            {
+                Assert.AreEqual(null, node.To<JavaInstant?>());
+            }
+            else
+            {
+                Assert.AreEqual(DateTimeOffset.Parse(stringValue, CultureInfo.InvariantCulture), node.To<JavaInstant>());
+                Assert.AreEqual(DateTimeOffset.Parse(stringValue, CultureInfo.InvariantCulture), node.To<JavaInstant?>());
+                Assert.AreEqual(new JavaInstant(DateTimeOffset.Parse(stringValue, CultureInfo.InvariantCulture)), node.To<JavaInstant>());
+            }
         }
 
         [TestCase("{\"@type\": \"gx:LocalDate\", \"@value\": \"1981-09-14\"}", "1981-09-14")]
@@ -298,6 +341,100 @@ namespace Cassandra.Tests.DataStax.Graph
         }
 
         [Test]
+        public void To_Should_Parse_Edge_Values()
+        {
+            var node = GraphNodeGraphSON2Tests.GetGraphNode(
+                @"{
+  ""@type"" : ""g:Edge"",
+  ""@value"" : {
+    ""id"" : { ""@type"" : ""g:Int32"", ""@value"" : 13 },
+    ""label"" : ""develops"",
+    ""inVLabel"" : ""software"",
+    ""outVLabel"" : ""person"",
+    ""inV"" : { ""@type"" : ""g:Int32"",""@value"" : 10 },
+    ""outV"" : {""@type"" : ""g:Int32"",""@value"" : 1 },
+    ""properties"" : { ""since"" : { ""@type"" : ""g:Int32"", ""@value"" : 2009 } }
+  }
+}");
+            var edge = node.To<Edge>();
+            Assert.AreEqual("develops", edge.Label);
+            Assert.AreEqual("software", edge.InVLabel);
+            Assert.AreEqual("person", edge.OutVLabel);
+            Assert.AreEqual(10, edge.InV.To<int>());
+            Assert.AreEqual(1, edge.OutV.To<int>());
+            Assert.AreEqual(2009, edge.Properties["since"].To<int>());
+            Assert.AreEqual(2009, edge.GetProperty("since").Value.To<int>());
+            Assert.Null(edge.GetProperty("nonExistent"));
+        }
+
+        [Test]
+        public void To_Should_Parse_Path_Values()
+        {
+            var node = GraphNodeGraphSON2Tests.GetGraphNode(
+                @"{
+  ""@type"" : ""g:Path"",
+  ""@value"" : {
+    ""labels"" : [ [ ], [ ], [ ] ],
+    ""objects"" : [ {
+      ""@type"" : ""g:Vertex"",
+      ""@value"" : {
+        ""id"" : { ""@type"" : ""g:Int32"", ""@value"" : 1 },
+        ""label"" : ""person""
+      }
+    }, {
+      ""@type"" : ""g:Vertex"",
+      ""@value"" : {
+        ""id"" : { ""@type"" : ""g:Int32"", ""@value"" : 10 },
+        ""label"" : ""software"",
+        ""properties"" : { ""name"" : [ { ""@type"" : ""g:VertexProperty"", ""@value"" : { ""id"" : { ""@type"" : ""g:Int64"", ""@value"" : 4 }, ""value"" : ""gremlin"", ""vertex"" : { ""@type"" : ""g:Int32"", ""@value"" : 10 }, ""label"" : ""name"" } } ]
+     }
+      }
+    }, {
+      ""@type"" : ""g:Vertex"",
+      ""@value"" : {
+        ""id"" : { ""@type"" : ""g:Int32"", ""@value"" : 11 },
+        ""label"" : ""software"",
+        ""properties"" : {
+          ""name"" : [ 
+		      { ""@type"" : ""g:VertexProperty"", ""@value"" : { ""id"" : { ""@type"" : ""g:Int64"", ""@value"" : 5 }, ""value"" : ""tinkergraph"", ""vertex"" : { ""@type"" : ""g:Int32"", ""@value"" : 11 }, ""label"" : ""name"" } } ]
+        }
+      }
+    } ]
+  }
+}");
+            var path = node.To<Path>();
+            Assert.AreEqual(3, path.Labels.Count);
+            Assert.IsTrue(path.Labels.All(c => c.Count == 0));
+
+            var firstVertex = path.Objects.ElementAt(0).To<Vertex>();
+            Assert.AreEqual(1, firstVertex.Id.To<int>());
+            Assert.AreEqual("person", firstVertex.Label);
+            Assert.AreEqual(0, firstVertex.Properties.Count);
+            
+            var secondVertex = path.Objects.ElementAt(1).To<Vertex>();
+            Assert.AreEqual(10, secondVertex.Id.To<int>());
+            Assert.AreEqual("software", secondVertex.Label);
+            Assert.AreEqual(1, secondVertex.Properties.Count);
+            Assert.AreEqual(1, secondVertex.Properties.Single().Value.To<IEnumerable<VertexProperty>>().Count());
+            var secondVertexProperty = secondVertex.GetProperty("name");
+            Assert.AreEqual(4L, secondVertexProperty.Id.To<long>());
+            Assert.AreEqual("gremlin", secondVertexProperty.Value.To<string>());
+            Assert.AreEqual("name", secondVertexProperty.Label);
+            Assert.AreEqual(10, secondVertexProperty.Vertex.To<int>());
+            
+            var thirdVertex = path.Objects.ElementAt(2).To<Vertex>();
+            Assert.AreEqual(11, thirdVertex.Id.To<int>());
+            Assert.AreEqual("software", thirdVertex.Label);
+            Assert.AreEqual(1, thirdVertex.Properties.Count);
+            Assert.AreEqual(1, thirdVertex.Properties.Single().Value.To<IEnumerable<VertexProperty>>().Count());
+            var thirdVertexProperty = thirdVertex.GetProperty("name");
+            Assert.AreEqual(5L, thirdVertexProperty.Id.To<long>());
+            Assert.AreEqual("tinkergraph", thirdVertexProperty.Value.To<string>());
+            Assert.AreEqual("name", thirdVertexProperty.Label);
+            Assert.AreEqual(11, thirdVertexProperty.Vertex.To<int>());
+        }
+
+        [Test]
         public void To_Should_Parse_Null_Vertex_Edge_Or_Path()
         {
             var node = GraphNodeGraphSON2Tests.GetGraphNode("null");
@@ -310,9 +447,8 @@ namespace Cassandra.Tests.DataStax.Graph
         }
         
         [Test]
-        public void GraphNode_Should_Be_Serializable_Json()
+        public void GraphNode_Ctor_Should_ThrowNotSupported_When_TypedGraphSON()
         {
-            var settings = new JsonSerializerSettings();
             const string json = "{\"@type\":\"g:Vertex\",\"@value\":{" +
                                 "\"id\":{\"@type\":\"g:Int32\",\"@value\":1368843392}," +
                                 "\"label\":\"user\"," +
@@ -320,25 +456,7 @@ namespace Cassandra.Tests.DataStax.Graph
                                 "\"name\":[{\"@type\":\"g:VertexProperty\",\"@value\":{\"id\":{\"@type\":\"g:Int64\",\"@value\":0},\"value\":\"jorge\"}}]," +
                                 "\"age\":[{\"@type\":\"g:VertexProperty\",\"@value\":{\"id\":{\"@type\":\"g:Int64\",\"@value\":1},\"value\":{\"@type\":\"g:Int32\",\"@value\":35}}}]}" +
                                 "}}";
-            IGraphNode node = new GraphNode("{\"result\":" + json + "}");
-            var serialized = JsonConvert.SerializeObject(node, settings);
-            Assert.AreEqual(json, serialized);
-        }
-
-        [Test]
-        public void GraphNode_Should_ThrowNotSupported_When_JsonSerializeWithGraphSON2Converter()
-        {
-            var settings = new JsonSerializerSettings();
-            settings = GraphSON2ContractResolver.Settings;
-            const string json = "{\"@type\":\"g:Vertex\",\"@value\":{" +
-                                "\"id\":{\"@type\":\"g:Int32\",\"@value\":1368843392}," +
-                                "\"label\":\"user\"," +
-                                "\"properties\":{" +
-                                "\"name\":[{\"@type\":\"g:VertexProperty\",\"@value\":{\"id\":{\"@type\":\"g:Int64\",\"@value\":0},\"value\":\"jorge\"}}]," +
-                                "\"age\":[{\"@type\":\"g:VertexProperty\",\"@value\":{\"id\":{\"@type\":\"g:Int64\",\"@value\":1},\"value\":{\"@type\":\"g:Int32\",\"@value\":35}}}]}" +
-                                "}}";
-            IGraphNode node = new GraphNode("{\"result\":" + json + "}");
-            Assert.Throws<NotSupportedException>(() => JsonConvert.SerializeObject(node, settings));
+            Assert.Throws<NotSupportedException>(() => new GraphNode("{\"result\":" + json + "}"));
         }
 
         /// <summary>
@@ -355,7 +473,7 @@ namespace Cassandra.Tests.DataStax.Graph
 
         private static GraphNode GetGraphNode(string json)
         {
-            return new GraphNode(new GraphSON2Node("{\"result\": " + json + "}"));
+            return new GraphNode(new GraphSONNode("{\"result\": " + json + "}"));
         }
     }
 }
