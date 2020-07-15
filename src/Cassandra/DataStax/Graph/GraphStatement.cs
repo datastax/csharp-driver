@@ -17,6 +17,7 @@
 using System;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using Cassandra.SessionManagement;
 
 namespace Cassandra.DataStax.Graph
 {
@@ -36,6 +37,8 @@ namespace Cassandra.DataStax.Graph
 
         /// <inheritdoc/>
         public string GraphName { get; protected set; }
+
+        public GraphProtocol? GraphProtocolVersion { get; protected set; }
 
         /// <inheritdoc/>
         public ConsistencyLevel? GraphReadConsistencyLevel { get; protected set; }
@@ -96,6 +99,12 @@ namespace Cassandra.DataStax.Graph
             return this;
         }
 
+        public IGraphStatement SetGraphProtocolVersion(GraphProtocol graphProtocol)
+        {
+            GraphProtocolVersion = graphProtocol;
+            return this;
+        }
+
         /// <inheritdoc />
         public IGraphStatement SetGraphReadConsistencyLevel(ConsistencyLevel consistency)
         {
@@ -145,6 +154,7 @@ namespace Cassandra.DataStax.Graph
             return this;
         }
 
+        /// <inheritdoc />
         IStatement IGraphStatement.ToIStatement(GraphOptions options)
         {
             return GetIStatement(options);

@@ -19,9 +19,10 @@ using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
 using System.Runtime.Serialization;
+
 using Cassandra.Serialization.Graph;
 using Cassandra.Serialization.Graph.GraphSON1;
-using Cassandra.Serialization.Graph.GraphSON2;
+
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -50,6 +51,11 @@ namespace Cassandra.DataStax.Graph
         /// Returns true if the underlying value is a scalar value (string, double, boolean, ...).
         /// </summary>
         public bool IsScalar => _node.IsScalar;
+        
+        /// <summary>
+        /// Returns the GraphSON type (@type property). Returns null if there isn't one.
+        /// </summary>
+        internal string GetGraphSONType() => _node.GetGraphSONType();
 
         /// <summary>
         /// Gets the number of identical results represented by this instance.
@@ -64,14 +70,14 @@ namespace Cassandra.DataStax.Graph
         public GraphNode(string json)
         {
             // A local default
-            _node = new GraphSON1Node(json);
+            _node = new GraphSON1Node(json, true);
         }
-        
+
         internal GraphNode(INode node)
         {
             _node = node;
         }
-        
+
         /// <summary>
         /// Creates a new instance of <see cref="GraphNode"/> using a serialization information.
         /// </summary>
@@ -87,7 +93,7 @@ namespace Cassandra.DataStax.Graph
                 }
                 if (field.Value is IEnumerable<object>)
                 {
-                    var values = (IEnumerable<object>) field.Value;
+                    var values = (IEnumerable<object>)field.Value;
                     objectTree.Add(field.Name, new JArray(values.ToArray()));
                     continue;
                 }
@@ -95,11 +101,12 @@ namespace Cassandra.DataStax.Graph
             }
             if (objectTree["@type"] != null)
             {
-                _node = new GraphSON2Node(objectTree);
+                throw new NotSupportedException(
+                    "Deserializing a graph node from JSON is not supported with GraphSON2 or GraphSON3.");
             }
             else
             {
-                _node = new GraphSON1Node(objectTree);   
+                _node = GraphSON1Node.CreateParsedNode(objectTree);
             }
         }
 
@@ -107,11 +114,12 @@ namespace Cassandra.DataStax.Graph
         {
             if (objectTree["@type"] != null)
             {
-                _node = new GraphSON2Node(objectTree);
+                throw new NotSupportedException(
+                    "Deserializing a graph node from JSON is not supported with GraphSON2 or GraphSON3.");
             }
             else
             {
-                _node = new GraphSON1Node(objectTree);   
+                _node = GraphSON1Node.CreateParsedNode(objectTree);
             }
         }
 
@@ -226,7 +234,17 @@ namespace Cassandra.DataStax.Graph
         /// <exception cref="NotSupportedException">
         /// Throws NotSupportedException when the target type is not supported
         /// </exception>
-        public T To<T>() => (T) To(typeof(T));
+        public T To<T>()
+        {
+            var type = typeof(T);
+            if ((type == typeof(object) && _node.DeserializeGraphNodes) 
+                || type == typeof(GraphNode) 
+                || type == typeof(IGraphNode))
+            {
+                return (T)(object)this;
+            }
+            return _node.To<T>();
+        }
 
         /// <summary>
         /// Returns the representation of the <see cref="GraphNode"/> as an instance of the type provided.
@@ -240,7 +258,9 @@ namespace Cassandra.DataStax.Graph
             {
                 throw new ArgumentNullException(nameof(type));
             }
-            if (type == typeof(object) || type == typeof(GraphNode) || type == typeof(IGraphNode))
+            if ((type == typeof(object) && _node.DeserializeGraphNodes) 
+                || type == typeof(GraphNode) 
+                || type == typeof(IGraphNode))
             {
                 return this;
             }
@@ -275,6 +295,9 @@ namespace Cassandra.DataStax.Graph
         /// </exception>
         /// <exception cref="InvalidCastException">When the scalar value is not convertible to target type.</exception>
         public double ToDouble() => To<double>();
+
+        /// <inheritdoc />
+        public float ToFloat() => To<float>();
 
         /// <summary>
         /// Returns an edge representation of the current instance.

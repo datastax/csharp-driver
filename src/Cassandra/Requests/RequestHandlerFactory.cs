@@ -37,5 +37,10 @@ namespace Cassandra.Requests
         {
             return new RequestHandler(session, serializer);
         }
+
+        public IGraphRequestHandler CreateGraphRequestHandler(IInternalSession session, IGraphTypeSerializerFactory graphTypeSerializerFactory)
+        {
+            return new GraphRequestHandler(session, graphTypeSerializerFactory);
+        }
     }
 }

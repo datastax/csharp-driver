@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
+using Cassandra.MetadataHelpers;
 using Cassandra.Serialization;
 using Cassandra.Tasks;
 using SortOrder = Cassandra.DataCollectionMetadata.SortOrder;
@@ -182,6 +183,8 @@ namespace Cassandra
                 row.GetValue<bool>("durable_writes"),
                 row.GetValue<string>("strategy_class"),
                 Utils.ConvertStringToMap(row.GetValue<string>("strategy_options")),
+                new ReplicationStrategyFactory(),
+                row.ContainsColumn("graph_engine") ? row.GetValue<string>("graph_engine") : null,
                 false);
         }
 
@@ -559,7 +562,9 @@ namespace Cassandra
                 row.GetValue<string>("keyspace_name"),
                 row.GetValue<bool>("durable_writes"),
                 strategy,
-                replication);
+                replication,
+                new ReplicationStrategyFactory(),
+                row.ContainsColumn("graph_engine") ? row.GetValue<string>("graph_engine") : null);
         }
 
         public override async Task<KeyspaceMetadata> GetKeyspaceAsync(string name)
@@ -953,6 +958,8 @@ namespace Cassandra
                 true,
                 null,
                 null,
+                new ReplicationStrategyFactory(),
+                row.ContainsColumn("graph_engine") ? row.GetValue<string>("graph_engine") : null,
                 true);
         }
 

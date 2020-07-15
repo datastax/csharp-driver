@@ -322,6 +322,14 @@ namespace Cassandra
         }
 
         /// <summary>
+        /// Combines the hash code based on the value of nullable items
+        /// </summary>
+        internal static int CombineHashCodeWithNulls(params object[] items)
+        {
+            return Utils.CombineHashCodeWithNulls<object>(items);
+        }
+
+        /// <summary>
         /// Returns true if the ConsistencyLevel is either <see cref="ConsistencyLevel.Serial"/> or <see cref="ConsistencyLevel.LocalSerial"/>,
         /// otherwise false.
         /// </summary>

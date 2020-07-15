@@ -29,7 +29,7 @@ namespace Cassandra.Geometry
     /// </summary>
     [Serializable]
     [JsonConverter(typeof(PointJsonConverter))]
-    public class Point : GeometryBase
+    public class Point : GeometryBase, IComparable<Point>
     {
         private static readonly Regex WktRegex = new Regex(
             @"^POINT\s?\(([-0-9\.]+) ([-0-9\.]+)\)$", RegexOptions.Compiled);
@@ -124,6 +124,27 @@ namespace Cassandra.Geometry
                 throw InvalidFormatException(textValue);
             }
             return new Point(Convert.ToDouble(match.Groups[1].Value, CultureInfo.InvariantCulture), Convert.ToDouble(match.Groups[2].Value, CultureInfo.InvariantCulture));
+        }
+
+        public int CompareTo(Point other)
+        {
+            if (ReferenceEquals(this, other))
+            {
+                return 0;
+            }
+
+            if (ReferenceEquals(null, other))
+            {
+                return 1;
+            }
+
+            var xComparison = X.CompareTo(other.X);
+            if (xComparison != 0)
+            {
+                return xComparison;
+            }
+
+            return Y.CompareTo(other.Y);
         }
     }
 }

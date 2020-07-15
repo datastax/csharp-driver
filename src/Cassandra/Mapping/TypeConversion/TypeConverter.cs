@@ -43,7 +43,7 @@ namespace Cassandra.Mapping.TypeConversion
 
         private const BindingFlags PrivateStatic = BindingFlags.NonPublic | BindingFlags.Static;
         private const BindingFlags PrivateInstance = BindingFlags.NonPublic | BindingFlags.Instance;
-
+        
         private static readonly MethodInfo FindFromDbConverterMethod = typeof (TypeConverter).GetTypeInfo()
             .GetMethod(nameof(FindFromDbConverter), PrivateInstance);
 
@@ -199,8 +199,7 @@ namespace Cassandra.Mapping.TypeConversion
 
             return (Func<TSource, TResult>) converter;
         }
-
-
+        
         /// <summary>
         /// Gets a Function that can convert a source type value on a POCO to a destination type value for storage in C*.
         /// </summary>
@@ -287,11 +286,16 @@ namespace Cassandra.Mapping.TypeConversion
                 return timeUuidMapper;
             }
 
-            if (dbType.GetTypeInfo().IsGenericType)
+            if (dbType.GetTypeInfo().IsGenericType || dbType.GetInterfaces().Any(i => i.IsGenericType))
             {
-                Type sourceGenericDefinition = dbType.GetTypeInfo().GetGenericTypeDefinition();
-                Type[] sourceGenericArgs = dbType.GetTypeInfo().GetGenericArguments();
-                if (pocoType.IsArray && sourceGenericDefinition == typeof(IEnumerable<>))
+                Type sourceEnumerableInterface = dbType.IsGenericType && dbType.GetGenericTypeDefinition() == typeof(IEnumerable<>) 
+                    ? dbType 
+                    : dbType.GetInterfaces().FirstOrDefault(
+                        i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
+                Type[] sourceGenericArgs = sourceEnumerableInterface != null 
+                    ? sourceEnumerableInterface.GetTypeInfo().GetGenericArguments()
+                    : dbType.GetTypeInfo().GetGenericArguments();
+                if (pocoType.IsArray && sourceEnumerableInterface != null)
                 {
                     return ConvertToArrayFromDbMethod
                         .MakeGenericMethod(sourceGenericArgs[0], pocoType.GetTypeInfo().GetElementType())
@@ -302,21 +306,30 @@ namespace Cassandra.Mapping.TypeConversion
                     var targetGenericType = pocoType.GetTypeInfo().GetGenericTypeDefinition();
                     var targetGenericArgs = pocoType.GetTypeInfo().GetGenericArguments();
                     
-                    if (sourceGenericDefinition == typeof(IDictionary<,>))
+                    Type sourceDictionaryInterface = dbType.IsGenericType && dbType.GetGenericTypeDefinition() == typeof(IDictionary<,>) 
+                        ? dbType 
+                        : dbType.GetInterfaces().FirstOrDefault(
+                            i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IDictionary<,>));
+                    
+                    sourceGenericArgs = sourceDictionaryInterface != null 
+                        ? sourceDictionaryInterface.GetTypeInfo().GetGenericArguments()
+                        : sourceGenericArgs;
+
+                    if (sourceDictionaryInterface != null)
                     {
                         return ConvertFromIDictionary(targetGenericType, sourceGenericArgs, targetGenericArgs,
                             pocoType);
                     }
 
                     // IEnumerable<> could be a Set or a List from Cassandra
-                    if (sourceGenericDefinition == typeof(IEnumerable<>))
+                    if (sourceEnumerableInterface != null)
                     {
                         return ConvertFromIEnumerable(targetGenericType, sourceGenericArgs, targetGenericArgs,
                             pocoType);
                     }
                 }
             }
-            
+
             return null;
         }
 

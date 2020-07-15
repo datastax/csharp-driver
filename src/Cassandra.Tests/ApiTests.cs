@@ -62,6 +62,7 @@ namespace Cassandra.Tests
                 "Cassandra.DataStax.Auth",
                 "Cassandra.DataStax.Auth.Sspi",
                 "Cassandra.DataStax.Graph",
+                "Cassandra.DataStax.Graph.Internal",
                 "Cassandra.DataStax.Search",
                 "Cassandra.Geometry",
                 "Cassandra.Mapping",

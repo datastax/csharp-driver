@@ -22,7 +22,7 @@ using Cassandra.DataStax.Graph;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace Cassandra.Serialization.Graph
+namespace Cassandra.Serialization.Graph.GraphSON1
 {
     internal abstract class GraphSONConverter : JsonConverter
     {
@@ -65,7 +65,7 @@ namespace Cassandra.Serialization.Graph
 
         protected Vertex ToVertex(JToken token)
         {
-            var properties = EmptyProperties;
+            var properties = GraphSONConverter.EmptyProperties;
             var propertiesJsonProp = token["properties"] as JObject;
             if (propertiesJsonProp != null)
             {
@@ -81,7 +81,7 @@ namespace Cassandra.Serialization.Graph
 
         protected Edge ToEdge(JToken token)
         {
-            var properties = EmptyProperties;
+            var properties = GraphSONConverter.EmptyProperties;
             var propertiesJsonProp = token["properties"] as JObject;
             if (propertiesJsonProp != null)
             {
@@ -134,14 +134,16 @@ namespace Cassandra.Serialization.Graph
             return new VertexProperty(
                 graphNode.Get<GraphNode>("id", true), graphNode.Get<string>("label"),
                 graphNode.Get<GraphNode>("value", true),
-                graphNode.Get<GraphNode>("properties")?.GetProperties() ?? EmptyProperties);
+                graphNode.Get<GraphNode>("vertex"),
+                graphNode.Get<GraphNode>("properties")?.GetProperties() ?? GraphSONConverter.EmptyProperties);
         }
 
         protected IProperty ToProperty(JToken token)
         {
             return new Property(
                 ToString(token, "key", true),
-                ToGraphNode(token, "value"));
+                ToGraphNode(token, "value"),
+                ToGraphNode(token, "element"));
         }
 
         protected TimeUuid ParseTimeUuid(string value)

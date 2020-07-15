@@ -57,8 +57,8 @@ namespace Cassandra.Serialization.Graph.GraphSON1
                 { typeof(Duration), (r, _) => Duration.Parse(r.Value.ToString()) },
                 { typeof(LocalDate), (r, _) => LocalDate.Parse(r.Value.ToString()) },
                 { typeof(LocalTime), (r, _) => LocalTime.Parse(r.Value.ToString()) },
-                { typeof(GraphNode), GetTokenReader(t => new GraphNode(new GraphSON1Node(t))) },
-                { typeof(IGraphNode), GetTokenReader(t => new GraphNode(new GraphSON1Node(t))) },
+                { typeof(GraphNode), GetTokenReader(t => new GraphNode(GraphSON1Node.CreateParsedNode(t))) },
+                { typeof(IGraphNode), GetTokenReader(t => new GraphNode(GraphSON1Node.CreateParsedNode(t))) },
                 { typeof(Vertex), GetTokenReader(ToVertex) },
                 { typeof(IVertex), GetTokenReader(ToVertex) },
                 { typeof(Edge), GetTokenReader(ToEdge) },
@@ -104,7 +104,7 @@ namespace Cassandra.Serialization.Graph.GraphSON1
 
         protected override GraphNode ToGraphNode(JToken token)
         {
-            return token == null ? null : new GraphNode(new GraphSON1Node(token));
+            return token == null ? null : new GraphNode(GraphSON1Node.CreateParsedNode(token));
         }
 
         public override bool CanConvert(Type objectType)
