@@ -36,7 +36,9 @@ namespace Cassandra.Serialization.Graph.GraphSON2
             CustomGraphSON2Reader.CustomGraphSON2SpecificDeserializers =
                 new Dictionary<string, IGraphSONDeserializer>
                 {
-                    { JavaDurationSerializer.TypeName, new JavaDurationSerializer() },
+                    {"g:Date", new DateDeserializer()},
+                    {"g:Timestamp", new TimestampDeserializer()},
+                    { TinkerpopDurationSerializer.TypeName, new TinkerpopDurationSerializer() },
                     { InstantSerializer.TypeName, new InstantSerializer() },
                     { LocalTimeSerializer.TypeName, new LocalTimeSerializer() },
                     { LocalDateSerializer.TypeName, new LocalDateSerializer() },

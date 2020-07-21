@@ -21,9 +21,11 @@
 #endregion
 
 using System;
+using Cassandra.DataStax.Graph;
+using Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON;
 using Newtonsoft.Json.Linq;
 
-namespace Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON
+namespace Cassandra.Serialization.Graph.Dse
 {
     internal class DateDeserializer : IGraphSONDeserializer
     {
@@ -32,7 +34,7 @@ namespace Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON
         public dynamic Objectify(JToken graphsonObject, GraphSONReader reader)
         {
             var milliseconds = graphsonObject.ToObject<long>();
-            return DateDeserializer.UnixStart.AddTicks(TimeSpan.TicksPerMillisecond * milliseconds);
+            return new TinkerpopDate(DateDeserializer.UnixStart.AddTicks(TimeSpan.TicksPerMillisecond * milliseconds));
         }
     }
 }

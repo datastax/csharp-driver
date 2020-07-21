@@ -22,9 +22,9 @@ namespace Cassandra.DataStax.Graph
     /// Represents a value of type "gx:Duration" in DSE Graph. Note that <see cref="Duration"/> represents the CQL Duration type.
     /// It's basically a wrapper around a <see cref="Duration"/> value.
     /// </summary>
-    public struct JavaDuration : IEquatable<JavaDuration>, IEquatable<TimeSpan>, IEquatable<Duration>
+    public struct TinkerpopDuration : IEquatable<TinkerpopDuration>, IEquatable<TimeSpan>, IEquatable<Duration>
     {
-        public JavaDuration(Duration duration)
+        public TinkerpopDuration(Duration duration)
         {
             Value = duration;
         }
@@ -35,65 +35,65 @@ namespace Cassandra.DataStax.Graph
 
         public Duration Value { get; }
         
-        public static implicit operator JavaDuration(Duration obj) => new JavaDuration(obj);
+        public static implicit operator TinkerpopDuration(Duration obj) => new TinkerpopDuration(obj);
 
-        public static implicit operator Duration(JavaDuration obj) => obj.Value;
+        public static implicit operator Duration(TinkerpopDuration obj) => obj.Value;
         
-        public static explicit operator TimeSpan(JavaDuration obj) => obj.Value.ToTimeSpan();
+        public static explicit operator TimeSpan(TinkerpopDuration obj) => obj.Value.ToTimeSpan();
         
-        public static explicit operator JavaDuration(TimeSpan obj) => new JavaDuration(Duration.FromTimeSpan(obj));
+        public static explicit operator TinkerpopDuration(TimeSpan obj) => new TinkerpopDuration(Duration.FromTimeSpan(obj));
 
-        public static bool operator ==(JavaDuration i1, JavaDuration i2)
+        public static bool operator ==(TinkerpopDuration i1, TinkerpopDuration i2)
         {
             return i1.Equals(i2);
         }
 
-        public static bool operator !=(JavaDuration i1, JavaDuration i2)
+        public static bool operator !=(TinkerpopDuration i1, TinkerpopDuration i2)
         {
             return !(i1 == i2);
         }
         
-        public static bool operator ==(JavaDuration i1, Duration i2)
+        public static bool operator ==(TinkerpopDuration i1, Duration i2)
         {
             return i1.Equals(i2);
         }
 
-        public static bool operator !=(JavaDuration i1, Duration i2)
+        public static bool operator !=(TinkerpopDuration i1, Duration i2)
         {
             return !(i1 == i2);
         }
         
-        public static bool operator ==(Duration i1, JavaDuration i2)
+        public static bool operator ==(Duration i1, TinkerpopDuration i2)
         {
             return i2.Equals(i1);
         }
 
-        public static bool operator !=(Duration i1, JavaDuration i2)
+        public static bool operator !=(Duration i1, TinkerpopDuration i2)
         {
             return !(i1 == i2);
         }
         
-        public static bool operator ==(JavaDuration i1, TimeSpan i2)
+        public static bool operator ==(TinkerpopDuration i1, TimeSpan i2)
         {
             return i1.Equals(i2);
         }
 
-        public static bool operator !=(JavaDuration i1, TimeSpan i2)
+        public static bool operator !=(TinkerpopDuration i1, TimeSpan i2)
         {
             return !(i1 == i2);
         }
         
-        public static bool operator ==(TimeSpan i1, JavaDuration i2)
+        public static bool operator ==(TimeSpan i1, TinkerpopDuration i2)
         {
             return i2.Equals(i1);
         }
 
-        public static bool operator !=(TimeSpan i1, JavaDuration i2)
+        public static bool operator !=(TimeSpan i1, TinkerpopDuration i2)
         {
             return !(i1 == i2);
         }
 
-        public bool Equals(JavaDuration other)
+        public bool Equals(TinkerpopDuration other)
         {
             return Value.Equals(other.Value);
         }
@@ -123,7 +123,7 @@ namespace Cassandra.DataStax.Graph
                     return Equals(d);
                 case TimeSpan ts:
                     return Equals(ts);
-                case JavaDuration i:
+                case TinkerpopDuration i:
                     return Equals(i);
                 default:
                     return false;

@@ -23,8 +23,10 @@
 
 using System;
 using System.Collections.Generic;
+using Cassandra.DataStax.Graph;
+using Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON;
 
-namespace Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON
+namespace Cassandra.Serialization.Graph.Dse
 {
     internal class DateSerializer : IGraphSONSerializer
     {
@@ -32,8 +34,8 @@ namespace Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON
         
         public Dictionary<string, dynamic> Dictify(dynamic objectData, GraphSONWriter writer)
         {
-            DateTimeOffset value = objectData;
-            var ticks = (value - DateSerializer.UnixStart).Ticks;
+            TinkerpopDate value = objectData;
+            var ticks = (value.AsDateTimeOffset() - DateSerializer.UnixStart).Ticks;
             return GraphSONUtil.ToTypedValue("Date", ticks / TimeSpan.TicksPerMillisecond);
         }
     }

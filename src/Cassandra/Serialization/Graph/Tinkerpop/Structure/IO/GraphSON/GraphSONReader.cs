@@ -24,7 +24,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using Cassandra.Serialization.Graph.Dse;
 using Newtonsoft.Json.Linq;
 
 namespace Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON
@@ -46,8 +46,6 @@ namespace Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON
                 {"g:Double", new DoubleConverter()},
                 {"g:Direction", new DirectionDeserializer()},
                 {"g:UUID", new UuidDeserializer()},
-                {"g:Date", new DateDeserializer()},
-                {"g:Timestamp", new DateDeserializer()},
                 {"g:T", new TDeserializer()},
 
                 //Extended

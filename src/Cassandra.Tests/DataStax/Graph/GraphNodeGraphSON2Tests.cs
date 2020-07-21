@@ -292,13 +292,13 @@ namespace Cassandra.Tests.DataStax.Graph
             var node = GraphNodeGraphSON2Tests.GetGraphNode(json);
             if (stringValue == null)
             {
-                Assert.AreEqual(null, node.To<JavaInstant?>());
+                Assert.AreEqual(null, node.To<TinkerpopTimestamp?>());
             }
             else
             {
-                Assert.AreEqual(DateTimeOffset.Parse(stringValue, CultureInfo.InvariantCulture), node.To<JavaInstant>());
-                Assert.AreEqual(DateTimeOffset.Parse(stringValue, CultureInfo.InvariantCulture), node.To<JavaInstant?>());
-                Assert.AreEqual(new JavaInstant(DateTimeOffset.Parse(stringValue, CultureInfo.InvariantCulture)), node.To<JavaInstant>());
+                Assert.AreEqual(DateTimeOffset.Parse(stringValue, CultureInfo.InvariantCulture), node.To<TinkerpopTimestamp>());
+                Assert.AreEqual(DateTimeOffset.Parse(stringValue, CultureInfo.InvariantCulture), node.To<TinkerpopTimestamp?>());
+                Assert.AreEqual(new TinkerpopTimestamp(DateTimeOffset.Parse(stringValue, CultureInfo.InvariantCulture)), node.To<TinkerpopTimestamp>());
             }
         }
 

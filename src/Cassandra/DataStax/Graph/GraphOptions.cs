@@ -297,7 +297,8 @@ namespace Cassandra.DataStax.Graph
             }
 
             if (statement.GraphLanguage == null && statement.GraphName == null &&
-                statement.GraphSource == null && statement.ReadTimeoutMillis == 0)
+                statement.GraphSource == null && statement.ReadTimeoutMillis == 0
+                && statement.GraphProtocolVersion == null)
             {
                 if (!statement.IsSystemQuery || !_defaultPayload.ContainsKey(PayloadKey.Name))
                 {

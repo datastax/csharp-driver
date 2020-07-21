@@ -14,6 +14,7 @@
 //    limitations under the License.
 
 using System;
+using System.Collections.Generic;
 using Cassandra.DataStax.Graph;
 using Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON;
 using Newtonsoft.Json.Linq;
@@ -41,7 +42,7 @@ namespace Cassandra.Serialization.Graph.Dse
                 graphNode.Get<string>("label"),
                 graphNode.Get<GraphNode>("value", true),
                 graphNode.Get<GraphNode>("vertex"),
-                BaseDeserializer.EmptyProperties);
+                new Dictionary<string, GraphNode>(0));
         }
     }
 }

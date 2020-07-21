@@ -35,7 +35,7 @@ namespace Cassandra.Tests.MetadataHelpers.TestHelpers
             return new FakeSchemaParser(keyspaces);
         }
 
-        public static KeyspaceMetadata CreateSimpleKeyspace(string name, int replicationFactor, IReplicationStrategyFactory factory = null)
+        public static KeyspaceMetadata CreateSimpleKeyspace(string name, int replicationFactor, IReplicationStrategyFactory factory = null, string graphEngine = null)
         {
             return new KeyspaceMetadata(
                 null,
@@ -44,7 +44,7 @@ namespace Cassandra.Tests.MetadataHelpers.TestHelpers
                 ReplicationStrategies.SimpleStrategy,
                 new Dictionary<string, string> { { "replication_factor", replicationFactor.ToString() } },
                 factory ?? new ReplicationStrategyFactory(),
-                null);
+                graphEngine);
         }
 
         public static KeyspaceMetadata CreateNetworkTopologyKeyspace(string name, IDictionary<string, string> replicationFactors, IReplicationStrategyFactory factory = null)

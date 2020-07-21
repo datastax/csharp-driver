@@ -213,6 +213,11 @@ namespace Cassandra.Serialization.Graph.GraphSON1
             return ((JObject) _token).Property(name) != null;
         }
 
+        public string GetGraphSONType()
+        {
+            return null;
+        }
+
         /// <summary>
         /// Provides the implementation for operations that get member values.
         /// </summary>

@@ -14,6 +14,7 @@
 //    limitations under the License.
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Cassandra.DataStax.Graph;
 using Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON;
@@ -35,7 +36,7 @@ namespace Cassandra.Serialization.Graph.Dse
 
         public dynamic Objectify(JToken token, GraphSONReader reader)
         {
-            var properties = BaseDeserializer.EmptyProperties;
+            IDictionary<string, GraphNode> properties = null;
             var tokenProperties = !(token is JObject jobj) ? null : jobj["properties"];
             if (tokenProperties != null && tokenProperties is JObject propertiesJsonProp)
             {
@@ -47,7 +48,7 @@ namespace Cassandra.Serialization.Graph.Dse
             return new Edge(
                 ToGraphNode(token, "id", true),
                 ToString(token, "label") ?? "edge",
-                properties,
+                properties ?? new Dictionary<string, GraphNode>(0),
                 ToGraphNode(token, "inV"),
                 ToString(token, "inVLabel") ?? VertexDeserializer.DefaultLabel,
                 ToGraphNode(token, "outV"),

@@ -46,7 +46,6 @@ namespace Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON
                 {typeof(float), new FloatConverter()},
                 {typeof(double), new DoubleConverter()},
                 {typeof(Guid), new UuidSerializer()},
-                {typeof(DateTimeOffset), new DateSerializer()},
                 {typeof(Type), new ClassSerializer()},
 
                 //Extended
@@ -94,7 +93,7 @@ namespace Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON
         /// </summary>
         /// <param name="objectData">The object to transform.</param>
         /// <returns>A GraphSON representation of the object ready to be serialized.</returns>
-        public dynamic ToDict(dynamic objectData)
+        public virtual dynamic ToDict(dynamic objectData)
         {
             var type = objectData.GetType();
 

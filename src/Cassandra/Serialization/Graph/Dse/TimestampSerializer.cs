@@ -21,28 +21,22 @@
 
 #endregion
 
+using System;
 using System.Collections.Generic;
 using Cassandra.DataStax.Graph;
 using Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON;
 
 namespace Cassandra.Serialization.Graph.Dse
 {
-    internal class VertexPropertySerializer : IGraphSONSerializer
+    internal class TimestampSerializer : IGraphSONSerializer
     {
+        private static readonly DateTimeOffset UnixStart = new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero);
+        
         public Dictionary<string, dynamic> Dictify(dynamic objectData, GraphSONWriter writer)
         {
-            VertexProperty vertexProperty = objectData;
-            var valueDict = new Dictionary<string, dynamic>
-            {
-                {"id", writer.ToDict(vertexProperty.Id)},
-                {"label", vertexProperty.Label},
-                {"value", writer.ToDict(vertexProperty.Value)}
-            };
-            if (vertexProperty.Vertex != null)
-            {
-                valueDict.Add("vertex", writer.ToDict(vertexProperty.Vertex.To<IVertex>().Id));
-            }
-            return GraphSONUtil.ToTypedValue(nameof(VertexProperty), valueDict);
+            TinkerpopTimestamp value = objectData;
+            var ticks = (value.AsDateTimeOffset() - TimestampSerializer.UnixStart).Ticks;
+            return GraphSONUtil.ToTypedValue("Timestamp", ticks / TimeSpan.TicksPerMillisecond);
         }
     }
 }

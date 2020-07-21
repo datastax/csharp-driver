@@ -77,6 +77,11 @@ namespace Cassandra.Serialization.Graph
         bool HasProperty(string name);
 
         /// <summary>
+        /// Returns the GraphSON type (@type property). Returns null if there isn't one.
+        /// </summary>
+        string GetGraphSONType();
+
+        /// <summary>
         /// Returns the representation of the node as an instance of the type provided.
         /// </summary>
         object To(Type type);

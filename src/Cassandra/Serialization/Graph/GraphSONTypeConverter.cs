@@ -36,9 +36,9 @@ namespace Cassandra.Serialization.Graph
 
         public const string TypeKey = "@type";
         public const string ValueKey = "@value";
-
+        
         public static IGraphSONTypeConverter DefaultInstance = 
-            new GraphSONTypeConverter(new DefaultTypeConverter(), new CustomGraphSON2Reader(), new CustomGraphSON2Writer());
+            new GraphSONTypeConverter(new DefaultTypeConverter(), new CustomGraphSON2Reader(), new CustomGraphSON3Writer());
 
         public GraphSONTypeConverter(
             TypeConverter typeConverter, GraphSONReader reader, GraphSONWriter writer)

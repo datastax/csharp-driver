@@ -36,11 +36,11 @@ namespace Cassandra.IntegrationTests.TestBase
 
         private bool IsOssRequired { get; set; }
 
-        //static TestDseVersion()
-        //{
-        //    Environment.SetEnvironmentVariable("CCM_USE_WSL", "true");
-        //    Environment.SetEnvironmentVariable("DSE_VERSION", "6.7.7");
-        //}
+        static TestDseVersion()
+        {
+            Environment.SetEnvironmentVariable("CCM_USE_WSL", "true");
+            Environment.SetEnvironmentVariable("DSE_VERSION", "6.8.1");
+        }
 
         /// <summary>
         /// Creates an instance of an attribute that filters the test to execute according to the current DSE version

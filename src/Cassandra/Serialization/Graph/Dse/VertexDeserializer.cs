@@ -14,6 +14,7 @@
 //    limitations under the License.
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 using Cassandra.DataStax.Graph;
@@ -38,7 +39,7 @@ namespace Cassandra.Serialization.Graph.Dse
 
         public dynamic Objectify(JToken token, GraphSONReader reader)
         {
-            var properties = BaseDeserializer.EmptyProperties;
+            IDictionary<string, GraphNode> properties = null;
             var tokenProperties = !(token is JObject jobj) ? null : jobj["properties"];
             if (tokenProperties != null && tokenProperties is JObject propertiesJsonProp)
             {
@@ -51,7 +52,7 @@ namespace Cassandra.Serialization.Graph.Dse
             return new Vertex(
                 ToGraphNode(token, "id", true),
                 label,
-                properties);
+                properties ?? new Dictionary<string, GraphNode>(0));
         }
     }
 }

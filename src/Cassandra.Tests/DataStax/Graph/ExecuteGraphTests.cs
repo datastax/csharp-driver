@@ -173,6 +173,7 @@ namespace Cassandra.Tests.DataStax.Graph
             //The default graph payload
             Assert.AreEqual(3, coreStatement.OutgoingPayload.Count);
             CollectionAssert.AreEqual(new[] { "graph-language", "graph-source", "graph-results" }, coreStatement.OutgoingPayload.Keys);
+            Assert.AreEqual(Encoding.UTF8.GetString(coreStatement.OutgoingPayload["graph-results"]), "graphson-1.0");
         }
 
         [Test]
@@ -186,7 +187,8 @@ namespace Cassandra.Tests.DataStax.Graph
                     .SetSource("My source!")
                     .SetReadTimeoutMillis(22222)
                     .SetReadConsistencyLevel(ConsistencyLevel.LocalQuorum)
-                    .SetWriteConsistencyLevel(ConsistencyLevel.EachQuorum));
+                    .SetWriteConsistencyLevel(ConsistencyLevel.EachQuorum)
+                    .SetGraphProtocolVersion(GraphProtocol.GraphSON2));
             var session = _cluster.Connect();
             session.ExecuteGraph(new SimpleGraphStatement("g.V()"));
             Assert.NotNull(coreStatement);
@@ -197,6 +199,7 @@ namespace Cassandra.Tests.DataStax.Graph
             Assert.AreEqual(Encoding.UTF8.GetString(coreStatement.OutgoingPayload["graph-write-consistency"]), "EACH_QUORUM");
             //default
             Assert.AreEqual(Encoding.UTF8.GetString(coreStatement.OutgoingPayload["graph-language"]), "gremlin-groovy");
+            Assert.AreEqual(Encoding.UTF8.GetString(coreStatement.OutgoingPayload["graph-results"]), "graphson-2.0");
             Assert.That(coreStatement.OutgoingPayload["request-timeout"], Is.EqualTo(ExecuteGraphTests.ToBuffer(22222)));
         }
 
@@ -210,22 +213,25 @@ namespace Cassandra.Tests.DataStax.Graph
                     .SetName("name1")
                     .SetSource("My source!")
                     .SetReadConsistencyLevel(ConsistencyLevel.LocalQuorum)
-                    .SetWriteConsistencyLevel(ConsistencyLevel.EachQuorum));
+                    .SetWriteConsistencyLevel(ConsistencyLevel.EachQuorum)
+                    .SetGraphProtocolVersion(GraphProtocol.GraphSON2));
             var session = _cluster.Connect();
             session.ExecuteGraph(new SimpleGraphStatement("g.V()")
                 .SetGraphLanguage("my-lang")
                 .SetReadTimeoutMillis(5555)
                 .SetSystemQuery()
                 .SetGraphReadConsistencyLevel(ConsistencyLevel.Two)
-                .SetGraphSource("Statement source"));
+                .SetGraphSource("Statement source")
+                .SetGraphProtocolVersion(GraphProtocol.GraphSON3));
             Assert.NotNull(coreStatement);
             Assert.NotNull(coreStatement.OutgoingPayload);
             Assert.That(Encoding.UTF8.GetString(coreStatement.OutgoingPayload["graph-source"]), Is.EqualTo("Statement source"));
-            //is a sistem query
+            //is a system query
             Assert.False(coreStatement.OutgoingPayload.ContainsKey("graph-name"));
             Assert.AreEqual(Encoding.UTF8.GetString(coreStatement.OutgoingPayload["graph-read-consistency"]), "TWO");
             Assert.AreEqual(Encoding.UTF8.GetString(coreStatement.OutgoingPayload["graph-write-consistency"]), "EACH_QUORUM");
             Assert.AreEqual(Encoding.UTF8.GetString(coreStatement.OutgoingPayload["graph-language"]), "my-lang");
+            Assert.AreEqual(Encoding.UTF8.GetString(coreStatement.OutgoingPayload["graph-results"]), "graphson-3.0");
             Assert.That(coreStatement.OutgoingPayload["request-timeout"], Is.EqualTo(ExecuteGraphTests.ToBuffer(5555)));
         }
 

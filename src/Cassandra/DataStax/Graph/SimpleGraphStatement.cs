@@ -114,11 +114,9 @@ namespace Cassandra.DataStax.Graph
                         break;
                     case GraphProtocol.GraphSON2:
                     case GraphProtocol.GraphSON3:
-                        jsonParams = JsonConvert.SerializeObject(
-                            parameters.ToDictionary(
-                                kvp => kvp.Key,
-                                kvp => GraphSONTypeConverter.DefaultInstance.ToDb(kvp.Value)),
-                            GraphSONNode.GraphSONSerializerSettings);
+                        // create a Dictionary instance so that it is serialized as a graphson map
+                        jsonParams = GraphSONTypeConverter.DefaultInstance.ToDb(
+                            parameters.ToDictionary(kvp => kvp.Key, kvp => kvp.Value));
                         break;
                     default:
                         throw new DriverInternalError(

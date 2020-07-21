@@ -51,6 +51,11 @@ namespace Cassandra.DataStax.Graph
         /// Returns true if the underlying value is a scalar value (string, double, boolean, ...).
         /// </summary>
         public bool IsScalar => _node.IsScalar;
+        
+        /// <summary>
+        /// Returns the GraphSON type (@type property). Returns null if there isn't one.
+        /// </summary>
+        internal string GetGraphSONType() => _node.GetGraphSONType();
 
         /// <summary>
         /// Gets the number of identical results represented by this instance.

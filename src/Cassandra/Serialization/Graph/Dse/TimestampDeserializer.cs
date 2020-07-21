@@ -18,31 +18,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 #endregion
 
-using System.Collections.Generic;
+using System;
 using Cassandra.DataStax.Graph;
 using Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON;
+using Newtonsoft.Json.Linq;
 
 namespace Cassandra.Serialization.Graph.Dse
 {
-    internal class VertexPropertySerializer : IGraphSONSerializer
+    internal class TimestampDeserializer : IGraphSONDeserializer
     {
-        public Dictionary<string, dynamic> Dictify(dynamic objectData, GraphSONWriter writer)
+        private static readonly DateTimeOffset UnixStart = new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero);
+
+        public dynamic Objectify(JToken graphsonObject, GraphSONReader reader)
         {
-            VertexProperty vertexProperty = objectData;
-            var valueDict = new Dictionary<string, dynamic>
-            {
-                {"id", writer.ToDict(vertexProperty.Id)},
-                {"label", vertexProperty.Label},
-                {"value", writer.ToDict(vertexProperty.Value)}
-            };
-            if (vertexProperty.Vertex != null)
-            {
-                valueDict.Add("vertex", writer.ToDict(vertexProperty.Vertex.To<IVertex>().Id));
-            }
-            return GraphSONUtil.ToTypedValue(nameof(VertexProperty), valueDict);
+            var milliseconds = graphsonObject.ToObject<long>();
+            return new TinkerpopTimestamp(TimestampDeserializer.UnixStart.AddTicks(TimeSpan.TicksPerMillisecond * milliseconds));
         }
     }
 }

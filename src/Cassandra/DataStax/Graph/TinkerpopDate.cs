@@ -19,11 +19,11 @@ using System;
 namespace Cassandra.DataStax.Graph
 {
     /// <summary>
-    /// Represents a value of type "Instant" in DSE Graph. It's basically a wrapper around a <see cref="DateTimeOffset"/> value.
+    /// Represents a value of type "Date" in Tinkerpop. It's basically a wrapper around a <see cref="DateTimeOffset"/> value.
     /// </summary>
-    public struct JavaInstant : IEquatable<JavaInstant>, IEquatable<DateTimeOffset>, IEquatable<DateTime>
+    public struct TinkerpopDate : IEquatable<TinkerpopDate>, IEquatable<DateTimeOffset>, IEquatable<DateTime>
     {
-        public JavaInstant(DateTimeOffset value)
+        public TinkerpopDate(DateTimeOffset value)
         {
             Value = value;
         }
@@ -34,63 +34,63 @@ namespace Cassandra.DataStax.Graph
 
         public DateTimeOffset Value { get; }
         
-        public static implicit operator JavaInstant(DateTimeOffset obj) => new JavaInstant(obj);
+        public static implicit operator TinkerpopDate(DateTimeOffset obj) => new TinkerpopDate(obj);
 
-        public static implicit operator DateTimeOffset(JavaInstant obj) => obj.Value;
+        public static implicit operator DateTimeOffset(TinkerpopDate obj) => obj.Value;
         
-        public static explicit operator DateTime(JavaInstant obj) => obj.Value.DateTime;
+        public static explicit operator DateTime(TinkerpopDate obj) => obj.Value.DateTime;
 
-        public static bool operator ==(JavaInstant i1, JavaInstant i2)
+        public static bool operator ==(TinkerpopDate i1, TinkerpopDate i2)
         {
             return i1.Equals(i2);
         }
 
-        public static bool operator !=(JavaInstant i1, JavaInstant i2)
+        public static bool operator !=(TinkerpopDate i1, TinkerpopDate i2)
         {
             return !(i1 == i2);
         }
         
-        public static bool operator ==(JavaInstant i1, DateTime i2)
+        public static bool operator ==(TinkerpopDate i1, DateTime i2)
         {
             return i1.Equals(i2);
         }
 
-        public static bool operator !=(JavaInstant i1, DateTime i2)
+        public static bool operator !=(TinkerpopDate i1, DateTime i2)
         {
             return !(i1 == i2);
         }
         
-        public static bool operator ==(DateTime i1, JavaInstant i2)
+        public static bool operator ==(DateTime i1, TinkerpopDate i2)
         {
             return i2.Equals(i1);
         }
 
-        public static bool operator !=(DateTime i1, JavaInstant i2)
+        public static bool operator !=(DateTime i1, TinkerpopDate i2)
         {
             return !(i1 == i2);
         }
         
-        public static bool operator ==(JavaInstant i1, DateTimeOffset i2)
+        public static bool operator ==(TinkerpopDate i1, DateTimeOffset i2)
         {
             return i1.Equals(i2);
         }
 
-        public static bool operator !=(JavaInstant i1, DateTimeOffset i2)
+        public static bool operator !=(TinkerpopDate i1, DateTimeOffset i2)
         {
             return !(i1 == i2);
         }
         
-        public static bool operator ==(DateTimeOffset i1, JavaInstant i2)
+        public static bool operator ==(DateTimeOffset i1, TinkerpopDate i2)
         {
             return i2.Equals(i1);
         }
 
-        public static bool operator !=(DateTimeOffset i1, JavaInstant i2)
+        public static bool operator !=(DateTimeOffset i1, TinkerpopDate i2)
         {
             return !(i1 == i2);
         }
 
-        public bool Equals(JavaInstant other)
+        public bool Equals(TinkerpopDate other)
         {
             return Value.Equals(other.Value);
         }
@@ -120,7 +120,7 @@ namespace Cassandra.DataStax.Graph
                     return Equals(dt);
                 case DateTimeOffset dto:
                     return Equals(dto);
-                case JavaInstant i:
+                case TinkerpopDate i:
                     return Equals(i);
                 default:
                     return false;
