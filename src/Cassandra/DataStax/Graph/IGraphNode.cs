@@ -98,6 +98,15 @@ namespace Cassandra.DataStax.Graph
         double ToDouble();
 
         /// <summary>
+        /// Returns the representation of the result as a float.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">
+        /// It throws an InvalidOperationException when the internal value is not an scalar.
+        /// </exception>
+        /// <exception cref="InvalidCastException">When the scalar value is not convertible to target type.</exception>
+        float ToFloat();
+
+        /// <summary>
         /// Returns the representation of the result as an int.
         /// </summary>
         /// <exception cref="InvalidOperationException">

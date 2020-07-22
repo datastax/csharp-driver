@@ -14,6 +14,7 @@
 //    limitations under the License.
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -38,7 +39,7 @@ namespace Cassandra.Serialization.Graph
         public const string ValueKey = "@value";
         
         public static IGraphSONTypeConverter DefaultInstance = 
-            new GraphSONTypeConverter(new DefaultTypeConverter(), new CustomGraphSON2Reader(), new CustomGraphSON3Writer());
+            new GraphSONTypeConverter(new DefaultTypeConverter(), new CustomGraphSON3Reader(), new CustomGraphSON3Writer());
 
         public GraphSONTypeConverter(
             TypeConverter typeConverter, GraphSONReader reader, GraphSONWriter writer)
@@ -143,10 +144,31 @@ namespace Cassandra.Serialization.Graph
                 
                 if (!(token is JArray))
                 {
-                    return ConvertFromDb(ToArray((JArray)token[GraphSONTokens.ValueKey], elementType), type, out result);
+                    return ConvertFromDb(FromListOrSetToEnumerable((JArray)token[GraphSONTokens.ValueKey], elementType), type, out result);
                 }
 
-                return ConvertFromDb(ToArray((JArray)token, elementType), type, out result);
+                return ConvertFromDb(FromListOrSetToEnumerable((JArray)token, elementType), type, out result);
+            }
+
+            if (typeName.Equals("g:Map"))
+            {
+                Type keyType;
+                Type elementType;
+                if (type.GetTypeInfo().IsGenericType
+                    && (type.GetGenericTypeDefinition() == typeof(IReadOnlyDictionary<,>)
+                        || type.GetGenericTypeDefinition() == typeof(Dictionary<,>)
+                        || type.GetGenericTypeDefinition() == typeof(IDictionary<,>)))
+                {
+                    var genericArgs = type.GetTypeInfo().GetGenericArguments();
+                    keyType = genericArgs[0];
+                    elementType = genericArgs[1];
+                }
+                else
+                {
+                    throw new InvalidOperationException($"Can not deserialize a collection to type {type.FullName}");
+                }
+
+                return ConvertFromDb(FromMapToDictionary((JArray)token[GraphSONTokens.ValueKey], keyType, elementType), type, out result);
             }
 
             return ConvertFromDb(_reader.ToObject(token), type, out result);
@@ -185,22 +207,55 @@ namespace Cassandra.Serialization.Graph
             return true;
         }
 
-        private Array ToArray(JArray jArray, Type elementType)
+        private IEnumerable FromListOrSetToEnumerable(JArray jArray, Type elementType)
         {
             if (elementType == null)
             {
                 elementType = typeof(GraphNode);
             }
-            var arr = Array.CreateInstance(elementType, jArray.Count);
-            var isGraphNode = elementType == typeof(GraphNode);
-            for (var i = 0; i < arr.Length; i++)
+
+            var arr = (IList) Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType));
+
+            var isGraphNode = elementType == typeof(GraphNode) || elementType == typeof(IGraphNode);
+            for (var i = 0; i < jArray.Count; i++)
             {
                 var value = isGraphNode
                     ? new GraphNode(new GraphSONNode(jArray[i]))
                     : FromDb(jArray[i], elementType);
-                arr.SetValue(value, i);
+                arr.Add(value);
             }
             return arr;
+        }
+
+        private IDictionary FromMapToDictionary(JArray jArray, Type keyType, Type elementType)
+        {
+            if (elementType == null)
+            {
+                elementType = typeof(GraphNode);
+            }
+            if (keyType == null)
+            {
+                elementType = typeof(GraphNode);
+            }
+            
+            var newDictionary = (IDictionary) Activator.CreateInstance(typeof(Dictionary<,>).MakeGenericType(keyType, elementType));
+            var keyIsGraphNode = keyType == typeof(GraphNode) || keyType == typeof(IGraphNode);
+            var elementIsGraphNode = elementType == typeof(GraphNode) || elementType == typeof(IGraphNode);
+            
+            for (var i = 0; i < jArray.Count; i += 2)
+            {
+                var value = elementIsGraphNode
+                    ? new GraphNode(new GraphSONNode(jArray[i + 1]))
+                    : FromDb(jArray[i + 1], elementType);
+                
+                var key = keyIsGraphNode
+                    ? new GraphNode(new GraphSONNode(jArray[i]))
+                    : FromDb(jArray[i], keyType);
+
+                newDictionary.Add(key, value);
+            }
+
+            return newDictionary;
         }
     }
 }

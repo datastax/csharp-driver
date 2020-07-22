@@ -292,6 +292,9 @@ namespace Cassandra.DataStax.Graph
         /// <exception cref="InvalidCastException">When the scalar value is not convertible to target type.</exception>
         public double ToDouble() => To<double>();
 
+        /// <inheritdoc />
+        public float ToFloat() => To<float>();
+
         /// <summary>
         /// Returns an edge representation of the current instance.
         /// <para>

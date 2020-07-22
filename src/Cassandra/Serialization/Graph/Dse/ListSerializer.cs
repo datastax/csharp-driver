@@ -19,26 +19,19 @@
  * under the License.
  */
 
-#endregion
+#endregion License
 
 using System.Collections.Generic;
-using System.Linq;
-using Newtonsoft.Json.Linq;
 
-namespace Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON
+using Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON;
+
+namespace Cassandra.Serialization.Graph.Dse
 {
-    //internal class Path3Deserializer : IGraphSONDeserializer
-    //{
-    //    public dynamic Objectify(JToken graphsonObject, GraphSONReader reader)
-    //    {
-    //        // "labels" is a object[] where each item is ISet<object>
-    //        var labelProperty = (object[])reader.ToObject(graphsonObject["labels"]);
-    //        var labels = labelProperty
-    //            .Select(x => new HashSet<string>(((ISet<object>)x).Cast<string>()))
-    //            .ToList<ISet<string>>();
-    //        // "objects" is an object[]
-    //        object[] objects = reader.ToObject(graphsonObject["objects"]);
-    //        return new Path(labels, objects);
-    //    }
-    //}
+    internal class ListSerializer : IGraphSONSerializer
+    {
+        public Dictionary<string, dynamic> Dictify(dynamic objectData, GraphSONWriter writer)
+        {
+            return GraphSONUtil.ToCollection(objectData, writer, "List");
+        }
+    }
 }

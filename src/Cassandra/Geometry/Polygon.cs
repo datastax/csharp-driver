@@ -16,6 +16,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Text.RegularExpressions;
@@ -34,6 +35,8 @@ namespace Cassandra.Geometry
     {
         private static readonly Regex WktRegex = new Regex(
             @"^POLYGON ?\((\(.*\))\)$", RegexOptions.Compiled);
+
+        private IList<IList<Point>> _ringsWithOrderedPoints;
 
         /// <summary>
         /// A read-only list describing the rings of the polygon.
@@ -85,6 +88,7 @@ namespace Cassandra.Geometry
                 throw new ArgumentNullException("rings");
             }
             Rings = AsReadOnlyCollection(rings, r => AsReadOnlyCollection(r));
+            _ringsWithOrderedPoints = Rings.Select(r => (IList<Point>) r.OrderBy(p => p).ToList()).ToList();
         }
         
         /// <summary>
@@ -96,6 +100,7 @@ namespace Cassandra.Geometry
             Rings = AsReadOnlyCollection(coordinates
                 .Select(r => (IList<Point>)r.Select(p => new Point(p[0], p[1])).ToList())
                 .ToList());
+            _ringsWithOrderedPoints = Rings.Select(r => (IList<Point>) r.OrderBy(p => p).ToList()).ToList();
         }
         
         internal Polygon(JObject obj)
@@ -104,6 +109,7 @@ namespace Cassandra.Geometry
             Rings = AsReadOnlyCollection(coordinates
                                          .Select(r => (IList<Point>)r.Select(p => new Point(p[0], p[1])).ToList())
                                          .ToList());
+            _ringsWithOrderedPoints = Rings.Select(r => (IList<Point>) r.OrderBy(p => p).ToList()).ToList();
         }
 
         /// <summary>
@@ -122,9 +128,9 @@ namespace Cassandra.Geometry
             }
             for (var i = 0; i < Rings.Count; i++)
             {
-                var r1 = Rings[i];
-                var r2 = other.Rings[i];
-                if (r1.Where((p, j) => !p.Equals(r2[j])).Any())
+                var r1 = _ringsWithOrderedPoints[i];
+                var r2 = other._ringsWithOrderedPoints[i];
+                if (!r1.SequenceEqual(r2))
                 {
                     return false;
                 }
@@ -138,7 +144,7 @@ namespace Cassandra.Geometry
         public override int GetHashCode()
         {
             // ReSharper disable once NonReadonlyMemberInGetHashCode
-            return CombineHashCode(Rings.Select(r => CombineHashCode(r.Select(p => p.GetHashCode()))));
+            return CombineHashCode(_ringsWithOrderedPoints.Select(r => CombineHashCode(r.Select(p => p.GetHashCode()))));
         }
 
         /// <summary>
@@ -153,7 +159,7 @@ namespace Cassandra.Geometry
             return string.Format("POLYGON ({0})", string.Join(", ", 
                 Rings.Select(r => 
                     "(" + 
-                    string.Join(", ", r.Select(p => p.X + " " + p.Y)) + 
+                    string.Join(", ", r.Select(p => p.X.ToString(CultureInfo.InvariantCulture) + " " + p.Y.ToString(CultureInfo.InvariantCulture))) + 
                     ")")));
         }
 

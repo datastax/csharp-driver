@@ -15,7 +15,7 @@
 
 using System;
 using System.Collections.Generic;
-
+using Cassandra.Serialization.Graph.Dse;
 using Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON;
 
 namespace Cassandra.Serialization.Graph.GraphSON2

@@ -25,15 +25,18 @@ namespace Cassandra.Serialization.Graph.GraphSON2
 {
     internal class CustomGraphSON2Reader : GraphSON2Reader
     {
-        private static readonly Func<JToken, GraphNode> GraphNodeFactory;
-
-        private static readonly IDictionary<string, IGraphSONDeserializer> CustomGraphSON2SpecificDeserializers;
-
-        static CustomGraphSON2Reader()
+        /// <summary>
+        ///     Creates a new instance of <see cref="GraphSONReader"/>.
+        /// </summary>
+        public CustomGraphSON2Reader() : this(token => new GraphNode(new GraphSONNode(token)))
         {
-            CustomGraphSON2Reader.GraphNodeFactory = token => new GraphNode(new GraphSONNode(token));
+        }
 
-            CustomGraphSON2Reader.CustomGraphSON2SpecificDeserializers =
+        protected CustomGraphSON2Reader(Func<JToken, GraphNode> graphNodeFactory)
+        {
+            GraphNodeFactory = graphNodeFactory;
+
+            var customGraphSon2SpecificDeserializers =
                 new Dictionary<string, IGraphSONDeserializer>
                 {
                     {"g:Date", new DateDeserializer()},
@@ -47,26 +50,22 @@ namespace Cassandra.Serialization.Graph.GraphSON2
                     { LineStringSerializer.TypeName, new LineStringSerializer() },
                     { PointSerializer.TypeName, new PointSerializer() },
                     { PolygonSerializer.TypeName, new PolygonSerializer() },
-                    { VertexDeserializer.TypeName, new VertexDeserializer(CustomGraphSON2Reader.GraphNodeFactory) },
-                    { VertexPropertyDeserializer.TypeName, new VertexPropertyDeserializer(CustomGraphSON2Reader.GraphNodeFactory) },
-                    { EdgeDeserializer.TypeName, new EdgeDeserializer(CustomGraphSON2Reader.GraphNodeFactory) },
-                    { PathDeserializer.TypeName, new PathDeserializer(CustomGraphSON2Reader.GraphNodeFactory) },
-                    { PropertyDeserializer.TypeName, new PropertyDeserializer(CustomGraphSON2Reader.GraphNodeFactory) },
-                    { TraverserDeserializer.TypeName, new TraverserDeserializer(CustomGraphSON2Reader.GraphNodeFactory) },
+                    { VertexDeserializer.TypeName, new VertexDeserializer(GraphNodeFactory) },
+                    { VertexPropertyDeserializer.TypeName, new VertexPropertyDeserializer(GraphNodeFactory) },
+                    { EdgeDeserializer.TypeName, new EdgeDeserializer(GraphNodeFactory) },
+                    { PathDeserializer.TypeName, new PathDeserializer(GraphNodeFactory) },
+                    { PropertyDeserializer.TypeName, new PropertyDeserializer(GraphNodeFactory) },
+                    { TraverserDeserializer.TypeName, new TraverserDeserializer(GraphNodeFactory) },
                 };
-        }
-        
-        /// <summary>
-        ///     Creates a new instance of <see cref="GraphSONReader"/>.
-        /// </summary>
-        public CustomGraphSON2Reader()
-        {
-            foreach (var kv in CustomGraphSON2Reader.CustomGraphSON2SpecificDeserializers)
+
+            foreach (var kv in customGraphSon2SpecificDeserializers)
             {
                 Deserializers[kv.Key] = kv.Value;
             }
         }
-        
+
+        protected Func<JToken, GraphNode> GraphNodeFactory { get; }
+
         /// <summary>
         ///     Deserializes GraphSON to an object.
         /// </summary>

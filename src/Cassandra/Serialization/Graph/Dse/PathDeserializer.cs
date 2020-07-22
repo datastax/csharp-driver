@@ -47,7 +47,7 @@ namespace Cassandra.Serialization.Graph.Dse
                              var arrayNode = node as JArray;
                              if (arrayNode == null)
                              {
-                                 throw new InvalidOperationException($"Cannot create an Path from {token}");
+                                 throw new InvalidOperationException($"Cannot create a Path from {token}");
                              }
                              return new HashSet<string>(arrayNode.Select(n => n.ToString()));
                          })

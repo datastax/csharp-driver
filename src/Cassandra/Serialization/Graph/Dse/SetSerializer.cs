@@ -19,36 +19,19 @@
  * under the License.
  */
 
-#endregion
+#endregion License
 
 using System.Collections.Generic;
-using Newtonsoft.Json.Linq;
 
-namespace Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON
+using Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON;
+
+namespace Cassandra.Serialization.Graph.Dse
 {
-    internal class ListSerializer : IGraphSONDeserializer, IGraphSONSerializer
+    internal class SetSerializer : IGraphSONSerializer
     {
-        private static readonly IReadOnlyList<object> EmptyList = new object[0];
-        
-        public dynamic Objectify(JToken graphsonObject, GraphSONReader reader)
-        {
-            var jArray = graphsonObject as JArray;
-            if (jArray == null)
-            {
-                return ListSerializer.EmptyList;
-            }
-            var result = new object[jArray.Count];
-            for (var i = 0; i < result.Length; i++)
-            {
-                result[i] = reader.ToObject(jArray[i]);
-            }
-            // object[] implements IList<object>
-            return result;
-        }
-
         public Dictionary<string, dynamic> Dictify(dynamic objectData, GraphSONWriter writer)
         {
-            return GraphSONUtil.ToCollection(objectData, writer, "List");
+            return GraphSONUtil.ToCollection(objectData, writer, "Set");
         }
     }
 }

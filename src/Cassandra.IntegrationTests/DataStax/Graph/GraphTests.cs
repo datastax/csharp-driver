@@ -35,8 +35,8 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
     public class GraphTests : BaseIntegrationTest
     {
         private const string GraphName = "graph1";
-        private const string GraphSON1Language = "gremlin-groovy";
-        private const string GraphSON2Language = "bytecode-json";
+        private const string GremlinGroovy = "gremlin-groovy";
+        private const string BytecodeJson = "bytecode-json";
         private int _idGenerator;
         private ICluster _cluster;
         private ISession _session;
@@ -368,10 +368,10 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
             }
         }
 
-        [TestCase(GraphTests.GraphSON1Language, "g.V().hasLabel('person').has('name', 'marko').as('a')" +
+        [TestCase(GraphTests.GremlinGroovy, "g.V().hasLabel('person').has('name', 'marko').as('a')" +
                                      ".outE('knows').as('b').inV().as('c', 'd')" +
                                      ".outE('created').as('e', 'f', 'g').inV().as('h').path()")]
-        [TestCase(GraphTests.GraphSON2Language, "{\"@type\":\"g:Bytecode\",\"@value\":{\"step\":[" +
+        [TestCase(GraphTests.BytecodeJson, "{\"@type\":\"g:Bytecode\",\"@value\":{\"step\":[" +
                                      "[\"V\"],[\"has\",\"person\",\"name\",\"marko\"],[\"as\",\"a\"]," +
                                      "[\"outE\",\"knows\"],[\"as\",\"b\"],[\"inV\"],[\"as\",\"c\",\"d\"]," +
                                      "[\"outE\",\"hasLabel\",\"created\"],[\"as\",\"e\",\"f\",\"g\"],[\"inV\"],[\"as\", \"h\"],[\"path\"]]}}")]
@@ -433,7 +433,7 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                     Assert.AreEqual("person", knows.OutVLabel);
                     Assert.AreEqual("person", knows.InVLabel);
 
-                    if (graphsonLanguage == GraphTests.GraphSON1Language)
+                    if (graphsonLanguage == GraphTests.GremlinGroovy)
                     {
                         // DSE only with GraphSON1 provides properties by default
                         Assert.AreEqual("marko", marko.GetProperty("name").Value.To<string>());
@@ -804,7 +804,7 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
         {
             var statement = new SimpleGraphStatement("{\"@type\": \"g:Bytecode\", \"@value\": {" +
                                                      "  \"step\": [[\"V\"], [\"hasLabel\", \"person\"]]}}");
-            statement.SetGraphLanguage(GraphTests.GraphSON2Language);
+            statement.SetGraphLanguage(GraphTests.BytecodeJson);
             var rs = await _session.ExecuteGraphAsync(statement).ConfigureAwait(false);
             var results = rs.To<IVertex>().ToArray();
             Assert.Greater(results.Length, 0);
@@ -819,7 +819,7 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
         {
             var statement = new SimpleGraphStatement("{\"@type\": \"g:Bytecode\", \"@value\": {" +
                                                      "  \"step\": [[\"E\"], [\"hasLabel\", \"created\"]]}}");
-            statement.SetGraphLanguage(GraphTests.GraphSON2Language);
+            statement.SetGraphLanguage(GraphTests.BytecodeJson);
             var rs = await _session.ExecuteGraphAsync(statement).ConfigureAwait(false);
             var results = rs.To<IEdge>().ToArray();
             Assert.Greater(results.Length, 0);
@@ -842,19 +842,19 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                                                            "  \"step\": [[\"V\"], " +
                                                            "    [\"has\", \"typetests\", \"name\", \"stephen\"]," +
                                                            "    [\"drop\"]]}}");
-            deleteStatement.SetGraphLanguage(GraphTests.GraphSON2Language);
+            deleteStatement.SetGraphLanguage(GraphTests.BytecodeJson);
             _session.ExecuteGraph(deleteStatement);
 
             var addStatement = new SimpleGraphStatement("{\"@type\":\"g:Bytecode\", \"@value\": {\"step\":[" +
                                                         "[\"addV\", \"typetests\"],[\"property\",\"name\",\"stephen\"]," +
                                                         "[\"property\",\"localdate\", {\"@type\":\"gx:LocalDate\",\"@value\":\"1981-09-14\"}]," +
                                                         "[\"property\",\"localtime\", {\"@type\":\"gx:LocalTime\",\"@value\":\"12:50\"}]]}}");
-            addStatement.SetGraphLanguage(GraphTests.GraphSON2Language);
+            addStatement.SetGraphLanguage(GraphTests.BytecodeJson);
             await _session.ExecuteGraphAsync(addStatement).ConfigureAwait(false);
 
             var statement = new SimpleGraphStatement("{\"@type\": \"g:Bytecode\", \"@value\": {" +
                                                      "  \"step\": [[\"V\"], [\"has\", \"typetests\", \"name\", \"stephen\"]]}}");
-            statement.SetGraphLanguage(GraphTests.GraphSON2Language);
+            statement.SetGraphLanguage(GraphTests.BytecodeJson);
             var rs = await _session.ExecuteGraphAsync(statement).ConfigureAwait(false);
             var results = rs.ToArray();
             Assert.AreEqual(1, results.Length);
@@ -864,10 +864,10 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
             Assert.AreEqual(LocalTime.Parse("12:50"), stephen.GetProperty("localtime").Value.To<LocalTime>());
         }
 
-        [TestCase(GraphTests.GraphSON2Language, "{\"@type\": \"g:Bytecode\", \"@value\": {\"step\": " +
+        [TestCase(GraphTests.BytecodeJson, "{\"@type\": \"g:Bytecode\", \"@value\": {\"step\": " +
                                      "[[\"V\"], [\"has\", \"person\", \"name\", \"marko\"], [\"outE\"]," +
                                      " [\"properties\"]]}}")]
-        [TestCase(GraphTests.GraphSON1Language, "g.V().has('person', 'name', 'marko').outE().properties()")]
+        [TestCase(GraphTests.GremlinGroovy, "g.V().has('person', 'name', 'marko').outE().properties()")]
         public void Should_Retrieve_Edge_Properties(string graphsonLanguage, string graphQuery)
         {
             var statement = new SimpleGraphStatement(graphQuery);
@@ -878,9 +878,9 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
             Assert.True(results.Any(prop => prop.Name == "weight" && Math.Abs(prop.Value.To<double>() - 0.5) < 0.001));
         }
 
-        [TestCase(GraphTests.GraphSON2Language, "{\"@type\": \"g:Bytecode\", \"@value\": {\"step\": " +
+        [TestCase(GraphTests.BytecodeJson, "{\"@type\": \"g:Bytecode\", \"@value\": {\"step\": " +
                                      "[[\"V\"], [\"has\", \"person\", \"name\", \"marko\"], [\"properties\"]]}}")]
-        [TestCase(GraphTests.GraphSON1Language, "g.V().has('person', 'name', 'marko').properties()")]
+        [TestCase(GraphTests.GremlinGroovy, "g.V().has('person', 'name', 'marko').properties()")]
         public void Should_Retrieve_Vertex_Properties(string graphsonLanguage, string graphQuery)
         {
             var statement = new SimpleGraphStatement(graphQuery);
@@ -897,7 +897,7 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
             var statement = new SimpleGraphStatement("{\"@type\": \"g:Bytecode\", \"@value\": {" +
                                                      "  \"step\": [[\"V\"], [\"hasLabel\", \"person\"]," +
                                                      "     [\"has\", \"name\", \"marko\"], [\"outE\"], [\"label\"]]}}");
-            statement.SetGraphLanguage(GraphTests.GraphSON2Language);
+            statement.SetGraphLanguage(GraphTests.BytecodeJson);
             var rs = await _session.ExecuteGraphAsync(statement).ConfigureAwait(false);
             Assert.That(rs.To<string>(), Is.EqualTo(new [] {"created", "knows", "knows"}));
             Assert.AreEqual(GraphProtocol.GraphSON2, rs.GraphProtocol);
@@ -912,11 +912,22 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
         }
         
         [Test]
-        public async Task Should_UseGraphSON1_When_ClassicGraphEngine()
+        public async Task Should_UseGraphSON1_When_ClassicGraphEngineAndGremlinGroovy()
         {
             var statement = new SimpleGraphStatement("g.V().hasLabel('person').has('name', 'marko').outE().label()");
             var rs = await _session.ExecuteGraphAsync(statement).ConfigureAwait(false);
             Assert.AreEqual(GraphProtocol.GraphSON1, rs.GraphProtocol);
+        }
+
+        [Test]
+        public async Task Should_UseGraphSON2_When_ClassicGraphEngineAndBytecode()
+        {
+            var statement = new SimpleGraphStatement("{\"@type\": \"g:Bytecode\", \"@value\": {" +
+                                                     "  \"step\": [[\"V\"], [\"hasLabel\", \"person\"]," +
+                                                     "     [\"has\", \"name\", \"marko\"], [\"outE\"], [\"label\"]]}}");
+            statement.SetGraphLanguage(GraphTests.BytecodeJson);
+            var rs = await _session.ExecuteGraphAsync(statement).ConfigureAwait(false);
+            Assert.AreEqual(GraphProtocol.GraphSON2, rs.GraphProtocol);
         }
         
         [TestCase(GraphProtocol.GraphSON1)]

@@ -14,7 +14,6 @@
 //    limitations under the License.
 
 using System;
-using System.Collections.Generic;
 
 using Cassandra.DataStax.Graph;
 
@@ -25,7 +24,7 @@ namespace Cassandra.Serialization.Graph.Dse
     internal abstract class BaseDeserializer
     {
         private readonly Func<JToken, GraphNode> _graphNodeFactory;
-        
+
         protected BaseDeserializer(Func<JToken, GraphNode> graphNodeFactory)
         {
             _graphNodeFactory = graphNodeFactory;

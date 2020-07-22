@@ -15,24 +15,34 @@
 //
 
 using System;
+using System.Collections.Generic;
 
 namespace Cassandra.DataStax.Graph
 {
-    public static class TinkerpopTypes
+    public static class GraphTypes
     {
-        public static TinkerpopTimestamp AsTimestamp(DateTimeOffset dt)
+        public static TinkerpopTimestamp AsTinkerpopTimestamp(DateTimeOffset dt)
         {
             return new TinkerpopTimestamp(dt);
         }
 
-        public static TinkerpopDuration AsDuration(Duration dseDuration)
+        public static TinkerpopDuration AsTinkerpopDuration(Duration dseDuration)
         {
             return new TinkerpopDuration(dseDuration);
         }
         
-        public static TinkerpopDate AsDate(DateTimeOffset dateTimeOffset)
+        public static TinkerpopDate AsTinkerpopDate(DateTimeOffset dateTimeOffset)
         {
             return new TinkerpopDate(dateTimeOffset);
+        }
+
+        /// <summary>
+        /// Note that T should implement Equals and GetHashCode so that the set implementation
+        /// can detect which elements are duplicates.
+        /// </summary>
+        public static ISet<T> AsSet<T>(IEnumerable<T> enumerable)
+        {
+            return new HashSet<T>(enumerable);
         }
     }
 }
