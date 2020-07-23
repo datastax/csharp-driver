@@ -91,59 +91,7 @@ namespace Cassandra.DataStax.Graph
 
         internal override IStatement GetIStatement(GraphOptions options)
         {
-            IDictionary<string, object> parameters = null;
-            if (ValuesDictionary != null)
-            {
-                parameters = ValuesDictionary;
-            }
-            else if (Values != null)
-            {
-                parameters = Utils.GetValues(Values);
-            }
-
-            var graphProtocol = GraphProtocolVersion ?? options.GraphProtocolVersion;
-
-            IStatement stmt;
-            if (parameters != null)
-            {
-                string jsonParams;
-                switch (graphProtocol)
-                {
-                    case GraphProtocol.GraphSON1:
-                        jsonParams = JsonConvert.SerializeObject(parameters, GraphSON1ContractResolver.Settings);
-                        break;
-                    case GraphProtocol.GraphSON2:
-                    case GraphProtocol.GraphSON3:
-                        // create a Dictionary instance so that it is serialized as a graphson map
-                        jsonParams = GraphSONTypeConverter.DefaultInstance.ToDb(
-                            parameters.ToDictionary(kvp => kvp.Key, kvp => kvp.Value));
-                        break;
-                    default:
-                        throw new DriverInternalError(
-                            "Could not resolve graph protocol version. This is a bug, please report.");
-                }
-                stmt = new TargettedSimpleStatement(Query, jsonParams);
-            }
-            else
-            {
-                stmt = new TargettedSimpleStatement(Query);
-            }
-            //Set Cassandra.Statement properties
-            if (Timestamp != null)
-            {
-                stmt.SetTimestamp(Timestamp.Value);
-            }
-            var readTimeout = ReadTimeoutMillis != 0 ? ReadTimeoutMillis : options.ReadTimeoutMillis;
-            if (readTimeout <= 0)
-            {
-                // Infinite (-1) is not supported in the core driver, set an arbitrarily large int
-                readTimeout = int.MaxValue;
-            }
-            return stmt
-                .SetIdempotence(false)
-                .SetConsistencyLevel(ConsistencyLevel)
-                .SetReadTimeoutMillis(readTimeout)
-                .SetOutgoingPayload(options.BuildPayload(this));
+            return null;
         }
     }
 }

@@ -113,7 +113,7 @@ namespace Cassandra.Tests.Requests
             Assert.AreEqual(expected, actual);
         }
 
-        private ISession MockSession(string keyspace, bool coreEngine)
+        private IInternalSession MockSession(string keyspace, bool coreEngine)
         {
             var keyspaces = new ConcurrentDictionary<string, KeyspaceMetadata>();
 
@@ -134,7 +134,7 @@ namespace Cassandra.Tests.Requests
             var cluster = Mock.Of<ICluster>();
             Mock.Get(cluster).SetupGet(c => c.Metadata).Returns(metadata);
 
-            var session = Mock.Of<ISession>();
+            var session = Mock.Of<IInternalSession>();
             Mock.Get(session).SetupGet(s => s.Cluster).Returns(cluster);
             
             metadata.ControlConnection = new ControlConnection(

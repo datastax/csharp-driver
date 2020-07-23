@@ -26,11 +26,15 @@ using Cassandra.Connections;
 using Cassandra.DataStax.Graph;
 using Cassandra.DataStax.Insights;
 using Cassandra.ExecutionProfiles;
+using Cassandra.Mapping.TypeConversion;
 using Cassandra.Metrics;
 using Cassandra.Metrics.Internal;
 using Cassandra.Observers.Abstractions;
 using Cassandra.Requests;
 using Cassandra.Serialization;
+using Cassandra.Serialization.Graph;
+using Cassandra.Serialization.Graph.GraphSON1;
+using Cassandra.Serialization.Graph.GraphSON2;
 using Cassandra.SessionManagement;
 using Cassandra.Tasks;
 
@@ -334,10 +338,10 @@ namespace Cassandra
         /// <inheritdoc />
         public Task<RowSet> ExecuteAsync(IStatement statement, string executionProfileName)
         {
-            return ExecuteAsync(statement, InternalRef.GetRequestOptions(executionProfileName));
+            return InternalRef.ExecuteAsync(statement, InternalRef.GetRequestOptions(executionProfileName));
         }
 
-        private Task<RowSet> ExecuteAsync(IStatement statement, IRequestOptions requestOptions)
+        Task<RowSet> IInternalSession.ExecuteAsync(IStatement statement, IRequestOptions requestOptions)
         {
             return Configuration.RequestHandlerFactory
                                 .Create(this, _serializerManager.GetCurrentSerializer(), statement, requestOptions)
@@ -526,70 +530,11 @@ namespace Cassandra
         }
 
         /// <inheritdoc />
-        public async Task<GraphResultSet> ExecuteGraphAsync(IGraphStatement graphStatement, string executionProfileName)
+        public Task<GraphResultSet> ExecuteGraphAsync(IGraphStatement graphStatement, string executionProfileName)
         {
-            var requestOptions = InternalRef.GetRequestOptions(executionProfileName);
-            var graphOptions = requestOptions.GraphOptions;
-
-            if (graphStatement.GraphProtocolVersion == null && requestOptions.GraphOptions.GraphProtocolVersion == null)
-            {
-                var version = Configuration.GraphProtocolResolver.GetDefaultGraphProtocol(
-                    this, graphStatement, requestOptions.GraphOptions);
-                graphOptions = new GraphOptions(graphOptions, version);
-            }
-
-            var stmt = graphStatement.ToIStatement(graphOptions);
-            await GetAnalyticsPrimary(stmt, graphStatement, requestOptions).ConfigureAwait(false);
-            var rs = await ExecuteAsync(stmt, requestOptions).ConfigureAwait(false);
-            return GraphResultSet.CreateNew(rs, graphStatement, graphOptions);
-        }
-
-        private async Task<IStatement> GetAnalyticsPrimary(
-            IStatement statement, IGraphStatement graphStatement, IRequestOptions requestOptions)
-        {
-            if (!(statement is TargettedSimpleStatement) || !requestOptions.GraphOptions.IsAnalyticsQuery(graphStatement))
-            {
-                return statement;
-            }
-
-            var targetedSimpleStatement = (TargettedSimpleStatement)statement;
-
-            RowSet rs;
-            try
-            {
-                rs = await ExecuteAsync(
-                    new SimpleStatement("CALL DseClientTool.getAnalyticsGraphServer()"), requestOptions).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                Session.Logger.Verbose("Error querying graph analytics server, query will not be routed optimally: {0}", ex);
-                return statement;
-            }
-
-            return AdaptRpcPrimaryResult(rs, targetedSimpleStatement);
-        }
-
-        private IStatement AdaptRpcPrimaryResult(RowSet rowSet, TargettedSimpleStatement statement)
-        {
-            var row = rowSet.FirstOrDefault();
-            if (row == null)
-            {
-                Session.Logger.Verbose("Empty response querying graph analytics server, query will not be routed optimally");
-                return statement;
-            }
-            var resultField = row.GetValue<IDictionary<string, string>>("result");
-            if (resultField == null || !resultField.ContainsKey("location") || resultField["location"] == null)
-            {
-                Session.Logger.Verbose("Could not extract graph analytics server location from RPC, query will not be routed optimally");
-                return statement;
-            }
-            var location = resultField["location"];
-            var hostName = location.Substring(0, location.LastIndexOf(':'));
-            var address = Configuration.AddressTranslator.Translate(
-                new IPEndPoint(IPAddress.Parse(hostName), Configuration.ProtocolOptions.Port));
-            var host = Cluster.GetHost(address);
-            statement.PreferredHost = host;
-            return statement;
+            return Configuration.RequestHandlerFactory
+                                .CreateGraphRequestHandler(this, Configuration.GraphProtocolResolver)
+                                .SendAsync(graphStatement, InternalRef.GetRequestOptions(executionProfileName));
         }
     }
 }

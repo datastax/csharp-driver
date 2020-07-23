@@ -22,7 +22,7 @@ using System.Linq;
 using System.Runtime.Serialization;
 
 using Cassandra.DataStax.Graph;
-using Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON;
+
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -53,14 +53,14 @@ namespace Cassandra.Serialization.Graph.GraphSON2
 
         public long Bulk { get; }
 
-        internal GraphSONNode(string json)
+        internal GraphSONNode(IGraphSONTypeConverter graphTypeConverter, string json)
         {
             if (json == null)
             {
                 throw new ArgumentNullException(nameof(json));
             }
 
-            _graphSONConverter = GraphSONTypeConverter.DefaultInstance;
+            _graphSONConverter = graphTypeConverter ?? throw new ArgumentNullException(nameof(graphTypeConverter));
             var parsedJson = (JObject)JsonConvert.DeserializeObject(json, GraphSONNode.GraphSONSerializerSettings);
             _token = parsedJson["result"];
             if (_token is JObject jobj)
@@ -72,9 +72,9 @@ namespace Cassandra.Serialization.Graph.GraphSON2
             Bulk = bulkToken != null ? GetTokenValue<long>(bulkToken) : 1L;
         }
 
-        internal GraphSONNode(JToken parsedGraphItem)
+        internal GraphSONNode(IGraphSONTypeConverter graphTypeConverter, JToken parsedGraphItem)
         {
-            _graphSONConverter = GraphSONTypeConverter.DefaultInstance;
+            _graphSONConverter = graphTypeConverter ?? throw new ArgumentNullException(nameof(graphTypeConverter));
             _token = parsedGraphItem ?? throw new ArgumentNullException(nameof(parsedGraphItem));
             if (_token is JObject jobj)
             {
@@ -177,7 +177,7 @@ namespace Cassandra.Serialization.Graph.GraphSON2
                 result = null;
                 return false;
             }
-            var node = new GraphNode(new GraphSONNode(token));
+            var node = new GraphNode(new GraphSONNode(_graphSONConverter, token));
             result = node.To(binder.ReturnType);
             return true;
         }
@@ -221,7 +221,7 @@ namespace Cassandra.Serialization.Graph.GraphSON2
             }
             return graphObject
                 .Properties()
-                .ToDictionary(prop => prop.Name, prop => new GraphNode(new GraphSONNode(prop.Value)) as T);
+                .ToDictionary(prop => prop.Name, prop => new GraphNode(new GraphSONNode(_graphSONConverter, prop.Value)) as T);
         }
 
         /// <summary>

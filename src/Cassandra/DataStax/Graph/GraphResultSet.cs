@@ -18,8 +18,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+
 using Cassandra.Serialization.Graph.GraphSON1;
-using Cassandra.Serialization.Graph.GraphSON2;
 
 namespace Cassandra.DataStax.Graph
 {
@@ -30,7 +30,7 @@ namespace Cassandra.DataStax.Graph
     {
         private readonly RowSet _rs;
         private readonly Func<Row, GraphNode> _factory;
-        
+
         /// <summary>
         /// Gets the execution information for the query execution.
         /// </summary>
@@ -44,36 +44,20 @@ namespace Cassandra.DataStax.Graph
         /// <summary>
         /// Creates a new instance of <see cref="GraphResultSet"/>.
         /// </summary>
-        public GraphResultSet(RowSet rs) : this(rs, GraphProtocol.GraphSON1)
+        public GraphResultSet(RowSet rs) : this(rs, GraphProtocol.GraphSON1, GraphResultSet.GetGraphSON1Node)
         {
-
         }
 
-        private GraphResultSet(RowSet rs, GraphProtocol version)
+        private GraphResultSet(RowSet rs, GraphProtocol protocol, Func<Row, GraphNode> factory)
         {
             _rs = rs ?? throw new ArgumentNullException(nameof(rs));
-            GraphProtocol = version;
-
-            if (version == GraphProtocol.GraphSON1)
-            {
-                _factory = GraphResultSet.GetGraphSON1Node;
-            }
-            else
-            {
-                _factory = GraphResultSet.GetGraphSONNode;
-            }
+            _factory = factory ?? throw new ArgumentNullException(nameof(factory));
+            GraphProtocol = protocol;
         }
 
-        internal static GraphResultSet CreateNew(RowSet rs, IGraphStatement statement, GraphOptions options)
+        internal static GraphResultSet CreateNew(RowSet rs, GraphProtocol protocol, Func<Row, GraphNode> rowParser)
         {
-            var graphProtocolVersion = statement.GraphProtocolVersion ?? options.GraphProtocolVersion;
-
-            if (graphProtocolVersion == null)
-            {
-                throw new DriverInternalError("Unable to determine graph protocol version. This is a bug, please report.");
-            }
-
-            return new GraphResultSet(rs, graphProtocolVersion.Value);
+            return new GraphResultSet(rs, protocol, rowParser);
         }
 
         /// <summary>
@@ -112,11 +96,6 @@ namespace Cassandra.DataStax.Graph
         private static GraphNode GetGraphSON1Node(Row row)
         {
             return new GraphNode(new GraphSON1Node(row.GetValue<string>("gremlin"), false));
-        }
-
-        private static GraphNode GetGraphSONNode(Row row)
-        {
-            return new GraphNode(new GraphSONNode(row.GetValue<string>("gremlin")));
         }
 
         IEnumerator IEnumerable.GetEnumerator()

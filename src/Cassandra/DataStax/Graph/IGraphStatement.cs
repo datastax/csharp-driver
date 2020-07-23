@@ -77,9 +77,8 @@ namespace Cassandra.DataStax.Graph
         DateTimeOffset? Timestamp { get; }
 
         /// <summary>
-        /// Returns the <see cref="IStatement"/> representation of the Graph statement.
+        /// DEPRECATED. Returns the <see cref="IStatement"/> representation of the Graph statement.
         /// </summary>
-        /// <remarks>Used by the DSE driver to translate between this statement and Core driver statement instances</remarks>
         IStatement ToIStatement(GraphOptions options);
 
         /// <summary>

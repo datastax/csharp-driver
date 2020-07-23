@@ -154,6 +154,7 @@ namespace Cassandra.DataStax.Graph
             return this;
         }
 
+        /// <inheritdoc />
         IStatement IGraphStatement.ToIStatement(GraphOptions options)
         {
             return GetIStatement(options);

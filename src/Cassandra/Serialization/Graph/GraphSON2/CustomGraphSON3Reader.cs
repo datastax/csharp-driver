@@ -13,19 +13,20 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
+using System;
 using System.Collections.Generic;
 
+using Cassandra.DataStax.Graph;
 using Cassandra.Serialization.Graph.Dse;
 using Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON;
+
+using Newtonsoft.Json.Linq;
 
 namespace Cassandra.Serialization.Graph.GraphSON2
 {
     internal class CustomGraphSON3Reader : CustomGraphSON2Reader
     {
-        /// <summary>
-        ///     Creates a new instance of <see cref="GraphSONReader"/>.
-        /// </summary>
-        public CustomGraphSON3Reader()
+        public CustomGraphSON3Reader(Func<JToken, GraphNode> graphNodeFactory) : base(graphNodeFactory)
         {
             var customGraphSon3SpecificDeserializers =
                 new Dictionary<string, IGraphSONDeserializer>

@@ -25,14 +25,7 @@ namespace Cassandra.Serialization.Graph.GraphSON2
 {
     internal class CustomGraphSON2Reader : GraphSON2Reader
     {
-        /// <summary>
-        ///     Creates a new instance of <see cref="GraphSONReader"/>.
-        /// </summary>
-        public CustomGraphSON2Reader() : this(token => new GraphNode(new GraphSONNode(token)))
-        {
-        }
-
-        protected CustomGraphSON2Reader(Func<JToken, GraphNode> graphNodeFactory)
+        public CustomGraphSON2Reader(Func<JToken, GraphNode> graphNodeFactory)
         {
             GraphNodeFactory = graphNodeFactory;
 

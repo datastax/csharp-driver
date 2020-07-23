@@ -27,5 +27,7 @@ namespace Cassandra.Requests
         IRequestHandler Create(IInternalSession session, ISerializer serializer, IStatement statement, IRequestOptions options);
 
         IRequestHandler Create(IInternalSession session, ISerializer serializer);
+        
+        IGraphRequestHandler CreateGraphRequestHandler(IInternalSession session, IGraphProtocolResolver graphProtocolResolver);
     }
 }

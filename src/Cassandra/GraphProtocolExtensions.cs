@@ -31,6 +31,11 @@ namespace Cassandra
                 { GraphProtocol.GraphSON3, "graphson-3.0" },
             };
 
+        public static string GetInternalRepresentation(this GraphProtocol? version)
+        {
+            return version == null ? "null" : version.Value.GetInternalRepresentation();
+        }
+
         public static string GetInternalRepresentation(this GraphProtocol version)
         {
             return GraphProtocolExtensions.EnumToNameMap[version];

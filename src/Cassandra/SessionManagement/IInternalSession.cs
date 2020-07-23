@@ -82,5 +82,7 @@ namespace Cassandra.SessionManagement
         IMetricsManager MetricsManager { get; }
 
         IObserverFactory ObserverFactory { get; }
+
+        Task<RowSet> ExecuteAsync(IStatement statement, IRequestOptions requestOptions);
     }
 }

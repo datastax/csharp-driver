@@ -16,10 +16,12 @@
 
 using System;
 using System.Threading.Tasks;
+
 using Cassandra.ExecutionProfiles;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
+
 using Moq;
 
 namespace Cassandra.Tests.Requests
@@ -28,7 +30,7 @@ namespace Cassandra.Tests.Requests
     {
         private readonly Action<IStatement> _executeCallback;
         private readonly Func<IStatement, RowSet> _rs;
-        
+
         public FakeRequestHandlerFactory(Action<IStatement> executeCallback, Func<IStatement, RowSet> rs = null)
         {
             _executeCallback = executeCallback;
@@ -50,6 +52,11 @@ namespace Cassandra.Tests.Requests
             return CreateMockHandler();
         }
 
+        public IGraphRequestHandler CreateGraphRequestHandler(IInternalSession session, IGraphProtocolResolver resolver)
+        {
+            return null;
+        }
+
         private IRequestHandler CreateMockHandler(IStatement statement = null)
         {
             var handler = Mock.Of<IRequestHandler>();
@@ -68,7 +75,7 @@ namespace Cassandra.Tests.Requests
 
             return handler;
         }
-        
+
         private static Task<T> TaskOf<T>(T value)
         {
             var tcs = new TaskCompletionSource<T>();

@@ -38,15 +38,34 @@ namespace Cassandra.Serialization.Graph
         public const string TypeKey = "@type";
         public const string ValueKey = "@value";
         
-        public static IGraphSONTypeConverter DefaultInstance = 
-            new GraphSONTypeConverter(new DefaultTypeConverter(), new CustomGraphSON3Reader(), new CustomGraphSON3Writer());
+        public static IGraphSONTypeConverter NewGraphSON2Converter(TypeConverter typeConverter)
+        {
+            return new GraphSONTypeConverter(typeConverter, GraphProtocol.GraphSON2);
+        }
+        
+        public static IGraphSONTypeConverter NewGraphSON3Converter(TypeConverter typeConverter)
+        {
+            return new GraphSONTypeConverter(typeConverter, GraphProtocol.GraphSON3);
+        }
 
         public GraphSONTypeConverter(
-            TypeConverter typeConverter, GraphSONReader reader, GraphSONWriter writer)
+            TypeConverter typeConverter, GraphProtocol protocol)
         {
             _typeConverter = typeConverter;
-            _reader = reader ?? throw new ArgumentNullException(nameof(reader));
-            _writer = writer ?? throw new ArgumentNullException(nameof(writer));;
+
+            switch (protocol)
+            {
+                case GraphProtocol.GraphSON2:
+                    _reader = new CustomGraphSON2Reader(token => new GraphNode(new GraphSONNode(this, token)));
+                    _writer = new CustomGraphSON2Writer();
+                    break;
+                case GraphProtocol.GraphSON3:
+                    _reader = new CustomGraphSON3Reader(token => new GraphNode(new GraphSONNode(this, token)));
+                    _writer = new CustomGraphSON3Writer();
+                    break;
+                default:
+                    throw new ArgumentException($"Can not create graph type converter for {protocol.GetInternalRepresentation()}");
+            }
         }
 
         public string ToDb(object obj)
@@ -105,7 +124,7 @@ namespace Cassandra.Serialization.Graph
         {
             if (type == typeof(object) || type == typeof(GraphNode) || type == typeof(IGraphNode))
             {
-                result = new GraphNode(new GraphSONNode(token));
+                result = new GraphNode(new GraphSONNode(this, token));
                 return true;
             }
 
@@ -220,7 +239,7 @@ namespace Cassandra.Serialization.Graph
             for (var i = 0; i < jArray.Count; i++)
             {
                 var value = isGraphNode
-                    ? new GraphNode(new GraphSONNode(jArray[i]))
+                    ? new GraphNode(new GraphSONNode(this, jArray[i]))
                     : FromDb(jArray[i], elementType);
                 arr.Add(value);
             }
@@ -245,11 +264,11 @@ namespace Cassandra.Serialization.Graph
             for (var i = 0; i < jArray.Count; i += 2)
             {
                 var value = elementIsGraphNode
-                    ? new GraphNode(new GraphSONNode(jArray[i + 1]))
+                    ? new GraphNode(new GraphSONNode(this, jArray[i + 1]))
                     : FromDb(jArray[i + 1], elementType);
                 
                 var key = keyIsGraphNode
-                    ? new GraphNode(new GraphSONNode(jArray[i]))
+                    ? new GraphNode(new GraphSONNode(this, jArray[i]))
                     : FromDb(jArray[i], keyType);
 
                 newDictionary.Add(key, value);

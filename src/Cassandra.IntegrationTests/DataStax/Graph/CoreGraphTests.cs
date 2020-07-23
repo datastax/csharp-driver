@@ -27,6 +27,7 @@ using Cassandra.DataStax.Graph;
 using Cassandra.Geometry;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
+using Cassandra.Mapping.TypeConversion;
 using Cassandra.Serialization.Graph;
 using Cassandra.Serialization.Graph.GraphSON2;
 using Cassandra.Tests;
@@ -1192,7 +1193,9 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                                    .GroupBy(p => p.Name)
                                    .ToDictionary(
                                        kvp => kvp.Key, 
-                                       kvp => kvp.Select(p => GraphSONTypeConverter.DefaultInstance.ToDb(p)));
+                                       kvp => kvp.Select(
+                                           p => GraphSONTypeConverter.NewGraphSON3Converter(new DefaultTypeConverter())
+                                                                     .ToDb(p)));
             
             foreach (var propertyGroup in propertiesByName)
             {
@@ -1208,7 +1211,10 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                 jsonArray += "]";
 
                 castedVertex.Properties.Add(
-                    propertyGroup.Key, new GraphNode(new GraphSONNode((JToken)JsonConvert.DeserializeObject(jsonArray, GraphSONNode.GraphSONSerializerSettings))));
+                    propertyGroup.Key, 
+                    new GraphNode(
+                        new GraphSONNode(GraphSONTypeConverter.NewGraphSON3Converter(new DefaultTypeConverter()), 
+                            (JToken)JsonConvert.DeserializeObject(jsonArray, GraphSONNode.GraphSONSerializerSettings))));
             }
         }
     }

@@ -23,6 +23,8 @@ using System.Numerics;
 using System.Text;
 using Cassandra.DataStax.Graph;
 using Cassandra.Geometry;
+using Cassandra.Mapping.TypeConversion;
+using Cassandra.Serialization.Graph;
 using Cassandra.Serialization.Graph.GraphSON2;
 using Newtonsoft.Json;
 using NUnit.Framework;
@@ -473,7 +475,9 @@ namespace Cassandra.Tests.DataStax.Graph
 
         private static GraphNode GetGraphNode(string json)
         {
-            return new GraphNode(new GraphSONNode("{\"result\": " + json + "}"));
+            return new GraphNode(new GraphSONNode(
+                GraphSONTypeConverter.NewGraphSON2Converter(new DefaultTypeConverter()), 
+                "{\"result\": " + json + "}"));
         }
     }
 }
