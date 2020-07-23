@@ -193,7 +193,7 @@ namespace Cassandra.IntegrationTests
         private void WaitUntilKeyspaceMetadataRefresh(ISession session, string graphName)
         {
             var now = DateTime.UtcNow;
-            while ((DateTime.UtcNow - now).TotalMilliseconds <= 10000)
+            while ((DateTime.UtcNow - now).TotalMilliseconds <= 30000)
             {
                 var ks = session.Cluster.Metadata.GetKeyspace(graphName);
                 if (ks?.GraphEngine == "Core")
