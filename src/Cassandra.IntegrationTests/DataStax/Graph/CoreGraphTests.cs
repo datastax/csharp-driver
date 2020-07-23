@@ -31,6 +31,7 @@ using Cassandra.Mapping.TypeConversion;
 using Cassandra.Serialization.Graph;
 using Cassandra.Serialization.Graph.GraphSON2;
 using Cassandra.Tests;
+using Cassandra.Tests.TestHelpers;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
@@ -836,22 +837,22 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
 
                 var set = new HashSet<DateTimeOffset>
                 {
-                    TimeZoneInfo.ConvertTimeFromUtc(DateTimeOffset.FromUnixTimeMilliseconds(12414124).UtcDateTime, cstZone), 
-                    DateTimeOffset.FromUnixTimeMilliseconds(2141247),
-                    DateTimeOffset.FromUnixTimeMilliseconds(834742874)
+                    TimeZoneInfo.ConvertTimeFromUtc(12414124L.ToDateFromMillisecondsSinceEpoch().UtcDateTime, cstZone), 
+                    2141247L.ToDateFromMillisecondsSinceEpoch(),
+                    834742874L.ToDateFromMillisecondsSinceEpoch()
                 };
                 
                 var sortedSet = new SortedSet<DateTimeOffset>
                 {
-                    DateTimeOffset.FromUnixTimeMilliseconds(482174817),
-                    DateTimeOffset.FromUnixTimeMilliseconds(981248124),
-                    DateTimeOffset.FromUnixTimeMilliseconds(214261241424)
+                    482174817L.ToDateFromMillisecondsSinceEpoch(),
+                    981248124L.ToDateFromMillisecondsSinceEpoch(),
+                    214261241424L.ToDateFromMillisecondsSinceEpoch()
                 };
                 
                 var dateTimeSet = new HashSet<DateTime>
                 {
-                    TimeZoneInfo.ConvertTimeFromUtc(DateTimeOffset.FromUnixTimeMilliseconds(12414124).UtcDateTime, cstZone),
-                    TimeZoneInfo.ConvertTimeFromUtc(DateTimeOffset.FromUnixTimeMilliseconds(12414124).UtcDateTime, cstZone),
+                    TimeZoneInfo.ConvertTimeFromUtc(12414124L.ToDateFromMillisecondsSinceEpoch().UtcDateTime, cstZone),
+                    TimeZoneInfo.ConvertTimeFromUtc(12414124L.ToDateFromMillisecondsSinceEpoch().UtcDateTime, cstZone),
                     new DateTime(2014, 1, 1, 1, 1, 2, DateTimeKind.Utc)
                 };
 

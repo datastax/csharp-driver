@@ -54,7 +54,7 @@ namespace Cassandra.Tests.Requests
 
         public IGraphRequestHandler CreateGraphRequestHandler(IInternalSession session, IGraphProtocolResolver resolver)
         {
-            return null;
+            return new GraphRequestHandler(session, resolver);
         }
 
         private IRequestHandler CreateMockHandler(IStatement statement = null)
