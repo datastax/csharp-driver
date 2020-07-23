@@ -158,17 +158,20 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
         }
 
         [Test]
-        public void Should_Support_Named_Parameters()
+        [TestCase(GraphProtocol.GraphSON2)]
+        [TestCase(GraphProtocol.GraphSON1)]
+        public void Should_Support_Named_Parameters(GraphProtocol protocol)
         {
             using (var cluster = ClusterBuilder()
                 .AddContactPoint(TestClusterManager.InitialContactPoint)
-                .WithGraphOptions(new GraphOptions().SetName(GraphTests.GraphName))
+                .WithGraphOptions(new GraphOptions().SetName(GraphTests.GraphName).SetGraphProtocolVersion(protocol))
                 .Build())
             {
                 var session = cluster.Connect();
                 var rs = session.ExecuteGraph(new SimpleGraphStatement("g.V().has('name', namedParam)", new { namedParam = "marko" }));
 
                 Assert.NotNull(rs);
+                Assert.AreEqual(protocol, rs.GraphProtocol);
                 var resultArray = rs.ToArray();
                 Assert.AreEqual(1, resultArray.Length);
                 var vertex = resultArray[0].To<IVertex>();
@@ -179,59 +182,73 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
         }
 
         [Test]
-        public void Should_Support_List_As_Parameter()
+        [TestCase(GraphProtocol.GraphSON2)]
+        [TestCase(GraphProtocol.GraphSON1)]
+        public void Should_Support_List_As_Parameter(GraphProtocol protocol)
         {
+            var ckey = Guid.NewGuid().ToString();
             var names = new[] { "Mario", "Luigi", "Toad", "Bowser", "Peach", "Wario", "Waluigi" };
             using (var cluster = ClusterBuilder()
                 .AddContactPoint(TestClusterManager.InitialContactPoint)
-                .WithGraphOptions(new GraphOptions().SetName(GraphTests.GraphName))
+                .WithGraphOptions(new GraphOptions().SetName(GraphTests.GraphName).SetGraphProtocolVersion(protocol))
                 .Build())
             {
                 var session = cluster.Connect();
                 var schemaCharacterQuery = "" +
-                                   "schema.propertyKey(\"characterName\").Text().create();\n" +
-                                   "schema.vertexLabel(\"character\").properties(\"characterName\").create();";
+                                   "schema.propertyKey(\"ckey\").Text().ifNotExists().create();\n" +
+                                   "schema.propertyKey(\"characterName\").Text().ifNotExists().create();\n" +
+                                   "schema.vertexLabel(\"character\").properties(\"ckey\", \"characterName\").ifNotExists().create();";
 
                 session.ExecuteGraph(new SimpleGraphStatement(schemaCharacterQuery));
                 var createChars = session.ExecuteGraph(new SimpleGraphStatement("characters.each { character -> " +
-                                                                                    "    graph.addVertex(label, 'character', 'characterName', character);" +
-                                                                                "};", new { characters = names }));
+                                                                                    "    graph.addVertex(label, 'character', 'characterName', character, 'ckey', ckey);" +
+                                                                                "};", new { characters = names, ckey }));
                 Assert.AreEqual(names.Length, createChars.ToArray().Length);
 
-                var rs = session.ExecuteGraph(new SimpleGraphStatement("g.V().hasLabel('character').values('characterName')"));
-                var resultArray = rs.ToArray();
-                Assert.AreEqual(names.Length, resultArray.Length);
+                var rs = session.ExecuteGraph(new SimpleGraphStatement("g.V().hasLabel('character')"));
+                Assert.AreEqual(protocol, rs.GraphProtocol);
+                var nodeRs = rs.ToArray();
+                var resultArray = nodeRs.Select(n => n.To<IVertex>()).ToArray();
 
-                foreach (var name in resultArray)
+                var counter = 0;
+                foreach (var node in resultArray)
                 {
-                    Assert.True(names.Contains(name.ToString()));
+                    if (node.GetProperty("ckey").Value.To<string>() == ckey)
+                    {
+                        counter++;
+                        Assert.True(names.Contains(node.GetProperty("characterName").Value.To<string>()));
+                    }
                 }
+
+                Assert.AreEqual(names.Length, counter, string.Join(Environment.NewLine, nodeRs.Select(r => r.GetRaw().ToString())));
             }
         }
 
         [Test]
-        public void Should_Support_Object_As_Parameter()
+        [TestCase(GraphProtocol.GraphSON2)]
+        [TestCase(GraphProtocol.GraphSON1)]
+        public void Should_Support_Object_As_Parameter(GraphProtocol protocol)
         {
-            var name = "Albert Einstein";
+            var name = Guid.NewGuid().ToString();
             var year = 1879;
             var field = "Physics";
-            var citizenship = new[] { "Kingdom of Württemberg", "Switzerland", "Austria", "Germany", "United States" };
+            var citizenship = new[] { "Kingdom of Württemberg", "Switzerland", "Austria", "Germany", "United States", Guid.NewGuid().ToString() };
 
             using (var cluster = ClusterBuilder()
                 .AddContactPoint(TestClusterManager.InitialContactPoint)
-                .WithGraphOptions(new GraphOptions().SetName(GraphTests.GraphName))
+                .WithGraphOptions(new GraphOptions().SetName(GraphTests.GraphName).SetGraphProtocolVersion(protocol))
                 .Build())
             {
                 var session = cluster.Connect();
 
                 var schemaScientistQuery = "" +
-                      "schema.propertyKey(\"year_born\").Int().create()\n" +
-                      "schema.propertyKey(\"field\").Text().create()\n" +
-                      "schema.propertyKey(\"scientist_name\").Text().create()\n" +
-                      "schema.propertyKey(\"country_name\").Text().create()\n" +
-                      "schema.vertexLabel(\"scientist\").properties(\"scientist_name\", \"year_born\", \"field\").create()\n" +
-                      "schema.vertexLabel(\"country\").properties(\"country_name\").create()\n" +
-                      "schema.edgeLabel(\"had_citizenship\").connection(\"scientist\", \"country\").create()";
+                      "schema.propertyKey(\"year_born\").Int().ifNotExists().create()\n" +
+                      "schema.propertyKey(\"field\").Text().ifNotExists().create()\n" +
+                      "schema.propertyKey(\"scientist_name\").Text().ifNotExists().create()\n" +
+                      "schema.propertyKey(\"country_name\").Text().ifNotExists().create()\n" +
+                      "schema.vertexLabel(\"scientist\").properties(\"scientist_name\", \"year_born\", \"field\").ifNotExists().create()\n" +
+                      "schema.vertexLabel(\"country\").properties(\"country_name\").ifNotExists().create()\n" +
+                      "schema.edgeLabel(\"had_citizenship\").connection(\"scientist\", \"country\").ifNotExists().create()";
                 session.ExecuteGraph(new SimpleGraphStatement(schemaScientistQuery));
 
                 session.ExecuteGraph(new SimpleGraphStatement(
@@ -245,6 +262,7 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
 
                 var rs = session.ExecuteGraph(
                     new SimpleGraphStatement("g.V().hasLabel('scientist').has('scientist_name', name)", new {name}));
+                Assert.AreEqual(protocol, rs.GraphProtocol);
                 Vertex einstein = rs.FirstOrDefault();
                 Assert.NotNull(einstein);
                 Assert.AreEqual("scientist", einstein.Label);
@@ -271,17 +289,20 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
         }
 
         [Test]
-        public void Should_Support_Dictionary_As_Parameter()
+        [TestCase(GraphProtocol.GraphSON2)]
+        [TestCase(GraphProtocol.GraphSON1)]
+        public void Should_Support_Dictionary_As_Parameter(GraphProtocol protocol)
         {
             using (var cluster = ClusterBuilder()
                 .AddContactPoint(TestClusterManager.InitialContactPoint)
-                .WithGraphOptions(new GraphOptions().SetName(GraphTests.GraphName))
+                .WithGraphOptions(new GraphOptions().SetName(GraphTests.GraphName).SetGraphProtocolVersion(protocol))
                 .Build())
             {
                 var session = cluster.Connect();
                 var parameter = new Dictionary<string, object>();
                 parameter.Add("namedParam", "marko");
                 var rs = session.ExecuteGraph(new SimpleGraphStatement(parameter, "g.V().has('name', namedParam)"));
+                Assert.AreEqual(protocol, rs.GraphProtocol);
 
                 Assert.NotNull(rs);
                 var resultArray = rs.ToArray();
@@ -294,15 +315,18 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
         }
 
         [Test]
-        public void Should_Support_Multiple_Named_Parameters()
+        [TestCase(GraphProtocol.GraphSON2)]
+        [TestCase(GraphProtocol.GraphSON1)]
+        public void Should_Support_Multiple_Named_Parameters(GraphProtocol protocol)
         {
             using (var cluster = ClusterBuilder()
                 .AddContactPoint(TestClusterManager.InitialContactPoint)
-                .WithGraphOptions(new GraphOptions().SetName(GraphTests.GraphName))
+                .WithGraphOptions(new GraphOptions().SetName(GraphTests.GraphName).SetGraphProtocolVersion(protocol))
                 .Build())
             {
                 var session = cluster.Connect();
                 var rs = session.ExecuteGraph(new SimpleGraphStatement("[a,b]", new { a = 10, b = 20 }));
+                Assert.AreEqual(protocol, rs.GraphProtocol);
 
                 Assert.NotNull(rs);
                 var resultArray = rs.ToArray();
@@ -313,19 +337,23 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
         }
 
         [Test]
-        public void Should_Handle_Vertex_Id_As_Parameter()
+        [TestCase(GraphProtocol.GraphSON2)]
+        [TestCase(GraphProtocol.GraphSON1)]
+        public void Should_Handle_Vertex_Id_As_Parameter(GraphProtocol protocol)
         {
             using (var cluster = ClusterBuilder()
                 .AddContactPoint(TestClusterManager.InitialContactPoint)
-                .WithGraphOptions(new GraphOptions().SetName(GraphTests.GraphName))
+                .WithGraphOptions(new GraphOptions().SetName(GraphTests.GraphName).SetGraphProtocolVersion(protocol))
                 .Build())
             {
                 var session = cluster.Connect();
                 var rs = session.ExecuteGraph(new SimpleGraphStatement("g.V().has('name', 'marko')"));
+                Assert.AreEqual(protocol, rs.GraphProtocol);
 
                 var markoVertex = rs.To<IVertex>().First();
 
                 var rsById = session.ExecuteGraph(new SimpleGraphStatement("g.V(vertexId)", new { vertexId = markoVertex.Id }));
+                Assert.AreEqual(protocol, rsById.GraphProtocol);
                 Assert.NotNull(rsById);
                 var byIdResultArray = rsById.ToArray();
                 Assert.AreEqual(1, byIdResultArray.Length);
@@ -342,19 +370,23 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
         }
 
         [Test]
-        public void Should_Handle_Edge_Id_As_Parameter()
+        [TestCase(GraphProtocol.GraphSON2)]
+        [TestCase(GraphProtocol.GraphSON1)]
+        public void Should_Handle_Edge_Id_As_Parameter(GraphProtocol protocol)
         {
             using (var cluster = ClusterBuilder()
                 .AddContactPoint(TestClusterManager.InitialContactPoint)
-                .WithGraphOptions(new GraphOptions().SetName(GraphTests.GraphName))
+                .WithGraphOptions(new GraphOptions().SetName(GraphTests.GraphName).SetGraphProtocolVersion(protocol))
                 .Build())
             {
                 var session = cluster.Connect();
                 var rs = session.ExecuteGraph(new SimpleGraphStatement("g.E().has('weight', 0.5)"));
+                Assert.AreEqual(protocol, rs.GraphProtocol);
 
                 var markoKnowsVadasEdge = rs.To<IEdge>().First();
 
                 var rsById = session.ExecuteGraph(new SimpleGraphStatement("g.E(edgeId)", new { edgeId = markoKnowsVadasEdge.Id }));
+                Assert.AreEqual(protocol, rsById.GraphProtocol);
                 Assert.NotNull(rsById);
                 var byIdResultArray = rsById.ToArray();
                 Assert.AreEqual(1, byIdResultArray.Length);
@@ -556,18 +588,21 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
             }
         }
 
+        [TestCase(GraphProtocol.GraphSON2)]
+        [TestCase(GraphProtocol.GraphSON1)]
         [Test]
-        public void Should_Get_Path_With_Labels()
+        public void Should_Get_Path_With_Labels(GraphProtocol protocol)
         {
             using (var cluster = ClusterBuilder()
                 .AddContactPoint(TestClusterManager.InitialContactPoint)
-                .WithGraphOptions(new GraphOptions().SetName(GraphTests.GraphName))
+                .WithGraphOptions(new GraphOptions().SetName(GraphTests.GraphName).SetGraphProtocolVersion(protocol))
                 .Build())
             {
                 var session = cluster.Connect();
                 var rs = session.ExecuteGraph(new SimpleGraphStatement(
                     "g.V().hasLabel('person').has('name', 'marko').as('a').outE('knows').as('b').inV().as('c', 'd')" +
                     ".outE('created').as('e', 'f', 'g').inV().as('h').path()"));
+                Assert.AreEqual(protocol, rs.GraphProtocol);
                 foreach (Path path in rs)
                 {
                     CollectionAssert.AreEqual(
@@ -577,7 +612,11 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                         }, path.Labels);
                     var person = path.Objects.First().To<IVertex>();
                     Assert.AreEqual("person", person.Label);
-                    Assert.NotNull(person.GetProperty("name"));
+                    if (protocol == GraphProtocol.GraphSON1)
+                    {
+                        // DSE only with GraphSON1 provides properties by default
+                        Assert.NotNull(person.GetProperty("name"));
+                    }
                 }
             }
         }
@@ -588,7 +627,7 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
         [TestCase("Int()", int.MinValue, "-2147483648")]
         [TestCase("Int()", 0, "0")]
         [TestCase("Smallint()", short.MaxValue, "32767")]
-        [TestCase("Smallint()", -short.MinValue, "-32768")]
+        [TestCase("Smallint()", short.MinValue, "-32768")]
         [TestCase("Smallint()", 0, "0")]
         [TestCase("Bigint()", long.MaxValue, "9223372036854775807")]
         [TestCase("Bigint()", long.MinValue, "-9223372036854775808")]
@@ -604,19 +643,29 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
         [TestCase("Text()", "The quick brown fox jumps over the lazy dog", "The quick brown fox jumps over the lazy dog")]
         public void Should_Support_Types(string type, object value, string expectedString)
         {
-            var id = _idGenerator++;
-            var vertexLabel = "vertex" + id;
-            var propertyName = "prop" + id;
-            IncludeAndQueryVertex(vertexLabel, propertyName, type, value, expectedString);
+            var id1 = _idGenerator++;
+            var id2 = _idGenerator++;
+            var vertexLabel1 = "vertex" + id1;
+            var propertyName1 = "prop" + id1;
+            var vertexLabel2 = "vertex" + id2;
+            var propertyName2 = "prop" + id2;
+            IncludeAndQueryVertex(vertexLabel1, propertyName1, type, value, expectedString, protocol: GraphProtocol.GraphSON1);
+            IncludeAndQueryVertex(vertexLabel2, propertyName2, type, value, expectedString, protocol: GraphProtocol.GraphSON2);
         }
 
         private IVertex IncludeAndQueryVertex(string vertexLabel, string propertyName, string type, object value,
-                                                     string expectedString, bool verifyToString = true)
+                                                     string expectedString, bool verifyToString = true, GraphProtocol? protocol = null)
         {
             IVertex vertex;
+            var graphOptions = new GraphOptions().SetName(GraphTests.GraphName);
+            if (protocol != null)
+            {
+                graphOptions = graphOptions.SetGraphProtocolVersion(protocol.Value);
+            }
+
             using (var cluster = ClusterBuilder()
                 .AddContactPoint(TestClusterManager.InitialContactPoint)
-                .WithGraphOptions(new GraphOptions().SetName(GraphTests.GraphName))
+                .WithGraphOptions(graphOptions)
                 .Build())
             {
                 var session = cluster.Connect();
@@ -635,21 +684,27 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                 var first = rs.FirstOrDefault();
                 Assert.NotNull(first);
                 vertex = first.To<IVertex>();
-                if (verifyToString)
-                {
-                    GraphTests.ValidateVertexResult(vertex, vertexLabel, propertyName, expectedString);
-                }
+                GraphTests.ValidateVertexResult(vertex, vertexLabel, propertyName, expectedString, value, value.GetType(), verifyToString);
+
             }
             return vertex;
         }
 
         private void TestInsertSelectProperty<T>(string type, T value, bool verifyToString = true)
         {
-            var id = _idGenerator++;
-            var vertexLabel = "vertex" + id;
-            var propertyName = "prop" + id;
-            var vertex = IncludeAndQueryVertex(vertexLabel, propertyName, type, value, value.ToString(), verifyToString);
-            var propObject = vertex.GetProperty(propertyName).Value.To<T>();
+            var id1 = _idGenerator++;
+            var id2 = _idGenerator++;
+            var vertexLabel1 = "vertex" + id1;
+            var propertyName1 = "prop" + id1;
+            var vertexLabel2 = "vertex" + id2;
+            var propertyName2 = "prop" + id2;
+            
+            var vertex = IncludeAndQueryVertex(vertexLabel1, propertyName1, type, value, value.ToString(), verifyToString, GraphProtocol.GraphSON1);
+            var propObject = vertex.GetProperty(propertyName1).Value.To<T>();
+            Assert.AreEqual(value, propObject);
+            
+            vertex = IncludeAndQueryVertex(vertexLabel2, propertyName2, type, value, value.ToString(), verifyToString, GraphProtocol.GraphSON2);
+            propObject = vertex.GetProperty(propertyName2).Value.To<T>();
             Assert.AreEqual(value, propObject);
         }
 
@@ -932,7 +987,6 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
         
         [TestCase(GraphProtocol.GraphSON1)]
         [TestCase(GraphProtocol.GraphSON2)]
-        [TestCase(GraphProtocol.GraphSON3)]
         [Test]
         public async Task Should_UseSpecifiedGraphProtocol_When_ItIsProvidedAtStatementLevel(GraphProtocol protocol)
         {
@@ -944,10 +998,14 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
         }
 
         private static void ValidateVertexResult(IVertex vertex, string vertexLabel, string propertyName,
-                                                 string expectedValueString)
+                                                 string expectedValueString, object value, Type type, bool verifyToString)
         {
             Assert.AreEqual(vertex.Label, vertexLabel);
-            Assert.AreEqual(expectedValueString, vertex.GetProperty(propertyName).Value.ToString());
+            Assert.AreEqual(value, vertex.GetProperty(propertyName).Value.To(type));
+            if (verifyToString)
+            {
+                Assert.AreEqual(expectedValueString, vertex.GetProperty(propertyName).Value.ToString());
+            }
         }
     }
 }

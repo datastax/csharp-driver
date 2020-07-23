@@ -15,6 +15,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Net;
 using Cassandra.Serialization.Graph.Dse;
 using Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON;
 
@@ -27,7 +28,8 @@ namespace Cassandra.Serialization.Graph.GraphSON2
             {
                 { typeof(IList<object>), new ListSerializer() },
                 { typeof(ISet<object>), new SetSerializer() },
-                { typeof(IDictionary<object, object>), new MapSerializer() }
+                { typeof(IDictionary<object, object>), new MapSerializer() },
+                { typeof(IPAddress), new InetAddressSerializer() },
             };
 
         /// <summary>

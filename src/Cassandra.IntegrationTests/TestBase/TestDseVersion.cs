@@ -40,7 +40,7 @@ namespace Cassandra.IntegrationTests.TestBase
         //static TestDseVersion()
         //{
         //    Environment.SetEnvironmentVariable("CCM_USE_WSL", "true");
-        //    Environment.SetEnvironmentVariable("DSE_VERSION", "6.8.1");
+        //    Environment.SetEnvironmentVariable("DSE_VERSION", "6.7.7");
         //}
 
         /// <summary>

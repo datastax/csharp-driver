@@ -138,6 +138,15 @@ namespace Cassandra.IntegrationTests
         /// </summary>
         public void CreateClassicGraph(ISession session, string name)
         {
+            try
+            {
+                session.ExecuteGraph(new SimpleGraphStatement($"system.graph('{name}').drop()"));
+            }
+            catch
+            {
+                // ignored
+            }
+
             session.ExecuteGraph(!TestClusterManager.SupportsNextGenGraph()
                 ? new SimpleGraphStatement($"system.graph('{name}').ifNotExists().create()")
                 : new SimpleGraphStatement($"system.graph('{name}').ifNotExists().engine(Classic).create()"));

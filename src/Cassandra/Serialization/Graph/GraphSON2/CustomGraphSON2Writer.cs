@@ -40,7 +40,6 @@ namespace Cassandra.Serialization.Graph.GraphSON2
                 { typeof(TinkerpopDuration), new TinkerpopDurationSerializer() },
                 { typeof(LocalTime), new LocalTimeSerializer() },
                 { typeof(LocalDate), new LocalDateSerializer() },
-                { typeof(IPAddress), new InetAddressSerializer() },
                 { typeof(byte[]), new BlobSerializer() },
                 { typeof(LineString), new LineStringSerializer() },
                 { typeof(Point), new PointSerializer() },
@@ -55,6 +54,12 @@ namespace Cassandra.Serialization.Graph.GraphSON2
                 { typeof(IEdge), new EdgeSerializer() },
                 { typeof(Edge), new EdgeSerializer() },
                 { typeof(EnumWrapper), new EnumSerializer()},
+            };
+        
+        private static readonly IDictionary<Type, Func<dynamic, dynamic>> CustomSerializers =
+            new Dictionary<Type, Func<dynamic, dynamic>>
+            {
+                { typeof(IPAddress), objectData => ((IPAddress) objectData).ToString() }
             };
 
         /// <summary>
@@ -109,7 +114,26 @@ namespace Cassandra.Serialization.Graph.GraphSON2
                 return DictToGraphSONDict(objectData);
             if (IsEnumerable(objectData))
                 return ListToGraphSONList(objectData);
+            return HandleNotSupportedType(type, objectData);
+        }
+
+        protected virtual dynamic HandleNotSupportedType(Type type, dynamic objectData)
+        {
+            if (CustomGraphSON2Writer.CustomSerializers.ContainsKey(type))
+            {
+                return CustomGraphSON2Writer.CustomSerializers[type].Invoke(objectData);
+            }
+
+            foreach (var supportedType in CustomSerializers.Keys)
+            {
+                if (supportedType.IsAssignableFrom(type))
+                {
+                    return CustomGraphSON2Writer.CustomSerializers[supportedType].Invoke(objectData);
+                }
+            }
+
             return objectData;
+
         }
 
         private IGraphSONSerializer TryGetSerializerFor(Type type)
