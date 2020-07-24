@@ -15,9 +15,11 @@
 //
 
 using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Numerics;
@@ -38,10 +40,10 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.DataStax.Graph
 {
-    [TestDseVersion(5, 0), Category(TestCategory.Short), Category(TestCategory.ServerApi), Category(TestCategory.RealCluster)]
+    [TestDseVersion(6, 8), Category(TestCategory.Short), Category(TestCategory.ServerApi), Category(TestCategory.RealCluster)]
     public class CoreGraphTests : BaseIntegrationTest
     {
-        private const string GraphName = "graph1";
+        private const string GraphName = "graph2";
         private const string GremlinGroovy = "gremlin-groovy";
         private const string BytecodeJson = "bytecode-json";
         private int _idGenerator;
@@ -74,30 +76,7 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                 ? new[] { "Cassandra", "Graph" }
                 : new[] { "Cassandra"});
         }
-
-        [Test]
-        public void Should_Get_Vertices_Of_Classic_Schema()
-        {
-            using (var cluster = ClusterBuilder()
-                .AddContactPoint(TestClusterManager.InitialContactPoint)
-                .WithGraphOptions(new GraphOptions().SetName(CoreGraphTests.GraphName))
-                .Build())
-            {
-                var session = cluster.Connect();
-                var rs = session.ExecuteGraph(new SimpleGraphStatement("g.V()"));
-                var resultArray = rs.ToArray();
-                Assert.Greater(resultArray.Length, 0);
-                foreach (Vertex v in resultArray)
-                {
-                    Assert.NotNull(v);
-                    FillVertexProperties(session, v);
-                    Assert.IsTrue(v.Label == "person" || v.Label == "software");
-                    Assert.NotNull(v.GetProperty("name"));
-                }
-                Assert.NotNull(rs);
-            }
-        }
-
+        
         [Test]
         public void Should_Retrieve_Graph_Vertices()
         {
@@ -608,38 +587,60 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                 }
             }
         }
+        
+        public static IEnumerable Should_Support_Types_TestCases
+        {
+            get
+            {
+                Func<object,string> durationToString = o => ((Duration) o).ToIsoString();
+                Func<object, string> doubleToString = o => ((double) o).ToString(CultureInfo.InvariantCulture);
+                Func<object, string> floatToString = o => ((float) o).ToString(CultureInfo.InvariantCulture);
+                return new[]
+                {
+                    new TestCaseData("Boolean", true, "True", null, null),
+                    new TestCaseData("Boolean", true, "True", null, null),
+                    new TestCaseData("Boolean", false, "False", null, null),
+                    new TestCaseData("Int", int.MaxValue, "2147483647", null, null),
+                    new TestCaseData("Int", int.MinValue, "-2147483648", null, null),
+                    new TestCaseData("Int", 0, "0", null, null),
+                    new TestCaseData("Smallint", short.MaxValue, "32767", null, null),
+                    new TestCaseData("Smallint", short.MinValue, "-32768", null, null),
+                    new TestCaseData("Smallint", 0, "0", null, null),
+                    new TestCaseData("Bigint", long.MaxValue, "9223372036854775807", null, null),
+                    new TestCaseData("Bigint", long.MinValue, "-9223372036854775808", null, null),
+                    new TestCaseData("Bigint", 0L, "0", null, null),
+                    new TestCaseData("Float", 3.1415927f, "3.1415927", floatToString, null),
+                    new TestCaseData("Double", 3.1415d, "3.1415", doubleToString, null),
+                    new TestCaseData("Duration", Duration.Parse("P2DT3H4M"), "P2DT3H4M", durationToString, Duration.Parse("P2DT3H4M")),
+                    new TestCaseData("Duration", Duration.Parse("PT5S"), "PT5S", durationToString, Duration.Parse("PT5S")),
+                    new TestCaseData("Duration", Duration.Parse("PT1M"), "PT1M", durationToString, Duration.Parse("PT1M")),
+                    new TestCaseData("Duration", Duration.Parse("PT1H1M"), "PT1H1M", durationToString, Duration.Parse("PT1H1M")),
+                    new TestCaseData("Duration", Duration.Parse("PT240H"), "PT240H", durationToString, Duration.Parse("PT240H")),
+                    new TestCaseData("Text", "The quick brown fox jumps over the lazy dog", "The quick brown fox jumps over the lazy dog", null, null)
+                };
+            }
+        }  
 
-        [TestCase("Boolean", true, "True")]
-        [TestCase("Boolean", false, "False")]
-        [TestCase("Int", int.MaxValue, "2147483647")]
-        [TestCase("Int", int.MinValue, "-2147483648")]
-        [TestCase("Int", 0, "0")]
-        [TestCase("Smallint", short.MaxValue, "32767")]
-        [TestCase("Smallint", short.MinValue, "-32768")]
-        [TestCase("Smallint", 0, "0")]
-        [TestCase("Bigint", long.MaxValue, "9223372036854775807")]
-        [TestCase("Bigint", long.MinValue, "-9223372036854775808")]
-        [TestCase("Bigint", 0L, "0")]
-        [TestCase("Float", 3.1415927f, "3.1415927")]
-        [TestCase("Double", 3.1415d, "3.1415")]
-        [TestCase("Duration", "P2DT3H4M", "PT51H4M")]
-        [TestCase("Duration", "5 s", "PT5S")]
-        [TestCase("Duration", "5 seconds", "PT5S")]
-        [TestCase("Duration", "1 minute", "PT1M")]
-        [TestCase("Duration", "PT1H1M", "PT1H1M")]
-        [TestCase("Duration", "PT240H", "PT240H")]
-        [TestCase("Text", "The quick brown fox jumps over the lazy dog", "The quick brown fox jumps over the lazy dog")]
-        public void Should_Support_Types(string type, object value, string expectedString)
+        [TestCaseSource(typeof(CoreGraphTests), nameof(CoreGraphTests.Should_Support_Types_TestCases))]
+        public void Should_Support_Types
+            (string type, 
+             object value, 
+             string expectedString, 
+             Func<object,string> toStringFunc, 
+             object expectedValue)
         {
             var id = _idGenerator++;
             var vertexLabel = "vertex" + id;
             var propertyName = "prop" + id;
-            IncludeAndQueryVertex(vertexLabel, propertyName, type, value, expectedString);
+            IncludeAndQueryVertex(vertexLabel, propertyName, type, value, expectedString, toStringFunc, true, expectedValue);
         }
 
-        private IVertex IncludeAndQueryVertex(string vertexLabel, string propertyName, string type, object value,
-                                                     string expectedString, bool verifyToString = true)
+        private IVertex IncludeAndQueryVertex(
+            string vertexLabel, string propertyName, string type, object value,
+            string expectedString, Func<object, string> toStringFunc, bool verifyToString = true, 
+            object expectedValue = null)
         {
+            toStringFunc = toStringFunc ?? (o => o.ToString());
             IVertex vertex;
             using (var cluster = ClusterBuilder()
                 .AddContactPoint(TestClusterManager.InitialContactPoint)
@@ -661,10 +662,9 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                 var first = rs.FirstOrDefault();
                 Assert.NotNull(first);
                 vertex = first.To<IVertex>();
-                if (verifyToString)
-                {
-                    CoreGraphTests.ValidateVertexResult(session, vertex, vertexLabel, propertyName, expectedString);
-                }
+                var expected = expectedValue ?? value;
+                CoreGraphTests.ValidateVertexResult(
+                    session, vertex, vertexLabel, propertyName, expectedString, toStringFunc, expected, expected.GetType(), verifyToString);
                 FillVertexProperties(session, vertex);
             }
             return vertex;
@@ -675,7 +675,7 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
             var id = _idGenerator++;
             var vertexLabel = "vertex" + id;
             var propertyName = "prop" + id;
-            var vertex = IncludeAndQueryVertex(vertexLabel, propertyName, type, value, value.ToString(), verifyToString);
+            var vertex = IncludeAndQueryVertex(vertexLabel, propertyName, type, value, value.ToString(), null, verifyToString);
             var propObject = vertex.GetProperty(propertyName).Value.To<T>();
             Assert.AreEqual(value, propObject);
         }
@@ -778,12 +778,12 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
         [TestCase("30h20m")]
         [TestCase("20m")]
         [TestCase("56s")]
-        [TestCase("567ms", IgnoreReason = "Fixed by DSP-13013")]
-        [TestCase("1950us", IgnoreReason = "Fixed by DSP-13013")]
-        [TestCase("1950µs", IgnoreReason = "Fixed by DSP-13013")]
-        [TestCase("1950000ns", IgnoreReason = "Fixed by DSP-13013")]
-        [TestCase("1950000NS", IgnoreReason = "Fixed by DSP-13013")]
-        [TestCase("-1950000ns", IgnoreReason = "Fixed by DSP-13013")]
+        [TestCase("567ms")]
+        [TestCase("1950us")]
+        [TestCase("1950µs")]
+        [TestCase("1950000ns")]
+        [TestCase("1950000NS")]
+        [TestCase("-1950000ns")]
         public void Should_Support_Duration(string valueStr)
         {
             const string type = "Duration";
@@ -980,7 +980,7 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
         }
         
         [Test]
-        public void ExecuteGraph_Should_Throw_ArgumentOutOfRange_When_Duration_Is_Out_Of_Range()
+        public void ExecuteGraph_Should_SerializeAndDeserialize_OutOfRangeJavaDurations()
         {
             var values = new[]
             {
@@ -1004,7 +1004,9 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
 
                     var parameters = new {pk = Guid.NewGuid(), vertexLabel = "v1", propertyName = "prop1", val = value};
                     var stmt = new SimpleGraphStatement("g.addV(vertexLabel).property('uuid', pk).property(propertyName, val)", parameters);
-                    Assert.Throws<ArgumentOutOfRangeException>(() => session.ExecuteGraph(stmt));
+                    session.ExecuteGraph(stmt);
+                    var rs = session.ExecuteGraph(new SimpleGraphStatement("g.with('allow-filtering').V().hasLabel(vertexLabel).has('uuid', pk).has(propertyName, val).properties(propertyName).value()", parameters));
+                    Assert.AreEqual(value, rs.Single().To<Duration>());
                 }
             }
         }
@@ -1148,15 +1150,16 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
         }
 
         private static void ValidateVertexResult(
-            ISession session, 
-            IVertex vertex, 
-            string vertexLabel, 
-            string propertyName, 
-            string expectedValueString)
+            ISession session, IVertex vertex, string vertexLabel, string propertyName,
+            string expectedValueString, Func<object, string> toStringFunc, object value, Type type, bool verifyToString)
         {
             Assert.AreEqual(vertex.Label, vertexLabel);
             FillVertexProperties(session, vertex);
-            Assert.AreEqual(expectedValueString, vertex.GetProperty(propertyName).Value.ToString());
+            Assert.AreEqual(value, vertex.GetProperty(propertyName).Value.To(type));
+            if (verifyToString)
+            {
+                Assert.AreEqual(expectedValueString, toStringFunc(vertex.GetProperty(propertyName).Value.To(type)));
+            }
         }
 
         private static void FillEdgeProperties(ISession session, IEdge edge)

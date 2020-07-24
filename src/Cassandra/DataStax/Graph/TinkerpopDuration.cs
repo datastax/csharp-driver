@@ -18,121 +18,122 @@ using System;
 
 namespace Cassandra.DataStax.Graph
 {
-    /// <summary>
-    /// Represents a value of type "gx:Duration" in DSE Graph. Note that <see cref="Duration"/> represents the CQL Duration type.
-    /// It's basically a wrapper around a <see cref="Duration"/> value.
-    /// </summary>
-    public struct TinkerpopDuration : IEquatable<TinkerpopDuration>, IEquatable<TimeSpan>, IEquatable<Duration>
-    {
-        public TinkerpopDuration(Duration duration)
-        {
-            Value = duration;
-        }
+    // TODO GRAPH
+    ///// <summary>
+    ///// Represents a value of type "gx:Duration" in DSE Graph. Note that <see cref="Duration"/> represents the CQL Duration type.
+    ///// It's basically a wrapper around a <see cref="Duration"/> value.
+    ///// </summary>
+    //public struct TinkerpopDuration : IEquatable<TinkerpopDuration>, IEquatable<TimeSpan>, IEquatable<Duration>
+    //{
+    //    public TinkerpopDuration(Duration duration)
+    //    {
+    //        Value = duration;
+    //    }
 
-        public Duration AsDuration() => (Duration) this;
+    //    public Duration AsDuration() => (Duration) this;
 
-        public TimeSpan AsTimeSpan() => (TimeSpan) this;
+    //    public TimeSpan AsTimeSpan() => (TimeSpan) this;
 
-        public Duration Value { get; }
+    //    public Duration Value { get; }
         
-        public static implicit operator TinkerpopDuration(Duration obj) => new TinkerpopDuration(obj);
+    //    public static implicit operator TinkerpopDuration(Duration obj) => new TinkerpopDuration(obj);
 
-        public static implicit operator Duration(TinkerpopDuration obj) => obj.Value;
+    //    public static implicit operator Duration(TinkerpopDuration obj) => obj.Value;
         
-        public static explicit operator TimeSpan(TinkerpopDuration obj) => obj.Value.ToTimeSpan();
+    //    public static explicit operator TimeSpan(TinkerpopDuration obj) => obj.Value.ToTimeSpan();
         
-        public static explicit operator TinkerpopDuration(TimeSpan obj) => new TinkerpopDuration(Duration.FromTimeSpan(obj));
+    //    public static explicit operator TinkerpopDuration(TimeSpan obj) => new TinkerpopDuration(Duration.FromTimeSpan(obj));
 
-        public static bool operator ==(TinkerpopDuration i1, TinkerpopDuration i2)
-        {
-            return i1.Equals(i2);
-        }
+    //    public static bool operator ==(TinkerpopDuration i1, TinkerpopDuration i2)
+    //    {
+    //        return i1.Equals(i2);
+    //    }
 
-        public static bool operator !=(TinkerpopDuration i1, TinkerpopDuration i2)
-        {
-            return !(i1 == i2);
-        }
+    //    public static bool operator !=(TinkerpopDuration i1, TinkerpopDuration i2)
+    //    {
+    //        return !(i1 == i2);
+    //    }
         
-        public static bool operator ==(TinkerpopDuration i1, Duration i2)
-        {
-            return i1.Equals(i2);
-        }
+    //    public static bool operator ==(TinkerpopDuration i1, Duration i2)
+    //    {
+    //        return i1.Equals(i2);
+    //    }
 
-        public static bool operator !=(TinkerpopDuration i1, Duration i2)
-        {
-            return !(i1 == i2);
-        }
+    //    public static bool operator !=(TinkerpopDuration i1, Duration i2)
+    //    {
+    //        return !(i1 == i2);
+    //    }
         
-        public static bool operator ==(Duration i1, TinkerpopDuration i2)
-        {
-            return i2.Equals(i1);
-        }
+    //    public static bool operator ==(Duration i1, TinkerpopDuration i2)
+    //    {
+    //        return i2.Equals(i1);
+    //    }
 
-        public static bool operator !=(Duration i1, TinkerpopDuration i2)
-        {
-            return !(i1 == i2);
-        }
+    //    public static bool operator !=(Duration i1, TinkerpopDuration i2)
+    //    {
+    //        return !(i1 == i2);
+    //    }
         
-        public static bool operator ==(TinkerpopDuration i1, TimeSpan i2)
-        {
-            return i1.Equals(i2);
-        }
+    //    public static bool operator ==(TinkerpopDuration i1, TimeSpan i2)
+    //    {
+    //        return i1.Equals(i2);
+    //    }
 
-        public static bool operator !=(TinkerpopDuration i1, TimeSpan i2)
-        {
-            return !(i1 == i2);
-        }
+    //    public static bool operator !=(TinkerpopDuration i1, TimeSpan i2)
+    //    {
+    //        return !(i1 == i2);
+    //    }
         
-        public static bool operator ==(TimeSpan i1, TinkerpopDuration i2)
-        {
-            return i2.Equals(i1);
-        }
+    //    public static bool operator ==(TimeSpan i1, TinkerpopDuration i2)
+    //    {
+    //        return i2.Equals(i1);
+    //    }
 
-        public static bool operator !=(TimeSpan i1, TinkerpopDuration i2)
-        {
-            return !(i1 == i2);
-        }
+    //    public static bool operator !=(TimeSpan i1, TinkerpopDuration i2)
+    //    {
+    //        return !(i1 == i2);
+    //    }
 
-        public bool Equals(TinkerpopDuration other)
-        {
-            return Value.Equals(other.Value);
-        }
+    //    public bool Equals(TinkerpopDuration other)
+    //    {
+    //        return Value.Equals(other.Value);
+    //    }
 
-        public bool Equals(Duration other)
-        {
-            return AsDuration().Equals(other);
-        }
+    //    public bool Equals(Duration other)
+    //    {
+    //        return AsDuration().Equals(other);
+    //    }
 
-        public bool Equals(TimeSpan other)
-        {
-            return AsTimeSpan().Equals(other);
-        }
+    //    public bool Equals(TimeSpan other)
+    //    {
+    //        return AsTimeSpan().Equals(other);
+    //    }
 
-        public override int GetHashCode()
-        {
-            return -1937169414 + Value.GetHashCode();
-        }
+    //    public override int GetHashCode()
+    //    {
+    //        return -1937169414 + Value.GetHashCode();
+    //    }
 
-        public override bool Equals(object obj)
-        {
-            switch (obj)
-            {
-                case null:
-                    return false;
-                case Duration d:
-                    return Equals(d);
-                case TimeSpan ts:
-                    return Equals(ts);
-                case TinkerpopDuration i:
-                    return Equals(i);
-                default:
-                    return false;
-            }
-        }
+    //    public override bool Equals(object obj)
+    //    {
+    //        switch (obj)
+    //        {
+    //            case null:
+    //                return false;
+    //            case Duration d:
+    //                return Equals(d);
+    //            case TimeSpan ts:
+    //                return Equals(ts);
+    //            case TinkerpopDuration i:
+    //                return Equals(i);
+    //            default:
+    //                return false;
+    //        }
+    //    }
 
-        public override string ToString()
-        {
-            return Value.ToString();
-        }
-    }
+    //    public override string ToString()
+    //    {
+    //        return Value.ToString();
+    //    }
+    //}
 }

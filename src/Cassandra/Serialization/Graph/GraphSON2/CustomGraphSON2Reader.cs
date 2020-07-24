@@ -34,7 +34,7 @@ namespace Cassandra.Serialization.Graph.GraphSON2
                 {
                     {"g:Date", new DateDeserializer()},
                     {"g:Timestamp", new TimestampDeserializer()},
-                    { TinkerpopDurationSerializer.TypeName, new TinkerpopDurationSerializer() },
+                    { Duration2Serializer.TypeName, new Duration2Serializer() },
                     { InstantSerializer.TypeName, new InstantSerializer() },
                     { LocalTimeSerializer.TypeName, new LocalTimeSerializer() },
                     { LocalDateSerializer.TypeName, new LocalDateSerializer() },

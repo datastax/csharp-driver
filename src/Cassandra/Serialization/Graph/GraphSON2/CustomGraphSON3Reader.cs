@@ -35,7 +35,8 @@ namespace Cassandra.Serialization.Graph.GraphSON2
                     { ListDeserializer.TypeName, new ListDeserializer(GraphNodeFactory) },
                     { SetDeserializer.TypeName, new SetDeserializer(GraphNodeFactory) },
                     { MapDeserializer.TypeName, new MapDeserializer(GraphNodeFactory) },
-                    { BulkSetSerializer.TypeName, new BulkSetSerializer(GraphNodeFactory) }
+                    { BulkSetSerializer.TypeName, new BulkSetSerializer(GraphNodeFactory) },
+                    { Duration3Serializer.TypeName, new Duration3Serializer() }
                 };
 
             foreach (var kv in customGraphSon3SpecificDeserializers)

@@ -18,26 +18,27 @@ using Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON;
 
 namespace Cassandra.Serialization.Graph.Dse
 {
-    internal class TinkerpopDurationSerializer : StringBasedSerializer
-    {
-        private const string Prefix = "gx";
-        private const string TypeKey = "Duration";
+    // TODO GRAPH
+    //internal class TinkerpopDurationSerializer : StringBasedSerializer
+    //{
+    //    private const string Prefix = "gx";
+    //    private const string TypeKey = "Duration";
 
-        public TinkerpopDurationSerializer() : base(TinkerpopDurationSerializer.Prefix, TinkerpopDurationSerializer.TypeKey)
-        {
-        }
+    //    public TinkerpopDurationSerializer() : base(TinkerpopDurationSerializer.Prefix, TinkerpopDurationSerializer.TypeKey)
+    //    {
+    //    }
 
-        public static string TypeName => GraphSONUtil.FormatTypeName(TinkerpopDurationSerializer.Prefix, TinkerpopDurationSerializer.TypeKey);
+    //    public static string TypeName => GraphSONUtil.FormatTypeName(TinkerpopDurationSerializer.Prefix, TinkerpopDurationSerializer.TypeKey);
 
-        protected override string ToString(dynamic obj)
-        {
-            TinkerpopDuration tinkerpopInstant = obj;
-            return tinkerpopInstant.Value.ToJavaDurationString();
-        }
+    //    protected override string ToString(dynamic obj)
+    //    {
+    //        TinkerpopDuration tinkerpopInstant = obj;
+    //        return tinkerpopInstant.Value.ToJavaDurationString();
+    //    }
 
-        protected override dynamic FromString(string str)
-        {
-            return new TinkerpopDuration(Duration.Parse(str));
-        }
-    }
+    //    protected override dynamic FromString(string str)
+    //    {
+    //        return new TinkerpopDuration(Duration.Parse(str));
+    //    }
+    //}
 }

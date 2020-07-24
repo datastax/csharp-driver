@@ -37,7 +37,7 @@ namespace Cassandra.Serialization.Graph.GraphSON2
                 { typeof(DateTimeOffset), new InstantSerializer() },
                 { typeof(TinkerpopDate), new DateSerializer()},
                 { typeof(TinkerpopTimestamp), new TimestampSerializer() },
-                { typeof(TinkerpopDuration), new TinkerpopDurationSerializer() },
+                { typeof(Duration), new Duration2Serializer() },
                 { typeof(LocalTime), new LocalTimeSerializer() },
                 { typeof(LocalDate), new LocalDateSerializer() },
                 { typeof(byte[]), new BlobSerializer() },

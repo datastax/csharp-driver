@@ -30,6 +30,7 @@ namespace Cassandra.Serialization.Graph.GraphSON2
                 { typeof(ISet<object>), new SetSerializer() },
                 { typeof(IDictionary<object, object>), new MapSerializer() },
                 { typeof(IPAddress), new InetAddressSerializer() },
+                { typeof(Duration), new Duration3Serializer() }
             };
 
         /// <summary>

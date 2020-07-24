@@ -171,9 +171,10 @@ namespace Cassandra.IntegrationTests
         /// </summary>
         public void CreateCoreGraph(ISession session, string name)
         {
-            session.ExecuteGraph(new SimpleGraphStatement($"system.graph('{name}').ifExists().drop()"));
-            session.ExecuteGraph(new SimpleGraphStatement($"system.graph('{name}').ifNotExists().create()"));
-            WaitUntilKeyspaceMetadataRefresh(session, name);
+            session.ExecuteGraph(new SimpleGraphStatement($"system.graph('{name}').ifExists().drop()").SetSystemQuery());
+            WaitUntilKeyspaceMetadataRefresh(session, name, false);
+            session.ExecuteGraph(new SimpleGraphStatement($"system.graph('{name}').ifNotExists().create()").SetSystemQuery());
+            WaitUntilKeyspaceMetadataRefresh(session, name, true);
             //session.ExecuteGraph(new SimpleGraphStatement(AllowScans).SetGraphName(name));
             session.ExecuteGraph(new SimpleGraphStatement(CoreSchemaGremlinQuery).SetGraphName(name));
             session.ExecuteGraph(new SimpleGraphStatement(CoreLoadGremlinQuery).SetGraphName(name));
@@ -190,15 +191,24 @@ namespace Cassandra.IntegrationTests
             }
         }
 
-        private void WaitUntilKeyspaceMetadataRefresh(ISession session, string graphName)
+        private void WaitUntilKeyspaceMetadataRefresh(ISession session, string graphName, bool exists)
         {
             var now = DateTime.UtcNow;
             while ((DateTime.UtcNow - now).TotalMilliseconds <= 30000)
             {
-                var ks = session.Cluster.Metadata.GetKeyspace(graphName);
-                if (ks?.GraphEngine == "Core")
+                var keyspaceExists = session.Cluster.Metadata.RefreshSchema(graphName);
+                if (keyspaceExists == exists)
                 {
                     return;
+                }
+
+                if (exists)
+                {
+                    var ks = session.Cluster.Metadata.GetKeyspace(graphName);
+                    if (ks?.GraphEngine == "Core")
+                    {
+                        return;
+                    }
                 }
 
                 Task.Delay(500).GetAwaiter().GetResult();

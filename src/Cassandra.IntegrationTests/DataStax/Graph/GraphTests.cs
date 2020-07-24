@@ -15,6 +15,7 @@
 //
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -621,27 +622,40 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
             }
         }
 
-        [TestCase("Boolean()", true, "True")]
-        [TestCase("Boolean()", false, "False")]
-        [TestCase("Int()", int.MaxValue, "2147483647")]
-        [TestCase("Int()", int.MinValue, "-2147483648")]
-        [TestCase("Int()", 0, "0")]
-        [TestCase("Smallint()", short.MaxValue, "32767")]
-        [TestCase("Smallint()", short.MinValue, "-32768")]
-        [TestCase("Smallint()", 0, "0")]
-        [TestCase("Bigint()", long.MaxValue, "9223372036854775807")]
-        [TestCase("Bigint()", long.MinValue, "-9223372036854775808")]
-        [TestCase("Bigint()", 0L, "0")]
-        [TestCase("Float()", 3.1415927f, "3.1415927")]
-        [TestCase("Double()", 3.1415d, "3.1415")]
-        [TestCase("Duration()", "P2DT3H4M", "PT51H4M")]
-        [TestCase("Duration()", "5 s", "PT5S")]
-        [TestCase("Duration()", "5 seconds", "PT5S")]
-        [TestCase("Duration()", "1 minute", "PT1M")]
-        [TestCase("Duration()", "PT1H1M", "PT1H1M")]
-        [TestCase("Duration()", "PT240H", "PT240H")]
-        [TestCase("Text()", "The quick brown fox jumps over the lazy dog", "The quick brown fox jumps over the lazy dog")]
-        public void Should_Support_Types(string type, object value, string expectedString)
+        public static IEnumerable Should_Support_Types_TestCases
+        {
+            get
+            {
+                return new[]
+                {
+                    new TestCaseData("Boolean()", true, "True", null),
+                    new TestCaseData("Boolean()", true, "True", null),
+                    new TestCaseData("Boolean()", false, "False", null),
+                    new TestCaseData("Int()", int.MaxValue, "2147483647", null),
+                    new TestCaseData("Int()", int.MinValue, "-2147483648", null),
+                    new TestCaseData("Int()", 0, "0", null),
+                    new TestCaseData("Smallint()", short.MaxValue, "32767", null),
+                    new TestCaseData("Smallint()", short.MinValue, "-32768", null),
+                    new TestCaseData("Smallint()", 0, "0", null),
+                    new TestCaseData("Bigint()", long.MaxValue, "9223372036854775807", null),
+                    new TestCaseData("Bigint()", long.MinValue, "-9223372036854775808", null),
+                    new TestCaseData("Bigint()", 0L, "0", null),
+                    new TestCaseData("Float()", 3.1415927f, "3.1415927", null),
+                    new TestCaseData("Double()", 3.1415d, "3.1415", null),
+                    new TestCaseData("Duration()", "P2DT3H4M", "PT51H4M", Duration.Parse(Duration.Parse("P2DT3H4M").ToJavaDurationString())),
+                    new TestCaseData("Duration()", "5 s", "PT5S", Duration.Parse("PT5S")),
+                    new TestCaseData("Duration()", "5 seconds", "PT5S", Duration.Parse("PT5S")),
+                    new TestCaseData("Duration()", "1 minute", "PT1M", Duration.Parse("PT1M")),
+                    new TestCaseData("Duration()", "PT1H1M", "PT1H1M", Duration.Parse("PT1H1M")),
+                    new TestCaseData("Duration()", "PT240H", "PT240H", Duration.Parse("PT240H")),
+                    new TestCaseData("Text()", "The quick brown fox jumps over the lazy dog", "The quick brown fox jumps over the lazy dog", null)
+                };
+            }
+        }  
+
+        [TestCaseSource(typeof(GraphTests), nameof(GraphTests.Should_Support_Types_TestCases))]
+        [Test]
+        public void Should_Support_Types(string type, object parameterValue, string expectedString, object expectedValue = null)
         {
             var id1 = _idGenerator++;
             var id2 = _idGenerator++;
@@ -649,12 +663,14 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
             var propertyName1 = "prop" + id1;
             var vertexLabel2 = "vertex" + id2;
             var propertyName2 = "prop" + id2;
-            IncludeAndQueryVertex(vertexLabel1, propertyName1, type, value, expectedString, protocol: GraphProtocol.GraphSON1);
-            IncludeAndQueryVertex(vertexLabel2, propertyName2, type, value, expectedString, protocol: GraphProtocol.GraphSON2);
+            IncludeAndQueryVertex(vertexLabel1, propertyName1, type, parameterValue, expectedString, true, GraphProtocol.GraphSON1, expectedValue);
+            IncludeAndQueryVertex(vertexLabel2, propertyName2, type, parameterValue, expectedString, true, GraphProtocol.GraphSON2, expectedValue);
         }
 
-        private IVertex IncludeAndQueryVertex(string vertexLabel, string propertyName, string type, object value,
-                                                     string expectedString, bool verifyToString = true, GraphProtocol? protocol = null)
+        private IVertex IncludeAndQueryVertex(
+            string vertexLabel, string propertyName, string type, object value,
+            string expectedString, bool verifyToString = true, GraphProtocol? protocol = null,
+            object expectedValue = null)
         {
             IVertex vertex;
             var graphOptions = new GraphOptions().SetName(GraphTests.GraphName);
@@ -681,10 +697,17 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                 var rs =
                     session.ExecuteGraph(
                         new SimpleGraphStatement("g.V().hasLabel(vertexLabel).has(propertyName, val).next()", parameters));
+                
+                if (protocol != null)
+                {
+                    Assert.AreEqual(protocol.Value, rs.GraphProtocol);
+                }
+
                 var first = rs.FirstOrDefault();
                 Assert.NotNull(first);
                 vertex = first.To<IVertex>();
-                GraphTests.ValidateVertexResult(vertex, vertexLabel, propertyName, expectedString, value, value.GetType(), verifyToString);
+                var expected = expectedValue ?? value;
+                GraphTests.ValidateVertexResult(vertex, vertexLabel, propertyName, expectedString, expected, expected.GetType(), verifyToString);
 
             }
             return vertex;
