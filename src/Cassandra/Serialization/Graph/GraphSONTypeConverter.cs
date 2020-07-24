@@ -139,6 +139,26 @@ namespace Cassandra.Serialization.Graph
                 typeName = (string)token[GraphSONTokens.TypeKey];
             }
 
+            if (TryConvertFromListOrSet(token, type, typeName, out result))
+            {
+                return true;
+            }
+
+            if (TryConvertFromMap(token, type, typeName, out result))
+            {
+                return true;
+            }
+
+            if (TryConvertFromBulkSet(token, type, typeName, out result))
+            {
+                return true;
+            }
+
+            return ConvertFromDb(_reader.ToObject(token), type, out result);
+        }
+
+        private bool TryConvertFromListOrSet(JToken token, Type type, string typeName, out dynamic result)
+        {
             if (token is JArray || typeName.Equals("g:List") || typeName.Equals("g:Set"))
             {
                 Type elementType = null;
@@ -169,6 +189,12 @@ namespace Cassandra.Serialization.Graph
                 return ConvertFromDb(FromListOrSetToEnumerable((JArray)token, elementType), type, out result);
             }
 
+            result = null;
+            return false;
+        }
+
+        private bool TryConvertFromMap(JToken token, Type type, string typeName, out dynamic result)
+        {
             if (typeName.Equals("g:Map"))
             {
                 Type keyType;
@@ -190,7 +216,51 @@ namespace Cassandra.Serialization.Graph
                 return ConvertFromDb(FromMapToDictionary((JArray)token[GraphSONTokens.ValueKey], keyType, elementType), type, out result);
             }
 
-            return ConvertFromDb(_reader.ToObject(token), type, out result);
+            result = null;
+            return false;
+        }
+
+        private bool TryConvertFromBulkSet(JToken token, Type type, string typeName, out dynamic result)
+        {
+            if (typeName.Equals("g:BulkSet"))
+            {
+                Type keyType;
+                Type elementType;
+
+                if (type.GetTypeInfo().IsGenericType
+                    && (type.GetGenericTypeDefinition() == typeof(IReadOnlyDictionary<,>)
+                        || type.GetGenericTypeDefinition() == typeof(Dictionary<,>)
+                        || type.GetGenericTypeDefinition() == typeof(IDictionary<,>)))
+                {
+                    var genericArgs = type.GetTypeInfo().GetGenericArguments();
+                    keyType = genericArgs[0];
+                    elementType = genericArgs[1];
+                    return ConvertFromDb(FromMapToDictionary((JArray)token[GraphSONTokens.ValueKey], keyType, elementType), type, out result);
+                }
+
+                if (type.GetTypeInfo().IsGenericType
+                    && (TypeConverter.ListGenericInterfaces.Contains(type.GetGenericTypeDefinition())
+                        || type.GetGenericTypeDefinition() == typeof(IList<>)
+                        || type.GetGenericTypeDefinition() == typeof(List<>)))
+                {
+                    elementType = type.GetTypeInfo().GetGenericArguments()[0];
+                    var map = FromMapToDictionary((JArray) token[GraphSONTokens.ValueKey], elementType, typeof(int));
+                    var list = (IList) Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType));
+                    foreach (var key in map.Keys)
+                    {
+                        for (var i = 0; i < (int) map[key]; i++)
+                        {
+                            list.Add(key);
+                        }
+                    }
+                    return ConvertFromDb(list, type, out result);
+                }
+
+                throw new InvalidOperationException($"Can not deserialize a collection to type {type.FullName}");
+            }
+
+            result = null;
+            return false;
         }
 
         private bool ConvertFromDb(object obj, Type targetType, out dynamic result)

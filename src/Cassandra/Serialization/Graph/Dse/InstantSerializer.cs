@@ -35,7 +35,9 @@ namespace Cassandra.Serialization.Graph.Dse
         protected override string ToString(dynamic obj)
         {
             DateTimeOffset dateTimeOffset = obj;
-            return dateTimeOffset.ToString(InstantSerializer.FormatString, CultureInfo.InvariantCulture);
+            var ticks = (dateTimeOffset - TypeSerializer.UnixStart).Ticks;
+            var instant = TypeSerializer.UnixStart.AddTicks(ticks);
+            return instant.ToString(InstantSerializer.FormatString, CultureInfo.InvariantCulture);
         }
 
         protected override dynamic FromString(string str)
