@@ -19,7 +19,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
-using System.Net.Http;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -102,33 +101,27 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
         {
             Trace.TraceInformation("GraphMultiNodeTests: WaitForWorkers");
             var master = FindSparkMaster();
-            var client = new HttpClient();
+            var client = new TestHttpClient(new Uri(string.Format("http://{0}:7080", master)));
             var count = 100;
             while (count > 0)
             {
-                var task = client.GetAsync(string.Format("http://{0}:7080", master));
+                var task = client.SendAsync(TestHttpClient.Get, string.Empty);
                 task.Wait(5000);
-                var response = task.Result;
-                if (response.StatusCode == HttpStatusCode.OK)
+                var body = task.Result;
+                var match = Regex.Match(body, "Alive\\s+Workers:.*(\\d+)</li>", RegexOptions.Multiline);
+                if (match.Success && match.Groups.Count > 1)
                 {
-                    var content = response.Content.ReadAsStringAsync();
-                    content.Wait();
-                    var body = content.Result;
-                    var match = Regex.Match(body, "Alive\\s+Workers:.*(\\d+)</li>", RegexOptions.Multiline);
-                    if (match.Success && match.Groups.Count > 1)
+                    try
                     {
-                        try
+                        var workers = int.Parse(match.Groups[1].Value);
+                        if (workers == expectedWorkers)
                         {
-                            var workers = int.Parse(match.Groups[1].Value);
-                            if (workers == expectedWorkers)
-                            {
-                                return;
-                            }
+                            return;
                         }
-                        catch
-                        {
-                            // ignored
-                        }
+                    }
+                    catch
+                    {
+                        // ignored
                     }
                 }
                 count--;
