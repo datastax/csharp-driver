@@ -18,14 +18,13 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Net.Http;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Cassandra.IntegrationTests.SimulacronAPI.Models.Converters;
+
+using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using Cassandra.Tasks;
-using Newtonsoft.Json;
+
 using Newtonsoft.Json.Linq;
 
 namespace Cassandra.IntegrationTests.TestClusterManagement
@@ -34,6 +33,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
     {
         private const string CreateClusterPathFormat = "/cluster?data_centers={0}&cassandra_version={1}&dse_version={2}&name={3}" +
                                                        "&activity_log={4}&num_tokens={5}";
+
         private const string CreateClusterPath = "/cluster";
 
         private volatile Process _simulacronProcess;
@@ -44,10 +44,12 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         private static readonly object GlobalLock = new object();
 
+        private readonly TestHttpClient _testHttpClient;
+
         public static SimulacronManager DefaultInstance { get; } = new SimulacronManager();
-        
+
         public static SimulacronManager InstancePeersV2Tests { get; } = new SimulacronManager(9011);
-        
+
         public Uri BaseAddress => new Uri($"http://127.0.0.1:{HttpPort}");
 
         public int? StartPort { get; } = null;
@@ -58,9 +60,10 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         private SimulacronManager()
         {
+            _testHttpClient = new TestHttpClient(BaseAddress);
         }
 
-        private SimulacronManager(int? startPort)
+        private SimulacronManager(int? startPort) : this()
         {
             StartPort = startPort;
         }
@@ -185,7 +188,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 Trace.TraceInformation("Simulacron process stopped");
             }
         }
-        
+
         public Task<SimulacronCluster> CreateNewAsync(int nodeLength)
         {
             return CreateNewAsync(new SimulacronOptions { Nodes = nodeLength.ToString() });
@@ -198,7 +201,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         {
             return CreateNew(new SimulacronOptions { Nodes = nodeLength.ToString() });
         }
-        
+
         public async Task<SimulacronCluster> CreateNewAsync(SimulacronOptions options)
         {
             Start();
@@ -212,7 +215,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         {
             return TaskHelper.WaitToComplete(CreateNewAsync(options));
         }
-        
+
         /// <summary>
         /// Creates a new cluster with POST body parameters.
         /// </summary>
@@ -230,13 +233,13 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 Data = data,
                 DataCenters = new List<SimulacronDataCenter>()
             };
-            var dcs = (JArray) cluster.Data["data_centers"];
+            var dcs = (JArray)cluster.Data["data_centers"];
             foreach (var dc in dcs)
             {
                 var dataCenter = new SimulacronDataCenter(cluster.Id + "/" + dc["id"], this);
                 cluster.DataCenters.Add(dataCenter);
                 dataCenter.Nodes = new List<SimulacronNode>();
-                var nodes = (JArray) dc["nodes"];
+                var nodes = (JArray)dc["nodes"];
                 foreach (var nodeJObject in nodes)
                 {
                     var node = new SimulacronNode(dataCenter.Id + "/" + nodeJObject["id"], this);
@@ -246,108 +249,45 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             }
             return cluster;
         }
-        
-        public async Task<JObject> Post(string url, object body)
+
+        public Task<JObject> Post(string url, object body)
         {
             if (!_initialized)
             {
                 throw new ObjectDisposedException("Simulacron Process not started.");
             }
 
-            var bodyStr = GetJsonFromObject(body);
-            var content = new StringContent(bodyStr, Encoding.UTF8, "application/json");
-
-            using (var client = new HttpClient())
-            {
-                client.BaseAddress = BaseAddress;
-                var response = await client.PostAsync(url, content).ConfigureAwait(false);
-                await EnsureSuccessStatusCode(response).ConfigureAwait(false);
-                var dataStr = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                return JObject.Parse(dataStr);
-            }
+            return _testHttpClient.SendWithJsonAsync<JObject>(TestHttpClient.Post, url, body);
         }
 
-        public async Task<JObject> PutAsync(string url, object body)
+        public Task<JObject> PutAsync(string url, object body)
         {
             if (!_initialized)
             {
                 throw new ObjectDisposedException("Simulacron Process not started.");
             }
 
-            var bodyStr = GetJsonFromObject(body);
-            var content = new StringContent(bodyStr, Encoding.UTF8, "application/json");
-
-            using (var client = new HttpClient())
-            {
-                client.BaseAddress = BaseAddress;
-                var response = await client.PutAsync(url, content).ConfigureAwait(false);
-                await EnsureSuccessStatusCode(response).ConfigureAwait(false);
-                var dataStr = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                if (string.IsNullOrEmpty(dataStr))
-                {
-                    return null;
-                }
-                return JObject.Parse(dataStr);
-            }
+            return _testHttpClient.SendWithJsonAsync<JObject>(TestHttpClient.Put, url, body);
         }
 
-        public async Task<T> GetAsync<T>(string url)
+        public Task<T> GetAsync<T>(string url)
         {
             if (!_initialized)
             {
                 throw new ObjectDisposedException("Simulacron Process not started.");
             }
 
-            using (var client = new HttpClient())
-            {
-                client.BaseAddress = BaseAddress;
-                var response = await client.GetAsync(url).ConfigureAwait(false);
-                await EnsureSuccessStatusCode(response).ConfigureAwait(false);
-                var dataStr = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                return JsonConvert.DeserializeObject<T>(dataStr);
-            }
+            return _testHttpClient.SendWithJsonAsync<T>(TestHttpClient.Get, url, null);
         }
 
-        public async Task DeleteAsync(string url)
+        public Task DeleteAsync(string url)
         {
             if (!_initialized)
             {
                 throw new ObjectDisposedException("Simulacron Process not started.");
             }
 
-            using (var client = new HttpClient())
-            {
-                client.BaseAddress = BaseAddress;
-                var response = await client.DeleteAsync(url).ConfigureAwait(false);
-                await EnsureSuccessStatusCode(response).ConfigureAwait(false);
-            }
-        }
-
-        private static async Task EnsureSuccessStatusCode(HttpResponseMessage response)
-        {
-            if (!response.IsSuccessStatusCode)
-            {
-                throw new Exception($"Invalid status code received {response.StatusCode}.{Environment.NewLine}" +
-                                    $"{await response.Content.ReadAsStringAsync().ConfigureAwait(false)}");
-            }
-        }
-
-        private static string GetJsonFromObject(object body)
-        {
-            var bodyStr = string.Empty;
-            if (body != null)
-            {
-                var jsonSerializerSettings = new JsonSerializerSettings
-                {
-                    Converters = new List<JsonConverter>
-                    {
-                        new ConsistencyLevelEnumConverter(),
-                        new TupleConverter()
-                    }
-                };
-                bodyStr = JsonConvert.SerializeObject(body, jsonSerializerSettings);
-            }
-            return bodyStr;
+            return _testHttpClient.SendWithJsonAsync<JObject>(TestHttpClient.Delete, url, null);
         }
     }
 }
