@@ -1,5 +1,13 @@
 # ChangeLog - DataStax C# Driver
 
+## 3.15.1
+
+2020-07-27
+
+### Improvements
+
+*   [[CSHARP-926](https://datastax-oss.atlassian.net/browse/CSHARP-926)] - Remove explicit System.Net.Http reference
+
 ## 3.15.0
 
 2020-05-12
