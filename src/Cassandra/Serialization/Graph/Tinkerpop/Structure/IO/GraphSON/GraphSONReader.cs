@@ -24,7 +24,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Cassandra.Serialization.Graph.Dse;
+using Cassandra.DataStax.Graph.Internal;
 using Newtonsoft.Json.Linq;
 
 namespace Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON
@@ -32,7 +32,7 @@ namespace Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON
     /// <summary>
     ///     Allows to deserialize GraphSON to objects.
     /// </summary>
-    internal abstract class GraphSONReader
+    internal abstract class GraphSONReader : IGraphSONReader
     {
         /// <summary>
         /// Contains the <see cref="IGraphSONDeserializer" /> instances by their type identifier.
@@ -40,19 +40,27 @@ namespace Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON
         protected readonly Dictionary<string, IGraphSONDeserializer> Deserializers = new Dictionary
             <string, IGraphSONDeserializer>
             {
+                //{"g:Traverser", new TraverserReader()}, // added in custom reader
                 {"g:Int32", new Int32Converter()},
                 {"g:Int64", new Int64Converter()},
                 {"g:Float", new FloatConverter()},
                 {"g:Double", new DoubleConverter()},
                 {"g:Direction", new DirectionDeserializer()},
                 {"g:UUID", new UuidDeserializer()},
+                //{"g:Date", new DateDeserializer()}, // added in custom reader
+                //{"g:Timestamp", new DateDeserializer()}, // added in custom reader
+                //{"g:Vertex", new VertexDeserializer()}, // added in custom reader
+                //{"g:Edge", new EdgeDeserializer()}, // added in custom reader
+                //{"g:Property", new PropertyDeserializer()}, // added in custom reader
+                //{"g:VertexProperty", new VertexPropertyDeserializer()}, // added in custom reader
+                //{"g:Path", new PathDeserializer()}, // added in custom reader
                 {"g:T", new TDeserializer()},
 
                 //Extended
                 {"gx:BigDecimal", new DecimalConverter()},
+                //{"gx:Duration", new DurationDeserializer()}, // added in custom reader
                 {"gx:BigInteger", new BigIntegerDeserializer()},
                 {"gx:Byte", new ByteConverter()},
-                {"gx:ByteBuffer", new ByteBufferDeserializer()},
                 {"gx:Char", new CharConverter()},
                 {"gx:Int16", new Int16Converter() }
             };

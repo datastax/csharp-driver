@@ -22,13 +22,14 @@
 #endregion
 
 using Cassandra.DataStax.Graph;
+using Cassandra.DataStax.Graph.Internal;
 using Newtonsoft.Json.Linq;
 
 namespace Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON
 {
     internal class TDeserializer : IGraphSONDeserializer
     {
-        public dynamic Objectify(JToken graphsonObject, GraphSONReader reader)
+        public dynamic Objectify(JToken graphsonObject, IGraphSONReader reader)
         {
             return TEnum.GetByValue(graphsonObject.ToString());
         }

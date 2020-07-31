@@ -23,6 +23,7 @@
 
 using System;
 using System.Collections.Generic;
+using Cassandra.DataStax.Graph.Internal;
 
 namespace Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON
 {

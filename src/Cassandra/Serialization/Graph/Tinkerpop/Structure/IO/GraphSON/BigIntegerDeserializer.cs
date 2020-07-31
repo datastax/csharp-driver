@@ -22,13 +22,14 @@
 #endregion
 
 using System.Numerics;
+using Cassandra.DataStax.Graph.Internal;
 using Newtonsoft.Json.Linq;
 
 namespace Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON
 {
     internal class BigIntegerDeserializer : IGraphSONDeserializer
     {
-        public dynamic Objectify(JToken graphsonObject, GraphSONReader reader)
+        public dynamic Objectify(JToken graphsonObject, IGraphSONReader reader)
         {
             var bigInteger = graphsonObject.ToObject<string>();
             return BigInteger.Parse(bigInteger);

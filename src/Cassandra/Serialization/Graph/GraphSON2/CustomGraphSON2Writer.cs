@@ -20,23 +20,24 @@ using System.Linq;
 using System.Net;
 
 using Cassandra.DataStax.Graph;
+using Cassandra.DataStax.Graph.Internal;
 using Cassandra.Geometry;
-using Cassandra.Serialization.Graph.Dse;
-using Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON;
-
+using Cassandra.Serialization.Graph.GraphSON2.Dse;
+using Cassandra.Serialization.Graph.GraphSON2.Structure;
+using Cassandra.Serialization.Graph.GraphSON2.Tinkerpop;
 using Newtonsoft.Json;
 
 namespace Cassandra.Serialization.Graph.GraphSON2
 {
-    internal class CustomGraphSON2Writer : GraphSON2Writer
+    internal class CustomGraphSON2Writer : ICustomGraphSONWriter
     {
         private static readonly IDictionary<Type, IGraphSONSerializer> CustomGraphSON2SpecificSerializers =
             new Dictionary<Type, IGraphSONSerializer>
             {
                 { typeof(DateTime), new InstantSerializer() },
                 { typeof(DateTimeOffset), new InstantSerializer() },
-                { typeof(TinkerpopDate), new DateSerializer()},
-                { typeof(TinkerpopTimestamp), new TimestampSerializer() },
+                { typeof(TinkerpopDate), new TinkerpopDateSerializer()},
+                { typeof(TinkerpopTimestamp), new TinkerpopTimestampSerializer() },
                 { typeof(Duration), new Duration2Serializer() },
                 { typeof(LocalTime), new LocalTimeSerializer() },
                 { typeof(LocalDate), new LocalDateSerializer() },
@@ -53,32 +54,62 @@ namespace Cassandra.Serialization.Graph.GraphSON2
                 { typeof(VertexProperty), new VertexPropertySerializer() },
                 { typeof(IEdge), new EdgeSerializer() },
                 { typeof(Edge), new EdgeSerializer() },
-                { typeof(EnumWrapper), new EnumSerializer()},
             };
-        
+
+        /// <summary>
+        /// Serializers must return a dictionary but IPAddress serializes to a string,
+        /// so this has to be handled in a different way.
+        /// </summary>
         private static readonly IDictionary<Type, Func<dynamic, dynamic>> CustomSerializers =
             new Dictionary<Type, Func<dynamic, dynamic>>
             {
                 { typeof(IPAddress), objectData => ((IPAddress) objectData).ToString() }
             };
+        
+        private static Dictionary<Type, IGraphSONSerializer> DefaultSerializers { get; } =
+            new EmptyGraphSON2Writer().GetSerializers();
 
-        /// <summary>
-        ///     Creates a new instance of <see cref="GraphSONReader"/>.
-        /// </summary>
-        public CustomGraphSON2Writer()
+        private readonly IReadOnlyDictionary<Type, IGraphSONSerializer> _customSerializers;
+
+        static CustomGraphSON2Writer()
+        {
+            CustomGraphSON2Writer.AddGraphSON2Serializers(CustomGraphSON2Writer.DefaultSerializers);
+        }
+
+        protected static void AddGraphSON2Serializers(IDictionary<Type, IGraphSONSerializer> dictionary)
         {
             foreach (var kv in CustomGraphSON2Writer.CustomGraphSON2SpecificSerializers)
             {
-                Serializers[kv.Key] = kv.Value;
+                dictionary[kv.Key] = kv.Value;
             }
         }
+
+        public CustomGraphSON2Writer(
+            IReadOnlyDictionary<Type, IGraphSONSerializer> customSerializers, IGraphSONWriter writer)
+            : this(CustomGraphSON2Writer.DefaultSerializers, customSerializers, writer)
+        {
+        }
+        
+        protected CustomGraphSON2Writer(
+            Dictionary<Type, IGraphSONSerializer> serializers,
+            IReadOnlyDictionary<Type, IGraphSONSerializer> customSerializers, 
+            IGraphSONWriter writer)
+        {
+            Serializers = serializers;
+            _customSerializers = customSerializers;
+            Writer = writer;
+        }
+
+        protected IReadOnlyDictionary<Type, IGraphSONSerializer> Serializers { get; }
+        
+        protected IGraphSONWriter Writer { get; }
 
         /// <summary>
         ///     Serializes an object to GraphSON.
         /// </summary>
         /// <param name="objectData">The object to serialize.</param>
         /// <returns>The serialized GraphSON.</returns>
-        public override string WriteObject(dynamic objectData)
+        public string WriteObject(dynamic objectData)
         {
             return JsonConvert.SerializeObject(ToDict(objectData), GraphSONNode.GraphSONSerializerSettings);
         }
@@ -88,7 +119,7 @@ namespace Cassandra.Serialization.Graph.GraphSON2
         /// </summary>
         /// <param name="objectData">The object to transform.</param>
         /// <returns>A GraphSON representation of the object ready to be serialized.</returns>
-        public override dynamic ToDict(dynamic objectData)
+        public dynamic ToDict(dynamic objectData)
         {
             if (objectData is IGraphNode graphNode)
             {
@@ -102,10 +133,20 @@ namespace Cassandra.Serialization.Graph.GraphSON2
 
             var type = objectData.GetType();
 
-            IGraphSONSerializer serializer = TryGetSerializerFor(type);
+            if (_customSerializers != null)
+            {
+                var customSerializer = (IGraphSONSerializer) TryGetSerializerFor(_customSerializers, type);
+
+                if (customSerializer != null)
+                {
+                    return customSerializer.Dictify(objectData, Writer);
+                }
+            }
+
+            IGraphSONSerializer serializer = TryGetSerializerFor(Serializers, type);
 
             if (serializer != null)
-                return serializer.Dictify(objectData, this);
+                return serializer.Dictify(objectData, Writer);
             if (type == typeof(string))
                 return objectData;
             if (IsSet(type))
@@ -124,7 +165,7 @@ namespace Cassandra.Serialization.Graph.GraphSON2
                 return CustomGraphSON2Writer.CustomSerializers[type].Invoke(objectData);
             }
 
-            foreach (var supportedType in CustomSerializers.Keys)
+            foreach (var supportedType in CustomGraphSON2Writer.CustomSerializers.Keys)
             {
                 if (supportedType.IsAssignableFrom(type))
                 {
@@ -133,19 +174,18 @@ namespace Cassandra.Serialization.Graph.GraphSON2
             }
 
             return objectData;
-
         }
 
-        private IGraphSONSerializer TryGetSerializerFor(Type type)
+        private IGraphSONSerializer TryGetSerializerFor(IReadOnlyDictionary<Type, IGraphSONSerializer> serializers, Type type)
         {
-            if (Serializers.ContainsKey(type))
+            if (serializers.ContainsKey(type))
             {
-                return Serializers[type];
+                return serializers[type];
             }
-            foreach (var supportedType in Serializers.Keys)
+            foreach (var supportedType in serializers.Keys)
                 if (supportedType.IsAssignableFrom(type))
                 {
-                    return Serializers[supportedType];
+                    return serializers[supportedType];
                 }
             return null;
         }
@@ -155,14 +195,13 @@ namespace Cassandra.Serialization.Graph.GraphSON2
             return objectData is IDictionary;
         }
 
-
         private bool IsSet(Type type)
         {
             return type.GetInterfaces().Any(x =>
                 x.IsGenericType &&
                 x.GetGenericTypeDefinition() == typeof(ISet<>));
         }
-        
+
         private bool IsEnumerable(dynamic objectData)
         {
             return objectData is IEnumerable;

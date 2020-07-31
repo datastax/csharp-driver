@@ -20,7 +20,9 @@ using System.Net;
 using System.Threading.Tasks;
 
 using Cassandra.DataStax.Graph;
+using Cassandra.DataStax.Graph.Internal;
 using Cassandra.ExecutionProfiles;
+using Cassandra.Serialization.Graph;
 using Cassandra.SessionManagement;
 
 namespace Cassandra.Requests
@@ -30,12 +32,12 @@ namespace Cassandra.Requests
         private static readonly Logger Logger = new Logger(typeof(GraphRequestHandler));
 
         private readonly IInternalSession _session;
-        private readonly IGraphProtocolResolver _graphProtocolResolver;
+        private readonly IGraphTypeSerializerFactory _graphTypeSerializerFactory;
 
-        public GraphRequestHandler(IInternalSession session, IGraphProtocolResolver graphProtocolResolver)
+        public GraphRequestHandler(IInternalSession session, IGraphTypeSerializerFactory graphTypeSerializerFactory)
         {
             _session = session;
-            _graphProtocolResolver = graphProtocolResolver;
+            _graphTypeSerializerFactory = graphTypeSerializerFactory;
         }
 
         public Task<GraphResultSet> SendAsync(IGraphStatement graphStatement, IRequestOptions requestOptions)
@@ -49,16 +51,19 @@ namespace Cassandra.Requests
 
             if (graphStatement.GraphProtocolVersion == null && requestOptions.GraphOptions.GraphProtocolVersion == null)
             {
-                var version = _graphProtocolResolver.GetDefaultGraphProtocol(
+                var version = _graphTypeSerializerFactory.GetDefaultGraphProtocol(
                     _session, graphStatement, requestOptions.GraphOptions);
                 graphOptions = new GraphOptions(graphOptions, version);
             }
 
-            var stmt = graphStatement.ToIStatement(graphOptions) ?? ConvertToIStatement(graphStatement, graphOptions);
+            var conversionResult = GetIStatement(graphStatement, graphOptions);
+
+            var stmt = conversionResult.Statement;
+            var serializer = conversionResult.Serializer;
 
             await GetAnalyticsPrimary(stmt, graphStatement, requestOptions).ConfigureAwait(false);
             var rs = await _session.ExecuteAsync(stmt, requestOptions).ConfigureAwait(false);
-            return CreateGraphResultSet(rs, graphStatement, graphOptions);
+            return CreateGraphResultSet(rs, serializer);
         }
 
         private async Task<IStatement> GetAnalyticsPrimary(
@@ -111,76 +116,111 @@ namespace Cassandra.Requests
             return statement;
         }
 
-        private GraphResultSet CreateGraphResultSet(RowSet rs, IGraphStatement statement, GraphOptions options)
+        private GraphResultSet CreateGraphResultSet(RowSet rs, IGraphTypeSerializer serializer)
         {
-            var graphProtocolVersion = statement.GraphProtocolVersion ?? options.GraphProtocolVersion;
-
-            if (graphProtocolVersion == null)
-            {
-                throw new DriverInternalError("Unable to determine graph protocol version. This is a bug, please report.");
-            }
-
             return GraphResultSet.CreateNew(
                 rs,
-                graphProtocolVersion.Value,
-                _graphProtocolResolver.GetGraphRowParser(graphProtocolVersion.Value));
+                serializer.GraphProtocol,
+                serializer.GetGraphRowParser());
         }
 
-        private IStatement ConvertToIStatement(IGraphStatement graphStmt, GraphOptions options)
+        private ConvertedStatementResult GetIStatement(IGraphStatement graphStmt, GraphOptions options)
         {
-            if (!(graphStmt is SimpleGraphStatement graphStatement))
-            {
-                throw new NotSupportedException("Statement of type " + graphStmt.GetType().FullName + " not supported");
-            }
-
-            IDictionary<string, object> parameters = null;
-            if (graphStatement.ValuesDictionary != null)
-            {
-                parameters = graphStatement.ValuesDictionary;
-            }
-            else if (graphStatement.Values != null)
-            {
-                parameters = Utils.GetValues(graphStatement.Values);
-            }
-
-            var graphProtocol = graphStatement.GraphProtocolVersion ?? options.GraphProtocolVersion;
+            var graphProtocol = graphStmt.GraphProtocolVersion ?? options.GraphProtocolVersion;
 
             if (graphProtocol == null)
             {
                 throw new DriverInternalError("Unable to determine graph protocol version. This is a bug, please report.");
             }
 
-            IStatement stmt;
-            if (parameters != null)
+            // Existing graph statement implementations of this method are empty
+            // but it's part of the public interface definition
+            var stmt = graphStmt.ToIStatement(options);
+            if (stmt != null)
             {
-                var jsonParams = _graphProtocolResolver.GetParametersSerializer(graphProtocol.Value).Invoke(parameters);
-                stmt = new TargettedSimpleStatement(graphStatement.Query, jsonParams);
+                return new ConvertedStatementResult
+                {
+                    Serializer = _graphTypeSerializerFactory.CreateSerializer(null, null, graphProtocol.Value, true),
+                    Statement = stmt
+                };
+            }
+
+            return ConvertGraphStatement(graphStmt, options, graphProtocol.Value);
+        }
+
+        private ConvertedStatementResult ConvertGraphStatement(
+            IGraphStatement graphStmt, GraphOptions options, GraphProtocol graphProtocol)
+        {
+            string jsonParams;
+            string query;
+            IGraphTypeSerializer serializer;
+
+            if (graphStmt is SimpleGraphStatement simpleGraphStatement)
+            {
+                serializer = _graphTypeSerializerFactory.CreateSerializer(null, null, graphProtocol, true);
+                query = simpleGraphStatement.Query;
+                if (simpleGraphStatement.ValuesDictionary != null)
+                {
+                    jsonParams = serializer.ToDb(simpleGraphStatement.ValuesDictionary);
+                }
+                else if (simpleGraphStatement.Values != null)
+                {
+                    jsonParams = serializer.ToDb(Utils.GetValues(simpleGraphStatement.Values));
+                }
+                else
+                {
+                    jsonParams = null;
+                }
+            }
+            else if (graphStmt is FluentGraphStatement fluentGraphStatement)
+            {
+                serializer = _graphTypeSerializerFactory.CreateSerializer(
+                    fluentGraphStatement.CustomDeserializers, 
+                    fluentGraphStatement.CustomSerializers, 
+                    graphProtocol, 
+                    fluentGraphStatement.DeserializeGraphNodes);
+                query = serializer.ToDb(fluentGraphStatement.QueryBytecode);
+                jsonParams = null;
             }
             else
             {
-                stmt = new TargettedSimpleStatement(graphStatement.Query);
+                throw new NotSupportedException("Statement of type " + graphStmt.GetType().FullName + " not supported");
             }
+
+            IStatement stmt = jsonParams != null 
+                ? new TargettedSimpleStatement(query, jsonParams) 
+                : new TargettedSimpleStatement(query);
+
             //Set Cassandra.Statement properties
-            if (graphStatement.Timestamp != null)
+            if (graphStmt.Timestamp != null)
             {
-                stmt.SetTimestamp(graphStatement.Timestamp.Value);
+                stmt.SetTimestamp(graphStmt.Timestamp.Value);
             }
-            var readTimeout = graphStatement.ReadTimeoutMillis != 0 ? graphStatement.ReadTimeoutMillis : options.ReadTimeoutMillis;
+            var readTimeout = graphStmt.ReadTimeoutMillis != 0 ? graphStmt.ReadTimeoutMillis : options.ReadTimeoutMillis;
             if (readTimeout <= 0)
             {
                 // Infinite (-1) is not supported in the core driver, set an arbitrarily large int
                 readTimeout = int.MaxValue;
             }
-            return stmt
-                .SetIdempotence(false)
-                .SetConsistencyLevel(graphStatement.ConsistencyLevel)
-                .SetReadTimeoutMillis(readTimeout)
-                .SetOutgoingPayload(options.BuildPayload(graphStatement));
-        }
-    }
 
-    internal interface IGraphRequestHandler
-    {
-        Task<GraphResultSet> SendAsync(IGraphStatement graphStatement, IRequestOptions requestOptions);
+            stmt = stmt
+                   .SetIdempotence(false)
+                   .SetConsistencyLevel(graphStmt.ConsistencyLevel)
+                   .SetReadTimeoutMillis(readTimeout)
+                   .SetOutgoingPayload(options.BuildPayload(graphStmt));
+
+            return new ConvertedStatementResult
+            {
+                Serializer = serializer,
+                Statement = stmt
+            };
+        }
+
+        private struct ConvertedStatementResult
+        {
+            public IStatement Statement { get; set; }
+
+            public IGraphTypeSerializer Serializer { get; set; }
+        }
     }
 }

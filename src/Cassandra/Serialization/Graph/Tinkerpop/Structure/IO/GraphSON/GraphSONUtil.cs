@@ -24,6 +24,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Cassandra.DataStax.Graph.Internal;
 
 namespace Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON
 {
@@ -64,7 +65,7 @@ namespace Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON
         /// <summary>
         /// Converts a Collection to a representation of g:List or g:Set
         /// </summary>
-        internal static Dictionary<string, dynamic> ToCollection(dynamic objectData, GraphSONWriter writer,
+        internal static Dictionary<string, dynamic> ToCollection(dynamic objectData, IGraphSONWriter writer,
                                                                string typename)
         {
             var collection = objectData as IEnumerable;

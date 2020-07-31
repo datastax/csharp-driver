@@ -23,12 +23,13 @@
 
 using System;
 using System.Collections.Generic;
+using Cassandra.DataStax.Graph.Internal;
 
 namespace Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON
 {
     internal class ClassSerializer : IGraphSONSerializer
     {
-        public Dictionary<string, dynamic> Dictify(dynamic objectData, GraphSONWriter writer)
+        public Dictionary<string, dynamic> Dictify(dynamic objectData, IGraphSONWriter writer)
         {
             var type = (Type) objectData;
             return writer.ToDict(Activator.CreateInstance(type));

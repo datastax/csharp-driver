@@ -24,12 +24,13 @@
 using System;
 using System.Collections.Generic;
 using System.Xml;
+using Cassandra.DataStax.Graph.Internal;
 
 namespace Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON
 {
     internal class DurationSerializer : IGraphSONSerializer
     {
-        public Dictionary<string, dynamic> Dictify(dynamic objectData, GraphSONWriter writer)
+        public Dictionary<string, dynamic> Dictify(dynamic objectData, IGraphSONWriter writer)
         {
             TimeSpan value = objectData;
             return GraphSONUtil.ToTypedValue("Duration", XmlConvert.ToString(value), "gx");

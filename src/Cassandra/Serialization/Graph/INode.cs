@@ -28,6 +28,11 @@ namespace Cassandra.Serialization.Graph
     internal interface INode
     {
         /// <summary>
+        /// Whether to deserialize nodes to GraphNodes when the requested type is object.
+        /// </summary>
+        bool DeserializeGraphNodes { get; }
+
+        /// <summary>
         /// Returns true if the underlying value is an array.
         /// </summary>
         bool IsArray { get; }

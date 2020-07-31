@@ -28,6 +28,6 @@ namespace Cassandra.Requests
 
         IRequestHandler Create(IInternalSession session, ISerializer serializer);
         
-        IGraphRequestHandler CreateGraphRequestHandler(IInternalSession session, IGraphProtocolResolver graphProtocolResolver);
+        IGraphRequestHandler CreateGraphRequestHandler(IInternalSession session, IGraphTypeSerializerFactory graphTypeSerializerFactory);
     }
 }

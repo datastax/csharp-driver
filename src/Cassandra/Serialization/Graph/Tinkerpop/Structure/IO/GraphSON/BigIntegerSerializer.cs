@@ -23,12 +23,13 @@
 
 using System.Collections.Generic;
 using System.Numerics;
+using Cassandra.DataStax.Graph.Internal;
 
 namespace Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON
 {
     internal class BigIntegerSerializer : IGraphSONSerializer
     {
-        public Dictionary<string, dynamic> Dictify(dynamic objectData, GraphSONWriter writer)
+        public Dictionary<string, dynamic> Dictify(dynamic objectData, IGraphSONWriter writer)
         {
             BigInteger value = objectData;
             return GraphSONUtil.ToTypedValue("BigInteger", value.ToString(), "gx");

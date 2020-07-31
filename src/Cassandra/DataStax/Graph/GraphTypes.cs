@@ -25,12 +25,6 @@ namespace Cassandra.DataStax.Graph
         {
             return new TinkerpopTimestamp(dt);
         }
-
-        // TODO GRAPH
-        //public static TinkerpopDuration AsTinkerpopDuration(Duration dseDuration)
-        //{
-        //    return new TinkerpopDuration(dseDuration);
-        //}
         
         public static TinkerpopDate AsTinkerpopDate(DateTimeOffset dateTimeOffset)
         {

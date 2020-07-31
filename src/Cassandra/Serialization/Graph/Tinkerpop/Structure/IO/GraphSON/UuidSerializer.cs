@@ -23,12 +23,13 @@
 
 using System;
 using System.Collections.Generic;
+using Cassandra.DataStax.Graph.Internal;
 
 namespace Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON
 {
     internal class UuidSerializer : IGraphSONSerializer
     {
-        public Dictionary<string, dynamic> Dictify(dynamic objectData, GraphSONWriter writer)
+        public Dictionary<string, dynamic> Dictify(dynamic objectData, IGraphSONWriter writer)
         {
             Guid guid = objectData;
             return GraphSONUtil.ToTypedValue("UUID", guid);

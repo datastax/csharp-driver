@@ -237,7 +237,9 @@ namespace Cassandra.DataStax.Graph
         public T To<T>()
         {
             var type = typeof(T);
-            if (type == typeof(object) || type == typeof(GraphNode) || type == typeof(IGraphNode))
+            if ((type == typeof(object) && _node.DeserializeGraphNodes) 
+                || type == typeof(GraphNode) 
+                || type == typeof(IGraphNode))
             {
                 return (T)(object)this;
             }
@@ -256,7 +258,9 @@ namespace Cassandra.DataStax.Graph
             {
                 throw new ArgumentNullException(nameof(type));
             }
-            if (type == typeof(object) || type == typeof(GraphNode) || type == typeof(IGraphNode))
+            if ((type == typeof(object) && _node.DeserializeGraphNodes) 
+                || type == typeof(GraphNode) 
+                || type == typeof(IGraphNode))
             {
                 return this;
             }

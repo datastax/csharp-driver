@@ -953,10 +953,10 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                 var vertexPropertiesByUuid = properties.ToDictionary(props => props["uuid"].Single().To<Guid>());
 
 
-                void AssertVertex(
+                void AssertVertex<TDateType>(
                     Guid pk, 
                     IEnumerable<IEnumerable<Point>> expectedList, 
-                    IEnumerable<ISet<DateTimeOffset>> expectedSet,
+                    IEnumerable<ISet<TDateType>> expectedSet,
                     IDictionary<IPAddress, Polygon> expectedMap)
                 {
                     var vertex = vertexPropertiesByUuid[pk];
@@ -969,16 +969,16 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                     AssertNestedCollections(expectedList, vertex[listName].Single().To<IReadOnlyList<IReadOnlyCollection<Point>>>());
                     AssertNestedCollections(expectedList, vertex[listName].Single().To<ICollection<ICollection<Point>>>());
 
-                    AssertNestedCollections(expectedSet, vertex[setName].Single().To<List<IEnumerable<DateTimeOffset>>>());
-                    AssertNestedCollections(expectedSet, vertex[setName].Single().To<IEnumerable<IEnumerable<DateTimeOffset>>>());
-                    AssertNestedCollections(expectedSet, vertex[setName].Single().To<IEnumerable<List<DateTimeOffset>>>());
-                    AssertNestedCollections(expectedSet, vertex[setName].Single().To<List<List<DateTimeOffset>>>());
-                    AssertNestedCollections(expectedSet, vertex[setName].Single().To<IReadOnlyList<List<DateTimeOffset>>>());
-                    AssertNestedCollections(expectedSet, vertex[setName].Single().To<IReadOnlyList<IReadOnlyCollection<DateTimeOffset>>>());
-                    AssertNestedCollections(expectedSet, vertex[setName].Single().To<ICollection<ICollection<DateTimeOffset>>>());
-                    AssertNestedCollections(expectedSet, vertex[setName].Single().To<IReadOnlyList<ISet<DateTimeOffset>>>());
-                    AssertNestedCollections(expectedSet, vertex[setName].Single().To<ICollection<HashSet<DateTimeOffset>>>());
-                    AssertNestedCollections(expectedSet, vertex[setName].Single().To<ICollection<SortedSet<DateTimeOffset>>>());
+                    AssertNestedCollections(expectedSet, vertex[setName].Single().To<List<IEnumerable<TDateType>>>());
+                    AssertNestedCollections(expectedSet, vertex[setName].Single().To<IEnumerable<IEnumerable<TDateType>>>());
+                    AssertNestedCollections(expectedSet, vertex[setName].Single().To<IEnumerable<List<TDateType>>>());
+                    AssertNestedCollections(expectedSet, vertex[setName].Single().To<List<List<TDateType>>>());
+                    AssertNestedCollections(expectedSet, vertex[setName].Single().To<IReadOnlyList<List<TDateType>>>());
+                    AssertNestedCollections(expectedSet, vertex[setName].Single().To<IReadOnlyList<IReadOnlyCollection<TDateType>>>());
+                    AssertNestedCollections(expectedSet, vertex[setName].Single().To<ICollection<ICollection<TDateType>>>());
+                    AssertNestedCollections(expectedSet, vertex[setName].Single().To<IReadOnlyList<ISet<TDateType>>>());
+                    AssertNestedCollections(expectedSet, vertex[setName].Single().To<ICollection<HashSet<TDateType>>>());
+                    AssertNestedCollections(expectedSet, vertex[setName].Single().To<ICollection<SortedSet<TDateType>>>());
                     
                     CollectionAssert.AreEquivalent(expectedMap, vertex[mapName].Single().To<IDictionary<IPAddress, Polygon>>());
                     CollectionAssert.AreEquivalent(expectedMap, vertex[mapName].Single().To<Dictionary<IPAddress, Polygon>>());
@@ -994,7 +994,7 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                 AssertVertex(
                     pk2, 
                     new List<List<Point>> { list }, 
-                    new List<ISet<DateTimeOffset>> { new HashSet<DateTimeOffset>(dateTimeSet.Select(dt => (DateTimeOffset) dt)) },
+                    new List<ISet<DateTime>> { dateTimeSet },
                     concurrentDictionary);
             }
         }
@@ -1231,8 +1231,9 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                                    .ToDictionary(
                                        kvp => kvp.Key, 
                                        kvp => kvp.Select(
-                                           p => GraphSONTypeConverter.NewGraphSON3Converter(new DefaultTypeConverter())
-                                                                     .ToDb(p)));
+                                           p => new GraphTypeSerializer(
+                                                   new DefaultTypeConverter(), GraphProtocol.GraphSON3, null, null, true)
+                                               .ToDb(p)));
             
             foreach (var propertyGroup in propertiesByName)
             {
@@ -1250,7 +1251,8 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                 castedVertex.Properties.Add(
                     propertyGroup.Key, 
                     new GraphNode(
-                        new GraphSONNode(GraphSONTypeConverter.NewGraphSON3Converter(new DefaultTypeConverter()), 
+                        new GraphSONNode(
+                            new GraphTypeSerializer(new DefaultTypeConverter(), GraphProtocol.GraphSON3, null, null, true), 
                             (JToken)JsonConvert.DeserializeObject(jsonArray, GraphSONNode.GraphSONSerializerSettings))));
             }
         }

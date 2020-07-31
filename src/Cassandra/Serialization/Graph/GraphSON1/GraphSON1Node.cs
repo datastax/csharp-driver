@@ -21,8 +21,9 @@ using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization;
+
 using Cassandra.DataStax.Graph;
-using Cassandra.Serialization.Graph.GraphSON2;
+
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -32,10 +33,12 @@ namespace Cassandra.Serialization.Graph.GraphSON1
     {
         private static readonly JsonSerializer Serializer =
             JsonSerializer.CreateDefault(GraphSON1ContractResolver.Settings);
-        
+
         private static readonly JTokenEqualityComparer Comparer = new JTokenEqualityComparer();
-        
+
         private readonly JToken _token;
+
+        public bool DeserializeGraphNodes => true;
 
         public bool IsArray => _token is JArray;
 
@@ -110,7 +113,7 @@ namespace Cassandra.Serialization.Graph.GraphSON1
             {
                 if (throwIfNotFound)
                 {
-                    throw new KeyNotFoundException($"Graph result has no top-level property '{name}'");   
+                    throw new KeyNotFoundException($"Graph result has no top-level property '{name}'");
                 }
                 return null;
             }
@@ -150,7 +153,7 @@ namespace Cassandra.Serialization.Graph.GraphSON1
                     if (type == typeof(TimeUuid))
                     {
                         // TimeUuid is not Serializable but convertible from Uuid
-                        return (TimeUuid) token.ToObject<Guid>();
+                        return (TimeUuid)token.ToObject<Guid>();
                     }
                     return token.ToObject(type, Serializer);
                 }
@@ -166,7 +169,7 @@ namespace Cassandra.Serialization.Graph.GraphSON1
                     {
                         elementType = type.GetTypeInfo().GetGenericArguments()[0];
                     }
-                    return ToArray((JArray) token, elementType);
+                    return ToArray((JArray)token, elementType);
                 }
             }
             catch (JsonSerializationException ex)
@@ -210,7 +213,7 @@ namespace Cassandra.Serialization.Graph.GraphSON1
             {
                 return false;
             }
-            return ((JObject) _token).Property(name) != null;
+            return ((JObject)_token).Property(name) != null;
         }
 
         public string GetGraphSONType()
@@ -234,7 +237,7 @@ namespace Cassandra.Serialization.Graph.GraphSON1
         {
             return Comparer.GetHashCode(_token);
         }
-        
+
         /// <inheritdoc />
         public void GetObjectData(SerializationInfo info, StreamingContext context)
         {
@@ -242,7 +245,7 @@ namespace Cassandra.Serialization.Graph.GraphSON1
             {
                 throw new NotSupportedException("Deserialization of GraphNodes that don't represent object trees is not supported");
             }
-            foreach (var prop in ((JObject) _token).Properties())
+            foreach (var prop in ((JObject)_token).Properties())
             {
                 info.AddValue(prop.Name, prop.Value);
             }
@@ -270,11 +273,11 @@ namespace Cassandra.Serialization.Graph.GraphSON1
             {
                 throw new InvalidOperationException($"Can not get properties from '{item}'");
             }
-            return ((JObject) item)
+            return ((JObject)item)
                 .Properties()
                 .ToDictionary(prop => prop.Name, prop => new GraphNode(new GraphSON1Node(prop.Value)) as T);
         }
-        
+
         /// <summary>
         /// Returns the representation of the <see cref="GraphNode"/> as an instance of the type provided.
         /// </summary>
@@ -301,10 +304,10 @@ namespace Cassandra.Serialization.Graph.GraphSON1
         {
             if (elementType == null)
             {
-                elementType = typeof (GraphNode);
+                elementType = typeof(GraphNode);
             }
             var arr = Array.CreateInstance(elementType, jArray.Count);
-            var isGraphNode = elementType == typeof (GraphNode);
+            var isGraphNode = elementType == typeof(GraphNode) || elementType == typeof(IGraphNode);
             for (var i = 0; i < arr.Length; i++)
             {
                 var value = isGraphNode
@@ -324,7 +327,7 @@ namespace Cassandra.Serialization.Graph.GraphSON1
             {
                 throw new InvalidOperationException($"Cannot convert to array from {_token}");
             }
-            return (GraphNode[])ToArray((JArray) _token);
+            return (GraphNode[])ToArray((JArray)_token);
         }
 
         /// <summary>

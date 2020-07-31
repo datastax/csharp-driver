@@ -17,45 +17,112 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Cassandra.DataStax.Graph;
-using Cassandra.Serialization.Graph.Dse;
+using Cassandra.DataStax.Graph.Internal;
+using Cassandra.Serialization.Graph.GraphSON2.Dse;
+using Cassandra.Serialization.Graph.GraphSON2.Structure;
+using Cassandra.Serialization.Graph.GraphSON2.Tinkerpop;
 using Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON;
 using Newtonsoft.Json.Linq;
 
 namespace Cassandra.Serialization.Graph.GraphSON2
 {
-    internal class CustomGraphSON2Reader : GraphSON2Reader
+    internal class CustomGraphSON2Reader : ICustomGraphSONReader
     {
-        public CustomGraphSON2Reader(Func<JToken, GraphNode> graphNodeFactory)
-        {
-            GraphNodeFactory = graphNodeFactory;
+        private readonly Dictionary<string, IGraphSONDeserializer> _deserializers;
+        private readonly Dictionary<string, IGraphSONStructureDeserializer> _structureDeserializers;
+        private readonly IGraphSONReader _reader;
+        private readonly IReadOnlyDictionary<string, IGraphSONDeserializer> _customDeserializers;
 
-            var customGraphSon2SpecificDeserializers =
-                new Dictionary<string, IGraphSONDeserializer>
-                {
-                    {"g:Date", new DateDeserializer()},
-                    {"g:Timestamp", new TimestampDeserializer()},
-                    { Duration2Serializer.TypeName, new Duration2Serializer() },
-                    { InstantSerializer.TypeName, new InstantSerializer() },
-                    { LocalTimeSerializer.TypeName, new LocalTimeSerializer() },
-                    { LocalDateSerializer.TypeName, new LocalDateSerializer() },
-                    { InetAddressSerializer.TypeName, new InetAddressSerializer() },
-                    { BlobSerializer.TypeName, new BlobSerializer() },
-                    { LineStringSerializer.TypeName, new LineStringSerializer() },
-                    { PointSerializer.TypeName, new PointSerializer() },
-                    { PolygonSerializer.TypeName, new PolygonSerializer() },
-                    { VertexDeserializer.TypeName, new VertexDeserializer(GraphNodeFactory) },
-                    { VertexPropertyDeserializer.TypeName, new VertexPropertyDeserializer(GraphNodeFactory) },
-                    { EdgeDeserializer.TypeName, new EdgeDeserializer(GraphNodeFactory) },
-                    { PathDeserializer.TypeName, new PathDeserializer(GraphNodeFactory) },
-                    { PropertyDeserializer.TypeName, new PropertyDeserializer(GraphNodeFactory) },
-                    { TraverserDeserializer.TypeName, new TraverserDeserializer(GraphNodeFactory) },
-                };
-
-            foreach (var kv in customGraphSon2SpecificDeserializers)
+        private static readonly IReadOnlyDictionary<string, IGraphSONStructureDeserializer> CustomGraphSON2SpecificStructureDeserializers =
+            new Dictionary<string, IGraphSONStructureDeserializer>
             {
-                Deserializers[kv.Key] = kv.Value;
+                // custom deserializer for graph process types (Traverser type is not a direct copy from GLV)
+                { TraverserDeserializer.TypeName, new TraverserDeserializer() },
+
+                // custom deserializers for graph structure types (driver types are different from those in the GLV)
+                { VertexDeserializer.TypeName, new VertexDeserializer() },
+                { VertexPropertyDeserializer.TypeName, new VertexPropertyDeserializer() },
+                { EdgeDeserializer.TypeName, new EdgeDeserializer() },
+                { PathDeserializer.TypeName, new PathDeserializer() },
+                { PropertyDeserializer.TypeName, new PropertyDeserializer() }
+            };
+
+        private static readonly IDictionary<string, IGraphSONDeserializer> CustomGraphSON2SpecificDeserializers =
+            new Dictionary<string, IGraphSONDeserializer>
+            {
+                // custom deserializers for tinkerpop types that are mapped to CQL types in DataStax Graph
+                { Duration2Serializer.TypeName, new Duration2Serializer() },
+                { InstantSerializer.TypeName, new InstantSerializer() },
+                { LocalTimeSerializer.TypeName, new LocalTimeSerializer() },
+                { LocalDateSerializer.TypeName, new LocalDateSerializer() },
+                { InetAddressSerializer.TypeName, new InetAddressSerializer() },
+                { BlobSerializer.TypeName, new BlobSerializer() },
+                { LineStringSerializer.TypeName, new LineStringSerializer() },
+                { PointSerializer.TypeName, new PointSerializer() },
+                { PolygonSerializer.TypeName, new PolygonSerializer() },
+                
+                // custom deserializers for standard tinkerpop types with wrappers
+                // because C# types already being used in other deserializers
+                // the wrapper allows a 1 to 1 map between deserializer type and serializer type
+                { TinkerpopByteBufferDeserializer.TypeName, new TinkerpopByteBufferDeserializer() },
+                { TinkerpopDateDeserializer.TypeName, new TinkerpopDateDeserializer() },
+                { TinkerpopTimestampDeserializer.TypeName, new TinkerpopTimestampDeserializer() },
+            };
+
+        static CustomGraphSON2Reader()
+        {
+            CustomGraphSON2Reader.AddGraphSON2Deserializers(CustomGraphSON2Reader.DefaultDeserializers);
+            CustomGraphSON2Reader.AddGraphSON2StructureDeserializers(CustomGraphSON2Reader.StructureDeserializers);
+        }
+
+        protected static void AddGraphSON2Deserializers(IDictionary<string, IGraphSONDeserializer> dictionary)
+        {
+            foreach (var kv in CustomGraphSON2Reader.CustomGraphSON2SpecificDeserializers)
+            {
+                dictionary[kv.Key] = kv.Value;
             }
         }
+        
+        protected static void AddGraphSON2StructureDeserializers(IDictionary<string, IGraphSONStructureDeserializer> dictionary)
+        {
+            foreach (var kv in CustomGraphSON2Reader.CustomGraphSON2SpecificStructureDeserializers)
+            {
+                dictionary[kv.Key] = kv.Value;
+            }
+        }
+
+        public CustomGraphSON2Reader(
+            Func<JToken, GraphNode> graphNodeFactory, 
+            IReadOnlyDictionary<string, IGraphSONDeserializer> customDeserializers, 
+            IGraphSONReader reader) 
+            : this(
+                CustomGraphSON2Reader.DefaultDeserializers, 
+                CustomGraphSON2Reader.StructureDeserializers, 
+                graphNodeFactory, 
+                customDeserializers, 
+                reader)
+        {
+        }
+
+        protected CustomGraphSON2Reader(
+            Dictionary<string, IGraphSONDeserializer> deserializers,
+            Dictionary<string, IGraphSONStructureDeserializer> structureDeserializers,
+            Func<JToken, GraphNode> graphNodeFactory,
+            IReadOnlyDictionary<string, IGraphSONDeserializer> customDeserializers,
+            IGraphSONReader reader)
+        {
+            _deserializers = deserializers;
+            _structureDeserializers = structureDeserializers;
+            _reader = reader;
+            _customDeserializers = customDeserializers;
+            GraphNodeFactory = graphNodeFactory;
+        }
+
+        private static Dictionary<string, IGraphSONDeserializer> DefaultDeserializers { get; } =
+            new EmptyGraphSON2Reader().GetDeserializers();
+        
+        private static Dictionary<string, IGraphSONStructureDeserializer> StructureDeserializers { get; } =
+            new Dictionary<string, IGraphSONStructureDeserializer>();
 
         protected Func<JToken, GraphNode> GraphNodeFactory { get; }
 
@@ -64,7 +131,7 @@ namespace Cassandra.Serialization.Graph.GraphSON2
         /// </summary>
         /// <param name="jToken">The GraphSON to deserialize.</param>
         /// <returns>The deserialized object.</returns>
-        public override dynamic ToObject(JToken jToken)
+        public dynamic ToObject(JToken jToken)
         {
             if (IsNullOrUndefined(jToken))
             {
@@ -83,7 +150,7 @@ namespace Cassandra.Serialization.Graph.GraphSON2
             {
                 return ReadDictionary(jToken);
             }
-            return ReadTypedValue(jToken);
+            return ReadTypedValue(jToken, _reader);
         }
 
         private bool HasTypeKey(JToken jToken)
@@ -92,21 +159,32 @@ namespace Cassandra.Serialization.Graph.GraphSON2
             return graphSONType != null;
         }
 
-        private dynamic ReadTypedValue(JToken typedValue)
+        private dynamic ReadTypedValue(JToken typedValue, IGraphSONReader reader)
         {
-            var graphSONType = (string)typedValue[GraphSONTokens.TypeKey];
-            if (!Deserializers.TryGetValue(graphSONType, out var deserializer))
-            {
-                throw new InvalidOperationException($"Deserializer for \"{graphSONType}\" not found");
-            }
-
             var value = typedValue[GraphSONTokens.ValueKey];
             if (IsNullOrUndefined(value))
             {
                 return null;
             }
 
-            return deserializer.Objectify(typedValue[GraphSONTokens.ValueKey], this);
+            var graphSONType = (string)typedValue[GraphSONTokens.TypeKey];
+
+            if (_customDeserializers.TryGetValue(graphSONType, out var deserializer))
+            {
+                return deserializer.Objectify(typedValue[GraphSONTokens.ValueKey], reader);
+            }
+
+            if (_structureDeserializers.TryGetValue(graphSONType, out var structureDeserializer))
+            {
+                return structureDeserializer.Objectify(typedValue[GraphSONTokens.ValueKey], GraphNodeFactory, reader);
+            }
+
+            if (_deserializers.TryGetValue(graphSONType, out deserializer))
+            {
+                return deserializer.Objectify(typedValue[GraphSONTokens.ValueKey], reader);
+            }
+
+            throw new InvalidOperationException($"Deserializer for \"{graphSONType}\" not found");
         }
 
         private dynamic ReadDictionary(JToken jtokenDict)

@@ -30,7 +30,7 @@ namespace Cassandra.Serialization.Graph.GraphSON2
 {
     internal class GraphSONNode : INode
     {
-        private readonly IGraphSONTypeConverter _graphSONConverter;
+        private readonly IGraphTypeSerializer _graphSerializer;
 
         private static readonly JTokenEqualityComparer Comparer = new JTokenEqualityComparer();
 
@@ -44,41 +44,43 @@ namespace Cassandra.Serialization.Graph.GraphSON2
             DateParseHandling = DateParseHandling.None
         };
 
+        public bool DeserializeGraphNodes => _graphSerializer.DeserializeGraphNodes;
+
         public bool IsArray => _token is JArray;
 
         public bool IsObjectTree => !IsScalar && !IsArray;
 
         public bool IsScalar => _token is JValue
-                                || (_token is JObject jobj && jobj[GraphSONTypeConverter.ValueKey] is JValue);
+                                || (_token is JObject jobj && jobj[GraphTypeSerializer.ValueKey] is JValue);
 
         public long Bulk { get; }
 
-        internal GraphSONNode(IGraphSONTypeConverter graphTypeConverter, string json)
+        internal GraphSONNode(IGraphTypeSerializer graphTypeSerializer, string json)
         {
             if (json == null)
             {
                 throw new ArgumentNullException(nameof(json));
             }
 
-            _graphSONConverter = graphTypeConverter ?? throw new ArgumentNullException(nameof(graphTypeConverter));
+            _graphSerializer = graphTypeSerializer ?? throw new ArgumentNullException(nameof(graphTypeSerializer));
             var parsedJson = (JObject)JsonConvert.DeserializeObject(json, GraphSONNode.GraphSONSerializerSettings);
             _token = parsedJson["result"];
             if (_token is JObject jobj)
             {
-                _graphsonType = jobj[GraphSONTypeConverter.TypeKey]?.ToString();
+                _graphsonType = jobj[GraphTypeSerializer.TypeKey]?.ToString();
             }
 
             var bulkToken = parsedJson["bulk"];
             Bulk = bulkToken != null ? GetTokenValue<long>(bulkToken) : 1L;
         }
 
-        internal GraphSONNode(IGraphSONTypeConverter graphTypeConverter, JToken parsedGraphItem)
+        internal GraphSONNode(IGraphTypeSerializer graphTypeSerializer, JToken parsedGraphItem)
         {
-            _graphSONConverter = graphTypeConverter ?? throw new ArgumentNullException(nameof(graphTypeConverter));
+            _graphSerializer = graphTypeSerializer ?? throw new ArgumentNullException(nameof(graphTypeSerializer));
             _token = parsedGraphItem ?? throw new ArgumentNullException(nameof(parsedGraphItem));
             if (_token is JObject jobj)
             {
-                _graphsonType = jobj[GraphSONTypeConverter.TypeKey]?.ToString();
+                _graphsonType = jobj[GraphTypeSerializer.TypeKey]?.ToString();
             }
         }
 
@@ -100,7 +102,7 @@ namespace Cassandra.Serialization.Graph.GraphSON2
 
         private JObject GetTypedValue()
         {
-            var value = _token[GraphSONTypeConverter.ValueKey];
+            var value = _token[GraphTypeSerializer.ValueKey];
             if (value != null && GetGraphSONType() != null)
             {
                 // The token represents a GraphSON2/GraphSON3 object {"@type": "g:...", "@value": {}}
@@ -149,12 +151,12 @@ namespace Cassandra.Serialization.Graph.GraphSON2
         /// </summary>
         private T GetTokenValue<T>(JToken token)
         {
-            return _graphSONConverter.FromDb<T>(token);
+            return _graphSerializer.FromDb<T>(token);
         }
 
         private object GetTokenValue(JToken token, Type type)
         {
-            return _graphSONConverter.FromDb(token, type);
+            return _graphSerializer.FromDb(token, type);
         }
 
         /// <summary>
@@ -177,7 +179,7 @@ namespace Cassandra.Serialization.Graph.GraphSON2
                 result = null;
                 return false;
             }
-            var node = new GraphNode(new GraphSONNode(_graphSONConverter, token));
+            var node = new GraphNode(new GraphSONNode(_graphSerializer, token));
             result = node.To(binder.ReturnType);
             return true;
         }
@@ -221,7 +223,7 @@ namespace Cassandra.Serialization.Graph.GraphSON2
             }
             return graphObject
                 .Properties()
-                .ToDictionary(prop => prop.Name, prop => new GraphNode(new GraphSONNode(_graphSONConverter, prop.Value)) as T);
+                .ToDictionary(prop => prop.Name, prop => new GraphNode(new GraphSONNode(_graphSerializer, prop.Value)) as T);
         }
 
         /// <summary>
@@ -251,7 +253,7 @@ namespace Cassandra.Serialization.Graph.GraphSON2
         /// </summary>
         public GraphNode[] ToArray()
         {
-            return _graphSONConverter.FromDb<GraphNode[]>(_token);
+            return _graphSerializer.FromDb<GraphNode[]>(_token);
         }
 
         /// <summary>
@@ -264,7 +266,7 @@ namespace Cassandra.Serialization.Graph.GraphSON2
                 return val.ToString(CultureInfo.InvariantCulture);
             }
 
-            var tokenValue = _token[GraphSONTypeConverter.ValueKey];
+            var tokenValue = _token[GraphTypeSerializer.ValueKey];
 
             switch (tokenValue)
             {

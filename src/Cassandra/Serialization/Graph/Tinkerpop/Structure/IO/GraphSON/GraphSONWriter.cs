@@ -26,6 +26,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using Cassandra.DataStax.Graph;
+using Cassandra.DataStax.Graph.Internal;
+using Cassandra.Serialization.Graph.GraphSON2.Tinkerpop;
 using Newtonsoft.Json;
 
 namespace Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON
@@ -33,7 +36,7 @@ namespace Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON
     /// <summary>
     ///     Allows to serialize objects to GraphSON.
     /// </summary>
-    internal abstract class GraphSONWriter
+    internal abstract class GraphSONWriter : IGraphSONWriter
     {
         /// <summary>
         /// Contains the information of serializers by type.
@@ -41,19 +44,32 @@ namespace Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON
         protected readonly Dictionary<Type, IGraphSONSerializer> Serializers = new Dictionary
             <Type, IGraphSONSerializer>
             {
+                //{typeof(ITraversal), new TraversalSerializer()},
+                //{typeof(Bytecode), new BytecodeSerializer()},
+                //{typeof(Binding), new BindingSerializer()},
+                //{typeof(RequestMessage), new RequestMessageSerializer()},
                 {typeof(int), new Int32Converter()},
                 {typeof(long), new Int64Converter()},
                 {typeof(float), new FloatConverter()},
                 {typeof(double), new DoubleConverter()},
                 {typeof(Guid), new UuidSerializer()},
                 {typeof(Type), new ClassSerializer()},
+                {typeof(EnumWrapper), new EnumSerializer()},
+                //{typeof(P), new PSerializer()},
+                //{typeof(TextP), new TextPSerializer()},
+                //{typeof(Vertex), new VertexSerializer()},
+                //{typeof(Edge), new EdgeSerializer()},
+                //{typeof(Property), new PropertySerializer()},
+                //{typeof(VertexProperty), new VertexPropertySerializer()},
+                //{typeof(AbstractTraversalStrategy), new TraversalStrategySerializer()},
+                //{typeof(ILambda), new LambdaSerializer()},
 
                 //Extended
                 {typeof(decimal), new DecimalConverter()},
                 {typeof(TimeSpan), new DurationSerializer()},
                 {typeof(BigInteger), new BigIntegerSerializer()},
                 {typeof(byte), new ByteConverter()},
-                {typeof(byte[]), new ByteBufferSerializer()},
+                {typeof(byte[]), new TinkerpopByteBufferSerializer()},
                 {typeof(char), new CharConverter() },
                 {typeof(short), new Int16Converter() }
             };

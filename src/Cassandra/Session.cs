@@ -533,7 +533,7 @@ namespace Cassandra
         public Task<GraphResultSet> ExecuteGraphAsync(IGraphStatement graphStatement, string executionProfileName)
         {
             return Configuration.RequestHandlerFactory
-                                .CreateGraphRequestHandler(this, Configuration.GraphProtocolResolver)
+                                .CreateGraphRequestHandler(this, Configuration.GraphTypeSerializerFactory)
                                 .SendAsync(graphStatement, InternalRef.GetRequestOptions(executionProfileName));
         }
     }
