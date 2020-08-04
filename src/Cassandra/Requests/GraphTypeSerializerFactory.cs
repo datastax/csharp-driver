@@ -26,6 +26,7 @@ using Cassandra.SessionManagement;
 
 namespace Cassandra.Requests
 {
+    /// <inheritdoc />
     internal class GraphTypeSerializerFactory : IGraphTypeSerializerFactory
     {
         private const string CoreEngine = "Core";

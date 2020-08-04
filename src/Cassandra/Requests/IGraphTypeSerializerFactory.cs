@@ -22,6 +22,10 @@ using Cassandra.SessionManagement;
 
 namespace Cassandra.Requests
 {
+    /// <summary>
+    /// Builds graph type serializers according to the protocol version. Also exposes a method
+    /// to compute the default graph protocol according to the keyspace metadata.
+    /// </summary>
     internal interface IGraphTypeSerializerFactory
     {
         /// <summary>

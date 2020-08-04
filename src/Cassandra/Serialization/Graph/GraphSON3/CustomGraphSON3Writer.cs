@@ -24,6 +24,7 @@ using Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON;
 
 namespace Cassandra.Serialization.Graph.GraphSON3
 {
+    /// <inheritdoc />
     internal class CustomGraphSON3Writer : CustomGraphSON2Writer
     {
         private static readonly IDictionary<Type, IGraphSONSerializer> CustomGraphSON3SpecificSerializers =

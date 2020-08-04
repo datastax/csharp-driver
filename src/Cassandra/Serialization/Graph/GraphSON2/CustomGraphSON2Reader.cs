@@ -27,6 +27,7 @@ using Newtonsoft.Json.Linq;
 
 namespace Cassandra.Serialization.Graph.GraphSON2
 {
+    /// <inheritdoc />
     internal class CustomGraphSON2Reader : ICustomGraphSONReader
     {
         private readonly Dictionary<string, IGraphSONDeserializer> _deserializers;

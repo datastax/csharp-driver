@@ -19,6 +19,9 @@ using Cassandra.ExecutionProfiles;
 
 namespace Cassandra.Requests
 {
+    /// <summary>
+    /// Handles graph requests (represented by <see cref="IGraphStatement"/> objects).
+    /// </summary>
     internal interface IGraphRequestHandler
     {
         Task<GraphResultSet> SendAsync(IGraphStatement graphStatement, IRequestOptions requestOptions);

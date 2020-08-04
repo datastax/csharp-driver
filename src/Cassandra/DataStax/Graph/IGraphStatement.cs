@@ -40,7 +40,7 @@ namespace Cassandra.DataStax.Graph
         string GraphName { get; }
         
         /// <summary>
-        /// Gets the graph protocol version to use with this statement.
+        /// Gets the graph protocol version to use with this statement. See <see cref="GraphOptions.GraphProtocolVersion"/>.
         /// </summary>
         GraphProtocol? GraphProtocolVersion { get; }
 

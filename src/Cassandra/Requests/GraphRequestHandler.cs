@@ -20,13 +20,13 @@ using System.Net;
 using System.Threading.Tasks;
 
 using Cassandra.DataStax.Graph;
-using Cassandra.DataStax.Graph.Internal;
 using Cassandra.ExecutionProfiles;
 using Cassandra.Serialization.Graph;
 using Cassandra.SessionManagement;
 
 namespace Cassandra.Requests
 {
+    /// <inheritdoc />
     internal class GraphRequestHandler : IGraphRequestHandler
     {
         private static readonly Logger Logger = new Logger(typeof(GraphRequestHandler));
@@ -175,9 +175,9 @@ namespace Cassandra.Requests
             else if (graphStmt is FluentGraphStatement fluentGraphStatement)
             {
                 serializer = _graphTypeSerializerFactory.CreateSerializer(
-                    fluentGraphStatement.CustomDeserializers, 
-                    fluentGraphStatement.CustomSerializers, 
-                    graphProtocol, 
+                    fluentGraphStatement.CustomDeserializers,
+                    fluentGraphStatement.CustomSerializers,
+                    graphProtocol,
                     fluentGraphStatement.DeserializeGraphNodes);
                 query = serializer.ToDb(fluentGraphStatement.QueryBytecode);
                 jsonParams = null;
@@ -187,8 +187,8 @@ namespace Cassandra.Requests
                 throw new NotSupportedException("Statement of type " + graphStmt.GetType().FullName + " not supported");
             }
 
-            IStatement stmt = jsonParams != null 
-                ? new TargettedSimpleStatement(query, jsonParams) 
+            IStatement stmt = jsonParams != null
+                ? new TargettedSimpleStatement(query, jsonParams)
                 : new TargettedSimpleStatement(query);
 
             //Set Cassandra.Statement properties

@@ -29,6 +29,7 @@ using Newtonsoft.Json;
 
 namespace Cassandra.Serialization.Graph.GraphSON2
 {
+    /// <inheritdoc />
     internal class CustomGraphSON2Writer : ICustomGraphSONWriter
     {
         private static readonly IDictionary<Type, IGraphSONSerializer> CustomGraphSON2SpecificSerializers =

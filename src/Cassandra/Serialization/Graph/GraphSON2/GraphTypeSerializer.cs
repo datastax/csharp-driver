@@ -28,6 +28,19 @@ using Newtonsoft.Json.Linq;
 
 namespace Cassandra.Serialization.Graph.GraphSON2
 {
+    /// <summary>
+    /// <para>
+    /// See xml docs on the <see cref="IGraphTypeSerializer"/> interface first.
+    /// </para>
+    /// <para>
+    /// The <see cref="IGraphSONWriter"/> and <see cref="IGraphSONReader"/> interfaces are implemented by this class
+    /// (<see cref="GraphTypeSerializer"/>) which is the point of entry for serialization and deserialization logic.
+    /// </para>
+    /// <para>
+    /// The individual serializer and deserializer instances call the <see cref="GraphTypeSerializer"/> instance to
+    /// serialize and deserialize inner properties.
+    /// </para>
+    /// </summary>
     internal class GraphTypeSerializer : IGraphTypeSerializer, IGraphSONWriter, IGraphSONReader
     {
         private static readonly IReadOnlyDictionary<string, IGraphSONDeserializer> EmptyDeserializersDict = 
@@ -77,6 +90,7 @@ namespace Cassandra.Serialization.Graph.GraphSON2
             _rowParser = row => new GraphNode(new GraphSONNode(this, row.GetValue<string>("gremlin")));
         }
 
+        /// <inheritdoc />
         public bool DeserializeGraphNodes { get; }
 
         public GraphProtocol GraphProtocol { get; }
@@ -87,11 +101,13 @@ namespace Cassandra.Serialization.Graph.GraphSON2
             return _rowParser;
         }
 
+        /// <inheritdoc />
         public string ToDb(object obj)
         {
             return _writer.WriteObject(obj);
         }
 
+        /// <inheritdoc />
         public T FromDb<T>(JToken token)
         {
             var type = typeof(T);
@@ -115,6 +131,7 @@ namespace Cassandra.Serialization.Graph.GraphSON2
             }
         }
 
+        /// <inheritdoc />
         public object FromDb(JToken token, Type type)
         {
             if (TryDeserialize(token, type, DeserializeGraphNodes, out var result))

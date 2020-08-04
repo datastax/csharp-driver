@@ -19,6 +19,10 @@ using Cassandra.DataStax.Graph.Internal;
 
 namespace Cassandra.DataStax.Graph
 {
+    /// <summary>
+    /// This statement is used by the C# Graph extension. It should not be used directly by users as it requires
+    /// specific types, serializers and deserializers that the C# Graph Extension provides automatically.
+    /// </summary>
     public class FluentGraphStatement : GraphStatement
     {
         private FluentGraphStatement(
@@ -48,6 +52,9 @@ namespace Cassandra.DataStax.Graph
         {
         }
 
+        /// <summary>
+        /// Bytecode of the query represented by this statement.
+        /// </summary>
         public object QueryBytecode { get; }
         
         internal bool DeserializeGraphNodes { get; }

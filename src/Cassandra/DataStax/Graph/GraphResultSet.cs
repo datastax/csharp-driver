@@ -37,7 +37,9 @@ namespace Cassandra.DataStax.Graph
         public ExecutionInfo Info => _rs.Info;
 
         /// <summary>
-        /// Gets the graph protocol version that will be considered when deserializing this result set.
+        /// Gets the graph protocol version that will be used when deserializing this result set.
+        /// To manually set the protocol version, use <see cref="GraphOptions.SetGraphProtocolVersion"/> or
+        /// <see cref="IGraphStatement.SetGraphProtocolVersion"/>.
         /// </summary>
         public GraphProtocol GraphProtocol { get; }
 

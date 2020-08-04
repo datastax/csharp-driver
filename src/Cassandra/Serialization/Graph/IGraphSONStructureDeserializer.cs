@@ -16,6 +16,7 @@
 using System;
 using Cassandra.DataStax.Graph;
 using Cassandra.DataStax.Graph.Internal;
+using Cassandra.Serialization.Graph.GraphSON2;
 using Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON;
 using Newtonsoft.Json.Linq;
 
@@ -23,6 +24,9 @@ namespace Cassandra.Serialization.Graph
 {
     /// <summary>
     ///     Supports deserializing GraphSON into an object that requires a graph node factory.
+    /// This is an adaptation of the Tinkerpop's <see cref="IGraphSONDeserializer"/> interface. The
+    /// <see cref="CustomGraphSON2Reader"/> adds support for these custom deserializers on top of the imported
+    /// functionality from <see cref="GraphSONReader"/> that handles the standard deserializers.
     /// </summary>
     internal interface IGraphSONStructureDeserializer
     {

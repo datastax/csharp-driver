@@ -226,6 +226,9 @@ namespace Cassandra.DataStax.Graph
             return this;
         }
 
+        /// <summary>
+        /// Sets the graph protocol version to use in graph queries. See <see cref="GraphProtocolVersion"/>.
+        /// </summary>
         public GraphOptions SetGraphProtocolVersion(GraphProtocol version)
         {
             _nullableGraphProtocol = version;
