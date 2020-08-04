@@ -36,7 +36,8 @@ namespace Cassandra.Serialization.Graph.GraphSON3
                 { typeof(IDictionary<object, object>), new MapSerializer() },
                 { typeof(Dictionary<object, object>), new MapSerializer() },
                 { typeof(IPAddress), new InetAddressSerializer() },
-                { typeof(Duration), new Duration3Serializer() }
+                { typeof(Duration), new Duration3Serializer() },
+                { typeof(byte[]), new ByteBufferSerializer() }
             };
         
         private static Dictionary<Type, IGraphSONSerializer> DefaultSerializers { get; } =

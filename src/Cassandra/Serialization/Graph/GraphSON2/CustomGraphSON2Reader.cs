@@ -21,6 +21,7 @@ using Cassandra.DataStax.Graph.Internal;
 using Cassandra.Serialization.Graph.GraphSON2.Dse;
 using Cassandra.Serialization.Graph.GraphSON2.Structure;
 using Cassandra.Serialization.Graph.GraphSON2.Tinkerpop;
+using Cassandra.Serialization.Graph.GraphSON3.Dse;
 using Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON;
 using Newtonsoft.Json.Linq;
 
@@ -64,7 +65,7 @@ namespace Cassandra.Serialization.Graph.GraphSON2
                 // custom deserializers for standard tinkerpop types with wrappers
                 // because C# types already being used in other deserializers
                 // the wrapper allows a 1 to 1 map between deserializer type and serializer type
-                { TinkerpopByteBufferDeserializer.TypeName, new TinkerpopByteBufferDeserializer() },
+                { ByteBufferDeserializer.TypeName, new ByteBufferDeserializer() },
                 { TinkerpopDateDeserializer.TypeName, new TinkerpopDateDeserializer() },
                 { TinkerpopTimestampDeserializer.TypeName, new TinkerpopTimestampDeserializer() },
             };

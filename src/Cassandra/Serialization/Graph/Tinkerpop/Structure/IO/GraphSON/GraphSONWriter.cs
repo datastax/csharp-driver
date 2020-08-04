@@ -29,6 +29,7 @@ using System.Numerics;
 using Cassandra.DataStax.Graph;
 using Cassandra.DataStax.Graph.Internal;
 using Cassandra.Serialization.Graph.GraphSON2.Tinkerpop;
+using Cassandra.Serialization.Graph.GraphSON3.Dse;
 using Newtonsoft.Json;
 
 namespace Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON
@@ -69,7 +70,7 @@ namespace Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON
                 {typeof(TimeSpan), new DurationSerializer()},
                 {typeof(BigInteger), new BigIntegerSerializer()},
                 {typeof(byte), new ByteConverter()},
-                {typeof(byte[]), new TinkerpopByteBufferSerializer()},
+                {typeof(byte[]), new ByteBufferSerializer()},
                 {typeof(char), new CharConverter() },
                 {typeof(short), new Int16Converter() }
             };

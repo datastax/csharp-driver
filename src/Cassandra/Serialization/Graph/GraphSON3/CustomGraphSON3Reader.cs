@@ -35,7 +35,8 @@ namespace Cassandra.Serialization.Graph.GraphSON3
         private static readonly IDictionary<string, IGraphSONDeserializer> CustomGraphSON3SpecificDeserializers =
             new Dictionary<string, IGraphSONDeserializer>
             {
-                { Duration3Serializer.TypeName, new Duration3Serializer() }
+                { Duration3Serializer.TypeName, new Duration3Serializer() },
+                { ByteBufferDeserializer.TypeName, new ByteBufferDeserializer() }
             };
 
         static CustomGraphSON3Reader()

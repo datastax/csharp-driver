@@ -286,9 +286,9 @@ namespace Cassandra.Mapping.TypeConversion
                 return timeUuidMapper;
             }
 
-            if (dbType.GetTypeInfo().IsGenericType)
+            if (dbType.GetTypeInfo().IsGenericType || dbType.GetInterfaces().Any(i => i.IsGenericType))
             {
-                Type sourceEnumerableInterface = dbType.GetGenericTypeDefinition() == typeof(IEnumerable<>) 
+                Type sourceEnumerableInterface = dbType.IsGenericType && dbType.GetGenericTypeDefinition() == typeof(IEnumerable<>) 
                     ? dbType 
                     : dbType.GetInterfaces().FirstOrDefault(
                         i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
@@ -306,7 +306,7 @@ namespace Cassandra.Mapping.TypeConversion
                     var targetGenericType = pocoType.GetTypeInfo().GetGenericTypeDefinition();
                     var targetGenericArgs = pocoType.GetTypeInfo().GetGenericArguments();
                     
-                    Type sourceDictionaryInterface = dbType.GetGenericTypeDefinition() == typeof(IDictionary<,>) 
+                    Type sourceDictionaryInterface = dbType.IsGenericType && dbType.GetGenericTypeDefinition() == typeof(IDictionary<,>) 
                         ? dbType 
                         : dbType.GetInterfaces().FirstOrDefault(
                             i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IDictionary<,>));

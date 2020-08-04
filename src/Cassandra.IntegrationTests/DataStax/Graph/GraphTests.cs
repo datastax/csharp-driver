@@ -805,6 +805,14 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
             TestInsertSelectProperty(type, timestamp, false);
         }
 
+        [Test]
+        public void Should_Support_Blob()
+        {
+            var type = "Blob()";
+            var buf = new byte[] { 3, 5 };
+            TestInsertSelectProperty(type, buf, false);
+        }
+
         [Test, TestDseVersion(5, 1)]
         public void Should_Support_Date()
         {

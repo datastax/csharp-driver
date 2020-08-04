@@ -742,6 +742,14 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
             TestInsertSelectProperty(type, timestamp, false);
         }
         
+        [Test]
+        public void Should_Support_Blob()
+        {
+            var type = "Blob";
+            var buf = new byte[] { 3, 5 };
+            TestInsertSelectProperty(type, buf, false);
+        }
+        
         [Test, TestDseVersion(5, 1)]
         public void Should_Support_Date()
         {
@@ -1194,7 +1202,7 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                 Assert.AreEqual(expectedValueString, toStringFunc(vertex.GetProperty(propertyName).Value.To(type)));
             }
         }
-
+        
         private static void FillEdgeProperties(ISession session, IEdge edge)
         {
             var castedEdge = (Edge) edge;
@@ -1205,12 +1213,12 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
             }
 
             var rs = session.ExecuteGraph(
-                new SimpleGraphStatement("g.E(edge_id).properties().toList()", new { edge_id = castedEdge.Id })
-                    .SetGraphLanguage(CoreGraphTests.GremlinGroovy));
-            var propertiesList = rs.Select(node => node.To<IProperty>()).ToList();
+                new SimpleGraphStatement("g.E(edge_id).properties()", new { edge_id = castedEdge.Id })
+                    .SetGraphLanguage("gremlin-groovy"));
+            var propertiesList = rs.Select(p => new Tuple<GraphNode, IProperty>(p, p.To<IProperty>())).ToList();
             foreach (var prop in propertiesList)
             {
-                castedEdge.Properties.Add(prop.Name, (GraphNode)prop.Value);
+                castedEdge.Properties.Add(prop.Item2.Name, prop.Item1);
             }
         }
         
@@ -1224,36 +1232,17 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
             }
 
             var rs = session.ExecuteGraph(
-                new SimpleGraphStatement("g.V(vertex_id).properties().toList()", new { vertex_id = castedVertex.Id })
-                    .SetGraphLanguage(CoreGraphTests.GremlinGroovy));
-            var propertiesByName = rs.Select(node => node.To<IVertexProperty>())
-                                   .GroupBy(p => p.Name)
-                                   .ToDictionary(
-                                       kvp => kvp.Key, 
-                                       kvp => kvp.Select(
-                                           p => new GraphTypeSerializer(
-                                                   new DefaultTypeConverter(), GraphProtocol.GraphSON3, null, null, true)
-                                               .ToDb(p)));
+                new SimpleGraphStatement("g.V(vertex_id).properties().group().by(key)", new { vertex_id = castedVertex.Id })
+                    .SetGraphLanguage("gremlin-groovy")).Single().To<IDictionary<string, GraphNode>>();
             
-            foreach (var propertyGroup in propertiesByName)
+            foreach (var propertiesByName in rs)
             {
                 // "properties" is a map where the key is the vertexproperty name
                 // and the value is a json array of vertex properties with that name
-                var jsonArray = "[";
-                foreach (var propertyJson in propertyGroup.Value)
-                {
-                    jsonArray += propertyJson + ",";
-                }
-
-                jsonArray = jsonArray.Substring(0, jsonArray.Length - 1);
-                jsonArray += "]";
 
                 castedVertex.Properties.Add(
-                    propertyGroup.Key, 
-                    new GraphNode(
-                        new GraphSONNode(
-                            new GraphTypeSerializer(new DefaultTypeConverter(), GraphProtocol.GraphSON3, null, null, true), 
-                            (JToken)JsonConvert.DeserializeObject(jsonArray, GraphSONNode.GraphSONSerializerSettings))));
+                    propertiesByName.Key,
+                    propertiesByName.Value.Get<GraphNode>("@value"));
             }
         }
     }

@@ -21,20 +21,24 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
-using Cassandra.DataStax.Graph;
 using Cassandra.DataStax.Graph.Internal;
 using Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON;
+using Newtonsoft.Json.Linq;
 
-namespace Cassandra.Serialization.Graph.GraphSON2.Tinkerpop
+namespace Cassandra.Serialization.Graph.GraphSON3.Dse
 {
-    internal class TinkerpopByteBufferSerializer : IGraphSONSerializer
+    internal class ByteBufferDeserializer : IGraphSONDeserializer
     {
-        public Dictionary<string, dynamic> Dictify(dynamic objectData, IGraphSONWriter writer)
+        private const string Prefix = "gx";
+        private const string TypeKey = "ByteBuffer";
+        
+        public static string TypeName =>
+            GraphSONUtil.FormatTypeName(ByteBufferDeserializer.Prefix, ByteBufferDeserializer.TypeKey);
+
+        public dynamic Objectify(JToken graphsonObject, IGraphSONReader reader)
         {
-            TinkerpopByteBuffer value = objectData;
-            var byteArr = value.Value;
-            return GraphSONUtil.ToTypedValue("ByteBuffer", Convert.ToBase64String(byteArr), "gx");
+            var base64String = graphsonObject.ToObject<string>();
+            return Convert.FromBase64String(base64String);
         }
     }
 }

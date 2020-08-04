@@ -181,6 +181,7 @@ namespace Cassandra.Serialization.Graph.GraphSON2
             if (token is JArray || typeName.Equals("g:List") || typeName.Equals("g:Set"))
             {
                 Type elementType = null;
+                var createSet = false;
                 if (type.IsArray)
                 {
                     elementType = type.GetElementType();
@@ -195,6 +196,11 @@ namespace Cassandra.Serialization.Graph.GraphSON2
                 {
                     elementType = type.GetTypeInfo().GetGenericArguments()[0];
                 }
+                else if (type == typeof(object))
+                {
+                    elementType = type;
+                    createSet = typeName.Equals("g:Set");
+                }
                 else
                 {
                     throw new InvalidOperationException($"Can not deserialize a collection to type {type.FullName}");
@@ -202,7 +208,9 @@ namespace Cassandra.Serialization.Graph.GraphSON2
 
                 if (!(token is JArray))
                 {
-                    return ConvertFromDb(FromListOrSetToEnumerable((JArray)token[GraphSONTokens.ValueKey], elementType), type, out result);
+                    return createSet 
+                        ? ConvertFromDb(FromSetToEnumerable((JArray) token[GraphSONTokens.ValueKey]), type, out result) 
+                        : ConvertFromDb(FromListOrSetToEnumerable((JArray)token[GraphSONTokens.ValueKey], elementType), type, out result);
                 }
 
                 return ConvertFromDb(FromListOrSetToEnumerable((JArray)token, elementType), type, out result);
@@ -226,6 +234,11 @@ namespace Cassandra.Serialization.Graph.GraphSON2
                     var genericArgs = type.GetTypeInfo().GetGenericArguments();
                     keyType = genericArgs[0];
                     elementType = genericArgs[1];
+                }
+                else if (type == typeof(object))
+                {
+                    keyType = type;
+                    elementType = type;
                 }
                 else
                 {
@@ -256,26 +269,35 @@ namespace Cassandra.Serialization.Graph.GraphSON2
                     elementType = genericArgs[1];
                     return ConvertFromDb(FromMapToDictionary((JArray)token[GraphSONTokens.ValueKey], keyType, elementType), type, out result);
                 }
-
-                if (type.GetTypeInfo().IsGenericType
+                else if (type.GetTypeInfo().IsGenericType
                     && (TypeConverter.ListGenericInterfaces.Contains(type.GetGenericTypeDefinition())
                         || type.GetGenericTypeDefinition() == typeof(IList<>)
                         || type.GetGenericTypeDefinition() == typeof(List<>)))
                 {
                     elementType = type.GetTypeInfo().GetGenericArguments()[0];
-                    var map = FromMapToDictionary((JArray)token[GraphSONTokens.ValueKey], elementType, typeof(int));
-                    var list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType));
-                    foreach (var key in map.Keys)
-                    {
-                        for (var i = 0; i < (int)map[key]; i++)
-                        {
-                            list.Add(key);
-                        }
-                    }
-                    return ConvertFromDb(list, type, out result);
+                }
+                else if (type == typeof(object))
+                {
+                    elementType = type;
+                }
+                else
+                {
+                    throw new InvalidOperationException($"Can not deserialize a collection to type {type.FullName}");
                 }
 
-                throw new InvalidOperationException($"Can not deserialize a collection to type {type.FullName}");
+                var map = FromMapToDictionary((JArray)token[GraphSONTokens.ValueKey], elementType, typeof(int));
+                var length = map.Values.Cast<int>().Sum();
+                var arr = Array.CreateInstance(elementType, length);
+                var idx = 0;
+                foreach (var key in map.Keys)
+                {
+                    for (var i = 0; i < (int)map[key]; i++)
+                    {
+                        arr.SetValue(key, idx);
+                        idx++;
+                    }
+                }
+                return ConvertFromDb(arr, type, out result);
             }
 
             result = null;
@@ -317,17 +339,21 @@ namespace Cassandra.Serialization.Graph.GraphSON2
 
         private IEnumerable FromListOrSetToEnumerable(JArray jArray, Type elementType)
         {
-            var arr = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType));
-
+            var arr = Array.CreateInstance(elementType, jArray.Count);
             var isGraphNode = elementType == typeof(GraphNode) || elementType == typeof(IGraphNode);
             for (var i = 0; i < jArray.Count; i++)
             {
                 var value = isGraphNode
                     ? new GraphNode(new GraphSONNode(this, jArray[i]))
                     : FromDb(jArray[i], elementType);
-                arr.Add(value);
+                arr.SetValue(value, i);
             }
             return arr;
+        }
+        
+        private IEnumerable FromSetToEnumerable(JArray jArray)
+        {
+            return new HashSet<object>(jArray.Select(e => FromDb(e, typeof(object))));
         }
 
         private IDictionary FromMapToDictionary(JArray jArray, Type keyType, Type elementType)
