@@ -20,6 +20,7 @@ using System.Threading.Tasks;
 using Cassandra.DataStax.Graph;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
+using Cassandra.IntegrationTests.TestDataTypes;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests
@@ -64,8 +65,46 @@ namespace Cassandra.IntegrationTests
             "schema.vertexLabel('movie')" +
                 ".partitionBy('title', Text)" +
                 ".property('tags', listOf(Text))" +
+                ".create();\n" +
+            "schema.type('address')" +
+                ".property('address1', Text)" +
+                ".property('address2', Text)" + 
+                ".property('city_code', Text)" +
+                ".property('state_code', Text)" +
+                ".property('zip_code', Text)" +
+                "create();\n" +
+            "schema.type('phone')" +
+                ".property('alias', Text)" +
+                ".property('number', Text)" +
+                ".property('country_code', Int)" +
+                ".property('verified_at', Timestamp)" +
+                ".property('phone_type', Text)" +
+                ".create();\n" +
+            "schema.type('contact')" +
+                ".property('first_name', Text)" +
+                ".property('last_name', Text)" +
+                ".property('birth_date', Timestamp)" +
+                ".property('phones', setOf(frozen(typeOf('phone'))))" +
+                ".property('emails', setOf(Text))" +
+                ".property('nullable_long', Bigint)" +
+                ".create();\n" +
+            "schema.vertexLabel('users')" + 
+                ".partitionBy('id', Int)" + 
+                ".property('main_phone', frozen(typeOf('phone')))" +
+                ".create();\n" +
+            "schema.vertexLabel('users_contacts')" + 
+                ".partitionBy('id', Int)" + 
+                ".property('contacts', listOf(frozen(typeOf('contact'))))" +
+                ".create();\n" +
+            "schema.type('user_feedback')" +
+                ".property('submitted_at', Timestamp)" +
+                ".property('rating', Int)" +
+                ".create();\n" +
+            "schema.edgeLabel('uses')" +
+                ".from('users').to('software')" +
+                ".property('feedback', typeOf('user_feedback'))" +
                 ".create();\n";
-        
+
         /// <summary>
         /// Reference graph: http://www.tinkerpop.com/docs/3.0.0.M1/
         /// </summary>

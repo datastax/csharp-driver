@@ -26,7 +26,8 @@ using Cassandra.DataStax.Graph;
 using Cassandra.Geometry;
 using Cassandra.Mapping.TypeConversion;
 using Cassandra.Serialization.Graph.GraphSON2;
-
+using Cassandra.SessionManagement;
+using Moq;
 using NUnit.Framework;
 
 using Path = Cassandra.DataStax.Graph.Path;
@@ -524,7 +525,7 @@ namespace Cassandra.Tests.DataStax.Graph
         {
             return new GraphNode(new GraphSONNode(
                 new GraphTypeSerializer(
-                    new DefaultTypeConverter(), protocol, null, null, true),
+                    Mock.Of<IInternalSession>(), protocol, null, null, true),
                 "{\"result\": " + json + "}"));
         }
     }

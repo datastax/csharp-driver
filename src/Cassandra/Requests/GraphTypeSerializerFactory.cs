@@ -18,7 +18,6 @@ using System.Collections.Generic;
 
 using Cassandra.DataStax.Graph;
 using Cassandra.DataStax.Graph.Internal;
-using Cassandra.Mapping.TypeConversion;
 using Cassandra.Serialization.Graph;
 using Cassandra.Serialization.Graph.GraphSON1;
 using Cassandra.Serialization.Graph.GraphSON2;
@@ -33,12 +32,10 @@ namespace Cassandra.Requests
 
         private static readonly Logger Logger = new Logger(typeof(GraphTypeSerializerFactory));
 
-        private static readonly TypeConverter DefaultTypeConverter = new DefaultTypeConverter();
-        
-        private static readonly IReadOnlyDictionary<string, IGraphSONDeserializer> EmptyDeserializersDict = 
+        private static readonly IReadOnlyDictionary<string, IGraphSONDeserializer> EmptyDeserializersDict =
             new Dictionary<string, IGraphSONDeserializer>(0);
-        
-        private static readonly IReadOnlyDictionary<Type, IGraphSONSerializer> EmptySerializersDict = 
+
+        private static readonly IReadOnlyDictionary<Type, IGraphSONSerializer> EmptySerializersDict =
             new Dictionary<Type, IGraphSONSerializer>(0);
 
         /// <inheritdoc />
@@ -69,9 +66,10 @@ namespace Cassandra.Requests
                 "Resolved graph protocol to {0}.", protocol.Value.GetInternalRepresentation());
             return protocol.Value;
         }
-        
+
         /// <inheritdoc />
         public IGraphTypeSerializer CreateSerializer(
+            IInternalSession session,
             IReadOnlyDictionary<GraphProtocol, IReadOnlyDictionary<string, IGraphSONDeserializer>> customDeserializers,
             IReadOnlyDictionary<GraphProtocol, IReadOnlyDictionary<Type, IGraphSONSerializer>> customSerializers,
             GraphProtocol graphProtocol,
@@ -81,6 +79,7 @@ namespace Cassandra.Requests
             {
                 case GraphProtocol.GraphSON1:
                     return new GraphSON1TypeSerializer();
+
                 case GraphProtocol.GraphSON2:
                 case GraphProtocol.GraphSON3:
                     IReadOnlyDictionary<Type, IGraphSONSerializer> serializers = null;
@@ -88,7 +87,7 @@ namespace Cassandra.Requests
                     customDeserializers?.TryGetValue(graphProtocol, out deserializers);
                     customSerializers?.TryGetValue(graphProtocol, out serializers);
                     return new GraphTypeSerializer(
-                        GraphTypeSerializerFactory.DefaultTypeConverter,
+                        session,
                         graphProtocol,
                         deserializers,
                         serializers,

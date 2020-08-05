@@ -24,6 +24,7 @@ using Cassandra.DataStax.Graph.Internal;
 using Cassandra.Mapping.TypeConversion;
 using Cassandra.Serialization.Graph.GraphSON3;
 using Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON;
+using Cassandra.SessionManagement;
 using Newtonsoft.Json.Linq;
 
 namespace Cassandra.Serialization.Graph.GraphSON2
@@ -43,29 +44,35 @@ namespace Cassandra.Serialization.Graph.GraphSON2
     /// </summary>
     internal class GraphTypeSerializer : IGraphTypeSerializer, IGraphSONWriter, IGraphSONReader
     {
+        private static readonly TypeConverter DefaultTypeConverter = new DefaultTypeConverter();
+
         private static readonly IReadOnlyDictionary<string, IGraphSONDeserializer> EmptyDeserializersDict = 
             new Dictionary<string, IGraphSONDeserializer>(0);
         
         private static readonly IReadOnlyDictionary<Type, IGraphSONSerializer> EmptySerializersDict = 
             new Dictionary<Type, IGraphSONSerializer>(0);
 
+        private static readonly IUdtGraphSONSerializer _udtSerializer = new UdtGraphSONSerializer();
+
         private readonly TypeConverter _typeConverter;
         private readonly ICustomGraphSONReader _reader;
         private readonly ICustomGraphSONWriter _writer;
         private readonly Func<Row, GraphNode> _rowParser;
+        private readonly IInternalSession _session;
 
         public const string TypeKey = "@type";
         public const string ValueKey = "@value";
 
         public GraphTypeSerializer(
-            TypeConverter typeConverter,
+            IInternalSession session,
             GraphProtocol protocol,
             IReadOnlyDictionary<string, IGraphSONDeserializer> customDeserializers,
             IReadOnlyDictionary<Type, IGraphSONSerializer> customSerializers,
             bool deserializeGraphNodes)
         {
-            _typeConverter = typeConverter;
-            DeserializeGraphNodes = deserializeGraphNodes;
+            _session = session;
+            _typeConverter = GraphTypeSerializer.DefaultTypeConverter;
+            DefaultDeserializeGraphNodes = deserializeGraphNodes;
             GraphProtocol = protocol;
 
             customDeserializers = customDeserializers ?? GraphTypeSerializer.EmptyDeserializersDict;
@@ -91,7 +98,7 @@ namespace Cassandra.Serialization.Graph.GraphSON2
         }
 
         /// <inheritdoc />
-        public bool DeserializeGraphNodes { get; }
+        public bool DefaultDeserializeGraphNodes { get; }
 
         public GraphProtocol GraphProtocol { get; }
 
@@ -111,7 +118,7 @@ namespace Cassandra.Serialization.Graph.GraphSON2
         public T FromDb<T>(JToken token)
         {
             var type = typeof(T);
-            if (TryDeserialize(token, type, DeserializeGraphNodes, out var result))
+            if (TryDeserialize(token, type, DefaultDeserializeGraphNodes, out var result))
             {
                 return (T)result;
             }
@@ -134,7 +141,13 @@ namespace Cassandra.Serialization.Graph.GraphSON2
         /// <inheritdoc />
         public object FromDb(JToken token, Type type)
         {
-            if (TryDeserialize(token, type, DeserializeGraphNodes, out var result))
+            return FromDb(token, type, DefaultDeserializeGraphNodes);
+        }
+        
+        /// <inheritdoc />
+        public object FromDb(JToken token, Type type, bool deserializeGraphNodes)
+        {
+            if (TryDeserialize(token, type, deserializeGraphNodes, out var result))
             {
                 return result;
             }
@@ -175,17 +188,22 @@ namespace Cassandra.Serialization.Graph.GraphSON2
                 typeName = ((string) token[GraphSONTokens.TypeKey]) ?? string.Empty;
             }
 
-            if (TryConvertFromListOrSet(token, type, typeName, out result))
+            if (TryConvertFromListOrSet(token, type, typeName, useGraphNodes, out result))
             {
                 return true;
             }
 
-            if (TryConvertFromMap(token, type, typeName, out result))
+            if (TryConvertFromMap(token, type, typeName, useGraphNodes, out result))
             {
                 return true;
             }
 
-            if (TryConvertFromBulkSet(token, type, typeName, out result))
+            if (TryConvertFromBulkSet(token, type, typeName, useGraphNodes, out result))
+            {
+                return true;
+            }
+
+            if (TryConvertFromUdt(token, type, typeName, out result))
             {
                 return true;
             }
@@ -193,7 +211,7 @@ namespace Cassandra.Serialization.Graph.GraphSON2
             return ConvertFromDb(_reader.ToObject(token), type, out result);
         }
 
-        private bool TryConvertFromListOrSet(JToken token, Type type, string typeName, out dynamic result)
+        private bool TryConvertFromListOrSet(JToken token, Type type, string typeName, bool deserializeGraphNodes, out dynamic result)
         {
             if (token is JArray || typeName.Equals("g:List") || typeName.Equals("g:Set"))
             {
@@ -213,31 +231,27 @@ namespace Cassandra.Serialization.Graph.GraphSON2
                 {
                     elementType = type.GetTypeInfo().GetGenericArguments()[0];
                 }
-                else if (type == typeof(object))
-                {
-                    elementType = type;
-                    createSet = typeName.Equals("g:Set");
-                }
                 else
                 {
-                    throw new InvalidOperationException($"Can not deserialize a collection to type {type.FullName}");
+                    elementType = typeof(object);
+                    createSet = typeName.Equals("g:Set");
                 }
 
                 if (!(token is JArray))
                 {
                     return createSet 
-                        ? ConvertFromDb(FromSetToEnumerable((JArray) token[GraphSONTokens.ValueKey]), type, out result) 
-                        : ConvertFromDb(FromListOrSetToEnumerable((JArray)token[GraphSONTokens.ValueKey], elementType), type, out result);
+                        ? ConvertFromDb(FromSetToEnumerable((JArray) token[GraphSONTokens.ValueKey], deserializeGraphNodes), type, out result) 
+                        : ConvertFromDb(FromListOrSetToEnumerable((JArray)token[GraphSONTokens.ValueKey], elementType, deserializeGraphNodes), type, out result);
                 }
 
-                return ConvertFromDb(FromListOrSetToEnumerable((JArray)token, elementType), type, out result);
+                return ConvertFromDb(FromListOrSetToEnumerable((JArray)token, elementType, deserializeGraphNodes), type, out result);
             }
 
             result = null;
             return false;
         }
 
-        private bool TryConvertFromMap(JToken token, Type type, string typeName, out dynamic result)
+        private bool TryConvertFromMap(JToken token, Type type, string typeName, bool deserializeGraphNodes, out dynamic result)
         {
             if (typeName.Equals("g:Map"))
             {
@@ -252,24 +266,20 @@ namespace Cassandra.Serialization.Graph.GraphSON2
                     keyType = genericArgs[0];
                     elementType = genericArgs[1];
                 }
-                else if (type == typeof(object))
-                {
-                    keyType = type;
-                    elementType = type;
-                }
                 else
                 {
-                    throw new InvalidOperationException($"Can not deserialize a collection to type {type.FullName}");
+                    keyType = typeof(object);
+                    elementType = typeof(object);
                 }
 
-                return ConvertFromDb(FromMapToDictionary((JArray)token[GraphSONTokens.ValueKey], keyType, elementType), type, out result);
+                return ConvertFromDb(FromMapToDictionary((JArray)token[GraphSONTokens.ValueKey], keyType, elementType, deserializeGraphNodes), type, out result);
             }
 
             result = null;
             return false;
         }
 
-        private bool TryConvertFromBulkSet(JToken token, Type type, string typeName, out dynamic result)
+        private bool TryConvertFromBulkSet(JToken token, Type type, string typeName, bool deserializeGraphNodes, out dynamic result)
         {
             if (typeName.Equals("g:BulkSet"))
             {
@@ -284,7 +294,7 @@ namespace Cassandra.Serialization.Graph.GraphSON2
                     var genericArgs = type.GetTypeInfo().GetGenericArguments();
                     keyType = genericArgs[0];
                     elementType = genericArgs[1];
-                    return ConvertFromDb(FromMapToDictionary((JArray)token[GraphSONTokens.ValueKey], keyType, elementType), type, out result);
+                    return ConvertFromDb(FromMapToDictionary((JArray)token[GraphSONTokens.ValueKey], keyType, elementType, deserializeGraphNodes), type, out result);
                 }
                 else if (type.GetTypeInfo().IsGenericType
                     && (TypeConverter.ListGenericInterfaces.Contains(type.GetGenericTypeDefinition())
@@ -293,16 +303,12 @@ namespace Cassandra.Serialization.Graph.GraphSON2
                 {
                     elementType = type.GetTypeInfo().GetGenericArguments()[0];
                 }
-                else if (type == typeof(object))
+                else 
                 {
-                    elementType = type;
-                }
-                else
-                {
-                    throw new InvalidOperationException($"Can not deserialize a collection to type {type.FullName}");
+                    elementType = typeof(object);
                 }
 
-                var map = FromMapToDictionary((JArray)token[GraphSONTokens.ValueKey], elementType, typeof(int));
+                var map = FromMapToDictionary((JArray)token[GraphSONTokens.ValueKey], elementType, typeof(int), deserializeGraphNodes);
                 var length = map.Values.Cast<int>().Sum();
                 var arr = Array.CreateInstance(elementType, length);
                 var idx = 0;
@@ -320,8 +326,24 @@ namespace Cassandra.Serialization.Graph.GraphSON2
             result = null;
             return false;
         }
+        
+        private bool TryConvertFromUdt(JToken token, Type type, string typeName, out dynamic result)
+        {
+            if (typeName.Equals("dse:UDT"))
+            {
+                result = GraphTypeSerializer._udtSerializer.Objectify(
+                    token[GraphSONTokens.ValueKey], 
+                    type,
+                    this,
+                    _session.InternalCluster.Metadata.ControlConnection.Serializer.GetGenericSerializer());
+                return true;
+            }
 
-        private bool ConvertFromDb(object obj, Type targetType, out dynamic result)
+            result = null;
+            return false;
+        }
+
+        public bool ConvertFromDb(object obj, Type targetType, out dynamic result)
         {
             if (obj == null)
             {
@@ -354,7 +376,7 @@ namespace Cassandra.Serialization.Graph.GraphSON2
             return true;
         }
 
-        private IEnumerable FromListOrSetToEnumerable(JArray jArray, Type elementType)
+        private IEnumerable FromListOrSetToEnumerable(JArray jArray, Type elementType, bool deserializeGraphNodes)
         {
             var arr = Array.CreateInstance(elementType, jArray.Count);
             var isGraphNode = elementType == typeof(GraphNode) || elementType == typeof(IGraphNode);
@@ -362,18 +384,18 @@ namespace Cassandra.Serialization.Graph.GraphSON2
             {
                 var value = isGraphNode
                     ? new GraphNode(new GraphSONNode(this, jArray[i]))
-                    : FromDb(jArray[i], elementType);
+                    : FromDb(jArray[i], elementType, deserializeGraphNodes);
                 arr.SetValue(value, i);
             }
             return arr;
         }
         
-        private IEnumerable FromSetToEnumerable(JArray jArray)
+        private IEnumerable FromSetToEnumerable(JArray jArray, bool deserializeGraphNodes)
         {
-            return new HashSet<object>(jArray.Select(e => FromDb(e, typeof(object))));
+            return new HashSet<object>(jArray.Select(e => FromDb(e, typeof(object), deserializeGraphNodes)));
         }
 
-        private IDictionary FromMapToDictionary(JArray jArray, Type keyType, Type elementType)
+        private IDictionary FromMapToDictionary(JArray jArray, Type keyType, Type elementType, bool deserializeGraphNodes)
         {
             var newDictionary = (IDictionary)Activator.CreateInstance(typeof(Dictionary<,>).MakeGenericType(keyType, elementType));
             var keyIsGraphNode = keyType == typeof(GraphNode) || keyType == typeof(IGraphNode);
@@ -383,11 +405,11 @@ namespace Cassandra.Serialization.Graph.GraphSON2
             {
                 var value = elementIsGraphNode
                     ? new GraphNode(new GraphSONNode(this, jArray[i + 1]))
-                    : FromDb(jArray[i + 1], elementType);
+                    : FromDb(jArray[i + 1], elementType, deserializeGraphNodes);
 
                 var key = keyIsGraphNode
                     ? new GraphNode(new GraphSONNode(this, jArray[i]))
-                    : FromDb(jArray[i], keyType);
+                    : FromDb(jArray[i], keyType, deserializeGraphNodes);
 
                 newDictionary.Add(key, value);
             }
@@ -413,6 +435,153 @@ namespace Cassandra.Serialization.Graph.GraphSON2
             }
 
             throw new InvalidOperationException($"It is not possible to deserialize {token.ToString()}");
+        }
+    }
+
+    internal interface IUdtGraphSONSerializer
+    {
+        /// <summary>
+        ///     Deserializes GraphSON UDT to an object.
+        /// </summary>
+        /// <param name="graphsonObject">The GraphSON udt object to objectify.</param>
+        /// <param name="type">Target type.</param>
+        /// <param name="serializer">The graph type serializer instance.</param>
+        /// <param name="genericSerializer">Generic serializer instance from which UDT Mappings can be obtained.</param>
+        /// <returns>The deserialized object.</returns>
+        dynamic Objectify(JToken graphsonObject, Type type, IGraphTypeSerializer serializer, IGenericSerializer genericSerializer);
+        
+        ///// <summary>
+        /////     Transforms an object into a dictionary that resembles its GraphSON representation.
+        ///// </summary>
+        ///// <param name="objectData">The object to dictify.</param>
+        ///// <param name="writer">A <see cref="IGraphSONWriter" /> that can be used to dictify properties of the object.</param>
+        ///// <param name="serializer">Generic serializer instance from which UDT Mappings can be obtained.</param>
+        ///// <returns>The GraphSON representation.</returns>
+        //Dictionary<string, dynamic> Dictify(dynamic objectData, IGraphSONWriter writer, IGenericSerializer serializer);
+
+    }
+
+    /// <inheritdoc />
+    internal class UdtGraphSONSerializer : IUdtGraphSONSerializer
+    {
+        ///// <inheritdoc />
+        //public Dictionary<string, dynamic> Dictify(
+        //    dynamic objectData, IGraphSONWriter writer, IGenericSerializer serializer)
+        //{
+        //    var type = (Type) objectData.GetType();
+        //    var udtMap = serializer.GetUdtMapByType(type);
+
+        //    if (udtMap != null)
+        //    {
+
+        //    }
+        //}
+
+        /// <inheritdoc />
+        public dynamic Objectify(
+            JToken graphsonObject, Type type, IGraphTypeSerializer serializer, IGenericSerializer genericSerializer)
+        {
+            var keyspace = serializer.FromDb<string>(graphsonObject["keyspace"]);
+            var name = serializer.FromDb<string>(graphsonObject["name"]);
+            var values = (JArray) graphsonObject["value"];
+
+            var targetTypeIsDictionary = false;
+            Type elementType = null;
+            if (type.GetTypeInfo().IsGenericType
+                && (type.GetGenericTypeDefinition() == typeof(IReadOnlyDictionary<,>)
+                    || type.GetGenericTypeDefinition() == typeof(Dictionary<,>)
+                    || type.GetGenericTypeDefinition() == typeof(IDictionary<,>)))
+            {
+                targetTypeIsDictionary = true;
+                var genericArgs = type.GetTypeInfo().GetGenericArguments();
+                if (genericArgs[0] != typeof(string))
+                {
+                    throw new InvalidOperationException(
+                        "Deserializing UDT to Dictionary is only supported when the dictionary key is of type \"string\".");
+                }
+                elementType = genericArgs[1];
+            }
+
+            UdtMap udtMap = null;
+            bool readToDictionary;
+            if (targetTypeIsDictionary)
+            {
+                readToDictionary = true;
+            }
+            else
+            {
+                udtMap = genericSerializer.GetUdtMapByName($"{keyspace}.{name}");
+                if (udtMap != null)
+                {
+                    readToDictionary = false;
+                }
+                else
+                {
+                    readToDictionary = true;
+                    elementType = typeof(object);
+                }
+            }
+
+            var obj = readToDictionary 
+                ? ToDictionary(serializer, elementType, (JArray) graphsonObject["definition"], values) 
+                : ToObject(serializer, udtMap, values);
+            
+            if (!serializer.ConvertFromDb(obj, type, out var result))
+            {
+                throw new InvalidOperationException($"Could not convert UDT from type {obj.GetType().FullName} to {type.FullName}");
+            }
+
+            return result;
+        }
+        
+        internal object ToObject(IGraphTypeSerializer serializer, UdtMap map, IEnumerable<JToken> valuesArr)
+        {
+            var obj = Activator.CreateInstance(map.NetType);
+            var i = 0;
+            foreach (var value in valuesArr)
+            {
+                if (i >= map.Definition.Fields.Count)
+                {
+                    break;
+                }
+                
+                var field = map.Definition.Fields[i];
+                i++;
+
+                var prop = map.GetPropertyForUdtField(field.Name);
+
+                if (prop == null)
+                {
+                    continue;
+                }
+                
+                var convertedValue = serializer.FromDb(value, prop.PropertyType, false);
+                prop.SetValue(obj, convertedValue, null);
+            }
+
+            return obj;
+        }
+        
+        internal object ToDictionary(
+            IGraphTypeSerializer serializer, Type elementType, IEnumerable<JToken> definitions, IEnumerable<JToken> valuesArr)
+        {
+            var fieldNames = definitions.Select(def => (string) def["fieldName"]).ToArray();
+            var newDictionary = (IDictionary)Activator.CreateInstance(typeof(Dictionary<,>).MakeGenericType(typeof(string), elementType));
+            var elementIsGraphNode = elementType == typeof(GraphNode) || elementType == typeof(IGraphNode);
+
+            var i = 0;
+            foreach (var value in valuesArr)
+            {
+                var newValue = elementIsGraphNode
+                    ? new GraphNode(new GraphSONNode(serializer, value))
+                    : serializer.FromDb(value, elementType, false);
+                var key = fieldNames[i];
+                i++;
+
+                newDictionary.Add(key, newValue);
+            }
+
+            return newDictionary;
         }
     }
 }

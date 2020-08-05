@@ -140,7 +140,8 @@ namespace Cassandra.Requests
             {
                 return new ConvertedStatementResult
                 {
-                    Serializer = _graphTypeSerializerFactory.CreateSerializer(null, null, graphProtocol.Value, true),
+                    Serializer = _graphTypeSerializerFactory.CreateSerializer(
+                        _session, null, null, graphProtocol.Value, true),
                     Statement = stmt
                 };
             }
@@ -157,7 +158,7 @@ namespace Cassandra.Requests
 
             if (graphStmt is SimpleGraphStatement simpleGraphStatement)
             {
-                serializer = _graphTypeSerializerFactory.CreateSerializer(null, null, graphProtocol, true);
+                serializer = _graphTypeSerializerFactory.CreateSerializer(_session, null, null, graphProtocol, true);
                 query = simpleGraphStatement.Query;
                 if (simpleGraphStatement.ValuesDictionary != null)
                 {
@@ -175,6 +176,7 @@ namespace Cassandra.Requests
             else if (graphStmt is FluentGraphStatement fluentGraphStatement)
             {
                 serializer = _graphTypeSerializerFactory.CreateSerializer(
+                    _session,
                     fluentGraphStatement.CustomDeserializers,
                     fluentGraphStatement.CustomSerializers,
                     graphProtocol,

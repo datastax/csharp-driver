@@ -14,25 +14,25 @@
 //   limitations under the License.
 //
 
-namespace Cassandra.Serialization
+using System;
+
+namespace Cassandra.IntegrationTests.TestDataTypes
 {
-    internal interface ISerializerManager
+    internal class Phone2 : Phone, IEquatable<Phone2>
     {
-        ProtocolVersion CurrentProtocolVersion { get; }
+        public bool Equals(Phone2 other)
+        {
+            return base.Equals(other);
+        }
 
-        void ChangeProtocolVersion(ProtocolVersion version);
+        public override bool Equals(object obj)
+        {
+            return base.Equals(obj);
+        }
 
-        /// <summary>
-        /// Get a serializer for the current protocol version.
-        /// </summary>
-        /// <returns></returns>
-        ISerializer GetCurrentSerializer();
-
-        ///// <summary>
-        ///// Adds a UDT mapping definition
-        ///// </summary>
-        void SetUdtMap(string name, UdtMap map);
-
-        IGenericSerializer GetGenericSerializer();
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
+        }
     }
 }

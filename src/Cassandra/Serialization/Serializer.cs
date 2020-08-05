@@ -74,5 +74,15 @@ namespace Cassandra.Serialization
         {
             return _serializer.IsAssignableFrom(column, value);
         }
+
+        public UdtMap GetUdtMapByName(string name)
+        {
+            return _serializer.GetUdtMapByName(name);
+        }
+
+        public UdtMap GetUdtMapByType(Type type)
+        {
+            return _serializer.GetUdtMapByType(type);
+        }
     }
 }

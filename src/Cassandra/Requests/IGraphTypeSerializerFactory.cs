@@ -38,6 +38,7 @@ namespace Cassandra.Requests
         /// Gets the serializer according to the protocol version.
         /// </summary>
         IGraphTypeSerializer CreateSerializer(
+            IInternalSession session,
             IReadOnlyDictionary<GraphProtocol, IReadOnlyDictionary<string, IGraphSONDeserializer>> customDeserializers,
             IReadOnlyDictionary<GraphProtocol, IReadOnlyDictionary<Type, IGraphSONSerializer>> customSerializers,
             GraphProtocol graphProtocolVersion,

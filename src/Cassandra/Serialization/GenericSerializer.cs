@@ -335,6 +335,16 @@ namespace Cassandra.Serialization
             return true;
         }
 
+        public UdtMap GetUdtMapByName(string name)
+        {
+            return _udtSerializer.GetUdtMap(name);
+        }
+
+        public UdtMap GetUdtMapByType(Type type)
+        {
+            return _udtSerializer.GetUdtMap(type);
+        }
+
         public byte[] Serialize(ProtocolVersion version, object value)
         {
             if (value == Unset.Value)

@@ -36,7 +36,7 @@ namespace Cassandra.DataStax.Graph.Internal
         ///     Transforms an object into a dictionary that resembles its GraphSON representation.
         /// </summary>
         /// <param name="objectData">The object to dictify.</param>
-        /// <param name="writer">A <see cref="GraphSONWriter" /> that can be used to dictify properties of the object.</param>
+        /// <param name="writer">A <see cref="IGraphSONWriter" /> that can be used to dictify properties of the object.</param>
         /// <returns>The GraphSON representation.</returns>
         Dictionary<string, dynamic> Dictify(dynamic objectData, IGraphSONWriter writer);
     }

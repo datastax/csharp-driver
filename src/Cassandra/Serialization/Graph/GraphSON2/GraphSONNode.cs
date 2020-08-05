@@ -44,7 +44,7 @@ namespace Cassandra.Serialization.Graph.GraphSON2
             DateParseHandling = DateParseHandling.None
         };
 
-        public bool DeserializeGraphNodes => _graphSerializer.DeserializeGraphNodes;
+        public bool DeserializeGraphNodes => _graphSerializer.DefaultDeserializeGraphNodes;
 
         public bool IsArray => _token is JArray;
 
