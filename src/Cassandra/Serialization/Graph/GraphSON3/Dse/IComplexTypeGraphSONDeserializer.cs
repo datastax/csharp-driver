@@ -13,26 +13,21 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-using System.Collections.Generic;
-using Cassandra.DataStax.Graph.Internal;
+using System;
+using Newtonsoft.Json.Linq;
 
 namespace Cassandra.Serialization.Graph.GraphSON3.Dse
 {
-    internal interface IUdtGraphSONSerializer
+    internal interface IComplexTypeGraphSONDeserializer
     {
         /// <summary>
-        ///     Transforms an object into a dictionary that resembles its GraphSON representation.
+        ///     Deserializes GraphSON UDT to an object.
         /// </summary>
-        /// <param name="objectData">The object to dictify.</param>
+        /// <param name="graphsonObject">The GraphSON udt object to objectify.</param>
+        /// <param name="type">Target type.</param>
         /// <param name="serializer">The graph type serializer instance.</param>
         /// <param name="genericSerializer">Generic serializer instance from which UDT Mappings can be obtained.</param>
-        /// <param name="result">The GraphSON representation.</param>
-        /// <returns>True if this object is a UDT and serialization was successful. False if this object is not a UDT.</returns>
-        bool TryDictify(
-            dynamic objectData, 
-            IGraphSONWriter serializer, 
-            IGenericSerializer genericSerializer, 
-            out Dictionary<string, dynamic> result);
-
+        /// <returns>The deserialized object.</returns>
+        dynamic Objectify(JToken graphsonObject, Type type, IGraphTypeSerializer serializer, IGenericSerializer genericSerializer);
     }
 }

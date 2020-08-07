@@ -20,7 +20,6 @@ using System.Threading.Tasks;
 using Cassandra.DataStax.Graph;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
-using Cassandra.IntegrationTests.TestDataTypes;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests
@@ -103,6 +102,10 @@ namespace Cassandra.IntegrationTests
             "schema.edgeLabel('uses')" +
                 ".from('users').to('software')" +
                 ".property('feedback', typeOf('user_feedback'))" +
+                ".create();\n" +
+            "schema.vertexLabel('tuple_test')" + 
+                ".partitionBy('id', Int)" + 
+                ".property('tuple_property', tupleOf(typeOf('phone'), Int, UUID, listOf(Text), setOf(Int),mapOf(Text, Timestamp)))" +
                 ".create();\n";
 
         /// <summary>
@@ -150,7 +153,32 @@ namespace Cassandra.IntegrationTests
                 ".from('josh').to('lop')" +
             ".addE('created')" +
                 ".property('weight', 0.2f)" +
-                ".from('peter').to('lop')";
+                ".from('peter').to('lop')" +
+            ".addV('users_contacts')" +
+                ".property('id', 1923)" +
+                ".property('contacts', " +                     
+                    "[ " +
+                        "typeOf('contact').create(" +
+                            "'Jimmy', " +
+                            "'McGill', " +
+                            "null, " +
+                            "[ " +
+                                "typeOf('phone').create(" +
+                                "'alias123123', " +
+                                "'21791274', " +
+                                "null, " +
+                                "null, " +
+                                "'Work')," +
+                                "typeOf('phone').create(" +
+                                "'Office', " +
+                                "'123', " +
+                                "null, " +
+                                "null, " +
+                                "null) " +
+                            " ] as Set, " +
+                            "[ 'mail1@mail.com' ] as Set," +
+                            "null)" +
+                    "] as List )";
 
         /// <summary>
         /// Reference graph: http://www.tinkerpop.com/docs/3.0.0.M1/

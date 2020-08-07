@@ -510,7 +510,7 @@ namespace Cassandra.Mapping.TypeConversion
                     return changeTypeDelegate;
                 }
                 
-                if (dbGenericType == typeof(IEnumerable<>))
+                if (pocoType.GetTypeInfo().IsArray || dbGenericType == typeof(IEnumerable<>))
                 {
                     // Its a list or a set but the child types doesn't match
                     return ConvertIEnumerableToDbTypeMethod

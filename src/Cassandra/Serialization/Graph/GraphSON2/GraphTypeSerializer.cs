@@ -54,8 +54,10 @@ namespace Cassandra.Serialization.Graph.GraphSON2
         private static readonly IReadOnlyDictionary<Type, IGraphSONSerializer> EmptySerializersDict = 
             new Dictionary<Type, IGraphSONSerializer>(0);
 
-        private static readonly IUdtGraphSONDeserializer UdtDeserializer = new UdtGraphSONDeserializer();
-        private static readonly IUdtGraphSONSerializer UdtSerializer = new UdtGraphSONSerializer();
+        private static readonly IComplexTypeGraphSONDeserializer UdtDeserializer = new UdtGraphSONDeserializer();
+        private static readonly IComplexTypeGraphSONSerializer UdtSerializer = new UdtGraphSONSerializer();
+        private static readonly IComplexTypeGraphSONDeserializer TupleDeserializer = new TupleGraphSONDeserializer();
+        private static readonly IComplexTypeGraphSONSerializer TupleSerializer = new TupleGraphSONSerializer();
 
         private readonly TypeConverter _typeConverter;
         private readonly ICustomGraphSONReader _reader;
@@ -210,6 +212,11 @@ namespace Cassandra.Serialization.Graph.GraphSON2
             {
                 return true;
             }
+            
+            if (TryConvertFromTuple(token, type, typeName, out result))
+            {
+                return true;
+            }
 
             return ConvertFromDb(_reader.ToObject(token), type, out result);
         }
@@ -345,6 +352,22 @@ namespace Cassandra.Serialization.Graph.GraphSON2
             result = null;
             return false;
         }
+        
+        private bool TryConvertFromTuple(JToken token, Type type, string typeName, out dynamic result)
+        {
+            if (typeName.Equals("dse:Tuple"))
+            {
+                result = GraphTypeSerializer.TupleDeserializer.Objectify(
+                    token[GraphSONTokens.ValueKey], 
+                    type,
+                    this,
+                    _session.InternalCluster.Metadata.ControlConnection.Serializer.GetGenericSerializer());
+                return true;
+            }
+
+            result = null;
+            return false;
+        }
 
         public bool ConvertFromDb(object obj, Type targetType, out dynamic result)
         {
@@ -422,11 +445,28 @@ namespace Cassandra.Serialization.Graph.GraphSON2
 
         public dynamic ToDict(dynamic objectData)
         {
+            if (_writer.TryToDict(objectData, out dynamic result))
+            {
+                return result;
+            }
+
+            if (GraphProtocol != GraphProtocol.GraphSON3)
+            {
+                return objectData;
+            }
+
             var genericSerializer = _session.InternalCluster.Metadata.ControlConnection.Serializer.GetGenericSerializer();
-            return GraphTypeSerializer.UdtSerializer.TryDictify(
-                objectData, this, genericSerializer, out Dictionary<string, dynamic> result) 
-                ? result 
-                : _writer.ToDict(objectData);
+            if (GraphTypeSerializer.UdtSerializer.TryDictify(objectData, this, genericSerializer, out result))
+            {
+                return result;
+            }
+
+            if (GraphTypeSerializer.TupleSerializer.TryDictify(objectData, this, genericSerializer, out result))
+            {
+                return result;
+            }
+
+            return objectData;
         }
 
         public string WriteObject(dynamic objectData)

@@ -913,6 +913,100 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                 Assert.AreEqual(dbTestUdt.Phone, testudt.Phone);
             }
         }
+        
+        [Test]
+        public void Should_Support_DeserializingUnmappedUdts()
+        {
+            using (var cluster = ClusterBuilder()
+                                 .AddContactPoint(TestClusterManager.InitialContactPoint)
+                                 .WithGraphOptions(new GraphOptions().SetName(CoreGraphTests.GraphName))
+                                 .Build())
+            {
+                var session = cluster.Connect();
+                var contacts = new List<Contact>
+                {
+                    new Contact
+                    {
+                        FirstName = "Jimmy", 
+                        LastName = "McGill", 
+                        Phones = new HashSet<Phone>
+                        {
+                            new Phone {Alias = "alias123123", Number = "21791274", PhoneType = PhoneType.Work},
+                            new Phone {Alias = "Office", Number = "123"}
+                        },
+                        Emails = new List<string> { "mail1@mail.com" }
+                    }
+                };
+
+                var rs = session.ExecuteGraph(new SimpleGraphStatement(
+                    "g.with('allow-filtering').V().hasLabel('users_contacts').has('id', 1923).properties('contacts')"));
+                var resultArray = rs.ToArray();
+                Assert.AreEqual(1, resultArray.Length);
+                var contactsDict = resultArray[0].To<IVertexProperty>().Value.To<List<IDictionary<string, GraphNode>>>();
+                var expectedContact = contacts.Single();
+                var dbC = contactsDict.Single();
+                Assert.AreEqual(expectedContact.Emails, dbC["emails"].To<IEnumerable<string>>());
+                var phones = dbC["phones"].To<IEnumerable<IDictionary<string, object>>>().ToList();
+                CollectionAssert.AreEquivalent(expectedContact.Phones.Select(p => p.Alias), phones.Select(dict => (string) dict["alias"]));
+                CollectionAssert.AreEquivalent(
+                    expectedContact.Phones.Select(p => p.PhoneType), 
+                    phones.Select(dict => dict["phone_type"] == null ? default(PhoneType) : Enum.Parse(typeof(PhoneType), (string)dict["phone_type"])));
+                CollectionAssert.AreEquivalent(expectedContact.Phones.Select(p => p.Number), phones.Select(dict => (string) dict["number"]));
+                
+                var ex = Assert.Throws<InvalidQueryException>(() => session.ExecuteGraph(new SimpleGraphStatement(
+                    "g.addV('users_contacts')" +
+                    ".property('id', 1923)" +
+                    ".property('contacts', contacts)", new { contacts })));
+
+                Assert.IsTrue(ex.Message.Contains("Wrong property type provided for property 'contacts'") 
+                              && ex.Message.Contains("Provided type 'LinkedHashMap' is not compatible with expected type 'UDTValue'"),
+                    ex.Message);
+                
+                ex = Assert.Throws<InvalidQueryException>(() => session.ExecuteGraph(new SimpleGraphStatement(
+                    "g.addV('users_contacts')" +
+                    ".property('id', 1923)" +
+                    ".property('contacts', contactsDict)", new { contactsDict })));
+
+                Assert.IsTrue(ex.Message.Contains("Wrong property type provided for property 'contacts'") 
+                              && ex.Message.Contains("Provided type 'LinkedHashMap' is not compatible with expected type 'UDTValue'"),
+                    ex.Message);
+
+            }
+        }
+        
+        [Test]
+        public void Should_Support_Tuples()
+        {
+            using (var cluster = ClusterBuilder()
+                                 .AddContactPoint(TestClusterManager.InitialContactPoint)
+                                 .WithGraphOptions(new GraphOptions().SetName(CoreGraphTests.GraphName))
+                                 .Build())
+            {
+                var session = cluster.Connect();
+                session.UserDefinedTypes.Define(
+                    UdtMap.For<Phone>(keyspace: CoreGraphTests.GraphName)
+                          .Map(c => c.PhoneType, "phone_type"));
+                var phone = new Phone { Alias = "Wat2", Number = "2414817", PhoneType = PhoneType.Home };
+                var tuple = new Tuple<Phone, int, Guid, IEnumerable<string>, IEnumerable<int>, IDictionary<string, DateTimeOffset?>>(
+                    phone,
+                    123,
+                    Guid.NewGuid(),
+                    new[] { "123", "234" },
+                    new HashSet<int> { 1, 2, 3 },
+                    new Dictionary<string, DateTimeOffset?> { { "One", DateTimeOffset.UtcNow }, { "Two", DateTimeOffset.UtcNow.AddDays(1) } });
+                session.ExecuteGraph(new SimpleGraphStatement(
+                    "g.addV('tuple_test')" +
+                    ".property('id', 1313)" +
+                    ".property('tuple_property', t)", new { t = tuple }));
+
+                var rs = session.ExecuteGraph(new SimpleGraphStatement(
+                    "g.with('allow-filtering').V().hasLabel('tuple_test').has('id', 1313).properties('tuple_property')"));
+                var resultArray = rs.ToArray();
+                Assert.AreEqual(1, resultArray.Length);
+                var dbTuple = resultArray[0].To<IVertexProperty>().Value.To<Tuple<Phone, int, Guid>>();
+                Assert.AreEqual(tuple, dbTuple);
+            }
+        }
 
         [Test]
         public void Should_Support_Collections()

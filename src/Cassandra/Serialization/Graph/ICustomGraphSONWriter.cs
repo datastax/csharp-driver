@@ -34,6 +34,6 @@ namespace Cassandra.Serialization.Graph
     /// </summary>
     internal interface ICustomGraphSONWriter
     {
-        dynamic ToDict(dynamic objectData);
+        bool TryToDict(dynamic objectData, out dynamic result);
     }
 }

@@ -24,14 +24,14 @@ using Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON;
 namespace Cassandra.Serialization.Graph.GraphSON3.Dse
 {
     /// <inheritdoc />
-    internal class UdtGraphSONSerializer : IUdtGraphSONSerializer
+    internal class UdtGraphSONSerializer : IComplexTypeGraphSONSerializer
     {
         /// <inheritdoc />
         public bool TryDictify(
             dynamic objectData,
             IGraphSONWriter serializer,
             IGenericSerializer genericSerializer,
-            out Dictionary<string, dynamic> result)
+            out dynamic result)
         {
             if (objectData == null)
             {
@@ -79,78 +79,8 @@ namespace Cassandra.Serialization.Graph.GraphSON3.Dse
 
         private Dictionary<string, dynamic> GetUdtTypeDefinition(UdtMap map, IGenericSerializer genericSerializer)
         {
-            return GetUdtTypeDefinition(new Dictionary<string, dynamic> { { "cqlType", "udt" } }, map, genericSerializer);
-        }
-
-        private Dictionary<string, dynamic> GetUdtTypeDefinition(
-            Dictionary<string, dynamic> dictionary, UdtMap map, IGenericSerializer genericSerializer)
-        {
-            dictionary.Add("keyspace", map.Keyspace);
-            dictionary.Add("name", map.IgnoreCase ? map.UdtName.ToLowerInvariant() : map.UdtName);
-            dictionary.Add("definition", map.Definition.Fields.Select(
-                c => GetDefinitionByType(
-                    new Dictionary<string, dynamic> { { "fieldName", c.Name } },
-                    genericSerializer,
-                    c.TypeCode,
-                    c.TypeInfo)));
-            return dictionary;
-        }
-
-        private Dictionary<string, dynamic> GetDefinitionByType(
-            IGenericSerializer genericSerializer, ColumnTypeCode typeCode, IColumnInfo typeInfo)
-        {
-            return GetDefinitionByType(new Dictionary<string, dynamic>(), genericSerializer, typeCode, typeInfo);
-        }
-
-        private Dictionary<string, dynamic> GetDefinitionByType(
-            Dictionary<string, dynamic> dictionary, IGenericSerializer genericSerializer, ColumnTypeCode typeCode, IColumnInfo typeInfo)
-        {
-            dictionary.Add("cqlType", typeCode.ToString().ToLower());
-
-            if (typeInfo is UdtColumnInfo udtTypeInfo)
-            {
-                var udtMap = genericSerializer.GetUdtMapByName(udtTypeInfo.Name);
-                if (udtMap == null)
-                {
-                    throw new InvalidOperationException($"Could not find UDT mapping for {udtTypeInfo.Name}");
-                }
-                return GetUdtTypeDefinition(dictionary, genericSerializer.GetUdtMapByName(udtTypeInfo.Name), genericSerializer);
-            }
-
-            if (typeInfo is TupleColumnInfo tupleColumnInfo)
-            {
-                dictionary.Add(
-                    "definition",
-                    tupleColumnInfo.Elements.Select(c => GetDefinitionByType(genericSerializer, c.TypeCode, c.TypeInfo)));
-            }
-
-            if (typeInfo is MapColumnInfo mapColumnInfo)
-            {
-                dictionary.Add(
-                    "definition",
-                    new[] {
-                        GetDefinitionByType(genericSerializer, mapColumnInfo.KeyTypeCode, mapColumnInfo.KeyTypeInfo),
-                        GetDefinitionByType(genericSerializer, mapColumnInfo.ValueTypeCode, mapColumnInfo.ValueTypeInfo)
-                    });
-            }
-
-            if (typeInfo is ListColumnInfo listColumnInfo)
-            {
-                dictionary.Add(
-                    "definition",
-                    new[] { GetDefinitionByType(
-                        genericSerializer, listColumnInfo.ValueTypeCode, listColumnInfo.ValueTypeInfo) });
-            }
-
-            if (typeInfo is SetColumnInfo setColumnInfo)
-            {
-                dictionary.Add(
-                    "definition",
-                    new[] { GetDefinitionByType(
-                        genericSerializer, setColumnInfo.KeyTypeCode, setColumnInfo.KeyTypeInfo) });
-            }
-
-            return dictionary;
+            return ComplexTypeDefinitionHelper.GetUdtTypeDefinition(
+                new Dictionary<string, dynamic>(), map, genericSerializer);
         }
     }
 }

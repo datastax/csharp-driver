@@ -25,7 +25,7 @@ using Newtonsoft.Json.Linq;
 namespace Cassandra.Serialization.Graph.GraphSON3.Dse
 {
     /// <inheritdoc />
-    internal class UdtGraphSONDeserializer : IUdtGraphSONDeserializer
+    internal class UdtGraphSONDeserializer : IComplexTypeGraphSONDeserializer
     {
         /// <inheritdoc />
         public dynamic Objectify(
