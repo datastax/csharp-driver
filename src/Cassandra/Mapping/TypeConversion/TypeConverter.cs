@@ -82,7 +82,10 @@ namespace Cassandra.Mapping.TypeConversion
 
         private static readonly MethodInfo ConvertIEnumerableToDbTypeMethod = typeof(TypeConverter)
             .GetTypeInfo().GetMethod(nameof(ConvertIEnumerableToDbType), PrivateInstance);
-
+        
+        private static readonly MethodInfo ConvertIEnumerableToSetDbMethod = typeof(TypeConverter)
+            .GetTypeInfo().GetMethod(nameof(ConvertIEnumerableToSetDb), PrivateInstance);
+        
         private static readonly MethodInfo ConvertIDictionaryToDbTypeMethod = typeof(TypeConverter)
             .GetTypeInfo().GetMethod(nameof(ConvertIDictionaryToDbType), PrivateInstance);
 
@@ -494,18 +497,22 @@ namespace Cassandra.Mapping.TypeConversion
             {
                 Type dbGenericType = dbType.GetTypeInfo().GetGenericTypeDefinition();
                 Type[] dbTypeGenericArgs = dbType.GetTypeInfo().GetGenericArguments();
+                Type[] pocoTypeGenericArgs = null;
+                
                 if (pocoType.GetTypeInfo().IsArray)
                 {
-                    // Its an array, convert each element
-                    return ConvertIEnumerableToDbTypeMethod
-                        .MakeGenericMethod(pocoType.GetTypeInfo().GetElementType(), dbTypeGenericArgs[0])
-                        .CreateDelegateLocal(this);
+                    pocoTypeGenericArgs = new [] { pocoType.GetTypeInfo().GetElementType() };
                 }
-                if (!pocoType.GetTypeInfo().IsGenericType || dbType.GetTypeInfo().IsAssignableFrom(pocoType))
+                else if (pocoType.GetTypeInfo().IsGenericType)
+                {
+                    pocoTypeGenericArgs = pocoType.GetTypeInfo().GetGenericArguments();
+                }
+
+                if (pocoTypeGenericArgs == null || dbType.GetTypeInfo().IsAssignableFrom(pocoType))
                 {
                     return null;
                 }
-                Type[] pocoTypeGenericArgs = pocoType.GetTypeInfo().GetGenericArguments();
+                
                 if (dbGenericType == typeof(IEnumerable<>))
                 {
                     // Its a list or a set but the child types doesn't match
@@ -517,6 +524,16 @@ namespace Cassandra.Mapping.TypeConversion
                     return ConvertIDictionaryToDbTypeMethod
                         .MakeGenericMethod(pocoTypeGenericArgs[0], pocoTypeGenericArgs[1], dbTypeGenericArgs[0],
                             dbTypeGenericArgs[1]).CreateDelegateLocal(this);
+                }
+                if (dbGenericType == typeof(ISet<>))
+                {
+                    if (pocoTypeGenericArgs[0] == dbTypeGenericArgs[0])
+                    {
+                        return ConvertToHashSetMethod
+                               .MakeGenericMethod(pocoTypeGenericArgs).CreateDelegateLocal();
+                    }
+                    return ConvertIEnumerableToSetDbMethod
+                           .MakeGenericMethod(pocoTypeGenericArgs[0], dbTypeGenericArgs[0]).CreateDelegateLocal(this);
                 }
             }
 
@@ -547,7 +564,7 @@ namespace Cassandra.Mapping.TypeConversion
 
             return ChangeType;
         }
-
+        
         private IEnumerable<TResult> ConvertIEnumerableToDbType<TSource, TResult>(IEnumerable<TSource> items)
         {
             return items?.Select(TryFindToDbConverter<TSource, TResult>());
@@ -631,6 +648,16 @@ namespace Cassandra.Mapping.TypeConversion
             }
 
             return new HashSet<TResult>(setFromDatabase.Select(TryGetFromDbConverter<TSource, TResult>()));
+        }
+        
+        private HashSet<TResult> ConvertIEnumerableToSetDb<TSource, TResult>(IEnumerable<TSource> set)
+        {
+            if (set == null)
+            {
+                return null;
+            }
+
+            return new HashSet<TResult>(set.Select(TryFindToDbConverter<TSource, TResult>()));
         }
 
         private static SortedSet<T> ConvertToSortedSet<T>(IEnumerable<T> set)

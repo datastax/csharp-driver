@@ -60,6 +60,11 @@ namespace Cassandra.Serialization
             return _serializer.GetClrType(typeCode, typeInfo);
         }
 
+        public Type GetClrTypeForGraph(ColumnTypeCode typeCode, IColumnInfo typeInfo)
+        {
+            return _serializer.GetClrTypeForGraph(typeCode, typeInfo);
+        }
+
         public Type GetClrTypeForCustom(IColumnInfo typeInfo)
         {
             return _serializer.GetClrTypeForCustom(typeInfo);

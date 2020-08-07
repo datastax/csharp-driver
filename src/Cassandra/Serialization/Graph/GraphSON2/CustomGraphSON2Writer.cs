@@ -104,17 +104,7 @@ namespace Cassandra.Serialization.Graph.GraphSON2
         protected IReadOnlyDictionary<Type, IGraphSONSerializer> Serializers { get; }
         
         protected IGraphSONWriter Writer { get; }
-
-        /// <summary>
-        ///     Serializes an object to GraphSON.
-        /// </summary>
-        /// <param name="objectData">The object to serialize.</param>
-        /// <returns>The serialized GraphSON.</returns>
-        public string WriteObject(dynamic objectData)
-        {
-            return JsonConvert.SerializeObject(ToDict(objectData), GraphSONNode.GraphSONSerializerSettings);
-        }
-
+        
         /// <summary>
         ///     Transforms an object into its GraphSON representation including type information.
         /// </summary>
@@ -122,6 +112,11 @@ namespace Cassandra.Serialization.Graph.GraphSON2
         /// <returns>A GraphSON representation of the object ready to be serialized.</returns>
         public dynamic ToDict(dynamic objectData)
         {
+            if (objectData == null)
+            {
+                return null;
+            }
+
             if (objectData is IGraphNode graphNode)
             {
                 if (!(graphNode is GraphNode concreteGraphNode))

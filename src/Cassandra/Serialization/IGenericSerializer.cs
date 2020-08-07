@@ -29,6 +29,8 @@ namespace Cassandra.Serialization
 
         Type GetClrType(ColumnTypeCode typeCode, IColumnInfo typeInfo);
 
+        Type GetClrTypeForGraph(ColumnTypeCode typeCode, IColumnInfo typeInfo);
+
         Type GetClrTypeForCustom(IColumnInfo typeInfo);
 
         ColumnTypeCode GetCqlType(Type type, out IColumnInfo typeInfo);

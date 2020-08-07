@@ -823,9 +823,9 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                 CollectionAssert.AreEquivalent(expectedMap, node.To<Dictionary<int, int>>());
             }
         }
-
+        
         [Test]
-        public void Should_Support_Udt_Deserialization()
+        public void Should_Support_Udts()
         {
             using (var cluster = ClusterBuilder()
                                  .AddContactPoint(TestClusterManager.InitialContactPoint)
@@ -833,58 +833,35 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                                  .Build())
             {
                 var session = cluster.Connect();
-                session.ExecuteGraph(new SimpleGraphStatement(
-                    "g.addV('users_contacts')" +
-                    ".property('id', 301)" +
-                    ".property('contacts', " +
-                    "[ typeOf('contact').create(" +
-                    "'Vincent', " +
-                    "'Vega', " +
-                    "null, " +
-                    "[ " +
-                    "typeOf('phone').create(" +
-                        "'Wat', " +
-                        "'0000000000121220000', " +
-                        "null, " +
-                        "null, " +
-                        "null)," +
-                    "typeOf('phone').create(" +
-                        "'Office', " +
-                        "'123', " +
-                        "null, " +
-                        "null, " +
-                        "null) " +
-                    " ] as Set, " +
-                    "null," +
-                    "null)" +
-                    "] as List )"));
                 session.UserDefinedTypes.Define(
-                    UdtMap.For<Phone>(keyspace: CoreGraphTests.GraphName),
+                    UdtMap.For<Phone>(keyspace: CoreGraphTests.GraphName)
+                          .Map(c => c.PhoneType, "phone_type"),
                     UdtMap.For<Contact>(keyspace: CoreGraphTests.GraphName)
                           .Map(c => c.FirstName, "first_name")
                           .Map(c => c.LastName, "last_name")
                           .Map(c => c.Birth, "birth_date")
                 );
-
-
-                //All of the fields null
                 var contacts = new List<Contact>
                 {
                     new Contact
                     {
-                        FirstName = "Vincent", 
-                        LastName = "Vega", 
+                        FirstName = "Walter", 
+                        LastName = "White", 
                         Phones = new HashSet<Phone>
                         {
-                            new Phone {Alias = "Wat", Number = "0000000000121220000"},
-                            new Phone {Alias = "Office", Number = "123"}
+                            new Phone {Alias = "Wat2", Number = "2414817", PhoneType = PhoneType.Mobile},
+                            new Phone {Alias = "Office", Number = "999"}
                         },
                         Emails = new List<string>()
                     }
                 };
-
+                session.ExecuteGraph(new SimpleGraphStatement(
+                    "g.addV('users_contacts')" +
+                    ".property('id', 305)" +
+                    ".property('contacts', contacts)", new { contacts }));
+                
                 var rs = session.ExecuteGraph(new SimpleGraphStatement(
-                    "g.with('allow-filtering').V().hasLabel('users_contacts').has('id', 301).properties('contacts')"));
+                    "g.with('allow-filtering').V().hasLabel('users_contacts').has('id', 305).properties('contacts')"));
                 var resultArray = rs.ToArray();
                 Assert.AreEqual(1, resultArray.Length);
                 var queriedContacts = resultArray[0].To<IVertexProperty>().Value.To<List<Contact>>();
@@ -902,124 +879,38 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
         }
         
         [Test]
-        public void Should_Support_Udt_Serialization()
+        public void Should_Support_InnerUdt()
         {
-            var phone1 = new Phone
-            {
-                Alias = "alias 1",
-                CountryCode = 21,
-                Number = "231941",
-                PhoneType = PhoneType.Home,
-                VerifiedAt = DateTime.UtcNow
-            };
-            
-            var phone2 = new Phone2
-            {
-                Alias = "alias 2",
-                CountryCode = 23,
-                Number = "93131",
-                PhoneType = PhoneType.Mobile,
-                VerifiedAt = DateTime.UtcNow
-            };
-
-            var contact = new Contact
-            {
-                Birth = DateTimeOffset.UtcNow,
-                Emails = new [] { "mail@mail.com", "mail2@mail.com" },
-                FirstName = "First Name",
-                LastName = "Last Name",
-                NullableLong = 10,
-                //Phones = new [] { phone1, phone2 }
-            };
-
             using (var cluster = ClusterBuilder()
                                  .AddContactPoint(TestClusterManager.InitialContactPoint)
                                  .WithGraphOptions(new GraphOptions().SetName(CoreGraphTests.GraphName))
                                  .Build())
             {
                 var session = cluster.Connect();
-                //session.ExecuteGraph(new SimpleGraphStatement(
-                //    "g.addV('users_contacts')" +
-                //        ".property('id', 123)" +
-                //        ".property('contacts', " +
-                //            "[ typeOf('contact').create(" +
-                //                "'First Name', " +
-                //                "'Last Name', " +
-                //                "'2020-01-29T10:00:00Z' as Instant , " +
-                //                "[ typeOf('phone').create(" +
-                //                        "'alias 2', " +
-                //                        "'93131', " +
-                //                        "23, " +
-                //                        "'2020-01-30T10:00:00Z' as Instant, " +
-                //                        "'Home') ] as Set, " +
-                //                "[ 'mail1@mail.com', 'mail2@mail.com' ] as Set," +
-                //                "10L)" +
-                //            "] as List )"));
                 session.ExecuteGraph(new SimpleGraphStatement(
-                    "g.addV('users_contacts')" +
-                    ".property('id', 301)" +
-                    ".property('contacts', " +
-                    "[ typeOf('contact').create(" +
-                    "'Vincent', " +
-                    "'Vega', " +
-                    "null, " +
-                    "[ " +
-                    "typeOf('phone').create(" +
-                        "'Wat', " +
-                        "'0000000000121220000', " +
-                        "null, " +
-                        "null, " +
-                        "null)," +
-                    "typeOf('phone').create(" +
-                        "'Office', " +
-                        "'123', " +
-                        "null, " +
-                        "null, " +
-                        "null) " +
-                    " ] as Set, " +
-                    "null," +
-                    "null)" +
-                    "] as List )"));
+                    "schema.type('testudt').property('name', Text).property('nullable_int', Int).property('phone', frozen(typeOf('phone'))).create()"));
                 session.UserDefinedTypes.Define(
-                    UdtMap.For<Phone>(keyspace: CoreGraphTests.GraphName),
-                    UdtMap.For<Contact>(keyspace: CoreGraphTests.GraphName)
-                          .Map(c => c.FirstName, "first_name")
-                          .Map(c => c.LastName, "last_name")
-                          .Map(c => c.Birth, "birth_date")
-                );
-
-
-                //All of the fields null
-                var contacts = new List<Contact>
-                {
-                    new Contact
-                    {
-                        FirstName = "Vincent", 
-                        LastName = "Vega", 
-                        Phones = new HashSet<Phone>
-                        {
-                            new Phone {Alias = "Wat", Number = "0000000000121220000"},
-                            new Phone {Alias = "Office", Number = "123"}
-                        },
-                        Emails = new List<string>()
-                    }
-                };
-
+                    UdtMap.For<TestUdt>(keyspace: CoreGraphTests.GraphName)
+                          .Map(c => c.Name, "name")
+                          .Map(c => c.NullableInt, "nullable_int")
+                          .Map(c => c.Phone, "phone"),
+                    UdtMap.For<Phone>(keyspace: CoreGraphTests.GraphName));
+                var testudt = new TestUdt { NullableInt = 1, Name = "123", Phone = new Phone { Alias = "123" }};
+                session.ExecuteGraph(new SimpleGraphStatement(
+                    "schema.vertexLabel('test_udts').partitionBy('id', Int).property('test_udt', typeOf('testudt')).create()"));
+                session.ExecuteGraph(new SimpleGraphStatement(
+                    "g.addV('test_udts')" +
+                    ".property('id', 305)" +
+                    ".property('test_udt', testudtparam)", new { testudtparam = testudt }));
+                
                 var rs = session.ExecuteGraph(new SimpleGraphStatement(
-                    "g.with('allow-filtering').V().hasLabel('users_contacts').has('id', 301).properties('contacts')"));
+                    "g.with('allow-filtering').V().hasLabel('test_udts').has('id', 305).properties('test_udt')"));
                 var resultArray = rs.ToArray();
                 Assert.AreEqual(1, resultArray.Length);
-                var queriedContacts = resultArray[0].To<IVertexProperty>().Value.To<List<Contact>>();
-                Assert.AreEqual(contacts, queriedContacts);
-                var queriedContactObjects = resultArray[0].To<IVertexProperty>().Value.To<List<dynamic>>().Select(o => (Contact)o);
-                Assert.AreEqual(contacts, queriedContactObjects);
-                var contactsDict = resultArray[0].To<IVertexProperty>().Value.To<List<IDictionary<string, GraphNode>>>();
-                var expectedContact = contacts.Single();
-                var dbC = contactsDict.Single();
-                Assert.AreEqual(expectedContact.Emails, dbC["emails"].To<IEnumerable<string>>());
-                CollectionAssert.AreEquivalent(expectedContact.Phones, dbC["phones"].To<IEnumerable<Phone>>());
-                CollectionAssert.AreEquivalent(expectedContact.Phones, dbC["phones"].To<IEnumerable<GraphNode>>().Select(g => g.To<Phone>()));
-                CollectionAssert.AreEquivalent(expectedContact.Phones.Select(p => p.Alias), dbC["phones"].To<IEnumerable<IDictionary<string, object>>>().Select(dict => (string) dict["alias"]));
+                var dbTestUdt = resultArray[0].To<IVertexProperty>().Value.To<TestUdt>();
+                Assert.AreEqual(dbTestUdt.NullableInt, testudt.NullableInt);
+                Assert.AreEqual(dbTestUdt.Name, testudt.Name);
+                Assert.AreEqual(dbTestUdt.Phone, testudt.Phone);
             }
         }
 
@@ -1436,6 +1327,15 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                     propertiesByName.Key,
                     propertiesByName.Value.Get<GraphNode>("@value"));
             }
+        }
+
+        private class TestUdt
+        {
+            public string Name { get; set; }
+
+            public int? NullableInt { get; set; }
+
+            public Phone Phone { get; set; }
         }
     }
 }

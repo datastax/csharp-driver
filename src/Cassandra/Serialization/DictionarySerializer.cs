@@ -59,6 +59,15 @@ namespace Cassandra.Serialization
             return openType.MakeGenericType(keyType, valueType);
         }
 
+        internal Type GetClrTypeForGraph(IColumnInfo typeInfo)
+        {
+            var mapTypeInfo = (MapColumnInfo)typeInfo;
+            var keyType = GetClrTypeForGraph(mapTypeInfo.KeyTypeCode, mapTypeInfo.KeyTypeInfo);
+            var valueType = GetClrTypeForGraph(mapTypeInfo.ValueTypeCode, mapTypeInfo.ValueTypeInfo);
+            var openType = typeof(IDictionary<,>);
+            return openType.MakeGenericType(keyType, valueType);
+        }
+
         public override byte[] Serialize(ushort protocolVersion, IDictionary value)
         {
             var bufferList = new LinkedList<byte[]>();
