@@ -17,13 +17,7 @@
 using System;
 using System.IO;
 
-#if NETFRAMEWORK
-using LZ4;
-#endif
-
-#if NETSTANDARD2_0
 using K4os.Compression.LZ4;
-#endif
 
 namespace Cassandra.Compression
 {
