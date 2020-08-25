@@ -205,7 +205,9 @@ def buildDriver() {
       sh label: 'Build the driver for mono', script: '''#!/bin/bash -le
         export BuildMonoOnly=True
         export RunCodeAnalyzers=False
+        export MSBuildSDKsPath=/opt/dotnet/sdk/$(dotnet --version)/Sdks
         msbuild /t:restore /v:m src/Cassandra.sln
+        msbuild /p:Configuration=Release /v:m /p:DynamicConstants=LINUX src/Cassandra.sln || true
         msbuild /p:Configuration=Release /v:m /p:DynamicConstants=LINUX src/Cassandra.sln
       '''
     } else {
