@@ -1,12 +1,12 @@
-﻿// 
+﻿//
 //       Copyright (C) DataStax Inc.
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //       http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,13 +16,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using Cassandra.DataStax.Graph;
 using Cassandra.DataStax.Graph.Internal;
 using Cassandra.Serialization.Graph.GraphSON2.Dse;
 using Cassandra.Serialization.Graph.GraphSON2.Structure;
 using Cassandra.Serialization.Graph.GraphSON2.Tinkerpop;
-using Cassandra.Serialization.Graph.GraphSON3.Dse;
+using Cassandra.Serialization.Graph.GraphSON3.Tinkerpop;
 using Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON;
+
 using Newtonsoft.Json.Linq;
 
 namespace Cassandra.Serialization.Graph.GraphSON2
@@ -54,7 +56,7 @@ namespace Cassandra.Serialization.Graph.GraphSON2
             {
                 // custom deserializers for tinkerpop types that are mapped to CQL types in DataStax Graph
                 { Duration2Serializer.TypeName, new Duration2Serializer() },
-                { InstantSerializer.TypeName, new InstantSerializer() },
+                { TimestampSerializer.TypeName, new TimestampSerializer() },
                 { LocalTimeSerializer.TypeName, new LocalTimeSerializer() },
                 { LocalDateSerializer.TypeName, new LocalDateSerializer() },
                 { InetAddressSerializer.TypeName, new InetAddressSerializer() },
@@ -62,10 +64,8 @@ namespace Cassandra.Serialization.Graph.GraphSON2
                 { LineStringSerializer.TypeName, new LineStringSerializer() },
                 { PointSerializer.TypeName, new PointSerializer() },
                 { PolygonSerializer.TypeName, new PolygonSerializer() },
-                
-                // custom deserializers for standard tinkerpop types with wrappers
-                // because C# types already being used in other deserializers
-                // the wrapper allows a 1 to 1 map between deserializer type and serializer type
+
+                // custom deserializers for standard tinkerpop types
                 { ByteBufferDeserializer.TypeName, new ByteBufferDeserializer() },
                 { TinkerpopDateDeserializer.TypeName, new TinkerpopDateDeserializer() },
                 { TinkerpopTimestampDeserializer.TypeName, new TinkerpopTimestampDeserializer() },
@@ -84,7 +84,7 @@ namespace Cassandra.Serialization.Graph.GraphSON2
                 dictionary[kv.Key] = kv.Value;
             }
         }
-        
+
         protected static void AddGraphSON2StructureDeserializers(IDictionary<string, IGraphSONStructureDeserializer> dictionary)
         {
             foreach (var kv in CustomGraphSON2Reader.CustomGraphSON2SpecificStructureDeserializers)
@@ -94,14 +94,14 @@ namespace Cassandra.Serialization.Graph.GraphSON2
         }
 
         public CustomGraphSON2Reader(
-            Func<JToken, GraphNode> graphNodeFactory, 
-            IReadOnlyDictionary<string, IGraphSONDeserializer> customDeserializers, 
-            IGraphSONReader reader) 
+            Func<JToken, GraphNode> graphNodeFactory,
+            IReadOnlyDictionary<string, IGraphSONDeserializer> customDeserializers,
+            IGraphSONReader reader)
             : this(
-                CustomGraphSON2Reader.DefaultDeserializers, 
-                CustomGraphSON2Reader.StructureDeserializers, 
-                graphNodeFactory, 
-                customDeserializers, 
+                CustomGraphSON2Reader.DefaultDeserializers,
+                CustomGraphSON2Reader.StructureDeserializers,
+                graphNodeFactory,
+                customDeserializers,
                 reader)
         {
         }
@@ -122,7 +122,7 @@ namespace Cassandra.Serialization.Graph.GraphSON2
 
         private static Dictionary<string, IGraphSONDeserializer> DefaultDeserializers { get; } =
             new EmptyGraphSON2Reader().GetDeserializers();
-        
+
         private static Dictionary<string, IGraphSONStructureDeserializer> StructureDeserializers { get; } =
             new Dictionary<string, IGraphSONStructureDeserializer>();
 

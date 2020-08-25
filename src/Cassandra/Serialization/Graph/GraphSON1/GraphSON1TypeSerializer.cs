@@ -25,7 +25,7 @@ namespace Cassandra.Serialization.Graph.GraphSON1
         private static readonly Func<Row, GraphNode> RowParser = 
             row => new GraphNode(new GraphSON1Node(row.GetValue<string>("gremlin"), false));
 
-        public bool DeserializeGraphNodes => true;
+        public bool DefaultDeserializeGraphNodes => true;
 
         public GraphProtocol GraphProtocol => GraphProtocol.GraphSON1;
 
@@ -40,6 +40,11 @@ namespace Cassandra.Serialization.Graph.GraphSON1
             throw new InvalidOperationException("Not supported.");
         }
 
+        public object FromDb(JToken token, Type type, bool deserializeGraphNodes)
+        {
+            throw new InvalidOperationException("Not supported.");
+        }
+
         public T FromDb<T>(JToken token)
         {
             throw new InvalidOperationException("Not supported.");
@@ -48,6 +53,11 @@ namespace Cassandra.Serialization.Graph.GraphSON1
         public string ToDb(object obj)
         {
             return JsonConvert.SerializeObject(obj, GraphSON1ContractResolver.Settings);
+        }
+
+        public bool ConvertFromDb(object obj, Type targetType, out dynamic result)
+        {
+            throw new InvalidOperationException("Not supported.");
         }
     }
 }

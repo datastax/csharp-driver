@@ -20,6 +20,7 @@ using Cassandra.DataStax.Graph.Internal;
 using Cassandra.Serialization.Graph.GraphSON2;
 using Cassandra.Serialization.Graph.GraphSON3.Dse;
 using Cassandra.Serialization.Graph.GraphSON3.Structure;
+using Cassandra.Serialization.Graph.GraphSON3.Tinkerpop;
 using Newtonsoft.Json.Linq;
 
 namespace Cassandra.Serialization.Graph.GraphSON3

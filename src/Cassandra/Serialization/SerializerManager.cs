@@ -65,5 +65,10 @@ namespace Cassandra.Serialization
         {
             _genericSerializer.SetUdtMap(name, map);
         }
+
+        public IGenericSerializer GetGenericSerializer()
+        {
+            return _genericSerializer;
+        }
     }
 }

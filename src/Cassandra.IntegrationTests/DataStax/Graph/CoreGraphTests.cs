@@ -25,17 +25,15 @@ using System.Net;
 using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
+
 using Cassandra.DataStax.Graph;
 using Cassandra.Geometry;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
-using Cassandra.Mapping.TypeConversion;
-using Cassandra.Serialization.Graph;
-using Cassandra.Serialization.Graph.GraphSON2;
+using Cassandra.IntegrationTests.TestDataTypes;
 using Cassandra.Tests;
 using Cassandra.Tests.TestHelpers;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.DataStax.Graph
@@ -49,11 +47,11 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
         private int _idGenerator;
         private ICluster _cluster;
         private ISession _session;
-        
+
         [OneTimeSetUp]
         public void OneTimeSetUp()
         {
-            TestClusterManager.CreateNew(1, new TestClusterOptions {Workloads = new[] {"graph"}});
+            TestClusterManager.CreateNew(1, new TestClusterOptions { Workloads = new[] { "graph" } });
             CreateCoreGraph(TestClusterManager.InitialContactPoint, CoreGraphTests.GraphName);
             _cluster = ClusterBuilder()
                                     .AddContactPoint(TestClusterManager.InitialContactPoint)
@@ -74,9 +72,9 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
         {
             TestUtils.VerifyCurrentClusterWorkloads(TestClusterManager.CheckDseVersion(Version.Parse("5.1"), Comparison.GreaterThanOrEqualsTo)
                 ? new[] { "Cassandra", "Graph" }
-                : new[] { "Cassandra"});
+                : new[] { "Cassandra" });
         }
-        
+
         [Test]
         public void Should_Retrieve_Graph_Vertices()
         {
@@ -142,7 +140,7 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                 FillVertexProperties(session, starWarsVertex);
                 Assert.AreEqual("Star Wars", starWarsVertex.GetProperty("title").Value.ToString());
                 var tags = starWarsVertex.GetProperties("tags").SelectMany(p => p.Value.To<IEnumerable<string>>());
-                var expectedTags = new List<string>() {"science-fiction", "adventure"};
+                var expectedTags = new List<string>() { "science-fiction", "adventure" };
                 CollectionAssert.AreEquivalent(expectedTags, tags);
             }
         }
@@ -224,26 +222,25 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                     "m.citizenship.each { c -> " +
                     "  Vertex country1 = g.addV('country').property('country_name', c).next();" +
                     "  g.addE('had_citizenship').from(scientist1).to(country1).next();" +
-                    "};", new {m = new {name, year_born = year, citizenship, field}}));
-
+                    "};", new { m = new { name, year_born = year, citizenship, field } }));
 
                 var rs = session.ExecuteGraph(
-                    new SimpleGraphStatement("g.V().hasLabel('scientist').has('scientist_name', name)", new {name}));
+                    new SimpleGraphStatement("g.V().hasLabel('scientist').has('scientist_name', name)", new { name }));
                 Vertex einstein = rs.FirstOrDefault();
                 Assert.NotNull(einstein);
                 Assert.AreEqual("scientist", einstein.Label);
                 FillVertexProperties(session, einstein);
                 // Vertices contain an array of values per each property
-                Assert.AreEqual(new[] {true, true, true},
-                                new[] {"scientist_name", "year_born", "field"}.Select(propName => 
-                                    einstein.Properties[propName].IsArray));
+                Assert.AreEqual(new[] { true, true, true },
+                                new[] { "scientist_name", "year_born", "field" }.Select(propName =>
+                                      einstein.Properties[propName].IsArray));
                 Assert.AreEqual(name, einstein.GetProperty("scientist_name").Value.ToString());
                 Assert.AreEqual(year, einstein.GetProperty("year_born").Value.To<int>());
                 Assert.AreEqual(field, einstein.GetProperty("field").Value.ToString());
 
                 var citizenships = session.ExecuteGraph(new SimpleGraphStatement(
                     "g.V().hasLabel('scientist').has('scientist_name', name)" +
-                    ".outE('had_citizenship').inV().values('country_name')", new {name}));
+                    ".outE('had_citizenship').inV().values('country_name')", new { name }));
                 var citizenshipArray = citizenships.ToArray();
                 Assert.AreEqual(citizenship.Length, citizenshipArray.Length);
 
@@ -251,7 +248,6 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                 {
                     Assert.True(citizenship.Contains(countryName.ToString()));
                 }
-
             }
         }
 
@@ -320,7 +316,7 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                 Assert.NotNull(byIdMarkoVertex);
                 Assert.AreEqual(markoVertex.Id, byIdMarkoVertex.Id);
                 Assert.AreEqual(markoVertex.Label, byIdMarkoVertex.Label);
-                
+
                 Assert.AreEqual(0, byIdMarkoVertex.GetProperties().Count());
                 Assert.AreEqual(0, markoVertex.GetProperties().Count());
 
@@ -358,7 +354,7 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                 Assert.NotNull(byIdMarkoEdge);
                 Assert.AreEqual(markoKnowsVadasEdge.Id, byIdMarkoEdge.Id);
                 Assert.AreEqual(markoKnowsVadasEdge.Label, byIdMarkoEdge.Label);
-                
+
                 Assert.AreEqual(0, markoKnowsVadasEdge.GetProperties().Count());
                 Assert.AreEqual(0, byIdMarkoEdge.GetProperties().Count());
 
@@ -434,14 +430,14 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                     Assert.AreEqual("knows", knows.Label);
                     Assert.AreEqual("person", knows.OutVLabel);
                     Assert.AreEqual("person", knows.InVLabel);
-                    
+
                     // DSE only with GraphSON1 provides properties by default
                     FillVertexProperties(session, marko);
                     FillVertexProperties(session, josh);
                     FillVertexProperties(session, software);
                     FillEdgeProperties(session, created);
                     FillEdgeProperties(session, knows);
-                    
+
                     Assert.AreEqual("marko", marko.GetProperty("name").Value.To<string>());
                     Assert.AreEqual(29, marko.GetProperty("age").Value.To<int>());
                     Assert.AreEqual("josh", josh.GetProperty("name").Value.To<string>());
@@ -587,14 +583,14 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                 }
             }
         }
-        
+
         public static IEnumerable Should_Support_Types_TestCases
         {
             get
             {
-                Func<object,string> durationToString = o => ((Duration) o).ToIsoString();
-                Func<object, string> doubleToString = o => ((double) o).ToString(CultureInfo.InvariantCulture);
-                Func<object, string> floatToString = o => ((float) o).ToString(CultureInfo.InvariantCulture);
+                Func<object, string> durationToString = o => ((Duration)o).ToIsoString();
+                Func<object, string> doubleToString = o => ((double)o).ToString(CultureInfo.InvariantCulture);
+                Func<object, string> floatToString = o => ((float)o).ToString(CultureInfo.InvariantCulture);
                 return new[]
                 {
                     new TestCaseData("Boolean", true, "True", null, null),
@@ -619,14 +615,14 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                     new TestCaseData("Text", "The quick brown fox jumps over the lazy dog", "The quick brown fox jumps over the lazy dog", null, null)
                 };
             }
-        }  
+        }
 
         [TestCaseSource(typeof(CoreGraphTests), nameof(CoreGraphTests.Should_Support_Types_TestCases))]
         public void Should_Support_Types
-            (string type, 
-             object value, 
-             string expectedString, 
-             Func<object,string> toStringFunc, 
+            (string type,
+             object value,
+             string expectedString,
+             Func<object, string> toStringFunc,
              object expectedValue)
         {
             var id = _idGenerator++;
@@ -637,7 +633,7 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
 
         private IVertex IncludeAndQueryVertex(
             string vertexLabel, string propertyName, string type, object value,
-            string expectedString, Func<object, string> toStringFunc, bool verifyToString = true, 
+            string expectedString, Func<object, string> toStringFunc, bool verifyToString = true,
             object expectedValue = null)
         {
             toStringFunc = toStringFunc ?? (o => o.ToString());
@@ -651,9 +647,9 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
 
                 var schemaQuery = $"schema.vertexLabel(vertexLabel).partitionBy('pk', UUID).property(propertyName, {type}).create();";
 
-                session.ExecuteGraph(new SimpleGraphStatement(schemaQuery, new {vertexLabel, propertyName }));
+                session.ExecuteGraph(new SimpleGraphStatement(schemaQuery, new { vertexLabel, propertyName }));
 
-                var parameters = new {vertexLabel, propertyName, val = value, pk = Guid.NewGuid() };
+                var parameters = new { vertexLabel, propertyName, val = value, pk = Guid.NewGuid() };
                 session.ExecuteGraph(new SimpleGraphStatement("g.addV(vertexLabel).property('pk', pk).property(propertyName, val)", parameters));
 
                 var rs =
@@ -741,7 +737,7 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
             var timestamp = DateTimeOffset.Parse("2016-02-04T02:26:31.657Z");
             TestInsertSelectProperty(type, timestamp, false);
         }
-        
+
         [Test]
         public void Should_Support_Blob()
         {
@@ -749,7 +745,7 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
             var buf = new byte[] { 3, 5 };
             TestInsertSelectProperty(type, buf, false);
         }
-        
+
         [Test, TestDseVersion(5, 1)]
         public void Should_Support_Date()
         {
@@ -821,10 +817,201 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                 CollectionAssert.AreEquivalent(expectedList, node.To<List<int>>());
                 CollectionAssert.AreEquivalent(expectedList, node.To<IReadOnlyCollection<int>>());
                 CollectionAssert.AreEquivalent(expectedList, node.To<IReadOnlyList<int>>());
-                
+
                 CollectionAssert.AreEquivalent(expectedMap, node.To<IDictionary<int, int>>());
                 CollectionAssert.AreEquivalent(expectedMap, node.To<IReadOnlyDictionary<int, int>>());
                 CollectionAssert.AreEquivalent(expectedMap, node.To<Dictionary<int, int>>());
+            }
+        }
+        
+        [Test]
+        public void Should_Support_Udts()
+        {
+            using (var cluster = ClusterBuilder()
+                                 .AddContactPoint(TestClusterManager.InitialContactPoint)
+                                 .WithGraphOptions(new GraphOptions().SetName(CoreGraphTests.GraphName))
+                                 .Build())
+            {
+                var session = cluster.Connect();
+                session.UserDefinedTypes.Define(
+                    UdtMap.For<Phone>(keyspace: CoreGraphTests.GraphName)
+                          .Map(c => c.PhoneType, "phone_type"),
+                    UdtMap.For<Contact>(keyspace: CoreGraphTests.GraphName)
+                          .Map(c => c.FirstName, "first_name")
+                          .Map(c => c.LastName, "last_name")
+                          .Map(c => c.Birth, "birth_date")
+                );
+                var contacts = new List<Contact>
+                {
+                    new Contact
+                    {
+                        FirstName = "Walter", 
+                        LastName = "White", 
+                        Phones = new HashSet<Phone>
+                        {
+                            new Phone {Alias = "Wat2", Number = "2414817", PhoneType = PhoneType.Mobile},
+                            new Phone {Alias = "Office", Number = "999"}
+                        },
+                        Emails = new List<string>()
+                    }
+                };
+                session.ExecuteGraph(new SimpleGraphStatement(
+                    "g.addV('users_contacts')" +
+                    ".property('id', 305)" +
+                    ".property('contacts', contacts)", new { contacts }));
+                
+                var rs = session.ExecuteGraph(new SimpleGraphStatement(
+                    "g.with('allow-filtering').V().hasLabel('users_contacts').has('id', 305).properties('contacts')"));
+                var resultArray = rs.ToArray();
+                Assert.AreEqual(1, resultArray.Length);
+                var queriedContacts = resultArray[0].To<IVertexProperty>().Value.To<List<Contact>>();
+                Assert.AreEqual(contacts, queriedContacts);
+                var queriedContactObjects = resultArray[0].To<IVertexProperty>().Value.To<List<dynamic>>().Select(o => (Contact)o);
+                Assert.AreEqual(contacts, queriedContactObjects);
+                var contactsDict = resultArray[0].To<IVertexProperty>().Value.To<List<IDictionary<string, GraphNode>>>();
+                var expectedContact = contacts.Single();
+                var dbC = contactsDict.Single();
+                Assert.AreEqual(expectedContact.Emails, dbC["emails"].To<IEnumerable<string>>());
+                CollectionAssert.AreEquivalent(expectedContact.Phones, dbC["phones"].To<IEnumerable<Phone>>());
+                CollectionAssert.AreEquivalent(expectedContact.Phones, dbC["phones"].To<IEnumerable<GraphNode>>().Select(g => g.To<Phone>()));
+                CollectionAssert.AreEquivalent(expectedContact.Phones.Select(p => p.Alias), dbC["phones"].To<IEnumerable<IDictionary<string, object>>>().Select(dict => (string) dict["alias"]));
+            }
+        }
+        
+        [Test]
+        public void Should_Support_InnerUdt()
+        {
+            using (var cluster = ClusterBuilder()
+                                 .AddContactPoint(TestClusterManager.InitialContactPoint)
+                                 .WithGraphOptions(new GraphOptions().SetName(CoreGraphTests.GraphName))
+                                 .Build())
+            {
+                var session = cluster.Connect();
+                session.ExecuteGraph(new SimpleGraphStatement(
+                    "schema.type('testudt').property('name', Text).property('nullable_int', Int).property('phone', frozen(typeOf('phone'))).create()"));
+                session.UserDefinedTypes.Define(
+                    UdtMap.For<TestUdt>(keyspace: CoreGraphTests.GraphName)
+                          .Map(c => c.Name, "name")
+                          .Map(c => c.NullableInt, "nullable_int")
+                          .Map(c => c.Phone, "phone"),
+                    UdtMap.For<Phone>(keyspace: CoreGraphTests.GraphName));
+                var testudt = new TestUdt { NullableInt = 1, Name = "123", Phone = new Phone { Alias = "123" }};
+                session.ExecuteGraph(new SimpleGraphStatement(
+                    "schema.vertexLabel('test_udts').partitionBy('id', Int).property('test_udt', typeOf('testudt')).create()"));
+                session.ExecuteGraph(new SimpleGraphStatement(
+                    "g.addV('test_udts')" +
+                    ".property('id', 305)" +
+                    ".property('test_udt', testudtparam)", new { testudtparam = testudt }));
+                
+                var rs = session.ExecuteGraph(new SimpleGraphStatement(
+                    "g.with('allow-filtering').V().hasLabel('test_udts').has('id', 305).properties('test_udt')"));
+                var resultArray = rs.ToArray();
+                Assert.AreEqual(1, resultArray.Length);
+                var dbTestUdt = resultArray[0].To<IVertexProperty>().Value.To<TestUdt>();
+                Assert.AreEqual(dbTestUdt.NullableInt, testudt.NullableInt);
+                Assert.AreEqual(dbTestUdt.Name, testudt.Name);
+                Assert.AreEqual(dbTestUdt.Phone, testudt.Phone);
+            }
+        }
+        
+        [Test]
+        public void Should_Support_DeserializingUnmappedUdts()
+        {
+            using (var cluster = ClusterBuilder()
+                                 .AddContactPoint(TestClusterManager.InitialContactPoint)
+                                 .WithGraphOptions(new GraphOptions().SetName(CoreGraphTests.GraphName))
+                                 .Build())
+            {
+                var session = cluster.Connect();
+                var contacts = new List<Contact>
+                {
+                    new Contact
+                    {
+                        FirstName = "Jimmy", 
+                        LastName = "McGill", 
+                        Phones = new HashSet<Phone>
+                        {
+                            new Phone {Alias = "alias123123", Number = "21791274", PhoneType = PhoneType.Work},
+                            new Phone {Alias = "Office", Number = "123"}
+                        },
+                        Emails = new List<string> { "mail1@mail.com" }
+                    }
+                };
+
+                var rs = session.ExecuteGraph(new SimpleGraphStatement(
+                    "g.with('allow-filtering').V().hasLabel('users_contacts').has('id', 1923).properties('contacts')"));
+                var resultArray = rs.ToArray();
+                Assert.AreEqual(1, resultArray.Length);
+                var contactsDict = resultArray[0].To<IVertexProperty>().Value.To<List<IDictionary<string, GraphNode>>>();
+                var expectedContact = contacts.Single();
+                var dbC = contactsDict.Single();
+                Assert.AreEqual(expectedContact.Emails, dbC["emails"].To<IEnumerable<string>>());
+                var phones = dbC["phones"].To<IEnumerable<IDictionary<string, object>>>().ToList();
+                CollectionAssert.AreEquivalent(expectedContact.Phones.Select(p => p.Alias), phones.Select(dict => (string) dict["alias"]));
+                CollectionAssert.AreEquivalent(
+                    expectedContact.Phones.Select(p => p.PhoneType), 
+                    phones.Select(dict => dict["phone_type"] == null ? default(PhoneType) : Enum.Parse(typeof(PhoneType), (string)dict["phone_type"])));
+                CollectionAssert.AreEquivalent(expectedContact.Phones.Select(p => p.Number), phones.Select(dict => (string) dict["number"]));
+                
+                var ex = Assert.Throws<InvalidQueryException>(() => session.ExecuteGraph(new SimpleGraphStatement(
+                    "g.addV('users_contacts')" +
+                    ".property('id', 1923)" +
+                    ".property('contacts', contacts)", new { contacts })));
+
+                Assert.IsTrue(ex.Message.Contains("Wrong property type provided for property 'contacts'") 
+                              && ex.Message.Contains("Provided type 'LinkedHashMap' is not compatible with expected type 'UDTValue'"),
+                    ex.Message);
+                
+                ex = Assert.Throws<InvalidQueryException>(() => session.ExecuteGraph(new SimpleGraphStatement(
+                    "g.addV('users_contacts')" +
+                    ".property('id', 1923)" +
+                    ".property('contacts', contactsDict)", new { contactsDict })));
+
+                Assert.IsTrue(ex.Message.Contains("Wrong property type provided for property 'contacts'") 
+                              && ex.Message.Contains("Provided type 'LinkedHashMap' is not compatible with expected type 'UDTValue'"),
+                    ex.Message);
+
+            }
+        }
+        
+        [Test]
+        public void Should_Support_Tuples()
+        {
+            using (var cluster = ClusterBuilder()
+                                 .AddContactPoint(TestClusterManager.InitialContactPoint)
+                                 .WithGraphOptions(new GraphOptions().SetName(CoreGraphTests.GraphName))
+                                 .Build())
+            {
+                var session = cluster.Connect();
+                session.UserDefinedTypes.Define(
+                    UdtMap.For<Phone>(keyspace: CoreGraphTests.GraphName)
+                          .Map(c => c.PhoneType, "phone_type"));
+                var phone = new Phone { Alias = "Wat2", Number = "2414817", PhoneType = PhoneType.Home };
+                var tuple = new Tuple<Phone, DateTimeOffset?, Guid, IEnumerable<string>, ISet<int>, IDictionary<string, int?>>(
+                    phone,
+                    new DateTimeOffset(2020, 1, 29, 1, 1, 43, 953, TimeSpan.Zero), 
+                    Guid.NewGuid(),
+                    new[] { "123", "234" },
+                    new HashSet<int> { 1, 2, 3 },
+                    new Dictionary<string, int?> { { "One", 9922 }, { "Two", 1234567 } });
+                session.ExecuteGraph(new SimpleGraphStatement(
+                    "g.addV('tuple_test')" +
+                    ".property('id', 1313)" +
+                    ".property('tuple_property', t)", new { t = tuple }));
+
+                var rs = session.ExecuteGraph(new SimpleGraphStatement(
+                    "g.with('allow-filtering').V().hasLabel('tuple_test').has('id', 1313).properties('tuple_property')"));
+                var resultArray = rs.ToArray();
+                Assert.AreEqual(1, resultArray.Length);
+                var dbTuple = resultArray[0]
+                              .To<IVertexProperty>().Value
+                              .To<Tuple<Phone, DateTimeOffset?, Guid, IEnumerable<string>, ISet<int>, IDictionary<string, int?>>>();
+                Assert.AreEqual(tuple.Item1, dbTuple.Item1);
+                Assert.AreEqual(tuple.Item2, dbTuple.Item2);
+                Assert.AreEqual(tuple.Item3, dbTuple.Item3);
+                CollectionAssert.AreEqual(tuple.Item4, dbTuple.Item4);
+                CollectionAssert.AreEquivalent(tuple.Item5, dbTuple.Item5);
+                CollectionAssert.AreEquivalent(tuple.Item6, dbTuple.Item6);
             }
         }
 
@@ -862,7 +1049,7 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                     new Point(4, 5),
                     new Point(7.5, 6.5)
                 };
-                
+
                 var listWithDuplicates = new Point[]
                 {
                     new Point(4, 5),
@@ -870,23 +1057,22 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                     new Point(7.5, 6.5),
                     new Point(4, 5)
                 };
-                
 
                 var set = new HashSet<DateTimeOffset>
                 {
                     new DateTimeOffset(12414124L.ToDateFromMillisecondsSinceEpoch().DateTime, TimeSpan.FromHours(2)),
-                    new DateTimeOffset(55446464L.ToDateFromMillisecondsSinceEpoch().DateTime, TimeSpan.FromHours(-5)), 
+                    new DateTimeOffset(55446464L.ToDateFromMillisecondsSinceEpoch().DateTime, TimeSpan.FromHours(-5)),
                     2141247L.ToDateFromMillisecondsSinceEpoch(),
                     834742874L.ToDateFromMillisecondsSinceEpoch()
                 };
-                
+
                 var sortedSet = new SortedSet<DateTimeOffset>
                 {
                     482174817L.ToDateFromMillisecondsSinceEpoch(),
                     981248124L.ToDateFromMillisecondsSinceEpoch(),
                     214261241424L.ToDateFromMillisecondsSinceEpoch()
                 };
-                
+
                 var dateTimeSet = new HashSet<DateTime>
                 {
                     new DateTime(2013, 2, 2, 2, 2, 2, DateTimeKind.Unspecified),
@@ -926,7 +1112,7 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                         setName,
                         mapName,
                         listValue = new List<IEnumerable<Point>> { list, array, listWithDuplicates },
-                        setValue = new List<ISet<DateTimeOffset>> { set, sortedSet, GraphTypes.AsSet(set.ToList()) },
+                        setValue = new List<ISet<DateTimeOffset>> { set, sortedSet, new HashSet<DateTimeOffset>(set.ToList()) },
                         mapValue = map
                     }));
 
@@ -960,10 +1146,9 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                 var properties = rs.To<IDictionary<string, IEnumerable<IGraphNode>>>().ToList();
                 var vertexPropertiesByUuid = properties.ToDictionary(props => props["uuid"].Single().To<Guid>());
 
-
                 void AssertVertex<TDateType>(
-                    Guid pk, 
-                    IEnumerable<IEnumerable<Point>> expectedList, 
+                    Guid pk,
+                    IEnumerable<IEnumerable<Point>> expectedList,
                     IEnumerable<ISet<TDateType>> expectedSet,
                     IDictionary<IPAddress, Polygon> expectedMap)
                 {
@@ -987,21 +1172,21 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                     AssertNestedCollections(expectedSet, vertex[setName].Single().To<IReadOnlyList<ISet<TDateType>>>());
                     AssertNestedCollections(expectedSet, vertex[setName].Single().To<ICollection<HashSet<TDateType>>>());
                     AssertNestedCollections(expectedSet, vertex[setName].Single().To<ICollection<SortedSet<TDateType>>>());
-                    
+
                     CollectionAssert.AreEquivalent(expectedMap, vertex[mapName].Single().To<IDictionary<IPAddress, Polygon>>());
                     CollectionAssert.AreEquivalent(expectedMap, vertex[mapName].Single().To<Dictionary<IPAddress, Polygon>>());
                     CollectionAssert.AreEquivalent(expectedMap, vertex[mapName].Single().To<IReadOnlyDictionary<IPAddress, Polygon>>());
                 }
 
                 AssertVertex(
-                    pk1, 
-                    new List<IEnumerable<Point>> { list, array, listWithDuplicates }, 
+                    pk1,
+                    new List<IEnumerable<Point>> { list, array, listWithDuplicates },
                     new List<ISet<DateTimeOffset>> { set, sortedSet, set },
                     map);
-                
+
                 AssertVertex(
-                    pk2, 
-                    new List<List<Point>> { list }, 
+                    pk2,
+                    new List<List<Point>> { list },
                     new List<ISet<DateTime>> { dateTimeSet },
                     concurrentDictionary);
             }
@@ -1015,11 +1200,11 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
             for (var i = 0; i < expectedList.Count; i++)
             {
                 CollectionAssert.AreEquivalent(
-                    expectedList[i], 
+                    expectedList[i],
                     actualList[i]);
             }
         }
-        
+
         [Test]
         public void ExecuteGraph_Should_SerializeAndDeserialize_OutOfRangeJavaDurations()
         {
@@ -1039,11 +1224,10 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                         "schema.vertexLabel(vertexLabel)" +
                         ".partitionBy('uuid', UUID)" +
                         ".property(propertyName, Duration)" +
-                        ".create()", new {vertexLabel = "v1", propertyName = "prop1"}));
+                        ".create()", new { vertexLabel = "v1", propertyName = "prop1" }));
                 foreach (var value in values)
                 {
-
-                    var parameters = new {pk = Guid.NewGuid(), vertexLabel = "v1", propertyName = "prop1", val = value};
+                    var parameters = new { pk = Guid.NewGuid(), vertexLabel = "v1", propertyName = "prop1", val = value };
                     var stmt = new SimpleGraphStatement("g.addV(vertexLabel).property('uuid', pk).property(propertyName, val)", parameters);
                     session.ExecuteGraph(stmt);
                     var rs = session.ExecuteGraph(new SimpleGraphStatement("g.with('allow-filtering').V().hasLabel(vertexLabel).has('uuid', pk).has(propertyName, val).properties(propertyName).value()", parameters));
@@ -1155,7 +1339,7 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                                                      "     [\"has\", \"name\", \"marko\"], [\"outE\"], [\"label\"]]}}")
                 .SetGraphLanguage(CoreGraphTests.BytecodeJson);
             var rs = await _session.ExecuteGraphAsync(statement).ConfigureAwait(false);
-            Assert.That(rs.To<string>(), Is.EquivalentTo(new [] {"created", "knows", "knows"}));
+            Assert.That(rs.To<string>(), Is.EquivalentTo(new[] { "created", "knows", "knows" }));
             Assert.AreEqual(GraphProtocol.GraphSON3, rs.GraphProtocol);
         }
 
@@ -1165,10 +1349,10 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
             var statement = new SimpleGraphStatement("g.V().hasLabel('person').has('name', 'marko').outE().label()")
                 .SetGraphLanguage(CoreGraphTests.GremlinGroovy);
             var rs = await _session.ExecuteGraphAsync(statement).ConfigureAwait(false);
-            Assert.That(rs.To<string>(), Is.EquivalentTo(new [] {"created", "knows", "knows"}));
+            Assert.That(rs.To<string>(), Is.EquivalentTo(new[] { "created", "knows", "knows" }));
             Assert.AreEqual(GraphProtocol.GraphSON3, rs.GraphProtocol);
         }
-        
+
         [TestDseVersion(6, 8)]
         [Test]
         public async Task Should_UseGraphSON3_When_CoreGraphEngine()
@@ -1177,7 +1361,7 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
             var rs = await _session.ExecuteGraphAsync(statement).ConfigureAwait(false);
             Assert.AreEqual(GraphProtocol.GraphSON3, rs.GraphProtocol);
         }
-        
+
         [TestCase(GraphProtocol.GraphSON1, "Graph protocol 'GRAPHSON_1_0' incompatible")]
         [TestCase(GraphProtocol.GraphSON2, "Graph protocol 'GRAPHSON_2_0' incompatible")]
         [Test]
@@ -1202,10 +1386,10 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                 Assert.AreEqual(expectedValueString, toStringFunc(vertex.GetProperty(propertyName).Value.To(type)));
             }
         }
-        
+
         private static void FillEdgeProperties(ISession session, IEdge edge)
         {
-            var castedEdge = (Edge) edge;
+            var castedEdge = (Edge)edge;
 
             if (castedEdge.Properties.Count != 0)
             {
@@ -1221,10 +1405,10 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                 castedEdge.Properties.Add(prop.Item2.Name, prop.Item1);
             }
         }
-        
+
         private static void FillVertexProperties(ISession session, IVertex vertex)
         {
-            var castedVertex = (Vertex) vertex;
+            var castedVertex = (Vertex)vertex;
 
             if (castedVertex.Properties.Count != 0)
             {
@@ -1234,7 +1418,7 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
             var rs = session.ExecuteGraph(
                 new SimpleGraphStatement("g.V(vertex_id).properties().group().by(key)", new { vertex_id = castedVertex.Id })
                     .SetGraphLanguage("gremlin-groovy")).Single().To<IDictionary<string, GraphNode>>();
-            
+
             foreach (var propertiesByName in rs)
             {
                 // "properties" is a map where the key is the vertexproperty name
@@ -1244,6 +1428,15 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                     propertiesByName.Key,
                     propertiesByName.Value.Get<GraphNode>("@value"));
             }
+        }
+
+        private class TestUdt
+        {
+            public string Name { get; set; }
+
+            public int? NullableInt { get; set; }
+
+            public Phone Phone { get; set; }
         }
     }
 }

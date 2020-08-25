@@ -21,7 +21,6 @@
 #endregion
 
 using System;
-using Cassandra.DataStax.Graph;
 using Cassandra.DataStax.Graph.Internal;
 using Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON;
 using Newtonsoft.Json.Linq;
@@ -41,7 +40,7 @@ namespace Cassandra.Serialization.Graph.GraphSON2.Tinkerpop
         public dynamic Objectify(JToken graphsonObject, IGraphSONReader reader)
         {
             var milliseconds = graphsonObject.ToObject<long>();
-            return new TinkerpopDate(TinkerpopDateDeserializer.UnixStart.AddTicks(TimeSpan.TicksPerMillisecond * milliseconds));
+            return TinkerpopDateDeserializer.UnixStart.AddTicks(TimeSpan.TicksPerMillisecond * milliseconds);
         }
     }
 }

@@ -18,7 +18,7 @@ using Cassandra.DataStax.Graph.Internal;
 using Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON;
 using Newtonsoft.Json.Linq;
 
-namespace Cassandra.Serialization.Graph.GraphSON2.Dse
+namespace Cassandra.Serialization.Graph.GraphSON2
 {
     internal abstract class StringBasedSerializer : IGraphSONSerializer, IGraphSONDeserializer
     {

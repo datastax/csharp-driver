@@ -18,29 +18,39 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 #endregion
 
 using System;
-using Cassandra.DataStax.Graph.Internal;
+using System.Globalization;
 using Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON;
-using Newtonsoft.Json.Linq;
 
 namespace Cassandra.Serialization.Graph.GraphSON2.Tinkerpop
 {
-    internal class TinkerpopTimestampDeserializer : IGraphSONDeserializer
+    internal class TimestampSerializer : StringBasedSerializer
     {
-        private const string Prefix = "g";
-        private const string TypeKey = "Timestamp";
-        
-        private static readonly DateTimeOffset UnixStart = new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero);
+        private const string Prefix = "gx";
+        private const string TypeKey = "Instant";
 
-        public static string TypeName =>
-            GraphSONUtil.FormatTypeName(TinkerpopTimestampDeserializer.Prefix, TinkerpopTimestampDeserializer.TypeKey);
+        private const string FormatString = "yyyy-MM-ddTHH:mm:ss.fffZ";
 
-        public dynamic Objectify(JToken graphsonObject, IGraphSONReader reader)
+        public TimestampSerializer() : base(TimestampSerializer.Prefix, TimestampSerializer.TypeKey)
         {
-            var milliseconds = graphsonObject.ToObject<long>();
-            return TinkerpopTimestampDeserializer.UnixStart.AddTicks(TimeSpan.TicksPerMillisecond * milliseconds);
+        }
+
+        public static string TypeName => GraphSONUtil.FormatTypeName(TimestampSerializer.Prefix, TimestampSerializer.TypeKey);
+
+        protected override string ToString(dynamic obj)
+        {
+            DateTimeOffset dateTimeOffset = obj;
+            var ticks = (dateTimeOffset - TypeSerializer.UnixStart).Ticks;
+            var instant = TypeSerializer.UnixStart.AddTicks(ticks);
+            return instant.ToString(TimestampSerializer.FormatString, CultureInfo.InvariantCulture);
+        }
+
+        protected override dynamic FromString(string str)
+        {
+            return DateTimeOffset.Parse(str, CultureInfo.InvariantCulture);
         }
     }
 }

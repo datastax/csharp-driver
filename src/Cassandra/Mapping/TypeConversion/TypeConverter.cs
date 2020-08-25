@@ -82,7 +82,10 @@ namespace Cassandra.Mapping.TypeConversion
 
         private static readonly MethodInfo ConvertIEnumerableToDbTypeMethod = typeof(TypeConverter)
             .GetTypeInfo().GetMethod(nameof(ConvertIEnumerableToDbType), PrivateInstance);
-
+        
+        private static readonly MethodInfo ConvertIEnumerableToSetDbMethod = typeof(TypeConverter)
+            .GetTypeInfo().GetMethod(nameof(ConvertIEnumerableToSetDb), PrivateInstance);
+        
         private static readonly MethodInfo ConvertIDictionaryToDbTypeMethod = typeof(TypeConverter)
             .GetTypeInfo().GetMethod(nameof(ConvertIDictionaryToDbType), PrivateInstance);
 
@@ -111,7 +114,8 @@ namespace Cassandra.Mapping.TypeConversion
             var converter = (Func<TValue, TDatabase>) GetToDbConverter(typeof (TValue), typeof (TDatabase));
             if (converter == null)
             {
-                throw new InvalidOperationException($"No converter is available from Type {typeof(TValue).Name} to Type {typeof(TDatabase).Name}");
+                throw new InvalidOperationException(
+                    $"No converter is available from Type {typeof(TValue).Name} to Type {typeof(TDatabase).Name}");
             }
 
             return converter(value);
@@ -173,31 +177,24 @@ namespace Cassandra.Mapping.TypeConversion
             var converter = TryGetFromDbConverter(typeof(TSource), typeof(TResult));
             if (converter == null)
             {
-                // Try cast
-                TResult ChangeType(TSource a)
-                {
-                    try
-                    {
-                        return (TResult)(object)a;
-                    }
-                    catch (Exception ex)
-                    {
-                        throw new InvalidCastException(
-                            $"Specified cast is not valid: from " +
-                            $"{(a == null ? $"null ({typeof(TSource)})" : a.GetType().ToString())} to {typeof(TResult)}", ex);
-                    }
-                }
-
-                return ChangeType;
-            }
-
-            if (converter == null)
-            {
-                throw new InvalidOperationException(
-                    $"No converter is available from Type {typeof(TSource).Name} to Type {typeof(TResult).Name}");
+                return ChangeType<TSource, TResult>;
             }
 
             return (Func<TSource, TResult>) converter;
+        }
+
+        private TResult ChangeType<TSource, TResult>(TSource a)
+        {
+            try
+            {
+                return (TResult)(object)a;
+            }
+            catch (Exception ex)
+            {                    
+                throw new InvalidCastException(
+                    $"Specified cast is not valid: from " +
+                    $"{(a == null ? $"null ({typeof(TSource)})" : a.GetType().ToString())} to {typeof(TResult)}", ex);
+            }
         }
         
         /// <summary>
@@ -494,19 +491,26 @@ namespace Cassandra.Mapping.TypeConversion
             {
                 Type dbGenericType = dbType.GetTypeInfo().GetGenericTypeDefinition();
                 Type[] dbTypeGenericArgs = dbType.GetTypeInfo().GetGenericArguments();
+                Type[] pocoTypeGenericArgs = null;
+                
                 if (pocoType.GetTypeInfo().IsArray)
                 {
-                    // Its an array, convert each element
-                    return ConvertIEnumerableToDbTypeMethod
-                        .MakeGenericMethod(pocoType.GetTypeInfo().GetElementType(), dbTypeGenericArgs[0])
-                        .CreateDelegateLocal(this);
+                    pocoTypeGenericArgs = new [] { pocoType.GetTypeInfo().GetElementType() };
                 }
-                if (!pocoType.GetTypeInfo().IsGenericType || dbType.GetTypeInfo().IsAssignableFrom(pocoType))
+                else if (pocoType.GetTypeInfo().IsGenericType)
                 {
-                    return null;
+                    pocoTypeGenericArgs = pocoType.GetTypeInfo().GetGenericArguments();
                 }
-                Type[] pocoTypeGenericArgs = pocoType.GetTypeInfo().GetGenericArguments();
-                if (dbGenericType == typeof(IEnumerable<>))
+
+                if (pocoTypeGenericArgs == null 
+                    || (dbType.GetTypeInfo().IsAssignableFrom(pocoType) 
+                        && pocoTypeGenericArgs.SequenceEqual(dbTypeGenericArgs)))
+                {
+                    Func<TPoco, TDatabase> changeTypeDelegate = ChangeType<TPoco, TDatabase>;
+                    return changeTypeDelegate;
+                }
+                
+                if (pocoType.GetTypeInfo().IsArray || dbGenericType == typeof(IEnumerable<>))
                 {
                     // Its a list or a set but the child types doesn't match
                     return ConvertIEnumerableToDbTypeMethod
@@ -517,6 +521,16 @@ namespace Cassandra.Mapping.TypeConversion
                     return ConvertIDictionaryToDbTypeMethod
                         .MakeGenericMethod(pocoTypeGenericArgs[0], pocoTypeGenericArgs[1], dbTypeGenericArgs[0],
                             dbTypeGenericArgs[1]).CreateDelegateLocal(this);
+                }
+                if (dbGenericType == typeof(ISet<>))
+                {
+                    if (pocoTypeGenericArgs[0] == dbTypeGenericArgs[0])
+                    {
+                        return ConvertToHashSetMethod
+                               .MakeGenericMethod(pocoTypeGenericArgs).CreateDelegateLocal();
+                    }
+                    return ConvertIEnumerableToSetDbMethod
+                           .MakeGenericMethod(pocoTypeGenericArgs[0], dbTypeGenericArgs[0]).CreateDelegateLocal(this);
                 }
             }
 
@@ -530,24 +544,10 @@ namespace Cassandra.Mapping.TypeConversion
             {
                 return (Func<TPoco, TDatabase>)converter;
             }
-            
-            TDatabase ChangeType(TPoco a)
-            {
-                try
-                {
-                    return (TDatabase) (object) a;
-                }
-                catch (Exception ex)
-                {
-                    throw new InvalidCastException(
-                        $"Specified cast is not valid: from " +
-                        $"{(a == null ? $"null ({typeof(TPoco)})" : a.GetType().ToString())} to {typeof(TDatabase)}", ex);
-                }
-            }
 
-            return ChangeType;
+            return ChangeType<TPoco, TDatabase>;
         }
-
+        
         private IEnumerable<TResult> ConvertIEnumerableToDbType<TSource, TResult>(IEnumerable<TSource> items)
         {
             return items?.Select(TryFindToDbConverter<TSource, TResult>());
@@ -631,6 +631,16 @@ namespace Cassandra.Mapping.TypeConversion
             }
 
             return new HashSet<TResult>(setFromDatabase.Select(TryGetFromDbConverter<TSource, TResult>()));
+        }
+        
+        private HashSet<TResult> ConvertIEnumerableToSetDb<TSource, TResult>(IEnumerable<TSource> set)
+        {
+            if (set == null)
+            {
+                return null;
+            }
+
+            return new HashSet<TResult>(set.Select(TryFindToDbConverter<TSource, TResult>()));
         }
 
         private static SortedSet<T> ConvertToSortedSet<T>(IEnumerable<T> set)

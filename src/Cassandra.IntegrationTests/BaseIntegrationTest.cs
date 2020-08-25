@@ -64,8 +64,50 @@ namespace Cassandra.IntegrationTests
             "schema.vertexLabel('movie')" +
                 ".partitionBy('title', Text)" +
                 ".property('tags', listOf(Text))" +
+                ".create();\n" +
+            "schema.type('address')" +
+                ".property('address1', Text)" +
+                ".property('address2', Text)" + 
+                ".property('city_code', Text)" +
+                ".property('state_code', Text)" +
+                ".property('zip_code', Text)" +
+                "create();\n" +
+            "schema.type('phone')" +
+                ".property('alias', Text)" +
+                ".property('number', Text)" +
+                ".property('country_code', Int)" +
+                ".property('verified_at', Timestamp)" +
+                ".property('phone_type', Text)" +
+                ".create();\n" +
+            "schema.type('contact')" +
+                ".property('first_name', Text)" +
+                ".property('last_name', Text)" +
+                ".property('birth_date', Timestamp)" +
+                ".property('phones', setOf(frozen(typeOf('phone'))))" +
+                ".property('emails', setOf(Text))" +
+                ".property('nullable_long', Bigint)" +
+                ".create();\n" +
+            "schema.vertexLabel('users')" + 
+                ".partitionBy('id', Int)" + 
+                ".property('main_phone', frozen(typeOf('phone')))" +
+                ".create();\n" +
+            "schema.vertexLabel('users_contacts')" + 
+                ".partitionBy('id', Int)" + 
+                ".property('contacts', listOf(frozen(typeOf('contact'))))" +
+                ".create();\n" +
+            "schema.type('user_feedback')" +
+                ".property('submitted_at', Timestamp)" +
+                ".property('rating', Int)" +
+                ".create();\n" +
+            "schema.edgeLabel('uses')" +
+                ".from('users').to('software')" +
+                ".property('feedback', typeOf('user_feedback'))" +
+                ".create();\n" +
+            "schema.vertexLabel('tuple_test')" + 
+                ".partitionBy('id', Int)" + 
+                ".property('tuple_property', tupleOf(typeOf('phone'), Instant, UUID, listOf(Text), setOf(Int),mapOf(Text, Int)))" +
                 ".create();\n";
-        
+
         /// <summary>
         /// Reference graph: http://www.tinkerpop.com/docs/3.0.0.M1/
         /// </summary>
@@ -111,7 +153,32 @@ namespace Cassandra.IntegrationTests
                 ".from('josh').to('lop')" +
             ".addE('created')" +
                 ".property('weight', 0.2f)" +
-                ".from('peter').to('lop')";
+                ".from('peter').to('lop')" +
+            ".addV('users_contacts')" +
+                ".property('id', 1923)" +
+                ".property('contacts', " +                     
+                    "[ " +
+                        "typeOf('contact').create(" +
+                            "'Jimmy', " +
+                            "'McGill', " +
+                            "null, " +
+                            "[ " +
+                                "typeOf('phone').create(" +
+                                "'alias123123', " +
+                                "'21791274', " +
+                                "null, " +
+                                "null, " +
+                                "'Work')," +
+                                "typeOf('phone').create(" +
+                                "'Office', " +
+                                "'123', " +
+                                "null, " +
+                                "null, " +
+                                "null) " +
+                            " ] as Set, " +
+                            "[ 'mail1@mail.com' ] as Set," +
+                            "null)" +
+                    "] as List )";
 
         /// <summary>
         /// Reference graph: http://www.tinkerpop.com/docs/3.0.0.M1/

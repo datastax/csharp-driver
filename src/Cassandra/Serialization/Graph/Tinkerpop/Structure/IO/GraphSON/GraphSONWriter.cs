@@ -19,17 +19,18 @@
  * under the License.
  */
 
-#endregion
+#endregion License
 
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+
 using Cassandra.DataStax.Graph;
 using Cassandra.DataStax.Graph.Internal;
-using Cassandra.Serialization.Graph.GraphSON2.Tinkerpop;
-using Cassandra.Serialization.Graph.GraphSON3.Dse;
+using Cassandra.Serialization.Graph.GraphSON3.Tinkerpop;
+
 using Newtonsoft.Json;
 
 namespace Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON

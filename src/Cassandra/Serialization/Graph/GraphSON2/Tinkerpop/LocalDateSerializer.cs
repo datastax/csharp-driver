@@ -18,21 +18,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 #endregion
 
-using System;
-using System.Collections.Generic;
-using Cassandra.DataStax.Graph.Internal;
 using Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON;
 
-namespace Cassandra.Serialization.Graph.GraphSON3.Dse
+namespace Cassandra.Serialization.Graph.GraphSON2.Tinkerpop
 {
-    internal class ByteBufferSerializer : IGraphSONSerializer
+    internal class LocalDateSerializer : StringBasedSerializer
     {
-        public Dictionary<string, dynamic> Dictify(dynamic objectData, IGraphSONWriter writer)
+        private const string Prefix = "gx";
+        private const string TypeKey = "LocalDate";
+
+        public LocalDateSerializer() : base(LocalDateSerializer.Prefix, LocalDateSerializer.TypeKey)
         {
-            byte[] value = objectData;
-            return GraphSONUtil.ToTypedValue("ByteBuffer", Convert.ToBase64String(value), "gx");
+        }
+
+        public static string TypeName =>
+            GraphSONUtil.FormatTypeName(LocalDateSerializer.Prefix, LocalDateSerializer.TypeKey);
+
+        protected override string ToString(dynamic obj)
+        {
+            LocalDate date = obj;
+            return date.ToString();
+        }
+
+        protected override dynamic FromString(string str)
+        {
+            return LocalDate.Parse(str);
         }
     }
 }

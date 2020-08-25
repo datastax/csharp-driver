@@ -36,11 +36,11 @@ namespace Cassandra.Serialization.Graph
         /// This is used by the fluent driver (set to false) to force the deserialization of all
         /// inner properties to the actual types instead of returning GraphNode objects. This is necessary
         /// because the GLV serializers call <see cref="IGraphSONReader.ToObject"/> which is implemented by
-        /// <see cref="GraphTypeSerializer"/> with a call to <see cref="FromDb"/> (with "object" as the requested type).
+        /// <see cref="GraphTypeSerializer"/> with a call to <see cref="FromDb(JToken,Type)"/> (with "object" as the requested type).
         /// No type conversion will be made since the requested type is object.
         /// </para>
         /// </summary>
-        bool DeserializeGraphNodes { get; }
+        bool DefaultDeserializeGraphNodes { get; }
 
         GraphProtocol GraphProtocol { get; }
 
@@ -55,9 +55,15 @@ namespace Cassandra.Serialization.Graph
         /// deserialized object to the provided type. 
         /// </summary>
         object FromDb(JToken token, Type type);
+
+        /// <summary>
+        /// Overload of <see cref="FromDb(JToken,Type)"/> that allows the caller to override
+        /// <see cref="DefaultDeserializeGraphNodes"/>.
+        /// </summary>
+        object FromDb(JToken token, Type type, bool deserializeGraphNodes);
         
         /// <summary>
-        /// Generic version of <see cref="FromDb"/>
+        /// Generic version of <see cref="FromDb(JToken,Type)"/>
         /// </summary>
         T FromDb<T>(JToken token);
 
@@ -65,5 +71,11 @@ namespace Cassandra.Serialization.Graph
         /// Serializes the provided object to GraphSON.
         /// </summary>
         string ToDb(object obj);
+
+        /// <summary>
+        /// Attempts to convert the provided object to the target type.
+        /// </summary>
+        /// <returns>True if conversion was successful (output in the out parameter).</returns>
+        bool ConvertFromDb(object obj, Type targetType, out dynamic result);
     }
 }

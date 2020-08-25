@@ -20,8 +20,13 @@ using System.Linq;
 using System.Net;
 using Cassandra.Connections.Control;
 using Cassandra.DataStax.Graph;
+using Cassandra.DataStax.Graph.Internal;
 using Cassandra.ProtocolEvents;
 using Cassandra.Requests;
+using Cassandra.Serialization.Graph;
+using Cassandra.Serialization.Graph.GraphSON2.Tinkerpop;
+using Cassandra.Serialization.Graph.GraphSON3.Dse;
+using Cassandra.Serialization.Graph.GraphSON3.Tinkerpop;
 using Cassandra.SessionManagement;
 using Cassandra.Tests.Connections.TestHelpers;
 using Cassandra.Tests.MetadataHelpers.TestHelpers;
@@ -111,6 +116,97 @@ namespace Cassandra.Tests.Requests
             var actual = factory.GetDefaultGraphProtocol(session, statement, options);
 
             Assert.AreEqual(expected, actual);
+        }
+        
+        [Test]
+        public void Should_CacheSerializerInstances_When_SameParametersAreUsed()
+        {
+            var session = MockSession("graph", true);
+            var session2 = MockSession("graph", true);
+            var factory = new GraphTypeSerializerFactory();
+
+            var deserializers1 = new Dictionary<string, IGraphSONDeserializer>
+            { { "byte", new ByteBufferDeserializer() } };
+            
+            var deserializers2 = new Dictionary<string, IGraphSONDeserializer>
+            { { "duration", new Duration2Serializer() } };
+
+            var serializers1 = new Dictionary<Type, IGraphSONSerializer>
+            { { typeof(byte[]), new ByteBufferSerializer() } };
+
+            var serializers2 = new Dictionary<Type, IGraphSONSerializer>
+            { { typeof(Duration), new Duration2Serializer() } };
+
+            var deserializersByProtocol = new Dictionary<GraphProtocol, IReadOnlyDictionary<string, IGraphSONDeserializer>>
+            {
+                { GraphProtocol.GraphSON3, deserializers1 },
+                { GraphProtocol.GraphSON2, deserializers2 }
+            };
+            var deserializersByProtocolEqual = new Dictionary<GraphProtocol, IReadOnlyDictionary<string, IGraphSONDeserializer>>
+            {
+                { GraphProtocol.GraphSON3, deserializers1 },
+                { GraphProtocol.GraphSON2, deserializers2 }
+            };
+            var deserializersByProtocol2 = new Dictionary<GraphProtocol, IReadOnlyDictionary<string, IGraphSONDeserializer>>
+            {
+                { GraphProtocol.GraphSON3, deserializers2 },
+                { GraphProtocol.GraphSON2, deserializers1 }
+            };
+            var serializersByProtocol = new Dictionary<GraphProtocol, IReadOnlyDictionary<Type, IGraphSONSerializer>>
+            {
+                { GraphProtocol.GraphSON3, serializers1 },
+                { GraphProtocol.GraphSON2, serializers2 }
+            };
+            var serializersByProtocolEqual = new Dictionary<GraphProtocol, IReadOnlyDictionary<Type, IGraphSONSerializer>>
+            {
+                { GraphProtocol.GraphSON3, serializers1 },
+                { GraphProtocol.GraphSON2, serializers2 }
+            };
+            var serializersByProtocol2 = new Dictionary<GraphProtocol, IReadOnlyDictionary<Type, IGraphSONSerializer>>
+            {
+                { GraphProtocol.GraphSON3, serializers2 },
+                { GraphProtocol.GraphSON2, serializers1 }
+            };
+
+            var instances = new List<IGraphTypeSerializer>
+            {
+                // first 2 use the same parameters
+                factory.CreateSerializer(session, deserializersByProtocol, serializersByProtocol, GraphProtocol.GraphSON2, true),
+                factory.CreateSerializer(session, deserializersByProtocolEqual, serializersByProtocolEqual, GraphProtocol.GraphSON2, true),
+
+                // the remaining instances all use different parameters
+                factory.CreateSerializer(session, deserializersByProtocol, serializersByProtocol, GraphProtocol.GraphSON3, true),
+                factory.CreateSerializer(session, deserializersByProtocol, serializersByProtocol, GraphProtocol.GraphSON2, false),
+                factory.CreateSerializer(
+                    session, deserializersByProtocol, serializersByProtocol2, GraphProtocol.GraphSON2,
+                    true),
+                factory.CreateSerializer(session, deserializersByProtocol2, serializersByProtocol, GraphProtocol.GraphSON2, true),
+                factory.CreateSerializer(session2, deserializersByProtocol, serializersByProtocol, GraphProtocol.GraphSON2, true),
+                factory.CreateSerializer(session, null, serializersByProtocol, GraphProtocol.GraphSON2, true),
+                factory.CreateSerializer(session, deserializersByProtocol, null, GraphProtocol.GraphSON2, true)
+            };
+
+            for (var i = 0; i < instances.Count; i++)
+            {
+                for (var j = 0; j < instances.Count; j++)
+                {
+                    if (i == j)
+                    {
+                        continue;
+                    }
+
+                    // if we're comparing the first and second instances, they are supposed to be the same
+                    // otherwise it's supposed to be different
+                    if (i + j == 1)
+                    {
+                        Assert.AreSame(instances[i], instances[j], $"i: {i}, j: {j}");
+                    }
+                    else
+                    {
+                        Assert.AreNotSame(instances[i], instances[j], $"i: {i}, j: {j}");
+                    }
+                }
+            }
         }
 
         private IInternalSession MockSession(string keyspace, bool coreEngine)

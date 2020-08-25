@@ -15,10 +15,9 @@
 
 using System;
 using System.Collections.Generic;
-
+using Cassandra.Collections;
 using Cassandra.DataStax.Graph;
 using Cassandra.DataStax.Graph.Internal;
-using Cassandra.Mapping.TypeConversion;
 using Cassandra.Serialization.Graph;
 using Cassandra.Serialization.Graph.GraphSON1;
 using Cassandra.Serialization.Graph.GraphSON2;
@@ -33,13 +32,10 @@ namespace Cassandra.Requests
 
         private static readonly Logger Logger = new Logger(typeof(GraphTypeSerializerFactory));
 
-        private static readonly TypeConverter DefaultTypeConverter = new DefaultTypeConverter();
-        
-        private static readonly IReadOnlyDictionary<string, IGraphSONDeserializer> EmptyDeserializersDict = 
-            new Dictionary<string, IGraphSONDeserializer>(0);
-        
-        private static readonly IReadOnlyDictionary<Type, IGraphSONSerializer> EmptySerializersDict = 
-            new Dictionary<Type, IGraphSONSerializer>(0);
+        private readonly GraphSON1TypeSerializer _graphSon1TypeSerializer = new GraphSON1TypeSerializer();
+
+        private readonly IThreadSafeDictionary<CacheKey, GraphTypeSerializer> _graphTypeSerializers = 
+            new CopyOnWriteDictionary<CacheKey, GraphTypeSerializer>();
 
         /// <inheritdoc />
         public GraphProtocol GetDefaultGraphProtocol(IInternalSession session, IGraphStatement statement, GraphOptions options)
@@ -69,9 +65,10 @@ namespace Cassandra.Requests
                 "Resolved graph protocol to {0}.", protocol.Value.GetInternalRepresentation());
             return protocol.Value;
         }
-        
+
         /// <inheritdoc />
         public IGraphTypeSerializer CreateSerializer(
+            IInternalSession session,
             IReadOnlyDictionary<GraphProtocol, IReadOnlyDictionary<string, IGraphSONDeserializer>> customDeserializers,
             IReadOnlyDictionary<GraphProtocol, IReadOnlyDictionary<Type, IGraphSONSerializer>> customSerializers,
             GraphProtocol graphProtocol,
@@ -80,20 +77,21 @@ namespace Cassandra.Requests
             switch (graphProtocol)
             {
                 case GraphProtocol.GraphSON1:
-                    return new GraphSON1TypeSerializer();
+                    return _graphSon1TypeSerializer;
+
                 case GraphProtocol.GraphSON2:
                 case GraphProtocol.GraphSON3:
                     IReadOnlyDictionary<Type, IGraphSONSerializer> serializers = null;
                     IReadOnlyDictionary<string, IGraphSONDeserializer> deserializers = null;
                     customDeserializers?.TryGetValue(graphProtocol, out deserializers);
                     customSerializers?.TryGetValue(graphProtocol, out serializers);
-                    return new GraphTypeSerializer(
-                        GraphTypeSerializerFactory.DefaultTypeConverter,
+                    var cacheKey = new CacheKey(session, graphProtocol, serializers, deserializers, deserializeGraphNodes);
+                    return _graphTypeSerializers.GetOrAdd(cacheKey, k => new GraphTypeSerializer(
+                        session,
                         graphProtocol,
                         deserializers,
                         serializers,
-                        deserializeGraphNodes);
-
+                        deserializeGraphNodes));
                 default:
                     throw new DriverInternalError($"Invalid graph protocol: {graphProtocol.GetInternalRepresentation()}");
             }
@@ -135,6 +133,53 @@ namespace Cassandra.Requests
             }
 
             return null;
+        }
+
+        private struct CacheKey : IEquatable<CacheKey>
+        {
+            public CacheKey(
+                ISession session, 
+                GraphProtocol protocol, 
+                IReadOnlyDictionary<Type, IGraphSONSerializer> serializers, 
+                IReadOnlyDictionary<string, IGraphSONDeserializer> deserializers, 
+                bool deserializeGraphNodes)
+            {
+                SessionCode = session?.GetHashCode() ?? 0;
+                GraphProtocol = protocol;
+                Serializers = serializers;
+                Deserializers = deserializers;
+                DeserializeGraphNodes = deserializeGraphNodes;
+            }
+
+            private int SessionCode { get; }
+
+            private GraphProtocol GraphProtocol { get; }
+
+            private IReadOnlyDictionary<Type, IGraphSONSerializer> Serializers { get; }
+
+            private IReadOnlyDictionary<string, IGraphSONDeserializer> Deserializers { get; }
+
+            private bool DeserializeGraphNodes { get; }
+
+            public bool Equals(CacheKey other)
+            {
+                return SessionCode == other.SessionCode 
+                       && GraphProtocol == other.GraphProtocol 
+                       && object.ReferenceEquals(Serializers, other.Serializers) 
+                       && object.ReferenceEquals(Deserializers, other.Deserializers) 
+                       && DeserializeGraphNodes == other.DeserializeGraphNodes;
+            }
+
+            public override bool Equals(object obj)
+            {
+                return obj is CacheKey other && Equals(other);
+            }
+
+            public override int GetHashCode()
+            {
+                return Utils.CombineHashCodeWithNulls(
+                    SessionCode, (int) GraphProtocol, Serializers, Deserializers, DeserializeGraphNodes);
+            }
         }
     }
 }

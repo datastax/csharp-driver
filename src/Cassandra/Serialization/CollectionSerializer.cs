@@ -96,11 +96,24 @@ namespace Cassandra.Serialization
             var openType = typeof(IEnumerable<>);
             return openType.MakeGenericType(valueType);
         }
+        internal Type GetClrTypeForGraphList(IColumnInfo typeInfo)
+        {
+            var valueType = GetClrTypeForGraph(((ListColumnInfo)typeInfo).ValueTypeCode, ((ListColumnInfo)typeInfo).ValueTypeInfo);
+            var openType = typeof(IEnumerable<>);
+            return openType.MakeGenericType(valueType);
+        }
 
         internal Type GetClrTypeForSet(IColumnInfo typeInfo)
         {
             var valueType = GetClrType(((SetColumnInfo)typeInfo).KeyTypeCode, ((SetColumnInfo)typeInfo).KeyTypeInfo);
             var openType = typeof(IEnumerable<>);
+            return openType.MakeGenericType(valueType);
+        }
+        
+        internal Type GetClrTypeForGraphSet(IColumnInfo typeInfo)
+        {
+            var valueType = GetClrTypeForGraph(((SetColumnInfo)typeInfo).KeyTypeCode, ((SetColumnInfo)typeInfo).KeyTypeInfo);
+            var openType = typeof(ISet<>);
             return openType.MakeGenericType(valueType);
         }
 

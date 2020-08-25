@@ -16,10 +16,12 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
+
 using Cassandra.DataStax.Graph.Internal;
 using Cassandra.Serialization.Graph.GraphSON2;
-using Cassandra.Serialization.Graph.GraphSON2.Dse;
+using Cassandra.Serialization.Graph.GraphSON2.Tinkerpop;
 using Cassandra.Serialization.Graph.GraphSON3.Dse;
+using Cassandra.Serialization.Graph.GraphSON3.Tinkerpop;
 using Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON;
 
 namespace Cassandra.Serialization.Graph.GraphSON3
@@ -38,9 +40,9 @@ namespace Cassandra.Serialization.Graph.GraphSON3
                 { typeof(Dictionary<object, object>), new MapSerializer() },
                 { typeof(IPAddress), new InetAddressSerializer() },
                 { typeof(Duration), new Duration3Serializer() },
-                { typeof(byte[]), new ByteBufferSerializer() }
+                { typeof(byte[]), new ByteBufferSerializer() },
             };
-        
+
         private static Dictionary<Type, IGraphSONSerializer> DefaultSerializers { get; } =
             new EmptyGraphSON2Writer().GetSerializers();
 

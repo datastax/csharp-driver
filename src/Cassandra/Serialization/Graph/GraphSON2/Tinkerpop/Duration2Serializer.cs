@@ -21,28 +21,30 @@
 
 #endregion
 
-using System;
-using Cassandra.DataStax.Graph;
-using Cassandra.DataStax.Graph.Internal;
 using Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON;
-using Newtonsoft.Json.Linq;
 
-namespace Cassandra.Serialization.Graph.GraphSON2.Structure
+namespace Cassandra.Serialization.Graph.GraphSON2.Tinkerpop
 {
-    internal class PropertyDeserializer : BaseStructureDeserializer, IGraphSONStructureDeserializer
+    internal class Duration2Serializer : StringBasedSerializer
     {
-        private const string Prefix = "g";
-        private const string TypeKey = "Property";
-        
-        public static string TypeName => 
-            GraphSONUtil.FormatTypeName(PropertyDeserializer.Prefix, PropertyDeserializer.TypeKey);
+        private const string Prefix = "gx";
+        private const string TypeKey = "Duration";
 
-        public dynamic Objectify(JToken token, Func<JToken, GraphNode> factory, IGraphSONReader reader)
+        public Duration2Serializer() : base(Duration2Serializer.Prefix, Duration2Serializer.TypeKey)
         {
-            return new Property(
-                ToString(token, "key", true),
-                ToGraphNode(factory, token, "value"),
-                ToGraphNode(factory, token, "element"));
+        }
+
+        public static string TypeName => GraphSONUtil.FormatTypeName(Duration2Serializer.Prefix, Duration2Serializer.TypeKey);
+
+        protected override string ToString(dynamic obj)
+        {
+            Duration tinkerpopInstant = obj;
+            return tinkerpopInstant.ToJavaDurationString();
+        }
+
+        protected override dynamic FromString(string str)
+        {
+            return Duration.Parse(str);
         }
     }
 }

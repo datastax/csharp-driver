@@ -60,6 +60,11 @@ namespace Cassandra.Serialization
             return _serializer.GetClrType(typeCode, typeInfo);
         }
 
+        public Type GetClrTypeForGraph(ColumnTypeCode typeCode, IColumnInfo typeInfo)
+        {
+            return _serializer.GetClrTypeForGraph(typeCode, typeInfo);
+        }
+
         public Type GetClrTypeForCustom(IColumnInfo typeInfo)
         {
             return _serializer.GetClrTypeForCustom(typeInfo);
@@ -73,6 +78,16 @@ namespace Cassandra.Serialization
         public bool IsAssignableFrom(CqlColumn column, object value)
         {
             return _serializer.IsAssignableFrom(column, value);
+        }
+
+        public UdtMap GetUdtMapByName(string name)
+        {
+            return _serializer.GetUdtMapByName(name);
+        }
+
+        public UdtMap GetUdtMapByType(Type type)
+        {
+            return _serializer.GetUdtMapByType(type);
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿//
+//
 //      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,29 +15,24 @@
 //
 
 using System;
-using System.Collections.Generic;
 
-namespace Cassandra.DataStax.Graph
+namespace Cassandra.IntegrationTests.TestDataTypes
 {
-    public static class GraphTypes
+    internal class Phone2 : Phone, IEquatable<Phone2>
     {
-        public static TinkerpopTimestamp AsTinkerpopTimestamp(DateTimeOffset dt)
+        public bool Equals(Phone2 other)
         {
-            return new TinkerpopTimestamp(dt);
-        }
-        
-        public static TinkerpopDate AsTinkerpopDate(DateTimeOffset dateTimeOffset)
-        {
-            return new TinkerpopDate(dateTimeOffset);
+            return base.Equals(other);
         }
 
-        /// <summary>
-        /// Note that T should implement Equals and GetHashCode so that the set implementation
-        /// can detect which elements are duplicates.
-        /// </summary>
-        public static ISet<T> AsSet<T>(IEnumerable<T> enumerable)
+        public override bool Equals(object obj)
         {
-            return new HashSet<T>(enumerable);
+            return base.Equals(obj);
+        }
+
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
         }
     }
 }

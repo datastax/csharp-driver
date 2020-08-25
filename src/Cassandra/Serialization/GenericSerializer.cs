@@ -69,6 +69,7 @@ namespace Cassandra.Serialization
         private readonly DictionarySerializer _dictionarySerializer = new DictionarySerializer();
         private readonly TupleSerializer _tupleSerializer = new TupleSerializer();
         private readonly Dictionary<ColumnTypeCode, Func<IColumnInfo, Type>> _defaultTypes = new Dictionary<ColumnTypeCode,Func<IColumnInfo,Type>>();
+        private readonly Dictionary<ColumnTypeCode, Func<IColumnInfo, Type>> _defaultGraphTypes;
         //Udt serializer can be specified
         private UdtSerializer _udtSerializer = new UdtSerializer();
 
@@ -81,6 +82,13 @@ namespace Cassandra.Serialization
             _udtSerializer.SetChildSerializer(this);
             InitDefaultTypes();
             InitTypeAdapters();
+            _defaultGraphTypes = new Dictionary<ColumnTypeCode, Func<IColumnInfo, Type>>(_defaultTypes)
+            {
+                [ColumnTypeCode.Set] = _collectionSerializer.GetClrTypeForGraphSet,
+                [ColumnTypeCode.List] = _collectionSerializer.GetClrTypeForGraphList,
+                [ColumnTypeCode.Map] = _dictionarySerializer.GetClrTypeForGraph,
+                [ColumnTypeCode.Tuple] = _tupleSerializer.GetClrTypeForGraph
+            };
             SetSpecificSerializers(typeSerializers);
         }
 
@@ -118,6 +126,15 @@ namespace Cassandra.Serialization
         public Type GetClrType(ColumnTypeCode typeCode, IColumnInfo typeInfo)
         {
             if (!_defaultTypes.TryGetValue(typeCode, out Func<IColumnInfo, Type> clrTypeHandler))
+            {
+                throw new ArgumentException($"No handler defined for type {typeCode}");
+            }
+            return clrTypeHandler(typeInfo);
+        }
+        
+        public Type GetClrTypeForGraph(ColumnTypeCode typeCode, IColumnInfo typeInfo)
+        {
+            if (!_defaultGraphTypes.TryGetValue(typeCode, out Func<IColumnInfo, Type> clrTypeHandler))
             {
                 throw new ArgumentException($"No handler defined for type {typeCode}");
             }
@@ -333,6 +350,16 @@ namespace Cassandra.Serialization
                 return value is IStructuralComparable;
             }
             return true;
+        }
+
+        public UdtMap GetUdtMapByName(string name)
+        {
+            return _udtSerializer.GetUdtMap(name);
+        }
+
+        public UdtMap GetUdtMapByType(Type type)
+        {
+            return _udtSerializer.GetUdtMap(type);
         }
 
         public byte[] Serialize(ProtocolVersion version, object value)

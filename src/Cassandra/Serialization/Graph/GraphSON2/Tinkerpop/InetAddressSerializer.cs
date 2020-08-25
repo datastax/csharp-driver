@@ -19,30 +19,35 @@
  * under the License.
  */
 
-#endregion
+#endregion License
 
-using System;
-using Cassandra.DataStax.Graph;
-using Cassandra.DataStax.Graph.Internal;
+using System.Net;
+
 using Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON;
-using Newtonsoft.Json.Linq;
 
-namespace Cassandra.Serialization.Graph.GraphSON2.Structure
+namespace Cassandra.Serialization.Graph.GraphSON2.Tinkerpop
 {
-    internal class PropertyDeserializer : BaseStructureDeserializer, IGraphSONStructureDeserializer
+    internal class InetAddressSerializer : StringBasedSerializer
     {
-        private const string Prefix = "g";
-        private const string TypeKey = "Property";
-        
-        public static string TypeName => 
-            GraphSONUtil.FormatTypeName(PropertyDeserializer.Prefix, PropertyDeserializer.TypeKey);
+        private const string Prefix = "gx";
+        private const string TypeKey = "InetAddress";
 
-        public dynamic Objectify(JToken token, Func<JToken, GraphNode> factory, IGraphSONReader reader)
+        public InetAddressSerializer() : base(InetAddressSerializer.Prefix, InetAddressSerializer.TypeKey)
         {
-            return new Property(
-                ToString(token, "key", true),
-                ToGraphNode(factory, token, "value"),
-                ToGraphNode(factory, token, "element"));
+        }
+
+        public static string TypeName =>
+            GraphSONUtil.FormatTypeName(InetAddressSerializer.Prefix, InetAddressSerializer.TypeKey);
+
+        protected override string ToString(dynamic obj)
+        {
+            IPAddress addr = obj;
+            return addr.ToString();
+        }
+
+        protected override dynamic FromString(string str)
+        {
+            return IPAddress.Parse(str);
         }
     }
 }

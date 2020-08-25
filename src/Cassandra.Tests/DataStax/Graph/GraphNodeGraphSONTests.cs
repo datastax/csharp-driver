@@ -26,7 +26,8 @@ using Cassandra.DataStax.Graph;
 using Cassandra.Geometry;
 using Cassandra.Mapping.TypeConversion;
 using Cassandra.Serialization.Graph.GraphSON2;
-
+using Cassandra.SessionManagement;
+using Moq;
 using NUnit.Framework;
 
 using Path = Cassandra.DataStax.Graph.Path;
@@ -330,13 +331,12 @@ namespace Cassandra.Tests.DataStax.Graph
             var node = GraphNodeGraphSONTests.GetGraphNode(json, protocol);
             if (stringValue == null)
             {
-                Assert.AreEqual(null, node.To<TinkerpopTimestamp?>());
+                Assert.AreEqual(null, node.To<DateTimeOffset?>());
             }
             else
             {
-                Assert.AreEqual(DateTimeOffset.Parse(stringValue, CultureInfo.InvariantCulture), node.To<TinkerpopTimestamp>());
-                Assert.AreEqual(DateTimeOffset.Parse(stringValue, CultureInfo.InvariantCulture), node.To<TinkerpopTimestamp?>());
-                Assert.AreEqual(new TinkerpopTimestamp(DateTimeOffset.Parse(stringValue, CultureInfo.InvariantCulture)), node.To<TinkerpopTimestamp>());
+                Assert.AreEqual(DateTimeOffset.Parse(stringValue, CultureInfo.InvariantCulture), node.To<DateTimeOffset>());
+                Assert.AreEqual(DateTimeOffset.Parse(stringValue, CultureInfo.InvariantCulture), node.To<DateTimeOffset?>());
             }
         }
 
@@ -524,7 +524,7 @@ namespace Cassandra.Tests.DataStax.Graph
         {
             return new GraphNode(new GraphSONNode(
                 new GraphTypeSerializer(
-                    new DefaultTypeConverter(), protocol, null, null, true),
+                    Mock.Of<IInternalSession>(), protocol, null, null, true),
                 "{\"result\": " + json + "}"));
         }
     }

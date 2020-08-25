@@ -18,26 +18,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 #endregion
 
 using System;
 using System.Collections.Generic;
-using Cassandra.DataStax.Graph;
 using Cassandra.DataStax.Graph.Internal;
 using Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON;
 
-namespace Cassandra.Serialization.Graph.GraphSON2.Tinkerpop
+namespace Cassandra.Serialization.Graph.GraphSON3.Tinkerpop
 {
-    internal class TinkerpopTimestampSerializer : IGraphSONSerializer
+    internal class ByteBufferSerializer : IGraphSONSerializer
     {
-        private static readonly DateTimeOffset UnixStart = new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero);
-        
         public Dictionary<string, dynamic> Dictify(dynamic objectData, IGraphSONWriter writer)
         {
-            TinkerpopTimestamp value = objectData;
-            var ticks = (value.AsDateTimeOffset() - TinkerpopTimestampSerializer.UnixStart).Ticks;
-            return GraphSONUtil.ToTypedValue("Timestamp", ticks / TimeSpan.TicksPerMillisecond);
+            byte[] value = objectData;
+            return GraphSONUtil.ToTypedValue("ByteBuffer", Convert.ToBase64String(value), "gx");
         }
     }
 }
