@@ -105,7 +105,7 @@ namespace Cassandra.IntegrationTests
                 ".create();\n" +
             "schema.vertexLabel('tuple_test')" + 
                 ".partitionBy('id', Int)" + 
-                ".property('tuple_property', tupleOf(typeOf('phone'), Int, UUID, listOf(Text), setOf(Int),mapOf(Text, Timestamp)))" +
+                ".property('tuple_property', tupleOf(typeOf('phone'), Instant, UUID, listOf(Text), setOf(Int),mapOf(Text, Int)))" +
                 ".create();\n";
 
         /// <summary>

@@ -987,13 +987,13 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                     UdtMap.For<Phone>(keyspace: CoreGraphTests.GraphName)
                           .Map(c => c.PhoneType, "phone_type"));
                 var phone = new Phone { Alias = "Wat2", Number = "2414817", PhoneType = PhoneType.Home };
-                var tuple = new Tuple<Phone, int, Guid, IEnumerable<string>, IEnumerable<int>, IDictionary<string, DateTimeOffset?>>(
+                var tuple = new Tuple<Phone, DateTimeOffset?, Guid, IEnumerable<string>, ISet<int>, IDictionary<string, int?>>(
                     phone,
-                    123,
+                    new DateTimeOffset(2020, 1, 29, 1, 1, 43, 953, TimeSpan.Zero), 
                     Guid.NewGuid(),
                     new[] { "123", "234" },
                     new HashSet<int> { 1, 2, 3 },
-                    new Dictionary<string, DateTimeOffset?> { { "One", DateTimeOffset.UtcNow }, { "Two", DateTimeOffset.UtcNow.AddDays(1) } });
+                    new Dictionary<string, int?> { { "One", 9922 }, { "Two", 1234567 } });
                 session.ExecuteGraph(new SimpleGraphStatement(
                     "g.addV('tuple_test')" +
                     ".property('id', 1313)" +
@@ -1003,8 +1003,15 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                     "g.with('allow-filtering').V().hasLabel('tuple_test').has('id', 1313).properties('tuple_property')"));
                 var resultArray = rs.ToArray();
                 Assert.AreEqual(1, resultArray.Length);
-                var dbTuple = resultArray[0].To<IVertexProperty>().Value.To<Tuple<Phone, int, Guid>>();
-                Assert.AreEqual(tuple, dbTuple);
+                var dbTuple = resultArray[0]
+                              .To<IVertexProperty>().Value
+                              .To<Tuple<Phone, DateTimeOffset?, Guid, IEnumerable<string>, ISet<int>, IDictionary<string, int?>>>();
+                Assert.AreEqual(tuple.Item1, dbTuple.Item1);
+                Assert.AreEqual(tuple.Item2, dbTuple.Item2);
+                Assert.AreEqual(tuple.Item3, dbTuple.Item3);
+                CollectionAssert.AreEqual(tuple.Item4, dbTuple.Item4);
+                CollectionAssert.AreEquivalent(tuple.Item5, dbTuple.Item5);
+                CollectionAssert.AreEquivalent(tuple.Item6, dbTuple.Item6);
             }
         }
 
