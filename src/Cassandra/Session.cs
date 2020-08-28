@@ -26,15 +26,11 @@ using Cassandra.Connections;
 using Cassandra.DataStax.Graph;
 using Cassandra.DataStax.Insights;
 using Cassandra.ExecutionProfiles;
-using Cassandra.Mapping.TypeConversion;
 using Cassandra.Metrics;
 using Cassandra.Metrics.Internal;
 using Cassandra.Observers.Abstractions;
 using Cassandra.Requests;
 using Cassandra.Serialization;
-using Cassandra.Serialization.Graph;
-using Cassandra.Serialization.Graph.GraphSON1;
-using Cassandra.Serialization.Graph.GraphSON2;
 using Cassandra.SessionManagement;
 using Cassandra.Tasks;
 
@@ -52,6 +48,7 @@ namespace Cassandra
         private readonly IMetricsManager _metricsManager;
         private readonly IObserverFactory _observerFactory;
         private readonly IInsightsClient _insightsClient;
+        private readonly IGraphTypeSerializerFactory _graphTypeSerializerFactory = new GraphTypeSerializerFactory();
 
         internal IInternalSession InternalRef => this;
 
@@ -196,7 +193,7 @@ namespace Cassandra
         {
             ShutdownAsync().GetAwaiter().GetResult();
         }
-        
+
         /// <inheritdoc />
         public async Task ShutdownAsync()
         {
@@ -238,10 +235,10 @@ namespace Cassandra
                 var handler = Configuration.RequestHandlerFactory.Create(this, _serializerManager.GetCurrentSerializer());
                 await handler.GetNextConnectionAsync(new Dictionary<IPEndPoint, Exception>()).ConfigureAwait(false);
             }
-            
+
             _insightsClient.Init();
         }
-        
+
         /// <summary>
         /// Creates the required connections on all hosts in the local DC.
         /// Returns a Task that is marked as completed after all pools were warmed up.
@@ -510,7 +507,7 @@ namespace Cassandra
                 pool.Dispose();
             }
         }
-        
+
         /// <inheritdoc />
         public GraphResultSet ExecuteGraph(IGraphStatement statement)
         {
@@ -533,7 +530,7 @@ namespace Cassandra
         public Task<GraphResultSet> ExecuteGraphAsync(IGraphStatement graphStatement, string executionProfileName)
         {
             return Configuration.RequestHandlerFactory
-                                .CreateGraphRequestHandler(this, Configuration.GraphTypeSerializerFactory)
+                                .CreateGraphRequestHandler(this, _graphTypeSerializerFactory)
                                 .SendAsync(graphStatement, InternalRef.GetRequestOptions(executionProfileName));
         }
     }

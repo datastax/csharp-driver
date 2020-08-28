@@ -181,8 +181,6 @@ namespace Cassandra
         internal bool MetricsEnabled { get; }
 
         internal IObserverFactoryBuilder ObserverFactoryBuilder { get; }
-
-        internal IGraphTypeSerializerFactory GraphTypeSerializerFactory { get; }
         
         internal static string DefaultApplicationVersion => string.Empty;
 
@@ -353,8 +351,7 @@ namespace Cassandra
                                ISchemaParserFactory schemaParserFactory = null,
                                ISupportedOptionsInitializerFactory supportedOptionsInitializerFactory = null,
                                IProtocolVersionNegotiator protocolVersionNegotiator = null,
-                               IServerEventsSubscriber serverEventsSubscriber = null,
-                               IGraphTypeSerializerFactory graphTypeSerializerFactory = null)
+                               IServerEventsSubscriber serverEventsSubscriber = null)
         {
             AddressTranslator = addressTranslator ?? throw new ArgumentNullException(nameof(addressTranslator));
             QueryOptions = queryOptions ?? throw new ArgumentNullException(nameof(queryOptions));
@@ -383,7 +380,6 @@ namespace Cassandra
             SupportedOptionsInitializerFactory = supportedOptionsInitializerFactory ?? new SupportedOptionsInitializerFactory();
             ProtocolVersionNegotiator = protocolVersionNegotiator ?? new ProtocolVersionNegotiator();
             ServerEventsSubscriber = serverEventsSubscriber ?? new ServerEventsSubscriber();
-            GraphTypeSerializerFactory = graphTypeSerializerFactory ?? new GraphTypeSerializerFactory();
 
             MetricsOptions = metricsOptions ?? new DriverMetricsOptions();
             MetricsProvider = driverMetricsProvider ?? new NullDriverMetricsProvider();

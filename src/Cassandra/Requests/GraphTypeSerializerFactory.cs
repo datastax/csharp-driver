@@ -85,7 +85,7 @@ namespace Cassandra.Requests
                     IReadOnlyDictionary<string, IGraphSONDeserializer> deserializers = null;
                     customDeserializers?.TryGetValue(graphProtocol, out deserializers);
                     customSerializers?.TryGetValue(graphProtocol, out serializers);
-                    var cacheKey = new CacheKey(session, graphProtocol, serializers, deserializers, deserializeGraphNodes);
+                    var cacheKey = new CacheKey(graphProtocol, serializers, deserializers, deserializeGraphNodes);
                     return _graphTypeSerializers.GetOrAdd(cacheKey, k => new GraphTypeSerializer(
                         session,
                         graphProtocol,
@@ -138,21 +138,17 @@ namespace Cassandra.Requests
         private struct CacheKey : IEquatable<CacheKey>
         {
             public CacheKey(
-                ISession session, 
                 GraphProtocol protocol, 
                 IReadOnlyDictionary<Type, IGraphSONSerializer> serializers, 
                 IReadOnlyDictionary<string, IGraphSONDeserializer> deserializers, 
                 bool deserializeGraphNodes)
             {
-                SessionCode = session?.GetHashCode() ?? 0;
                 GraphProtocol = protocol;
                 Serializers = serializers;
                 Deserializers = deserializers;
                 DeserializeGraphNodes = deserializeGraphNodes;
             }
-
-            private int SessionCode { get; }
-
+            
             private GraphProtocol GraphProtocol { get; }
 
             private IReadOnlyDictionary<Type, IGraphSONSerializer> Serializers { get; }
@@ -163,8 +159,7 @@ namespace Cassandra.Requests
 
             public bool Equals(CacheKey other)
             {
-                return SessionCode == other.SessionCode 
-                       && GraphProtocol == other.GraphProtocol 
+                return GraphProtocol == other.GraphProtocol 
                        && object.ReferenceEquals(Serializers, other.Serializers) 
                        && object.ReferenceEquals(Deserializers, other.Deserializers) 
                        && DeserializeGraphNodes == other.DeserializeGraphNodes;
@@ -178,7 +173,7 @@ namespace Cassandra.Requests
             public override int GetHashCode()
             {
                 return Utils.CombineHashCodeWithNulls(
-                    SessionCode, (int) GraphProtocol, Serializers, Deserializers, DeserializeGraphNodes);
+                    (int) GraphProtocol, Serializers, Deserializers, DeserializeGraphNodes);
             }
         }
     }

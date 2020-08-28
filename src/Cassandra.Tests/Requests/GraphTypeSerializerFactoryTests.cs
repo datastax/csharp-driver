@@ -122,7 +122,6 @@ namespace Cassandra.Tests.Requests
         public void Should_CacheSerializerInstances_When_SameParametersAreUsed()
         {
             var session = MockSession("graph", true);
-            var session2 = MockSession("graph", true);
             var factory = new GraphTypeSerializerFactory();
 
             var deserializers1 = new Dictionary<string, IGraphSONDeserializer>
@@ -181,7 +180,6 @@ namespace Cassandra.Tests.Requests
                     session, deserializersByProtocol, serializersByProtocol2, GraphProtocol.GraphSON2,
                     true),
                 factory.CreateSerializer(session, deserializersByProtocol2, serializersByProtocol, GraphProtocol.GraphSON2, true),
-                factory.CreateSerializer(session2, deserializersByProtocol, serializersByProtocol, GraphProtocol.GraphSON2, true),
                 factory.CreateSerializer(session, null, serializersByProtocol, GraphProtocol.GraphSON2, true),
                 factory.CreateSerializer(session, deserializersByProtocol, null, GraphProtocol.GraphSON2, true)
             };
