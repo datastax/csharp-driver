@@ -392,10 +392,6 @@ session.Execute(statement);
 
 Note: DataStax products do not support big-endian systems.
 
-## Feedback Requested
-
-**Help us focus our efforts!** Provide your input on the [Platform and Runtime Survey][survey] (we kept it short).
-
 ## Building and running the tests
 
 You can use Visual Studio or msbuild to build the solution.
@@ -429,7 +425,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 [policies]: https://docs.datastax.com/en/developer/csharp-driver/latest/features/tuning-policies/
 [upgrade-guide]: https://docs.datastax.com/en/developer/csharp-driver/latest/upgrade-guide/
 [upgrade-guide-dse]: https://docs.datastax.com/en/developer/csharp-driver/latest/upgrade-guide/upgrade-from-dse-driver/
-[survey]: https://goo.gl/forms/3BxcP8nKs6
 [dse-driver]: https://docs.datastax.com/en/developer/csharp-driver-dse/latest/
 [community]: https://community.datastax.com
 [dse]: https://www.datastax.com/products/datastax-enterprise
