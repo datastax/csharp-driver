@@ -137,6 +137,7 @@ namespace Cassandra.Tests.MetadataTests
             Assert.AreEqual(0, _target.GetQueue().Keyspaces.Count);
         }
         
+        [Repeat(1000)]
         [Test]
         public async Task Should_NotInvokeKeyspaceEventHandlers_When_AKeyspaceRefreshIsScheduled()
         {
@@ -162,6 +163,7 @@ namespace Cassandra.Tests.MetadataTests
             Assert.IsFalse(handlerTask4.IsCompleted);
         }
         
+        [Repeat(1000)]
         [Test]
         public async Task Should_NotInvokeAnyEventHandlers_When_AGlobalRefreshIsScheduled()
         {
