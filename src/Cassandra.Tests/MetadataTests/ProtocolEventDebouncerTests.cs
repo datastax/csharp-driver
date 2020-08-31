@@ -16,6 +16,7 @@
 
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -32,14 +33,21 @@ namespace Cassandra.Tests.MetadataTests
     public class ProtocolEventDebouncerTests
     {
         private ConcurrentQueue<Task> _tasks = new ConcurrentQueue<Task>();
+        private ProtocolEventDebouncer _target;
 
+        [TearDown]
+        public void TearDown()
+        {
+            _target?.ShutdownAsync().GetAwaiter().GetResult();
+        }
+        
         [Test]
         public async Task Should_OnlyCreateOneTimerAndNotInvokeChange_When_OneGlobalEventIsScheduled()
         {
             var mockResult = MockTimerFactory(10, 10000);
-            var target = mockResult.Debouncer;
+            _target = mockResult.Debouncer;
 
-            await target.ScheduleEventAsync(CreateProtocolEvent(), false).ConfigureAwait(false);
+            await _target.ScheduleEventAsync(CreateProtocolEvent(), false).ConfigureAwait(false);
 
             TestHelper.RetryAssert(() =>
             {
@@ -53,10 +61,10 @@ namespace Cassandra.Tests.MetadataTests
         public async Task Should_CreateTwoTimersAndDisposeFirstOne_When_TwoGlobalEventsAreScheduled()
         {
             var mockResult = MockTimerFactory(10, 10000);
-            var target = mockResult.Debouncer;
+            _target = mockResult.Debouncer;
 
-            await target.ScheduleEventAsync(CreateProtocolEvent(), false).ConfigureAwait(false);
-            await target.ScheduleEventAsync(CreateProtocolEvent(), false).ConfigureAwait(false);
+            await _target.ScheduleEventAsync(CreateProtocolEvent(), false).ConfigureAwait(false);
+            await _target.ScheduleEventAsync(CreateProtocolEvent(), false).ConfigureAwait(false);
 
             TestHelper.RetryAssert(() =>
             {
@@ -74,9 +82,9 @@ namespace Cassandra.Tests.MetadataTests
         public async Task Should_OnlyCreateOneTimerAndNotInvokeChange_When_OneKeyspaceEventIsScheduled(bool refreshEvent)
         {
             var mockResult = MockTimerFactory(10, 10000);
-            var target = mockResult.Debouncer;
+            _target = mockResult.Debouncer;
 
-            await target.ScheduleEventAsync(CreateProtocolEvent("ks", refreshEvent), false).ConfigureAwait(false);
+            await _target.ScheduleEventAsync(CreateProtocolEvent("ks", refreshEvent), false).ConfigureAwait(false);
 
             TestHelper.RetryAssert(() =>
             {
@@ -92,10 +100,10 @@ namespace Cassandra.Tests.MetadataTests
         public async Task Should_CreateTwoTimersAndDisposeFirstOne_When_TwoKeyspaceEventsAreScheduled(bool refreshEvent)
         {
             var mockResult = MockTimerFactory(10, 10000);
-            var target = mockResult.Debouncer;
+            _target = mockResult.Debouncer;
 
-            await target.ScheduleEventAsync(CreateProtocolEvent("ks", refreshEvent), false).ConfigureAwait(false);
-            await target.ScheduleEventAsync(CreateProtocolEvent("ks2", refreshEvent), false).ConfigureAwait(false);
+            await _target.ScheduleEventAsync(CreateProtocolEvent("ks", refreshEvent), false).ConfigureAwait(false);
+            await _target.ScheduleEventAsync(CreateProtocolEvent("ks2", refreshEvent), false).ConfigureAwait(false);
 
             TestHelper.RetryAssert(() =>
             {
@@ -105,18 +113,18 @@ namespace Cassandra.Tests.MetadataTests
             });
             await Task.Delay(100).ConfigureAwait(false);
             VerifyTimerChange(mockResult.Timers.Single(), 10, Times.Exactly(2));
-            Assert.AreEqual(2, target.GetQueue().Keyspaces.Count);
+            Assert.AreEqual(2, _target.GetQueue().Keyspaces.Count);
         }
 
         [Test]
         public async Task Should_DelayButNotAddKeyspaceEvent_When_AGlobalEventIsScheduled()
         {
             var mockResult = MockTimerFactory(10, 10000);
-            var target = mockResult.Debouncer;
+            _target = mockResult.Debouncer;
 
-            await target.ScheduleEventAsync(CreateProtocolEvent(), false).ConfigureAwait(false);
-            await target.ScheduleEventAsync(CreateProtocolEvent("ks", true), false).ConfigureAwait(false);
-            await target.ScheduleEventAsync(CreateProtocolEvent("ks2", false), false).ConfigureAwait(false);
+            await _target.ScheduleEventAsync(CreateProtocolEvent(), false).ConfigureAwait(false);
+            await _target.ScheduleEventAsync(CreateProtocolEvent("ks", true), false).ConfigureAwait(false);
+            await _target.ScheduleEventAsync(CreateProtocolEvent("ks2", false), false).ConfigureAwait(false);
 
             TestHelper.RetryAssert(() =>
             {
@@ -126,7 +134,65 @@ namespace Cassandra.Tests.MetadataTests
             });
             await Task.Delay(100).ConfigureAwait(false);
             VerifyTimerChange(mockResult.Timers.Single(), 10, Times.Exactly(3));
-            Assert.AreEqual(0, target.GetQueue().Keyspaces.Count);
+            Assert.AreEqual(0, _target.GetQueue().Keyspaces.Count);
+        }
+        
+        [Test]
+        public async Task Should_NotInvokeKeyspaceEventHandlers_When_AKeyspaceRefreshIsScheduled()
+        {
+            _target = new ProtocolEventDebouncer(new TaskBasedTimerFactory(), TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(20));
+
+            var callbacks = new List<Task>
+            {
+                _target.HandleEventAsync(CreateProtocolEvent("ks", true), false),
+                _target.HandleEventAsync(CreateProtocolEvent("ks2", true), false),
+                _target.HandleEventAsync(CreateProtocolEvent("ks", false), false),
+                _target.HandleEventAsync(CreateProtocolEvent("ks2", false), true)
+            };
+            var tasks = _tasks.ToArray();
+            var handlerTask1 = tasks[0];
+            var handlerTask2 = tasks[1];
+            var handlerTask3 = tasks[2];
+            var handlerTask4 = tasks[3];
+
+            await Task.WhenAll(callbacks).ConfigureAwait(false);
+            Assert.IsTrue(handlerTask1.IsCompleted);
+            Assert.IsTrue(handlerTask2.IsCompleted);
+            Assert.IsFalse(handlerTask3.IsCompleted);
+            Assert.IsFalse(handlerTask4.IsCompleted);
+        }
+        
+        [Test]
+        public async Task Should_NotInvokeAnyEventHandlers_When_AGlobalRefreshIsScheduled()
+        {
+            _target = new ProtocolEventDebouncer(new TaskBasedTimerFactory(), TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(20));
+
+            var callbacks = new List<Task>
+            {
+                _target.HandleEventAsync(CreateProtocolEvent("ks", true), false),
+                _target.HandleEventAsync(CreateProtocolEvent("ks2", true), false),
+                _target.HandleEventAsync(CreateProtocolEvent("ks", false), false),
+                _target.HandleEventAsync(CreateProtocolEvent("ks2", false), false),
+                _target.HandleEventAsync(CreateProtocolEvent(), false),
+                _target.HandleEventAsync(CreateProtocolEvent(), true),
+            };
+            var tasks = _tasks.ToArray();
+            var handlerTask1 = tasks[0];
+            var handlerTask2 = tasks[1];
+            var handlerTask3 = tasks[2];
+            var handlerTask4 = tasks[3];
+            var handlerTask5 = tasks[4];
+            var handlerTask6 = tasks[5];
+
+            await Task.WhenAll(callbacks).ConfigureAwait(false);
+            Assert.IsFalse(handlerTask1.IsCompleted);
+            Assert.IsFalse(handlerTask2.IsCompleted);
+            Assert.IsFalse(handlerTask3.IsCompleted);
+            Assert.IsFalse(handlerTask4.IsCompleted);
+
+            // last global event wins
+            Assert.IsFalse(handlerTask5.IsCompleted);
+            Assert.IsTrue(handlerTask6.IsCompleted);
         }
 
         private ProtocolEvent CreateProtocolEvent(string keyspace = null, bool? isRefreshEvent = null)

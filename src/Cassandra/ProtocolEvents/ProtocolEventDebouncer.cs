@@ -250,6 +250,8 @@ namespace Cassandra.ProtocolEvents
                             cb.TrySetException(ex);
                         }
                     }
+
+                    continue;
                 }
 
                 foreach (var ev in keyspace.Value.Events)
