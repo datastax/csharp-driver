@@ -297,8 +297,6 @@ namespace Cassandra.IntegrationTests.DataStax.Cloud
             Assert.IsFalse(string.IsNullOrWhiteSpace(scb.Config.CertificatePassword));
             Assert.IsTrue(scb.ClientCert.HasPrivateKey);
             Assert.AreEqual(30443, scb.Config.Port);
-            Assert.AreEqual("user1", scb.Config.Password);
-            Assert.AreEqual("user1", scb.Config.Username);
             Assert.AreEqual("localhost", scb.Config.Host);
         }
 

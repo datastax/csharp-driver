@@ -1245,16 +1245,9 @@ namespace Cassandra
 
             if (!_addedAuth)
             {
-                if (bundle.Config.Password != null && bundle.Config.Username != null)
-                {
-                    builder = builder.WithCredentials(bundle.Config.Username, bundle.Config.Password);
-                }
-                else
-                {
-                    throw new ArgumentException(
-                        "No credentials were provided. When using the secure connection bundle, " +
-                        "your cluster's credentials must be provided via the Builder.WithCredentials() method.");
-                }
+                throw new ArgumentException(
+                    "No credentials were provided. When using the secure connection bundle, " +
+                    "your cluster's credentials must be provided via the Builder.WithCredentials() method.");
             }
 
             if (!_addedLbp)
