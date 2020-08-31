@@ -105,10 +105,7 @@ namespace Cassandra.ProtocolEvents
                 throw new DriverInternalError("Could not schedule event in the ProtocolEventDebouncer.");
             }
 
-            // continuewith very important because otherwise continuations run synchronously
-            // https://stackoverflow.com/q/34658258/10896275
-            var task = callback.Task.ContinueWith(x => x.Result, TaskScheduler.Default);
-            await task.ConfigureAwait(false);
+            await callback.Task.ConfigureAwait(false);
         }
 
         /// <inheritdoc />
@@ -189,7 +186,7 @@ namespace Cassandra.ProtocolEvents
             // not necessary to enqueue within the exclusive scheduler
             Task.Run(async () =>
             {
-                bool sent = false;
+                var sent = false;
                 try
                 {
                     sent = await _processQueueBlock.SendAsync(queue).ConfigureAwait(false);

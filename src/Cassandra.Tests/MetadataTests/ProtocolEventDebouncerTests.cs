@@ -32,15 +32,21 @@ namespace Cassandra.Tests.MetadataTests
     [TestFixture]
     public class ProtocolEventDebouncerTests
     {
-        private ConcurrentQueue<Task> _tasks = new ConcurrentQueue<Task>();
+        private ConcurrentQueue<Task> _tasks;
         private ProtocolEventDebouncer _target;
+
+        [SetUp]
+        public void SetUp()
+        {
+            _tasks = new ConcurrentQueue<Task>();
+        }
 
         [TearDown]
         public void TearDown()
         {
             _target?.ShutdownAsync().GetAwaiter().GetResult();
         }
-        
+
         [Test]
         public async Task Should_OnlyCreateOneTimerAndNotInvokeChange_When_OneGlobalEventIsScheduled()
         {
@@ -136,8 +142,8 @@ namespace Cassandra.Tests.MetadataTests
             VerifyTimerChange(mockResult.Timers.Single(), 10, Times.Exactly(3));
             Assert.AreEqual(0, _target.GetQueue().Keyspaces.Count);
         }
-        
-        [Repeat(1000)]
+
+        [Repeat(100)]
         [Test]
         public async Task Should_NotInvokeKeyspaceEventHandlers_When_AKeyspaceRefreshIsScheduled()
         {
@@ -162,8 +168,8 @@ namespace Cassandra.Tests.MetadataTests
             Assert.IsFalse(handlerTask3.IsCompleted);
             Assert.IsFalse(handlerTask4.IsCompleted);
         }
-        
-        [Repeat(1000)]
+
+        [Repeat(100)]
         [Test]
         public async Task Should_NotInvokeAnyEventHandlers_When_AGlobalRefreshIsScheduled()
         {
@@ -200,19 +206,19 @@ namespace Cassandra.Tests.MetadataTests
         private ProtocolEvent CreateProtocolEvent(string keyspace = null, bool? isRefreshEvent = null)
         {
             var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.None);
-            _tasks.Enqueue(tcs.Task.ContinueWith(t => t.Result, TaskScheduler.Default));
+            _tasks.Enqueue(tcs.Task);
             if (keyspace == null)
             {
                 return new ProtocolEvent(() =>
                 {
-                    tcs.SetResult(true);
+                    tcs.TrySetResult(true);
                     return TaskHelper.Completed;
                 });
             }
 
             return new KeyspaceProtocolEvent(isRefreshEvent.Value, keyspace, () =>
             {
-                tcs.SetResult(true);
+                tcs.TrySetResult(true);
                 return TaskHelper.Completed;
             });
         }
