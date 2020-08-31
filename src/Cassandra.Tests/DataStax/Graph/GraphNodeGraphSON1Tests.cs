@@ -591,7 +591,7 @@ namespace Cassandra.Tests.DataStax.Graph
 
         private static GraphNode GetGraphNode(string json)
         {
-            return new GraphNode(new GraphSON1Node("{\"result\": " + json + "}"));
+            return new GraphNode("{\"result\": " + json + "}");
         }
     }
 }

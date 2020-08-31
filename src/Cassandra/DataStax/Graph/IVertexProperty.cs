@@ -27,6 +27,9 @@ namespace Cassandra.DataStax.Graph
     /// </summary>
     public interface IVertexProperty : IProperty, IElement, IEquatable<IVertexProperty>
     {
-        
+        /// <summary>
+        ///     The <see cref="IVertex" /> that owns this <see cref="IVertexProperty" />.
+        /// </summary>
+        IGraphNode Vertex { get; }
     }
 }

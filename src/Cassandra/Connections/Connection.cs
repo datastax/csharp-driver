@@ -806,8 +806,6 @@ namespace Cassandra.Connections
                 _connectionObserver.CreateOperationObserver()
             );
 
-            _writeQueue.Enqueue(state);
-
             if (state.TimeoutMillis > 0)
             {
                 // timer can be disposed while connection cancellation hasn't been invoked yet
@@ -824,7 +822,8 @@ namespace Cassandra.Connections
                     return null;
                 }
             }
-
+            
+            _writeQueue.Enqueue(state);
             RunWriteQueue();
             return state;
         }

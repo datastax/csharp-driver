@@ -16,7 +16,10 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using Cassandra.Serialization.Graph;
 using Cassandra.Serialization.Graph.GraphSON1;
+using Cassandra.Serialization.Graph.GraphSON2;
 using Newtonsoft.Json;
 
 namespace Cassandra.DataStax.Graph
@@ -88,33 +91,7 @@ namespace Cassandra.DataStax.Graph
 
         internal override IStatement GetIStatement(GraphOptions options)
         {
-            var parameters = ValuesDictionary ?? Values;
-            IStatement stmt;
-            if (parameters != null)
-            {
-                var jsonParams = JsonConvert.SerializeObject(parameters, GraphSON1ContractResolver.Settings);
-                stmt = new TargettedSimpleStatement(Query, jsonParams);
-            }
-            else
-            {
-                stmt = new TargettedSimpleStatement(Query);
-            }
-            //Set Cassandra.Statement properties
-            if (Timestamp != null)
-            {
-                stmt.SetTimestamp(Timestamp.Value);
-            }
-            var readTimeout = ReadTimeoutMillis != 0 ? ReadTimeoutMillis : options.ReadTimeoutMillis;
-            if (readTimeout <= 0)
-            {
-                // Infinite (-1) is not supported in the core driver, set an arbitrarily large int
-                readTimeout = int.MaxValue;
-            }
-            return stmt
-                .SetIdempotence(false)
-                .SetConsistencyLevel(ConsistencyLevel)
-                .SetReadTimeoutMillis(readTimeout)
-                .SetOutgoingPayload(options.BuildPayload(this));
+            return null;
         }
     }
 }

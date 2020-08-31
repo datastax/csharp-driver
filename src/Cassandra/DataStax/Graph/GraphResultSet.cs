@@ -18,8 +18,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+
 using Cassandra.Serialization.Graph.GraphSON1;
-using Cassandra.Serialization.Graph.GraphSON2;
 
 namespace Cassandra.DataStax.Graph
 {
@@ -30,34 +30,36 @@ namespace Cassandra.DataStax.Graph
     {
         private readonly RowSet _rs;
         private readonly Func<Row, GraphNode> _factory;
-        
+
         /// <summary>
         /// Gets the execution information for the query execution.
         /// </summary>
         public ExecutionInfo Info => _rs.Info;
 
         /// <summary>
+        /// Gets the graph protocol version that will be used when deserializing this result set.
+        /// To manually set the protocol version, use <see cref="GraphOptions.SetGraphProtocolVersion"/> or
+        /// <see cref="IGraphStatement.SetGraphProtocolVersion"/>.
+        /// </summary>
+        public GraphProtocol GraphProtocol { get; }
+
+        /// <summary>
         /// Creates a new instance of <see cref="GraphResultSet"/>.
         /// </summary>
-        public GraphResultSet(RowSet rs) : this(rs, null)
+        public GraphResultSet(RowSet rs) : this(rs, GraphProtocol.GraphSON1, GraphResultSet.GetGraphSON1Node)
         {
-
         }
 
-        private GraphResultSet(RowSet rs, string language)
+        private GraphResultSet(RowSet rs, GraphProtocol protocol, Func<Row, GraphNode> factory)
         {
             _rs = rs ?? throw new ArgumentNullException(nameof(rs));
-            Func<Row, GraphNode> factory = GraphResultSet.GetGraphSON1Node;
-            if (language == GraphOptions.GraphSON2Language)
-            {
-                factory = GraphResultSet.GetGraphSON2Node;
-            }
-            _factory = factory;
+            _factory = factory ?? throw new ArgumentNullException(nameof(factory));
+            GraphProtocol = protocol;
         }
 
-        internal static GraphResultSet CreateNew(RowSet rs, IGraphStatement statement, GraphOptions options)
+        internal static GraphResultSet CreateNew(RowSet rs, GraphProtocol protocol, Func<Row, GraphNode> rowParser)
         {
-            return new GraphResultSet(rs, statement.GraphLanguage ?? options.Language);
+            return new GraphResultSet(rs, protocol, rowParser);
         }
 
         /// <summary>
@@ -95,12 +97,7 @@ namespace Cassandra.DataStax.Graph
 
         private static GraphNode GetGraphSON1Node(Row row)
         {
-            return new GraphNode(new GraphSON1Node(row.GetValue<string>("gremlin")));
-        }
-
-        private static GraphNode GetGraphSON2Node(Row row)
-        {
-            return new GraphNode(new GraphSON2Node(row.GetValue<string>("gremlin")));
+            return new GraphNode(new GraphSON1Node(row.GetValue<string>("gremlin"), false));
         }
 
         IEnumerator IEnumerable.GetEnumerator()

@@ -18,24 +18,34 @@ namespace Cassandra.DataStax.Graph
     /// <summary>
     /// Internal default implementation of a property.
     /// </summary>
-    internal class Property : IProperty
+    internal class Property : IPropertyWithElement
     {
         public string Name { get; }
 
         public IGraphNode Value { get; }
 
-        internal Property(string name, IGraphNode value)
+        public IGraphNode Element { get; }
+
+        internal Property(string name, IGraphNode value, IGraphNode element)
         {
             Name = name;
             Value = value;
+            Element = element;
         }
 
         protected bool Equals(Property other)
         {
-            return string.Equals(Name, other.Name) && object.Equals(Value, other.Value);
+            return string.Equals(Name, other.Name) 
+                   && object.Equals(Value, other.Value) 
+                   && object.Equals(Element, other.Element);
         }
 
         public bool Equals(IProperty other)
+        {
+            return Equals((object) other);
+        }
+        
+        public bool Equals(IPropertyWithElement other)
         {
             return Equals((object) other);
         }
@@ -61,7 +71,10 @@ namespace Cassandra.DataStax.Graph
         {
             unchecked
             {
-                return ((Name != null ? Name.GetHashCode() : 0) * 397) ^ (Value != null ? Value.GetHashCode() : 0);
+                var hashCode = (Name != null ? Name.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (Value != null ? Value.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (Element != null ? Element.GetHashCode() : 0);
+                return hashCode;
             }
         }
     }

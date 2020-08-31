@@ -29,6 +29,8 @@ namespace Cassandra.Serialization
 
         Type GetClrType(ColumnTypeCode typeCode, IColumnInfo typeInfo);
 
+        Type GetClrTypeForGraph(ColumnTypeCode typeCode, IColumnInfo typeInfo);
+
         Type GetClrTypeForCustom(IColumnInfo typeInfo);
 
         ColumnTypeCode GetCqlType(Type type, out IColumnInfo typeInfo);
@@ -38,5 +40,9 @@ namespace Cassandra.Serialization
         /// It isn't more strict to support miscellaneous uses of the driver, like direct inputs of blobs and all that. (backward compatibility)
         /// </summary>
         bool IsAssignableFrom(CqlColumn column, object value);
+
+        UdtMap GetUdtMapByName(string name);
+
+        UdtMap GetUdtMapByType(Type type);
     }
 }

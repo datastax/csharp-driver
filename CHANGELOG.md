@@ -1,5 +1,13 @@
 # ChangeLog - DataStax C# Driver
 
+## 3.16.0
+
+TBD
+
+### Features
+
+*   [[CSHARP-702](https://datastax-oss.atlassian.net/browse/CSHARP-702)] - Support GraphSON3 for Core Graphs
+
 ## 3.15.1
 
 2020-07-27

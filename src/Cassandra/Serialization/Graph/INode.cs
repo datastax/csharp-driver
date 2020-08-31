@@ -28,6 +28,11 @@ namespace Cassandra.Serialization.Graph
     internal interface INode
     {
         /// <summary>
+        /// Whether to deserialize nodes to GraphNodes when the requested type is object.
+        /// </summary>
+        bool DeserializeGraphNodes { get; }
+
+        /// <summary>
         /// Returns true if the underlying value is an array.
         /// </summary>
         bool IsArray { get; }
@@ -77,9 +82,19 @@ namespace Cassandra.Serialization.Graph
         bool HasProperty(string name);
 
         /// <summary>
+        /// Returns the GraphSON type (@type property). Returns null if there isn't one.
+        /// </summary>
+        string GetGraphSONType();
+
+        /// <summary>
         /// Returns the representation of the node as an instance of the type provided.
         /// </summary>
         object To(Type type);
+
+        /// <summary>
+        /// Returns the representation of the node as an instance of the type provided.
+        /// </summary>
+        T To<T>();
 
         /// <summary>
         /// Returns the current representation as an Array

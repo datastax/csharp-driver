@@ -21,6 +21,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Cassandra.IntegrationTests.TestBase;
+using Cassandra.IntegrationTests.TestDataTypes;
 using Cassandra.Tests;
 
 namespace Cassandra.IntegrationTests.Core
@@ -28,13 +29,9 @@ namespace Cassandra.IntegrationTests.Core
     [Category(TestCategory.Short), Category(TestCategory.RealCluster), Category(TestCategory.ServerApi)]
     public class UdtMappingsTests : SharedClusterTest
     {
-        const string CqlType1 = "CREATE TYPE phone (alias text, number text, country_code int, verified_at timestamp, phone_type text)";
-        const string CqlType2 = "CREATE TYPE contact (first_name text, last_name text, birth_date timestamp, phones set<frozen<phone>>, emails set<text>, nullable_long bigint)";
         const string CqlTable1 = "CREATE TABLE users (id int PRIMARY KEY, main_phone frozen<phone>)";
         const string CqlTable2 = "CREATE TABLE users_contacts (id int PRIMARY KEY, contacts list<frozen<contact>>)";
 
-        const string CqlType3 = "CREATE TYPE udt_collections (Id int, NullableId int, IntEnumerable list<int>, IntEnumerableSet set<int>, NullableIntEnumerable list<int>, " +
-                                "NullableIntList list<int>, IntReadOnlyList list<int>, IntIList list<int>, IntList list<int>)";
         const string CqlTable3 = "CREATE TABLE table_udt_collections (id int PRIMARY KEY, nullable_id int, udt frozen<udt_collections>, udt_list list<frozen<udt_collections>>)";
 
         public override void OneTimeSetUp()
@@ -44,9 +41,9 @@ namespace Cassandra.IntegrationTests.Core
 
             base.OneTimeSetUp();
 
-            Session.Execute(UdtMappingsTests.CqlType1);
-            Session.Execute(UdtMappingsTests.CqlType2);
-            Session.Execute(UdtMappingsTests.CqlType3);
+            Session.Execute(Phone.CreateUdtCql);
+            Session.Execute(Contact.CreateUdtCql);
+            Session.Execute(UdtWithCollections.CreateUdtCql);
             Session.Execute(UdtMappingsTests.CqlTable1);
             Session.Execute(UdtMappingsTests.CqlTable2);
             Session.Execute(UdtMappingsTests.CqlTable3);
@@ -397,7 +394,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     FirstName = "Vincent", 
                     LastName = "Vega", 
-                    Phones = new List<Phone>
+                    Phones = new HashSet<Phone>
                     {
                         new Phone {Alias = "Wat", Number = "0000000000121220000"},
                         new Phone {Alias = "Office", Number = "123"}
@@ -600,193 +597,9 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        private class Contact : IEquatable<Contact>
-        {
-            public string FirstName { get; set; }
-
-            public string LastName { get; set; }
-
-            public DateTimeOffset? Birth { get; set; }
-
-            public string NotMappedProp { get; set; }
-
-            public IEnumerable<Phone> Phones { get; set; }
-
-            public IEnumerable<string> Emails { get; set; }
-
-            public long? NullableLong { get; set; }
-
-            public override bool Equals(object obj)
-            {
-                return Equals(obj as Contact);
-            }
-
-            public override int GetHashCode()
-            {
-                // We are not looking to use equality based on hashcode
-                return base.GetHashCode();
-            }
-
-            public bool Equals(Contact other)
-            {
-                if (ReferenceEquals(null, other)) return false;
-                if (ReferenceEquals(this, other)) return true;
-                return FirstName == other.FirstName && LastName == other.LastName && Birth == other.Birth && 
-                       NotMappedProp == other.NotMappedProp && TestHelper.SequenceEqual(Phones, other.Phones) &&
-                       TestHelper.SequenceEqual(Emails, other.Emails) && NullableLong == other.NullableLong;
-            }
-
-            public override string ToString()
-            {
-                return $"{nameof(FirstName)}: {FirstName}, {nameof(LastName)}: {LastName}, {nameof(Birth)}: {Birth}, " +
-                       $"{nameof(NotMappedProp)}: {NotMappedProp}, {nameof(Phones)}: {Phones}, " +
-                       $"{nameof(Emails)}: {Emails}, {nameof(NullableLong)}: {NullableLong}";
-            }
-        }
-        
-        private class UdtWithCollections : IEquatable<UdtWithCollections>
-        {
-            public int Id { get; set; }
-
-            public int? NullableId { get; set; }
-
-            public IEnumerable<int> IntEnumerable { get; set; }
-
-            public IEnumerable<int> IntEnumerableSet { get; set; }
-
-            public IEnumerable<int?> NullableIntEnumerable { get; set; }
-
-            public List<int?> NullableIntList { get; set; }
-
-            public IReadOnlyList<int> IntReadOnlyList { get; set; }
-
-            public IList<int> IntIList { get; set; }
-
-            public List<int> IntList { get; set; }
-
-            public bool Equals(UdtWithCollections other)
-            {
-                if (ReferenceEquals(null, other)) return false;
-                if (ReferenceEquals(this, other)) return true;
-                return Id == other.Id 
-                       && NullableId == other.NullableId
-                       && CollectionEquals(IntEnumerable, other.IntEnumerable) 
-                       && CollectionEquals(IntEnumerableSet, other.IntEnumerableSet) 
-                       && CollectionEquals(NullableIntEnumerable, other.NullableIntEnumerable) 
-                       && CollectionEquals(NullableIntList, other.NullableIntList) 
-                       && CollectionEquals(IntReadOnlyList, other.IntReadOnlyList) 
-                       && CollectionEquals(IntIList, other.IntIList) 
-                       && CollectionEquals(IntList, other.IntList);
-            }
-
-            private static bool CollectionEquals<T>(IEnumerable<T> list1, IEnumerable<T> list2)
-            {
-                if (list1 == null)
-                {
-                    return list2 == null;
-                }
-
-                if (list2 == null)
-                {
-                    return false;
-                }
-
-                return list1.SequenceEqual(list2);
-            }
-
-            public override bool Equals(object obj)
-            {
-                if (ReferenceEquals(null, obj)) return false;
-                if (ReferenceEquals(this, obj)) return true;
-                if (obj.GetType() != this.GetType()) return false;
-                return Equals((UdtWithCollections) obj);
-            }
-
-            public override int GetHashCode()
-            {
-                unchecked
-                {
-                    var hashCode = Id;
-                    hashCode = (hashCode * 397) ^ (NullableId != null ? NullableId.Value : 0);
-                    hashCode = (hashCode * 397) ^ (IntEnumerable != null ? IntEnumerable.GetHashCode() : 0);
-                    hashCode = (hashCode * 397) ^ (IntEnumerableSet != null ? IntEnumerableSet.GetHashCode() : 0);
-                    hashCode = (hashCode * 397) ^ (NullableIntEnumerable != null ? NullableIntEnumerable.GetHashCode() : 0);
-                    hashCode = (hashCode * 397) ^ (NullableIntList != null ? NullableIntList.GetHashCode() : 0);
-                    hashCode = (hashCode * 397) ^ (IntReadOnlyList != null ? IntReadOnlyList.GetHashCode() : 0);
-                    hashCode = (hashCode * 397) ^ (IntIList != null ? IntIList.GetHashCode() : 0);
-                    hashCode = (hashCode * 397) ^ (IntList != null ? IntList.GetHashCode() : 0);
-                    return hashCode;
-                }
-            }
-        }
-
-        private class Phone2 : Phone, IEquatable<Phone2>
-        {
-            public bool Equals(Phone2 other)
-            {
-                return base.Equals(other);
-            }
-
-            public override bool Equals(object obj)
-            {
-                return base.Equals(obj);
-            }
-            
-            public override int GetHashCode()
-            {
-                return base.GetHashCode();
-            }
-        }
-
-        private class Phone : IEquatable<Phone>
-        {
-            public string Alias { get; set; }
-
-            public string Number { get; set; }
-
-            public int CountryCode { get; set; }
-
-            public DateTime VerifiedAt { get; set; }
-
-            public PhoneType PhoneType { get; set; }
-
-            public override bool Equals(object obj)
-            {
-                if (ReferenceEquals(null, obj)) return false;
-                if (ReferenceEquals(this, obj)) return true;
-                if (obj.GetType() != GetType()) return false;
-                return Equals(obj as Phone);
-            }
-
-            public override int GetHashCode()
-            {
-                // We are not looking to use equality based on hashcode
-                return base.GetHashCode();
-            }
-
-            public bool Equals(Phone other)
-            {
-                if (ReferenceEquals(null, other)) return false;
-                if (ReferenceEquals(this, other)) return true;
-                return Alias == other.Alias && Number == other.Number && CountryCode == other.CountryCode &&
-                       VerifiedAt.Equals(other.VerifiedAt) && PhoneType == other.PhoneType;
-            }
-
-            public override string ToString()
-            {
-                return $"{nameof(Alias)}: {Alias}, {nameof(Number)}: {Number}, {nameof(CountryCode)}: {CountryCode}, " +
-                       $"{nameof(VerifiedAt)}: {VerifiedAt}, {nameof(PhoneType)}: {PhoneType}";
-            }
-        }
-
         private class DummyClass
         {
             
-        }
-
-        private enum PhoneType
-        {
-            Mobile, Home, Work
         }
     }
 }

@@ -20,6 +20,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Xml;
 
 namespace Cassandra
 {
@@ -129,6 +130,11 @@ namespace Cassandra
                 return result;
             }
             return Nanoseconds.CompareTo(other.Nanoseconds);
+        }
+
+        public static explicit operator Duration(TimeSpan ts)
+        {
+            return Duration.Parse(XmlConvert.ToString(ts));
         }
 
         /// <summary>

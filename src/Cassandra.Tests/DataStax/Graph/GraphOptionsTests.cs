@@ -25,7 +25,7 @@ namespace Cassandra.Tests.DataStax.Graph
         [Test]
         public void BuildPayload_Should_Use_Defaults()
         {
-            var options = new GraphOptions();
+            var options = new GraphOptions().SetGraphProtocolVersion(GraphProtocol.GraphSON1);
             var payload1 = options.BuildPayload(new SimpleGraphStatement("g.V()"));
             CollectionAssert.AreEqual(Encoding.UTF8.GetBytes("gremlin-groovy"), payload1["graph-language"]);
             CollectionAssert.AreEqual(Encoding.UTF8.GetBytes("g"), payload1["graph-source"]);
@@ -39,11 +39,13 @@ namespace Cassandra.Tests.DataStax.Graph
             var options = new GraphOptions()
                 .SetLanguage("lang1")
                 .SetName("graph1")
-                .SetSource("source1");
+                .SetSource("source1")
+                .SetGraphProtocolVersion(GraphProtocol.GraphSON2);
             var payload1 = options.BuildPayload(new SimpleGraphStatement("g.V()"));
             CollectionAssert.AreEqual(Encoding.UTF8.GetBytes("lang1"), payload1["graph-language"]);
             CollectionAssert.AreEqual(Encoding.UTF8.GetBytes("source1"), payload1["graph-source"]);
             CollectionAssert.AreEqual(Encoding.UTF8.GetBytes("graph1"), payload1["graph-name"]);
+            CollectionAssert.AreEqual(Encoding.UTF8.GetBytes("graphson-2.0"), payload1["graph-results"]);
             var payload2 = options.BuildPayload(new SimpleGraphStatement("g.V()"));
             Assert.AreSame(payload1, payload2);
         }
@@ -52,13 +54,17 @@ namespace Cassandra.Tests.DataStax.Graph
         public void BuildPayload_Should_Use_Statement_Options_When_Defined()
         {
             var options = new GraphOptions()
-                .SetSource("source1");
+                .SetSource("source1")
+                .SetGraphProtocolVersion(GraphProtocol.GraphSON2);
             var payload1 = options.BuildPayload(new SimpleGraphStatement("g.V()")
-                .SetGraphName("graph2"));
+                .SetGraphName("graph2")
+                .SetGraphProtocolVersion(GraphProtocol.GraphSON3));
             CollectionAssert.AreEqual(Encoding.UTF8.GetBytes("gremlin-groovy"), payload1["graph-language"]);
             CollectionAssert.AreEqual(Encoding.UTF8.GetBytes("source1"), payload1["graph-source"]);
             CollectionAssert.AreEqual(Encoding.UTF8.GetBytes("graph2"), payload1["graph-name"]);
-            var payload2 = options.BuildPayload(new SimpleGraphStatement("g.V()")
+            CollectionAssert.AreEqual(Encoding.UTF8.GetBytes("graphson-3.0"), payload1["graph-results"]);
+            var payload2 = new GraphOptions(options, GraphProtocol.GraphSON2)
+                .BuildPayload(new SimpleGraphStatement("g.V()")
                 .SetGraphName("graph2"));
             Assert.AreNotSame(payload1, payload2);
         }
@@ -67,10 +73,12 @@ namespace Cassandra.Tests.DataStax.Graph
         public void BuildPayload_Should_Not_Use_Default_Name_When_IsSystemQuery()
         {
             var options = new GraphOptions()
-                .SetName("graph1");
+                .SetName("graph1")
+                .SetGraphProtocolVersion(GraphProtocol.GraphSON1);
             var payload1 = options.BuildPayload(new SimpleGraphStatement("g.V()").SetSystemQuery());
             CollectionAssert.AreEqual(Encoding.UTF8.GetBytes("gremlin-groovy"), payload1["graph-language"]);
             CollectionAssert.AreEqual(Encoding.UTF8.GetBytes("g"), payload1["graph-source"]);
+            CollectionAssert.AreEqual(Encoding.UTF8.GetBytes("graphson-1.0"), payload1["graph-results"]);
             Assert.False(payload1.ContainsKey("graph-name"));
             var payload2 = options.BuildPayload(new SimpleGraphStatement("g.V()").SetSystemQuery());
             var payload3 = options.BuildPayload(new SimpleGraphStatement("g.V()"));
@@ -82,10 +90,12 @@ namespace Cassandra.Tests.DataStax.Graph
         public void BuildPayload_Should_Use_Same_Byte_Array_As_Default()
         {
             var options = new GraphOptions()
-                .SetName("graph1");
+                .SetName("graph1")
+                .SetGraphProtocolVersion(GraphProtocol.GraphSON1);
             var payload1 = options.BuildPayload(new SimpleGraphStatement("g.V()"));
             CollectionAssert.AreEqual(Encoding.UTF8.GetBytes("gremlin-groovy"), payload1["graph-language"]);
             CollectionAssert.AreEqual(Encoding.UTF8.GetBytes("g"), payload1["graph-source"]);
+            CollectionAssert.AreEqual(Encoding.UTF8.GetBytes("graphson-1.0"), payload1["graph-results"]);
             var payload2 = options.BuildPayload(new SimpleGraphStatement("g.V()").SetGraphName("abc"));
             Assert.AreNotSame(payload1, payload2);
             Assert.AreSame(payload1["graph-language"], payload2["graph-language"]);
@@ -101,12 +111,14 @@ namespace Cassandra.Tests.DataStax.Graph
                 .SetGraphLanguage("lang1")
                 .SetGraphName("name1")
                 .SetGraphReadConsistencyLevel(ConsistencyLevel.Two)
-                .SetGraphWriteConsistencyLevel(ConsistencyLevel.Three);
+                .SetGraphWriteConsistencyLevel(ConsistencyLevel.Three)
+                .SetGraphProtocolVersion(GraphProtocol.GraphSON2);
             Assert.AreEqual("source1", statement.GraphSource);
             Assert.AreEqual("lang1", statement.GraphLanguage);
             Assert.AreEqual("name1", statement.GraphName);
             Assert.AreEqual(ConsistencyLevel.Two, statement.GraphReadConsistencyLevel);
             Assert.AreEqual(ConsistencyLevel.Three, statement.GraphWriteConsistencyLevel);
+            Assert.AreEqual(GraphProtocol.GraphSON2, statement.GraphProtocolVersion);
         }
     }
 }

@@ -32,5 +32,7 @@ namespace Cassandra.Serialization
         ///// Adds a UDT mapping definition
         ///// </summary>
         void SetUdtMap(string name, UdtMap map);
+
+        IGenericSerializer GetGenericSerializer();
     }
 }

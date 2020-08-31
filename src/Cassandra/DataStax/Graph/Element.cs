@@ -82,7 +82,12 @@ namespace Cassandra.DataStax.Graph
         /// </summary>
         public IProperty GetProperty(string name)
         {
-            return Properties.TryGetValue(name, out var result) ? new Property(name, result) : null;
+            if (!Properties.TryGetValue(name, out var result))
+            {
+                return null;
+            }
+
+            return CastOrCreateProperty(name, result);
         }
 
         /// <summary>
@@ -90,7 +95,17 @@ namespace Cassandra.DataStax.Graph
         /// </summary>
         public IEnumerable<IProperty> GetProperties()
         {
-            return Properties.Select(item => (IProperty)new Property(item.Key, item.Value));
+            return Properties.Select(item => CastOrCreateProperty(item.Key, item.Value));
+        }
+
+        private IProperty CastOrCreateProperty(string name, GraphNode value)
+        {
+            if (value.GetGraphSONType() == "g:Property")
+            {
+                return value.To<IProperty>();
+            }
+
+            return new Property(name, value, null);
         }
     }
 }

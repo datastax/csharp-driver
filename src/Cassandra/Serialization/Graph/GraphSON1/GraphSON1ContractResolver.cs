@@ -15,6 +15,7 @@
 //
 
 using System;
+using System.Globalization;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 
@@ -27,7 +28,9 @@ namespace Cassandra.Serialization.Graph.GraphSON1
         /// </summary>
         internal static readonly JsonSerializerSettings Settings = new JsonSerializerSettings
         {
-            ContractResolver = new GraphSON1ContractResolver()
+            ContractResolver = new GraphSON1ContractResolver(),
+            DateParseHandling = DateParseHandling.None,
+            Culture = CultureInfo.InvariantCulture
         };
 
         protected GraphSON1ContractResolver()

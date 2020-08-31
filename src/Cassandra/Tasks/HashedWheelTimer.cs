@@ -276,9 +276,6 @@ namespace Cassandra.Tasks
                     return;
                 }
                 item.Next.Previous = item.Previous;
-                //there should not be any reference to the item in the bucket
-                //Break references to make GC easier
-                item.Dispose();
             }
 
             public IEnumerator<TimeoutItem> GetEnumerator()
@@ -304,7 +301,7 @@ namespace Cassandra.Tasks
         /// <summary>
         /// Represents an scheduled timeout
         /// </summary>
-        internal interface ITimeout : IDisposable
+        internal interface ITimeout
         {
             bool IsCancelled { get; }
 
@@ -371,28 +368,6 @@ namespace Cassandra.Tasks
                     return;
                 }
                 _action(_actionState);
-            }
-
-            public void Dispose()
-            {
-                DoDispose();
-                GC.SuppressFinalize(this);
-            }
-
-            private void DoDispose()
-            {
-                //Break references
-                Next = null;
-                Previous = null;
-                Bucket = null;
-                _actionState = null;
-                _action = null;
-                _timer = null;
-            }
-
-            ~TimeoutItem()
-            {
-                DoDispose();
             }
         }
     }

@@ -33,12 +33,15 @@ namespace Cassandra.DataStax.Graph
         /// <summary>
         /// Default value for graph language.
         /// </summary>
-        public const string DefaultLanguage = "gremlin-groovy";
+        public const string DefaultLanguage = GraphOptions.GremlinGroovy;
         
         /// <summary>
         /// Default value for graph language.
         /// </summary>
-        internal const string GraphSON2Language = "bytecode-json";
+        internal const string BytecodeJson = "bytecode-json";
+
+        
+        internal const string GremlinGroovy = "gremlin-groovy";
 
         /// <summary>
         /// Default value for graph source.
@@ -52,6 +55,7 @@ namespace Cassandra.DataStax.Graph
 
         private static class PayloadKey
         {
+            public const string Results = "graph-results";
             public const string Language = "graph-language";
             public const string Name = "graph-name";
             public const string Source = "graph-source";
@@ -68,6 +72,8 @@ namespace Cassandra.DataStax.Graph
         private long _writeConsistencyLevel = long.MinValue;
         private volatile int _readTimeout = GraphOptions.DefaultReadTimeout;
 
+        private volatile object _nullableGraphProtocol = null;
+
         /// <summary>
         /// The consistency levels names that are different from ConsistencyLevel.ToString().ToUpper()
         /// </summary>
@@ -81,7 +87,7 @@ namespace Cassandra.DataStax.Graph
             };
 
         /// <summary>
-        /// Gets the graph language to use in graph queries.
+        /// Gets the graph language to use in graph queries. The default is <see cref="DefaultLanguage"/>.
         /// </summary>
         public string Language
         {
@@ -134,6 +140,25 @@ namespace Cassandra.DataStax.Graph
         }
 
         /// <summary>
+        /// If not explicitly specified, the following rules apply:
+        /// <list type=""></list>
+        /// <list type="bullet">
+        /// <item>
+        /// <description>If <see cref="Name"/> is specified and is a Core graph,
+        /// set <see cref="GraphProtocol.GraphSON3"/>.</description>
+        /// </item>
+        /// <item>
+        /// <description>If <see cref="Language"/> is gremlin-groovy,
+        /// set <see cref="GraphProtocol.GraphSON1"/>.</description>
+        /// </item>
+        /// <item>
+        /// <description>Otherwise set <see cref="GraphProtocol.GraphSON2"/>.</description>
+        /// </item>
+        /// </list>
+        /// </summary>
+        public GraphProtocol? GraphProtocolVersion => (GraphProtocol?) _nullableGraphProtocol;
+
+        /// <summary>
         /// Gets the consistency level used for read queries
         /// </summary>
         public ConsistencyLevel? WriteConsistencyLevel
@@ -155,6 +180,21 @@ namespace Cassandra.DataStax.Graph
         /// </summary>
         public GraphOptions()
         {
+            RebuildDefaultPayload();
+        }
+
+        /// <summary>
+        /// Clone a graph options object, replacing the graph protocol version.
+        /// </summary>
+        internal GraphOptions(GraphOptions other, GraphProtocol version)
+        {
+            _language = other._language;
+            _name = other._name;
+            _source = other._source;
+            _readConsistencyLevel = Interlocked.Read(ref other._readConsistencyLevel);
+            _writeConsistencyLevel = Interlocked.Read(ref other._writeConsistencyLevel);
+            _readTimeout = other._readTimeout;
+            _nullableGraphProtocol = version;
             RebuildDefaultPayload();
         }
 
@@ -182,6 +222,16 @@ namespace Cassandra.DataStax.Graph
         public GraphOptions SetName(string name)
         {
             _name = name;
+            RebuildDefaultPayload();
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the graph protocol version to use in graph queries. See <see cref="GraphProtocolVersion"/>.
+        /// </summary>
+        public GraphOptions SetGraphProtocolVersion(GraphProtocol version)
+        {
+            _nullableGraphProtocol = version;
             RebuildDefaultPayload();
             return this;
         }
@@ -243,8 +293,15 @@ namespace Cassandra.DataStax.Graph
 
         internal IDictionary<string, byte[]> BuildPayload(IGraphStatement statement)
         {
+            if (statement.GraphProtocolVersion == null && GraphProtocolVersion == null)
+            {
+                throw new DriverInternalError(
+                    "Could not resolve graph protocol version. This is a bug, please report.");
+            }
+
             if (statement.GraphLanguage == null && statement.GraphName == null &&
-                statement.GraphSource == null && statement.ReadTimeoutMillis == 0)
+                statement.GraphSource == null && statement.ReadTimeoutMillis == 0
+                && statement.GraphProtocolVersion == null)
             {
                 if (!statement.IsSystemQuery || !_defaultPayload.ContainsKey(PayloadKey.Name))
                 {
@@ -254,6 +311,7 @@ namespace Cassandra.DataStax.Graph
                 }
             }
             var payload = new Dictionary<string, byte[]>();
+            Add(payload, PayloadKey.Results, statement.GraphProtocolVersion?.GetInternalRepresentation(), null);
             Add(payload, PayloadKey.Language, statement.GraphLanguage, null);
             if (!statement.IsSystemQuery)
             {
@@ -321,6 +379,13 @@ namespace Cassandra.DataStax.Graph
             if (ReadTimeoutMillis > 0)
             {
                 payload.Add(PayloadKey.RequestTimeout, GraphOptions.ToBuffer(ReadTimeoutMillis));
+            }
+
+            if (GraphProtocolVersion != null)
+            {
+                payload.Add(
+                    PayloadKey.Results, 
+                    GraphOptions.ToUtf8Buffer(GraphProtocolVersion.Value.GetInternalRepresentation()));
             }
             _defaultPayload = payload;
         }
