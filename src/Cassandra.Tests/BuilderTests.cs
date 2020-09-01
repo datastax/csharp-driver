@@ -364,6 +364,17 @@ namespace Cassandra.Tests
         }
         
         [Test]
+        public void Should_ThrowException_When_CredentialsAreNotProvidedWithBundle()
+        {
+            const string exceptionMsg = "No credentials were provided. When using the secure connection bundle";
+            var builder = Cluster.Builder()
+                                .WithCloudSecureConnectionBundle("bundle");
+
+            var ex = Assert.Throws<ArgumentException>(() => builder.Build());
+            Assert.IsTrue(ex.Message.Contains(exceptionMsg), ex.Message);
+        }
+
+        [Test]
         public void Should_ThrowException_When_SslOptionsAndContactPointAndBundleAreProvided()
         {
             const string exceptionMsg = "SSL options can not be set when a secure connection bundle is provided.";
