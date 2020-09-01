@@ -131,7 +131,7 @@ namespace Cassandra.IntegrationTests.DataStax.Auth
             {
                 var ex = Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
                 Assert.AreEqual(1, ex.Errors.Count);
-                Assert.IsTrue(ex.Message.Contains("requires authentication, but no authenticator found in Cluster configuration"));
+                Assert.IsTrue(ex.Message.Contains("Failed to login. Please re-try."), ex.Message);
                 Assert.IsInstanceOf<AuthenticationException>(ex.Errors.First().Value);
             }
         }
