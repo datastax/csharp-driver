@@ -211,6 +211,13 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 _ccm.CheckNativePortOpen(output, TestClusterManager.IpPrefix + nodeIdToStart);
             }
         }
+        
+        public void UpdateDseConfig(params string[] yamlChanges)
+        {
+            if (yamlChanges == null) return;
+            var joinedChanges = string.Join(" ", yamlChanges.Select(s => $"\"{s}\""));
+            _ccm.ExecuteCcm($"updatedseconf {joinedChanges}");
+        }
 
         public void UpdateConfig(params string[] yamlChanges)
         {

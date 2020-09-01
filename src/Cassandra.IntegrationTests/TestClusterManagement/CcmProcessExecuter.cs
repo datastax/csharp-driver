@@ -59,7 +59,6 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         public static ProcessOutput ExecuteProcess(string processName, string args, int timeout, IReadOnlyDictionary<string, string> envVariables = null, string workDir = null)
         {
             var output = new ProcessOutput();
-            //output.ExitCode = 0; // TODO GRAPH
             using (var process = new Process())
             {
                 process.StartInfo.FileName = processName;
