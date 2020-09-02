@@ -92,12 +92,14 @@ namespace Dse.ProtocolEvents
         public async Task HandleEventAsync(ProtocolEvent ev, bool processNow)
         {
             var callback = new TaskCompletionSource<bool>();
-            await _enqueueBlock.SendAsync(new Tuple<TaskCompletionSource<bool>, ProtocolEvent, bool>(callback, ev, processNow)).ConfigureAwait(false);
+            var sent = await _enqueueBlock.SendAsync(new Tuple<TaskCompletionSource<bool>, ProtocolEvent, bool>(callback, ev, processNow)).ConfigureAwait(false);
+            
+            if (!sent)
+            {
+                throw new DriverInternalError("Could not schedule event in the ProtocolEventDebouncer.");
+            }
 
-            // continuewith very important because otherwise continuations run synchronously
-            // https://stackoverflow.com/q/34658258/10896275
-            var task = callback.Task.ContinueWith(x => x.Result, TaskScheduler.Default);
-            await task.ConfigureAwait(false);
+            await callback.Task.ConfigureAwait(false);
         }
 
         /// <inheritdoc />
@@ -175,13 +177,22 @@ namespace Dse.ProtocolEvents
             // not necessary to enqueue within the exclusive scheduler
             Task.Run(async () =>
             {
+                var sent = false;
                 try
                 {
-                    await _processQueueBlock.SendAsync(queue).ConfigureAwait(false);
+                    sent = await _processQueueBlock.SendAsync(queue).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
                     ProtocolEventDebouncer.Logger.Error("EventDebouncer timer callback threw an exception.", ex);
+                }
+
+                if (!sent)
+                {
+                    foreach (var cb in queue.Callbacks)
+                    {
+                        cb?.TrySetException(new DriverInternalError("Could not process events in the ProtocolEventDebouncer."));
+                    }
                 }
             }).Forget();
         }
@@ -195,14 +206,20 @@ namespace Dse.ProtocolEvents
                     await queue.MainEvent.Handler().ConfigureAwait(false);
                     foreach (var cb in queue.Callbacks)
                     {
-                        cb?.TrySetResult(true);
+                        if (cb != null)
+                        {
+                            Task.Run(() => cb.TrySetResult(true)).Forget();
+                        }
                     }
                 }
                 catch (Exception ex)
                 {
                     foreach (var cb in queue.Callbacks)
                     {
-                        cb?.TrySetException(ex);
+                        if (cb != null)
+                        {
+                            Task.Run(() => cb.TrySetException(ex)).Forget();
+                        }
                     }
                 }
                 return;
@@ -217,16 +234,18 @@ namespace Dse.ProtocolEvents
                         await keyspace.Value.RefreshKeyspaceEvent.Handler().ConfigureAwait(false);
                         foreach (var cb in keyspace.Value.Events.Select(e => e.Callback).Where(e => e != null))
                         {
-                            cb.TrySetResult(true);
+                            Task.Run(() => cb.TrySetResult(true)).Forget();
                         }
                     }
                     catch (Exception ex)
                     {
                         foreach (var cb in keyspace.Value.Events.Select(e => e.Callback).Where(e => e != null))
                         {
-                            cb.TrySetException(ex);
+                            Task.Run(() => cb.TrySetException(ex)).Forget();
                         }
                     }
+
+                    continue;
                 }
 
                 foreach (var ev in keyspace.Value.Events)
@@ -234,11 +253,17 @@ namespace Dse.ProtocolEvents
                     try
                     {
                         await ev.KeyspaceEvent.Handler().ConfigureAwait(false);
-                        ev.Callback?.TrySetResult(true);
+                        if (ev.Callback != null)
+                        {
+                            Task.Run(() => ev.Callback.TrySetResult(true)).Forget();
+                        }
                     }
                     catch (Exception ex)
                     {
-                        ev.Callback?.TrySetException(ex);
+                        if (ev.Callback != null)
+                        {
+                            Task.Run(() => ev.Callback.TrySetException(ex)).Forget();
+                        }
                     }
                 }
             }
