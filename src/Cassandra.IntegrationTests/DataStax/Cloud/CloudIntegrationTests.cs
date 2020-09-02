@@ -46,7 +46,14 @@ namespace Cassandra.IntegrationTests.DataStax.Cloud
         [Test]
         public void Should_ThrowNoHostAvailable_When_MetadataServiceIsUnreachable()
         {
-            var ex = Assert.ThrowsAsync<NoHostAvailableException>(() => CreateSessionAsync("creds-v1-unreachable.zip", retries: 1));
+            var ex = Assert.ThrowsAsync<NoHostAvailableException>(
+                () => CreateSessionAsync(
+                    "creds-v1-unreachable.zip", 
+                    retries: 1, 
+                    act: 
+                    b => b
+                         .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(5000).SetConnectTimeoutMillis(10000))
+                         .WithQueryTimeout(5000)));
             Assert.IsTrue(ex.Message.Contains("https://192.0.2.255:30443/metadata"), ex.Message);
             Assert.IsTrue(ex.Message.Contains("There was an error fetching the metadata information"), ex.Message);
             Assert.IsTrue(ex.Message.Contains("Please make sure your cluster is not parked or terminated."), ex.Message);
@@ -129,22 +136,16 @@ namespace Cassandra.IntegrationTests.DataStax.Cloud
         [Test]
         public void Should_ThrowException_When_BundleDoesNotExist()
         {
-            var ex = Assert.Throws<InvalidOperationException>(() => ClusterBuilder().WithCloudSecureConnectionBundle("does-not-exist.zip").Build());
+            var ex = Assert.Throws<InvalidOperationException>(
+                () => ClusterBuilder()
+                      .WithCloudSecureConnectionBundle("does-not-exist.zip")
+                      .WithCredentials("user1", "user1").Build());
         }
-
-        [Test]
-        public void Should_SupportOverridingAuthProvider()
-        {
-            var cluster = CreateTemporaryCluster(act: b => b.WithCredentials("user1", "12345678"));
-            Assert.AreEqual(typeof(PlainTextAuthProvider), cluster.Configuration.AuthProvider.GetType());
-            var provider = (PlainTextAuthProvider)cluster.Configuration.AuthProvider;
-            Assert.AreEqual("user1", provider.Username);
-        }
-
+        
         [Test]
         public void Should_FailFast_When_ConfigJsonDoesNotHaveCredentialsAndUserDoesNotProvideCredentials()
         {
-            var ex = Assert.Throws<ArgumentException>(() => CreateTemporaryCluster("creds-v1-wo-creds.zip"));
+            var ex = Assert.Throws<ArgumentException>(() => CreateTemporaryCluster("creds-v1-wo-creds.zip", withCredentials: false));
             Assert.AreEqual(
                 ex.Message, 
                 "No credentials were provided. When using the secure connection bundle, " +
@@ -297,8 +298,6 @@ namespace Cassandra.IntegrationTests.DataStax.Cloud
             Assert.IsFalse(string.IsNullOrWhiteSpace(scb.Config.CertificatePassword));
             Assert.IsTrue(scb.ClientCert.HasPrivateKey);
             Assert.AreEqual(30443, scb.Config.Port);
-            Assert.AreEqual("user1", scb.Config.Password);
-            Assert.AreEqual("user1", scb.Config.Username);
             Assert.AreEqual("localhost", scb.Config.Host);
         }
 

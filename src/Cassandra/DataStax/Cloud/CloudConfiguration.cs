@@ -21,12 +21,6 @@ namespace Cassandra.DataStax.Cloud
     [JsonObject]
     internal class CloudConfiguration
     {
-        [JsonProperty("username")]
-        public string Username { get; private set; }
-
-        [JsonProperty("password")]
-        public string Password { get; private set; }
-
         [JsonProperty("host")]
         public string Host { get; private set; }
 

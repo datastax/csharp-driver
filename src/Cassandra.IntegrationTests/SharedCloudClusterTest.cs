@@ -77,7 +77,7 @@ namespace Cassandra.IntegrationTests
             throw last;
         }
 
-        private ICluster CreateCluster(string creds = "creds-v1.zip", Action<Builder> act = null)
+        private ICluster CreateCluster(string creds = "creds-v1.zip", Action<Builder> act = null, bool withCredentials = true)
         {
             var builder = ClusterBuilder()
                                    .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(22000).SetConnectTimeoutMillis(60000))
@@ -89,12 +89,18 @@ namespace Cassandra.IntegrationTests
                       .WithPoolingOptions(
                           new PoolingOptions().SetHeartBeatInterval(200))
                       .WithReconnectionPolicy(new ConstantReconnectionPolicy(100));
+
+            if (withCredentials)
+            {
+                builder = builder.WithCredentials("user1", "user1");
+            }
+
             return builder.Build();
         }
 
-        protected ICluster CreateTemporaryCluster(string creds = "creds-v1.zip", Action<Builder> act = null)
+        protected ICluster CreateTemporaryCluster(string creds = "creds-v1.zip", Action<Builder> act = null, bool withCredentials = true)
         {
-            var cluster = CreateCluster(creds, act);
+            var cluster = CreateCluster(creds, act, withCredentials);
             ClusterInstances.Add(cluster);
             return cluster;
         }
