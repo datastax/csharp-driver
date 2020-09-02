@@ -36,32 +36,11 @@ namespace Cassandra.IntegrationTests.Core
         // Test cluster object to be shared by tests in this class only
         private ITestCluster _testClusterForAuthTesting;
 
-        public void RetryUntilClusterAuthHealthy(ITestCluster cluster)
-        {
-            using (var c = ClusterBuilder()
-                           .AddContactPoint(cluster.InitialContactPoint)
-                           .WithAuthProvider(new PlainTextAuthProvider("wrong_username", "password"))
-                           .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(22000).SetConnectTimeoutMillis(60000))
-                           .Build())
-            {
-                TestHelper.RetryAssert(
-                    () =>
-                    {
-                        using (var _ = c.Connect())
-                        {
-                        }
-                    },
-                    500,
-                    300);
-            }
-        }
-
         [OneTimeSetUp]
         public void OneTimeSetUp()
         {
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
             _testClusterForAuthTesting = GetTestCcmClusterForAuthTests();
-            RetryUntilClusterAuthHealthy(_testClusterForAuthTesting);
         }
 
         [OneTimeTearDown]
