@@ -33,26 +33,6 @@ namespace Dse.Test.Integration.Auth
         private Lazy<ITestCluster> _testClusterForDseAuthTesting;
         private IDseCluster _cluster;
 
-        public static void RetryUntilClusterAuthHealthy(ITestCluster cluster)
-        {
-            using (var c = Cluster
-                                 .Builder()
-                                 .AddContactPoint(cluster.InitialContactPoint)
-                                 .WithAuthProvider(new PlainTextAuthProvider("wrong_username", "password"))
-                                 .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(22000).SetConnectTimeoutMillis(60000))
-                                 .Build())
-            {
-                TestHelper.RetryAssert(
-                    () =>
-                    {
-                        var ex = Assert.Throws<NoHostAvailableException>(() => c.Connect());
-                        Assert.IsInstanceOf<AuthenticationException>(ex.Errors.First().Value);
-                    },
-                    500,
-                    300);
-            }
-        }
-
         [OneTimeSetUp]
         public void OneTimeSetUp()
         {
@@ -60,9 +40,6 @@ namespace Dse.Test.Integration.Auth
             _testClusterForDseAuthTesting = new Lazy<ITestCluster>(() =>
             {
                 var cluster = GetTestCcmClusterForDseAuthTests();
-                //Wait 10 seconds as auth table needs to be created
-                Thread.Sleep(10000);
-                RetryUntilClusterAuthHealthy(cluster);
                 return cluster;
             });
         }
@@ -133,7 +110,7 @@ namespace Dse.Test.Integration.Auth
             {
                 var ex = Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
                 Assert.AreEqual(1, ex.Errors.Count);
-                Assert.IsTrue(ex.Message.Contains("requires authentication, but no authenticator found in Cluster configuration"));
+                Assert.IsTrue(ex.Message.Contains("Failed to login. Please re-try."), ex.Message);
                 Assert.IsInstanceOf<AuthenticationException>(ex.Errors.First().Value);
             }
         }

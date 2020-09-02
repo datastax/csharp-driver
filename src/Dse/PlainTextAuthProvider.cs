@@ -68,7 +68,7 @@ namespace Dse
         ///  authentication against Cassandra servers configured with
         ///  PasswordAuthenticator.
         /// </summary>
-        private class PlainTextAuthenticator : IAuthenticator
+        internal class PlainTextAuthenticator : IAuthenticator
         {
             private readonly byte[] _password;
             private readonly byte[] _username;

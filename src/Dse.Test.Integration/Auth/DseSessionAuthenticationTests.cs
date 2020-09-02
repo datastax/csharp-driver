@@ -32,9 +32,6 @@ namespace Dse.Test.Integration.Auth
             _testClusterForAuthTesting = new Lazy<ITestCluster>(() =>
             {
                 var cluster = GetTestCcmClusterForAuthTests();
-                //Wait 10 seconds as auth table needs to be created
-                Thread.Sleep(10000);
-                SessionAuthenticationTests.RetryUntilClusterAuthHealthy(cluster);
                 return cluster;
             });
         }

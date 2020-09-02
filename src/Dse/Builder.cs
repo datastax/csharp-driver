@@ -582,8 +582,8 @@ namespace Dse
         /// <returns>this Builder</returns>
         public Builder WithAuthProvider(IAuthProvider authProvider)
         {
+            _authProvider = authProvider ?? throw new ArgumentNullException(nameof(authProvider));
             _addedAuth = true;
-            _authProvider = authProvider;
             return this;
         }
 

@@ -137,6 +137,11 @@ namespace Dse.Test.Integration.TestClusterManagement
             ExecCcmCommand($"start --root --wait-for-binary-proto {jvmArgs}");
         }
 
+        public void UpdateDseConfig(params string[] yamlChanges)
+        {
+            throw new NotImplementedException();
+        }
+
         public void UpdateConfig(params string[] yamlChanges)
         {
             throw new System.NotImplementedException();
