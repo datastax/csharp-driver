@@ -56,8 +56,6 @@ namespace Dse.Test.Unit.Cloud
             var config = target.ParseConfig(stream);
             
             Assert.AreEqual(30443, config.Port);
-            Assert.AreEqual(randomString2, config.Password);
-            Assert.AreEqual(randomString, config.Username);
             Assert.AreEqual("ea20d9d5-f69e-46ad-8eb1-f32f33a7472e.us-east-1.dse.datastax.com", config.Host);
         }
         
@@ -76,8 +74,6 @@ namespace Dse.Test.Unit.Cloud
             var config = target.ParseConfig(stream);
             
             Assert.AreEqual(30443, config.Port);
-            Assert.IsNull(config.Password);
-            Assert.IsNull(config.Username);
             Assert.AreEqual("ea20d9d5-f69e-46ad-8eb1-f32f33a7472e.us-east-1.dse.datastax.com", config.Host);
         }
         
@@ -102,8 +98,6 @@ namespace Dse.Test.Unit.Cloud
             var config = target.ParseConfig(stream);
             
             Assert.AreEqual(30443, config.Port);
-            Assert.AreEqual(randomString2, config.Password);
-            Assert.AreEqual(randomString, config.Username);
             Assert.AreEqual("ea20d9d5-f69e-46ad-8eb1-f32f33a7472e.us-east-1.dse.datastax.com", config.Host);
         }
         

@@ -45,7 +45,14 @@ namespace Dse.Test.Integration.Cloud
         [Test]
         public void Should_ThrowNoHostAvailable_When_MetadataServiceIsUnreachable()
         {
-            var ex = Assert.ThrowsAsync<NoHostAvailableException>(() => CreateSessionAsync("creds-v1-unreachable.zip", retries: 1));
+            var ex = Assert.ThrowsAsync<NoHostAvailableException>(
+                () => CreateSessionAsync(
+                    "creds-v1-unreachable.zip", 
+                    retries: 1, 
+                    act: 
+                    b => b
+                         .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(5000).SetConnectTimeoutMillis(10000))
+                         .WithQueryTimeout(5000)));
             Assert.IsTrue(ex.Message.Contains("https://192.0.2.255:30443/metadata"), ex.Message);
             Assert.IsTrue(ex.Message.Contains("There was an error fetching the metadata information"), ex.Message);
         }
@@ -127,24 +134,21 @@ namespace Dse.Test.Integration.Cloud
         [Test]
         public void Should_ThrowException_When_BundleDoesNotExist()
         {
-            var ex = Assert.Throws<InvalidOperationException>(() => Dse.Cluster.Builder().WithCloudSecureConnectionBundle("does-not-exist.zip").Build());
+            var ex = Assert.Throws<InvalidOperationException>(
+                () => Dse.Cluster.Builder()
+                         .WithCloudSecureConnectionBundle("does-not-exist.zip")
+                         .WithCredentials("user1", "user1")
+                         .Build());
         }
-
+        
         [Test]
-        public void Should_SupportOverridingAuthProvider()
+        public void Should_FailFast_When_ConfigJsonDoesNotHaveCredentialsAndUserDoesNotProvideCredentials()
         {
-            var cluster = CreateTemporaryCluster(act: b => b.WithCredentials("user1", "12345678"));
-            Assert.AreEqual(typeof(PlainTextAuthProvider), cluster.Configuration.AuthProvider.GetType());
-            var provider = (PlainTextAuthProvider)cluster.Configuration.AuthProvider;
-            Assert.AreEqual("user1", provider.Username);
-        }
-
-        [Test]
-        public void Should_SupportLeavingAuthProviderUnset_When_ConfigJsonDoesNotHaveCredentials()
-        {
-            var cluster = CreateTemporaryCluster("creds-v1-wo-creds.zip");
-            Assert.AreEqual(typeof(NoneAuthProvider), cluster.Configuration.AuthProvider.GetType());
-            Assert.IsNull(cluster.Configuration.AuthInfoProvider);
+            var ex = Assert.Throws<ArgumentException>(() => CreateTemporaryCluster("creds-v1-wo-creds.zip", withCredentials: false));
+            Assert.AreEqual(
+                ex.Message, 
+                "No credentials were provided. When using the secure connection bundle, " +
+                "your cluster's credentials must be provided via the Builder.WithCredentials() method.");
         }
 
         [Test]
@@ -293,8 +297,6 @@ namespace Dse.Test.Integration.Cloud
             Assert.IsFalse(string.IsNullOrWhiteSpace(scb.Config.CertificatePassword));
             Assert.IsTrue(scb.ClientCert.HasPrivateKey);
             Assert.AreEqual(30443, scb.Config.Port);
-            Assert.AreEqual("user1", scb.Config.Password);
-            Assert.AreEqual("user1", scb.Config.Username);
             Assert.AreEqual("localhost", scb.Config.Host);
         }
 
@@ -402,24 +404,21 @@ namespace Dse.Test.Integration.Cloud
         [Test]
         public void Dse_Should_ThrowException_When_BundleDoesNotExist()
         {
-            var ex = Assert.Throws<InvalidOperationException>(() => Dse.DseCluster.Builder().WithCloudSecureConnectionBundle("does-not-exist.zip").Build());
+            var ex = Assert.Throws<InvalidOperationException>(
+                () => Dse.DseCluster.Builder()
+                         .WithCloudSecureConnectionBundle("does-not-exist.zip")
+                         .WithCredentials("user1", "user1")
+                         .Build());
         }
         
         [Test]
-        public void Dse_Should_SupportOverridingAuthProvider()
+        public void Dse_Should_FailFast_When_ConfigJsonDoesNotHaveCredentialsAndUserDoesNotProvideCredentials()
         {
-            var cluster = CreateTemporaryDseCluster(act: b => b.WithCredentials("user1", "12345678"));
-            Assert.AreEqual(typeof(DsePlainTextAuthProvider), cluster.Configuration.CassandraConfiguration.AuthProvider.GetType());
-            var provider = (DsePlainTextAuthProvider)cluster.Configuration.CassandraConfiguration.AuthProvider;
-            Assert.AreEqual("user1", provider.Username);
-        }
-
-        [Test]
-        public void Dse_Should_SupportLeavingAuthProviderUnset_When_ConfigJsonDoesNotHaveCredentials()
-        {
-            var cluster = CreateTemporaryDseCluster("creds-v1-wo-creds.zip");
-            Assert.AreEqual(typeof(NoneAuthProvider), cluster.Configuration.CassandraConfiguration.AuthProvider.GetType());
-            Assert.IsNull(cluster.Configuration.CassandraConfiguration.AuthInfoProvider);
+            var ex = Assert.Throws<ArgumentException>(() => CreateTemporaryDseCluster("creds-v1-wo-creds.zip", withCredentials: false));
+            Assert.AreEqual(
+                ex.Message, 
+                "No credentials were provided. When using the secure connection bundle, " +
+                "your cluster's credentials must be provided via the Builder.WithCredentials() method.");
         }
 
         [Test]
@@ -427,8 +426,8 @@ namespace Dse.Test.Integration.Cloud
         {
             var session = CreateDseSessionAsync().GetAwaiter().GetResult();
             Assert.IsNotNull(session.Cluster.Configuration.AuthProvider.GetType());
-            Assert.AreEqual(typeof(PlainTextAuthProvider), session.Cluster.Configuration.AuthProvider.GetType());
-            var provider = (PlainTextAuthProvider)session.Cluster.Configuration.AuthProvider;
+            Assert.AreEqual(typeof(DsePlainTextAuthProvider), session.Cluster.Configuration.AuthProvider.GetType());
+            var provider = (DsePlainTextAuthProvider)session.Cluster.Configuration.AuthProvider;
             Assert.AreEqual("user1", provider.Username);
         }
 
