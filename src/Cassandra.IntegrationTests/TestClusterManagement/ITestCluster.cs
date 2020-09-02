@@ -70,6 +70,11 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         /// Starts the cluster
         /// </summary>
         void Start(string[] jvmArgs = null);
+        
+        /// <summary>
+        /// Updates the dse yaml config
+        /// </summary>
+        void UpdateDseConfig(params string[] yamlChanges);
 
         /// <summary>
         /// Updates the yaml config
