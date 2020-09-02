@@ -105,10 +105,7 @@ namespace Cassandra.ProtocolEvents
                 throw new DriverInternalError("Could not schedule event in the ProtocolEventDebouncer.");
             }
 
-            // continuewith very important because otherwise continuations run synchronously
-            // https://stackoverflow.com/q/34658258/10896275
-            var task = callback.Task.ContinueWith(x => x.Result, TaskScheduler.Default);
-            await task.ConfigureAwait(false);
+            await callback.Task.ConfigureAwait(false);
         }
 
         /// <inheritdoc />
@@ -189,7 +186,7 @@ namespace Cassandra.ProtocolEvents
             // not necessary to enqueue within the exclusive scheduler
             Task.Run(async () =>
             {
-                bool sent = false;
+                var sent = false;
                 try
                 {
                     sent = await _processQueueBlock.SendAsync(queue).ConfigureAwait(false);
@@ -218,14 +215,20 @@ namespace Cassandra.ProtocolEvents
                     await queue.MainEvent.Handler().ConfigureAwait(false);
                     foreach (var cb in queue.Callbacks)
                     {
-                        cb?.TrySetResult(true);
+                        if (cb != null)
+                        {
+                            Task.Run(() => cb.TrySetResult(true)).Forget();
+                        }
                     }
                 }
                 catch (Exception ex)
                 {
                     foreach (var cb in queue.Callbacks)
                     {
-                        cb?.TrySetException(ex);
+                        if (cb != null)
+                        {
+                            Task.Run(() => cb.TrySetException(ex)).Forget();
+                        }
                     }
                 }
                 return;
@@ -240,16 +243,18 @@ namespace Cassandra.ProtocolEvents
                         await keyspace.Value.RefreshKeyspaceEvent.Handler().ConfigureAwait(false);
                         foreach (var cb in keyspace.Value.Events.Select(e => e.Callback).Where(e => e != null))
                         {
-                            cb.TrySetResult(true);
+                            Task.Run(() => cb.TrySetResult(true)).Forget();
                         }
                     }
                     catch (Exception ex)
                     {
                         foreach (var cb in keyspace.Value.Events.Select(e => e.Callback).Where(e => e != null))
                         {
-                            cb.TrySetException(ex);
+                            Task.Run(() => cb.TrySetException(ex)).Forget();
                         }
                     }
+
+                    continue;
                 }
 
                 foreach (var ev in keyspace.Value.Events)
@@ -257,11 +262,17 @@ namespace Cassandra.ProtocolEvents
                     try
                     {
                         await ev.KeyspaceEvent.Handler().ConfigureAwait(false);
-                        ev.Callback?.TrySetResult(true);
+                        if (ev.Callback != null)
+                        {
+                            Task.Run(() => ev.Callback.TrySetResult(true)).Forget();
+                        }
                     }
                     catch (Exception ex)
                     {
-                        ev.Callback?.TrySetException(ex);
+                        if (ev.Callback != null)
+                        {
+                            Task.Run(() => ev.Callback.TrySetException(ex)).Forget();
+                        }
                     }
                 }
             }
