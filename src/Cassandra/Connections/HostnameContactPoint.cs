@@ -85,9 +85,13 @@ namespace Cassandra.Connections
 
             if (hostEntry != null && hostEntry.AddressList.Length > 0)
             {
-                Cluster.Logger.Info("Contact point '{0}' resolved to multiple addresses. Will attempt to use them all if necessary: '{1}'",
-                    _hostname,
-                    string.Join(",", hostEntry.AddressList.Select(resolvedAddress => resolvedAddress.ToString())));
+                if (hostEntry.AddressList.Length > 1)
+                {
+                    Cluster.Logger.Info("Contact point '{0}' resolved to multiple ({1}) addresses. Will attempt to use them all if necessary: '{2}'",
+                        _hostname,
+                        hostEntry.AddressList.Length,
+                        string.Join(",", hostEntry.AddressList.Select(resolvedAddress => resolvedAddress.ToString())));
+                }
 
                 connectionEndPoints.AddRange(
                     hostEntry.AddressList.Select(resolvedAddress =>

@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
@@ -155,12 +156,58 @@ namespace Cassandra.Tests.Connections.Control
             Assert.AreEqual(1, resolved.Count);
             Assert.AreEqual("127.0.0.2", await resolved[0].GetServerNameAsync().ConfigureAwait(false));
         }
+        
+        [Test]
+        public async Task Should_NotLogMultipleAddressesWarning_When_SingleAddressIsResolved()
+        {
+            var testListener = new TestTraceListener();
+            Trace.Listeners.Add(testListener);
+            var level = Diagnostics.CassandraTraceSwitch.Level;
+            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;
+            try
+            {
+                var target = Create("cp1", "127.0.0.2");
+                var resolved = (await target.GetConnectionEndPointsAsync(false).ConfigureAwait(false)).ToList();
 
-        private HostnameContactPoint Create(string hostname, string ipAddress)
+                Assert.AreEqual(1, resolved.Count);
+                Assert.AreEqual(0, testListener.Queue.Count);
+            }
+            finally
+            {
+                Diagnostics.CassandraTraceSwitch.Level = level;
+                Trace.Listeners.Remove(testListener);
+            }
+        }
+        
+        [Test]
+        public async Task Should_LogMultipleAddressesWarning_When_TwoAddressesAreResolved()
+        {
+            var testListener = new TestTraceListener();
+            Trace.Listeners.Add(testListener);
+            var level = Diagnostics.CassandraTraceSwitch.Level;
+            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;
+            try
+            {
+                var target = Create("cp1", "127.0.0.2", "127.0.0.3");
+                var resolved = (await target.GetConnectionEndPointsAsync(false).ConfigureAwait(false)).ToList();
+
+                Assert.AreEqual(2, resolved.Count);
+                Assert.AreEqual(1, testListener.Queue.Count(msg => msg.Contains(
+                    "Contact point 'cp1' resolved to multiple (2) addresses. " +
+                    "Will attempt to use them all if necessary: '127.0.0.2,127.0.0.3'")));
+            }
+            finally
+            {
+                Diagnostics.CassandraTraceSwitch.Level = level;
+                Trace.Listeners.Remove(testListener);
+            }
+        }
+
+        private HostnameContactPoint Create(string hostname, params string[] ipAddresses)
         {
             _dnsResolver = Mock.Of<IDnsResolver>();
             Mock.Get(_dnsResolver).Setup(m => m.GetHostEntryAsync(hostname))
-                .ReturnsAsync(new IPHostEntry { AddressList = new[] { IPAddress.Parse(ipAddress) }});
+                .ReturnsAsync(new IPHostEntry { AddressList = ipAddresses.Select(IPAddress.Parse).ToArray() });
             var protocolOptions = new ProtocolOptions(
                 HostnameContactPointTests.Port, new SSLOptions().SetHostNameResolver(addr => addr.ToString()));
             var config = new TestConfigurationBuilder
