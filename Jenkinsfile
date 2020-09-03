@@ -464,7 +464,7 @@ pipeline {
             name 'SERVER_VERSION'
             values 'dse-5.1', // latest 5.1.x DataStax Enterprise
                   'dse-6.7', // latest 6.7.x DataStax Enterprise
-                  'dse-6.8.0' // 6.8.0 current DataStax Enterprise
+                  'dse-6.8' // 6.8 current DataStax Enterprise
           }
           axis {
             name 'DOTNET_VERSION'
@@ -479,7 +479,7 @@ pipeline {
             }
             axis {
               name 'SERVER_VERSION'
-              values 'dse-5.1', 'dse-6.8.0'
+              values 'dse-5.1', 'dse-6.8'
             }
           }
         }
@@ -572,11 +572,10 @@ pipeline {
         axes {
           axis {
             name 'SERVER_VERSION'
-            values 'dse-5.0', // Legacy DataStax Enterprise
-                  'dse-5.1', // Legacy DataStax Enterprise
+            values 'dse-5.1', // Legacy DataStax Enterprise
                   'dse-6.0', // Previous DataStax Enterprise
                   'dse-6.7', // Current DataStax Enterprise
-                  'dse-6.8.0'  // Current DataStax Enterprise
+                  'dse-6.8'  // Current DataStax Enterprise
           }
           axis {
             name 'DOTNET_VERSION'
@@ -591,7 +590,7 @@ pipeline {
             }
             axis {
               name 'SERVER_VERSION'
-              values 'dse-5.0', 'dse-6.0', 'dse-6.8.0'
+              values 'dse-6.0', 'dse-6.8'
             }
           }
           exclude {
@@ -601,7 +600,7 @@ pipeline {
             }
             axis {
               name 'SERVER_VERSION'
-              values 'dse-5.0', 'dse-6.0'
+              values 'dse-6.0'
             }
           }
         }
@@ -682,11 +681,10 @@ pipeline {
         axes {
           axis {
             name 'SERVER_VERSION'
-            values 'dse-5.0', // Legacy DataStax Enterprise
-                  'dse-5.1', // Legacy DataStax Enterprise
+            values 'dse-5.1', // Legacy DataStax Enterprise
                   'dse-6.0', // Previous DataStax Enterprise
                   'dse-6.7', // Current DataStax Enterprise
-                  'dse-6.8.0'  // Current DataStax Enterprise
+                  'dse-6.8'  // Current DataStax Enterprise
           }
           axis {
             name 'DOTNET_VERSION'
@@ -701,7 +699,7 @@ pipeline {
             }
             axis {
               name 'SERVER_VERSION'
-              values 'dse-5.0', 'dse-6.0'
+              values 'dse-6.0'
             }
           }
         }
