@@ -27,7 +27,7 @@ namespace Cassandra
         GraphSON1 = 1,
 
         /// <summary>
-        /// GraphSON v12.
+        /// GraphSON v2.
         /// </summary>
         GraphSON2 = 2,
 
