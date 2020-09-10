@@ -62,17 +62,20 @@ var cluster =
            .Build();
 ```
 
-## `Script` and `Fluent` APIs
+## Query Execution APIs
 
-There are 2 APIs that you can use to execute graph queries: `script` and `fluent`.
+There are 2 APIs that you can use to execute graph queries:
 
-With the `script` API, you pass a Gremlin script directly in a plain C# string via `SimpleGraphStatement` objects. Every example on this page uses the `script` API.
+- A `fluent`, builder-like API;
+- A Gremlin traversal **string** execution API.
+
+With the Gremlin traversal **string** execution API, you pass a Gremlin traversal directly in a plain C# string via `SimpleGraphStatement` objects. Every example on this page uses this API.
 
 To use the `fluent` API you must add an additional dependency to your application: the [DataStax C# Graph Extension]. This extension pulls in the `Gremlin.Net` nuget package which is the Apache Tinkerpop GLV (Gremlin Language Variant) for the .NET platform.
 
 For examples and more information on the `fluent` API, please take a look at the documentation for the [DataStax C# Graph Extension].
 
-If your application just uses the `script` API, then it is not necessary to install any other packages besides the core driver, i.e., `CassandraCSharpDriver`.
+If your application just uses the Gremlin traversal string execution API, then it is not necessary to install any other packages besides the core driver, i.e., `CassandraCSharpDriver`.
 
 ## Graph options
 
