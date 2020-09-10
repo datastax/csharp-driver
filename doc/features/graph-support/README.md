@@ -38,7 +38,7 @@ foreach (IVertex vertex in rs.To<IVertex>())
 
 Graphs that use the core engine (default in DSE 6.8+) only support GraphSON3. The driver automatically switches the default GraphSON version if it detects the core engine.
 
-However, this graph engine detection is based on the metadata. `In some scenarios you might experience some server errors where the message mentions that the GraphSON version is incompatible.` This happens when the graph has been newly created and is not yet in the metadata. It also happens when you don't provide the graph name.
+However, this graph engine detection is based on the metadata. In some scenarios **you might experience some server errors where the message mentions that the GraphSON version is incompatible.** This happens when the graph has been newly created and is not yet in the metadata. It also happens when you don't provide the graph name.
 
 If you are running into these errors you can set the GraphSON version explicitly:
 
