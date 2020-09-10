@@ -2,6 +2,26 @@
 
 Changelog for the DataStax Enterprise C# Driver.
 
+## 2.10.3
+
+2020-09-10
+
+### Improvements
+
+*   [[CSHARP-925](https://datastax-oss.atlassian.net/browse/CSHARP-925)] - Ignore credentials in secure connect bundle [DataStax Astra]
+*   [[CSHARP-934](https://datastax-oss.atlassian.net/browse/CSHARP-934)] - Optimize TimeoutItem cleanup
+
+### Bug fixes
+
+*   [[CSHARP-902](https://datastax-oss.atlassian.net/browse/CSHARP-902)] - ProtocolEventDebouncer calls refresh keyspace for the same keyspace multiple times
+*   [[CSHARP-906](https://datastax-oss.atlassian.net/browse/CSHARP-906)] - C# driver doesn't support DSE transitional authentication
+*   [[CSHARP-907](https://datastax-oss.atlassian.net/browse/CSHARP-907)] - Insights CPU info not available in netcoreapp3.1 on Windows
+*   [[CSHARP-908](https://datastax-oss.atlassian.net/browse/CSHARP-908)] - DateRangeSerializer precision issue
+
+### Documentation
+
+*   [[CSHARP-927](https://datastax-oss.atlassian.net/browse/CSHARP-927)] - Document Duration type
+
 ## 2.10.2
 
 2020-05-12
