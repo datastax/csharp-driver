@@ -2,11 +2,29 @@
 
 ## 3.16.0
 
-TBD
+2020-09-10
 
 ### Features
 
-*   [[CSHARP-702](https://datastax-oss.atlassian.net/browse/CSHARP-702)] - Support GraphSON3 for Core Graphs
+*   [[CSHARP-750](https://datastax-oss.atlassian.net/browse/CSHARP-750)] - Initial DataStax Graph (DSE 6.8) support on the unified C# driver
+
+### Improvements
+
+*   [[CSHARP-898](https://datastax-oss.atlassian.net/browse/CSHARP-898)] - Replace lz4net with K4os.Compression.LZ4 on net452
+*   [[CSHARP-925](https://datastax-oss.atlassian.net/browse/CSHARP-925)] - Ignore credentials in secure connect bundle [DataStax Astra]
+*   [[CSHARP-934](https://datastax-oss.atlassian.net/browse/CSHARP-934)] - Optimize TimeoutItem cleanup
+
+### Bug fixes
+
+*   [[CSHARP-902](https://datastax-oss.atlassian.net/browse/CSHARP-902)] - ProtocolEventDebouncer calls refresh keyspace for the same keyspace multiple times
+*   [[CSHARP-906](https://datastax-oss.atlassian.net/browse/CSHARP-906)] - C# driver doesn't support DSE transitional authentication
+*   [[CSHARP-907](https://datastax-oss.atlassian.net/browse/CSHARP-907)] - Insights CPU info not available in netcoreapp3.1 on Windows
+*   [[CSHARP-908](https://datastax-oss.atlassian.net/browse/CSHARP-908)] - DateRangeSerializer precision issue
+*   [[CSHARP-913](https://datastax-oss.atlassian.net/browse/CSHARP-913)] - Misleading log message: "contact point resolved to multiple addresses"
+
+### Documentation
+
+*   [[CSHARP-927](https://datastax-oss.atlassian.net/browse/CSHARP-927)] - Document Duration type
 
 ## 3.15.1
 
