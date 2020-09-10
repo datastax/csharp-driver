@@ -175,6 +175,8 @@ namespace Dse.Test.Unit.Insights.MessageFactories
             {
                 Assert.IsNull(act.Data.PlatformInfo.CentralProcessingUnits.Model);
             }
+#else
+            Assert.IsFalse(string.IsNullOrWhiteSpace(act.Data.PlatformInfo.CentralProcessingUnits.Model));
 #endif
             Assert.IsFalse(string.IsNullOrWhiteSpace(act.Data.PlatformInfo.OperatingSystem.Version));
             Assert.IsFalse(string.IsNullOrWhiteSpace(act.Data.PlatformInfo.OperatingSystem.Name));
@@ -182,9 +184,9 @@ namespace Dse.Test.Unit.Insights.MessageFactories
             Assert.IsFalse(string.IsNullOrWhiteSpace(act.Data.PlatformInfo.Runtime.RuntimeFramework));
 #if NETCOREAPP2_0
             Assert.AreEqual(".NET Standard 1.5", act.Data.PlatformInfo.Runtime.TargetFramework);
-#elif NETCOREAPP2_1
+#elif NETCOREAPP
             Assert.AreEqual(".NET Standard 2.0", act.Data.PlatformInfo.Runtime.TargetFramework);
-#elif NET452
+#else
             Assert.AreEqual(".NET Framework 4.5", act.Data.PlatformInfo.Runtime.TargetFramework);
 #endif
             Assert.Greater(

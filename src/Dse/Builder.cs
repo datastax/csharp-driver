@@ -582,8 +582,8 @@ namespace Dse
         /// <returns>this Builder</returns>
         public Builder WithAuthProvider(IAuthProvider authProvider)
         {
+            _authProvider = authProvider ?? throw new ArgumentNullException(nameof(authProvider));
             _addedAuth = true;
-            _authProvider = authProvider;
             return this;
         }
 
@@ -1056,6 +1056,13 @@ namespace Dse
             {
                 throw new ArgumentException("Contact points can not be set when a secure connection bundle is provided.");
             }
+            
+            if (!_addedAuth)
+            {
+                throw new ArgumentException(
+                    "No credentials were provided. When using the secure connection bundle, " +
+                    "your cluster's credentials must be provided via the Builder.WithCredentials() method.");
+            }
 
             SecureConnectionBundle bundle;
             try
@@ -1106,11 +1113,6 @@ namespace Dse
             
             var builder = this.SetContactPoints(clusterMetadata.ContactInfo.ContactPoints);
             
-            if (!_addedAuth && bundle.Config.Password != null && bundle.Config.Username != null)
-            {
-                builder = builder.WithCredentials(bundle.Config.Username, bundle.Config.Password);
-            }
-
             if (!_addedLbp)
             {
                 if (clusterMetadata.ContactInfo.LocalDc == null)

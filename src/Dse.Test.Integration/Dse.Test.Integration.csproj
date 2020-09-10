@@ -1,8 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks Condition="'$(BuildCoreOnly)' != 'True'">net461;net452;netcoreapp2.0;netcoreapp2.1</TargetFrameworks>
-    <TargetFrameworks Condition="'$(BuildCoreOnly)' == 'True' And '$(NETCORE_RUNTIME)' != '2.0'">netcoreapp2.0;netcoreapp2.1</TargetFrameworks>
+    <TargetFrameworks Condition="'$(BuildCoreOnly)' != 'True' And '$(BuildMonoOnly)' != 'True'">net462;net452;netcoreapp2.0;netcoreapp2.1;netcoreapp3.1</TargetFrameworks>
+    <TargetFrameworks Condition="'$(BuildCoreOnly)' == 'True' And '$(NETCORE_RUNTIME)' != '2.0'">netcoreapp2.0;netcoreapp2.1;netcoreapp3.1</TargetFrameworks>
     <TargetFramework Condition="'$(BuildCoreOnly)' == 'True' And '$(NETCORE_RUNTIME)' == '2.0'">netcoreapp2.0</TargetFramework>
+    <TargetFramework Condition="'$(BuildMonoOnly)' == 'True'">net462</TargetFramework>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <PublicSign>false</PublicSign>
     <AssemblyName>Dse.Test.Integration</AssemblyName>
@@ -26,18 +27,18 @@
       <SetTargetFramework>TargetFramework=net45</SetTargetFramework>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net461' ">
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net462' ">
     <ProjectReference Include="..\Extensions\Dse.AppMetrics\Dse.AppMetrics.csproj">
       <SetTargetFramework>TargetFramework=net461</SetTargetFramework>
     </ProjectReference>
     <ProjectReference Include="..\Dse.Test.Unit\Dse.Test.Unit.csproj">
-      <SetTargetFramework>TargetFramework=net452</SetTargetFramework>
+      <SetTargetFramework>TargetFramework=net462</SetTargetFramework>
     </ProjectReference>
     <ProjectReference Include="..\Dse\Dse.csproj">
       <SetTargetFramework>TargetFramework=net45</SetTargetFramework>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.1' ">
+  <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.1' Or '$(TargetFramework)' == 'netcoreapp3.1' ">
     <ProjectReference Include="..\Extensions\Dse.AppMetrics\Dse.AppMetrics.csproj">
       <SetTargetFramework>TargetFramework=netstandard2.0</SetTargetFramework>
     </ProjectReference>
@@ -59,13 +60,7 @@
       <SetTargetFramework>TargetFramework=netstandard1.5</SetTargetFramework>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net461' ">
-    <PackageReference Include="App.Metrics" Version="3.2.0" />
-  </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.0' ">
-    <PackageReference Include="App.Metrics" Version="3.2.0" />
-  </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.1' ">
+  <ItemGroup Condition=" '$(TargetFramework)' != 'net452' ">
     <PackageReference Include="App.Metrics" Version="3.2.0" />
   </ItemGroup>
   <ItemGroup>
@@ -85,15 +80,12 @@
     <PackageReference Include="System.ValueTuple" Version="4.5.0" />
     <PackageReference Include="XunitXml.TestLogger" Version="2.1.26" />
   </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net452' ">
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net452' Or '$(TargetFramework)' == 'net462'">
     <PackageReference Include="JetBrains.DotMemoryUnit" Version="2.3.20160517.113140" />
     <Reference Include="System.Data" />
     <Reference Include="System.Numerics" />
     <Reference Include="System" />
     <Reference Include="Microsoft.CSharp" />
-  </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net461' ">
-    <PackageReference Include="JetBrains.DotMemoryUnit" Version="2.3.20160517.113140" />
   </ItemGroup>
   <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.1' ">
     <PackageReference Include="System.Net.NameResolution" Version="4.3.0" />
@@ -101,7 +93,7 @@
   <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.0' ">
     <PackageReference Include="System.Net.NameResolution" Version="4.3.0" />
   </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net461' ">
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net462' ">
     <Reference Include="System" />
   </ItemGroup>
   <ItemGroup>

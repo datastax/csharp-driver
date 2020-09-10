@@ -12,10 +12,15 @@ branches:
 
 matrix:
   include:
+    - dotnet: 3.1.300
+      env: TARGETF="netcoreapp3.1" BuildCoreOnly=True NETCORE_RUNTIME="3.1"
     - dotnet: 2.2.204
       env: TARGETF="netcoreapp2.1" NETCORE_RUNTIME=2.1 BuildCoreOnly=True
     - dotnet: 2.1.202
       env: TARGETF="netcoreapp2.0" NETCORE_RUNTIME=2.0 BuildCoreOnly=True
+
+before_install:
+  - sudo apt-get -y install dotnet-sdk-3.1
 
 script:
   - dotnet --info

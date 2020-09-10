@@ -176,7 +176,6 @@ namespace Dse.Test.Unit
                 Assert.NotNull(timeout2.Bucket);
                 timeout2.Cancel();
                 Thread.Sleep(800);
-                Assert.Null(timeout2.Bucket);
                 Assert.AreEqual(5, flag);
                 timer.Dispose();
             }

@@ -8,7 +8,7 @@ namespace Dse.Test.Unit.Auth
     [TestFixture]
     public class DseGssapiAuthProviderTests
     {
-#if NETCOREAPP2_1
+#if NETCOREAPP && !NETCOREAPP2_0
         [WinOnly]
         [Test]
         public void When_NetStandard20AndWindows_Should_NotThrowException()
