@@ -29,8 +29,7 @@ namespace Cassandra.MetadataHelpers
         public NetworkTopologyStrategy(IReadOnlyDictionary<string, ReplicationFactor> replicationFactors)
         {
             _replicationFactorsSet = new SortedSet<DatacenterReplicationFactor>(
-                replicationFactors.Select(rf => new DatacenterReplicationFactor(rf.Key, rf.Value)), 
-                DatacenterReplicationFactorComparer.Instance);
+                replicationFactors.Select(rf => new DatacenterReplicationFactor(rf.Key, rf.Value)));
 
             _replicationFactorsMap = replicationFactors;
             _hashCode = NetworkTopologyStrategy.ComputeHashCode(_replicationFactorsSet);
