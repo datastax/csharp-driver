@@ -18,7 +18,7 @@ using System;
 
 namespace Cassandra.MetadataHelpers
 {
-    internal struct DatacenterReplicationFactor : IEquatable<DatacenterReplicationFactor>
+    internal struct DatacenterReplicationFactor : IEquatable<DatacenterReplicationFactor>, IComparable<DatacenterReplicationFactor>
     {
         private readonly int _hashCode;
 
@@ -35,7 +35,7 @@ namespace Cassandra.MetadataHelpers
         
         public override bool Equals(object obj)
         {
-            if (object.ReferenceEquals(null, obj))
+            if (obj == null)
             {
                 return false;
             }
@@ -58,6 +58,14 @@ namespace Cassandra.MetadataHelpers
         private static int ComputeHashCode(string datacenter, ReplicationFactor replicationFactor)
         {
             return Utils.CombineHashCode(new object[] { datacenter, replicationFactor });
+        }
+
+        public int CompareTo(DatacenterReplicationFactor other)
+        {
+            var dcComparison = string.Compare(Datacenter, other.Datacenter, StringComparison.Ordinal);
+            return dcComparison != 0 
+                ? dcComparison
+                : ReplicationFactor.CompareTo(other.ReplicationFactor);
         }
     }
 }

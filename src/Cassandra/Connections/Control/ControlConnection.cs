@@ -370,6 +370,8 @@ namespace Cassandra.Connections.Control
                             throw new ObjectDisposedException("Control Connection has been disposed.", ex);
                         }
 
+                        ControlConnection.Logger.Info("Failed to connect to {0}. Exception: {1}", endPoint.EndpointFriendlyName, ex.ToString());
+
                         // There was a socket or authentication exception or an unexpected error
                         triedHosts[endPoint.GetHostIpEndPointWithFallback()] = ex;
                     }

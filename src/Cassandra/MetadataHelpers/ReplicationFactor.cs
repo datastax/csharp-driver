@@ -17,7 +17,7 @@ using System;
 
 namespace Cassandra.MetadataHelpers
 {
-    internal class ReplicationFactor : IEquatable<ReplicationFactor>
+    internal class ReplicationFactor : IEquatable<ReplicationFactor>, IComparable<ReplicationFactor>
     {
         private ReplicationFactor(int allReplicas, int transientReplicas)
         {
@@ -72,7 +72,7 @@ namespace Cassandra.MetadataHelpers
 
         public bool Equals(ReplicationFactor other)
         {
-            if (object.ReferenceEquals(null, other))
+            if (other == null)
             {
                 return false;
             }
@@ -88,30 +88,30 @@ namespace Cassandra.MetadataHelpers
 
         public override bool Equals(object obj)
         {
-            if (object.ReferenceEquals(null, obj))
-            {
-                return false;
-            }
-
-            if (object.ReferenceEquals(this, obj))
-            {
-                return true;
-            }
-
-            if (obj.GetType() != GetType())
-            {
-                return false;
-            }
-
-            return Equals((ReplicationFactor) obj);
+            return Equals(obj as ReplicationFactor);
         }
 
         public override int GetHashCode()
         {
-            unchecked
+            return Utils.CombineHashCode(new object[] { AllReplicas, TransientReplicas });
+        }
+
+        public int CompareTo(ReplicationFactor other)
+        {
+            if (object.ReferenceEquals(this, other))
             {
-                return (AllReplicas * 397) ^ TransientReplicas;
+                return 0;
             }
+
+            if (other == null)
+            {
+                return 1;
+            }
+
+            var allReplicasComparison = AllReplicas.CompareTo(other.AllReplicas);
+            return allReplicasComparison != 0 
+                ? allReplicasComparison 
+                : TransientReplicas.CompareTo(other.TransientReplicas);
         }
     }
 }
