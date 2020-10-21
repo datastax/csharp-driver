@@ -151,18 +151,6 @@ namespace Dse
             foreach (var ks in keyspaces)
             {
                 TokenMap.UpdateKeyspace(ks, tokenToHosts, ring, primaryReplicas, ksTokensCache, datacenters, numberOfHostsWithTokens);
-                IReadOnlyDictionary<IToken, ISet<Host>> replicas;
-                if (ks.Strategy == null)
-                {
-                    replicas = primaryReplicas.ToDictionary(kv => kv.Key, kv => (ISet<Host>)new HashSet<Host>(new[] { kv.Value }));
-                }
-                else if (!ksTokensCache.TryGetValue(ks.Strategy, out replicas))
-                {
-                    replicas = ks.Strategy.ComputeTokenToReplicaMap(ring, primaryReplicas, numberOfHostsWithTokens, datacenters);
-                    ksTokensCache.Add(ks.Strategy, replicas);
-                }
-
-                tokenToHosts[ks.Name] = replicas;
             }
 
             sw.Stop();

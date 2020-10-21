@@ -68,5 +68,49 @@ namespace Dse.Test.Unit.MetadataHelpers
             };
             Assert.False(NetworkTopologyStrategy.AreReplicationFactorsSatisfied(ksReplicationFactor, replicasByDc, datacenters));
         }
+        [Test]
+        public void Should_NotReturnEqualsTrue_When_StrategiesHaveDifferentReplicationFactors()
+        {
+            var target1 = new NetworkTopologyStrategy(
+                new Dictionary<string, int>
+                {
+                    { "dc1", 2 },
+                    { "dc2", 1 },
+                    { "dc3", 3 }
+                });
+            var target2 = new NetworkTopologyStrategy(
+                new Dictionary<string, int>
+                {
+                    { "dc3", 3 },
+                    { "dc1", 2 },
+                    { "dc2", 3 }
+                });
+            
+            Assert.AreNotEqual(target1.GetHashCode(), target2.GetHashCode());
+            Assert.IsFalse(target1.Equals(target2));
+            Assert.IsFalse(target2.Equals(target1));
+            Assert.AreNotEqual(target1, target2);
+        }
+        
+        [Test]
+        public void Should_NotReturnEqualsTrue_When_StrategiesHaveDifferentDatacenters()
+        {
+            var target1 = new NetworkTopologyStrategy(
+                new Dictionary<string, int>
+                {
+                    { "dc1", 2 },
+                    { "dc2", 3 },
+                });
+            var target2 = new NetworkTopologyStrategy(
+                new Dictionary<string, int>
+                {
+                    { "dc1", 2 },
+                });
+            
+            Assert.AreNotEqual(target1.GetHashCode(), target2.GetHashCode());
+            Assert.IsFalse(target1.Equals(target2));
+            Assert.IsFalse(target2.Equals(target1));
+            Assert.AreNotEqual(target1, target2);
+        }
     }
 }

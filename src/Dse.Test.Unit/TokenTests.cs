@@ -405,6 +405,70 @@ namespace Dse.Test.Unit
             AssertOnlyOneStrategyIsCalled(proxyStrategies, 4, 8);
             AssertOnlyOneStrategyIsCalled(proxyStrategies, 5, 7);
         }
+        
+        /// <summary>
+        /// If the replication strategy returns Equals true for different hashcodes then
+        /// it is possible for Dictionary to accept a "duplicate" but the TokenMap constructor
+        /// will blow up when copying the elements of that Dictionary to a ConcurrentDictionary.
+        /// See https://datastax-oss.atlassian.net/browse/CSHARP-943
+        /// </summary>
+        [Test]
+        public void Build_Should_CopyReplicationStrategiesFromDictionaryToConcurrentDictionary_When_DifferentStrategiesAreUsed()
+        {
+            foreach (var rf1 in Enumerable.Range(1, 32))
+            foreach (var rf2 in Enumerable.Range(1, 32))    
+            {
+                if (rf1 == rf2)
+                {
+                    continue;
+                }
+
+                var keyspaces = new List<KeyspaceMetadata>
+            {
+                // unique configurations
+                FakeSchemaParserFactory.CreateSimpleKeyspace("ks1", 2),
+                FakeSchemaParserFactory.CreateSimpleKeyspace("ks2", 10),
+                FakeSchemaParserFactory.CreateSimpleKeyspace("ks3", 5),
+                FakeSchemaParserFactory.CreateNetworkTopologyKeyspace("ks4", new Dictionary<string, int> {{"dc1", rf2}, {"dc2", rf2}}),
+                FakeSchemaParserFactory.CreateNetworkTopologyKeyspace("ks5", new Dictionary<string, int> {{"dc1", rf1}, {"dc2", rf1}}),
+                FakeSchemaParserFactory.CreateNetworkTopologyKeyspace("ks6", new Dictionary<string, int> {{"dc1", 1}}),
+
+                // duplicate configurations
+                FakeSchemaParserFactory.CreateNetworkTopologyKeyspace("ks7", new Dictionary<string, int> {{"dc1", rf2}, {"dc2", rf2}}),
+                FakeSchemaParserFactory.CreateNetworkTopologyKeyspace("ks8", new Dictionary<string, int> {{"dc1", 1}}),
+                FakeSchemaParserFactory.CreateNetworkTopologyKeyspace("ks9", new Dictionary<string, int> {{"dc1", rf1}, {"dc2", rf1}}),
+                FakeSchemaParserFactory.CreateSimpleKeyspace("ks10", 10),
+                FakeSchemaParserFactory.CreateSimpleKeyspace("ks11", 2)
+            };
+                var strategies = keyspaces.Select(k => k.Strategy).ToList();
+
+                var dictionary = new Dictionary<IReplicationStrategy, object>();
+                foreach (var strategy in strategies)
+                {
+                    if (!dictionary.ContainsKey(strategy))
+                    {
+                        dictionary.Add(strategy, "");
+                    }
+                }
+
+                // private const in ConcurrentDictionary
+                const int defaultCapacity = 31;
+
+                // would love to test every possible value but it would take too much time
+                foreach (var concurrencyLevel in Enumerable.Range(1, 512))
+                {
+                    var concurrentDictionary = new ConcurrentDictionary<IReplicationStrategy, object>(concurrencyLevel, defaultCapacity);
+                    foreach (var strategy in dictionary)
+                    {
+                        if (!concurrentDictionary.TryAdd(strategy.Key, strategy.Value))
+                        {
+                            Assert.Fail($"This would throw ArgumentException, duplicate values with processor count: {concurrencyLevel}, rf1: {rf1}, rf2: {rf2}");
+                            return;
+                        }
+                    }
+                }
+            }
+        }
 
         [Test]
         [Repeat(1)]

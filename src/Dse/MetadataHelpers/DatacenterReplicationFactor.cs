@@ -18,7 +18,7 @@ using System;
 
 namespace Dse.MetadataHelpers
 {
-    internal struct DatacenterReplicationFactor : IEquatable<DatacenterReplicationFactor>
+    internal struct DatacenterReplicationFactor : IEquatable<DatacenterReplicationFactor>, IComparable<DatacenterReplicationFactor>
     {
         private readonly int _hashCode;
 
@@ -35,7 +35,13 @@ namespace Dse.MetadataHelpers
         
         public override bool Equals(object obj)
         {
-            return obj.GetType() == GetType() && Equals((DatacenterReplicationFactor)obj);
+            if (obj == null)
+            {
+                return false;
+            }
+
+            return obj.GetType() == GetType() 
+                   && Equals((DatacenterReplicationFactor)obj);
         }
 
         public bool Equals(DatacenterReplicationFactor other)
@@ -52,6 +58,14 @@ namespace Dse.MetadataHelpers
         private static int ComputeHashCode(string datacenter, int replicationFactor)
         {
             return Utils.CombineHashCode(new object[] { datacenter, replicationFactor });
+        }
+
+        public int CompareTo(DatacenterReplicationFactor other)
+        {
+            var dcComparison = string.Compare(Datacenter, other.Datacenter, StringComparison.Ordinal);
+            return dcComparison != 0
+                ? dcComparison
+                : ReplicationFactor.CompareTo(other.ReplicationFactor);
         }
     }
 }
