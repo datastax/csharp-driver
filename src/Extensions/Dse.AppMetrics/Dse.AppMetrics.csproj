@@ -4,8 +4,8 @@
     <Description>This package builds on the DataStax Enterprise C# driver and DataStax C# Driver for Apache Cassandra, adding a metrics provider implementation using App Metrics.</Description>
     <Copyright>Copyright © by DataStax</Copyright>
     <AssemblyVersion>2.0.0.0</AssemblyVersion>
-    <FileVersion>2.10.3.0</FileVersion>
-    <VersionPrefix>2.10.3</VersionPrefix>
+    <FileVersion>2.10.4.0</FileVersion>
+    <VersionPrefix>2.10.4</VersionPrefix>
     <Authors>DataStax</Authors>
     <TargetFrameworks Condition="'$(BuildCoreOnly)' != 'True'">netstandard2.0;net461</TargetFrameworks>
     <TargetFrameworks Condition="'$(BuildCoreOnly)' == 'True'">netstandard2.0</TargetFrameworks>

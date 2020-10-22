@@ -2,6 +2,18 @@
 
 Changelog for the DataStax Enterprise C# Driver.
 
+## 2.10.4
+
+2020-10-22
+
+### Improvements
+
+*   [[CSHARP-942](https://datastax-oss.atlassian.net/browse/CSHARP-942)] - Log control connection init failures
+
+### Bug fixes
+
+*   [[CSHARP-943](https://datastax-oss.atlassian.net/browse/CSHARP-943)] - Cluster.Connect() throws "ArgumentException 'The source argument contains duplicate keys.'"
+
 ## 2.10.3
 
 2020-09-10
