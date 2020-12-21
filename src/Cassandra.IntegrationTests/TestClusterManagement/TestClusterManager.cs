@@ -125,15 +125,9 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         public static bool CcmUseWsl => bool.Parse(Environment.GetEnvironmentVariable("CCM_USE_WSL") ?? "false");
 
-        public static bool IsCassandraFourZeroPreRelease()
-        {
-            return TestClusterManager.CassandraVersion.Equals(new Version(4, 0))
-                   && TestClusterManager.CassandraVersionString.Contains("-");
-        }
-
         public static bool ShouldEnableBetaProtocolVersion()
         {
-            return TestClusterManager.IsCassandraFourZeroPreRelease();
+            return false;
         }
 
         public static bool SupportsDecommissionForcefully()

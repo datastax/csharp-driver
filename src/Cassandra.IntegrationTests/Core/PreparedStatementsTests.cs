@@ -828,6 +828,12 @@ namespace Cassandra.IntegrationTests.Core
         [TestCassandraVersion(4, 0)]
         public void Session_Prepare_With_Keyspace_Defined_On_Protocol_Greater_Than_4(bool usePayload)
         {
+            if (Session.Cluster.Metadata.ControlConnection.Serializer.CurrentProtocolVersion < ProtocolVersion.V5)
+            {
+                Assert.Ignore("This test requires protocol v5+");
+                return;
+            }
+
             Assert.AreNotEqual("system", Session.Keyspace);
             PreparedStatement ps;
             if (!usePayload)
@@ -855,6 +861,12 @@ namespace Cassandra.IntegrationTests.Core
         [TestCassandraVersion(4, 0)]
         public async Task Session_PrepareAsync_With_Keyspace_Defined_On_Protocol_Greater_Than_4(bool usePayload)
         {
+            if (Session.Cluster.Metadata.ControlConnection.Serializer.CurrentProtocolVersion < ProtocolVersion.V5)
+            {
+                Assert.Ignore("This test requires protocol v5+");
+                return;
+            }
+
             Assert.AreNotEqual("system", Session.Keyspace);
             PreparedStatement ps;
             if (!usePayload)
@@ -1077,6 +1089,11 @@ namespace Cassandra.IntegrationTests.Core
         {
             using (var cluster = ClusterBuilder().AddContactPoint(TestClusterManager.InitialContactPoint).Build())
             {
+                if (cluster.Metadata.ControlConnection.Serializer.CurrentProtocolVersion < ProtocolVersion.V5)
+                {
+                    Assert.Ignore("This test requires protocol v5+");
+                    return;
+                }
                 var session = cluster.Connect("system");
                 var value = new Random().Next();
                 var query = new SimpleStatement($@"INSERT INTO {_tableName} (id, number) VALUES (?, ?)", -1000, value);
