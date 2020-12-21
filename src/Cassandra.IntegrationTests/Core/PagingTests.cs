@@ -129,6 +129,12 @@ namespace Cassandra.IntegrationTests.Core
         [TestCassandraVersion(4, 0)]
         public void Should_PagingOnBoundStatement_When_NewResultMetadataIsSet()
         {
+            if (Session.Cluster.Metadata.ControlConnection.Serializer.CurrentProtocolVersion < ProtocolVersion.V5)
+            {
+                Assert.Ignore("This test requires protocol v5+");
+                return;
+            }
+
             var pageSize = 10;
             var totalRowLength = 25;
             var tableName = CreateSimpleTableAndInsert(totalRowLength);

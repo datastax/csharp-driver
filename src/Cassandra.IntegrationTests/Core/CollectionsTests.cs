@@ -17,6 +17,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Reflection;
 using System.Text;
 using System.Linq;
@@ -257,6 +258,10 @@ namespace Cassandra.IntegrationTests.Core
             object randomValue = Randomm.RandomVal(typeOfDataToBeInputed);
             if (typeOfDataToBeInputed == typeof (string))
                 randomValue = "'" + randomValue.ToString().Replace("'", "''") + "'";
+            else if (typeOfDataToBeInputed == typeof(double))
+            {
+                randomValue = ((double) randomValue).ToString(CultureInfo.InvariantCulture);
+            }
 
             string randomKeyValue = string.Empty;
 
@@ -273,6 +278,8 @@ namespace Cassandra.IntegrationTests.Core
                                              .Invoke(Randomm.RandomVal(typeof (DateTimeOffset)), new object[1] {"yyyy-MM-dd H:mm:sszz00"}) + "'");
                 else if (typeOfKeyForMap == typeof (string))
                     randomKeyValue = "'" + Randomm.RandomVal(typeOfDataToBeInputed).ToString().Replace("'", "''") + "'";
+                else if (typeOfKeyForMap == typeof (double))
+                    randomKeyValue = ((double)Randomm.RandomVal(typeOfDataToBeInputed)).ToString(CultureInfo.InvariantCulture);
                 else
                     randomKeyValue = Randomm.RandomVal(typeOfDataToBeInputed).ToString();
             }
@@ -307,6 +314,10 @@ namespace Cassandra.IntegrationTests.Core
                 object val = rval;
                 if (typeOfDataToBeInputed == typeof (string))
                     val = "'" + val.ToString().Replace("'", "''") + "'";
+                else if (typeOfDataToBeInputed == typeof(double))
+                {
+                    val = ((double) val).ToString(CultureInfo.InvariantCulture);
+                }
 
                 longQ.AppendFormat(@"UPDATE {0} SET some_collection = some_collection + {1} WHERE tweet_id = {2};"
                                    , tableName,

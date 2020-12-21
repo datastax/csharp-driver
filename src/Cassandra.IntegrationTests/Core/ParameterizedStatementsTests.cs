@@ -520,6 +520,12 @@ namespace Cassandra.IntegrationTests.Core
         [TestCassandraVersion(4, 0)]
         public void SimpleStatement_With_Keyspace_Defined_On_Protocol_Greater_Than_4()
         {
+            if (Session.Cluster.Metadata.ControlConnection.Serializer.CurrentProtocolVersion < ProtocolVersion.V5)
+            {
+                Assert.Ignore("This test requires protocol v5+");
+                return;
+            }
+
             // It defaults to null
             Assert.Null(new SimpleStatement("SELECT key FROM system.local").Keyspace);
 
