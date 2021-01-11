@@ -16,6 +16,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Linq;
 using Cassandra.IntegrationTests.TestBase;
 
 namespace Cassandra.IntegrationTests.TestClusterManagement
@@ -246,7 +247,18 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             testCluster.Create(nodeLength, options);
             if (startCluster)
             {
-                testCluster.Start(options.JvmArgs);
+                if (options.UseVNodes)
+                {
+                    // workaround for https://issues.apache.org/jira/browse/CASSANDRA-16364
+                    foreach (var i in Enumerable.Range(1, nodeLength))
+                    {
+                        testCluster.Start(i, null, null, options.JvmArgs);
+                    }
+                }
+                else
+                {
+                    testCluster.Start(options.JvmArgs);
+                }
             }
             return testCluster;
         }
