@@ -133,7 +133,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             }
         }
 
-        public ProcessOutput Start(int n, string additionalArgs = null)
+        public ProcessOutput Start(int n, string additionalArgs = null, string[] jvmArgs = null)
         {
             string quietWindows = null;
             string runAsRoot = null;
@@ -146,14 +146,30 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             {
                 runAsRoot = "--root";
             }
+            
+            var jvmArgsParameters = new List<string>
+            {
+                "start",
+                "--wait-for-binary-proto"
+            };
+            if (jvmArgs != null)
+            {
+                foreach (var arg in jvmArgs)
+                {
+                    jvmArgsParameters.Add("--jvm_arg");
+                    jvmArgsParameters.Add(arg);
+                }
+            }
+
+            var jvmArgsStr = string.Join(" ", jvmArgsParameters);
 
             if (CcmProcessExecuter is WslCcmProcessExecuter)
             {
-                return ExecuteCcm(string.Format("node{0} start --wait-for-binary-proto {1} {2} {3}", n, additionalArgs, quietWindows, runAsRoot), false);
+                return ExecuteCcm($"node{n} start --wait-for-binary-proto {additionalArgs} {quietWindows} {runAsRoot} {jvmArgsStr}", false);
             }
             else
             {
-                return ExecuteCcm(string.Format("node{0} start --wait-for-binary-proto {1} {2} {3}", n, additionalArgs, quietWindows, runAsRoot));
+                return ExecuteCcm($"node{n} start --wait-for-binary-proto {additionalArgs} {quietWindows} {runAsRoot} {jvmArgsStr}");
             }
         }
 

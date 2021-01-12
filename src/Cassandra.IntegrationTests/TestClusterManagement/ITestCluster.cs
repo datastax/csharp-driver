@@ -64,7 +64,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         /// <summary>
         /// Start a specific node in the cluster
         /// </summary>
-        void Start(int nodeIdToStart, string additionalArgs = null, string newIp = null);
+        void Start(int nodeIdToStart, string additionalArgs = null, string newIp = null, string[] jvmArgs = null);
 
         /// <summary>
         /// Starts the cluster

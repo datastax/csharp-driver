@@ -173,9 +173,9 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             }
         }
 
-        public void Start(int nodeIdToStart, string additionalArgs = null, string newIp = null)
+        public void Start(int nodeIdToStart, string additionalArgs = null, string newIp = null, string[] jvmArgs = null)
         {
-            var output = _ccm.Start(nodeIdToStart, additionalArgs);
+            var output = _ccm.Start(nodeIdToStart, additionalArgs, jvmArgs);
             if (_executor is WslCcmProcessExecuter)
             {
                 _ccm.CheckNativePortOpen(output, newIp ?? (TestClusterManager.IpPrefix + nodeIdToStart));
