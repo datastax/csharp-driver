@@ -22,7 +22,7 @@ namespace Cassandra.Tests.Connections.TestHelpers
 {
     internal class FakeConnectionEndPoint : IConnectionEndPoint
     {
-        public FakeConnectionEndPoint(string address, int port, bool hasHostEndpoint = false)
+        public FakeConnectionEndPoint(string address, int port, bool hasHostEndpoint = true)
         {
             SocketIpEndPoint = new IPEndPoint(IPAddress.Parse(address), port);
             HasHostIpEndPoint = hasHostEndpoint;
