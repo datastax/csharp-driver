@@ -277,6 +277,29 @@ namespace Cassandra.Tests.Connections.Control
         }
 
         [Test]
+        public async Task Should_UseBroadcastAddressWhenSystemLocalAndRpcIsBindAll()
+        {
+            var rows = TestHelper.CreateRow(new Dictionary<string, object>{
+                { "cluster_name", "ut-cluster" },
+                { "data_center", "ut-dc" },
+                { "rack", "ut-rack" },
+                { "tokens", null},
+                { "release_version", "2.2.1-SNAPSHOT"},
+                { "partitioner", "Murmur3Partitioner" },
+                { "rpc_address", IPAddress.Parse("0.0.0.0") },
+                { "broadcast_address", IPAddress.Parse("127.0.0.9") }
+            });
+            var topologyRefresher = CreateTopologyRefresher(localRow: rows);
+
+            await topologyRefresher.RefreshNodeListAsync(
+                                       new FakeConnectionEndPoint("127.0.0.1", 9042, false), Mock.Of<IConnection>(), _serializer)
+                                   .ConfigureAwait(false);
+
+            Assert.AreEqual(2, _metadata.AllHosts().Count);
+            Assert.AreEqual(1, _metadata.AllHosts().Count(h => h.Address.Address.ToString() == "127.0.0.9"));
+        }
+
+        [Test]
         public async Task UpdatePeersInfoUsesAddressTranslator()
         {
             var invokedEndPoints = new List<IPEndPoint>();

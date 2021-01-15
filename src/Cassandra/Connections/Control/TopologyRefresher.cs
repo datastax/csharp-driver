@@ -200,9 +200,18 @@ namespace Cassandra.Connections.Control
                 return null;
             }
 
-            if (TopologyRefresher.BindAllAddress.Equals(address) && !row.IsNull("peer"))
+            if (TopologyRefresher.BindAllAddress.Equals(address))
             {
-                address = row.GetValue<IPAddress>("peer");
+                if (row.ContainsColumn("peer") && !row.IsNull("peer"))
+                {
+                    // system.peers
+                    address = row.GetValue<IPAddress>("peer");
+                }
+                else if (row.ContainsColumn("broadcast_address") && !row.IsNull("broadcast_address"))
+                {
+                    // system.local
+                    address = row.GetValue<IPAddress>("broadcast_address");
+                }
                 ControlConnection.Logger.Warning(
                     "Found host with 0.0.0.0 as rpc_address, using listen_address ({0}) to contact it instead. " +
                     "If this is incorrect you should avoid the use of 0.0.0.0 server side.", address.ToString());

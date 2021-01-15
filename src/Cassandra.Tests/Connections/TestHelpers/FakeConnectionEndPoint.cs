@@ -22,9 +22,10 @@ namespace Cassandra.Tests.Connections.TestHelpers
 {
     internal class FakeConnectionEndPoint : IConnectionEndPoint
     {
-        public FakeConnectionEndPoint(string address, int port)
+        public FakeConnectionEndPoint(string address, int port, bool hasHostEndpoint = true)
         {
             SocketIpEndPoint = new IPEndPoint(IPAddress.Parse(address), port);
+            HasHostIpEndPoint = hasHostEndpoint;
         }
 
         public bool Equals(IConnectionEndPoint other)
@@ -35,6 +36,8 @@ namespace Cassandra.Tests.Connections.TestHelpers
         public IContactPoint ContactPoint => null;
 
         public IPEndPoint SocketIpEndPoint { get; private set; }
+        
+        public bool HasHostIpEndPoint { get; private set; }
 
         public string EndpointFriendlyName => SocketIpEndPoint.ToString();
 
@@ -50,7 +53,7 @@ namespace Cassandra.Tests.Connections.TestHelpers
 
         public IPEndPoint GetHostIpEndPoint()
         {
-            return SocketIpEndPoint;
+            return HasHostIpEndPoint ? SocketIpEndPoint : null;
         }
     }
 }
