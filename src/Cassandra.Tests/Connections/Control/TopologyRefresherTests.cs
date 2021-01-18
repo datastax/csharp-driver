@@ -234,9 +234,10 @@ namespace Cassandra.Tests.Connections.Control
         {
             var hostAddress2 = IPAddress.Parse("127.0.0.2");
             var hostAddress3 = IPAddress.Parse("127.0.0.3");
+            var hostAddress4 = IPAddress.Parse("127.0.0.4");
             var rows = TestHelper.CreateRows(new List<Dictionary<string, object>>
             {
-                new Dictionary<string, object>{{"rpc_address", hostAddress2}, {"peer", null}, { "data_center", "ut-dc2" }, { "rack", "ut-rack2" }, {"tokens", null}, {"release_version", "2.1.5"}},
+                new Dictionary<string, object>{{"rpc_address", hostAddress2}, {"peer", hostAddress4}, { "data_center", "ut-dc2" }, { "rack", "ut-rack2" }, {"tokens", null}, {"release_version", "2.1.5"}},
                 new Dictionary<string, object>{{"rpc_address", IPAddress.Parse("0.0.0.0")}, {"peer", hostAddress3}, { "data_center", "ut-dc3" }, { "rack", "ut-rack3" }, {"tokens", null}, {"release_version", "2.1.5"}}
             });
             var topologyRefresher = CreateTopologyRefresher(peersRows: rows);
@@ -287,7 +288,8 @@ namespace Cassandra.Tests.Connections.Control
                 { "release_version", "2.2.1-SNAPSHOT"},
                 { "partitioner", "Murmur3Partitioner" },
                 { "rpc_address", IPAddress.Parse("0.0.0.0") },
-                { "broadcast_address", IPAddress.Parse("127.0.0.9") }
+                { "broadcast_address", IPAddress.Parse("127.0.0.9") },
+                { "listen_address", IPAddress.Parse("127.0.0.10") }
             });
             var topologyRefresher = CreateTopologyRefresher(localRow: rows);
 
@@ -297,6 +299,30 @@ namespace Cassandra.Tests.Connections.Control
 
             Assert.AreEqual(2, _metadata.AllHosts().Count);
             Assert.AreEqual(1, _metadata.AllHosts().Count(h => h.Address.Address.ToString() == "127.0.0.9"));
+        }
+        
+        [Test]
+        public async Task Should_UseListenAddressWhenSystemLocalAndRpcIsBindAllAndBroadcastIsNull()
+        {
+            var rows = TestHelper.CreateRow(new Dictionary<string, object>{
+                { "cluster_name", "ut-cluster" },
+                { "data_center", "ut-dc" },
+                { "rack", "ut-rack" },
+                { "tokens", null},
+                { "release_version", "2.2.1-SNAPSHOT"},
+                { "partitioner", "Murmur3Partitioner" },
+                { "rpc_address", IPAddress.Parse("0.0.0.0") },
+                { "broadcast_address", null },
+                { "listen_address", IPAddress.Parse("127.0.0.10") }
+            });
+            var topologyRefresher = CreateTopologyRefresher(localRow: rows);
+
+            await topologyRefresher.RefreshNodeListAsync(
+                                       new FakeConnectionEndPoint("127.0.0.1", 9042, false), Mock.Of<IConnection>(), _serializer)
+                                   .ConfigureAwait(false);
+
+            Assert.AreEqual(2, _metadata.AllHosts().Count);
+            Assert.AreEqual(1, _metadata.AllHosts().Count(h => h.Address.Address.ToString() == "127.0.0.10"));
         }
 
         [Test]

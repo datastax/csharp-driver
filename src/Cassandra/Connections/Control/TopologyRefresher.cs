@@ -212,11 +212,24 @@ namespace Cassandra.Connections.Control
                     // system.local
                     address = row.GetValue<IPAddress>("broadcast_address");
                 }
+                else if (row.ContainsColumn("listen_address") && !row.IsNull("listen_address"))
+                {
+                    // system.local
+                    address = row.GetValue<IPAddress>("listen_address");
+                }
+                else
+                {
+                    ControlConnection.Logger.Error(
+                        "Found host with 0.0.0.0 as rpc_address and nulls as listen_address and broadcast_address. " +
+                        "Because of this, the driver can not connect to this node.");
+                    return null;
+                }
+
                 ControlConnection.Logger.Warning(
                     "Found host with 0.0.0.0 as rpc_address, using listen_address ({0}) to contact it instead. " +
                     "If this is incorrect you should avoid the use of 0.0.0.0 server side.", address.ToString());
             }
-
+            
             var rpcPort = defaultPort;
             if (isPeersV2)
             {
