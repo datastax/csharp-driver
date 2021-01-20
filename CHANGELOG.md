@@ -1,5 +1,13 @@
 # ChangeLog - DataStax C# Driver
 
+## 3.16.2
+
+2021-01-20
+
+### Bug fixes
+
+*   [[CSHARP-947](https://datastax-oss.atlassian.net/browse/CSHARP-947)] - The driver should read broadcast_address instead of peer for system.local queries
+
 ## 3.16.1
 
 2020-10-22
