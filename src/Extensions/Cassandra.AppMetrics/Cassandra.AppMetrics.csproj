@@ -19,11 +19,15 @@
     <PackageId>CassandraCSharpDriver.AppMetrics</PackageId>
     <Title>DataStax C# Drivers App Metrics Extension</Title>
     <PackageTags>cassandra;apache;datastax;dse;driver;client;metrics;appmetricsdatabase;nosql;dotnet;netcore;db</PackageTags>
-    <PackageLicenseUrl>https://github.com/datastax/csharp-driver/blob/master/LICENSE</PackageLicenseUrl>
+    <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
     <RepositoryUrl>https://github.com/datastax/csharp-driver</RepositoryUrl>
     <PackageProjectUrl>https://github.com/datastax/csharp-driver</PackageProjectUrl>
     <LangVersion>7.1</LangVersion>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\..\LICENSE.md" Pack="true" PackagePath="LICENSE.md"/>
+  </ItemGroup>
 
   <ItemGroup>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
