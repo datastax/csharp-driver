@@ -119,7 +119,7 @@ namespace Cassandra
             _serializer = serializer;
         }
 
-        protected void AddPropertyMapping(PropertyInfo propInfo, string udtFieldName)
+        public void AddPropertyMapping(PropertyInfo propInfo, string udtFieldName)
         {
             if (_fieldNameToProperty.ContainsKey(udtFieldName))
             {
