@@ -1,5 +1,13 @@
 # ChangeLog - DataStax C# Driver
 
+## 3.16.3
+
+2021-03-12
+
+### Bug fixes
+
+*   [[CSHARP-950](https://datastax-oss.atlassian.net/browse/CSHARP-950)] - AuthenticationException when connecting to Astra serverless
+
 ## 3.16.2
 
 2021-01-20
