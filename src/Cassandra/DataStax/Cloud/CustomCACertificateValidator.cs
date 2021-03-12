@@ -15,6 +15,7 @@
 //
 
 using System;
+using System.Linq;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
@@ -43,62 +44,124 @@ namespace Cassandra.DataStax.Cloud
                 return true;
             }
 
+            X509Certificate2 cert2 = null;
+            var valid = true;
+
             if ((errors & SslPolicyErrors.RemoteCertificateNotAvailable) != 0)
             {
+                valid = false;
                 CustomCaCertificateValidator.Logger.Error("SSL validation failed due to SslPolicyErrors.RemoteCertificateNotAvailable.");
-                return false;
             }
 
             // validate server certificate's CN against the provided hostname
-            if ((errors & SslPolicyErrors.RemoteCertificateNameMismatch) != 0)
+            if (valid && (errors & SslPolicyErrors.RemoteCertificateNameMismatch) != 0)
             {
-                var cert2 = new X509Certificate2(cert);
+                GetOrCreateCert2(ref cert2, cert);
                 var cn = cert2.GetNameInfo(X509NameType.SimpleName, false);
+                var validName = false;
+                if (cn == null || _hostname == null || !cn.StartsWith("*."))
+                {
+                    if (cn == _hostname)
+                    {
+                        validName = true;
+                    }
+                } else if (cn.StartsWith("*."))
+                {
+                    cn = cn.Remove(0, 1);
+                    if (_hostname.EndsWith(cn))
+                    {
+                        validName = true;
+                    }
+                }
 
-#if NET452
-                cert2.Reset();
-#else
-                cert2.Dispose();
-#endif
-
-                if (cn != _hostname)
+                if (!validName)
                 {
                     CustomCaCertificateValidator.Logger.Error(
-                        "Failed to validate the server certificate's CN. Expected {0} but found {1}.", 
-                        _hostname, 
+                        "Failed to validate the server certificate's CN. Expected {0} but found {1}.",
+                        _hostname,
                         cn ?? "null");
-                    return false;
                 }
-            }
 
-            if ((errors & SslPolicyErrors.RemoteCertificateChainErrors) != 0)
+                valid = validName;
+            }
+            if (valid && (errors & SslPolicyErrors.RemoteCertificateChainErrors) != 0)
             {
-                // verify if the chain is correct
-                foreach (var status in chain.ChainStatus)
+                var oldChain = chain;
+                chain = new X509Chain();
+                chain.ChainPolicy.RevocationFlag = oldChain.ChainPolicy.RevocationFlag;
+                chain.ChainPolicy.VerificationFlags = oldChain.ChainPolicy.VerificationFlags;
+                chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+                if (oldChain.ChainElements.Count > 0)
                 {
-                    if (status.Status == X509ChainStatusFlags.NoError || status.Status == X509ChainStatusFlags.UntrustedRoot)
-                    {
-                        //Acceptable Status
-                    }
-                    else
-                    {
-                        CustomCaCertificateValidator.Logger.Error(
-                            "Certificate chain validation failed. Found chain status {0} ({1}).", status.Status, status.StatusInformation);
-                        return false;
-                    }
+                    var chainElements = new X509ChainElement[oldChain.ChainElements.Count];
+                    oldChain.ChainElements.CopyTo(chainElements, 0);
+                    chain.ChainPolicy.ExtraStore.AddRange(chainElements
+                            .Where(elem => elem.Certificate != null)
+                            .Select(elem => elem.Certificate)
+                            .ToArray());
                 }
+                chain.ChainPolicy.ExtraStore.AddRange(oldChain.ChainPolicy.ExtraStore);
 
-                //Now that we have tested to see if the cert builds properly, we now will check if the thumbprint of the root ca matches our trusted one
-                var rootCertThumbprint = chain.ChainElements[chain.ChainElements.Count - 1].Certificate.Thumbprint;
-                if (rootCertThumbprint != _trustedRootCertificateAuthority.Thumbprint)
+                // clone CA object because on Mono it gets reset for some reason after using it to build a new chain
+                var clonedCa = new X509Certificate2(_trustedRootCertificateAuthority);
+                chain.ChainPolicy.ExtraStore.Add(clonedCa);
+                
+                GetOrCreateCert2(ref cert2, cert);
+                if (!chain.Build(cert2))
                 {
-                    CustomCaCertificateValidator.Logger.Error(
-                        "Root certificate thumbprint mismatch. Expected {0} but found {1}.", _trustedRootCertificateAuthority.Thumbprint, rootCertThumbprint);
-                    return false;
+                    // verify if the chain is correct
+                    foreach (var status in chain.ChainStatus)
+                    {
+                        if (status.Status == X509ChainStatusFlags.NoError || status.Status == X509ChainStatusFlags.UntrustedRoot)
+                        {
+                            //Acceptable Status
+                        }
+                        else
+                        {
+                            CustomCaCertificateValidator.Logger.Error(
+                                "Certificate chain validation failed. Found chain status {0} ({1}).", status.Status, status.StatusInformation);
+                            valid = false;
+                            break;
+                        }
+                    }
+
+                    if (valid)
+                    {
+                        //Now that we have tested to see if the cert builds properly, we now will check if the thumbprint of the root ca matches our trusted one
+                        var rootCertThumbprint = chain.ChainElements[chain.ChainElements.Count - 1].Certificate.Thumbprint;
+                        if (rootCertThumbprint != _trustedRootCertificateAuthority.Thumbprint)
+                        {
+                            CustomCaCertificateValidator.Logger.Error(
+                                "Root certificate thumbprint mismatch. Expected {0} but found {1}.", _trustedRootCertificateAuthority.Thumbprint, rootCertThumbprint);
+                            valid = false;
+                        }
+                    }
+
                 }
+                DisposeCert2(clonedCa);
             }
-            
-            return true;
+
+            DisposeCert2(cert2);
+            return valid;
+        }
+
+        private void GetOrCreateCert2(ref X509Certificate2 cert2, X509Certificate cert)
+        {
+            if (cert2 != null)
+            {
+                return;
+            }
+
+            cert2 = new X509Certificate2(cert);
+        }
+
+        private void DisposeCert2(X509Certificate2 cert2)
+        {
+#if NET452
+            cert2?.Reset();
+#else
+            cert2?.Dispose();
+#endif
         }
     }
 }
