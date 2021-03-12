@@ -15,6 +15,7 @@
 //
 
 using System;
+using System.Linq;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
@@ -90,12 +91,21 @@ namespace Cassandra.DataStax.Cloud
                 chain.ChainPolicy.RevocationFlag = oldChain.ChainPolicy.RevocationFlag;
                 chain.ChainPolicy.VerificationFlags = oldChain.ChainPolicy.VerificationFlags;
                 chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+                if (oldChain.ChainElements.Count > 0)
+                {
+                    var chainElements = new X509ChainElement[oldChain.ChainElements.Count];
+                    oldChain.ChainElements.CopyTo(chainElements, 0);
+                    chain.ChainPolicy.ExtraStore.AddRange(chainElements
+                            .Where(elem => elem.Certificate != null)
+                            .Select(elem => elem.Certificate)
+                            .ToArray());
+                }
                 chain.ChainPolicy.ExtraStore.AddRange(oldChain.ChainPolicy.ExtraStore);
 
                 // clone CA object because on Mono it gets reset for some reason after using it to build a new chain
                 var clonedCa = new X509Certificate2(_trustedRootCertificateAuthority);
-                
                 chain.ChainPolicy.ExtraStore.Add(clonedCa);
+                
                 GetOrCreateCert2(ref cert2, cert);
                 if (!chain.Build(cert2))
                 {
