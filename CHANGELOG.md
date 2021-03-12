@@ -4,6 +4,10 @@
 
 2021-03-12
 
+### Improvements
+
+*   [[CSHARP-949](https://datastax-oss.atlassian.net/browse/CSHARP-949)] - Expose UdtMap.AddPropertyMapping(PropertyInfo, string)
+
 ### Bug fixes
 
 *   [[CSHARP-950](https://datastax-oss.atlassian.net/browse/CSHARP-950)] - AuthenticationException when connecting to Astra serverless
