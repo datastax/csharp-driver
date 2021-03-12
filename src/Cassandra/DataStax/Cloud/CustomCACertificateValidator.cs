@@ -85,7 +85,12 @@ namespace Cassandra.DataStax.Cloud
             }
             if (valid && (errors & SslPolicyErrors.RemoteCertificateChainErrors) != 0)
             {
-                chain.Reset();
+                var oldChain = chain;
+                chain = new X509Chain();
+                chain.ChainPolicy.RevocationFlag = oldChain.ChainPolicy.RevocationFlag;
+                chain.ChainPolicy.VerificationFlags = oldChain.ChainPolicy.VerificationFlags;
+                chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+                chain.ChainPolicy.ExtraStore.AddRange(oldChain.ChainPolicy.ExtraStore);
 
                 // clone CA object because on Mono it gets reset for some reason after using it to build a new chain
                 var clonedCa = new X509Certificate2(_trustedRootCertificateAuthority);
