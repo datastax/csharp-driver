@@ -86,7 +86,11 @@ namespace Cassandra.DataStax.Cloud
             if (valid && (errors & SslPolicyErrors.RemoteCertificateChainErrors) != 0)
             {
                 chain.Reset();
-                chain.ChainPolicy.ExtraStore.Add(_trustedRootCertificateAuthority);
+
+                // clone CA object because on Mono it gets reset for some reason after using it to build a new chain
+                var clonedCa = new X509Certificate2(_trustedRootCertificateAuthority);
+                
+                chain.ChainPolicy.ExtraStore.Add(clonedCa);
                 GetOrCreateCert2(ref cert2, cert);
                 if (!chain.Build(cert2))
                 {
@@ -119,6 +123,7 @@ namespace Cassandra.DataStax.Cloud
                     }
 
                 }
+                DisposeCert2(clonedCa);
             }
 
             DisposeCert2(cert2);
