@@ -161,7 +161,11 @@ namespace Cassandra.Tests
         [Test]
         public void ConfigureAwait_Used_For_Every_Awaited_Task()
         {
+#if NET5_0
+            var assemblyFile = new FileInfo(new Uri(GetType().GetTypeInfo().Assembly.Location).LocalPath);
+#else
             var assemblyFile = new FileInfo(new Uri(GetType().GetTypeInfo().Assembly.CodeBase).LocalPath);
+#endif
             var directory = assemblyFile.Directory;
             while (directory != null && directory.Name != "src")
             {

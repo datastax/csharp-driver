@@ -14,10 +14,10 @@
     <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
     <LangVersion>7.1</LangVersion>
   </PropertyGroup>
-  <PropertyGroup Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('$(TargetFramework)', '^net\d'))">
+  <PropertyGroup Condition="$([MSBuild]::GetTargetFrameworkIdentifier('$(TargetFramework)')) == '.NETFramework'">
     <DefineConstants>$(DefineConstants);NETFRAMEWORK</DefineConstants>
   </PropertyGroup>
-  <PropertyGroup Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('$(TargetFramework)', '^netcoreapp\d'))">
+  <PropertyGroup Condition="$([MSBuild]::GetTargetFrameworkIdentifier('$(TargetFramework)')) == '.NETCoreApp'">
     <DefineConstants>$(DefineConstants);NETCOREAPP</DefineConstants>
   </PropertyGroup>
   <ItemGroup Condition=" '$(TargetFramework)' == 'net452' ">
@@ -73,26 +73,27 @@
     </ProjectReference>
   </ItemGroup>
 
-  <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.1' ">
+  <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.0' Or '$(TargetFramework)' == 'netcoreapp2.1' Or '$(TargetFramework)' == 'net50'">
     <ProjectReference Include="..\Extensions\Cassandra.AppMetrics\Cassandra.AppMetrics.csproj">
       <SetTargetFramework>TargetFramework=netstandard2.0</SetTargetFramework>
-    </ProjectReference>
-    <ProjectReference Include="..\Cassandra.Tests\Cassandra.Tests.csproj">
-      <SetTargetFramework>TargetFramework=netcoreapp2.1</SetTargetFramework>
     </ProjectReference>
     <ProjectReference Include="..\Cassandra\Cassandra.csproj">
       <SetTargetFramework>TargetFramework=netstandard2.0</SetTargetFramework>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.0' ">
-    <ProjectReference Include="..\Extensions\Cassandra.AppMetrics\Cassandra.AppMetrics.csproj">
-      <SetTargetFramework>TargetFramework=netstandard2.0</SetTargetFramework>
-    </ProjectReference>
     <ProjectReference Include="..\Cassandra.Tests\Cassandra.Tests.csproj">
       <SetTargetFramework>TargetFramework=netcoreapp2.0</SetTargetFramework>
     </ProjectReference>
-    <ProjectReference Include="..\Cassandra\Cassandra.csproj">
-      <SetTargetFramework>TargetFramework=netstandard2.0</SetTargetFramework>
+  </ItemGroup>
+  <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.1' ">
+    <ProjectReference Include="..\Cassandra.Tests\Cassandra.Tests.csproj">
+      <SetTargetFramework>TargetFramework=netcoreapp2.1</SetTargetFramework>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net50' ">
+    <ProjectReference Include="..\Cassandra.Tests\Cassandra.Tests.csproj">
+      <SetTargetFramework>TargetFramework=net50</SetTargetFramework>
     </ProjectReference>
   </ItemGroup>
 
