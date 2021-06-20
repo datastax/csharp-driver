@@ -402,7 +402,7 @@ namespace Cassandra.Data.Linq
         protected override Expression VisitMethodCall(MethodCallExpression node)
         {
             var initialPhase = _parsePhase.Get();
-            if (node.Method.DeclaringType == typeof(CqlMthHelps) || node.Method.DeclaringType == typeof(Enumerable))
+            if (node.Method.DeclaringType == typeof(CqlMthHelps) || node.Method.DeclaringType == typeof(Enumerable) || node.Method.DeclaringType == typeof(Queryable))
             {
                 switch (node.Method.Name)
                 {
@@ -770,12 +770,23 @@ namespace Cassandra.Data.Linq
                 {
                     Visit(node.Operand);
                 }
+                else if (node.NodeType == ExpressionType.Quote)
+                {
+                    Visit(node.Operand);
+                }
                 else
                 {
                     var val = Expression.Lambda(node).Compile().DynamicInvoke();
                     condition.SetParameter(val);
                 }
                 return node;
+            }
+            if (_parsePhase.Get() == ParsePhase.Select)
+            {
+                if (node.NodeType == ExpressionType.Quote)
+                {
+                    return Visit(node.Operand);
+                }
             }
             if (_parsePhase.Get() == ParsePhase.SelectBinding)
             {
