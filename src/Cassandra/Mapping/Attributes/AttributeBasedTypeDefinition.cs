@@ -18,6 +18,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using DataAnnotations = System.ComponentModel.DataAnnotations;
+using Schema = System.ComponentModel.DataAnnotations.Schema;
 
 namespace Cassandra.Mapping.Attributes
 {
@@ -56,6 +58,13 @@ namespace Cassandra.Mapping.Attributes
                 ExplicitColumns = tableAttribute.ExplicitColumns;
             }
 
+            var dataAnnotationsTableAttribute = (Schema.TableAttribute)type.GetTypeInfo().GetCustomAttribute(typeof(Schema.TableAttribute), true);
+            if (dataAnnotationsTableAttribute != null)
+            {
+                TableName = dataAnnotationsTableAttribute.Name;
+                KeyspaceName = dataAnnotationsTableAttribute.Schema;    
+            }
+
             //Fields and properties that can be mapped
             var mappable = type
                 .GetTypeInfo()
@@ -73,12 +82,31 @@ namespace Cassandra.Mapping.Attributes
                 {
                     columnName = columnAttribute.Name;
                 }
+                else
+                {
+                    var dataAnnotationsColumnAttribute = (Schema.ColumnAttribute)member.GetCustomAttributes(typeof(Schema.ColumnAttribute), true).FirstOrDefault();
+                    if (dataAnnotationsColumnAttribute?.Name != null)
+                    {
+                        columnName = dataAnnotationsColumnAttribute.Name;
+                    }
+                }
+
                 var partitionKeyAttribute = (PartitionKeyAttribute)member.GetCustomAttributes(typeof(PartitionKeyAttribute), true).FirstOrDefault();
                 if (partitionKeyAttribute != null)
                 {
                     partitionKeys.Add(Tuple.Create(columnName, partitionKeyAttribute.Index));
                     continue;
                 }
+                else
+                {
+                    var keyAttribute = (DataAnnotations.KeyAttribute)member.GetCustomAttributes(typeof(DataAnnotations.KeyAttribute), true).FirstOrDefault();
+                    if (keyAttribute != null)
+                    {
+                        partitionKeys.Add(Tuple.Create(columnName, 0));
+                        continue;
+                    }
+                }
+
                 var clusteringKeyAttribute = (ClusteringKeyAttribute)member.GetCustomAttributes(typeof(ClusteringKeyAttribute), true).FirstOrDefault();
                 if (clusteringKeyAttribute != null)
                 {

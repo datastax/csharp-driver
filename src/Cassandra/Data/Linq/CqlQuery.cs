@@ -54,7 +54,7 @@ namespace Cassandra.Data.Linq
 
         public IEnumerator<TEntity> GetEnumerator()
         {
-            throw new InvalidOperationException("You must explicitly invoke ExecuteAsync() or Execute()");
+            return this.Execute().GetEnumerator();
         }
 
         public new CqlQuery<TEntity> SetConsistencyLevel(ConsistencyLevel? consistencyLevel)
