@@ -115,7 +115,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
             SniHomeDirectory = fileInfo.Directory.FullName;
 
-            ExecCommand(true, sniPath, args, timeout, envVars, fileInfo.Directory.FullName);
+            ExecCommand(true, sniPath, args, timeout, envVars, fileInfo.Directory.FullName, true);
         }
 
         public void StopForce(int nodeIdToStop)
@@ -222,10 +222,10 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             }
         }
 
-        private static ProcessOutput ExecCommand(bool throwOnProcessError, string executable, string args, int timeOut = 20*60*1000, IReadOnlyDictionary<string, string> envVars = null, string workDir = null)
+        private static ProcessOutput ExecCommand(bool throwOnProcessError, string executable, string args, int timeOut = 20*60*1000, IReadOnlyDictionary<string, string> envVars = null, string workDir = null, bool killOnTimeout = false)
         {
             Trace.TraceInformation($"{executable} {args}");
-            var output = ExecuteProcess(executable, args, timeOut, envVariables: envVars, workDir: workDir);
+            var output = ExecuteProcess(executable, args, timeOut, envVariables: envVars, workDir: workDir, killOnTimeout: killOnTimeout);
 
             if (!throwOnProcessError)
             {
@@ -260,7 +260,8 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             string args, 
             int timeout, 
             IReadOnlyDictionary<string, string> envVariables = null, 
-            string workDir = null)
+            string workDir = null,
+            bool killOnTimeout = false)
         {
             var output = new ProcessOutput();
             using (var process = new Process())
@@ -350,6 +351,10 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                     {
                         // Timed out.
                         output.ExitCode = -1;
+                        if (killOnTimeout)
+                        {
+                            process.Kill();
+                        }
                     }
                 }
             }
