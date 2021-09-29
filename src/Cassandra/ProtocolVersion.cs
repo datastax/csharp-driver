@@ -86,7 +86,17 @@ namespace Cassandra
                 return config.AllowBetaProtocolVersions;
             }
 
-            return version >= ProtocolVersion.MinSupported && version <= ProtocolVersion.MaxSupported;
+            switch (version)
+            {
+                case ProtocolVersion.V1:
+                case ProtocolVersion.V2:
+                case ProtocolVersion.V3:
+                case ProtocolVersion.V4:
+                case ProtocolVersion.DseV2:
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         /// <summary>
