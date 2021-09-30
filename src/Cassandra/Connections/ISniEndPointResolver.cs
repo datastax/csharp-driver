@@ -24,7 +24,7 @@ namespace Cassandra.Connections
     {
         SniOptions SniOptions { get; }
 
-        Task RefreshProxyResolutionAsync();
+        Task RefreshProxyDnsResolutionAsync();
 
         Task<IPEndPoint> GetNextEndPointAsync(bool refreshCache);
     }

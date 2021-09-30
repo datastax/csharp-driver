@@ -50,9 +50,7 @@ namespace Cassandra.Connections
         public SniEndPointResolver(IDnsResolver dns, SniOptions sniOptions) : this(dns, sniOptions, new DefaultRandom())
         {
         }
-
-        public bool CanBeResolved => true;
-
+        
         public SniOptions SniOptions => _sniOptions;
 
         public async Task<IConnectionEndPoint> GetConnectionEndPointAsync(Host host, bool refreshCache)
@@ -60,7 +58,7 @@ namespace Cassandra.Connections
             return new SniConnectionEndPoint(await GetNextEndPointAsync(refreshCache).ConfigureAwait(false), host.Address, host.HostId.ToString("D"), host.ContactPoint);
         }
 
-        public Task RefreshProxyResolutionAsync()
+        public Task RefreshProxyDnsResolutionAsync()
         {
             return SafeRefreshIfNeededAsync(() => true, UnsafeRefreshProxyResolutionAsync);
         }

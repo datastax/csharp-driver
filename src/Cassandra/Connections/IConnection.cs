@@ -89,6 +89,12 @@ namespace Cassandra.Connections
         /// Determine if the Connection has been explicitly disposed
         /// </summary>
         bool IsDisposed { get; }
+        
+        /// <summary>
+        /// Determines that the connection cancelled pending operations.
+        /// It could be because its being closed or there was a socket error.
+        /// </summary>
+        bool IsCancelled { get; }
 
         /// <summary>
         /// Gets the current keyspace.

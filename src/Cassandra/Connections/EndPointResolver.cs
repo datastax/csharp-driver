@@ -27,9 +27,7 @@ namespace Cassandra.Connections
         {
             _serverNameResolver = serverNameResolver ?? throw new ArgumentNullException(nameof(serverNameResolver));
         }
-
-        public bool CanBeResolved => false;
-
+        
         /// <inheritdoc />
         public Task<IConnectionEndPoint> GetConnectionEndPointAsync(Host host, bool refreshCache)
         {

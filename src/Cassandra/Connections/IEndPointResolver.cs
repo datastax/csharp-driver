@@ -24,8 +24,6 @@ namespace Cassandra.Connections
     /// </summary>
     internal interface IEndPointResolver
     {
-        bool CanBeResolved { get; }
-
         /// <summary>
         /// Gets an instance of <see cref="IConnectionEndPoint"/> to the provided host from the internal cache (if caching is supported by the implementation).
         /// </summary>

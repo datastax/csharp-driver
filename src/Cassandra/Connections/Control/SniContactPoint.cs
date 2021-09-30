@@ -63,7 +63,7 @@ namespace Cassandra.Connections.Control
         {
             if (refreshCache)
             {
-                await _resolver.RefreshProxyResolutionAsync().ConfigureAwait(false);
+                await _resolver.RefreshProxyDnsResolutionAsync().ConfigureAwait(false);
             }
 
             var result = new List<IConnectionEndPoint>();
