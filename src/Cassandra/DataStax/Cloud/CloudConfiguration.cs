@@ -14,12 +14,15 @@
 //   limitations under the License.
 //
 
+using System;
+using System.Collections.Generic;
+
 using Newtonsoft.Json;
 
 namespace Cassandra.DataStax.Cloud
 {
     [JsonObject]
-    internal class CloudConfiguration
+    internal class CloudConfiguration : IEquatable<CloudConfiguration>
     {
         [JsonProperty("host")]
         public string Host { get; private set; }
@@ -29,5 +32,37 @@ namespace Cassandra.DataStax.Cloud
         
         [JsonProperty("pfxCertPassword")]
         public string CertificatePassword { get; private set; }
+
+        public override bool Equals(object obj)
+        {
+            return Equals(obj as CloudConfiguration);
+        }
+
+        public bool Equals(CloudConfiguration other)
+        {
+            return other != null &&
+                   Host == other.Host &&
+                   Port == other.Port &&
+                   CertificatePassword == other.CertificatePassword;
+        }
+
+        public override int GetHashCode()
+        {
+            int hashCode = 1018287022;
+            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(Host);
+            hashCode = hashCode * -1521134295 + Port.GetHashCode();
+            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(CertificatePassword);
+            return hashCode;
+        }
+
+        public static bool operator ==(CloudConfiguration left, CloudConfiguration right)
+        {
+            return EqualityComparer<CloudConfiguration>.Default.Equals(left, right);
+        }
+
+        public static bool operator !=(CloudConfiguration left, CloudConfiguration right)
+        {
+            return !(left == right);
+        }
     }
 }

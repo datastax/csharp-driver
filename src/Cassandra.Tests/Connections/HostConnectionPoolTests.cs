@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 
+using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
 using Cassandra.Connections;
@@ -75,7 +76,10 @@ namespace Cassandra.Tests.Connections
                     IPAddress.Parse("127.0.0.100")
                 }
             });
-            var target = CreatePool(new SniEndPointResolver(mockDnsResolver, new SniOptions(null, 9032, "test"), rand));
+            var sniOptionsProvider = Mock.Of<ISniOptionsProvider>();
+            Mock.Get(sniOptionsProvider).Setup(m => m.IsInitialized()).Returns(true);
+            Mock.Get(sniOptionsProvider).Setup(m => m.GetAsync(It.IsAny<bool>())).ReturnsAsync(new SniOptions(null, 9032, "test", new SortedSet<string> { "t" }));
+            var target = CreatePool(new SniEndPointResolver(sniOptionsProvider, mockDnsResolver, rand));
 
             Assert.AreEqual(0, target.OpenConnections);
 

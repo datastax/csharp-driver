@@ -22,23 +22,24 @@ using Cassandra.Tasks;
 
 namespace Cassandra.Connections
 {
-    internal abstract class SingleThreadedResolver
+    internal class SingleThreadedResolver
     {
         private volatile Task _currentTask;
 
-        protected SemaphoreSlim RefreshSemaphoreSlim { get; } = new SemaphoreSlim(1, 1);
+        public SemaphoreSlim RefreshSemaphoreSlim { get; } = new SemaphoreSlim(1, 1);
 
         /// <summary>
         /// This method makes sure that there are no concurrent refresh operations.
         /// </summary>
-        protected async Task SafeRefreshIfNeededAsync(Func<bool> refreshNeeded, Func<Task> refreshFunc)
+        public async Task RefreshIfNeededAsync(Func<bool> refreshNeeded, Func<Task> refreshFunc)
         {
-            if (!refreshNeeded())
+            var task = _currentTask;
+            if (!refreshNeeded() && task != null && !task.IsFaulted)
             {
+                await task.ConfigureAwait(false);
                 return;
             }
 
-            var task = _currentTask;
             if (task != null && !task.HasFinished())
             {
                 await task.ConfigureAwait(false);
@@ -49,21 +50,8 @@ namespace Cassandra.Connections
             await RefreshSemaphoreSlim.WaitAsync().ConfigureAwait(false);
             try
             {
-                if (!refreshNeeded())
-                {
-                    return;
-                }
-
-                var newTask = _currentTask;
-
-                if ((newTask == null && task != null)
-                    || (newTask != null && task == null)
-                    || (newTask != null && task != null && !object.ReferenceEquals(newTask, task)))
-                {
-                    // another thread refreshed
-                    task = newTask ?? TaskHelper.Completed;
-                }
-                else
+                task = _currentTask;
+                if (task == null || (task.HasFinished() && refreshNeeded()) || task.IsFaulted)
                 {
                     task = refreshFunc();
                     _currentTask = task;

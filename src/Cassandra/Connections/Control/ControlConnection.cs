@@ -138,45 +138,47 @@ namespace Cassandra.Connections.Control
             return currentHosts.Count(h => h.IsUp) == 0 || currentHosts.All(h => !_cluster.AnyOpenConnections(h));
         }
 
-        private async Task<IEnumerable<IConnectionEndPoint>> ResolveContactPoint(IContactPoint contactPoint, bool isInitializing)
+        private async Task<IEnumerable<IConnectionEndPoint>> ResolveContactPoint(IContactPoint contactPoint, bool refresh)
         {
-            var connectivityLoss = !isInitializing && TotalConnectivityLoss();
-            if (connectivityLoss && contactPoint.CanBeResolved)
+            try
+            {
+                var endpoints = await contactPoint.GetConnectionEndPointsAsync(refresh).ConfigureAwait(false);
+                return _metadata.UpdateResolvedContactPoint(contactPoint, endpoints);
+            }
+            catch (Exception ex)
             {
                 ControlConnection.Logger.Warning(
-                    "Total connectivity loss detected due to the fact that there are no open connections, " +
-                    "re-resolving the following contact point: {0}", contactPoint.StringRepresentation);
+                    "Failed to resolve contact point {0}. Exception: {1}", 
+                    contactPoint.StringRepresentation, ex.ToString());
+                return Enumerable.Empty<IConnectionEndPoint>();
             }
-
-            var endpoints = await contactPoint.GetConnectionEndPointsAsync(
-                _config.KeepContactPointsUnresolved || connectivityLoss).ConfigureAwait(false);
-            return _metadata.UpdateResolvedContactPoint(contactPoint, endpoints);
         }
 
         private async Task<IEnumerable<IConnectionEndPoint>> ResolveHostContactPointOrConnectionEndpointAsync(
-            ConcurrentDictionary<IContactPoint, object> attemptedContactPoints, Host host, bool isInitializing)
+            ConcurrentDictionary<IContactPoint, object> attemptedContactPoints, Host host, 
+            bool refreshContactPoints, bool refreshEndpoints)
         {
             if (host.ContactPoint != null && attemptedContactPoints.TryAdd(host.ContactPoint, null))
             {
-                return await ResolveContactPoint(host.ContactPoint, isInitializing).ConfigureAwait(false);
+                return await ResolveContactPoint(host.ContactPoint, refreshContactPoints).ConfigureAwait(false);
             }
 
             var endpoint =
                 await _config
                       .EndPointResolver
-                      .GetConnectionEndPointAsync(host, TotalConnectivityLoss())
+                      .GetConnectionEndPointAsync(host, refreshEndpoints)
                       .ConfigureAwait(false);
             return new List<IConnectionEndPoint> { endpoint };
         }
 
         private IEnumerable<Task<IEnumerable<IConnectionEndPoint>>> ContactPointResolutionTasksEnumerable(
-            ConcurrentDictionary<IContactPoint, object> attemptedContactPoints, bool isInitializing)
+            ConcurrentDictionary<IContactPoint, object> attemptedContactPoints, bool refresh)
         {
             foreach (var contactPoint in _contactPoints)
             {
                 if (attemptedContactPoints.TryAdd(contactPoint, null))
                 {
-                    yield return ResolveContactPoint(contactPoint, isInitializing);
+                    yield return ResolveContactPoint(contactPoint, refresh);
                 }
             }
         }
@@ -184,7 +186,9 @@ namespace Cassandra.Connections.Control
         private IEnumerable<Task<IEnumerable<IConnectionEndPoint>>> AllHostsEndPointResolutionTasksEnumerable(
             ConcurrentDictionary<IContactPoint, object> attemptedContactPoints,
             ConcurrentDictionary<Host, object> attemptedHosts,
-            bool isInitializing)
+            bool isInitializing,
+            bool refreshContactPoints,
+            bool refreshEndpoints)
         {
             foreach (var host in GetHostEnumerable())
             {
@@ -195,7 +199,8 @@ namespace Cassandra.Connections.Control
                         continue;
                     }
 
-                    yield return ResolveHostContactPointOrConnectionEndpointAsync(attemptedContactPoints, host, isInitializing);
+                    yield return ResolveHostContactPointOrConnectionEndpointAsync(
+                        attemptedContactPoints, host, refreshContactPoints, refreshEndpoints);
                 }
             }
         }
@@ -203,7 +208,9 @@ namespace Cassandra.Connections.Control
         private IEnumerable<Task<IEnumerable<IConnectionEndPoint>>> DefaultLbpHostsEnumerable(
             ConcurrentDictionary<IContactPoint, object> attemptedContactPoints,
             ConcurrentDictionary<Host, object> attemptedHosts,
-            bool isInitializing)
+            bool isInitializing,
+            bool refreshContactPoints,
+            bool refreshEndpoints)
         {
             foreach (var host in _config.DefaultRequestOptions.LoadBalancingPolicy.NewQueryPlan(null, null))
             {
@@ -214,7 +221,7 @@ namespace Cassandra.Connections.Control
                         continue;
                     }
 
-                    yield return ResolveHostContactPointOrConnectionEndpointAsync(attemptedContactPoints, host, isInitializing);
+                    yield return ResolveHostContactPointOrConnectionEndpointAsync(attemptedContactPoints, host, refreshContactPoints, refreshEndpoints);
                 }
             }
         }
@@ -260,21 +267,42 @@ namespace Cassandra.Connections.Control
             var attemptedContactPoints = new ConcurrentDictionary<IContactPoint, object>();
             var attemptedHosts = new ConcurrentDictionary<Host, object>();
 
-            // start with endpoints from the default LBP if it is already initialized
-            if (!isInitializing)
+            // start with contact points if it is initializing or there is a total connectivity loss
+            var totalConnectivityLoss = TotalConnectivityLoss();
+            var addedContactPoints = false;
+            if (isInitializing || totalConnectivityLoss)
             {
-                endPointResolutionTasksLazyIterator = DefaultLbpHostsEnumerable(attemptedContactPoints, attemptedHosts, isInitializing);
+                addedContactPoints = true;
+                if (totalConnectivityLoss)
+                {
+                    ControlConnection.Logger.Warning(
+                        "Total connectivity loss detected due to the fact that there are no open connections, " +
+                        "re-resolving the contact points.");
+                }
+                endPointResolutionTasksLazyIterator = endPointResolutionTasksLazyIterator.Concat(
+                    ContactPointResolutionTasksEnumerable(attemptedContactPoints, true));
             }
 
-            // add contact points next
-            endPointResolutionTasksLazyIterator = endPointResolutionTasksLazyIterator.Concat(
-                ContactPointResolutionTasksEnumerable(attemptedContactPoints, isInitializing));
+            // add endpoints from the default LBP if it is already initialized
+            if (!isInitializing)
+            {
+                endPointResolutionTasksLazyIterator = endPointResolutionTasksLazyIterator.Concat(
+                    DefaultLbpHostsEnumerable(attemptedContactPoints, attemptedHosts, false, _config.KeepContactPointsUnresolved, true));
+            }
 
-            // finally add all hosts iterator, this will contain already tried hosts but we will check for it with the concurrent dictionary
+            // add contact points next if they haven't been added yet (without re-resolving them)
+            if (!addedContactPoints)
+            {
+                addedContactPoints = true;
+                endPointResolutionTasksLazyIterator = endPointResolutionTasksLazyIterator.Concat(
+                    ContactPointResolutionTasksEnumerable(attemptedContactPoints, _config.KeepContactPointsUnresolved));
+            }
+
+            // add all hosts iterator, this will contain already tried hosts but we will check for it with the concurrent dictionary
             if (isInitializing)
             {
                 endPointResolutionTasksLazyIterator = endPointResolutionTasksLazyIterator.Concat(
-                    AllHostsEndPointResolutionTasksEnumerable(attemptedContactPoints, attemptedHosts, isInitializing));
+                    AllHostsEndPointResolutionTasksEnumerable(attemptedContactPoints, attemptedHosts, true, _config.KeepContactPointsUnresolved, totalConnectivityLoss));
             }
 
             var triedHosts = new Dictionary<IPEndPoint, Exception>();

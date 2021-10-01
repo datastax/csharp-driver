@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,33 +14,17 @@
 //   limitations under the License.
 //
 
-using System;
 using System.Collections.Generic;
-using System.Net;
+using System.Threading.Tasks;
 
-namespace Cassandra
+namespace Cassandra.Connections
 {
-    /// <summary>
-    /// This class contains properties related to the proxy when using SNI.
-    /// </summary>
-    internal class SniOptions
+    internal interface ISniOptionsProvider
     {
-        public SniOptions(IPAddress ip, int port, string name, ISet<string> serverNames)
-        {
-            Ip = ip;
-            Port = port;
-            Name = name;
-            ServerNames = serverNames;
-        }
+        Task<SniOptions> GetAsync(bool refresh);
 
-        public IPAddress Ip { get; }
+        bool IsInitialized();
 
-        public string Name { get; }
-
-        public int Port { get; }
-
-        public bool IsIp => Ip != null;
-
-        public ISet<string> ServerNames { get; }
+        string GetStaticIdentifier();
     }
 }

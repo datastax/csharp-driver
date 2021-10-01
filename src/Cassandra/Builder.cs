@@ -1222,37 +1222,19 @@ namespace Cassandra
                 sslOptions = sslOptions.SetCertificateCollection(new X509Certificate2Collection(new[] { bundle.ClientCert }));
             }
 
-            var metadata = new CloudMetadataService();
-            var clusterMetadata = Task.Run(
-                () => metadata.GetClusterMetadataAsync(
-                    $"https://{bundle.Config.Host}:{bundle.Config.Port}/metadata", 
-                    this.SocketOptions,
-                    sslOptions)).GetAwaiter().GetResult();
-
-            var proxyAddress = clusterMetadata.ContactInfo.SniProxyAddress;
-            var separatorIndex = proxyAddress.IndexOf(':');
-
-            if (separatorIndex == -1)
-            {
-                throw new InvalidOperationException($"The SNI endpoint address should contain ip/name and port. Address received: {proxyAddress}");
-            }
-
-            var ipOrName = proxyAddress.Substring(0, separatorIndex);
-            var port = int.Parse(proxyAddress.Substring(separatorIndex + 1));
-            var isIp = IPAddress.TryParse(ipOrName, out var address);
-            var sniOptions = new SniOptions(address, port, isIp ? null : ipOrName);
-            
-            var sniEndPointResolver = new SniEndPointResolver(new DnsResolver(), sniOptions);
+            var sniOptionsProvider = new CloudSniOptionsProvider(this.SocketOptions, sslOptions, bundle, new CloudMetadataService());
+            var cloudMetadata = Task.Run(() => sniOptionsProvider.InitializeAsync()).GetAwaiter().GetResult();
+            var sniEndPointResolver = new SniEndPointResolver(sniOptionsProvider, new DnsResolver());
             var builder = this.SetContactPoints(new List<object>
             {
-                new SniContactPoint(new SortedSet<string>(clusterMetadata.ContactInfo.ContactPoints), sniEndPointResolver)
+                new SniContactPoint(sniEndPointResolver)
             });
 
             builder = builder.WithEndPointResolver(sniEndPointResolver);
             
             if (!_addedLbp)
             {
-                if (clusterMetadata.ContactInfo.LocalDc == null)
+                if (cloudMetadata.ContactInfo.LocalDc == null)
                 {
                     Builder.Logger.Warning("Not setting localDc property of DCAwareRoundRobinPolicy because the driver could not" +
                                                      "obtain it from the cluster metadata.");
@@ -1260,12 +1242,11 @@ namespace Cassandra
                 }
                 else
                 {
-                    builder = builder.WithLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy(clusterMetadata.ContactInfo.LocalDc)));
+                    builder = builder.WithLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy(cloudMetadata.ContactInfo.LocalDc)));
                 }
             }
 
-            builder = builder.WithSSL(sslOptions)
-                             .WithUnresolvedContactPoints(true);
+            builder = builder.WithSSL(sslOptions);
 
             return builder;
         }

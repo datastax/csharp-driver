@@ -422,6 +422,7 @@ namespace Cassandra.Tests.Connections
                 serverNames = _serverNames;
             }
 
+            var sniOptionsProvider = Mock.Of<ISniOptionsProvider>();
             var dnsResolver = Mock.Of<IDnsResolver>();
             var resolveResults = new[] { IPAddress.Parse("127.0.0.4") };
             var multipleResolveResults = new[] { IPAddress.Parse("127.0.0.5"), IPAddress.Parse("127.0.0.6") };
@@ -429,9 +430,12 @@ namespace Cassandra.Tests.Connections
                 .ReturnsAsync(new IPHostEntry { AddressList = resolveResults });
             Mock.Get(dnsResolver).Setup(m => m.GetHostEntryAsync("proxyMultiple"))
                 .ReturnsAsync(new IPHostEntry { AddressList = multipleResolveResults });
+            Mock.Get(sniOptionsProvider).Setup(m => m.IsInitialized()).Returns(true);
+            Mock.Get(sniOptionsProvider).Setup(m => m.GetAsync(It.IsAny<bool>())).ReturnsAsync(
+                new SniOptions(ip, SniContactPointAndResolverTests.ProxyPort, name, new SortedSet<string>(serverNames)));
             var sniResolver = new SniEndPointResolver(
+                sniOptionsProvider,
                 dnsResolver,
-                new SniOptions(ip, SniContactPointAndResolverTests.ProxyPort, name),
                 randValue == null ? (IRandom) new DefaultRandom() : new FixedRandom(randValue.Value));
             return new CreateResult
             {
@@ -439,7 +443,7 @@ namespace Cassandra.Tests.Connections
                 ResolveResults = resolveResults,
                 MultipleResolveResults = multipleResolveResults,
                 EndPointResolver = sniResolver,
-                SniContactPoint = new SniContactPoint(new SortedSet<string>(serverNames), sniResolver)
+                SniContactPoint = new SniContactPoint(sniResolver)
             };
         }
 
