@@ -344,8 +344,14 @@ namespace Cassandra.Requests
         /// <param name="session">Session from where a connection will be obtained (or created).</param>
         /// <param name="triedHosts">Hosts for which there were attempts to connect and send the request.</param>
         /// <exception cref="InvalidQueryException">When the keyspace is not valid</exception>
-        internal static async Task<IConnection> GetConnectionFromHostAsync(
+        internal static Task<IConnection> GetConnectionFromHostAsync(
             Host host, HostDistance distance, IInternalSession session, IDictionary<IPEndPoint, Exception> triedHosts)
+        {
+            return GetConnectionFromHostInternalAsync(host, distance, session, triedHosts, true);
+        }
+
+        private static async Task<IConnection> GetConnectionFromHostInternalAsync(
+            Host host, HostDistance distance, IInternalSession session, IDictionary<IPEndPoint, Exception> triedHosts, bool retry)
         {
             var hostPool = session.GetOrCreateConnectionPool(host, distance);
             
@@ -355,9 +361,14 @@ namespace Cassandra.Requests
             }
             catch (SocketException)
             {
-                // A socket exception on the current connection does not mean that all the pool is closed:
-                // Retry on the same host
-                return await RequestHandler.GetConnectionFromHostAsync(host, distance, session, triedHosts).ConfigureAwait(false);
+                if (retry)
+                {
+                    // A socket exception on the current connection does not mean that all the pool is closed:
+                    // Retry on the same host
+                    return await RequestHandler.GetConnectionFromHostInternalAsync(host, distance, session, triedHosts, false).ConfigureAwait(false);
+                }
+
+                throw;
             }
         }
 

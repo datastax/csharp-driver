@@ -281,69 +281,84 @@ namespace Cassandra.Tests.Connections
         [Test]
         public async Task Should_UseNewResolution_When_ResolveSucceeds()
         {
-            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
-            var listener = new TestTraceListener();
-            Trace.Listeners.Add(listener);
-            var result = Create(name: "proxyMultiple");
-            var target = result.EndPointResolver;
-            var host = CreateHost("163.10.10.10", SniContactPointAndResolverTests.Port);
+            var logLevel = Diagnostics.CassandraTraceSwitch.Level;
+            try
+            {
+                Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
+                var listener = new TestTraceListener();
+                Trace.Listeners.Add(listener);
+                var result = Create(name: "proxyMultiple");
+                var target = result.EndPointResolver;
+                var host = CreateHost("163.10.10.10", SniContactPointAndResolverTests.Port);
 
-            var resolvedCollection = new List<IConnectionEndPoint>();
+                var resolvedCollection = new List<IConnectionEndPoint>();
 
-            resolvedCollection.Add(await target.GetConnectionEndPointAsync(host, false).ConfigureAwait(false));
-            resolvedCollection.Add(await target.GetConnectionEndPointAsync(host, false).ConfigureAwait(false));
-            
-            Mock.Get(result.DnsResolver).Verify(m => m.GetHostEntryAsync(It.IsAny<string>()), Times.Once);
-            
-            resolvedCollection.Add(await target.GetConnectionEndPointAsync(host, true).ConfigureAwait(false));
+                resolvedCollection.Add(await target.GetConnectionEndPointAsync(host, false).ConfigureAwait(false));
+                resolvedCollection.Add(await target.GetConnectionEndPointAsync(host, false).ConfigureAwait(false));
 
-            Mock.Get(result.DnsResolver).Verify(m => m.GetHostEntryAsync(It.IsAny<string>()), Times.Exactly(2));
-            Assert.AreEqual(0, listener.Queue.Count);
+                Mock.Get(result.DnsResolver).Verify(m => m.GetHostEntryAsync(It.IsAny<string>()), Times.Once);
 
-            resolvedCollection.Add(await target.GetConnectionEndPointAsync(host, false).ConfigureAwait(false));
-            resolvedCollection.Add(await target.GetConnectionEndPointAsync(host, false).ConfigureAwait(false));
-            
-            Assert.AreNotSame(resolvedCollection[0].SocketIpEndPoint, resolvedCollection[2].SocketIpEndPoint);
-            Assert.AreNotSame(resolvedCollection[0].SocketIpEndPoint, resolvedCollection[3].SocketIpEndPoint);
-            Assert.AreNotSame(resolvedCollection[0].SocketIpEndPoint, resolvedCollection[4].SocketIpEndPoint);
-            Assert.AreNotSame(resolvedCollection[1].SocketIpEndPoint, resolvedCollection[2].SocketIpEndPoint);
-            Assert.AreNotSame(resolvedCollection[1].SocketIpEndPoint, resolvedCollection[3].SocketIpEndPoint);
-            Assert.AreNotSame(resolvedCollection[1].SocketIpEndPoint, resolvedCollection[4].SocketIpEndPoint);
+                resolvedCollection.Add(await target.GetConnectionEndPointAsync(host, true).ConfigureAwait(false));
+
+                Mock.Get(result.DnsResolver).Verify(m => m.GetHostEntryAsync(It.IsAny<string>()), Times.Exactly(2));
+                Assert.AreEqual(0, listener.Queue.Count);
+
+                resolvedCollection.Add(await target.GetConnectionEndPointAsync(host, false).ConfigureAwait(false));
+                resolvedCollection.Add(await target.GetConnectionEndPointAsync(host, false).ConfigureAwait(false));
+
+                Assert.AreNotSame(resolvedCollection[0].SocketIpEndPoint, resolvedCollection[2].SocketIpEndPoint);
+                Assert.AreNotSame(resolvedCollection[0].SocketIpEndPoint, resolvedCollection[3].SocketIpEndPoint);
+                Assert.AreNotSame(resolvedCollection[0].SocketIpEndPoint, resolvedCollection[4].SocketIpEndPoint);
+                Assert.AreNotSame(resolvedCollection[1].SocketIpEndPoint, resolvedCollection[2].SocketIpEndPoint);
+                Assert.AreNotSame(resolvedCollection[1].SocketIpEndPoint, resolvedCollection[3].SocketIpEndPoint);
+                Assert.AreNotSame(resolvedCollection[1].SocketIpEndPoint, resolvedCollection[4].SocketIpEndPoint);
+            }
+            finally
+            {
+                Diagnostics.CassandraTraceSwitch.Level = logLevel;
+            }
         }
 
         [Test]
         public async Task Should_ReusePreviousResolution_When_ResolveFails()
         {
-            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
-            var listener = new TestTraceListener();
-            Trace.Listeners.Add(listener);
-            var result = Create(name: "proxyMultiple");
-            var target = result.EndPointResolver;
-            var host = CreateHost("163.10.10.10", SniContactPointAndResolverTests.Port);
-
-            var resolvedCollection = new List<IConnectionEndPoint>
+            var logLevel = Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
+            try
             {
-                await target.GetConnectionEndPointAsync(host, false).ConfigureAwait(false),
-                await target.GetConnectionEndPointAsync(host, false).ConfigureAwait(false)
-            };
+                var listener = new TestTraceListener();
+                Trace.Listeners.Add(listener);
+                var result = Create(name: "proxyMultiple");
+                var target = result.EndPointResolver;
+                var host = CreateHost("163.10.10.10", SniContactPointAndResolverTests.Port);
 
-            Assert.AreEqual(0, listener.Queue.Count);
-            Mock.Get(result.DnsResolver).Verify(m => m.GetHostEntryAsync(It.IsAny<string>()), Times.Once);
-            Mock.Get(result.DnsResolver).Setup(m => m.GetHostEntryAsync("proxyMultiple")).ThrowsAsync(new Exception());
-            
-            resolvedCollection.Add(await target.GetConnectionEndPointAsync(host, true).ConfigureAwait(false));
+                var resolvedCollection = new List<IConnectionEndPoint>
+                {
+                    await target.GetConnectionEndPointAsync(host, false).ConfigureAwait(false),
+                    await target.GetConnectionEndPointAsync(host, false).ConfigureAwait(false)
+                };
 
-            Mock.Get(result.DnsResolver).Verify(m => m.GetHostEntryAsync(It.IsAny<string>()), Times.Exactly(2));
-            Assert.AreEqual(1, listener.Queue.Count);
-            Assert.IsTrue(listener.Queue.ToArray()[0].Contains(
-                "Could not resolve endpoint \"proxyMultiple\". Falling back to the result of the previous DNS resolution."));
+                Assert.AreEqual(0, listener.Queue.Count);
+                Mock.Get(result.DnsResolver).Verify(m => m.GetHostEntryAsync(It.IsAny<string>()), Times.Once);
+                Mock.Get(result.DnsResolver).Setup(m => m.GetHostEntryAsync("proxyMultiple")).ThrowsAsync(new Exception());
 
-            resolvedCollection.Add(await target.GetConnectionEndPointAsync(host, false).ConfigureAwait(false));
-            resolvedCollection.Add(await target.GetConnectionEndPointAsync(host, false).ConfigureAwait(false));
-            
-            Assert.AreSame(resolvedCollection[0].SocketIpEndPoint, resolvedCollection[2].SocketIpEndPoint);
-            Assert.AreSame(resolvedCollection[1].SocketIpEndPoint, resolvedCollection[3].SocketIpEndPoint);
-            Assert.AreSame(resolvedCollection[0].SocketIpEndPoint, resolvedCollection[4].SocketIpEndPoint);
+                resolvedCollection.Add(await target.GetConnectionEndPointAsync(host, true).ConfigureAwait(false));
+
+                Mock.Get(result.DnsResolver).Verify(m => m.GetHostEntryAsync(It.IsAny<string>()), Times.Exactly(2));
+                Assert.AreEqual(1, listener.Queue.Count);
+                Assert.IsTrue(listener.Queue.ToArray()[0].Contains(
+                    "Could not resolve endpoint \"proxyMultiple\". Falling back to the result of the previous DNS resolution."));
+
+                resolvedCollection.Add(await target.GetConnectionEndPointAsync(host, false).ConfigureAwait(false));
+                resolvedCollection.Add(await target.GetConnectionEndPointAsync(host, false).ConfigureAwait(false));
+
+                Assert.AreSame(resolvedCollection[0].SocketIpEndPoint, resolvedCollection[2].SocketIpEndPoint);
+                Assert.AreSame(resolvedCollection[1].SocketIpEndPoint, resolvedCollection[3].SocketIpEndPoint);
+                Assert.AreSame(resolvedCollection[0].SocketIpEndPoint, resolvedCollection[4].SocketIpEndPoint);
+            }
+            finally
+            {
+                Cassandra.Diagnostics.CassandraTraceSwitch.Level = logLevel;
+            }
         }
 
         [Test]

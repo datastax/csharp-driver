@@ -29,12 +29,6 @@ namespace Cassandra.Tests
     [TestFixture]
     public class ClusterUnitTests
     {
-        [OneTimeSetUp]
-        public void OneTimeSetUp()
-        {
-            Diagnostics.CassandraTraceSwitch.Level = System.Diagnostics.TraceLevel.Verbose;
-        }
-        
         [Test]
         public void DuplicateContactPointsShouldIgnore()
         {

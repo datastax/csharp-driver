@@ -44,10 +44,11 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Should_Use_Maximum_Protocol_Version_Supported()
         {
-            var cc = NewInstance();
-            cc.InitAsync().Wait(InitTimeout);
-            Assert.AreEqual(GetProtocolVersion(), cc.ProtocolVersion);
-            cc.Dispose();
+            using (var cc = NewInstance())
+            {
+                cc.InitAsync().Wait(InitTimeout);
+                Assert.AreEqual(GetProtocolVersion(), cc.ProtocolVersion);
+            }
         }
 
         [Test, TestCassandraVersion(2, 0)]
@@ -59,10 +60,12 @@ namespace Cassandra.IntegrationTests.Core
                 //protocol 2 is not supported in Cassandra 3.0+
                 version = ProtocolVersion.V3;
             }
-            var cc = NewInstance(version);
-            cc.InitAsync().Wait(InitTimeout);
-            Assert.AreEqual(version, cc.ProtocolVersion);
-            cc.Dispose();
+
+            using (var cc = NewInstance(version))
+            {
+                cc.InitAsync().Wait(InitTimeout);
+                Assert.AreEqual(version, cc.ProtocolVersion);
+            }
         }
 
         [Test, TestCassandraVersion(2, 2, Comparison.LessThan)]
@@ -70,9 +73,11 @@ namespace Cassandra.IntegrationTests.Core
         {
             //Use a higher protocol version
             var version = (ProtocolVersion)(GetProtocolVersion() + 1);
-            var cc = NewInstance(version);
-            cc.InitAsync().Wait(InitTimeout);
-            Assert.AreEqual(version - 1, cc.ProtocolVersion);
+            using (var cc = NewInstance(version))
+            {
+                cc.InitAsync().Wait(InitTimeout);
+                Assert.AreEqual(version - 1, cc.ProtocolVersion);
+            }
         }
 
         [Test, TestCassandraVersion(3, 0)]
@@ -80,9 +85,11 @@ namespace Cassandra.IntegrationTests.Core
         {
             // Use a non-existent higher cassandra protocol version
             var version = (ProtocolVersion)0x0f;
-            var cc = NewInstance(version);
-            cc.InitAsync().Wait(InitTimeout);
-            Assert.AreEqual(ProtocolVersion.V4, cc.ProtocolVersion);
+            using (var cc = NewInstance(version))
+            {
+                cc.InitAsync().Wait(InitTimeout);
+                Assert.AreEqual(ProtocolVersion.V4, cc.ProtocolVersion);
+            }
         }
 
         private ControlConnection NewInstance(

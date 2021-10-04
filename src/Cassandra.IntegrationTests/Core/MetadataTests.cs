@@ -33,12 +33,6 @@ namespace Cassandra.IntegrationTests.Core
     {
         private const int DefaultNodeCount = 1;
 
-        [OneTimeSetUp]
-        public void FixureSetup()
-        {
-            Diagnostics.CassandraTraceSwitch.Level = System.Diagnostics.TraceLevel.Info;
-        }
-
         /// <summary>
         /// When there is a change in schema, it should be received via ControlConnection
         /// This also checks validates keyspace case sensitivity

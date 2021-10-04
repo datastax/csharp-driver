@@ -17,6 +17,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Connections;
@@ -69,6 +70,32 @@ namespace Cassandra.Requests
                 await Task.WhenAll(tasks).ConfigureAwait(false);
             }
         }
+        
+        private static Task<IConnection> GetConnectionFromHostAsync(
+            IHostConnectionPool pool, PreparedStatement ps, IDictionary<IPEndPoint, Exception> triedHosts)
+        {
+            return GetConnectionFromHostInternalAsync(pool, ps, triedHosts, true);
+        }
+        
+        private static async Task<IConnection> GetConnectionFromHostInternalAsync(
+            IHostConnectionPool pool, PreparedStatement ps, IDictionary<IPEndPoint, Exception> triedHosts, bool retry)
+        {
+            try
+            {
+                return await pool.GetExistingConnectionFromHostAsync(triedHosts, () => ps.Keyspace).ConfigureAwait(false);
+            }
+            catch (SocketException)
+            {
+                if (retry)
+                {
+                    // A socket exception on the current connection does not mean that all the pool is closed:
+                    // Retry on the same pool
+                    return await ReprepareHandler.GetConnectionFromHostInternalAsync(pool, ps, triedHosts, false).ConfigureAwait(false);
+                }
+
+                throw;
+            }
+        }
 
         /// <inheritdoc />
         public async Task ReprepareOnSingleNodeAsync(
@@ -77,8 +104,7 @@ namespace Cassandra.Requests
             try
             {
                 var triedHosts = new Dictionary<IPEndPoint, Exception>();
-                var connection = await poolKvp.Value.GetExistingConnectionFromHostAsync(
-                    triedHosts, () => ps.Keyspace).ConfigureAwait(false);
+                var connection = await ReprepareHandler.GetConnectionFromHostAsync(poolKvp.Value, ps, triedHosts).ConfigureAwait(false);
 
                 if (connection != null)
                 {

@@ -37,7 +37,6 @@ namespace Cassandra.IntegrationTests.DataStax.Auth
         [OneTimeSetUp]
         public void OneTimeSetUp()
         {
-            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
             _testClusterForDseAuthTesting = new Lazy<ITestCluster>(() =>
             {
                 var cluster = GetTestCcmClusterForAuthTests();

@@ -61,31 +61,36 @@ namespace Cassandra.Tests.DataStax.Insights
         {
             _listener = new TestTraceListener();
             Trace.Listeners.Add(_listener);
-            Cassandra.Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;
-
-            var cluster = GetCluster(false);
-            var session = GetSession(cluster);
-            using (var target = InsightsClientTests.GetInsightsClient(cluster, session))
+            var logLevel = Diagnostics.CassandraTraceSwitch.Level;
+            try
             {
-                Expression<Func<IControlConnection, Task<Response>>> mockExpression =
-                    cc => cc.UnsafeSendQueryRequestAsync(
-                        "CALL InsightsRpc.reportInsight(?)",
-                        It.IsAny<QueryProtocolOptions>());
-                Mock.Get(cluster.Metadata.ControlConnection).Setup(mockExpression).ReturnsAsync((Response)null);
+                Cassandra.Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;
 
-                target.Init();
+                var cluster = GetCluster(false);
+                var session = GetSession(cluster);
+                using (var target = InsightsClientTests.GetInsightsClient(cluster, session))
+                {
+                    Expression<Func<IControlConnection, Task<Response>>> mockExpression =
+                        cc => cc.UnsafeSendQueryRequestAsync(
+                            "CALL InsightsRpc.reportInsight(?)",
+                            It.IsAny<QueryProtocolOptions>());
+                    Mock.Get(cluster.Metadata.ControlConnection).Setup(mockExpression).ReturnsAsync((Response) null);
 
-                TestHelper.RetryAssert(
-                    () =>
-                    {
-                        Mock.Get(cluster.Metadata.ControlConnection).Verify(mockExpression, Times.AtLeast(10));
-                    },
-                    30);
+                    target.Init();
 
-                Trace.Flush();
-                Assert.AreEqual(5, _listener.Queue.Count, string.Join(" ; ", _listener.Queue.ToArray()));
-                var messages = _listener.Queue.ToArray();
-                Assert.AreEqual(messages.Count(m => m.Contains("Could not send insights startup event. Exception:")), 5);
+                    TestHelper.RetryAssert(
+                        () => { Mock.Get(cluster.Metadata.ControlConnection).Verify(mockExpression, Times.AtLeast(10)); },
+                        30);
+
+                    Trace.Flush();
+                    Assert.AreEqual(5, _listener.Queue.Count, string.Join(" ; ", _listener.Queue.ToArray()));
+                    var messages = _listener.Queue.ToArray();
+                    Assert.AreEqual(messages.Count(m => m.Contains("Could not send insights startup event. Exception:")), 5);
+                }
+            }
+            finally
+            {
+                Diagnostics.CassandraTraceSwitch.Level = logLevel;
             }
         }
 
@@ -94,39 +99,43 @@ namespace Cassandra.Tests.DataStax.Insights
         {
             _listener = new TestTraceListener();
             Trace.Listeners.Add(_listener);
+            var logLevel = Diagnostics.CassandraTraceSwitch.Level;
             Cassandra.Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;
-
-            var cluster = GetCluster(false);
-            var session = GetSession(cluster);
-            using (var target = InsightsClientTests.GetInsightsClient(cluster, session))
+            try
             {
-                Expression<Func<IControlConnection, Task<Response>>> mockExpression =
-                    cc => cc.UnsafeSendQueryRequestAsync(
-                        "CALL InsightsRpc.reportInsight(?)",
-                        It.IsAny<QueryProtocolOptions>());
-                Mock.Get(cluster.Metadata.ControlConnection)
-                    .SetupSequence(mockExpression)
-                        .ReturnsAsync((Response)null)
+                var cluster = GetCluster(false);
+                var session = GetSession(cluster);
+                using (var target = InsightsClientTests.GetInsightsClient(cluster, session))
+                {
+                    Expression<Func<IControlConnection, Task<Response>>> mockExpression =
+                        cc => cc.UnsafeSendQueryRequestAsync(
+                            "CALL InsightsRpc.reportInsight(?)",
+                            It.IsAny<QueryProtocolOptions>());
+                    Mock.Get(cluster.Metadata.ControlConnection)
+                        .SetupSequence(mockExpression)
+                        .ReturnsAsync((Response) null)
                         .ReturnsAsync(new FakeResultResponse(ResultResponse.ResultResponseKind.Void))
-                        .ReturnsAsync((Response)null)
-                        .ReturnsAsync((Response)null)
+                        .ReturnsAsync((Response) null)
+                        .ReturnsAsync((Response) null)
                         .ReturnsAsync(new FakeResultResponse(ResultResponse.ResultResponseKind.Void))
-                        .ReturnsAsync((Response)null);
+                        .ReturnsAsync((Response) null);
 
-                target.Init();
+                    target.Init();
 
-                TestHelper.RetryAssert(
-                    () =>
-                    {
-                        Mock.Get(cluster.Metadata.ControlConnection).Verify(mockExpression, Times.AtLeast(20));
-                    },
-                    30);
+                    TestHelper.RetryAssert(
+                        () => { Mock.Get(cluster.Metadata.ControlConnection).Verify(mockExpression, Times.AtLeast(20)); },
+                        30);
 
-                Trace.Flush();
-                Assert.AreEqual(8, _listener.Queue.Count, string.Join(" ; ", _listener.Queue.ToArray()));
-                var messages = _listener.Queue.ToArray();
-                Assert.AreEqual(messages.Count(m => m.Contains("Could not send insights startup event. Exception:")), 1);
-                Assert.AreEqual(messages.Count(m => m.Contains("Could not send insights status event. Exception:")), 7);
+                    Trace.Flush();
+                    Assert.AreEqual(8, _listener.Queue.Count, string.Join(" ; ", _listener.Queue.ToArray()));
+                    var messages = _listener.Queue.ToArray();
+                    Assert.AreEqual(messages.Count(m => m.Contains("Could not send insights startup event. Exception:")), 1);
+                    Assert.AreEqual(messages.Count(m => m.Contains("Could not send insights status event. Exception:")), 7);
+                }
+            }
+            finally
+            {
+                Diagnostics.CassandraTraceSwitch.Level = logLevel;
             }
         }
 

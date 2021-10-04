@@ -64,47 +64,62 @@ namespace Cassandra.Tests
         [Test]
         public void FactoryBasedLoggerHandler_Methods_Should_Output_To_Trace()
         {
-            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;
-            var listener = new TestTraceListener();
-            Trace.Listeners.Add(listener);
-            var loggerHandler = new Logger.TraceBasedLoggerHandler(typeof(int));
-            UseAllMethods(loggerHandler);
-            Trace.Listeners.Remove(listener);
-            Assert.AreEqual(6, listener.Messages.Count);
-            var expectedMessages = new[]
+            var level = Diagnostics.CassandraTraceSwitch.Level;
+            try
             {
-                "Test exception 1",
-                "Message 1",
-                "Message 2 Param1",
-                "Message 3 Param2",
-                "Message 4 Param3",
-                "Message 5 Param4"
-            };
-            var messages = listener.Messages.Keys.OrderBy(k => k).Select(k => listener.Messages[k]).ToArray();
-            for (var i = 0; i < expectedMessages.Length; i++)
+                Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;
+                var listener = new TestTraceListener();
+                Trace.Listeners.Add(listener);
+                var loggerHandler = new Logger.TraceBasedLoggerHandler(typeof(int));
+                UseAllMethods(loggerHandler);
+                Trace.Listeners.Remove(listener);
+                Assert.AreEqual(6, listener.Messages.Count);
+                var expectedMessages = new[]
+                {
+                    "Test exception 1",
+                    "Message 1",
+                    "Message 2 Param1",
+                    "Message 3 Param2",
+                    "Message 4 Param3",
+                    "Message 5 Param4"
+                };
+                var messages = listener.Messages.Keys.OrderBy(k => k).Select(k => listener.Messages[k]).ToArray();
+                for (var i = 0; i < expectedMessages.Length; i++)
+                {
+                    StringAssert.Contains(expectedMessages[i], messages[i]);
+                }
+            }
+            finally
             {
-                StringAssert.Contains(expectedMessages[i], messages[i]);
+                Diagnostics.CassandraTraceSwitch.Level = level;
             }
         }
 
         [Test]
         public void FactoryBasedLoggerHandler_LogError_Handles_Concurrent_Calls()
         {
-            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;
-            var listener = new TestTraceListener();
-            Trace.Listeners.Add(listener);
-            var loggerHandler = new Logger.TraceBasedLoggerHandler(typeof(int));
-            UseAllMethods(loggerHandler);
-            Trace.Listeners.Remove(listener);
-            Assert.AreEqual(6, listener.Messages.Count);
-            var actions = Enumerable
-                .Repeat(true, 1000)
-                .Select<bool, Action>((_, index) => () =>
-                {
-                    loggerHandler.Error(new ArgumentException("Test exception " + index,
-                        new Exception("Test inner exception")));
-                });
-            TestHelper.ParallelInvoke(actions);
+            var level = Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;
+            try
+            {
+                var listener = new TestTraceListener();
+                Trace.Listeners.Add(listener);
+                var loggerHandler = new Logger.TraceBasedLoggerHandler(typeof(int));
+                UseAllMethods(loggerHandler);
+                Trace.Listeners.Remove(listener);
+                Assert.AreEqual(6, listener.Messages.Count);
+                var actions = Enumerable
+                              .Repeat(true, 1000)
+                              .Select<bool, Action>((_, index) => () =>
+                              {
+                                  loggerHandler.Error(new ArgumentException("Test exception " + index,
+                                      new Exception("Test inner exception")));
+                              });
+                TestHelper.ParallelInvoke(actions);
+            }
+            finally
+            {
+                Diagnostics.CassandraTraceSwitch.Level = level;
+            }
         }
 
         private void UseAllMethods(Logger.ILoggerHandler loggerHandler)

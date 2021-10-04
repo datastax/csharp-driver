@@ -41,11 +41,6 @@ namespace Cassandra.Tests.Connections.Control
         private TestContactPoint _cp2;
         private TestContactPoint _localhost;
 
-        public ControlConnectionTests()
-        {
-            Diagnostics.CassandraTraceSwitch.Level = System.Diagnostics.TraceLevel.Info;
-        }
-        
         private IProtocolEventDebouncer GetEventDebouncer(Configuration config)
         {
             return new ProtocolEventDebouncer(
@@ -247,7 +242,7 @@ namespace Cassandra.Tests.Connections.Control
 
             var createdResults = new ConcurrentQueue<ControlConnectionCreateResult>();
 
-            var tasks = Enumerable.Range(0, 100).Select(_ =>
+            var tasks = Enumerable.Range(0, 1).Select(_ =>
             {
                 return Task.Run(async () =>
                 {
@@ -315,20 +310,20 @@ namespace Cassandra.Tests.Connections.Control
 
             if (keepContactPointsUnresolved)
             {
-                Assert.AreEqual(0, _cp1.Calls.Count(b => !b));
-                Assert.AreEqual(0, _cp2.Calls.Count(b => !b));
-                Assert.AreEqual(0, _localhost.Calls.Count(b => !b));
+                Assert.AreEqual(0, _cp1.Calls.Count(b => b == false));
+                Assert.AreEqual(0, _cp2.Calls.Count(b => b == false));
+                Assert.AreEqual(0, _localhost.Calls.Count(b => b == false));
             }
             else
             {
-                Assert.AreEqual(1, _cp1.Calls.Count(b => !b));
-                Assert.AreEqual(1, _cp2.Calls.Count(b => !b));
-                Assert.AreEqual(1, _localhost.Calls.Count(b => !b));
+                Assert.AreEqual(1, _cp1.Calls.Count(b => b == false));
+                Assert.AreEqual(1, _cp2.Calls.Count(b => b == false));
+                Assert.AreEqual(1, _localhost.Calls.Count(b => b == false));
             }
 
-            Assert.AreEqual(1, _cp1.Calls.Count(b => b));
-            Assert.AreEqual(1, _cp2.Calls.Count(b => b));
-            Assert.AreEqual(1, _localhost.Calls.Count(b => b));
+            Assert.AreEqual(1, _cp1.Calls.Count(b => b == true));
+            Assert.AreEqual(1, _cp2.Calls.Count(b => b == true));
+            Assert.AreEqual(1, _localhost.Calls.Count(b => b == true));
             Assert.AreEqual(2, createResult.ConnectionFactory.CreatedConnections[_endpoint1].Count);
             Assert.AreEqual(2, createResult.ConnectionFactory.CreatedConnections[_endpoint2].Count);
         }

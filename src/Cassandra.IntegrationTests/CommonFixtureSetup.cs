@@ -16,6 +16,7 @@
 
 using System;
 using System.Diagnostics;
+using System.IO;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
 
@@ -42,6 +43,7 @@ namespace Cassandra.IntegrationTests
             TestClusterManager.TryRemove();
             SimulacronManager.DefaultInstance.Stop();
             TestCloudClusterManager.TryRemove();
+            Trace.Flush();
         }
     }
 }

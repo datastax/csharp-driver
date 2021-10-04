@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -355,71 +356,82 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public async Task ControlConnection_Should_Reconnect_After_Failed_Attemps()
+        [Repeat(10)]
+        public async Task ControlConnection_Should_Reconnect_After_Failed_Attempts()
         {
-            const int connectionLength = 1;
-            var builder = ClusterBuilder()
-                                 .WithPoolingOptions(new PoolingOptions()
-                                     .SetCoreConnectionsPerHost(HostDistance.Local, connectionLength)
-                                     .SetMaxConnectionsPerHost(HostDistance.Local, connectionLength)
-                                     .SetHeartBeatInterval(1000))
-                                 .WithReconnectionPolicy(new ConstantReconnectionPolicy(100L));
-            using (var testCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" }))
-            using (var cluster = builder.AddContactPoint(testCluster.InitialContactPoint).Build())
+            var loglevel = Cassandra.Diagnostics.CassandraTraceSwitch.Level;
+            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;
+            try
             {
-                var session = (Session)cluster.Connect();
-                var allHosts = cluster.AllHosts();
-                Assert.AreEqual(3, allHosts.Count);
-                await TestHelper.TimesLimit(() =>
-                    session.ExecuteAsync(new SimpleStatement("SELECT * FROM system.local")), 100, 16).ConfigureAwait(false);
-
-                var serverConnections = await testCluster.GetConnectedPortsAsync().ConfigureAwait(false);
-                // 1 per hosts + control connection
-                await TestHelper.RetryAssertAsync(async () =>
+                const int connectionLength = 1;
+                var builder = ClusterBuilder()
+                                     .WithPoolingOptions(new PoolingOptions()
+                                         .SetCoreConnectionsPerHost(HostDistance.Local, connectionLength)
+                                         .SetMaxConnectionsPerHost(HostDistance.Local, connectionLength)
+                                         .SetHeartBeatInterval(1000))
+                                     .WithReconnectionPolicy(new ConstantReconnectionPolicy(100L));
+                using (var testCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" }))
+                using (var cluster = builder.AddContactPoint(testCluster.InitialContactPoint).Build())
                 {
-                    serverConnections = await testCluster.GetConnectedPortsAsync().ConfigureAwait(false);
-                    //coreConnectionLength + 1 (the control connection) 
-                    Assert.AreEqual(4, serverConnections.Count);
-                }, 100, 10).ConfigureAwait(false);
+                    var session = (Session)cluster.Connect();
+                    var allHosts = cluster.AllHosts();
+                    Assert.AreEqual(3, allHosts.Count);
+                    await TestHelper.TimesLimit(() =>
+                        session.ExecuteAsync(new SimpleStatement("SELECT * FROM system.local")), 100, 16).ConfigureAwait(false);
 
-                // Disable all connections
-                await testCluster.DisableConnectionListener().ConfigureAwait(false);
+                    var serverConnections = await testCluster.GetConnectedPortsAsync().ConfigureAwait(false);
+                    // 1 per hosts + control connection
+                    await TestHelper.RetryAssertAsync(async () =>
+                    {
+                        serverConnections = await testCluster.GetConnectedPortsAsync().ConfigureAwait(false);
+                        //coreConnectionLength + 1 (the control connection) 
+                        Assert.AreEqual(4, serverConnections.Count, string.Join(",", serverConnections.Select(ip => (ip?.ToString()) ?? "null")));
+                    }, 100, 10).ConfigureAwait(false);
 
-                var ccAddress = cluster.InternalRef.GetControlConnection().EndPoint.GetHostIpEndPointWithFallback();
+                    // Disable all connections
+                    await testCluster.DisableConnectionListener().ConfigureAwait(false);
 
-                // Drop all connections to hosts
-                foreach (var connection in serverConnections)
-                {
-                    await testCluster.DropConnection(connection).ConfigureAwait(false);
+                    var ccAddress = cluster.InternalRef.GetControlConnection().EndPoint.GetHostIpEndPointWithFallback();
+
+                    // Drop all connections to hosts
+                    foreach (var connection in serverConnections)
+                    {
+                        await testCluster.DropConnection(connection).ConfigureAwait(false);
+                    }
+
+                    TestHelper.WaitUntil(() => !cluster.GetHost(ccAddress).IsUp);
+
+                    // All host should be down by now
+                    TestHelper.WaitUntil(() => cluster.AllHosts().All(h => !h.IsUp));
+
+                    Assert.False(cluster.GetHost(ccAddress).IsUp);
+
+                    // Allow new connections to be created
+                    await testCluster.EnableConnectionListener().ConfigureAwait(false);
+
+                    TestHelper.WaitUntil(() => cluster.AllHosts().All(h => h.IsUp));
+
+                    ccAddress = cluster.InternalRef.GetControlConnection().EndPoint.GetHostIpEndPointWithFallback();
+                    Assert.True(cluster.GetHost(ccAddress).IsUp);
+
+                    // Once all connections are created, the control connection should be usable
+                    await TestHelper.RetryAssertAsync(async () =>
+                    {
+                        serverConnections = await testCluster.GetConnectedPortsAsync().ConfigureAwait(false);
+                        //coreConnectionLength + 1 (the control connection) 
+                        Assert.AreEqual(4, serverConnections.Count, string.Join(",", serverConnections.Select(ip => (ip?.ToString()) ?? "null")));
+                    }, 100, 100).ConfigureAwait(false);
+
+                    TestHelper.RetryAssert(() =>
+                    {
+                        Assert.DoesNotThrowAsync(() => cluster.InternalRef.GetControlConnection().QueryAsync("SELECT * FROM system.local"));
+                    }, 100, 100);
                 }
 
-                TestHelper.WaitUntil(() => !cluster.GetHost(ccAddress).IsUp);
-
-                // All host should be down by now
-                TestHelper.WaitUntil(() => cluster.AllHosts().All(h => !h.IsUp));
-
-                Assert.False(cluster.GetHost(ccAddress).IsUp);
-
-                // Allow new connections to be created
-                await testCluster.EnableConnectionListener().ConfigureAwait(false);
-
-                TestHelper.WaitUntil(() => cluster.AllHosts().All(h => h.IsUp));
-
-                ccAddress = cluster.InternalRef.GetControlConnection().EndPoint.GetHostIpEndPointWithFallback();
-                Assert.True(cluster.GetHost(ccAddress).IsUp);
-
-                // Once all connections are created, the control connection should be usable
-                await TestHelper.RetryAssertAsync(async () =>
-                {
-                    serverConnections = await testCluster.GetConnectedPortsAsync().ConfigureAwait(false);
-                    //coreConnectionLength + 1 (the control connection) 
-                    Assert.AreEqual(4, serverConnections.Count, "2");
-                }, 100, 10).ConfigureAwait(false);
-
-                TestHelper.RetryAssert(() =>
-                {
-                    Assert.DoesNotThrowAsync(() => cluster.InternalRef.GetControlConnection().QueryAsync("SELECT * FROM system.local"));
-                }, 100, 100);
+            }
+            finally
+            {
+                Diagnostics.CassandraTraceSwitch.Level = loglevel;
             }
         }
 

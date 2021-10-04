@@ -27,7 +27,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Collections;
 using Cassandra.Connections;
+using Cassandra.IntegrationTests.SimulacronAPI.Models.Logs;
 using Cassandra.IntegrationTests.TestBase;
+using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using Cassandra.Observers;
 using Cassandra.Tasks;
 using Cassandra.Tests;
@@ -52,13 +54,7 @@ namespace Cassandra.IntegrationTests.Core
             // we just need to make sure that there is a query-able cluster
             _testCluster = TestClusterManager.GetTestCluster(1, DefaultMaxClusterCreateRetries, true, false);
         }
-
-        public ConnectionTests()
-        {
-            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
-            Diagnostics.CassandraStackTraceIncluded = true;
-        }
-
+        
         [Test]
         public void Basic_Startup_Test()
         {
@@ -770,22 +766,6 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [Test]
-        public void With_HeartbeatEnabled_Should_Raise_When_Connection_Closed()
-        {
-            using (var connection = CreateConnection(null, null, new PoolingOptions().SetHeartBeatInterval(500)))
-            {
-                connection.Open().Wait();
-                //execute a dummy query
-                TaskHelper.WaitToComplete(Query(connection, "SELECT * FROM system.local", QueryProtocolOptions.Default));
-                var called = 0;
-                connection.OnIdleRequestException += _ => called++;
-                connection.Kill();
-                Thread.Sleep(2000);
-                Assert.AreEqual(1, called);
-            }
-        }
-
         /// Tests that connection heartbeats are enabled by default
         ///
         /// Heartbeat_Should_Be_Enabled_By_Default tests that connection heartbeats are enabled by default. It creates a default
@@ -799,21 +779,23 @@ namespace Cassandra.IntegrationTests.Core
         ///
         /// @test_category connection:heartbeat
         [Test]
-        public void Heartbeat_Should_Be_Enabled_By_Default()
+        public async Task Heartbeat_Should_Be_Enabled_By_Default()
         {
             const int defaultHeartbeatInterval = 30000;
-            using (var connection = CreateConnection(null, null, new PoolingOptions()))
+            using (var testCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "1" }))
+            using (var connection = CreateConnection(null, null, new PoolingOptions(), ProtocolVersion.V3, testCluster.InitialContactPoint.Address.ToString()))
             {
-                connection.Open().Wait();
+                await connection.Open().ConfigureAwait(false);
                 Assert.AreEqual(defaultHeartbeatInterval, connection.Configuration.PoolingOptions.GetHeartBeatInterval());
-
+                
                 //execute a dummy query
-                TaskHelper.WaitToComplete(Query(connection, "SELECT * FROM system.local", QueryProtocolOptions.Default));
-                var called = 0;
-                connection.OnIdleRequestException += _ => called++;
-                connection.Kill();
-                Thread.Sleep(defaultHeartbeatInterval + 2000);
-                Assert.AreEqual(1, called);
+                await Query(connection, "SELECT * FROM system.local", QueryProtocolOptions.Default).ConfigureAwait(false);
+
+                await TestHelper.RetryAssertAsync(async () =>
+                {
+                    var heartbeats = await testCluster.GetQueriesAsync(null, QueryType.Options).ConfigureAwait(false);
+                    Assert.GreaterOrEqual(heartbeats.Count, 1);
+                }, 300, (defaultHeartbeatInterval + 2000) / 300).ConfigureAwait(false);
             }
         }
 
@@ -821,7 +803,7 @@ namespace Cassandra.IntegrationTests.Core
         /// Execute a set of valid requests and an invalid request, look at the in-flight go up and then back to 0.
         /// </summary>
         [Test]
-        public async Task Should_Have_InFlight_Set_To_Zero_After_Successfull_And_Failed_Requests()
+        public async Task Should_Have_InFlight_Set_To_Zero_After_Successful_And_Failed_Requests()
         {
             var ex = new Exception("Test exception");
             var requestMock = new Mock<IRequest>(MockBehavior.Strict);
@@ -852,7 +834,12 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        private Connection CreateConnection(ProtocolOptions protocolOptions = null, SocketOptions socketOptions = null, PoolingOptions poolingOptions = null)
+        private Connection CreateConnection(
+            ProtocolOptions protocolOptions = null, 
+            SocketOptions socketOptions = null, 
+            PoolingOptions poolingOptions = null, 
+            ProtocolVersion? version = null, 
+            string contactPoint = null)
         {
             if (socketOptions == null)
             {
@@ -870,15 +857,15 @@ namespace Cassandra.IntegrationTests.Core
                 SocketOptions = socketOptions,
                 ClientOptions = new ClientOptions(false, 20000, null)
             }.Build();
-            return CreateConnection(GetProtocolVersion(), config);
+            return CreateConnection(version ?? GetProtocolVersion(), config, contactPoint);
         }
 
-        private Connection CreateConnection(ProtocolVersion protocolVersion, Configuration config)
+        private Connection CreateConnection(ProtocolVersion protocolVersion, Configuration config, string contactPoint = null)
         {
             Trace.TraceInformation("Creating test connection using protocol v{0}", protocolVersion);
             return new Connection(
                 new SerializerManager(protocolVersion).GetCurrentSerializer(),
-                new ConnectionEndPoint(new IPEndPoint(IPAddress.Parse(_testCluster.InitialContactPoint), 9042), config.ServerNameResolver, null),
+                new ConnectionEndPoint(new IPEndPoint(IPAddress.Parse(contactPoint ?? _testCluster.InitialContactPoint), 9042), config.ServerNameResolver, null),
                 config,
                 new StartupRequestFactory(config.StartupOptionsFactory),
                 NullConnectionObserver.Instance);
@@ -886,17 +873,17 @@ namespace Cassandra.IntegrationTests.Core
 
         private Task<Response> Query(Connection connection, string query, QueryProtocolOptions options = null)
         {
-            var request = GetQueryRequest(query, options);
+            var request = GetQueryRequest(query, options, connection.Serializer);
             return connection.Send(request);
         }
 
-        private QueryRequest GetQueryRequest(string query = BasicQuery, QueryProtocolOptions options = null)
+        private QueryRequest GetQueryRequest(string query = BasicQuery, QueryProtocolOptions options = null, ISerializer serializer = null)
         {
             if (options == null)
             {
                 options = QueryProtocolOptions.Default;
             }
-            return new QueryRequest(GetSerializer(), query, options, false, null);
+            return new QueryRequest(serializer ?? GetSerializer(), query, options, false, null);
         }
 
         private static T ValidateResult<T>(Response response)

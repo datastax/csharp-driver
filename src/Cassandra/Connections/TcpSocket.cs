@@ -35,13 +35,16 @@ namespace Cassandra.Connections
     internal class TcpSocket : ITcpSocket
     {
         public static readonly Logger Logger = new Logger(typeof(TcpSocket));
-        private Socket _socket;
-        private SocketAsyncEventArgs _receiveSocketEvent;
-        private SocketAsyncEventArgs _sendSocketEvent;
-        private Stream _socketStream;
+
+        private readonly Socket _socket;
+        private readonly SocketAsyncEventArgs _receiveSocketEvent;
+        private readonly SocketAsyncEventArgs _sendSocketEvent;
+        
         private byte[] _receiveBuffer;
-        private volatile bool _isClosing;
         private Action _writeFlushCallback;
+
+        private volatile Stream _socketStream;
+        private volatile bool _isClosing;
 
         public IConnectionEndPoint EndPoint { get; protected set; }
 
@@ -74,32 +77,7 @@ namespace Cassandra.Connections
             EndPoint = endPoint;
             Options = options;
             SSLOptions = sslOptions;
-        }
-        
-        /// <summary>
-        /// Get this socket's local address.
-        /// </summary>
-        /// <returns>The socket's local address.</returns>
-        public IPEndPoint GetLocalIpEndPoint()
-        {
-            try
-            {
-                var s = _socket;
-
-                return (IPEndPoint)s?.LocalEndPoint;
-            }
-            catch (Exception ex)
-            {
-                TcpSocket.Logger.Warning("Exception thrown when trying to get LocalIpEndpoint: {0}", ex.ToString());
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// Initializes the socket options
-        /// </summary>
-        public void Init()
-        {
+            
             _socket = new Socket(EndPoint.SocketIpEndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp)
             {
                 SendTimeout = Options.ConnectTimeoutMillis
@@ -125,6 +103,34 @@ namespace Cassandra.Connections
                 _socket.NoDelay = Options.TcpNoDelay.Value;
             }
             _receiveBuffer = new byte[_socket.ReceiveBufferSize];
+            
+            if (SSLOptions == null && !Options.UseStreamMode)
+            {
+                _receiveSocketEvent = new SocketAsyncEventArgs();
+                _receiveSocketEvent.SetBuffer(_receiveBuffer, 0, _receiveBuffer.Length);
+                _receiveSocketEvent.Completed += OnReceiveCompleted;
+                _sendSocketEvent = new SocketAsyncEventArgs();
+                _sendSocketEvent.Completed += OnSendCompleted;
+            }
+        }
+        
+        /// <summary>
+        /// Get this socket's local address.
+        /// </summary>
+        /// <returns>The socket's local address.</returns>
+        public IPEndPoint GetLocalIpEndPoint()
+        {
+            try
+            {
+                var s = _socket;
+
+                return (IPEndPoint)s?.LocalEndPoint;
+            }
+            catch (Exception ex)
+            {
+                TcpSocket.Logger.Warning("Exception thrown when trying to get LocalIpEndpoint: {0}", ex.ToString());
+                return null;
+            }
         }
 
         /// <summary>
@@ -168,11 +174,6 @@ namespace Cassandra.Connections
             }
             TcpSocket.Logger.Verbose("Socket connected, start reading using SocketEventArgs interface");
             //using SocketAsyncEventArgs
-            _receiveSocketEvent = new SocketAsyncEventArgs();
-            _receiveSocketEvent.SetBuffer(_receiveBuffer, 0, _receiveBuffer.Length);
-            _receiveSocketEvent.Completed += OnReceiveCompleted;
-            _sendSocketEvent = new SocketAsyncEventArgs();
-            _sendSocketEvent.Completed += OnSendCompleted;
             ReceiveAsync();
             return true;
         }
@@ -296,7 +297,14 @@ namespace Cassandra.Connections
             }
 
             //Emit event
-            Read?.Invoke(e.Buffer, e.BytesTransferred);
+            try
+            {
+                Read?.Invoke(e.Buffer, e.BytesTransferred);
+            }
+            catch (Exception ex)
+            {
+                OnError(ex);
+            }
 
             ReceiveAsync();
         }
@@ -387,18 +395,7 @@ namespace Cassandra.Connections
         {
             _isClosing = true;
             Closing?.Invoke();
-            if (_receiveSocketEvent != null)
-            {
-                //It is safe to call SocketAsyncEventArgs.Dispose() more than once
-                _sendSocketEvent.Dispose();
-                _receiveSocketEvent.Dispose();
-            }
-            else if (_socketStream != null)
-            {
-                _socketStream.Dispose();
-            }
-            //dereference to make the byte array GC-able as soon as possible
-            _receiveBuffer = null;
+            Dispose();
         }
 
         private void OnWriteFlushed()
@@ -462,18 +459,36 @@ namespace Cassandra.Connections
             }
         }
 
-        public void Kill()
-        {
-            _socket.Shutdown(SocketShutdown.Send);
-        }
-
         public void Dispose()
         {
-            if (_socket == null)
-            {
-                return;
-            }
             _isClosing = true;
+            try
+            {
+                _sendSocketEvent?.Dispose();
+            }
+            catch
+            {
+                // ignore
+            }
+
+            try
+            {
+                _receiveSocketEvent?.Dispose();
+            }
+            catch
+            {
+                // ignore
+            }
+
+            try
+            {
+                _socketStream?.Dispose();
+            }
+            catch
+            {
+                // ignore
+            }
+            
             try
             {
                 //Try to close it.
@@ -492,13 +507,9 @@ namespace Cassandra.Connections
             {
                 //We should not mind if socket's Close method throws an exception
             }
-            if (_receiveSocketEvent != null)
-            {
-                //It is safe to call SocketAsyncEventArgs.Dispose() more than once
-                //Also checked: .NET 4.0, .NET 4.5 and Mono 3.10 and 3.12 implementations
-                _sendSocketEvent.Dispose();
-                _receiveSocketEvent.Dispose();
-            }
+            
+            //dereference to make the byte array GC-able as soon as possible
+            _receiveBuffer = null;
         }
     }
 }

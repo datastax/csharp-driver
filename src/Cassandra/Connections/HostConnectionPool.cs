@@ -192,8 +192,19 @@ namespace Cassandra.Connections
         /// <inheritdoc />
         public void Remove(IConnection c)
         {
-            OnConnectionClosing(c);
-            c.Dispose();
+            if (c == null)
+            {
+                return;
+            }
+
+            if (c.IsDisposed)
+            {
+                OnConnectionClosing(c);
+            }
+            else
+            {
+                c.Dispose();
+            }
         }
 
         public void ConsiderResizingPool(int inFlight)
@@ -267,6 +278,11 @@ namespace Cassandra.Connections
         {
             var endPoint = await _config.EndPointResolver.GetConnectionEndPointAsync(_host, isReconnection).ConfigureAwait(false);
             var c = _config.ConnectionFactory.Create(_serializerManager.GetCurrentSerializer(), endPoint, _config, _observerFactory.CreateConnectionObserver(_host));
+            c.Closing += OnConnectionClosing;
+            if (_poolingOptions.GetHeartBeatInterval() > 0)
+            {
+                c.OnIdleRequestException += ex => OnIdleRequestException(c, ex);
+            }
             try
             {
                 await c.Open().ConfigureAwait(false);
@@ -276,11 +292,6 @@ namespace Cassandra.Connections
                 c.Dispose();
                 throw;
             }
-            if (_poolingOptions.GetHeartBeatInterval() > 0)
-            {
-                c.OnIdleRequestException += ex => OnIdleRequestException(c, ex);
-            }
-            c.Closing += OnConnectionClosing;
             return c;
         }
         
@@ -364,21 +375,22 @@ namespace Cassandra.Connections
             return c;
         }
 
-        private void OnConnectionClosing(IConnection c = null)
+        internal void OnConnectionClosing(IConnection c = null)
         {
             int currentLength;
             if (c != null)
             {
                 var removalInfo = _connections.RemoveAndCount(c);
                 currentLength = removalInfo.Item2;
-                var hasBeenRemoved = removalInfo.Item1;
-                if (!hasBeenRemoved)
+                var removed = removalInfo.Item1;
+                if (!removed)
                 {
                     // It has been already removed (via event or direct call)
                     // When it was removed, all the following checks have been made
                     // No point in doing them again
                     return;
                 }
+                c.Dispose();
                 HostConnectionPool.Logger.Info("Pool #{0} for host {1} removed a connection, new length: {2}",
                     GetHashCode(), _host.Address, currentLength);
             }
@@ -524,18 +536,17 @@ namespace Cassandra.Connections
         /// </summary>
         private void OnIdleRequestException(IConnection c, Exception ex)
         {
-            if (c.IsCancelled)
+            if (c.IsDisposed)
             {
-                HostConnectionPool.Logger.Info("Connection to {0} is cancelled, disposing it. Exception: {1}",
+                HostConnectionPool.Logger.Info("Idle timeout exception, connection to {0} is disposed. Exception: {1}",
                     _host.Address, ex);
             }
             else
             {
                 HostConnectionPool.Logger.Warning("Connection to {0} considered as unhealthy after idle timeout exception: {1}",
                     _host.Address, ex);
+                c.Close();
             }
-            OnConnectionClosing(c);
-            c.Dispose();
         }
 
         /// <inheritdoc />
@@ -718,11 +729,21 @@ namespace Cassandra.Connections
             {
                 // We haven't use a CAS operation, so it's possible that the pool is being closed while adding a new
                 // connection, we should remove it.
-                HostConnectionPool.Logger.Info("Connection to {0} opened successfully and added to the pool #{1} but it was being closed",
+                HostConnectionPool.Logger.Info("Connection to {0} opened successfully and added to the pool #{1} but the pool was being closed",
                     _host.Address, GetHashCode());
                 _connections.Remove(c);
                 c.Dispose();
                 return await FinishOpen(tcs, false, HostConnectionPool.GetNotConnectedException()).ConfigureAwait(false);
+            }
+
+            if (c.IsDisposed)
+            {
+                // We haven't use a CAS operation, so it's possible that the connection is being disposed while adding it
+                HostConnectionPool.Logger.Info("Connection to {0} opened successfully and added to the pool #{1} but it got closed",
+                    _host.Address, GetHashCode());
+                _connections.Remove(c);
+                c.Dispose();
+                return await FinishOpen(tcs, true, HostConnectionPool.GetNotConnectedException()).ConfigureAwait(false);
             }
 
             return await FinishOpen(tcs, true, null, c).ConfigureAwait(false);

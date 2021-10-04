@@ -45,8 +45,6 @@ namespace Cassandra.IntegrationTests.Core
                 return;
             }
 
-            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
-
             _testCluster = TestClusterManager.CreateNew(1, new TestClusterOptions
             {
                 CassandraYaml = new[]

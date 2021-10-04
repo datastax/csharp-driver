@@ -172,7 +172,6 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Should_Failover_When_First_Node_Timeouts()
         {
-            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;
             using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" }))
             using (var cluster = ClusterBuilder()
                                         .AddContactPoint(simulacronCluster.InitialContactPoint)

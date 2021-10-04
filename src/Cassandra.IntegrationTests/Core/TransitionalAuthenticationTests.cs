@@ -39,7 +39,6 @@ namespace Cassandra.IntegrationTests.Core
         [OneTimeSetUp]
         public void OneTimeSetUp()
         {
-            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
             _testClusterForAuthTesting = GetTestCcmClusterForAuthTests();
         }
 

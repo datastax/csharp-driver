@@ -28,7 +28,6 @@ namespace Cassandra.IntegrationTests
     {
         protected BaseIntegrationTest()
         {
-            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
         }
 
         protected const string ClassicSchemaGremlinQuery =

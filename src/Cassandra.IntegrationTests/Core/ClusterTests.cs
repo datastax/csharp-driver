@@ -51,17 +51,16 @@ namespace Cassandra.IntegrationTests.Core
         {
             _testCluster = SimulacronCluster.CreateNew(2);
             var lbp = new TestLoadBalancingPolicy();
-            using (var cluster = ClusterBuilder()
-                                        .AddContactPoint(_testCluster.InitialContactPoint)
-                                        .WithLoadBalancingPolicy(lbp)
-                                        .Build())
+            var cluster = ClusterBuilder()
+                          .AddContactPoint(_testCluster.InitialContactPoint)
+                          .WithLoadBalancingPolicy(lbp)
+                          .Build();
+
+            return TestGlobals.ConnectAndDispose(cluster, asyncConnect, session =>
             {
-                return Connect(cluster, asyncConnect, session =>
-                {
-                    Assert.NotNull(lbp.ControlConnectionHost);
-                    Assert.AreEqual(_testCluster.InitialContactPoint, lbp.ControlConnectionHost.Address);
-                });
-            }
+                Assert.NotNull(lbp.ControlConnectionHost);
+                Assert.AreEqual(_testCluster.InitialContactPoint, lbp.ControlConnectionHost.Address);
+            });
         }
 
         [Test]
@@ -74,17 +73,15 @@ namespace Cassandra.IntegrationTests.Core
             var contactPoints = nodes.Select(n => n.ContactPoint).ToArray();
             nodes[0].DisableConnectionListener().GetAwaiter().GetResult();
             var lbp = new TestLoadBalancingPolicy();
-            using (var cluster = ClusterBuilder()
-                                        .AddContactPoints(contactPoints.Select(s => s.Split(':').First()))
-                                        .WithLoadBalancingPolicy(lbp)
-                                        .Build())
+            var cluster = ClusterBuilder()
+                          .AddContactPoints(contactPoints.Select(s => s.Split(':').First()))
+                          .WithLoadBalancingPolicy(lbp)
+                          .Build();
+            return TestGlobals.ConnectAndDispose(cluster, asyncConnect, session =>
             {
-                return Connect(cluster, asyncConnect, session =>
-                {
-                    Assert.NotNull(lbp.ControlConnectionHost);
-                    Assert.AreEqual(contactPoints[1], lbp.ControlConnectionHost.Address.ToString());
-                });
-            }
+                Assert.NotNull(lbp.ControlConnectionHost);
+                Assert.AreEqual(contactPoints[1], lbp.ControlConnectionHost.Address.ToString());
+            });
         }
 
         /// Tests that MaxProtocolVersion is honored when set
@@ -111,41 +108,41 @@ namespace Cassandra.IntegrationTests.Core
             _testCluster = SimulacronCluster.CreateNew(2);
 
             // Default MaxProtocolVersion
-            using (var clusterDefault = ClusterBuilder()
-                                               .AddContactPoint(_testCluster.InitialContactPoint)
-                                               .Build())
+            var clusterDefault = ClusterBuilder()
+                                 .AddContactPoint(_testCluster.InitialContactPoint)
+                                 .Build();
+            Assert.AreEqual(Cluster.MaxProtocolVersion, clusterDefault.Configuration.ProtocolOptions.MaxProtocolVersion);
+
+            // MaxProtocolVersion set
+            var clusterMax = ClusterBuilder()
+                             .AddContactPoint(_testCluster.InitialContactPoint)
+                             .WithMaxProtocolVersion(3)
+                             .Build();
+
+            Assert.AreEqual(3, clusterMax.Configuration.ProtocolOptions.MaxProtocolVersion);
+            await TestGlobals.ConnectAndDispose(clusterMax, asyncConnect, session =>
             {
-                Assert.AreEqual(Cluster.MaxProtocolVersion, clusterDefault.Configuration.ProtocolOptions.MaxProtocolVersion);
+                if (TestClusterManager.CheckCassandraVersion(false, Version.Parse("2.1"), Comparison.LessThan))
+                    Assert.AreEqual(2, session.BinaryProtocolVersion);
+                else
+                    Assert.AreEqual(3, session.BinaryProtocolVersion);
+            }).ConfigureAwait(false);
 
-                // MaxProtocolVersion set
-                var clusterMax = ClusterBuilder()
-                    .AddContactPoint(_testCluster.InitialContactPoint)
-                    .WithMaxProtocolVersion(3)
-                    .Build();
-                Assert.AreEqual(3, clusterMax.Configuration.ProtocolOptions.MaxProtocolVersion);
-                await Connect(clusterMax, asyncConnect, session =>
-                {
-                    if (TestClusterManager.CheckCassandraVersion(false, Version.Parse("2.1"), Comparison.LessThan))
-                        Assert.AreEqual(2, session.BinaryProtocolVersion);
-                    else
-                        Assert.AreEqual(3, session.BinaryProtocolVersion);
-                }).ConfigureAwait(false);
+            // Arbitrary MaxProtocolVersion set, will negotiate down upon connect
+            var clusterNegotiate = ClusterBuilder()
+                                   .AddContactPoint(_testCluster.InitialContactPoint)
+                                   .WithMaxProtocolVersion(10)
+                                   .Build();
 
-                // Arbitary MaxProtocolVersion set, will negotiate down upon connect
-                var clusterNegotiate = ClusterBuilder()
-                    .AddContactPoint(_testCluster.InitialContactPoint)
-                    .WithMaxProtocolVersion(10)
-                    .Build();
-                Assert.AreEqual(10, clusterNegotiate.Configuration.ProtocolOptions.MaxProtocolVersion);
-                await Connect(clusterNegotiate, asyncConnect, session =>
-                {
-                    Assert.LessOrEqual(4, clusterNegotiate.Configuration.ProtocolOptions.MaxProtocolVersion);
-                }).ConfigureAwait(false);
+            Assert.AreEqual(10, clusterNegotiate.Configuration.ProtocolOptions.MaxProtocolVersion);
+            await TestGlobals.ConnectAndDispose(clusterNegotiate, asyncConnect, session =>
+            {
+                Assert.LessOrEqual(4, clusterNegotiate.Configuration.ProtocolOptions.MaxProtocolVersion);
+            }).ConfigureAwait(false);
 
-                // ProtocolVersion 0 does not exist
-                Assert.Throws<ArgumentException>(
-                    () => ClusterBuilder().AddContactPoint("127.0.0.1").WithMaxProtocolVersion((byte)0));
-            }
+            // ProtocolVersion 0 does not exist
+            Assert.Throws<ArgumentException>(
+                () => ClusterBuilder().AddContactPoint("127.0.0.1").WithMaxProtocolVersion((byte)0));
         }
 
         /// <summary>
@@ -156,38 +153,37 @@ namespace Cassandra.IntegrationTests.Core
         public async Task Should_Add_And_Query_Newly_Bootstrapped_Node()
         {
             _realCluster = TestClusterManager.CreateNew();
-            using (var cluster = ClusterBuilder()
-                                        .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(22000).SetConnectTimeoutMillis(60000))
-                                        .AddContactPoint(_realCluster.InitialContactPoint)
-                                        .Build())
+            var cluster = ClusterBuilder()
+                          .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(22000).SetConnectTimeoutMillis(60000))
+                          .AddContactPoint(_realCluster.InitialContactPoint)
+                          .Build();
+
+            await TestGlobals.ConnectAndDispose(cluster, false, session =>
             {
-                await Connect(cluster, false, session =>
-                {
-                    Assert.AreEqual(1, cluster.AllHosts().Count);
-                    _realCluster.BootstrapNode(2);
-                    Trace.TraceInformation("Node bootstrapped");
-                    var newNodeAddress = _realCluster.ClusterIpPrefix + 2;
-                    var newNodeIpAddress = IPAddress.Parse(newNodeAddress);
-                    TestHelper.RetryAssert(() =>
-                        {
-                            Assert.True(TestUtils.IsNodeReachable(newNodeIpAddress));
+                Assert.AreEqual(1, cluster.AllHosts().Count);
+                _realCluster.BootstrapNode(2);
+                Trace.TraceInformation("Node bootstrapped");
+                var newNodeAddress = _realCluster.ClusterIpPrefix + 2;
+                var newNodeIpAddress = IPAddress.Parse(newNodeAddress);
+                TestHelper.RetryAssert(() =>
+                    {
+                        Assert.True(TestUtils.IsNodeReachable(newNodeIpAddress));
                             //New node should be part of the metadata
                             Assert.AreEqual(2, cluster.AllHosts().Count);
-                            var host = cluster.AllHosts().FirstOrDefault(h => h.Address.Address.Equals(newNodeIpAddress));
-                            Assert.IsNotNull(host);
-                        },
-                        2000,
-                        90);
+                        var host = cluster.AllHosts().FirstOrDefault(h => h.Address.Address.Equals(newNodeIpAddress));
+                        Assert.IsNotNull(host);
+                    },
+                    2000,
+                    90);
 
-                    TestHelper.RetryAssert(() =>
-                        {
-                            var rs = session.Execute("SELECT key FROM system.local");
-                            Assert.True(rs.Info.QueriedHost.Address.ToString() == newNodeAddress, "Newly bootstrapped node should be queried");
-                        },
-                        1,
-                        100);
-                }).ConfigureAwait(false);
-            }
+                TestHelper.RetryAssert(() =>
+                    {
+                        var rs = session.Execute("SELECT key FROM system.local");
+                        Assert.True(rs.Info.QueriedHost.Address.ToString() == newNodeAddress, "Newly bootstrapped node should be queried");
+                    },
+                    1,
+                    100);
+            }).ConfigureAwait(false);
         }
 
         [Test]
@@ -196,45 +192,44 @@ namespace Cassandra.IntegrationTests.Core
         {
             const int numberOfNodes = 2;
             _realCluster = TestClusterManager.CreateNew(numberOfNodes);
-            using (var cluster = ClusterBuilder().AddContactPoint(_realCluster.InitialContactPoint).Build())
+            var cluster = ClusterBuilder().AddContactPoint(_realCluster.InitialContactPoint).Build();
+
+            await TestGlobals.ConnectAndDispose(cluster, false, session =>
             {
-                await Connect(cluster, false, session =>
+                Assert.AreEqual(numberOfNodes, cluster.AllHosts().Count);
+                if (TestClusterManager.SupportsDecommissionForcefully())
                 {
-                    Assert.AreEqual(numberOfNodes, cluster.AllHosts().Count);
-                    if (TestClusterManager.SupportsDecommissionForcefully())
-                    {
-                        _realCluster.DecommissionNodeForcefully(numberOfNodes);
-                    }
-                    else
-                    {
-                        _realCluster.DecommissionNode(numberOfNodes);
-                    }
-                    _realCluster.Stop(numberOfNodes);
-                    Trace.TraceInformation("Node decommissioned");
-                    string decommisionedNode = null;
-                    TestHelper.RetryAssert(() =>
-                    {
-                        decommisionedNode = _realCluster.ClusterIpPrefix + 2;
-                        Assert.False(TestUtils.IsNodeReachable(IPAddress.Parse(decommisionedNode)));
+                    _realCluster.DecommissionNodeForcefully(numberOfNodes);
+                }
+                else
+                {
+                    _realCluster.DecommissionNode(numberOfNodes);
+                }
+                _realCluster.Stop(numberOfNodes);
+                Trace.TraceInformation("Node decommissioned");
+                string decommisionedNode = null;
+                TestHelper.RetryAssert(() =>
+                {
+                    decommisionedNode = _realCluster.ClusterIpPrefix + 2;
+                    Assert.False(TestUtils.IsNodeReachable(IPAddress.Parse(decommisionedNode)));
                         //New node should be part of the metadata
                         Assert.AreEqual(1, cluster.AllHosts().Count);
-                    }, 100, 100);
-                    var queried = false;
-                    for (var i = 0; i < 10; i++)
+                }, 100, 100);
+                var queried = false;
+                for (var i = 0; i < 10; i++)
+                {
+                    var rs = session.Execute("SELECT key FROM system.local");
+                    if (rs.Info.QueriedHost.Address.ToString() == decommisionedNode)
                     {
-                        var rs = session.Execute("SELECT key FROM system.local");
-                        if (rs.Info.QueriedHost.Address.ToString() == decommisionedNode)
-                        {
-                            queried = true;
-                            break;
-                        }
+                        queried = true;
+                        break;
                     }
-                    Assert.False(queried, "Removed node should be queried");
-                }).ConfigureAwait(false);
-            }
+                }
+                Assert.False(queried, "Removed node should be queried");
+            }).ConfigureAwait(false);
         }
-    
-    private class TestLoadBalancingPolicy : ILoadBalancingPolicy
+
+        private class TestLoadBalancingPolicy : ILoadBalancingPolicy
         {
             private ICluster _cluster;
             public Host ControlConnectionHost { get; private set; }

@@ -36,19 +36,22 @@ namespace Cassandra.IntegrationTests.Core
             try
             {
                 var builder = ClusterBuilder().WithDefaultKeyspace("system")
-                                           .AddContactPoints("1.1.1.1") // IP address that drops (not rejects !) the inbound connection
-                                           .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(700));
+                                              .AddContactPoints("1.1.1.1") // IP address that drops (not rejects !) the inbound connection
+                                              .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(700));
                 var cluster = builder.Build();
-                await Connect(cluster, asyncConnection, session =>{}).ConfigureAwait(false);
+                await TestGlobals.ConnectAndDispose(cluster, asyncConnection, session => { }).ConfigureAwait(false);
                 Assert.Fail();
             }
             catch (NoHostAvailableException)
             {
             }
+            finally
+            {
+                Diagnostics.CassandraTraceSwitch.Level = originalTraceLevel;
+            }
             sw.Stop();
             // Consider timer precision ~16ms
             Assert.Greater(sw.Elapsed.TotalMilliseconds, 684, "The connection timeout was not respected");
-            Diagnostics.CassandraTraceSwitch.Level = originalTraceLevel;
         }
     }
 }

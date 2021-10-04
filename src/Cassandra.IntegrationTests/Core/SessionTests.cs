@@ -378,16 +378,22 @@ namespace Cassandra.IntegrationTests.Core
         {
             var originalLevel = Diagnostics.CassandraTraceSwitch.Level;
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;
-            Assert.DoesNotThrow(() =>
+            try
             {
-                using (var localCluster = ClusterBuilder().AddContactPoint(TestCluster.InitialContactPoint).Build())
+                Assert.DoesNotThrow(() =>
                 {
-                    var localSession = localCluster.Connect("system");
-                    var ps = localSession.Prepare("SELECT * FROM local");
-                    TestHelper.ParallelInvoke(() => localSession.Execute(ps.Bind()), 100);
-                }
-            });
-            Diagnostics.CassandraTraceSwitch.Level = originalLevel;
+                    using (var localCluster = ClusterBuilder().AddContactPoint(TestCluster.InitialContactPoint).Build())
+                    {
+                        var localSession = localCluster.Connect("system");
+                        var ps = localSession.Prepare("SELECT * FROM local");
+                        TestHelper.ParallelInvoke(() => localSession.Execute(ps.Bind()), 100);
+                    }
+                });
+            }
+            finally
+            {
+                Diagnostics.CassandraTraceSwitch.Level = originalLevel;
+            }
         }
 
         [Test]

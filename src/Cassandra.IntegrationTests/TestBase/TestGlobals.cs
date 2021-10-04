@@ -67,7 +67,7 @@ namespace Cassandra.IntegrationTests.TestBase
             return new SerializerManager(GetProtocolVersion()).GetCurrentSerializer();
         }
 
-        public static async Task Connect(Cluster cluster, bool asyncConnect, Action<ISession> action)
+        public static async Task ConnectAndDispose(Cluster cluster, bool asyncConnect, Action<ISession> action)
         {
             if (asyncConnect)
             {

@@ -34,12 +34,6 @@ namespace Cassandra.IntegrationTests.Core
     {
         private SimulacronCluster _testCluster;
 
-        public ClientTimeoutTests()
-        {
-            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
-            Diagnostics.CassandraStackTraceIncluded = true;
-        }
-
         [TearDown]
         public void TearDown()
         {
@@ -225,8 +219,8 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.Throws<OperationTimedOutException>(() => session.Execute("SELECT key FROM system.local"));
                 stopWatch.Stop();
                 //precision of the timer is not guaranteed
-                Assert.Greater(stopWatch.ElapsedMilliseconds, generalReadTimeout - 2000);
-                Assert.Less(stopWatch.ElapsedMilliseconds, generalReadTimeout + 2000);
+                Assert.Greater(stopWatch.ElapsedMilliseconds, generalReadTimeout - 500);
+                Assert.Less(stopWatch.ElapsedMilliseconds, generalReadTimeout + 3000);
 
                 //Try with an specified timeout at Statement level
                 var stmt = new SimpleStatement("SELECT key FROM system.local")
@@ -235,8 +229,8 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.Throws<OperationTimedOutException>(() => session.Execute(stmt));
                 stopWatch.Stop();
                 //precision of the timer is not guaranteed
-                Assert.Greater(stopWatch.ElapsedMilliseconds, statementReadTimeout - 4000);
-                Assert.Less(stopWatch.ElapsedMilliseconds, statementReadTimeout + 4000);
+                Assert.Greater(stopWatch.ElapsedMilliseconds, statementReadTimeout - 2000);
+                Assert.Less(stopWatch.ElapsedMilliseconds, statementReadTimeout + 6000);
             }
         }
 
@@ -298,53 +292,29 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Should_Not_Leak_Connections_Test()
         {
-            _testCluster = SimulacronCluster.CreateNew(1);
-            var socketOptions = new SocketOptions().SetReadTimeoutMillis(1).SetConnectTimeoutMillis(1);
+            var listeners = new List<TraceListener>();
+            foreach (var l in Trace.Listeners)
+            {
+                listeners.Add((TraceListener) l);
+            }
 
-            var node = _testCluster.GetNodes().First();
-            node.DisableConnectionListener(0, "reject_startup").GetAwaiter().GetResult();
-            var clusters = Enumerable.Range(0, 100).Select(
-                b => ClusterBuilder()
-                     .AddContactPoint(_testCluster.InitialContactPoint)
-                     .WithSocketOptions(socketOptions)
-                     .Build()).ToList();
-            
+            Trace.Listeners.Clear();
             try
             {
-                var tasks = clusters.Select(c => Task.Run(async () =>
+                _testCluster = SimulacronCluster.CreateNew(1);
+                var socketOptions = new SocketOptions().SetReadTimeoutMillis(1).SetConnectTimeoutMillis(1);
+
+                var node = _testCluster.GetNodes().First();
+                node.DisableConnectionListener(0, "reject_startup").GetAwaiter().GetResult();
+                var clusters = Enumerable.Range(0, 100).Select(
+                    b => ClusterBuilder()
+                         .AddContactPoint(_testCluster.InitialContactPoint)
+                         .WithSocketOptions(socketOptions)
+                         .Build()).ToList();
+
+                try
                 {
-                    try
-                    {
-                        await c.ConnectAsync().ConfigureAwait(false);
-                    }
-                    catch (NoHostAvailableException ex)
-                    {
-                        Assert.AreEqual(1, ex.Errors.Count);
-                        return;
-                    }
-
-                    Assert.Fail();
-                })).ToArray();
-
-                Task.WaitAll(tasks);
-
-                foreach (var t in tasks)
-                {
-                    t.Dispose();
-                }
-
-                tasks = null;
-                
-                GC.Collect();
-                Thread.Sleep(1000);
-
-                decimal initialMemory = GC.GetTotalMemory(true);
-                
-                const int length = 100;
-                
-                tasks = clusters.Select(c => Task.Run(async () =>
-                {
-                    for (var i = 0; i < length; i++)
+                    var tasks = clusters.Select(c => Task.Run(async () =>
                     {
                         try
                         {
@@ -353,33 +323,74 @@ namespace Cassandra.IntegrationTests.Core
                         catch (NoHostAvailableException ex)
                         {
                             Assert.AreEqual(1, ex.Errors.Count);
-                            continue;
+                            return;
                         }
 
                         Assert.Fail();
+                    })).ToArray();
+
+                    Task.WaitAll(tasks);
+
+                    foreach (var t in tasks)
+                    {
+                        t.Dispose();
                     }
-                })).ToArray();
 
-                Task.WaitAll(tasks);
-                
-                foreach (var t in tasks)
-                {
-                    t.Dispose();
+                    tasks = null;
+
+                    GC.Collect();
+                    Thread.Sleep(1000);
+
+                    decimal initialMemory = GC.GetTotalMemory(true);
+
+                    const int length = 100;
+
+                    tasks = clusters.Select(c => Task.Run(async () =>
+                    {
+                        for (var i = 0; i < length; i++)
+                        {
+                            try
+                            {
+                                await c.ConnectAsync().ConfigureAwait(false);
+                            }
+                            catch (NoHostAvailableException ex)
+                            {
+                                Assert.AreEqual(1, ex.Errors.Count);
+                                continue;
+                            }
+
+                            Assert.Fail();
+                        }
+                    })).ToArray();
+
+                    Task.WaitAll(tasks);
+
+                    foreach (var t in tasks)
+                    {
+                        t.Dispose();
+                    }
+
+                    tasks = null;
+
+                    GC.Collect();
+                    Thread.Sleep(1000);
+                    Assert.Less(GC.GetTotalMemory(true) / initialMemory, 1.5M,
+                        "Should not exceed a 50% (1.5) more than was previously allocated");
+
                 }
-
-                tasks = null;
-                
-                GC.Collect();
-                Thread.Sleep(1000);
-                Assert.Less(GC.GetTotalMemory(true) / initialMemory, 1.5M,
-                    "Should not exceed a 50% (1.5) more than was previously allocated");
-
+                finally
+                {
+                    foreach (var c in clusters)
+                    {
+                        c.Dispose();
+                    }
+                }
             }
             finally
             {
-                foreach (var c in clusters)
+                foreach (var l in listeners)
                 {
-                    c.Dispose();
+                    Trace.Listeners.Add(l);
                 }
             }
         }

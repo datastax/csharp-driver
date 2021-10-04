@@ -42,7 +42,6 @@ namespace Cassandra.IntegrationTests.Core
                 return;
             }
 
-            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
             //Using a mirroring handler, the server will reply providing the same payload that was sent
             var jvmArgs = new [] { "-Dcassandra.custom_query_handler_class=org.apache.cassandra.cql3.CustomPayloadMirroringQueryHandler" };
             var testCluster = TestClusterManager.GetTestCluster(1, 0, false, DefaultMaxClusterCreateRetries, true, true, 0, jvmArgs);

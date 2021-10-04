@@ -25,11 +25,6 @@ namespace Cassandra.Tests
     [TestFixture]
     public class CustomTypeSerializerTests
     {
-        public CustomTypeSerializerTests()
-        {
-            Diagnostics.CassandraTraceSwitch.Level = System.Diagnostics.TraceLevel.Info;
-        }
-
         [Test]
         public void Should_Allow_Custom_Primitive_Serializers()
         {

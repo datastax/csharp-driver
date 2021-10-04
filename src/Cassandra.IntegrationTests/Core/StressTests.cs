@@ -29,14 +29,6 @@ namespace Cassandra.IntegrationTests.Core
     [TestFixture, Category(TestCategory.Long), Ignore("tests that are not marked with 'short' need to be refactored/deleted")]
     public class StressTests : TestGlobals
     {
-        [OneTimeSetUp]
-        public void OneTimeSetUp()
-        {
-            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
-            //For different threads
-            Trace.AutoFlush = true;
-        }
-
         /// <summary>
         /// Insert and select records in parallel them using Session.Execute sync methods.
         /// </summary>
@@ -161,7 +153,6 @@ namespace Cassandra.IntegrationTests.Core
         {
             var testCluster = TestClusterManager.GetTestCluster(2, DefaultMaxClusterCreateRetries, true, false);
             //Only warning as tracing through console slows it down.
-            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Warning;
             var start = GC.GetTotalMemory(false);
             long diff = 0;
             Trace.TraceInformation("--Initial memory: {0}", start / 1024);

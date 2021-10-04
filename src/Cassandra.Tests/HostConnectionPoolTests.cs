@@ -45,13 +45,7 @@ namespace Cassandra.Tests
         private static readonly Host Host1 = TestHelper.CreateHost("127.0.0.1");
         private static readonly HashedWheelTimer Timer = new HashedWheelTimer();
         private Mock<HostConnectionPool> _mock;
-
-        [OneTimeSetUp]
-        public void OnTimeSetUp()
-        {
-            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
-        }
-
+        
         [TearDown]
         public void TearDown()
         {
@@ -119,22 +113,11 @@ namespace Cassandra.Tests
 
         private static IConnection GetConnectionMock(int inflight, int timedOutOperations = 0)
         {
-            var config = new Configuration();
-            var connectionMock = new Mock<Connection>(
-                MockBehavior.Loose, 
-                new SerializerManager(ProtocolVersion.MaxSupported).GetCurrentSerializer(), 
-                new ConnectionEndPoint(HostConnectionPoolTests.Address, config.ServerNameResolver, null), 
-                config, 
-                new StartupRequestFactory(config.StartupOptionsFactory),
-                NullConnectionObserver.Instance);
+            var connectionMock = new Mock<IConnection>();
             connectionMock.Setup(c => c.InFlight).Returns(inflight);
             connectionMock.Setup(c => c.TimedOutOperations).Returns(timedOutOperations);
+            connectionMock.Setup(c => c.Dispose()).Raises(c => c.Closing += null, connectionMock.Object);
             return connectionMock.Object;
-        }
-
-        public HostConnectionPoolTests()
-        {
-            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
         }
 
         [Test]
@@ -492,7 +475,13 @@ namespace Cassandra.Tests
         public async Task CheckHealth_Removes_Connection()
         {
             _mock = GetPoolMock();
-            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() => TaskHelper.ToTask(GetConnectionMock(0, int.MaxValue)));
+            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(
+                () =>
+                {
+                    var cc = HostConnectionPoolTests.GetConnectionMock(0, int.MaxValue);
+                    cc.Closing += _mock.Object.OnConnectionClosing;
+                    return TaskHelper.ToTask(cc);
+                });
             var pool = _mock.Object;
             pool.SetDistance(HostDistance.Local);
             Assert.AreEqual(0, pool.OpenConnections);
@@ -502,7 +491,7 @@ namespace Cassandra.Tests
             Assert.AreEqual(3, pool.OpenConnections);
             var c = await pool.BorrowConnectionAsync().ConfigureAwait(false);
             pool.CheckHealth(c);
-            Assert.AreEqual(2, pool.OpenConnections);
+            TestHelper.RetryAssert(() => Assert.AreEqual(2, pool.OpenConnections), 20, 50);
         }
 
         [Test, Repeat(10)]
@@ -514,7 +503,9 @@ namespace Cassandra.Tests
                 await Task.Yield();
                 var spinWait = new SpinWait();
                 spinWait.SpinOnce();
-                return await Task.Run(() => CreateConnection()).ConfigureAwait(false);
+                var c = await Task.Run(() => CreateConnection()).ConfigureAwait(false);
+                c.Closing += _mock.Object.OnConnectionClosing;
+                return c;
             });
             var pool = _mock.Object;
             Assert.AreEqual(0, pool.OpenConnections);

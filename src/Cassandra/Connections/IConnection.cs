@@ -84,17 +84,8 @@ namespace Cassandra.Connections
         /// Gets the amount of operations that timed out and didn't get a response
         /// </summary>
         int TimedOutOperations { get; }
-
-        /// <summary>
-        /// Determine if the Connection has been explicitly disposed
-        /// </summary>
-        bool IsDisposed { get; }
         
-        /// <summary>
-        /// Determines that the connection cancelled pending operations.
-        /// It could be because its being closed or there was a socket error.
-        /// </summary>
-        bool IsCancelled { get; }
+        bool IsDisposed { get; }
 
         /// <summary>
         /// Gets the current keyspace.
@@ -141,5 +132,10 @@ namespace Cassandra.Connections
         /// If the keyspace is different from the current value, it sends a Query request to change it
         /// </summary>
         Task<bool> SetKeyspace(string value);
+
+        /// <summary>
+        /// Cancels current requests and invokes Closing event handlers. Doesn't guarantee disposal, the Closing event handlers should do that.
+        /// </summary>
+        void Close();
     }
 }

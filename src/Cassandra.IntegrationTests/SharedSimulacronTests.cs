@@ -116,14 +116,11 @@ namespace Cassandra.IntegrationTests
         [OneTimeTearDown]
         public virtual void OneTimeTearDown()
         {
-            if (Cluster != null)
-            {
-                Cluster.Shutdown(10000);   
-            }
+            Cluster?.Shutdown();
             //Shutdown the other instances created by helper methods
             foreach (var c in _clusterInstances)
             {
-                c.Shutdown(10000);
+                c.Shutdown();
             }
 
             foreach (var c in _simulacronClusters)

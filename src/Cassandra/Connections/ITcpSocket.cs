@@ -54,11 +54,6 @@ namespace Cassandra.Connections
         IPEndPoint GetLocalIpEndPoint();
 
         /// <summary>
-        /// Initializes the socket options
-        /// </summary>
-        void Init();
-
-        /// <summary>
         /// Connects asynchronously to the host and starts reading
         /// </summary>
         /// <exception cref="SocketException">Throws a SocketException when the connection could not be established with the host</exception>
@@ -68,7 +63,5 @@ namespace Cassandra.Connections
         /// Sends data asynchronously
         /// </summary>
         void Write(RecyclableMemoryStream stream, Action onBufferFlush);
-
-        void Kill();
     }
 }
