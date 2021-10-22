@@ -21,6 +21,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.IntegrationTests.SimulacronAPI;
+using Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.Then;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using Cassandra.Tests;
@@ -381,6 +382,153 @@ namespace Cassandra.IntegrationTests.Core
                 finally
                 {
                     foreach (var c in clusters)
+                    {
+                        c.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                foreach (var l in listeners)
+                {
+                    Trace.Listeners.Add(l);
+                }
+            }
+        }
+        
+        /// <summary>
+        /// CSHARP-958
+        /// </summary>
+        [Test]
+        public async Task Should_Not_Leak_Connections_With_InvalidKeyspace_Test()
+        {
+            var listeners = new List<TraceListener>();
+            foreach (var l in Trace.Listeners)
+            {
+                listeners.Add((TraceListener) l);
+            }
+
+            Trace.Listeners.Clear();
+            try
+            {
+                var numberOfDefaultKsClusters = 10;
+                _testCluster = await SimulacronCluster.CreateNewAsync(1).ConfigureAwait(false);
+                var defaultKsClusters = Enumerable.Range(0, numberOfDefaultKsClusters).Select(
+                    b =>
+                    {
+                        if (b % 2 == 0)
+                        {
+                            _testCluster.PrimeFluent(
+                                c => c.WhenQuery($"USE \"keyspace_{b}\"")
+                                      .ThenServerError(ServerError.Invalid, "invalid keyspace"));
+                        }
+                        return ClusterBuilder()
+                               .AddContactPoint(_testCluster.InitialContactPoint)
+                               .WithDefaultKeyspace($"keyspace_{b}")
+                               .Build();
+                    }).ToList();
+                var clustersWithoutDefaultKs = Enumerable.Range(numberOfDefaultKsClusters, 10).Select(
+                    b =>
+                    {
+                        if (b % 2 == 0)
+                        {
+                            _testCluster.PrimeFluent(
+                                c => c.WhenQuery($"USE \"keyspace_{b}\"")
+                                      .ThenServerError(ServerError.Invalid, "invalid keyspace"));
+                        }
+                        return ClusterBuilder()
+                               .AddContactPoint(_testCluster.InitialContactPoint)
+                               .Build();
+                    }).ToList();
+
+                try
+                {
+
+                    Func<int, Task> connectClustersFunc = async iterations =>
+                    {
+                        var tasks = defaultKsClusters.Select((c, i) => Task.Run(async () =>
+                        {
+                            for (var j = 0; j < iterations; j++)
+                            {
+                                Exception ex = null;
+                                try
+                                {
+                                    using (await c.ConnectAsync().ConfigureAwait(false))
+                                    {
+                                    }
+                                }
+                                catch (Exception ex1)
+                                {
+                                    ex = ex1;
+                                }
+
+                                if (i % 2 == 0)
+                                {
+                                    Assert.IsNotNull(ex);
+                                }
+                                else
+                                {
+                                    Assert.IsNull(ex);
+                                }
+                            }
+                        })).Concat(clustersWithoutDefaultKs.Select((c, i) => Task.Run(async () =>
+                        {
+                            for (var j = 0; j < iterations; j++)
+                            {
+                                Exception ex = null;
+                                try
+                                {
+                                    using (await c.ConnectAsync($"keyspace_{i+numberOfDefaultKsClusters}").ConfigureAwait(false))
+                                    {
+                                    }
+                                }
+                                catch (Exception ex1)
+                                {
+                                    ex = ex1;
+                                }
+
+                                if (i % 2 == 0)
+                                {
+                                    Assert.IsNotNull(ex);
+                                }
+                                else
+                                {
+                                    Assert.IsNull(ex);
+                                }
+                            }
+                        }))).ToArray();
+
+                        await Task.WhenAll(tasks).ConfigureAwait(false);
+
+                        foreach (var t in tasks)
+                        {
+                            t.Dispose();
+                        }
+
+                        tasks = null;
+                    };
+
+                    await connectClustersFunc(1).ConfigureAwait(false);
+
+                    GC.Collect();
+                    await Task.Delay(1000).ConfigureAwait(false);
+
+                    decimal initialMemory = GC.GetTotalMemory(true);
+                    
+                    await connectClustersFunc(100).ConfigureAwait(false);
+
+                    GC.Collect();
+                    await Task.Delay(1000).ConfigureAwait(false);
+                    
+                    var connectedPorts = await _testCluster.GetConnectedPortsAsync().ConfigureAwait(false);
+                    Assert.AreEqual(20, connectedPorts.Count); // control connections
+
+                    Assert.Less(GC.GetTotalMemory(true) / initialMemory, 1.75M,
+                        "Should not exceed 75% (1.75) more than was previously allocated");
+                }
+                finally
+                {
+                    foreach (var c in defaultKsClusters.Concat(clustersWithoutDefaultKs))
                     {
                         c.Dispose();
                     }

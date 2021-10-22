@@ -353,7 +353,15 @@ namespace Cassandra
             await Init().ConfigureAwait(false);
             var newSessionName = GetNewSessionName();
             var session = await Configuration.SessionFactory.CreateSessionAsync(this, keyspace, _controlConnection.Serializer, newSessionName).ConfigureAwait(false);
-            await session.Init().ConfigureAwait(false);
+            try
+            {
+                await session.Init().ConfigureAwait(false);
+            }
+            catch
+            {
+                await session.ShutdownAsync().ConfigureAwait(false);
+                throw;
+            }
             _connectedSessions.Add(session);
             Cluster.Logger.Info("Session connected ({0})", session.GetHashCode());
             return session;
