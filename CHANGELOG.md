@@ -1,5 +1,21 @@
 # ChangeLog - DataStax C# Driver
 
+## 3.17.0
+
+2021-10-25
+
+### Improvements
+
+*   [[CSHARP-956](https://datastax-oss.atlassian.net/browse/CSHARP-956)] - Retrieve new data from the Astra metadata service when refreshing contact points
+*   [[CSHARP-946](https://datastax-oss.atlassian.net/browse/CSHARP-946)] - Remove System.Threading.Tasks.Dataflow version restriction
+
+### Bug fixes
+
+*   [[CSHARP-958](https://datastax-oss.atlassian.net/browse/CSHARP-958)] - Invalid keyspace in cluster.Connect\(string\) causes leaked connections
+*   [[CSHARP-957](https://datastax-oss.atlassian.net/browse/CSHARP-957)] - Unitialized cluster shutdown can leak a connection
+*   [[CSHARP-945](https://datastax-oss.atlassian.net/browse/CSHARP-945)] - The driver isn't rejecting the DseV1 protocol version
+*   [[CSHARP-879](https://datastax-oss.atlassian.net/browse/CSHARP-879)] - Control Connection doesn't reconnect
+
 ## 3.16.3
 
 2021-03-12
