@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -367,7 +367,7 @@ namespace Cassandra.Mapping.Statements
             if (typeInfo == null)
             {
                 //Is a single type
-                return typeCode.ToString().ToLower();
+                return typeCode.ToString().ToLower().Replace("ı", "i");
             }
             string typeName = null;
             var frozenKey = column != null && column.HasFrozenKey;
