@@ -367,7 +367,7 @@ namespace Cassandra.Mapping.Statements
             if (typeInfo == null)
             {
                 //Is a single type
-                return typeCode.ToString().ToLower();
+                return typeCode.ToString().ToLowerInvariant();
             }
             string typeName = null;
             var frozenKey = column != null && column.HasFrozenKey;

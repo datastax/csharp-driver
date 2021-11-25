@@ -63,7 +63,7 @@ namespace Cassandra.Serialization.Graph.GraphSON3.Dse
                 return GetUdtTypeDefinition(dictionary, genericSerializer.GetUdtMapByName(udtTypeInfo.Name), genericSerializer);
             }
 
-            dictionary.Add("cqlType", typeCode.ToString().ToLower());
+            dictionary.Add("cqlType", typeCode.ToString().ToLowerInvariant());
 
             if (typeInfo is TupleColumnInfo tupleColumnInfo)
             {

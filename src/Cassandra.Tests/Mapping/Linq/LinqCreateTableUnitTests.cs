@@ -14,6 +14,8 @@
 //   limitations under the License.
 //
 using System.Collections.Generic;
+using System.Globalization;
+using System.Threading;
 using Cassandra.Connections.Control;
 using Cassandra.Data.Linq;
 using Cassandra.Mapping;
@@ -27,6 +29,38 @@ namespace Cassandra.Tests.Mapping.Linq
     [TestFixture]
     public class LinqCreateTableUnitTests : MappingTestBase
     {
+        [Test]
+        public void Create_With_Turkish_Locale()
+        {
+            var currentCulture = Thread.CurrentThread.CurrentCulture;
+            try
+            {
+                Thread.CurrentThread.CurrentCulture = new CultureInfo("tr-TR");
+
+                var createQueries = new List<string>();
+                var sessionMock = GetSessionMock();
+                sessionMock
+                    .Setup(s => s.Execute(It.IsAny<string>()))
+                    .Returns(() => new RowSet())
+                    .Callback<string>(createQueries.Add);
+                var typeDefinition = new Map<AllTypesDecorated>()
+                                     .PartitionKey(t => t.UuidValue)
+                                     .Column(t => t.UuidValue, cm => cm.WithName("user_id"))
+                                     .Column(t => t.StringValue, cm => cm.WithName("name"))
+                                     .Column(t => t.IntValue, cm => cm.WithName("city_id"))
+                                     .TableName("USERS")
+                                     .CaseSensitive()
+                                     .ExplicitColumns();
+                var table = GetTable<AllTypesDecorated>(sessionMock.Object, typeDefinition);
+                table.Create();
+                Assert.AreEqual(@"CREATE TABLE ""USERS"" (""city_id"" int, ""name"" text, ""user_id"" uuid, PRIMARY KEY (""user_id""))", createQueries[0]);
+            }
+            finally
+            {
+                Thread.CurrentThread.CurrentCulture = currentCulture;
+            }
+        }
+
         [Test]
         public void Create_With_Composite_Partition_Key()
         {

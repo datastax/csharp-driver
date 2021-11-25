@@ -395,7 +395,7 @@ namespace Cassandra.DataStax.Graph
             if (!GraphOptions.ConsistencyLevelNames.TryGetValue(consistency, out string name))
             {
                 //If not defined, use upper case representation
-                name = consistency.ToString().ToUpper();
+                name = consistency.ToString().ToUpperInvariant();
             }
             return name;
         }
