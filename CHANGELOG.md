@@ -1,5 +1,13 @@
 # ChangeLog - DataStax C# Driver
 
+## 3.17.1
+
+2021-11-25
+
+### Bug fixes
+
+*   [[CSHARP-960](https://datastax-oss.atlassian.net/browse/CSHARP-960)] - Create table generation fails with turkish culture
+
 ## 3.17.0
 
 2021-10-25
