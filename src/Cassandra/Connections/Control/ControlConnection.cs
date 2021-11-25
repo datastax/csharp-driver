@@ -725,7 +725,7 @@ namespace Cassandra.Connections.Control
         {
             //The address in the Cassandra event message needs to be translated
             var address = TranslateAddress(e.Address);
-            ControlConnection.Logger.Info("Received Node status change event: host {0} is {1}", address, e.What.ToString().ToUpper());
+            ControlConnection.Logger.Info("Received Node status change event: host {0} is {1}", address, e.What.ToString().ToUpperInvariant());
             if (!_metadata.Hosts.TryGet(address, out var host))
             {
                 ControlConnection.Logger.Info("Received status change event for host {0} but it was not found", address);

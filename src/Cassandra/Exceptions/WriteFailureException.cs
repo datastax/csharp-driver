@@ -89,7 +89,7 @@ namespace Cassandra
         /// </summary>
         public WriteFailureException(ConsistencyLevel consistency, int received, int required, string writeType,
                                      int failures) : base(string.Format(FailureMessage, 
-                                        consistency.ToString().ToUpper(), required, received, failures))
+                                        consistency.ToString().ToUpperInvariant(), required, received, failures))
         {
             ConsistencyLevel = consistency;
             ReceivedAcknowledgements = received;

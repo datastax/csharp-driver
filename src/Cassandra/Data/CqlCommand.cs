@@ -173,7 +173,7 @@ namespace Cassandra.Data
         {
             Prepare();
 
-            var cm = _commandText.ToUpper().TrimStart();
+            var cm = _commandText.ToUpperInvariant().TrimStart();
             var managedConnection = CqlConnection.ManagedConnection;
 
             if (_preparedStatement == null)

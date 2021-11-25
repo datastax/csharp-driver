@@ -51,7 +51,7 @@ namespace Cassandra
         private static string GetMessage(string writeType, ConsistencyLevel consistency, int received, int required)
         {
             var message = writeType == BatchLogWriteType ? BatchLogMessage : QueryMessage;
-            return string.Format(message, consistency.ToString().ToUpper(), received, required);
+            return string.Format(message, consistency.ToString().ToUpperInvariant(), received, required);
         }
     }
 }
