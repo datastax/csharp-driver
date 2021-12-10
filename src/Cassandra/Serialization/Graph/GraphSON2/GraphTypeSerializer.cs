@@ -384,6 +384,12 @@ namespace Cassandra.Serialization.Graph.GraphSON2
                 return true;
             }
 
+            if (targetType == typeof(string) && objType == typeof(TEnum))
+            {
+                result = obj.ToString();
+                return true;
+            }
+
             // Check for a converter
             var converter = _typeConverter.TryGetFromDbConverter(objType, targetType);
             if (converter == null)
