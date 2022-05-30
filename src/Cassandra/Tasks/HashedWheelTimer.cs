@@ -297,6 +297,11 @@ namespace Cassandra.Tasks
                 return _head;
             }
 
+            internal TimeoutItem GetTail()
+            {
+                return _tail;
+            }
+
             IEnumerator IEnumerable.GetEnumerator()
             {
                 return GetEnumerator();
