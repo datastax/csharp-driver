@@ -59,6 +59,21 @@ namespace Cassandra.DataStax.Graph
             }
             return property;
         }
+
+        public override string ToString()
+        {
+            return base.EnumValue;
+        }
+
+        public static implicit operator string(Direction v)
+        {
+            return v?.EnumValue;
+        }
+
+        public static implicit operator Direction(string str)
+        {
+            return Direction.GetByValue(str);
+        }
     }
 
 
