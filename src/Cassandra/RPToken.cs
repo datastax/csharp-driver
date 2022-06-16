@@ -75,7 +75,19 @@ namespace Cassandra
                 if (_md5 == null) 
                     _md5 = MD5.Create();
                 
-                var hash = _md5.ComputeHash(partitionKey);
+                byte[] hash;
+                try
+                {
+                    hash = _md5.ComputeHash(partitionKey);
+                }
+                catch (ObjectDisposedException)
+                {
+                    // The MD5 object's internal SafeHashHandle throws ObjectDisposedException if the MD5 object used and disposed of it but
+                    // was aborted by ThreadAbortException before it could create a new internal SafeHashHandle.
+                    _md5.Dispose();
+                    _md5 = MD5.Create();
+                    hash = _md5.ComputeHash(partitionKey);
+                }
                 
                 var reversedHash = new byte[hash.Length];
                 for(int x = hash.Length - 1, y = 0; x >= 0; --x, ++y)
