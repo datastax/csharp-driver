@@ -37,7 +37,7 @@ namespace Cassandra.Tests
             using (var timer = new HashedWheelTimer(500, 10))
             {
                 var bucket = new Bucket();
-                Assert.Null(bucket.Head);
+                Assert.Null(bucket.GetHead());
                 var t1 = new TimeoutItem(timer, EmptyAction, null);
                 var t2 = new TimeoutItem(timer, EmptyAction, null);
                 var t3 = new TimeoutItem(timer, EmptyAction, null);
@@ -48,18 +48,18 @@ namespace Cassandra.Tests
                 bucket.Add(t2);
                 bucket.Add(t3);
                 bucket.Add(t4);
-                Assert.AreEqual(bucket.Head, t1);
-                Assert.AreEqual(bucket.Tail, t4);
+                Assert.AreEqual(bucket.GetHead(), t1);
+                Assert.AreEqual(bucket.GetTail(), t4);
                 CollectionAssert.AreEqual(bucket.ToArray(), new[] { t1, t2, t3, t4 });
                 bucket.Remove(t3);
                 CollectionAssert.AreEqual(bucket.ToArray(), new[] { t1, t2, t4 });
                 Assert.AreEqual(t2.Next, t4);
                 Assert.AreEqual(t4.Previous, t2);
                 bucket.Remove(t1);
-                Assert.AreEqual(bucket.Head, t2);
+                Assert.AreEqual(bucket.GetHead(), t2);
                 CollectionAssert.AreEqual(bucket.ToArray(), new[] { t2, t4 });
                 bucket.Add(t5);
-                Assert.AreEqual(bucket.Tail, t5);
+                Assert.AreEqual(bucket.GetTail(), t5);
                 CollectionAssert.AreEqual(bucket.ToArray(), new[] { t2, t4, t5 });
                 bucket.Add(t6);
                 CollectionAssert.AreEqual(bucket.ToArray(), new[] { t2, t4, t5, t6 });
@@ -88,31 +88,31 @@ namespace Cassandra.Tests
 
                 bucket.Add(t1);
                 CollectionAssert.AreEqual(bucket.ToArray(), new[] {t1});
-                Assert.AreEqual(bucket.Tail, t1);
+                Assert.AreEqual(bucket.GetTail(), t1);
 
                 bucket.Add(t2);
                 CollectionAssert.AreEqual(bucket.ToArray(), new[] {t1, t2});
-                Assert.AreEqual(bucket.Tail, t2);
+                Assert.AreEqual(bucket.GetTail(), t2);
 
                 bucket.Add(t3);
                 CollectionAssert.AreEqual(bucket.ToArray(), new[] {t1, t2, t3});
-                Assert.AreEqual(bucket.Tail, t3);
+                Assert.AreEqual(bucket.GetTail(), t3);
 
                 bucket.Add(t4);
                 CollectionAssert.AreEqual(bucket.ToArray(), new[] {t1, t2, t3, t4});
-                Assert.AreEqual(bucket.Tail, t4);
+                Assert.AreEqual(bucket.GetTail(), t4);
 
                 bucket.Remove(t1);
                 CollectionAssert.AreEqual(bucket.ToArray(), new[] {t2, t3, t4});
-                Assert.AreEqual(bucket.Tail, t4);
+                Assert.AreEqual(bucket.GetTail(), t4);
 
                 bucket.Remove(t3);
                 CollectionAssert.AreEqual(bucket.ToArray(), new[] {t2, t4});
-                Assert.AreEqual(bucket.Tail, t4);
+                Assert.AreEqual(bucket.GetTail(), t4);
 
                 bucket.Remove(t4);
                 CollectionAssert.AreEqual(bucket.ToArray(), new[] {t2});
-                Assert.AreEqual(bucket.Tail, t2);
+                Assert.AreEqual(bucket.GetTail(), t2);
 
                 bucket.Remove(t2);
                 Assert.AreEqual(bucket.ToArray(), new TimeoutItem[0]);

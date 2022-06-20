@@ -48,7 +48,7 @@ namespace Cassandra.Tasks
         /// <summary>
         /// Represents the index of the next tick
         /// </summary>
-        internal int Index { get; set; }
+        internal volatile int Index;
 
         public HashedWheelTimer(int tickDuration = 100, int ticksPerWheel = 512)
         {
@@ -78,10 +78,10 @@ namespace Cassandra.Tasks
             //go through the timeouts in the current bucket and subtract the round
             //or expire
             var bucket = _wheel[Index];
-            var timeout = bucket.Head;
+            var timeout = bucket.GetHead();
             while (timeout != null)
             {
-                if (timeout.Rounds == 0)
+                if (timeout.GetRounds() == 0)
                 {
                     timeout.Expire();
                     bucket.Remove(timeout);
@@ -92,7 +92,7 @@ namespace Cassandra.Tasks
                 }
                 else
                 {
-                    timeout.Rounds--;
+                    timeout.DecrementRounds();
                 }
                 timeout = timeout.Next;
             }
@@ -202,7 +202,7 @@ namespace Cassandra.Tasks
             {
                 rounds--;
             }
-            item.Rounds = rounds;
+            item.SetRounds(rounds);
             _wheel[bucketIndex].Add(item);
         }
 
@@ -230,49 +230,49 @@ namespace Cassandra.Tasks
         /// </summary>
         internal sealed class Bucket : IEnumerable<TimeoutItem>
         {
-            internal TimeoutItem Head { get; private set; }
+            private volatile TimeoutItem _head;
 
-            internal TimeoutItem Tail { get; private set; }
+            private volatile TimeoutItem _tail;
 
             internal void Add(TimeoutItem item)
             {
                 item.Bucket = this;
-                if (Tail == null)
+                if (_tail == null)
                 {
                     //is the first here
-                    Head = Tail = item;
+                    _head = _tail = item;
                     return;
                 }
-                Tail.Next = item;
-                item.Previous = Tail;
+                _tail.Next = item;
+                item.Previous = _tail;
                 item.Next = null;
-                Tail = item;
+                _tail = item;
             }
 
             internal void Remove(TimeoutItem item)
             {
                 if (item.Previous == null)
                 {
-                    Head = item.Next;
-                    if (Head == null)
+                    _head = item.Next;
+                    if (_head == null)
                     {
                         //it was the only element and the bucket is now empty
-                        Tail = null;
+                        _tail = null;
                         return;
                     }
-                    Head.Previous = null;
+                    _head.Previous = null;
                     return;
                 }
                 item.Previous.Next = item.Next;
                 if (item.Next == null)
                 {
                     //it should be the tail
-                    if (Tail != item)
+                    if (_tail != item)
                     {
                         throw new ArgumentException("Next is null but it is not the tail");
                     }
-                    Tail = item.Previous;
-                    Tail.Next = null;
+                    _tail = item.Previous;
+                    _tail.Next = null;
                     return;
                 }
                 item.Next.Previous = item.Previous;
@@ -280,16 +280,26 @@ namespace Cassandra.Tasks
 
             public IEnumerator<TimeoutItem> GetEnumerator()
             {
-                if (Head == null)
+                if (_head == null)
                 {
                     yield break;
                 }
-                var next = Head;
+                var next = _head;
                 yield return next;
                 while ((next = next.Next) != null)
                 {
                     yield return next;
                 }
+            }
+
+            internal TimeoutItem GetHead()
+            {
+                return _head;
+            }
+
+            internal TimeoutItem GetTail()
+            {
+                return _tail;
             }
 
             IEnumerator IEnumerable.GetEnumerator()
@@ -318,29 +328,42 @@ namespace Cassandra.Tasks
             private const int CancelledState = 2;
             //Use fields instead of properties as micro optimization
             //More 100 thousand timeout items could be created and GC collected each second
-            private object _actionState;
-            private Action<object> _action;
-            private int _state = InitState;
-            private HashedWheelTimer _timer;
+            private readonly object _actionState;
+            private readonly Action<object> _action;
+            private readonly HashedWheelTimer _timer;
 
-            internal long Rounds;
+            private long _state = InitState;
 
-            internal TimeoutItem Next;
+            private long _rounds;
 
-            internal TimeoutItem Previous;
+            internal volatile TimeoutItem Next;
 
-            internal Bucket Bucket;
+            internal volatile TimeoutItem Previous;
 
-            public bool IsCancelled
-            {
-                get { return _state == CancelledState; }
-            }
+            internal volatile Bucket Bucket;
+
+            public bool IsCancelled => Interlocked.Read(ref _state) == CancelledState;
 
             internal TimeoutItem(HashedWheelTimer timer, Action<object> action, object actionState)
             {
                 _actionState = actionState;
                 _action = action;
                 _timer = timer;
+            }
+
+            internal void DecrementRounds()
+            {
+                Interlocked.Decrement(ref _rounds);
+            }
+
+            internal long GetRounds()
+            {
+                return Interlocked.Read(ref _rounds);
+            }
+
+            internal void SetRounds(long rounds)
+            {
+                Interlocked.Exchange(ref _rounds, rounds);
             }
 
             public bool Cancel()
