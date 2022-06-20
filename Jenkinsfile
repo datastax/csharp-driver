@@ -203,9 +203,10 @@ def buildDriver() {
         export BuildMonoOnly=True
         export RunCodeAnalyzers=False
         export MSBuildSDKsPath=/opt/dotnet/sdk/$(dotnet --version)/Sdks
-        msbuild /t:restore /v:m src/Cassandra.sln
-        msbuild /p:Configuration=Release /v:m /p:DynamicConstants=LINUX src/Cassandra.sln || true
-        msbuild /p:Configuration=Release /v:m /p:DynamicConstants=LINUX src/Cassandra.sln
+        msbuild /t:restore /v:m /p:RestoreDisableParallel=true src/Cassandra.sln || true
+        msbuild /t:restore /v:m /p:RestoreDisableParallel=true src/Cassandra.sln
+        msbuild /p:Configuration=Release /v:m /p:RestoreDisableParallel=true /p:DynamicConstants=LINUX src/Cassandra.sln || true
+        msbuild /p:Configuration=Release /v:m /p:RestoreDisableParallel=true /p:DynamicConstants=LINUX src/Cassandra.sln
       '''
     } else {
       sh label: "Work around nuget issue", script: '''#!/bin/bash -le
