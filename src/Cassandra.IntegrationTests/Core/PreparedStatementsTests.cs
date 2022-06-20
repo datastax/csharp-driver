@@ -962,7 +962,8 @@ namespace Cassandra.IntegrationTests.Core
             var otherSession = Cluster.Connect();
             ps = otherSession.Prepare(fullyQualifiedQuery);
             // It was not prepared in any keyspace, so it should be null
-            Assert.Null(ps.Keyspace);
+            // edit: after CASSANDRA-17248 and/or CASSANDRA-15252, this can be the qualified keyspace
+            Assert.IsTrue(ps.Keyspace == null || ps.Keyspace == KeyspaceName, ps.Keyspace);
             bound = ps.Bind("a", "c", Guid.NewGuid());
             Assert.AreEqual(bound.Keyspace, KeyspaceName);
         }
@@ -1133,6 +1134,21 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Should_FailFast_When_PreparedStatementIdChangesOnReprepare()
         {
+            if (TestClusterManager.CheckCassandraVersion(false, new Version(3, 0, 0), Comparison.GreaterThanOrEqualsTo) && 
+                TestClusterManager.CheckCassandraVersion(false, new Version(3, 11, 0), Comparison.LessThan))
+            {
+                if (TestClusterManager.CheckCassandraVersion(false, new Version(3, 0, 26), Comparison.GreaterThanOrEqualsTo)) {
+                    Assert.Ignore("This test relies on a bug that is fixed in this server version.");
+                    return;
+                }
+            }
+
+            if (TestClusterManager.CheckCassandraVersion(false, new Version(3, 11, 12), Comparison.GreaterThanOrEqualsTo))
+            {
+                Assert.Ignore("This test relies on a bug that is fixed in this server version.");
+                return;
+            }
+
             var tableName = TestUtils.GetUniqueTableName();
             using (var cluster = 
                 ClusterBuilder()
