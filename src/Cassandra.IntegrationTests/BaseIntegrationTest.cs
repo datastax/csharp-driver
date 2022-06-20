@@ -251,7 +251,7 @@ namespace Cassandra.IntegrationTests
         /// </summary>
         public void CreateCoreGraph(string contactPoint, string name)
         {
-            using (var cluster = ClusterBuilder().AddContactPoint(TestClusterManager.InitialContactPoint).Build())
+            using (var cluster = ClusterBuilder().AddContactPoint(contactPoint).Build())
             {
                 CreateCoreGraph(cluster.Connect(), name);
             }

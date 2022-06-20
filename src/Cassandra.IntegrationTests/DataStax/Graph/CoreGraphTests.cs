@@ -146,6 +146,30 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
         }
 
         [Test]
+        public void Should_Retrieve_Graph_Multiple_Properties_As_ElementMap()
+        {
+            using (var cluster = ClusterBuilder()
+                                 .AddContactPoint(TestClusterManager.InitialContactPoint)
+                                 .WithGraphOptions(new GraphOptions().SetName(CoreGraphTests.GraphName))
+                                 .Build())
+            {
+                var session = cluster.Connect();
+                session.ExecuteGraph(new SimpleGraphStatement(
+                    "g.addV('movie').property('title', 'Harry Potter').property('tags', ['fantasy', 'adventure', 'drama'])"));
+                var rs = session.ExecuteGraph(new SimpleGraphStatement("g.V().has('title', 'Harry Potter').elementMap()"));
+                Assert.NotNull(rs);
+                var resultArray = rs.ToArray();
+                Assert.AreEqual(1, resultArray.Length);
+                var harryPotterElementMap = resultArray[0].To<ElementMap>();
+                Assert.AreEqual("movie", harryPotterElementMap.Label);
+                Assert.AreEqual("Harry Potter", harryPotterElementMap.GetProperty("title").Value.ToString());
+                var tags = harryPotterElementMap.GetProperty("tags").Value.To<IEnumerable<string>>();
+                var expectedTags = new List<string>() { "fantasy", "adventure", "drama" };
+                CollectionAssert.AreEquivalent(expectedTags, tags);
+            }
+        }
+
+        [Test]
         public void Should_Support_Named_Parameters()
         {
             using (var cluster = ClusterBuilder()
