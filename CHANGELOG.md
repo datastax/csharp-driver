@@ -1,5 +1,17 @@
 # ChangeLog - DataStax C# Driver
 
+## 3.18.0-alpha1
+
+2022-06-22
+
+### Bug fixes
+
+*   [[CSHARP-954](https://datastax-oss.atlassian.net/browse/CSHARP-954)] Nodes disconnecting can cause Next is null but it is not the tail exception
+
+### New Features
+
+*   [[CSHARP-968](https://datastax-oss.atlassian.net/browse/CSHARP-968)] Provide easier way to deserialize ElementMap graph results
+
 ## 3.17.1
 
 2021-11-25

@@ -4,8 +4,9 @@
     <Copyright>Copyright © by DataStax</Copyright>
     <AssemblyTitle>DataStax C# Driver for Apache Cassandra</AssemblyTitle>
     <AssemblyVersion>3.99.0.0</AssemblyVersion>
-    <FileVersion>3.17.1.0</FileVersion>
-    <VersionPrefix>3.17.1</VersionPrefix>
+    <FileVersion>3.18.0.0</FileVersion>
+    <VersionPrefix>3.18.0</VersionPrefix>
+    <VersionSuffix>alpha1</VersionSuffix>
     <Authors>DataStax</Authors>
     <TargetFrameworks Condition="'$(BuildCoreOnly)' != 'True'">net452;netstandard2.0</TargetFrameworks>
     <TargetFramework Condition="'$(BuildCoreOnly)' == 'True'">netstandard2.0</TargetFramework>
