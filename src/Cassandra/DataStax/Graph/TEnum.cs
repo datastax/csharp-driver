@@ -62,6 +62,21 @@ namespace Cassandra.DataStax.Graph
             }
             return property;
         }
+
+        public override string ToString()
+        {
+            return base.EnumValue;
+        }
+
+        public static implicit operator string(TEnum v)
+        {
+            return v?.EnumValue;
+        }
+
+        public static implicit operator TEnum(string str)
+        {
+            return TEnum.GetByValue(str);
+        }
     }
 
 

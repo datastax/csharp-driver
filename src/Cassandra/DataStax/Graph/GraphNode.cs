@@ -377,7 +377,7 @@ namespace Cassandra.DataStax.Graph
         /// </summary>
         public static implicit operator Vertex(GraphNode b)
         {
-            return b.ToVertex();
+            return b?.ToVertex();
         }
 
         /// <summary>
@@ -385,7 +385,7 @@ namespace Cassandra.DataStax.Graph
         /// </summary>
         public static implicit operator Edge(GraphNode b)
         {
-            return b.ToEdge();
+            return b?.ToEdge();
         }
 
         /// <summary>
@@ -393,7 +393,7 @@ namespace Cassandra.DataStax.Graph
         /// </summary>
         public static implicit operator Path(GraphNode b)
         {
-            return b.ToPath();
+            return b?.ToPath();
         }
 
         /// <summary>
@@ -401,7 +401,7 @@ namespace Cassandra.DataStax.Graph
         /// </summary>
         public static implicit operator string(GraphNode b)
         {
-            return b.ToString();
+            return b?.ToString();
         }
 
         /// <summary>

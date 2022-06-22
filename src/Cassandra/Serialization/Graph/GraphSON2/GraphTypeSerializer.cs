@@ -268,6 +268,7 @@ namespace Cassandra.Serialization.Graph.GraphSON2
 
             Type keyType;
             Type elementType;
+            var convertToElementMap = false;
             if (type.GetTypeInfo().IsGenericType
                 && (type.GetGenericTypeDefinition() == typeof(IReadOnlyDictionary<,>)
                     || type.GetGenericTypeDefinition() == typeof(Dictionary<,>)
@@ -277,13 +278,33 @@ namespace Cassandra.Serialization.Graph.GraphSON2
                 keyType = genericArgs[0];
                 elementType = genericArgs[1];
             }
+            else if (type == typeof(ElementMap))
+            {
+                convertToElementMap = true;
+                keyType = typeof(object);
+                elementType = typeof(GraphNode);
+                deserializeGraphNodes = false;
+            }
             else
             {
                 keyType = typeof(object);
                 elementType = typeof(object);
             }
 
-            return ConvertFromDb(FromMapToDictionary((JArray)token[GraphSONTokens.ValueKey], keyType, elementType, deserializeGraphNodes), type, out result);
+            var dictionary = FromMapToDictionary((JArray) token[GraphSONTokens.ValueKey], keyType, elementType, deserializeGraphNodes);
+
+            if (convertToElementMap)
+            {
+                if (!(dictionary is IDictionary<object, GraphNode> typedDictionary))
+                {
+                    result = null;
+                    return false;
+                }
+
+                return ConvertToElementMap(typedDictionary, out result);
+            }
+
+            return ConvertFromDb(dictionary, type, out result);
         }
 
         private bool TryConvertFromBulkSet(JToken token, Type type, string typeName, bool deserializeGraphNodes, out dynamic result)
@@ -384,6 +405,12 @@ namespace Cassandra.Serialization.Graph.GraphSON2
                 return true;
             }
 
+            if (targetType == typeof(string) && objType == typeof(TEnum))
+            {
+                result = obj.ToString();
+                return true;
+            }
+
             // Check for a converter
             var converter = _typeConverter.TryGetFromDbConverter(objType, targetType);
             if (converter == null)
@@ -395,6 +422,33 @@ namespace Cassandra.Serialization.Graph.GraphSON2
             // Invoke the converter function on getValueT (taking into account whether it's a static method):
             //     converter(row.GetValue<T>(columnIndex));
             result = converter.DynamicInvoke(obj);
+            return true;
+        }
+
+        private bool ConvertToElementMap(IDictionary<object, GraphNode> map, out dynamic result)
+        {
+            if (map.TryGetValue(TEnum.Id, out var id))
+            {
+                map.Remove(TEnum.Id);
+            }
+            if (map.TryGetValue(TEnum.Label, out var label))
+            {
+                map.Remove(TEnum.Label);
+            }
+
+            var properties = new Dictionary<string, GraphNode>(map.Count);
+            foreach (var kvp in map)
+            {
+                var key = "";
+                if (kvp.Key != null)
+                {
+                    key = kvp.Key.ToString();
+                }
+
+                properties[key] = kvp.Value;
+            }
+            
+            result = new ElementMap(id, label, properties);
             return true;
         }
 
