@@ -39,6 +39,9 @@ namespace Cassandra
     /// <inheritdoc cref="ICluster" />
     public class Cluster : IInternalCluster
     {
+        private const string DefaultVersionString = "N/A";
+        private const string DefaultProductString = "DataStax C# Driver";
+
         private static ProtocolVersion _maxProtocolVersion = ProtocolVersion.MaxSupported;
         internal static readonly Logger Logger = new Logger(typeof(Cluster));
         private readonly CopyOnWriteList<IInternalSession> _connectedSessions = new CopyOnWriteList<IInternalSession>();
@@ -203,7 +206,7 @@ namespace Cassandra
                     //There was an exception that is not possible to recover from
                     throw _initException;
                 }
-                Cluster.Logger.Info("Connecting to cluster using {0}", GetAssemblyInfo());
+                Cluster.Logger.Info("Connecting to cluster using {0}", GetAssemblyInfoString());
                 try
                 {
                     // Collect all policies in collections
@@ -300,11 +303,61 @@ namespace Cassandra
             }
         }
 
-        private static string GetAssemblyInfo()
+        private static string GetAssemblyInfoString()
         {
-            var assembly = typeof(ISession).GetTypeInfo().Assembly;
-            var info = FileVersionInfo.GetVersionInfo(assembly.Location);
-            return $"{info.ProductName} v{info.FileVersion}";
+            try
+            {
+                var assembly = typeof(ISession).GetTypeInfo().Assembly;
+                var version = GetAssemblyVersion(assembly);
+                var product = GetAssemblyProduct(assembly);
+                return $"{product} v{version}";
+            }
+            catch (Exception ex)
+            {
+                Cluster.Logger.Verbose($"Could not retrieve driver name and version from assembly attributes: {ex.ToString()}");
+            }
+
+            return $"{DefaultProductString} v{DefaultVersionString}";
+        }
+
+        private static string GetAssemblyProduct(Assembly assembly)
+        {
+            var product = DefaultProductString;
+
+            var productAttribute = assembly.GetCustomAttributes(typeof(AssemblyProductAttribute)).FirstOrDefault();
+            if (productAttribute != null)
+            {
+                try
+                {
+                    product = ((AssemblyProductAttribute)productAttribute)?.Product ?? DefaultProductString;
+                }
+                catch (Exception ex)
+                {
+                    Cluster.Logger.Verbose($"Could not retrieve Product name from assembly custom attribute: {ex.ToString()}");
+                }
+            }
+
+            return product;
+        }
+
+        private static string GetAssemblyVersion(Assembly assembly)
+        {
+            var version = DefaultVersionString;
+
+            var assemblyInfoVersionAttribute = assembly.GetCustomAttributes(typeof(AssemblyInformationalVersionAttribute)).FirstOrDefault();
+            if (assemblyInfoVersionAttribute != null)
+            {
+                try
+                {
+                    version = ((AssemblyInformationalVersionAttribute)assemblyInfoVersionAttribute)?.InformationalVersion ?? DefaultVersionString;
+                }
+                catch (Exception ex)
+                {
+                    Cluster.Logger.Verbose($"Could not retrieve Driver version from assembly informational version attribute: {ex.ToString()}");
+                }
+            }
+
+            return version;
         }
 
         IReadOnlyDictionary<IContactPoint, IEnumerable<IConnectionEndPoint>> IInternalCluster.GetResolvedEndpoints()
