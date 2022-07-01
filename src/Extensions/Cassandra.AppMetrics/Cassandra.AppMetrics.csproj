@@ -6,7 +6,6 @@
     <AssemblyVersion>3.99.0.0</AssemblyVersion>
     <FileVersion>3.18.0.0</FileVersion>
     <VersionPrefix>3.18.0</VersionPrefix>
-    <VersionSuffix>alpha1</VersionSuffix>
     <Authors>DataStax</Authors>
     <TargetFrameworks Condition="'$(BuildCoreOnly)' != 'True'">netstandard2.0;net461</TargetFrameworks>
     <TargetFrameworks Condition="'$(BuildCoreOnly)' == 'True'">netstandard2.0</TargetFrameworks>
