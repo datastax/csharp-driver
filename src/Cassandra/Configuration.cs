@@ -185,7 +185,7 @@ namespace Cassandra
         internal static string DefaultApplicationVersion => string.Empty;
 
         internal static string FallbackApplicationName =>
-            AssemblyHelpers.GetEntryAssembly()?.GetName().Name ?? Builder.DefaultApplicationName;
+            AssemblyHelpers.GetEntryAssembly()?.GetName()?.Name ?? Builder.DefaultApplicationName;
 
         /// <summary>
         /// The version of the application using the created cluster instance.
