@@ -820,7 +820,7 @@ namespace Cassandra.Connections
                 // timer can be disposed while connection cancellation hasn't been invoked yet
                 try
                 {
-                    var requestTimeout = Configuration.Timer.NewTimeout(OnTimeout, state, state.TimeoutMillis);
+                    var requestTimeout = Configuration.Timer.NewTimeout(obj => Task.Run(() => OnTimeout(obj)), state, state.TimeoutMillis);
                     state.SetTimeout(requestTimeout);
                 }
                 catch (Exception ex)

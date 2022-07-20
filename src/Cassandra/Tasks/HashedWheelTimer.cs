@@ -215,7 +215,7 @@ namespace Cassandra.Tasks
             {
                 try
                 {
-                    timeout.Bucket.Remove(timeout);
+                    timeout.Bucket?.Remove(timeout);
                 }
                 catch (NullReferenceException)
                 {
@@ -251,6 +251,12 @@ namespace Cassandra.Tasks
 
             internal void Remove(TimeoutItem item)
             {
+                if (item.Bucket != this)
+                {
+                    return;
+                }
+
+                item.Bucket = null;
                 if (item.Previous == null)
                 {
                     _head = item.Next;

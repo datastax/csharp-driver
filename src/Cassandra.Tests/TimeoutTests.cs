@@ -189,5 +189,44 @@ namespace Cassandra.Tests
                 timer.Dispose();
             }
         }
+
+        [Test]
+        public void HashedWheelTimer_Cancelled_During_Expiry_Should_Be_Removed_From_Bucket()
+        {
+            UnhandledExceptionEventArgs unhandledException = null;
+            UnhandledExceptionEventHandler handler = (sender, args) =>
+            {
+                Volatile.Write(ref unhandledException, args);
+            };
+            AppDomain.CurrentDomain.UnhandledException += handler;
+            try
+            {
+                using (var timer = new HashedWheelTimer(100, 1))
+                {
+                    var flag = 0;
+                    HashedWheelTimer.ITimeout timeout4 = null;
+                    timer.NewTimeout(
+                        _ =>
+                        {
+                            flag += 3;
+                            Volatile.Read(ref timeout4).Cancel();
+
+                        }, null, 250);
+                    timer.NewTimeout(
+                        _ => { flag += 7; }, null, 450);
+                    var timeout5 = timer.NewTimeout(
+                        _ => { flag += 17; }, null, 350);
+                    Volatile.Write(ref timeout4, timeout5);
+                    Thread.Sleep(500);
+                    Assert.IsNull(Volatile.Read(ref unhandledException), Volatile.Read(ref unhandledException)?.ExceptionObject?.ToString());
+                    Assert.AreEqual(10, flag);
+                    timer.Dispose();
+                }
+            }
+            finally
+            {
+                AppDomain.CurrentDomain.UnhandledException -= handler;
+            }
+        }
     }
 }
