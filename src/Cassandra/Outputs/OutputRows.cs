@@ -68,13 +68,14 @@ namespace Cassandra
                 rs.Columns = resultMetadata?.Columns;
             }
 
+            var reusableBuffer = ReusableBuffer.Value;
             for (var i = 0; i < _rowLength; i++)
             {
-                rs.AddRow(ProcessRowItem(reader, resultMetadata));
+                rs.AddRow(ProcessRowItem(reader, resultMetadata, reusableBuffer));
             }
         }
 
-        internal virtual Row ProcessRowItem(FrameReader reader, RowSetMetadata resultMetadata)
+        static Row ProcessRowItem(FrameReader reader, RowSetMetadata resultMetadata, byte[] reusableBuffer)
         {
             var rowValues = new object[resultMetadata.Columns.Length];
             for (var i = 0; i < resultMetadata.Columns.Length; i++)
@@ -86,7 +87,7 @@ namespace Cassandra
                     rowValues[i] = null;
                     continue;
                 }
-                var buffer = GetBuffer(length, c.TypeCode);
+                var buffer = GetBuffer(length, c.TypeCode, reusableBuffer);
                 rowValues[i] = reader.ReadFromBytes(buffer, 0, length, c.TypeCode, c.TypeInfo);
             }
 
@@ -96,9 +97,9 @@ namespace Cassandra
         /// <summary>
         /// Reduces allocations by reusing a 16-length buffer for types where is possible
         /// </summary>
-        private static byte[] GetBuffer(int length, ColumnTypeCode typeCode)
+        private static byte[] GetBuffer(int length, ColumnTypeCode typeCode, byte[] reusableBuffer)
         {
-            if (length > ReusableBufferLength)
+            if (length > reusableBuffer.Length)
             {
                 return new byte[length];
             }
@@ -111,7 +112,7 @@ namespace Cassandra
                 case ColumnTypeCode.Decimal:
                     return new byte[length];
             }
-            return ReusableBuffer.Value;
+            return reusableBuffer;
         }
 
         public void Dispose()
