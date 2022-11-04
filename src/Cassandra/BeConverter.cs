@@ -157,6 +157,7 @@ namespace Cassandra
             Swap(value, offset + 3, offset + 4);
             var result =  BitConverter.ToDouble(value, offset);
             
+            // Restore the original order
             Swap(value, offset + 0, offset + 7);
             Swap(value, offset + 1, offset + 6);
             Swap(value, offset + 2, offset + 5);
@@ -179,8 +180,10 @@ namespace Cassandra
             Swap(value, offset + 1, offset + 2);
             var result = BitConverter.ToSingle(value, offset);
             
+            // Restore the original order
             Swap(value, offset + 0, offset + 3);
             Swap(value, offset + 1, offset + 2);
+
             return result;
         }
 
