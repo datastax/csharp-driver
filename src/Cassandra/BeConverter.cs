@@ -15,7 +15,7 @@
 //
 
 using System;
-using System.Buffers;
+using System.Runtime.CompilerServices;
 
 namespace Cassandra
 {
@@ -150,18 +150,17 @@ namespace Cassandra
                 return BitConverter.ToDouble(value, offset);
             }
 
-            //Invert the first 8 bytes, starting from offset
-            var rentedArray = ArrayPool<byte>.Shared.Rent(8);
-            rentedArray[7] = value[offset + 0];
-            rentedArray[6] = value[offset + 1];
-            rentedArray[5] = value[offset + 2];
-            rentedArray[4] = value[offset + 3];
-            rentedArray[3] = value[offset + 4];
-            rentedArray[2] = value[offset + 5];
-            rentedArray[1] = value[offset + 6];
-            rentedArray[0] = value[offset + 7];
-            var result = BitConverter.ToDouble(rentedArray, 0);
-            ArrayPool<byte>.Shared.Return(rentedArray);
+            // Invert the first 8 bytes, starting from offset
+            Swap(value, offset + 0, offset + 7);
+            Swap(value, offset + 1, offset + 6);
+            Swap(value, offset + 2, offset + 5);
+            Swap(value, offset + 3, offset + 4);
+            var result =  BitConverter.ToDouble(value, offset);
+            
+            Swap(value, offset + 0, offset + 7);
+            Swap(value, offset + 1, offset + 6);
+            Swap(value, offset + 2, offset + 5);
+            Swap(value, offset + 3, offset + 4);
             return result;
         }
 
@@ -176,14 +175,21 @@ namespace Cassandra
             }
 
             //Invert the first 4 bytes, starting from offset
-            var rentedArray = ArrayPool<byte>.Shared.Rent(4);
-            rentedArray[3] = value[offset + 0];
-            rentedArray[2] = value[offset + 1];
-            rentedArray[1] = value[offset + 2];
-            rentedArray[0] = value[offset + 3];
-            var result = BitConverter.ToSingle(rentedArray, 0);
-            ArrayPool<byte>.Shared.Return(rentedArray);
+            Swap(value, offset + 0, offset + 3);
+            Swap(value, offset + 1, offset + 2);
+            var result = BitConverter.ToSingle(value, offset);
+            
+            Swap(value, offset + 0, offset + 3);
+            Swap(value, offset + 1, offset + 2);
             return result;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void Swap(byte[] array, int i, int j)
+        {
+            var tmp = array[i];
+            array[i] = array[j];
+            array[j] = tmp;
         }
     }
 }
