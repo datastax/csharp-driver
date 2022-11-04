@@ -40,7 +40,6 @@ namespace Cassandra.Tests
         [Test]
         public void EncodeDecodeSingleValuesTest()
         {
-
             var initialValues = new object[]
             {
                 "utf8 text mañana",
@@ -49,10 +48,13 @@ namespace Cassandra.Tests
                 1234F,
                 1.14D,
                 double.MinValue,
+                float.MinValue,
                 -1.14,
                 0d,
                 double.MaxValue,
+                float.MaxValue,
                 double.NaN,
+                float.NaN,
                 1.01M,
                 72.727272727272727272727272727M,
                 -72.727272727272727272727272727M,
@@ -68,7 +70,7 @@ namespace Cassandra.Tests
                 true,
                 new byte[] {16},
                 Guid.NewGuid(),
-                Guid.NewGuid()
+                Guid.NewGuid(),
             };
             foreach (var version in _protocolVersions)
             {
