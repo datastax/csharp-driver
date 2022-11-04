@@ -150,19 +150,16 @@ namespace Cassandra
                 return BitConverter.ToDouble(value, offset);
             }
 
-            // Invert the first 8 bytes, starting from offset
-            Swap(value, offset + 0, offset + 7);
-            Swap(value, offset + 1, offset + 6);
-            Swap(value, offset + 2, offset + 5);
-            Swap(value, offset + 3, offset + 4);
-            var result =  BitConverter.ToDouble(value, offset);
-            
-            // Restore the original order
-            Swap(value, offset + 0, offset + 7);
-            Swap(value, offset + 1, offset + 6);
-            Swap(value, offset + 2, offset + 5);
-            Swap(value, offset + 3, offset + 4);
-            return result;
+            var int64 = ((long)value[offset + 0] << 56) |
+                        ((long)value[offset + 1] << 48) |
+                        ((long)value[offset + 2] << 40) |
+                        ((long)value[offset + 3] << 32) |
+                        ((long)value[offset + 4] << 24) |
+                        ((long)value[offset + 5] << 16) |
+                        ((long)value[offset + 6] << 8) |
+                        ((long)value[offset + 7] << 0);
+
+            return BitConverter.Int64BitsToDouble(int64);
         }
 
         /// <summary>
@@ -175,15 +172,17 @@ namespace Cassandra
                 return BitConverter.ToSingle(value, offset);
             }
 
-            //Invert the first 4 bytes, starting from offset
+            // Note, that we cannot use BitConverter.Int32BitsToSingle here.
+            // It is available only in .NET Core but not in .NET Framework or .NET Standard.
+            // 
+            // Invert the first 4 bytes, starting from offset.
             Swap(value, offset + 0, offset + 3);
             Swap(value, offset + 1, offset + 2);
             var result = BitConverter.ToSingle(value, offset);
-            
+
             // Restore the original order
             Swap(value, offset + 0, offset + 3);
             Swap(value, offset + 1, offset + 2);
-
             return result;
         }
 
