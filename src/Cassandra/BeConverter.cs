@@ -149,17 +149,8 @@ namespace Cassandra
             {
                 return BitConverter.ToDouble(value, offset);
             }
-
-            var int64 = ((long)value[offset + 0] << 56) |
-                        ((long)value[offset + 1] << 48) |
-                        ((long)value[offset + 2] << 40) |
-                        ((long)value[offset + 3] << 32) |
-                        ((long)value[offset + 4] << 24) |
-                        ((long)value[offset + 5] << 16) |
-                        ((long)value[offset + 6] << 8) |
-                        ((long)value[offset + 7] << 0);
-
-            return BitConverter.Int64BitsToDouble(int64);
+            
+            return BitConverter.Int64BitsToDouble(ToInt64(value, offset));
         }
 
         /// <summary>
