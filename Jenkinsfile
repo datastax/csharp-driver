@@ -392,9 +392,6 @@ def describeScheduledTestingStage() {
   }
 }
 
-// branch pattern for cron
-def branchPatternCron = ~"(master)"
-
 pipeline {
   agent none
 
@@ -433,7 +430,7 @@ pipeline {
   }
 
   triggers {
-    parameterizedCron(branchPatternCron.matcher(env.BRANCH_NAME).matches() ? """
+    parameterizedCron(~"(master)".matcher(env.BRANCH_NAME).matches() ? """
       # Every weeknight (Monday - Friday) around 20:00 and 22:00 Pacific / 05:00 and 07:00 Central Europe
       H 22 * * 1-5 %CI_SCHEDULE=NIGHTLY;CI_SCHEDULE_OS_VERSION=ubuntu/bionic64/csharp-driver
       H 20 * * 1-5 %CI_SCHEDULE=NIGHTLY;CI_SCHEDULE_OS_VERSION=win/cs
