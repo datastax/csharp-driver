@@ -388,6 +388,596 @@ def describeScheduledTestingStage() {
 // branch pattern for cron
 def branchPatternCron = ~"(master)"
 
+def stagePerCommit() {
+  stage('Per-Commit') {
+    when {
+      beforeAgent true
+      allOf {
+        expression { params.CI_SCHEDULE == 'DEFAULT-PER-COMMIT' }
+        not { buildingTag() }
+      }
+    }
+
+    environment {
+      OS_VERSION = 'ubuntu/bionic64/csharp-driver'
+    }
+
+    matrix {
+      axes {
+        axis {
+          name 'SERVER_VERSION'
+          values '2.2',     // latest 2.2.x Apache Cassandra�
+                '3.0',     // latest 3.0.x Apache Cassandra�
+                '3.11',    // latest 3.11.x Apache Cassandra�
+                '4.0',    // Development Apache Cassandra�
+                'dse-5.1', // latest 5.1.x DataStax Enterprise
+                'dse-6.7', // latest 6.7.x DataStax Enterprise
+                'dse-6.8' // 6.8 current DataStax Enterprise
+        }
+        axis {
+          name 'DOTNET_VERSION'
+          values 'mono', 'netcoreapp3.1'
+        }
+      }
+      excludes {
+        exclude {
+          axis {
+            name 'DOTNET_VERSION'
+            values 'mono'
+          }
+          axis {
+            name 'SERVER_VERSION'
+            values '2.2', '3.0', 'dse-5.1', 'dse-6.8'
+          }
+        }
+      }
+
+      agent {
+        label "${OS_VERSION}"
+      }
+
+      stages {
+        stage('Initialize-Environment') {
+          steps {
+            initializeEnvironment()
+            script {
+              if (env.BUILD_STATED_SLACK_NOTIFIED != 'true') {
+                notifySlack()
+              }
+            }
+          }
+        }
+        stage('Describe-Build') {
+          steps {
+            describePerCommitStage()
+          }
+        }
+        stage('Install-Dependencies') {
+          steps {
+            installDependencies()
+          }
+        }
+        stage('Build-Driver') {
+          steps {
+            buildDriver()
+          }
+        }
+        stage('Execute-Tests') {
+          steps {
+            executeTests(true)
+          }
+          post {
+            always {
+              junit testResults: '**/TestResult.xml'
+            }
+          }
+        }
+      }
+    }
+    post {
+      always {
+        node('master') {
+          submitCIMetrics('commit')
+        }
+      }
+      aborted {
+        notifySlack('aborted')
+      }
+      success {
+        notifySlack('completed')
+      }
+      unstable {
+        notifySlack('unstable')
+      }
+      failure {
+        notifySlack('FAILED')
+      }
+    }
+  }
+}
+
+def stageNightlyUbuntu() {
+  stage('Nightly-Ubuntu') {
+    when {
+      beforeAgent true
+      allOf {
+        expression { params.CI_SCHEDULE == 'NIGHTLY' }
+        expression { params.CI_SCHEDULE_OS_VERSION == 'ubuntu/bionic64/csharp-driver' }
+        not { buildingTag() }
+      }
+    }
+
+    environment {
+      OS_VERSION = "${params.CI_SCHEDULE_OS_VERSION}"
+    }
+
+    // ##
+    // # Building on Linux
+    // #   - Do not build using net452 and net461
+    // #   - Target all Apache Cassandra� and DataStax Enterprise versions for netcoreapp2.1
+    // ##
+    // H 0 * * 1-5 %CI_SCHEDULE=NIGHTLY;CI_SCHEDULE_DOTNET_VERSION=ALL;CI_SCHEDULE_SERVER_VERSION=2.2 3.11 dse-5.1 dse-6.7;CI_SCHEDULE_OS_VERSION=ubuntu/bionic64/csharp-driver
+    // H 1 * * 1-5 %CI_SCHEDULE=NIGHTLY;CI_SCHEDULE_DOTNET_VERSION=netcoreapp2.1;CI_SCHEDULE_SERVER_VERSION=ALL;CI_SCHEDULE_OS_VERSION=ubuntu/bionic64/csharp-driver
+    matrix {
+      axes {
+        axis {
+          name 'SERVER_VERSION'
+          values '2.1',     // Legacy Apache Cassandra�
+                '2.2',     // Legacy Apache Cassandra�
+                '3.0',     // Previous Apache Cassandra�
+                '3.11',    // Current Apache Cassandra�
+                '4.0',     // Development Apache Cassandra�
+                'dse-5.1', // Legacy DataStax Enterprise
+                'dse-6.0', // Previous DataStax Enterprise
+                'dse-6.7', // Current DataStax Enterprise
+                'dse-6.8'  // Current DataStax Enterprise
+        }
+        axis {
+          name 'DOTNET_VERSION'
+          values 'mono', 'netcoreapp2.1', 'netcoreapp3.1'
+        }
+      }
+      excludes {
+        exclude {
+          axis {
+            name 'DOTNET_VERSION'
+            values 'mono'
+          }
+          axis {
+            name 'SERVER_VERSION'
+            values '2.1', '3.0', 'dse-6.0'
+          }
+        }
+        exclude {
+          axis {
+            name 'DOTNET_VERSION'
+            values 'netcoreapp2.1'
+          }
+          axis {
+            name 'SERVER_VERSION'
+            values '2.1', '2.2', '3.0', 'dse-5.1', 'dse-6.0'
+          }
+        }
+      }
+
+      agent {
+        label "${OS_VERSION}"
+      }
+
+      stages {
+        stage('Initialize-Environment') {
+          steps {
+            initializeEnvironment()
+            script {
+              if (env.BUILD_STATED_SLACK_NOTIFIED != 'true') {
+                notifySlack()
+              }
+            }
+          }
+        }
+        stage('Describe-Build') {
+          steps {
+            describeScheduledTestingStage()
+          }
+        }
+        stage('Install-Dependencies') {
+          steps {
+            installDependencies()
+          }
+        }
+        stage('Build-Driver') {
+          steps {
+            buildDriver()
+          }
+        }
+        stage('Execute-Tests') {
+          steps {
+            executeTests(false)
+          }
+          post {
+            always {
+              junit testResults: '**/TestResult.xml'
+            }
+          }
+        }
+      }
+    }
+    post {
+      aborted {
+        notifySlack('aborted')
+      }
+      success {
+        notifySlack('completed')
+      }
+      unstable {
+        notifySlack('unstable')
+      }
+      failure {
+        notifySlack('FAILED')
+      }
+    }
+  }
+}
+
+def stageNightlyWindows() {
+  stage('Nightly-Windows') {
+    when {
+      beforeAgent true
+      allOf {
+        expression { params.CI_SCHEDULE == 'NIGHTLY' }
+        expression { params.CI_SCHEDULE_OS_VERSION == 'win/cs' }
+        not { buildingTag() }
+      }
+    }
+
+    environment {
+      OS_VERSION = "${params.CI_SCHEDULE_OS_VERSION}"
+    }
+    
+    // # Building on Windows
+    // #   - Do not build using mono
+    // #   - Target Apache Cassandra� v3.11.x for netcoreapp2.1
+    // #   - Target Apache Cassandra� v2.1.x, v2.2.x, v3.11.x for net452
+    // #   - Target Apache Cassandra� v2.2.x, v3.11.x for net461
+    // ##
+    // H 2 * * 1-5 %CI_SCHEDULE=NIGHTLY;CI_SCHEDULE_DOTNET_VERSION=netcoreapp2.1;CI_SCHEDULE_SERVER_VERSION=3.11;CI_SCHEDULE_OS_VERSION=win/cs
+    // H 2 * * 1-5 %CI_SCHEDULE=NIGHTLY;CI_SCHEDULE_DOTNET_VERSION=net452;CI_SCHEDULE_SERVER_VERSION=2.1 2.2 3.11;CI_SCHEDULE_OS_VERSION=win/cs
+    // H 2 * * 1-5 %CI_SCHEDULE=NIGHTLY;CI_SCHEDULE_DOTNET_VERSION=net461;CI_SCHEDULE_SERVER_VERSION=2.2 3.11;CI_SCHEDULE_OS_VERSION=win/cs
+    matrix {
+      axes {
+        axis {
+          name 'SERVER_VERSION'
+          values '2.1',     // Legacy Apache Cassandra�
+                '2.2',     // Legacy Apache Cassandra�
+                '3.0',     // Previous Apache Cassandra�
+                '3.11',    // Current Apache Cassandra�
+                '4.0'     // Development Apache Cassandra�
+        }
+        axis {
+          name 'DOTNET_VERSION'
+          values 'netcoreapp2.1', 'netcoreapp3.1', 'net452', 'net462', 'net472', 'net48'
+        }
+      }
+      excludes {
+        exclude {
+          axis {
+            name 'DOTNET_VERSION'
+            values 'net462'
+          }
+          axis {
+            name 'SERVER_VERSION'
+            values '2.1'
+          }
+        }
+        exclude {
+          axis {
+            name 'DOTNET_VERSION'
+            values 'netcoreapp3.1'
+          }
+          axis {
+            name 'SERVER_VERSION'
+            values '2.1', '2.2'
+          }
+        }
+        exclude {
+          axis {
+            name 'DOTNET_VERSION'
+            values 'net472', 'net48'
+          }
+          axis {
+            name 'SERVER_VERSION'
+            values '2.1', '2.2', '3.0', '4.0'
+          }
+        }
+        exclude {
+          axis {
+            name 'DOTNET_VERSION'
+            values 'net452', 'netcoreapp2.1'
+          }
+          axis {
+            name 'SERVER_VERSION'
+            values '2.1', '3.0'
+          }
+        }
+      }
+
+      agent {
+        label "${OS_VERSION}"
+      }
+
+      stages {
+        stage('Initialize-Environment') {
+          steps {
+            initializeEnvironment()
+            script {
+              if (env.BUILD_STATED_SLACK_NOTIFIED != 'true') {
+                notifySlack()
+              }
+            }
+          }
+        }
+        stage('Describe-Build') {
+          steps {
+            describeScheduledTestingStage()
+          }
+        }
+        stage('Install-Dependencies') {
+          steps {
+            installDependencies()
+          }
+        }
+        stage('Build-Driver') {
+          steps {
+            buildDriver()
+          }
+        }
+        stage('Execute-Tests') {
+          steps {
+            executeTests(false)
+          }
+          post {
+            always {
+              junit testResults: '**/TestResult.xml'
+            }
+          }
+        }
+      }
+    }
+    post {
+      aborted {
+        notifySlack('aborted')
+      }
+      success {
+        notifySlack('completed')
+      }
+      unstable {
+        notifySlack('unstable')
+      }
+      failure {
+        notifySlack('FAILED')
+      }
+    }
+  }
+}
+
+def stageWeeklyUbuntu() {
+  stage('Weekly-Ubuntu') {
+    when {
+      beforeAgent true
+      allOf {
+        expression { params.CI_SCHEDULE == 'WEEKLY' }
+        expression { params.CI_SCHEDULE_OS_VERSION == 'ubuntu/bionic64/csharp-driver' }
+        not { buildingTag() }
+      }
+    }
+
+    environment {
+      OS_VERSION = "${params.CI_SCHEDULE_OS_VERSION}"
+    }
+
+    matrix {
+      axes {
+        axis {
+          name 'SERVER_VERSION'
+          values '2.1',     // Legacy Apache Cassandra�
+                '2.2',     // Legacy Apache Cassandra�
+                '3.0',     // Previous Apache Cassandra�
+                '3.11',    // Current Apache Cassandra�
+                '4.0',     // Development Apache Cassandra�
+                'dse-5.1', // Legacy DataStax Enterprise
+                'dse-6.0', // Previous DataStax Enterprise
+                'dse-6.7', // Current DataStax Enterprise
+                'dse-6.8'  // Current DataStax Enterprise
+        }
+        axis {
+          name 'DOTNET_VERSION'
+          values 'mono', 'netcoreapp2.1', 'netcoreapp3.1'
+        }
+      }
+      excludes {
+        exclude {
+          axis {
+            name 'DOTNET_VERSION'
+            values 'netcoreapp2.1'
+          }
+          axis {
+            name 'SERVER_VERSION'
+            values '2.1', '3.0', 'dse-6.0'
+          }
+        }
+      }
+
+      agent {
+        label "${OS_VERSION}"
+      }
+
+      stages {
+        stage('Initialize-Environment') {
+          steps {
+            initializeEnvironment()
+            script {
+              if (env.BUILD_STATED_SLACK_NOTIFIED != 'true') {
+                notifySlack()
+              }
+            }
+          }
+        }
+        stage('Describe-Build') {
+          steps {
+            describeScheduledTestingStage()
+          }
+        }
+        stage('Install-Dependencies') {
+          steps {
+            installDependencies()
+          }
+        }
+        stage('Build-Driver') {
+          steps {
+            buildDriver()
+          }
+        }
+        stage('Execute-Tests') {
+          steps {
+            executeTests(false)
+          }
+          post {
+            always {
+              junit testResults: '**/TestResult.xml'
+            }
+          }
+        }
+      }
+    }
+    post {
+      aborted {
+        notifySlack('aborted')
+      }
+      success {
+        notifySlack('completed')
+      }
+      unstable {
+        notifySlack('unstable')
+      }
+      failure {
+        notifySlack('FAILED')
+      }
+    }
+  }
+}
+
+def stageWeeklyWindows() {
+  stage('Weekly-Windows') {
+    when {
+      beforeAgent true
+      allOf {
+        expression { params.CI_SCHEDULE == 'WEEKLY' }
+        expression { params.CI_SCHEDULE_OS_VERSION == 'win/cs' }
+        not { buildingTag() }
+      }
+    }
+
+    environment {
+      OS_VERSION = "${params.CI_SCHEDULE_OS_VERSION}"
+    }
+
+    matrix {
+      axes {
+        axis {
+          name 'SERVER_VERSION'
+          values '2.1',     // Legacy Apache Cassandra�
+                '2.2',     // Legacy Apache Cassandra�
+                '3.0',     // Previous Apache Cassandra�
+                '3.11',    // Current Apache Cassandra�
+                '4.0'     // Development Apache Cassandra�
+        }
+        axis {
+          name 'DOTNET_VERSION'
+          values 'netcoreapp2.1', 'netcoreapp3.1', 'net452', 'net462', 'net472', 'net48'
+        }
+      }
+      excludes {
+        exclude {
+          axis {
+            name 'DOTNET_VERSION'
+            values 'net452', 'net472', 'net48', 'netcoreapp2.1'
+          }
+          axis {
+            name 'SERVER_VERSION'
+            values '2.1', '3.0'
+          }
+        }
+        exclude {
+          axis {
+            name 'DOTNET_VERSION'
+            values 'net472', 'net48'
+          }
+          axis {
+            name 'SERVER_VERSION'
+            values '2.2'
+          }
+        }
+      }
+      
+      agent {
+        label "${OS_VERSION}"
+      }
+
+      stages {
+        stage('Initialize-Environment') {
+          steps {
+            initializeEnvironment()
+            script {
+              if (env.BUILD_STATED_SLACK_NOTIFIED != 'true') {
+                notifySlack()
+              }
+            }
+          }
+        }
+        stage('Describe-Build') {
+          steps {
+            describeScheduledTestingStage()
+          }
+        }
+        stage('Install-Dependencies') {
+          steps {
+            installDependencies()
+          }
+        }
+        stage('Build-Driver') {
+          steps {
+            buildDriver()
+          }
+        }
+        stage('Execute-Tests') {
+          steps {
+            executeTests(false)
+          }
+          post {
+            always {
+              junit testResults: '**/TestResult.xml'
+            }
+          }
+        }
+      }
+    }
+    post {
+      aborted {
+        notifySlack('aborted')
+      }
+      success {
+        notifySlack('completed')
+      }
+      unstable {
+        notifySlack('unstable')
+      }
+      failure {
+        notifySlack('FAILED')
+      }
+    }
+  }
+}
+
 pipeline {
   agent none
 
@@ -450,584 +1040,15 @@ pipeline {
   }
 
   stages {
-    stage('Per-Commit') {
-      when {
-        beforeAgent true
-        allOf {
-          expression { params.CI_SCHEDULE == 'DEFAULT-PER-COMMIT' }
-          not { buildingTag() }
-        }
-      }
-
-      environment {
-        OS_VERSION = 'ubuntu/bionic64/csharp-driver'
-      }
-
-      matrix {
-        axes {
-          axis {
-            name 'SERVER_VERSION'
-            values '2.2',     // latest 2.2.x Apache Cassandra�
-                  '3.0',     // latest 3.0.x Apache Cassandra�
-                  '3.11',    // latest 3.11.x Apache Cassandra�
-                  '4.0',    // Development Apache Cassandra�
-                  'dse-5.1', // latest 5.1.x DataStax Enterprise
-                  'dse-6.7', // latest 6.7.x DataStax Enterprise
-                  'dse-6.8' // 6.8 current DataStax Enterprise
-          }
-          axis {
-            name 'DOTNET_VERSION'
-            values 'mono', 'netcoreapp3.1'
-          }
-        }
-        excludes {
-          exclude {
-            axis {
-              name 'DOTNET_VERSION'
-              values 'mono'
-            }
-            axis {
-              name 'SERVER_VERSION'
-              values '2.2', '3.0', 'dse-5.1', 'dse-6.8'
-            }
-          }
-        }
-
-        agent {
-          label "${OS_VERSION}"
-        }
-
-        stages {
-          stage('Initialize-Environment') {
-            steps {
-              initializeEnvironment()
-              script {
-                if (env.BUILD_STATED_SLACK_NOTIFIED != 'true') {
-                  notifySlack()
-                }
-              }
-            }
-          }
-          stage('Describe-Build') {
-            steps {
-              describePerCommitStage()
-            }
-          }
-          stage('Install-Dependencies') {
-            steps {
-              installDependencies()
-            }
-          }
-          stage('Build-Driver') {
-            steps {
-              buildDriver()
-            }
-          }
-          stage('Execute-Tests') {
-            steps {
-              executeTests(true)
-            }
-            post {
-              always {
-                junit testResults: '**/TestResult.xml'
-              }
-            }
-          }
-        }
-      }
-      post {
-        always {
-          node('master') {
-            submitCIMetrics('commit')
-          }
-        }
-        aborted {
-          notifySlack('aborted')
-        }
-        success {
-          notifySlack('completed')
-        }
-        unstable {
-          notifySlack('unstable')
-        }
-        failure {
-          notifySlack('FAILED')
-        }
-      }
-    }
-
-    stage('Nightly-Ubuntu') {
-      when {
-        beforeAgent true
-        allOf {
-          expression { params.CI_SCHEDULE == 'NIGHTLY' }
-          expression { params.CI_SCHEDULE_OS_VERSION == 'ubuntu/bionic64/csharp-driver' }
-          not { buildingTag() }
-        }
-      }
-
-      environment {
-        OS_VERSION = "${params.CI_SCHEDULE_OS_VERSION}"
-      }
-
-      // ##
-      // # Building on Linux
-      // #   - Do not build using net452 and net461
-      // #   - Target all Apache Cassandra� and DataStax Enterprise versions for netcoreapp2.1
-      // ##
-      // H 0 * * 1-5 %CI_SCHEDULE=NIGHTLY;CI_SCHEDULE_DOTNET_VERSION=ALL;CI_SCHEDULE_SERVER_VERSION=2.2 3.11 dse-5.1 dse-6.7;CI_SCHEDULE_OS_VERSION=ubuntu/bionic64/csharp-driver
-      // H 1 * * 1-5 %CI_SCHEDULE=NIGHTLY;CI_SCHEDULE_DOTNET_VERSION=netcoreapp2.1;CI_SCHEDULE_SERVER_VERSION=ALL;CI_SCHEDULE_OS_VERSION=ubuntu/bionic64/csharp-driver
-      matrix {
-        axes {
-          axis {
-            name 'SERVER_VERSION'
-            values '2.1',     // Legacy Apache Cassandra�
-                  '2.2',     // Legacy Apache Cassandra�
-                  '3.0',     // Previous Apache Cassandra�
-                  '3.11',    // Current Apache Cassandra�
-                  '4.0',     // Development Apache Cassandra�
-                  'dse-5.1', // Legacy DataStax Enterprise
-                  'dse-6.0', // Previous DataStax Enterprise
-                  'dse-6.7', // Current DataStax Enterprise
-                  'dse-6.8'  // Current DataStax Enterprise
-          }
-          axis {
-            name 'DOTNET_VERSION'
-            values 'mono', 'netcoreapp2.1', 'netcoreapp3.1'
-          }
-        }
-        excludes {
-          exclude {
-            axis {
-              name 'DOTNET_VERSION'
-              values 'mono'
-            }
-            axis {
-              name 'SERVER_VERSION'
-              values '2.1', '3.0', 'dse-6.0'
-            }
-          }
-          exclude {
-            axis {
-              name 'DOTNET_VERSION'
-              values 'netcoreapp2.1'
-            }
-            axis {
-              name 'SERVER_VERSION'
-              values '2.1', '2.2', '3.0', 'dse-5.1', 'dse-6.0'
-            }
-          }
-        }
-
-        agent {
-          label "${OS_VERSION}"
-        }
-
-        stages {
-          stage('Initialize-Environment') {
-            steps {
-              initializeEnvironment()
-              script {
-                if (env.BUILD_STATED_SLACK_NOTIFIED != 'true') {
-                  notifySlack()
-                }
-              }
-            }
-          }
-          stage('Describe-Build') {
-            steps {
-              describeScheduledTestingStage()
-            }
-          }
-          stage('Install-Dependencies') {
-            steps {
-              installDependencies()
-            }
-          }
-          stage('Build-Driver') {
-            steps {
-              buildDriver()
-            }
-          }
-          stage('Execute-Tests') {
-            steps {
-              executeTests(false)
-            }
-            post {
-              always {
-                junit testResults: '**/TestResult.xml'
-              }
-            }
-          }
-        }
-      }
-      post {
-        aborted {
-          notifySlack('aborted')
-        }
-        success {
-          notifySlack('completed')
-        }
-        unstable {
-          notifySlack('unstable')
-        }
-        failure {
-          notifySlack('FAILED')
-        }
-      }
-    }
-
-    stage('Nightly-Windows') {
-      when {
-        beforeAgent true
-        allOf {
-          expression { params.CI_SCHEDULE == 'NIGHTLY' }
-          expression { params.CI_SCHEDULE_OS_VERSION == 'win/cs' }
-          not { buildingTag() }
-        }
-      }
-
-      environment {
-        OS_VERSION = "${params.CI_SCHEDULE_OS_VERSION}"
-      }
-      
-      // # Building on Windows
-      // #   - Do not build using mono
-      // #   - Target Apache Cassandra� v3.11.x for netcoreapp2.1
-      // #   - Target Apache Cassandra� v2.1.x, v2.2.x, v3.11.x for net452
-      // #   - Target Apache Cassandra� v2.2.x, v3.11.x for net461
-      // ##
-      // H 2 * * 1-5 %CI_SCHEDULE=NIGHTLY;CI_SCHEDULE_DOTNET_VERSION=netcoreapp2.1;CI_SCHEDULE_SERVER_VERSION=3.11;CI_SCHEDULE_OS_VERSION=win/cs
-      // H 2 * * 1-5 %CI_SCHEDULE=NIGHTLY;CI_SCHEDULE_DOTNET_VERSION=net452;CI_SCHEDULE_SERVER_VERSION=2.1 2.2 3.11;CI_SCHEDULE_OS_VERSION=win/cs
-      // H 2 * * 1-5 %CI_SCHEDULE=NIGHTLY;CI_SCHEDULE_DOTNET_VERSION=net461;CI_SCHEDULE_SERVER_VERSION=2.2 3.11;CI_SCHEDULE_OS_VERSION=win/cs
-      matrix {
-        axes {
-          axis {
-            name 'SERVER_VERSION'
-            values '2.1',     // Legacy Apache Cassandra�
-                  '2.2',     // Legacy Apache Cassandra�
-                  '3.0',     // Previous Apache Cassandra�
-                  '3.11',    // Current Apache Cassandra�
-                  '4.0'     // Development Apache Cassandra�
-          }
-          axis {
-            name 'DOTNET_VERSION'
-            values 'netcoreapp2.1', 'netcoreapp3.1', 'net452', 'net462', 'net472', 'net48'
-          }
-        }
-        excludes {
-          exclude {
-            axis {
-              name 'DOTNET_VERSION'
-              values 'net462'
-            }
-            axis {
-              name 'SERVER_VERSION'
-              values '2.1'
-            }
-          }
-          exclude {
-            axis {
-              name 'DOTNET_VERSION'
-              values 'netcoreapp3.1'
-            }
-            axis {
-              name 'SERVER_VERSION'
-              values '2.1', '2.2'
-            }
-          }
-          exclude {
-            axis {
-              name 'DOTNET_VERSION'
-              values 'net472', 'net48'
-            }
-            axis {
-              name 'SERVER_VERSION'
-              values '2.1', '2.2', '3.0', '4.0'
-            }
-          }
-          exclude {
-            axis {
-              name 'DOTNET_VERSION'
-              values 'net452', 'netcoreapp2.1'
-            }
-            axis {
-              name 'SERVER_VERSION'
-              values '2.1', '3.0'
-            }
-          }
-        }
-
-        agent {
-          label "${OS_VERSION}"
-        }
-
-        stages {
-          stage('Initialize-Environment') {
-            steps {
-              initializeEnvironment()
-              script {
-                if (env.BUILD_STATED_SLACK_NOTIFIED != 'true') {
-                  notifySlack()
-                }
-              }
-            }
-          }
-          stage('Describe-Build') {
-            steps {
-              describeScheduledTestingStage()
-            }
-          }
-          stage('Install-Dependencies') {
-            steps {
-              installDependencies()
-            }
-          }
-          stage('Build-Driver') {
-            steps {
-              buildDriver()
-            }
-          }
-          stage('Execute-Tests') {
-            steps {
-              executeTests(false)
-            }
-            post {
-              always {
-                junit testResults: '**/TestResult.xml'
-              }
-            }
-          }
-        }
-      }
-      post {
-        aborted {
-          notifySlack('aborted')
-        }
-        success {
-          notifySlack('completed')
-        }
-        unstable {
-          notifySlack('unstable')
-        }
-        failure {
-          notifySlack('FAILED')
-        }
-      }
-    }
     
-    stage('Weekly-Ubuntu') {
-      when {
-        beforeAgent true
-        allOf {
-          expression { params.CI_SCHEDULE == 'WEEKLY' }
-          expression { params.CI_SCHEDULE_OS_VERSION == 'ubuntu/bionic64/csharp-driver' }
-          not { buildingTag() }
-        }
-      }
+    stagePerCommit()
 
-      environment {
-        OS_VERSION = "${params.CI_SCHEDULE_OS_VERSION}"
-      }
+    stageNightlyUbuntu()
 
-      matrix {
-        axes {
-          axis {
-            name 'SERVER_VERSION'
-            values '2.1',     // Legacy Apache Cassandra�
-                  '2.2',     // Legacy Apache Cassandra�
-                  '3.0',     // Previous Apache Cassandra�
-                  '3.11',    // Current Apache Cassandra�
-                  '4.0',     // Development Apache Cassandra�
-                  'dse-5.1', // Legacy DataStax Enterprise
-                  'dse-6.0', // Previous DataStax Enterprise
-                  'dse-6.7', // Current DataStax Enterprise
-                  'dse-6.8'  // Current DataStax Enterprise
-          }
-          axis {
-            name 'DOTNET_VERSION'
-            values 'mono', 'netcoreapp2.1', 'netcoreapp3.1'
-          }
-        }
-        excludes {
-          exclude {
-            axis {
-              name 'DOTNET_VERSION'
-              values 'netcoreapp2.1'
-            }
-            axis {
-              name 'SERVER_VERSION'
-              values '2.1', '3.0', 'dse-6.0'
-            }
-          }
-        }
-
-        agent {
-          label "${OS_VERSION}"
-        }
-
-        stages {
-          stage('Initialize-Environment') {
-            steps {
-              initializeEnvironment()
-              script {
-                if (env.BUILD_STATED_SLACK_NOTIFIED != 'true') {
-                  notifySlack()
-                }
-              }
-            }
-          }
-          stage('Describe-Build') {
-            steps {
-              describeScheduledTestingStage()
-            }
-          }
-          stage('Install-Dependencies') {
-            steps {
-              installDependencies()
-            }
-          }
-          stage('Build-Driver') {
-            steps {
-              buildDriver()
-            }
-          }
-          stage('Execute-Tests') {
-            steps {
-              executeTests(false)
-            }
-            post {
-              always {
-                junit testResults: '**/TestResult.xml'
-              }
-            }
-          }
-        }
-      }
-      post {
-        aborted {
-          notifySlack('aborted')
-        }
-        success {
-          notifySlack('completed')
-        }
-        unstable {
-          notifySlack('unstable')
-        }
-        failure {
-          notifySlack('FAILED')
-        }
-      }
-    }
+    stageNightlyWindows()
     
-    stage('Weekly-Windows') {
-      when {
-        beforeAgent true
-        allOf {
-          expression { params.CI_SCHEDULE == 'WEEKLY' }
-          expression { params.CI_SCHEDULE_OS_VERSION == 'win/cs' }
-          not { buildingTag() }
-        }
-      }
-
-      environment {
-        OS_VERSION = "${params.CI_SCHEDULE_OS_VERSION}"
-      }
-
-      matrix {
-        axes {
-          axis {
-            name 'SERVER_VERSION'
-            values '2.1',     // Legacy Apache Cassandra�
-                  '2.2',     // Legacy Apache Cassandra�
-                  '3.0',     // Previous Apache Cassandra�
-                  '3.11',    // Current Apache Cassandra�
-                  '4.0'     // Development Apache Cassandra�
-          }
-          axis {
-            name 'DOTNET_VERSION'
-            values 'netcoreapp2.1', 'netcoreapp3.1', 'net452', 'net462', 'net472', 'net48'
-          }
-        }
-        excludes {
-          exclude {
-            axis {
-              name 'DOTNET_VERSION'
-              values 'net452', 'net472', 'net48', 'netcoreapp2.1'
-            }
-            axis {
-              name 'SERVER_VERSION'
-              values '2.1', '3.0'
-            }
-          }
-          exclude {
-            axis {
-              name 'DOTNET_VERSION'
-              values 'net472', 'net48'
-            }
-            axis {
-              name 'SERVER_VERSION'
-              values '2.2'
-            }
-          }
-        }
-        
-        agent {
-          label "${OS_VERSION}"
-        }
-
-        stages {
-          stage('Initialize-Environment') {
-            steps {
-              initializeEnvironment()
-              script {
-                if (env.BUILD_STATED_SLACK_NOTIFIED != 'true') {
-                  notifySlack()
-                }
-              }
-            }
-          }
-          stage('Describe-Build') {
-            steps {
-              describeScheduledTestingStage()
-            }
-          }
-          stage('Install-Dependencies') {
-            steps {
-              installDependencies()
-            }
-          }
-          stage('Build-Driver') {
-            steps {
-              buildDriver()
-            }
-          }
-          stage('Execute-Tests') {
-            steps {
-              executeTests(false)
-            }
-            post {
-              always {
-                junit testResults: '**/TestResult.xml'
-              }
-            }
-          }
-        }
-      }
-      post {
-        aborted {
-          notifySlack('aborted')
-        }
-        success {
-          notifySlack('completed')
-        }
-        unstable {
-          notifySlack('unstable')
-        }
-        failure {
-          notifySlack('FAILED')
-        }
-      }
-    }
+    stageWeeklyUbuntu()
+    
+    stageWeeklyWindows()
   }
 }
