@@ -393,8 +393,7 @@ def describeScheduledTestingStage() {
 }
 
 // branch pattern for cron
-@Field
-def branchPatternCron = ~"(master)"
+branchPatternCron = ~"(master)"
 
 pipeline {
   agent none
