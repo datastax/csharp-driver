@@ -34,8 +34,8 @@ function Add-EnvPath {
     }
 }
 
-Add-EnvPath $($env:PYTHON) "Machine"
-Add-EnvPath $($env:PYTHON)\Scripts "Machine"
+Add-EnvPath "$($env:PYTHON)" "Machine"
+Add-EnvPath "$($env:PYTHON)\Scripts" "Machine"
 
 $computerSystem = Get-CimInstance CIM_ComputerSystem
 $computerCPU = Get-CimInstance CIM_Processor
@@ -95,7 +95,6 @@ If (!(Test-Path $jce_indicator)) {
 
 # Install Python Dependencies for CCM.
 Write-Host "Installing CCM and its dependencies"
-python -m pip uninstall --yes six
 
 $env:CCM_PATH="C:$($env:HOMEPATH)\ccm"
 
@@ -104,8 +103,8 @@ If (!(Test-Path $env:CCM_PATH)) {
   git clone https://github.com/pcmanus/ccm.git $env:CCM_PATH
   Write-Host "git ccm cloned"
   pushd $env:CCM_PATH
-  python -m pip install -r requirements.txt
-  python setup.py install
+  & "cmd.exe" "/c python -m pip install -r requirements.txt"
+  & "cmd.exe" "/c python setup.py install"
   popd
 }
 
@@ -158,9 +157,9 @@ Write-Host "[Install] Check installed cassandra version $($env:cassandra_version
 # Predownload cassandra version for CCM if it isn't already downloaded.
 If (!(Test-Path C:\Users\appveyor\.ccm\repository\$env:cassandra_version)) {
   Write-Host "[Install] Install cassandra version $($env:cassandra_version)"
-  Start-Process python -ArgumentList "--version" -Wait -NoNewWindow
-  Start-Process python -ArgumentList "$($env:CCM_PATH)\ccm.py create -v $($env:cassandra_version) -n 1 predownload" -Wait -NoNewWindow
-  Start-Process python -ArgumentList "$($env:CCM_PATH)\ccm.py remove predownload" -Wait -NoNewWindow
+  & "cmd.exe" "/c python --version"
+  & "cmd.exe" "/c python $($env:CCM_PATH)\ccm.py create -v $($env:cassandra_version) -n 1 predownload"
+  & "cmd.exe" "/c python $($env:CCM_PATH)\ccm.py remove predownload"
 } else {
   Write-Host "Cassandra $env:cassandra_version was already preloaded"
 }
