@@ -4,8 +4,8 @@ $env:PATH="$($env:PYTHON);$($env:PYTHON)\Scripts;$($env:JAVA_HOME)\bin;$($env:PA
 $env:PATHEXT="$($env:PATHEXT);.PY"
 $dep_dir="$($env:HOMEPATH)\deps"
 
-& "cmd.exe" "assoc .py=Python.File"
-& "cmd.exe" 'ftype Python.File="C:\Python27-x64\python.exe" "%1" %*'
+Execute-Command("cmd.exe", "assoc .py=Python.File")
+Execute-Command("cmd.exe", 'ftype Python.File="C:\Python27-x64\python.exe" "%1" %*')
 
 function Add-EnvPath {
     param(
@@ -35,6 +35,32 @@ function Add-EnvPath {
         $envPaths = $Path + $envPaths | where { $_ }
         $env:Path = $envPaths -join ';'
     }
+}
+
+Function Execute-Command ($commandPath, $commandArguments)
+{
+  Try {
+    $pinfo = New-Object System.Diagnostics.ProcessStartInfo
+    $pinfo.FileName = $commandPath
+    $pinfo.RedirectStandardError = $true
+    $pinfo.RedirectStandardOutput = $true
+    $pinfo.UseShellExecute = true;
+    $pinfo.Verb = "runas";
+    $pinfo.Arguments = $commandArguments
+    $p = New-Object System.Diagnostics.Process
+    $p.StartInfo = $pinfo
+    $p.Start() | Out-Null
+    [pscustomobject]@{
+        commandTitle = $commandPath + " " + $commandArguments
+        stdout = $p.StandardOutput.ReadToEnd()
+        stderr = $p.StandardError.ReadToEnd()
+        ExitCode = $p.ExitCode
+    }
+    $p.WaitForExit()
+  }
+  Catch {
+     exit
+  }
 }
 
 Add-EnvPath "$($env:PYTHON)" "Machine"
