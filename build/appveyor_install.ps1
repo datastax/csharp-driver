@@ -58,7 +58,7 @@ function Add-EnvPath {
 Set-EnvPerm "JAVA_HOME" "C:\Program Files\Java\jdk1.8.0_201" "Machine"
 Set-EnvPerm "PYTHON" "C:\Python27-x64" "Machine"
 Set-EnvPerm "PATHEXT" "$($env:PATHEXT);.PY" "Machine"
-Set-EnvPerm "dep_dir" "$($env:HOMEPATH)\deps" "Machine"
+$dep_dir = "$($env:HOMEPATH)\deps"
 
 Add-EnvPath "$($env:JAVA_HOME)\bin" "Machine"
 Add-EnvPath "$($env:PYTHON)\Scripts" "Machine"
