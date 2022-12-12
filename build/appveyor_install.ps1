@@ -160,7 +160,9 @@ Add-EnvPath "$($dotMemory_base)" "Machine"
 
 
 Write-Host "Set execution Policy"
-Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process
+Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Force
+Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process -Force
+Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope CurrentUser -Force
 
 #removing any existing ccm cluster
 Write-Host "Removing any existing ccm clusters"
