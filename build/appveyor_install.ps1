@@ -37,7 +37,8 @@ function Execute-Command
   }
 }
 
-Execute-Command "cmd.exe" 'ftype Python="C:\Python27-x64\python.exe" "%1" %*'
+Execute-Command "cmd.exe" "assoc .py"
+# Execute-Command "cmd.exe" 'ftype Python="C:\Python27-x64\python.exe" "%1" %*'
 
 function Add-EnvPath {
     param(
