@@ -36,7 +36,8 @@ function Execute-Command
      exit
   }
 }
-& "cmd.exe" "assoc .py"
+
+& "cmd.exe" "assoc"
 # Execute-Command "cmd.exe" "assoc .py"
 # Execute-Command "cmd.exe" 'ftype Python="C:\Python27-x64\python.exe" "%1" %*'
 
