@@ -4,6 +4,9 @@ $env:PATH="$($env:PYTHON);$($env:PYTHON)\Scripts;$($env:JAVA_HOME)\bin;$($env:PA
 $env:PATHEXT="$($env:PATHEXT);.PY"
 $dep_dir="$($env:HOMEPATH)\deps"
 
+& "cmd.exe" "assoc .py=Python.File"
+& "cmd.exe" 'ftype Python.File="C:\Python27-x64\python.exe" "%1" %*'
+
 function Add-EnvPath {
     param(
         [Parameter(Mandatory=$true)]
