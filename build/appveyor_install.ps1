@@ -62,7 +62,8 @@ If (!(Test-Path $jce_indicator)) {
 
 # Install Python Dependencies for CCM.
 Write-Host "Installing CCM and its dependencies"
-python -m pip install psutil pyYaml six
+python -m pip install psutil pyYaml
+python -m pip install --ignore-installed six
 
 $env:CCM_PATH="C:$($env:HOMEPATH)\ccm"
 
@@ -71,6 +72,7 @@ If (!(Test-Path $env:CCM_PATH)) {
   git clone https://github.com/pcmanus/ccm.git $env:CCM_PATH
   Write-Host "git ccm cloned"
   pushd $env:CCM_PATH
+  python -m pip install -r requirements.txt
   python setup.py install
   popd
 }
