@@ -4,9 +4,15 @@ $env:PATH="$($env:PYTHON);$($env:PYTHON)\Scripts;$($env:JAVA_HOME)\bin;$($env:PA
 $env:PATHEXT="$($env:PATHEXT);.PY"
 $dep_dir="$($env:HOMEPATH)\deps"
 
-
-Function Execute-Command ($commandPath, $commandArguments)
+function Execute-Command
 {
+  param(
+        [Parameter(Mandatory=$true)]
+        [string] $commandPath,
+
+        [Parameter(Mandatory=$true)]
+        [string] $commandArguments
+    )
   Try {
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
     $pinfo.FileName = $commandPath
