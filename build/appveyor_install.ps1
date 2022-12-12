@@ -1,5 +1,30 @@
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 
+function Set-EnvPerm {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string] $Var,
+
+        [Parameter(Mandatory=$true)]
+        [string] $Value,
+
+        [ValidateSet('Machine', 'User', 'Session')]
+        [string] $Container = 'Session'
+    )
+
+    if ($Container -ne 'Session') {
+        $containerMapping = @{
+            Machine = [EnvironmentVariableTarget]::Machine
+            User = [EnvironmentVariableTarget]::User
+        }
+        $containerType = $containerMapping[$Container]
+
+        [Environment]::SetEnvironmentVariable($Var, $Value, $containerType)
+    }
+
+    Set-Item "env:$Var" $Value
+}
+
 function Add-EnvPath {
     param(
         [Parameter(Mandatory=$true)]
@@ -30,10 +55,14 @@ function Add-EnvPath {
     }
 }
 
-$env:JAVA_HOME="C:\Program Files\Java\jdk1.8.0"
-$env:PYTHON="C:\Python27-x64"
-$env:PATHEXT="$($env:PATHEXT);.PY"
-$dep_dir="$($env:HOMEPATH)\deps"
+Invoke-WebRequest -Uri "https://master.dl.sourceforge.net/project/portableapps/JDK/jdk-8u201-windows-x64.exe?viasf=1" -OutFile "C:\jdk8.exe"
+& "C:\jdk8.exe" "/s"
+
+Set-EnvPerm "JAVA_HOME" "C:\Program Files\Java\jdk1.8.0_201" "Machine"
+Set-EnvPerm "PYTHON" "C:\Python27-x64" "Machine"
+Set-EnvPerm "PATHEXT" "$($env:PATHEXT);.PY" "Machine"
+Set-EnvPerm "dep_dir" "$($env:HOMEPATH)\deps" "Machine"
+
 Add-EnvPath "$($env:JAVA_HOME)\bin" "Machine"
 Add-EnvPath "$($env:PYTHON)\Scripts" "Machine"
 Add-EnvPath "$($env:PYTHON)" "Machine"
@@ -66,7 +95,8 @@ If (!(Test-Path $ant_path)) {
   (new-object System.Net.WebClient).DownloadFile($ant_url, $ant_zip)
   [System.IO.Compression.ZipFile]::ExtractToDirectory($ant_zip, $ant_base)
 }
-$env:PATH="$($ant_path)\bin;$($env:PATH)"
+
+Add-EnvPath "$($ant_path)\bin" "Machine"
 
 Write-Host "Installing java Cryptographic Extensions, needed for SSL..."
 # Install Java Cryptographic Extensions, needed for SSL.
@@ -99,7 +129,7 @@ If (!(Test-Path $jce_indicator)) {
 # Install Python Dependencies for CCM.
 Write-Host "Installing CCM and its dependencies"
 
-$env:CCM_PATH="C:$($env:HOMEPATH)\ccm"
+Set-EnvPerm "CCM_PATH" "C:$($env:HOMEPATH)\ccm" "Machine"
 
 If (!(Test-Path $env:CCM_PATH)) {
   Write-Host "Cloning git ccm... $($env:CCM_PATH)"
@@ -125,7 +155,8 @@ If (!(Test-Path $dotMemory_base)) {
   (new-object System.Net.WebClient).DownloadFile($dotMemory_url, $dotMemory_zip)
   [System.IO.Compression.ZipFile]::ExtractToDirectory($dotMemory_zip, $dotMemory_base)
 }
-$env:PATH="$($dotMemory_base);$($env:PATH)"
+
+Add-EnvPath "$($dotMemory_base)" "Machine"
 
 
 Write-Host "Set execution Policy"
@@ -176,4 +207,4 @@ If (!(Test-Path $simulacron_path)) {
   (new-object System.Net.WebClient).DownloadFile($url, $simulacron_path)
 }
 
-$env:SIMULACRON_PATH=$simulacron_path
+Set-EnvPerm "SIMULACRON_PATH" $simulacron_path "Machine"
