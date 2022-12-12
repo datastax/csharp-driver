@@ -1,45 +1,4 @@
-$env:JAVA_HOME="C:\Program Files\Java\jdk1.8.0"
-$env:PYTHON="C:\Python27-x64"
-$env:PATH="$($env:PYTHON);$($env:PYTHON)\Scripts;$($env:JAVA_HOME)\bin;$($env:PATH)"
-$env:PATHEXT="$($env:PATHEXT);.PY"
-$dep_dir="$($env:HOMEPATH)\deps"
-
-function Execute-Command
-{
-  param(
-        [Parameter(Mandatory=$true)]
-        [string] $commandPath,
-
-        [Parameter(Mandatory=$true)]
-        [string] $commandArguments
-    )
-  Try {
-    $pinfo = New-Object System.Diagnostics.ProcessStartInfo
-    $pinfo.FileName = $commandPath
-    $pinfo.RedirectStandardError = $true
-    $pinfo.RedirectStandardOutput = $true
-    $pinfo.UseShellExecute = true;
-    $pinfo.Verb = "runas";
-    $pinfo.Arguments = $commandArguments
-    $p = New-Object System.Diagnostics.Process
-    $p.StartInfo = $pinfo
-    $p.Start() | Out-Null
-    [pscustomobject]@{
-        commandTitle = $commandPath + " " + $commandArguments
-        stdout = $p.StandardOutput.ReadToEnd()
-        stderr = $p.StandardError.ReadToEnd()
-        ExitCode = $p.ExitCode
-    }
-    $p.WaitForExit()
-  }
-  Catch {
-     exit
-  }
-}
-
-# & "cmd.exe" "assoc"
-# Execute-Command "cmd.exe" "assoc .py"
-# Execute-Command "cmd.exe" 'ftype Python="C:\Python27-x64\python.exe" "%1" %*'
+Add-Type -AssemblyName System.IO.Compression.FileSystem
 
 function Add-EnvPath {
     param(
@@ -59,20 +18,27 @@ function Add-EnvPath {
 
         $persistedPaths = [Environment]::GetEnvironmentVariable('Path', $containerType) -split ';'
         if ($persistedPaths -notcontains $Path) {
-            $persistedPaths = $Path + $persistedPaths | where { $_ }
+            $persistedPaths = ,$Path + $persistedPaths | where { $_ }
             [Environment]::SetEnvironmentVariable('Path', $persistedPaths -join ';', $containerType)
         }
     }
 
     $envPaths = $env:Path -split ';'
     if ($envPaths -notcontains $Path) {
-        $envPaths = $Path + $envPaths | where { $_ }
+        $envPaths = ,$Path + $envPaths | where { $_ }
         $env:Path = $envPaths -join ';'
     }
 }
 
-Add-EnvPath "$($env:PYTHON)" "Machine"
+$env:JAVA_HOME="C:\Program Files\Java\jdk1.8.0"
+$env:PYTHON="C:\Python27-x64"
+$env:PATHEXT="$($env:PATHEXT);.PY"
+$dep_dir="$($env:HOMEPATH)\deps"
+Add-EnvPath "$($env:JAVA_HOME)\bin" "Machine"
 Add-EnvPath "$($env:PYTHON)\Scripts" "Machine"
+Add-EnvPath "$($env:PYTHON)" "Machine"
+
+& "cmd.exe" '/c ftype Python.File=C:\Python27-x64\python.exe "%1" %*'
 
 $computerSystem = Get-CimInstance CIM_ComputerSystem
 $computerCPU = Get-CimInstance CIM_Processor

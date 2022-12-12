@@ -8,7 +8,7 @@ cache:
   - C:\Users\appveyor\deps -> .\build\appveyor_install.ps1
 image: Visual Studio 2019
 environment:
-  APPVEYOR_RDP_PASSWORD: Yy64rr9aB6IW
+  #APPVEYOR_RDP_PASSWORD: Yy64rr9aB6IW
   NUNIT_PATH: nunit3-console
   BuildAllTargets: "True"
   RunCodeAnalyzers: "True"
@@ -50,8 +50,8 @@ environment:
       CI_TYPE: INTEGRATION
       PROJECT: Cassandra.IntegrationTests
       
-init:
-  - ps: $blockRdp = $True; iex ((New-Object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+#init:
+#  - ps: $blockRdp = $True; iex ((New-Object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 
 install:
   - ps: .\build\appveyor_install.ps1
