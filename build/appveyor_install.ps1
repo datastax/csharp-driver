@@ -4,6 +4,39 @@ $env:PATH="$($env:PYTHON);$($env:PYTHON)\Scripts;$($env:JAVA_HOME)\bin;$($env:PA
 $env:PATHEXT="$($env:PATHEXT);.PY"
 $dep_dir="$($env:HOMEPATH)\deps"
 
+function Add-EnvPath {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string] $Path,
+
+        [ValidateSet('Machine', 'User', 'Session')]
+        [string] $Container = 'Session'
+    )
+
+    if ($Container -ne 'Session') {
+        $containerMapping = @{
+            Machine = [EnvironmentVariableTarget]::Machine
+            User = [EnvironmentVariableTarget]::User
+        }
+        $containerType = $containerMapping[$Container]
+
+        $persistedPaths = [Environment]::GetEnvironmentVariable('Path', $containerType) -split ';'
+        if ($persistedPaths -notcontains $Path) {
+            $persistedPaths = $Path + $persistedPaths | where { $_ }
+            [Environment]::SetEnvironmentVariable('Path', $persistedPaths -join ';', $containerType)
+        }
+    }
+
+    $envPaths = $env:Path -split ';'
+    if ($envPaths -notcontains $Path) {
+        $envPaths = $Path + $envPaths | where { $_ }
+        $env:Path = $envPaths -join ';'
+    }
+}
+
+Add-EnvPath $($env:PYTHON) "System"
+Add-EnvPath $($env:PYTHON)\Scripts "System"
+
 $computerSystem = Get-CimInstance CIM_ComputerSystem
 $computerCPU = Get-CimInstance CIM_Processor
 
@@ -62,8 +95,7 @@ If (!(Test-Path $jce_indicator)) {
 
 # Install Python Dependencies for CCM.
 Write-Host "Installing CCM and its dependencies"
-python -m pip install psutil pyYaml
-python -m pip install --ignore-installed six
+python -m pip uninstall six
 
 $env:CCM_PATH="C:$($env:HOMEPATH)\ccm"
 
@@ -126,6 +158,7 @@ Write-Host "[Install] Check installed cassandra version $($env:cassandra_version
 # Predownload cassandra version for CCM if it isn't already downloaded.
 If (!(Test-Path C:\Users\appveyor\.ccm\repository\$env:cassandra_version)) {
   Write-Host "[Install] Install cassandra version $($env:cassandra_version)"
+  Start-Process python -ArgumentList "--version" -Wait -NoNewWindow
   Start-Process python -ArgumentList "$($env:CCM_PATH)\ccm.py create -v $($env:cassandra_version) -n 1 predownload" -Wait -NoNewWindow
   Start-Process python -ArgumentList "$($env:CCM_PATH)\ccm.py remove predownload" -Wait -NoNewWindow
 } else {
