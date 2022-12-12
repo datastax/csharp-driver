@@ -34,8 +34,8 @@ function Add-EnvPath {
     }
 }
 
-Add-EnvPath $($env:PYTHON) "System"
-Add-EnvPath $($env:PYTHON)\Scripts "System"
+Add-EnvPath $($env:PYTHON) "Machine"
+Add-EnvPath $($env:PYTHON)\Scripts "Machine"
 
 $computerSystem = Get-CimInstance CIM_ComputerSystem
 $computerCPU = Get-CimInstance CIM_Processor
@@ -95,7 +95,7 @@ If (!(Test-Path $jce_indicator)) {
 
 # Install Python Dependencies for CCM.
 Write-Host "Installing CCM and its dependencies"
-python -m pip uninstall six
+python -m pip uninstall --yes six
 
 $env:CCM_PATH="C:$($env:HOMEPATH)\ccm"
 
