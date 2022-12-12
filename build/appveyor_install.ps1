@@ -55,9 +55,6 @@ function Add-EnvPath {
     }
 }
 
-Invoke-WebRequest -Uri "https://master.dl.sourceforge.net/project/portableapps/JDK/jdk-8u201-windows-x64.exe?viasf=1" -OutFile "C:\jdk8.exe"
-& "C:\jdk8.exe" "/s"
-
 Set-EnvPerm "JAVA_HOME" "C:\Program Files\Java\jdk1.8.0_201" "Machine"
 Set-EnvPerm "PYTHON" "C:\Python27-x64" "Machine"
 Set-EnvPerm "PATHEXT" "$($env:PATHEXT);.PY" "Machine"
@@ -83,7 +80,10 @@ Write-Host "Install..."
 If (!(Test-Path $dep_dir)) {
   Write-Host "Creating $($dep_dir)"
   New-Item -Path $dep_dir -ItemType Directory -Force
+  Invoke-WebRequest -Uri "https://master.dl.sourceforge.net/project/portableapps/JDK/jdk-8u201-windows-x64.exe?viasf=1" -OutFile "$($dep_dir)\jdk8.exe"
 }
+
+& "$($dep_dir)\jdk8.exe" "/s"
 
 # Install Ant
 $ant_base = "$($dep_dir)\ant"
