@@ -55,7 +55,10 @@ function Add-EnvPath {
     }
 }
 
-Set-EnvPerm "JAVA_HOME" "C:\Program Files\Java\jdk1.8.0_201" "Machine"
+# for now the installed jdk is 221 so ccm works, but if it is upgraded in the future then we need to download and install this one (check commented lines further below) because with recent jdk 8 versions ccm doesnt work
+# Set-EnvPerm "JAVA_HOME" "C:\Program Files\Java\jdk1.8.0_201" "Machine"
+Set-EnvPerm "JAVA_HOME" "C:\Program Files\Java\jdk1.8.0" "Machine"
+
 Set-EnvPerm "PYTHON" "C:\Python27-x64" "Machine"
 Set-EnvPerm "PATHEXT" "$($env:PATHEXT);.PY" "Machine"
 $dep_dir = "$($env:HOMEPATH)\deps"
@@ -64,7 +67,7 @@ Add-EnvPath "$($env:JAVA_HOME)\bin" "Machine"
 Add-EnvPath "$($env:PYTHON)\Scripts" "Machine"
 Add-EnvPath "$($env:PYTHON)" "Machine"
 
-& "cmd.exe" '/c ftype Python.File=C:\Python27-x64\python.exe "%1" %*'
+& "cmd.exe" /c "ftype Python.File=C:\Python27-x64\python.exe `"%1`" %*"
 
 $computerSystem = Get-CimInstance CIM_ComputerSystem
 $computerCPU = Get-CimInstance CIM_Processor
@@ -80,10 +83,12 @@ Write-Host "Install..."
 If (!(Test-Path $dep_dir)) {
   Write-Host "Creating $($dep_dir)"
   New-Item -Path $dep_dir -ItemType Directory -Force
-  Invoke-WebRequest -Uri "https://master.dl.sourceforge.net/project/portableapps/JDK/jdk-8u201-windows-x64.exe?viasf=1" -OutFile "$($dep_dir)\jdk8.exe"
+  # for now the installed jdk is 221 so ccm works, but if it is upgraded in the future then we need to download and install this one
+  # Invoke-WebRequest -Uri "https://master.dl.sourceforge.net/project/portableapps/JDK/jdk-8u201-windows-x64.exe?viasf=1" -OutFile "$($dep_dir)\jdk8.exe"
 }
 
-& "$($dep_dir)\jdk8.exe" "/s"
+# for now the installed jdk is 221 so ccm works, but if it is upgraded in the future then we need to download and install this one
+# & "$($dep_dir)\jdk8.exe" "/s"
 
 # Install Ant
 $ant_base = "$($dep_dir)\ant"
@@ -136,8 +141,8 @@ If (!(Test-Path $env:CCM_PATH)) {
   git clone https://github.com/pcmanus/ccm.git $env:CCM_PATH
   Write-Host "git ccm cloned"
   pushd $env:CCM_PATH
-  & "cmd.exe" "/c python -m pip install -r requirements.txt"
-  & "cmd.exe" "/c python setup.py install"
+  & "cmd.exe" /c "python -m pip install -r requirements.txt"
+  & "cmd.exe" /c "python setup.py install"
   popd
 }
 
@@ -167,8 +172,8 @@ Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope CurrentUser -Force
 #removing any existing ccm cluster
 Write-Host "Removing any existing ccm clusters"
 
-$params = "/c ccm list"
-& "cmd.exe" $params | Tee-Object -Variable scriptOutput | Out-Null
+$params = "ccm list"
+& "cmd.exe" /c $params | Tee-Object -Variable scriptOutput | Out-Null
 
 If ($scriptOutput)
 {
@@ -180,12 +185,12 @@ If ($scriptOutput)
     If (-Not $cluster.equals(""))
     {
       $name = $cluster.Replace("*", "")
-      & "cmd.exe" "/c ccm remove $($name)" | Tee-Object -Variable result | Out-Null
+      & "cmd.exe" /c "ccm remove $($name)" | Tee-Object -Variable result | Out-Null
       Write-Host "[ccm] remove $($name) $($result)"
     }
   }
 
-  & "cmd.exe" $params | Tee-Object -Variable scriptOutputEnd | Out-Null
+  & "cmd.exe" /c $params | Tee-Object -Variable scriptOutputEnd | Out-Null
   Write-Host "[ccm] list $($scriptOutputEnd)"
 }
 
@@ -193,9 +198,9 @@ Write-Host "[Install] Check installed cassandra version $($env:cassandra_version
 # Predownload cassandra version for CCM if it isn't already downloaded.
 If (!(Test-Path C:\Users\appveyor\.ccm\repository\$env:cassandra_version)) {
   Write-Host "[Install] Install cassandra version $($env:cassandra_version)"
-  & "cmd.exe" "/c python --version"
-  & "cmd.exe" "/c python $($env:CCM_PATH)\ccm.py create -v $($env:cassandra_version) -n 1 predownload"
-  & "cmd.exe" "/c python $($env:CCM_PATH)\ccm.py remove predownload"
+  & "cmd.exe" /c "python --version"
+  & "cmd.exe" /c "python $($env:CCM_PATH)\ccm.py create -v $($env:cassandra_version) -n 1 predownload"
+  & "cmd.exe" /c "python $($env:CCM_PATH)\ccm.py remove predownload"
 } else {
   Write-Host "Cassandra $env:cassandra_version was already preloaded"
 }
