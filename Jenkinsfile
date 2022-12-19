@@ -54,15 +54,6 @@ def initializeEnvironment() {
 
           "$newData" | Out-File -filepath $Env:HOME\\driver-environment.ps1 -append
       '''
-
-      if (env.SERVER_VERSION.split('-')[1] == '6.0') {
-        powershell label: 'Update environment for DataStax Enterprise v6.0.x', script: '''
-        . $Env:HOME\\driver-environment.ps1
-
-        echo "Setting DSE 6.0 install-dir"
-        "`r`n`$Env:DSE_PATH=`"$Env:CCM_INSTALL_DIR`"" | Out-File -filepath $Env:HOME\\driver-environment.ps1 -append
-        '''
-      }
     }
     
     if (env.SERVER_VERSION == env.SERVER_VERSION_SNI_WINDOWS) {
@@ -106,6 +97,7 @@ def initializeEnvironment() {
     '''
     
     if (env.SERVER_VERSION.split('-')[0] == 'dse') {
+      env.DSE_FIXED_VERSION = env.SERVER_VERSION.split('-')[1]
       sh label: 'Update environment for DataStax Enterprise', script: '''#!/bin/bash -le
         # Load CCM environment variables
         set -o allexport
@@ -114,22 +106,18 @@ def initializeEnvironment() {
 
         cat >> ${HOME}/environment.txt << ENVIRONMENT_EOF
 CCM_PATH=${HOME}/ccm
-DSE_BRANCH=${CCM_BRANCH}
 DSE_INITIAL_IPPREFIX=127.0.0.
 DSE_IN_REMOTE_SERVER=false
+CCM_CASSANDRA_VERSION=${DSE_FIXED_VERSION} # maintain for backwards compatibility
+CCM_VERSION=${DSE_FIXED_VERSION}
+CCM_SERVER_TYPE=dse
+DSE_VERSION=${DSE_FIXED_VERSION}
+CCM_IS_DSE=true
+CCM_BRANCH=${DSE_FIXED_VERSION}
+DSE_BRANCH=${DSE_FIXED_VERSION}
+JDK=1.8
 ENVIRONMENT_EOF
       '''
-
-      if (env.SERVER_VERSION.split('-')[1] == '6.0') {
-        sh label: 'Update environment for DataStax Enterprise v6.0.x', script: '''#!/bin/bash -le
-          # Load CCM and driver configuration environment variables
-          set -o allexport
-          . ${HOME}/environment.txt
-          set +o allexport
-
-          echo "DSE_PATH=${CCM_INSTALL_DIR}" >> ${HOME}/environment.txt
-        '''
-      }
     }
 
     if (env.SERVER_VERSION == env.SERVER_VERSION_SNI && env.DOTNET_VERSION != 'mono') {
