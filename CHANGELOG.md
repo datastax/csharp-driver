@@ -1,5 +1,13 @@
 # ChangeLog - DataStax C# Driver
 
+## Unreleased
+
+TBD
+
+### Bug fixes
+
+*   [[CSHARP-974](https://datastax-oss.atlassian.net/browse/CSHARP-974)] Race condition in Hashed Wheel Timer causes unhandled exception
+
 ## 3.18.0
 
 2022-07-04
