@@ -126,6 +126,8 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         public static bool CcmUseWsl => bool.Parse(Environment.GetEnvironmentVariable("CCM_USE_WSL") ?? "false");
 
+        public static string CcmWslDistroName => Environment.GetEnvironmentVariable("CCM_WSL_DISTRO_NAME") ?? "";
+
         public static bool ShouldEnableBetaProtocolVersion()
         {
             return false;
