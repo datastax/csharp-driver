@@ -20,6 +20,7 @@
 // THE SOFTWARE.
 // ---------------------------------------------------------------------
 
+using System.Runtime.CompilerServices;
 using Cassandra.Collections;
 
 namespace Microsoft.IO
@@ -719,6 +720,7 @@ namespace Microsoft.IO
         #endregion
 
         #region Helper Methods
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void CheckDisposed()
         {
             if (this.disposed)
@@ -772,6 +774,7 @@ namespace Microsoft.IO
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private BlockAndOffset GetBlockAndRelativeOffset(int offset)
         {
             var blockSize = this.memoryManager.BlockSize;
