@@ -54,15 +54,6 @@ def initializeEnvironment() {
 
           "$newData" | Out-File -filepath $Env:HOME\\driver-environment.ps1 -append
       '''
-
-      if (env.SERVER_VERSION.split('-')[1] == '6.0') {
-        powershell label: 'Update environment for DataStax Enterprise v6.0.x', script: '''
-        . $Env:HOME\\driver-environment.ps1
-
-        echo "Setting DSE 6.0 install-dir"
-        "`r`n`$Env:DSE_PATH=`"$Env:CCM_INSTALL_DIR`"" | Out-File -filepath $Env:HOME\\driver-environment.ps1 -append
-        '''
-      }
     }
     
     if (env.SERVER_VERSION == env.SERVER_VERSION_SNI_WINDOWS) {
@@ -106,30 +97,30 @@ def initializeEnvironment() {
     '''
     
     if (env.SERVER_VERSION.split('-')[0] == 'dse') {
+      env.DSE_FIXED_VERSION = env.SERVER_VERSION.split('-')[1]
       sh label: 'Update environment for DataStax Enterprise', script: '''#!/bin/bash -le
-        # Load CCM environment variables
-        set -o allexport
-        . ${HOME}/environment.txt
-        set +o allexport
+        rm ${HOME}/.ccm/config
+        cat > ${HOME}/.ccm/config << CONF_EOL
+[repositories]
+cassandra = https://repo.aws.dsinternal.org/artifactory/apache-mirror/cassandra
+dse = http://repo-public.aws.dsinternal.org/tar/enterprise/dse-%s-bin.tar.gz
+ddac = http://repo-public.aws.dsinternal.org/tar/enterprise/ddac-%s-bin.tar.gz
+CONF_EOL
 
         cat >> ${HOME}/environment.txt << ENVIRONMENT_EOF
 CCM_PATH=${HOME}/ccm
-DSE_BRANCH=${CCM_BRANCH}
 DSE_INITIAL_IPPREFIX=127.0.0.
 DSE_IN_REMOTE_SERVER=false
+CCM_CASSANDRA_VERSION=${DSE_FIXED_VERSION} # maintain for backwards compatibility
+CCM_VERSION=${DSE_FIXED_VERSION}
+CCM_SERVER_TYPE=dse
+DSE_VERSION=${DSE_FIXED_VERSION}
+CCM_IS_DSE=true
+CCM_BRANCH=${DSE_FIXED_VERSION}
+DSE_BRANCH=${DSE_FIXED_VERSION}
+JDK=1.8
 ENVIRONMENT_EOF
       '''
-
-      if (env.SERVER_VERSION.split('-')[1] == '6.0') {
-        sh label: 'Update environment for DataStax Enterprise v6.0.x', script: '''#!/bin/bash -le
-          # Load CCM and driver configuration environment variables
-          set -o allexport
-          . ${HOME}/environment.txt
-          set +o allexport
-
-          echo "DSE_PATH=${CCM_INSTALL_DIR}" >> ${HOME}/environment.txt
-        '''
-      }
     }
 
     if (env.SERVER_VERSION == env.SERVER_VERSION_SNI && env.DOTNET_VERSION != 'mono') {
@@ -161,6 +152,13 @@ ENVIRONMENT_EOF
       fi
       printenv | sort
     '''
+  }
+}
+
+def initializeEnvironmentStep() {
+  initializeEnvironment()
+  if (env.BUILD_STATED_SLACK_NOTIFIED != 'true') {
+    notifySlack()
   }
 }
 
@@ -318,25 +316,6 @@ ${status} after ${currentBuild.durationString - ' and counting'}"""
             message: "${message}"
 }
 
-def submitCIMetrics(buildType) {
-  long durationMs = currentBuild.duration
-  long durationSec = durationMs / 1000
-  long nowSec = (currentBuild.startTimeInMillis + durationMs) / 1000
-  def branchNameNoPeriods = env.BRANCH_NAME.replaceAll('\\.', '_')
-  def durationMetric = "okr.ci.csharp.${env.DRIVER_METRIC_TYPE}.${buildType}.${branchNameNoPeriods} ${durationSec} ${nowSec}"
-
-  timeout(time: 1, unit: 'MINUTES') {
-    withCredentials([string(credentialsId: 'lab-grafana-address', variable: 'LAB_GRAFANA_ADDRESS'),
-                     string(credentialsId: 'lab-grafana-port', variable: 'LAB_GRAFANA_PORT')]) {
-      withEnv(["DURATION_METRIC=${durationMetric}"]) {
-        sh label: 'Send runtime metrics to labgrafana', script: '''#!/bin/bash -le
-          echo "${DURATION_METRIC}" | nc -q 5 ${LAB_GRAFANA_ADDRESS} ${LAB_GRAFANA_PORT}
-        '''
-      }
-    }
-  }
-}
-
 @NonCPS
 def getChangeLog() {
   def log = ""
@@ -386,7 +365,7 @@ def describeScheduledTestingStage() {
 }
 
 // branch pattern for cron
-def branchPatternCron = ~"(master)"
+branchPatternCron = ~"(master)"
 
 pipeline {
   agent none
@@ -471,9 +450,9 @@ pipeline {
                   '3.0',     // latest 3.0.x Apache Cassandra�
                   '3.11',    // latest 3.11.x Apache Cassandra�
                   '4.0',    // Development Apache Cassandra�
-                  'dse-5.1', // latest 5.1.x DataStax Enterprise
-                  'dse-6.7', // latest 6.7.x DataStax Enterprise
-                  'dse-6.8' // 6.8 current DataStax Enterprise
+                  'dse-5.1.35', // latest 5.1.x DataStax Enterprise
+                  'dse-6.7.17', // latest 6.7.x DataStax Enterprise
+                  'dse-6.8.30' // 6.8 current DataStax Enterprise
           }
           axis {
             name 'DOTNET_VERSION'
@@ -488,7 +467,7 @@ pipeline {
             }
             axis {
               name 'SERVER_VERSION'
-              values '2.2', '3.0', 'dse-5.1', 'dse-6.8'
+              values '2.2', '3.0', 'dse-5.1.35', 'dse-6.8.30'
             }
           }
         }
@@ -500,12 +479,7 @@ pipeline {
         stages {
           stage('Initialize-Environment') {
             steps {
-              initializeEnvironment()
-              script {
-                if (env.BUILD_STATED_SLACK_NOTIFIED != 'true') {
-                  notifySlack()
-                }
-              }
+              initializeEnvironmentStep()
             }
           }
           stage('Describe-Build') {
@@ -536,11 +510,6 @@ pipeline {
         }
       }
       post {
-        always {
-          node('master') {
-            submitCIMetrics('commit')
-          }
-        }
         aborted {
           notifySlack('aborted')
         }
@@ -626,12 +595,7 @@ pipeline {
         stages {
           stage('Initialize-Environment') {
             steps {
-              initializeEnvironment()
-              script {
-                if (env.BUILD_STATED_SLACK_NOTIFIED != 'true') {
-                  notifySlack()
-                }
-              }
+              initializeEnvironmentStep()
             }
           }
           stage('Describe-Build') {
@@ -706,7 +670,6 @@ pipeline {
             name 'SERVER_VERSION'
             values '2.1',     // Legacy Apache Cassandra�
                   '2.2',     // Legacy Apache Cassandra�
-                  '3.0',     // Previous Apache Cassandra�
                   '3.11',    // Current Apache Cassandra�
                   '4.0'     // Development Apache Cassandra�
           }
@@ -743,7 +706,7 @@ pipeline {
             }
             axis {
               name 'SERVER_VERSION'
-              values '2.1', '2.2', '3.0', '4.0'
+              values '2.1', '2.2', '4.0'
             }
           }
           exclude {
@@ -753,7 +716,7 @@ pipeline {
             }
             axis {
               name 'SERVER_VERSION'
-              values '2.1', '3.0'
+              values '2.1'
             }
           }
         }
@@ -765,12 +728,7 @@ pipeline {
         stages {
           stage('Initialize-Environment') {
             steps {
-              initializeEnvironment()
-              script {
-                if (env.BUILD_STATED_SLACK_NOTIFIED != 'true') {
-                  notifySlack()
-                }
-              }
+              initializeEnvironmentStep()
             }
           }
           stage('Describe-Build') {
@@ -836,7 +794,6 @@ pipeline {
             name 'SERVER_VERSION'
             values '2.1',     // Legacy Apache Cassandra�
                   '2.2',     // Legacy Apache Cassandra�
-                  '3.0',     // Previous Apache Cassandra�
                   '3.11',    // Current Apache Cassandra�
                   '4.0',     // Development Apache Cassandra�
                   'dse-5.1', // Legacy DataStax Enterprise
@@ -857,7 +814,7 @@ pipeline {
             }
             axis {
               name 'SERVER_VERSION'
-              values '2.1', '3.0', 'dse-6.0'
+              values '2.1', 'dse-6.0'
             }
           }
         }
@@ -869,12 +826,7 @@ pipeline {
         stages {
           stage('Initialize-Environment') {
             steps {
-              initializeEnvironment()
-              script {
-                if (env.BUILD_STATED_SLACK_NOTIFIED != 'true') {
-                  notifySlack()
-                }
-              }
+              initializeEnvironmentStep()
             }
           }
           stage('Describe-Build') {
@@ -940,7 +892,6 @@ pipeline {
             name 'SERVER_VERSION'
             values '2.1',     // Legacy Apache Cassandra�
                   '2.2',     // Legacy Apache Cassandra�
-                  '3.0',     // Previous Apache Cassandra�
                   '3.11',    // Current Apache Cassandra�
                   '4.0'     // Development Apache Cassandra�
           }
@@ -957,7 +908,7 @@ pipeline {
             }
             axis {
               name 'SERVER_VERSION'
-              values '2.1', '3.0'
+              values '2.1'
             }
           }
           exclude {
@@ -979,12 +930,7 @@ pipeline {
         stages {
           stage('Initialize-Environment') {
             steps {
-              initializeEnvironment()
-              script {
-                if (env.BUILD_STATED_SLACK_NOTIFIED != 'true') {
-                  notifySlack()
-                }
-              }
+              initializeEnvironmentStep()
             }
           }
           stage('Describe-Build') {
