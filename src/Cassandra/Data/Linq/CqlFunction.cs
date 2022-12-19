@@ -78,6 +78,14 @@ namespace Cassandra.Data.Linq
             return null;
         }
 
+        /// <summary>
+        /// CQL function writetime
+        /// </summary>
+        public static CqlFunction WriteTime(object key)
+        {
+            return null;
+        }
+
         public static bool operator ==(CqlFunction a, object b)
         {
             throw new InvalidOperationException();
