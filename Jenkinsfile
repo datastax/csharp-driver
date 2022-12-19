@@ -99,10 +99,7 @@ def initializeEnvironment() {
     if (env.SERVER_VERSION.split('-')[0] == 'dse') {
       env.DSE_FIXED_VERSION = env.SERVER_VERSION.split('-')[1]
       sh label: 'Update environment for DataStax Enterprise', script: '''#!/bin/bash -le
-        # Load CCM environment variables
-        set -o allexport
-        . ${HOME}/environment.txt
-        set +o allexport
+        rm ${HOME}/.ccm/config
 
         cat >> ${HOME}/environment.txt << ENVIRONMENT_EOF
 CCM_PATH=${HOME}/ccm
