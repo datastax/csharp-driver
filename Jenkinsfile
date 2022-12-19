@@ -100,6 +100,12 @@ def initializeEnvironment() {
       env.DSE_FIXED_VERSION = env.SERVER_VERSION.split('-')[1]
       sh label: 'Update environment for DataStax Enterprise', script: '''#!/bin/bash -le
         rm ${HOME}/.ccm/config
+        cat > ${HOME}/.ccm/config << CONF_EOL
+[repositories]
+cassandra = https://repo.aws.dsinternal.org/artifactory/apache-mirror/cassandra
+dse = http://repo-public.aws.dsinternal.org/tar/enterprise/dse-%s-bin.tar.gz
+ddac = http://repo-public.aws.dsinternal.org/tar/enterprise/ddac-%s-bin.tar.gz
+CONF_EOL
 
         cat >> ${HOME}/environment.txt << ENVIRONMENT_EOF
 CCM_PATH=${HOME}/ccm
