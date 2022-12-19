@@ -325,25 +325,6 @@ ${status} after ${currentBuild.durationString - ' and counting'}"""
             message: "${message}"
 }
 
-def submitCIMetrics(buildType) {
-  long durationMs = currentBuild.duration
-  long durationSec = durationMs / 1000
-  long nowSec = (currentBuild.startTimeInMillis + durationMs) / 1000
-  def branchNameNoPeriods = env.BRANCH_NAME.replaceAll('\\.', '_')
-  def durationMetric = "okr.ci.csharp.${env.DRIVER_METRIC_TYPE}.${buildType}.${branchNameNoPeriods} ${durationSec} ${nowSec}"
-
-  timeout(time: 1, unit: 'MINUTES') {
-    withCredentials([string(credentialsId: 'lab-grafana-address', variable: 'LAB_GRAFANA_ADDRESS'),
-                     string(credentialsId: 'lab-grafana-port', variable: 'LAB_GRAFANA_PORT')]) {
-      withEnv(["DURATION_METRIC=${durationMetric}"]) {
-        sh label: 'Send runtime metrics to labgrafana', script: '''#!/bin/bash -le
-          echo "${DURATION_METRIC}" | nc -q 5 ${LAB_GRAFANA_ADDRESS} ${LAB_GRAFANA_PORT}
-        '''
-      }
-    }
-  }
-}
-
 @NonCPS
 def getChangeLog() {
   def log = ""
@@ -478,9 +459,9 @@ pipeline {
                   '3.0',     // latest 3.0.x Apache Cassandra�
                   '3.11',    // latest 3.11.x Apache Cassandra�
                   '4.0',    // Development Apache Cassandra�
-                  'dse-5.1', // latest 5.1.x DataStax Enterprise
-                  'dse-6.7', // latest 6.7.x DataStax Enterprise
-                  'dse-6.8' // 6.8 current DataStax Enterprise
+                  'dse-5.1.35', // latest 5.1.x DataStax Enterprise
+                  'dse-6.7.17', // latest 6.7.x DataStax Enterprise
+                  'dse-6.8.30' // 6.8 current DataStax Enterprise
           }
           axis {
             name 'DOTNET_VERSION'
@@ -495,7 +476,7 @@ pipeline {
             }
             axis {
               name 'SERVER_VERSION'
-              values '2.2', '3.0', 'dse-5.1', 'dse-6.8'
+              values '2.2', '3.0', 'dse-5.1.35', 'dse-6.8.30'
             }
           }
         }
@@ -538,11 +519,6 @@ pipeline {
         }
       }
       post {
-        always {
-          node('master') {
-            submitCIMetrics('commit')
-          }
-        }
         aborted {
           notifySlack('aborted')
         }
