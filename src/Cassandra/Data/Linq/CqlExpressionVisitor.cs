@@ -402,7 +402,7 @@ namespace Cassandra.Data.Linq
         protected override Expression VisitMethodCall(MethodCallExpression node)
         {
             var initialPhase = _parsePhase.Get();
-            if (node.Method.DeclaringType == typeof(CqlMthHelps) || node.Method.DeclaringType == typeof(Enumerable))
+            if (node.Method.DeclaringType == typeof(CqlMthHelps) || node.Method.DeclaringType == typeof(CqlFunction) || node.Method.DeclaringType == typeof(Enumerable))
             {
                 switch (node.Method.Name)
                 {
@@ -492,6 +492,12 @@ namespace Cassandra.Data.Linq
                     case nameof(CqlMthHelps.AllowFiltering):
                         Visit(node.Arguments[0]);
                         _allowFiltering = true;
+                        return node;
+
+                    case nameof(CqlFunction.WriteTime) when node.Method.DeclaringType == typeof(CqlFunction):
+                        Visit(node.Arguments[0]);
+                        var index = _selectFields.Count - 1;
+                        _selectFields[index] = "WRITETIME(" + _selectFields[index] + ")";
                         return node;
 
                     case nameof(Enumerable.Min):
