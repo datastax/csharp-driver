@@ -48,7 +48,7 @@ namespace Cassandra.Connections.Control
         private IReconnectionSchedule _reconnectionSchedule;
         private readonly Timer _reconnectionTimer;
         private int _refreshFlag;
-        private Task<bool> _reconnectTask;
+        private Task<IConnection> _reconnectTask;
         private readonly ISerializerManager _serializer;
         private readonly IProtocolEventDebouncer _eventDebouncer;
         private readonly IEnumerable<IContactPoint> _contactPoints;
@@ -429,7 +429,7 @@ namespace Cassandra.Connections.Control
 
         private void ReconnectEventHandler(object state)
         {
-            ReconnectFireAndForget();
+            ReconnectFireAndForget(null);
         }
         
         internal void OnConnectionClosing(IConnection connection)
@@ -442,7 +442,7 @@ namespace Cassandra.Connections.Control
             }
             ControlConnection.Logger.Warning(
                 "Connection {0} used by the ControlConnection {1} is closing.", connection.EndPoint.EndpointFriendlyName, GetHashCode());
-            ReconnectFireAndForget();
+            ReconnectFireAndForget(connection);
         }
         
         /// <summary>
@@ -465,11 +465,11 @@ namespace Cassandra.Connections.Control
             }
         }
         
-        private async void ReconnectFireAndForget()
+        private async void ReconnectFireAndForget(IConnection closedConnection)
         {
             try
             {
-                await Reconnect().ConfigureAwait(false);
+                await Reconnect(closedConnection).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -477,14 +477,23 @@ namespace Cassandra.Connections.Control
             }
         }
 
-        internal async Task<bool> Reconnect()
+        internal async Task<IConnection> Reconnect(IConnection closedConnection)
         {
-            var tcs = new TaskCompletionSource<bool>();
+            var tcs = new TaskCompletionSource<IConnection>();
             var currentTask = Interlocked.CompareExchange(ref _reconnectTask, tcs.Task, null);
             if (currentTask != null)
             {
                 // If there is another thread reconnecting, use the same task
-                return await currentTask.ConfigureAwait(false);
+                var oldConnectionInPreviousReconnect = await currentTask.ConfigureAwait(false);
+                
+                // if his reconnect was triggered by a connection closed event
+                // and the previous reconnect task was for a different connection
+                // then reconnect again
+                if (closedConnection != null && !ReferenceEquals(closedConnection, oldConnectionInPreviousReconnect) && (_connection?.IsDisposed ?? true))
+                {
+                    ControlConnection.Logger.Info("Connection was closed while reconnecting, triggering another reconnection.");
+                    return await Reconnect(null).ConfigureAwait(false);
+                }
             }
             var oldConnection = _connection;
             var oldHost = _host;
@@ -523,14 +532,14 @@ namespace Cassandra.Connections.Control
 
             if (IsShutdown)
             {
-                tcs.TrySetResult(false);
-                return false;
+                tcs.TrySetResult(null);
+                return await tcs.Task.ConfigureAwait(false);
             }
             try
             {
                 _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
-                tcs.TrySetResult(true);
                 var _ = Interlocked.Exchange(ref _reconnectTask, null);
+                tcs.TrySetResult(oldConnection);
                 ControlConnection.Logger.Info("ControlConnection reconnected to host {0}", _host.Address);
             }
             catch (Exception ex)
@@ -585,7 +594,7 @@ namespace Cassandra.Connections.Control
             }
             if (reconnect)
             {
-                await Reconnect().ConfigureAwait(false);
+                await Reconnect(null).ConfigureAwait(false);
             }
         }
 
@@ -643,7 +652,7 @@ namespace Cassandra.Connections.Control
             h.Down -= OnHostDown;
             ControlConnection.Logger.Warning("Host {0} used by the ControlConnection DOWN", h.Address);
             // Queue reconnection to occur in the background
-            ReconnectFireAndForget();
+            ReconnectFireAndForget(null);
         }
 
         private async void OnConnectionCassandraEvent(object sender, CassandraEventArgs e)
@@ -813,7 +822,7 @@ namespace Cassandra.Connections.Control
                 }
 
                 // Try reconnect
-                await Reconnect().ConfigureAwait(false);
+                await Reconnect(null).ConfigureAwait(false);
 
                 // Query with retry set to false
                 return await SendQueryRequestAsync(cqlQuery, false, queryProtocolOptions).ConfigureAwait(false);

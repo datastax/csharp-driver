@@ -209,7 +209,7 @@ namespace Cassandra.Tests.Connections.Control
 
                 connectionOpenEnabled = false;
 
-                var ex = Assert.ThrowsAsync<NoHostAvailableException>(() => cc.Reconnect());
+                var ex = Assert.ThrowsAsync<NoHostAvailableException>(() => cc.Reconnect(null));
                 CollectionAssert.AreEquivalent(new[] { "127.0.0.1", "127.0.0.4" }, ex.Errors.Keys.Select(e => e.Address.ToString()));
             }
             finally
@@ -266,7 +266,7 @@ namespace Cassandra.Tests.Connections.Control
 
                         createResult.ConnectionFactory.CreatedConnections.Clear();
 
-                        var task = Task.Run(() => cc.Reconnect());
+                        var task = Task.Run(() => cc.Reconnect(null));
                         cc.Dispose();
                         try
                         {
