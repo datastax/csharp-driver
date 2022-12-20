@@ -19,8 +19,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
+
+using Cassandra.Connections.Control;
 using Cassandra.ExecutionProfiles;
 using Cassandra.Tests.Connections.TestHelpers;
+
 using Moq;
 using NUnit.Framework;
 
@@ -231,6 +234,40 @@ namespace Cassandra.Tests
             {
                 Assert.AreEqual(expected[h.Address.Address.ToString()], h.GetDistanceUnsafe());
             }
+        }
+
+
+        [Test]
+        public void Should_RemoveSessionFromCluster_When_SessionIsDisposed()
+        {
+            var testConfig = new TestConfigurationBuilder()
+            {
+                ControlConnectionFactory = new FakeControlConnectionFactory(),
+                ConnectionFactory = new FakeConnectionFactory(),
+            }.Build();
+            var initializerMock = Mock.Of<IInitializer>();
+            Mock.Get(initializerMock)
+                .Setup(i => i.ContactPoints)
+                .Returns(new List<IPEndPoint>());
+            Mock.Get(initializerMock)
+                .Setup(i => i.GetConfiguration())
+                .Returns(testConfig);
+
+            var cluster = Cluster.BuildFrom(initializerMock, new List<string> { "127.0.0.1" }, testConfig);
+
+            try
+            {
+                using (cluster.Connect())
+                {
+                    Assert.AreEqual(1, cluster.InternalRef.GetConnectedSessions().Count());
+                }
+                Assert.AreEqual(0, cluster.InternalRef.GetConnectedSessions().Count());
+            }
+            finally
+            {
+                cluster.Dispose();
+            }
+            Assert.AreEqual(0, cluster.InternalRef.GetConnectedSessions().Count());
         }
 
         internal class FakeHostDistanceLbp : ILoadBalancingPolicy

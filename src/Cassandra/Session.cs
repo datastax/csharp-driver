@@ -44,6 +44,7 @@ namespace Cassandra
         private readonly IThreadSafeDictionary<IPEndPoint, IHostConnectionPool> _connectionPool;
         private readonly IInternalCluster _cluster;
         private int _disposed;
+        private long _initialized;
         private volatile string _keyspace;
         private readonly IMetricsManager _metricsManager;
         private readonly IObserverFactory _observerFactory;
@@ -203,6 +204,11 @@ namespace Cassandra
                 return;
             }
 
+            if (Interlocked.Read(ref _initialized) == 1)
+            {
+                _cluster.RemoveSession(this);
+            }
+
             if (_insightsClient != null)
             {
                 await _insightsClient.ShutdownAsync().ConfigureAwait(false);
@@ -237,6 +243,8 @@ namespace Cassandra
             }
 
             _insightsClient.Init();
+
+            Interlocked.Exchange(ref _initialized, 1);
         }
 
         /// <summary>
