@@ -89,7 +89,9 @@ namespace Cassandra.IntegrationTests.Core
                 var afterPeersQueries = TestCluster.GetQueries("SELECT * FROM system.peers");
 
                 Assert.AreEqual(peersV2Queries.Count, afterPeersV2Queries.Count);
-                Assert.AreEqual(peersQueries.Count + 2, afterPeersQueries.Count);
+                Assert.GreaterOrEqual(afterPeersQueries.Count, peersQueries.Count + 2);
+                //sometimes CC is able to reconnect after simulacron closes connection for a brief period so let's allow 1 additional queries per stopped node
+                Assert.LessOrEqual(afterPeersQueries.Count, peersQueries.Count + 4);
 
             }
             catch (Exception ex)
