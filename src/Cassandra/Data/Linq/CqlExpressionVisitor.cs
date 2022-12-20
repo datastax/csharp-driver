@@ -24,6 +24,7 @@ using System.Text;
 using Cassandra.Data.Linq.ExpressionParsing;
 using Cassandra.Mapping;
 using Cassandra.Mapping.Utils;
+using Cassandra.Serialization.Graph;
 
 namespace Cassandra.Data.Linq
 {
@@ -402,7 +403,7 @@ namespace Cassandra.Data.Linq
         protected override Expression VisitMethodCall(MethodCallExpression node)
         {
             var initialPhase = _parsePhase.Get();
-            if (node.Method.DeclaringType == typeof(CqlMthHelps) || node.Method.DeclaringType == typeof(Enumerable))
+            if (node.Method.DeclaringType == typeof(CqlMthHelps) || node.Method.DeclaringType == typeof(CqlFunction) || node.Method.DeclaringType == typeof(Enumerable))
             {
                 switch (node.Method.Name)
                 {
@@ -494,12 +495,13 @@ namespace Cassandra.Data.Linq
                         _allowFiltering = true;
                         return node;
 
+                    case nameof(CqlFunction.WriteTime):
                     case nameof(Enumerable.Min):
                     case nameof(Enumerable.Max):
                     case nameof(Enumerable.Average):
                     case nameof(Enumerable.Sum):
                     case nameof(Enumerable.Count):
-                        return FillAggregate(initialPhase, node);
+                        return FillSelectFunction(initialPhase, node);
                 }
             }
 
@@ -524,28 +526,43 @@ namespace Cassandra.Data.Linq
         /// <summary>
         /// Fill the SELECT field
         /// </summary>
-        private Expression FillAggregate(ParsePhase phase, MethodCallExpression node)
+        private Expression FillSelectFunction(ParsePhase phase, MethodCallExpression node)
         {
             if (phase != ParsePhase.SelectBinding || !_isSelectQuery)
             {
                 throw new CqlLinqNotSupportedException(node, phase);
             }
-            if (node.Arguments.Count == 2)
+
+            string cqlFunction;
+            if (node.Arguments.Count == 1)
             {
-                var cqlFunction = node.Method.Name == "Average" ? "AVG" : node.Method.Name;
-                Visit(node.Arguments[1]);
-                if (_selectFields.Count == 0)
+                if (node.Method.Name == nameof(Enumerable.Count))
                 {
-                    // The selected field should be populated by now
-                    throw new CqlLinqNotSupportedException(node, phase);
+                    _selectFields.Add("COUNT(*)");
+                    return node;
+                } 
+                else
+                {
+                    Visit(node.Arguments[0]);
+                    cqlFunction = node.Method.Name;
                 }
-                var index = _selectFields.Count - 1;
-                _selectFields[index] = cqlFunction.ToUpperInvariant() + "(" + _selectFields[index] + ")";
+            }
+            else if (node.Arguments.Count == 2)
+            {
+                Visit(node.Arguments[1]);
+                cqlFunction = node.Method.Name == "Average" ? "AVG" : node.Method.Name;
             }
             else
             {
-                _selectFields.Add("COUNT(*)");
+                throw new CqlLinqNotSupportedException(node, phase);
             }
+            if (_selectFields.Count == 0)
+            {
+                // The selected field should be populated by now
+                throw new CqlLinqNotSupportedException(node, phase);
+            }
+            var index = _selectFields.Count - 1;
+            _selectFields[index] = cqlFunction.ToUpperInvariant() + "(" + _selectFields[index] + ")";
             return node;
         }
 

@@ -56,26 +56,31 @@ namespace Cassandra.IntegrationTests.Core
                 var peersV2Queries = TestCluster.GetQueries("SELECT * FROM system.peers_v2");
                 var peersQueries = TestCluster.GetQueries("SELECT * FROM system.peers");
 
-                await TestCluster.GetNode(Session.Cluster.Metadata.ControlConnection.Host.Address).Stop().ConfigureAwait(false);
+                var oldCcHost = Session.Cluster.Metadata.ControlConnection.Host;
+
+                await TestCluster.GetNode(oldCcHost.Address).Stop().ConfigureAwait(false);
 
                 // wait until control connection reconnection is done
                 TestHelper.RetryAssert(
                     () =>
                     {
-                        Assert.AreEqual(1, Session.Cluster.AllHosts().Count(h => !h.IsUp));
-                        Assert.IsTrue(Session.Cluster.Metadata.ControlConnection.Host.IsUp);
+                        Assert.AreEqual(1, Session.Cluster.AllHosts().Count(h => !h.IsUp), Session.Cluster.AllHosts().Count(h => !h.IsUp));
+                        Assert.AreNotEqual(oldCcHost, Session.Cluster.Metadata.ControlConnection.Host, Session.Cluster.Metadata.ControlConnection.Host.Address.ToString());
+                        Assert.IsTrue(Session.Cluster.Metadata.ControlConnection.Host.IsUp, $"{Session.Cluster.Metadata.ControlConnection.Host.Address.ToString()} not up");
                     },
                     200,
                     100);
 
-                await TestCluster.GetNode(Session.Cluster.Metadata.ControlConnection.Host.Address).Stop().ConfigureAwait(false);
+                oldCcHost = Session.Cluster.Metadata.ControlConnection.Host;
+                await TestCluster.GetNode(oldCcHost.Address).Stop().ConfigureAwait(false);
 
                 // wait until control connection reconnection is done
                 TestHelper.RetryAssert(
                     () =>
                     {
-                        Assert.AreEqual(2, Session.Cluster.AllHosts().Count(h => !h.IsUp));
-                        Assert.IsTrue(Session.Cluster.Metadata.ControlConnection.Host.IsUp);
+                        Assert.AreEqual(2, Session.Cluster.AllHosts().Count(h => !h.IsUp), Session.Cluster.AllHosts().Count(h => !h.IsUp));
+                        Assert.AreNotEqual(oldCcHost, Session.Cluster.Metadata.ControlConnection.Host, Session.Cluster.Metadata.ControlConnection.Host.Address.ToString());
+                        Assert.IsTrue(Session.Cluster.Metadata.ControlConnection.Host.IsUp, $"{Session.Cluster.Metadata.ControlConnection.Host.Address.ToString()} not up");
                     },
                     200,
                     100);
