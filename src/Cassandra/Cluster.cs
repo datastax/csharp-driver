@@ -70,6 +70,12 @@ namespace Cassandra
         }
 
         /// <inheritdoc />
+        IEnumerable<IInternalSession> IInternalCluster.GetConnectedSessions()
+        {
+            return _connectedSessions;
+        }
+
+        /// <inheritdoc />
         ConcurrentDictionary<byte[], PreparedStatement> IInternalCluster.PreparedQueries { get; }
             = new ConcurrentDictionary<byte[], PreparedStatement>(new ByteArrayComparer());
 
@@ -630,6 +636,12 @@ namespace Cassandra
             }
 
             return ps;
+        }
+
+        /// <inheritdoc />
+        void IInternalCluster.RemoveSession(IInternalSession session)
+        {
+            _connectedSessions.Remove(session);
         }
 
         private async Task ReprepareAllQueries(Host host)

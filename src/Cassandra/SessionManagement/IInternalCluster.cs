@@ -53,5 +53,15 @@ namespace Cassandra.SessionManagement
         /// Helper method to retrieve the aggregate distance from all configured LoadBalancingPolicies and set it at Host level.
         /// </summary>
         HostDistance RetrieveAndSetDistance(Host host);
+
+        /// <summary>
+        /// Retrieves currently connected sessions.
+        /// </summary>
+        IEnumerable<IInternalSession> GetConnectedSessions();
+
+        /// <summary>
+        /// Remove session from connected sessions collection.
+        /// </summary>
+        void RemoveSession(IInternalSession session);
     }
 }
