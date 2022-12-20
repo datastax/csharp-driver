@@ -15,6 +15,7 @@
 //
 
 using System;
+using System.Buffers;
 
 namespace Cassandra
 {
@@ -148,11 +149,9 @@ namespace Cassandra
             {
                 return BitConverter.ToDouble(value, offset);
             }
-            return BitConverter.ToDouble(new[]
-            {
-                //Invert the first 8 bytes, starting from offset
-                value[offset + 7], value[offset + 6], value[offset + 5], value[offset + 4], value[offset + 3], value[offset + 2], value[offset + 1], value[offset]
-            }, 0);
+
+            // We avoid using temporary array by constructing int64 value from reversed bytes 
+            return BitConverter.Int64BitsToDouble(ToInt64(value, offset));
         }
 
         /// <summary>
@@ -164,11 +163,16 @@ namespace Cassandra
             {
                 return BitConverter.ToSingle(value, offset);
             }
-            return BitConverter.ToSingle(new[]
-            {
-                //Invert the first 4 bytes, starting from offset
-                value[offset + 3], value[offset + 2], value[offset + 1], value[offset]
-            }, 0);
+
+            // Invert the first 4 bytes, starting from offset
+            var rentedArray = ArrayPool<byte>.Shared.Rent(4);
+            rentedArray[3] = value[offset + 0];
+            rentedArray[2] = value[offset + 1];
+            rentedArray[1] = value[offset + 2];
+            rentedArray[0] = value[offset + 3];
+            var result = BitConverter.ToSingle(rentedArray, 0);
+            ArrayPool<byte>.Shared.Return(rentedArray);
+            return result;
         }
     }
 }
