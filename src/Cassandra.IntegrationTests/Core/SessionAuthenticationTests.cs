@@ -20,6 +20,8 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
+
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.Tests;
@@ -53,7 +55,43 @@ namespace Cassandra.IntegrationTests.Core
             var testCluster = TestClusterManager.CreateNew(1, null, false);
             testCluster.UpdateConfig("authenticator: PasswordAuthenticator");
             testCluster.Start(new[] { "-Dcassandra.superuser_setup_delay_ms=0" });
-            return testCluster;
+            Exception lastEx = null;
+            const int maxAttempts = 50;
+            const int delayPerAttemptMs = 200;
+            for (var i = 0; i < maxAttempts; i++)
+            {
+                if (i > 0)
+                {
+                    Task.Delay(delayPerAttemptMs).GetAwaiter().GetResult();
+                }
+                try
+                {
+                    using (var cluster = ClusterBuilder()
+                                         .AddContactPoint(testCluster.InitialContactPoint)
+                                         .WithAuthProvider(new PlainTextAuthProvider("cassandra", "cassandra"))
+                                         .Build())
+                    {
+                        using (var session = cluster.Connect())
+                        {
+                            var rowSet = session.Execute("SELECT * FROM system.local");
+                            if (rowSet.Count() > 0)
+                            {
+                                return testCluster;
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    lastEx = ex;
+                    if (i != maxAttempts - 1)
+                    {
+                        Trace.TraceError("Failure while setting up auth test, retrying: {0}", ex.ToString());
+                    }
+                }
+            }
+
+            throw new Exception("Failure while setting up auth test, see inner exception.", lastEx);
         }
 
         [Test, TestCassandraVersion(2, 0)]
