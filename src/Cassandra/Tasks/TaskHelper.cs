@@ -419,18 +419,17 @@ namespace Cassandra.Tasks
         {
             var tcs = new TaskCompletionSource<TOut>();
             timer.NewTimeout(state =>
-                Task.Run(() =>
+            {
+                var tcsState = (TaskCompletionSource<TOut>)state;
+                try
                 {
-                    var tcsState = (TaskCompletionSource<TOut>)state;
-                    try
-                    {
-                        tcsState.SetResult(method());
-                    }
-                    catch (Exception ex)
-                    {
-                        tcsState.SetException(ex);
-                    }
-                }), tcs, delay);
+                    tcsState.SetResult(method());
+                }
+                catch (Exception ex)
+                {
+                    tcsState.SetException(ex);
+                }
+            }, tcs, delay);
             return tcs.Task;
         }
 
