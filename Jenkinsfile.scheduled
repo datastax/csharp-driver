@@ -1,6 +1,4 @@
 
-load "${env.WORKSPACE}/Jenkinsfile-shared.groovy"
-
 // branch pattern for cron
 branchPatternCron = ~"(master)"
 
@@ -63,6 +61,7 @@ pipeline {
     CCM_ENVIRONMENT_SHELL_WINDOWS = '/mnt/c/Users/Admin/ccm_environment.sh'
     BuildAllTargets = 'True'
     RunCodeAnalyzers = 'True'
+    SHAREDPIPELINE = load "${env.WORKSPACE}/Jenkinsfile-shared.groovy"
   }
 
   stages {
@@ -116,27 +115,27 @@ pipeline {
         stages {
           stage('Initialize-Environment') {
             steps {
-              initializeEnvironmentStep()
+              SHAREDPIPELINE.initializeEnvironmentStep()
             }
           }
           stage('Describe-Build') {
             steps {
-              describePerCommitStage()
+              SHAREDPIPELINE.describePerCommitStage()
             }
           }
           stage('Install-Dependencies') {
             steps {
-              installDependencies()
+              SHAREDPIPELINE.installDependencies()
             }
           }
           stage('Build-Driver') {
             steps {
-              buildDriver()
+              SHAREDPIPELINE.buildDriver()
             }
           }
           stage('Execute-Tests') {
             steps {
-              executeTests(true)
+              SHAREDPIPELINE.executeTests(true)
             }
             post {
               always {
@@ -148,16 +147,16 @@ pipeline {
       }
       post {
         aborted {
-          notifySlack('aborted')
+          SHAREDPIPELINE.notifySlack('aborted')
         }
         success {
-          notifySlack('completed')
+          SHAREDPIPELINE.notifySlack('completed')
         }
         unstable {
-          notifySlack('unstable')
+          SHAREDPIPELINE.notifySlack('unstable')
         }
         failure {
-          notifySlack('FAILED')
+          SHAREDPIPELINE.notifySlack('FAILED')
         }
       }
     }
@@ -232,27 +231,27 @@ pipeline {
         stages {
           stage('Initialize-Environment') {
             steps {
-              initializeEnvironmentStep()
+              SHAREDPIPELINE.initializeEnvironmentStep()
             }
           }
           stage('Describe-Build') {
             steps {
-              describeScheduledTestingStage()
+              SHAREDPIPELINE.describeScheduledTestingStage()
             }
           }
           stage('Install-Dependencies') {
             steps {
-              installDependencies()
+              SHAREDPIPELINE.installDependencies()
             }
           }
           stage('Build-Driver') {
             steps {
-              buildDriver()
+              SHAREDPIPELINE.buildDriver()
             }
           }
           stage('Execute-Tests') {
             steps {
-              executeTests(false)
+              SHAREDPIPELINE.executeTests(false)
             }
             post {
               always {
@@ -264,16 +263,16 @@ pipeline {
       }
       post {
         aborted {
-          notifySlack('aborted')
+          SHAREDPIPELINE.notifySlack('aborted')
         }
         success {
-          notifySlack('completed')
+          SHAREDPIPELINE.notifySlack('completed')
         }
         unstable {
-          notifySlack('unstable')
+          SHAREDPIPELINE.notifySlack('unstable')
         }
         failure {
-          notifySlack('FAILED')
+          SHAREDPIPELINE.notifySlack('FAILED')
         }
       }
     }
@@ -365,27 +364,27 @@ pipeline {
         stages {
           stage('Initialize-Environment') {
             steps {
-              initializeEnvironmentStep()
+              SHAREDPIPELINE.initializeEnvironmentStep()
             }
           }
           stage('Describe-Build') {
             steps {
-              describeScheduledTestingStage()
+              SHAREDPIPELINE.describeScheduledTestingStage()
             }
           }
           stage('Install-Dependencies') {
             steps {
-              installDependencies()
+              SHAREDPIPELINE.installDependencies()
             }
           }
           stage('Build-Driver') {
             steps {
-              buildDriver()
+              SHAREDPIPELINE.buildDriver()
             }
           }
           stage('Execute-Tests') {
             steps {
-              executeTests(false)
+              SHAREDPIPELINE.executeTests(false)
             }
             post {
               always {
@@ -397,16 +396,16 @@ pipeline {
       }
       post {
         aborted {
-          notifySlack('aborted')
+          SHAREDPIPELINE.notifySlack('aborted')
         }
         success {
-          notifySlack('completed')
+          SHAREDPIPELINE.notifySlack('completed')
         }
         unstable {
-          notifySlack('unstable')
+          SHAREDPIPELINE.notifySlack('unstable')
         }
         failure {
-          notifySlack('FAILED')
+          SHAREDPIPELINE.notifySlack('FAILED')
         }
       }
     }
@@ -463,27 +462,27 @@ pipeline {
         stages {
           stage('Initialize-Environment') {
             steps {
-              initializeEnvironmentStep()
+              SHAREDPIPELINE.initializeEnvironmentStep()
             }
           }
           stage('Describe-Build') {
             steps {
-              describeScheduledTestingStage()
+              SHAREDPIPELINE.describeScheduledTestingStage()
             }
           }
           stage('Install-Dependencies') {
             steps {
-              installDependencies()
+              SHAREDPIPELINE.installDependencies()
             }
           }
           stage('Build-Driver') {
             steps {
-              buildDriver()
+              SHAREDPIPELINE.buildDriver()
             }
           }
           stage('Execute-Tests') {
             steps {
-              executeTests(false)
+              SHAREDPIPELINE.executeTests(false)
             }
             post {
               always {
@@ -495,16 +494,16 @@ pipeline {
       }
       post {
         aborted {
-          notifySlack('aborted')
+          SHAREDPIPELINE.notifySlack('aborted')
         }
         success {
-          notifySlack('completed')
+          SHAREDPIPELINE.notifySlack('completed')
         }
         unstable {
-          notifySlack('unstable')
+          SHAREDPIPELINE.notifySlack('unstable')
         }
         failure {
-          notifySlack('FAILED')
+          SHAREDPIPELINE.notifySlack('FAILED')
         }
       }
     }
@@ -567,27 +566,27 @@ pipeline {
         stages {
           stage('Initialize-Environment') {
             steps {
-              initializeEnvironmentStep()
+              SHAREDPIPELINE.initializeEnvironmentStep()
             }
           }
           stage('Describe-Build') {
             steps {
-              describeScheduledTestingStage()
+              SHAREDPIPELINE.describeScheduledTestingStage()
             }
           }
           stage('Install-Dependencies') {
             steps {
-              installDependencies()
+              SHAREDPIPELINE.installDependencies()
             }
           }
           stage('Build-Driver') {
             steps {
-              buildDriver()
+              SHAREDPIPELINE.buildDriver()
             }
           }
           stage('Execute-Tests') {
             steps {
-              executeTests(false)
+              SHAREDPIPELINE.executeTests(false)
             }
             post {
               always {
@@ -599,16 +598,16 @@ pipeline {
       }
       post {
         aborted {
-          notifySlack('aborted')
+          SHAREDPIPELINE.notifySlack('aborted')
         }
         success {
-          notifySlack('completed')
+          SHAREDPIPELINE.notifySlack('completed')
         }
         unstable {
-          notifySlack('unstable')
+          SHAREDPIPELINE.notifySlack('unstable')
         }
         failure {
-          notifySlack('FAILED')
+          SHAREDPIPELINE.notifySlack('FAILED')
         }
       }
     }
