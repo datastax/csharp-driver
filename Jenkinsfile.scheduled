@@ -1,3 +1,4 @@
+#!groovy
 
 // branch pattern for cron
 branchPatternCron = ~"(master)"
@@ -61,7 +62,6 @@ pipeline {
     CCM_ENVIRONMENT_SHELL_WINDOWS = '/mnt/c/Users/Admin/ccm_environment.sh'
     BuildAllTargets = 'True'
     RunCodeAnalyzers = 'True'
-    SHAREDPIPELINE = load "${env.WORKSPACE}/Jenkinsfile-shared.groovy"
   }
 
   stages {
@@ -76,6 +76,7 @@ pipeline {
 
       environment {
         OS_VERSION = 'ubuntu/bionic64/csharp-driver'
+        SHAREDPIPELINE = load "${env.WORKSPACE}/Jenkinsfile-shared.groovy"
       }
 
       matrix {
@@ -191,6 +192,7 @@ pipeline {
 
       environment {
         OS_VERSION = "${params.CI_SCHEDULE_OS_VERSION}"
+        SHAREDPIPELINE = load "${env.WORKSPACE}/Jenkinsfile-shared.groovy"
       }
 
       // ##
@@ -325,6 +327,7 @@ pipeline {
 
       environment {
         OS_VERSION = "${params.CI_SCHEDULE_OS_VERSION}"
+        SHAREDPIPELINE = load "${env.WORKSPACE}/Jenkinsfile-shared.groovy"
       }
       
       // # Building on Windows
@@ -476,6 +479,7 @@ pipeline {
 
       environment {
         OS_VERSION = "${params.CI_SCHEDULE_OS_VERSION}"
+        SHAREDPIPELINE = load "${env.WORKSPACE}/Jenkinsfile-shared.groovy"
       }
 
       matrix {
@@ -592,6 +596,7 @@ pipeline {
 
       environment {
         OS_VERSION = "${params.CI_SCHEDULE_OS_VERSION}"
+        SHAREDPIPELINE = load "${env.WORKSPACE}/Jenkinsfile-shared.groovy"
       }
 
       matrix {
