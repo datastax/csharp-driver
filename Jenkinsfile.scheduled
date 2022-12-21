@@ -116,36 +116,36 @@ pipeline {
           stage('Initialize-Environment') {
             steps {
               script {
-                env.SHAREDPIPELINE = load "${env.WORKSPACE}/Jenkinsfile-shared.groovy"
-                env.SHAREDPIPELINE.initializeEnvironmentStep()
+                def SHAREDPIPELINE = load "${env.WORKSPACE}/Jenkinsfile-shared.groovy"
+                SHAREDPIPELINE.initializeEnvironmentStep()
               }
             }
           }
           stage('Describe-Build') {
             steps {
               script {
-              env.SHAREDPIPELINE.describePerCommitStage()
+              SHAREDPIPELINE.describePerCommitStage()
               }
             }
           }
           stage('Install-Dependencies') {
             steps {
               script {
-              env.SHAREDPIPELINE.installDependencies()
+              SHAREDPIPELINE.installDependencies()
               }
             }
           }
           stage('Build-Driver') {
             steps {
               script {
-              env.SHAREDPIPELINE.buildDriver()
+              SHAREDPIPELINE.buildDriver()
               }
             }
           }
           stage('Execute-Tests') {
             steps {
               script {
-              env.SHAREDPIPELINE.executeTests(true)
+              SHAREDPIPELINE.executeTests(true)
               }
             }
             post {
@@ -159,22 +159,22 @@ pipeline {
       post {
         aborted {
               script {
-          env.SHAREDPIPELINE.notifySlack('aborted')
+          SHAREDPIPELINE.notifySlack('aborted')
               }
         }
         success {
               script {
-          env.SHAREDPIPELINE.notifySlack('completed')
+          SHAREDPIPELINE.notifySlack('completed')
               }
         }
         unstable {
               script {
-          env.SHAREDPIPELINE.notifySlack('unstable')
+          SHAREDPIPELINE.notifySlack('unstable')
               }
         }
         failure {
               script {
-          env.SHAREDPIPELINE.notifySlack('FAILED')
+          SHAREDPIPELINE.notifySlack('FAILED')
               }
         }
       }
@@ -251,36 +251,36 @@ pipeline {
           stage('Initialize-Environment') {
             steps {
               script {
-                env.SHAREDPIPELINE = load "${env.WORKSPACE}/Jenkinsfile-shared.groovy"
-              env.SHAREDPIPELINE.initializeEnvironmentStep()
+                def SHAREDPIPELINE = load "${env.WORKSPACE}/Jenkinsfile-shared.groovy"
+              SHAREDPIPELINE.initializeEnvironmentStep()
               }
             }
           }
           stage('Describe-Build') {
             steps {
               script {
-              env.SHAREDPIPELINE.describeScheduledTestingStage()
+              SHAREDPIPELINE.describeScheduledTestingStage()
               }
             }
           }
           stage('Install-Dependencies') {
             steps {
               script {
-              env.SHAREDPIPELINE.installDependencies()
+              SHAREDPIPELINE.installDependencies()
               }
             }
           }
           stage('Build-Driver') {
             steps {
               script {
-              env.SHAREDPIPELINE.buildDriver()
+              SHAREDPIPELINE.buildDriver()
               }
             }
           }
           stage('Execute-Tests') {
             steps {
               script {
-              env.SHAREDPIPELINE.executeTests(false)
+              SHAREDPIPELINE.executeTests(false)
               }
             }
             post {
@@ -294,22 +294,22 @@ pipeline {
       post {
         aborted {
               script {
-          env.SHAREDPIPELINE.notifySlack('aborted')
+          SHAREDPIPELINE.notifySlack('aborted')
               }
         }
         success {
               script {
-          env.SHAREDPIPELINE.notifySlack('completed')
+          SHAREDPIPELINE.notifySlack('completed')
               }
         }
         unstable {
               script {
-          env.SHAREDPIPELINE.notifySlack('unstable')
+          SHAREDPIPELINE.notifySlack('unstable')
               }
         }
         failure {
               script {
-          env.SHAREDPIPELINE.notifySlack('FAILED')
+          SHAREDPIPELINE.notifySlack('FAILED')
               }
         }
       }
@@ -403,36 +403,36 @@ pipeline {
           stage('Initialize-Environment') {
             steps {
               script {
-                env.SHAREDPIPELINE = load "${env.WORKSPACE}/Jenkinsfile-shared.groovy"
-              env.SHAREDPIPELINE.initializeEnvironmentStep()
+                def SHAREDPIPELINE = load "${env.WORKSPACE}/Jenkinsfile-shared.groovy"
+              SHAREDPIPELINE.initializeEnvironmentStep()
               }
             }
           }
           stage('Describe-Build') {
             steps {
               script {
-              env.SHAREDPIPELINE.describeScheduledTestingStage()
+              SHAREDPIPELINE.describeScheduledTestingStage()
               }
             }
           }
           stage('Install-Dependencies') {
             steps {
               script {
-              env.SHAREDPIPELINE.installDependencies()
+              SHAREDPIPELINE.installDependencies()
               }
             }
           }
           stage('Build-Driver') {
             steps {
               script {
-              env.SHAREDPIPELINE.buildDriver()
+              SHAREDPIPELINE.buildDriver()
               }
             }
           }
           stage('Execute-Tests') {
             steps {
               script {
-              env.SHAREDPIPELINE.executeTests(false)
+              SHAREDPIPELINE.executeTests(false)
               }
             }
             post {
@@ -446,22 +446,22 @@ pipeline {
       post {
         aborted {
               script {
-          env.SHAREDPIPELINE.notifySlack('aborted')
+          SHAREDPIPELINE.notifySlack('aborted')
               }
         }
         success {
               script {
-          env.SHAREDPIPELINE.notifySlack('completed')
+          SHAREDPIPELINE.notifySlack('completed')
               }
         }
         unstable {
               script {
-          env.SHAREDPIPELINE.notifySlack('unstable')
+          SHAREDPIPELINE.notifySlack('unstable')
               }
         }
         failure {
               script {
-          env.SHAREDPIPELINE.notifySlack('FAILED')
+          SHAREDPIPELINE.notifySlack('FAILED')
               }
         }
       }
@@ -520,36 +520,36 @@ pipeline {
           stage('Initialize-Environment') {
             steps {
               script {
-                env.SHAREDPIPELINE = load "${env.WORKSPACE}/Jenkinsfile-shared.groovy"
-              env.SHAREDPIPELINE.initializeEnvironmentStep()
+                def SHAREDPIPELINE = load "${env.WORKSPACE}/Jenkinsfile-shared.groovy"
+              SHAREDPIPELINE.initializeEnvironmentStep()
               }
             }
           }
           stage('Describe-Build') {
             steps {
               script {
-              env.SHAREDPIPELINE.describeScheduledTestingStage()
+              SHAREDPIPELINE.describeScheduledTestingStage()
               }
             }
           }
           stage('Install-Dependencies') {
             steps {
               script {
-              env.SHAREDPIPELINE.installDependencies()
+              SHAREDPIPELINE.installDependencies()
               }
             }
           }
           stage('Build-Driver') {
             steps {
               script {
-              env.SHAREDPIPELINE.buildDriver()
+              SHAREDPIPELINE.buildDriver()
               }
             }
           }
           stage('Execute-Tests') {
             steps {
               script {
-              env.SHAREDPIPELINE.executeTests(false)
+              SHAREDPIPELINE.executeTests(false)
               }
             }
             post {
@@ -563,22 +563,22 @@ pipeline {
       post {
         aborted {
               script {
-          env.SHAREDPIPELINE.notifySlack('aborted')
+          SHAREDPIPELINE.notifySlack('aborted')
               }
         }
         success {
               script {
-          env.SHAREDPIPELINE.notifySlack('completed')
+          SHAREDPIPELINE.notifySlack('completed')
               }
         }
         unstable {
               script {
-          env.SHAREDPIPELINE.notifySlack('unstable')
+          SHAREDPIPELINE.notifySlack('unstable')
               }
         }
         failure {
               script {
-          env.SHAREDPIPELINE.notifySlack('FAILED')
+          SHAREDPIPELINE.notifySlack('FAILED')
               }
         }
       }
@@ -643,36 +643,36 @@ pipeline {
           stage('Initialize-Environment') {
             steps {
               script {
-                env.SHAREDPIPELINE = load "${env.WORKSPACE}/Jenkinsfile-shared.groovy"
-              env.SHAREDPIPELINE.initializeEnvironmentStep()
+                def SHAREDPIPELINE = load "${env.WORKSPACE}/Jenkinsfile-shared.groovy"
+              SHAREDPIPELINE.initializeEnvironmentStep()
               }
             }
           }
           stage('Describe-Build') {
             steps {
               script {
-              env.SHAREDPIPELINE.describeScheduledTestingStage()
+              SHAREDPIPELINE.describeScheduledTestingStage()
               }
             }
           }
           stage('Install-Dependencies') {
             steps {
               script {
-              env.SHAREDPIPELINE.installDependencies()
+              SHAREDPIPELINE.installDependencies()
               }
             }
           }
           stage('Build-Driver') {
             steps {
               script {
-              env.SHAREDPIPELINE.buildDriver()
+              SHAREDPIPELINE.buildDriver()
               }
             }
           }
           stage('Execute-Tests') {
             steps {
               script {
-              env.SHAREDPIPELINE.executeTests(false)
+              SHAREDPIPELINE.executeTests(false)
               }
             }
             post {
@@ -686,22 +686,22 @@ pipeline {
       post {
         aborted {
               script {
-          env.SHAREDPIPELINE.notifySlack('aborted')
+          SHAREDPIPELINE.notifySlack('aborted')
               }
         }
         success {
               script {
-          env.SHAREDPIPELINE.notifySlack('completed')
+          SHAREDPIPELINE.notifySlack('completed')
               }
         }
         unstable {
               script {
-          env.SHAREDPIPELINE.notifySlack('unstable')
+          SHAREDPIPELINE.notifySlack('unstable')
               }
         }
         failure {
               script {
-          env.SHAREDPIPELINE.notifySlack('FAILED')
+          SHAREDPIPELINE.notifySlack('FAILED')
               }
         }
       }
