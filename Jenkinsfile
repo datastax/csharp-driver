@@ -375,7 +375,7 @@ pipeline {
 
   environment {
     DOTNET_CLI_TELEMETRY_OPTOUT = '1'
-    SERVER_VERSION_SNI = 'dse-6.7'
+    SERVER_VERSION_SNI = 'dse-6.7.17'
     SERVER_VERSION_SNI_WINDOWS = '3.11'
     SIMULACRON_PATH = '/home/jenkins/simulacron.jar'
     SIMULACRON_PATH_WINDOWS = 'C:\\Users\\Admin\\simulacron.jar'
