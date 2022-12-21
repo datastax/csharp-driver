@@ -115,27 +115,37 @@ pipeline {
         stages {
           stage('Initialize-Environment') {
             steps {
-              SHAREDPIPELINE.initializeEnvironmentStep()
+              script {
+                SHAREDPIPELINE.initializeEnvironmentStep()
+              }
             }
           }
           stage('Describe-Build') {
             steps {
+              script {
               SHAREDPIPELINE.describePerCommitStage()
+              }
             }
           }
           stage('Install-Dependencies') {
             steps {
+              script {
               SHAREDPIPELINE.installDependencies()
+              }
             }
           }
           stage('Build-Driver') {
             steps {
+              script {
               SHAREDPIPELINE.buildDriver()
+              }
             }
           }
           stage('Execute-Tests') {
             steps {
+              script {
               SHAREDPIPELINE.executeTests(true)
+              }
             }
             post {
               always {
@@ -147,16 +157,24 @@ pipeline {
       }
       post {
         aborted {
+              script {
           SHAREDPIPELINE.notifySlack('aborted')
+              }
         }
         success {
+              script {
           SHAREDPIPELINE.notifySlack('completed')
+              }
         }
         unstable {
+              script {
           SHAREDPIPELINE.notifySlack('unstable')
+              }
         }
         failure {
+              script {
           SHAREDPIPELINE.notifySlack('FAILED')
+              }
         }
       }
     }
@@ -231,27 +249,37 @@ pipeline {
         stages {
           stage('Initialize-Environment') {
             steps {
+              script {
               SHAREDPIPELINE.initializeEnvironmentStep()
+              }
             }
           }
           stage('Describe-Build') {
             steps {
+              script {
               SHAREDPIPELINE.describeScheduledTestingStage()
+              }
             }
           }
           stage('Install-Dependencies') {
             steps {
+              script {
               SHAREDPIPELINE.installDependencies()
+              }
             }
           }
           stage('Build-Driver') {
             steps {
+              script {
               SHAREDPIPELINE.buildDriver()
+              }
             }
           }
           stage('Execute-Tests') {
             steps {
+              script {
               SHAREDPIPELINE.executeTests(false)
+              }
             }
             post {
               always {
@@ -263,16 +291,24 @@ pipeline {
       }
       post {
         aborted {
+              script {
           SHAREDPIPELINE.notifySlack('aborted')
+              }
         }
         success {
+              script {
           SHAREDPIPELINE.notifySlack('completed')
+              }
         }
         unstable {
+              script {
           SHAREDPIPELINE.notifySlack('unstable')
+              }
         }
         failure {
+              script {
           SHAREDPIPELINE.notifySlack('FAILED')
+              }
         }
       }
     }
@@ -364,27 +400,37 @@ pipeline {
         stages {
           stage('Initialize-Environment') {
             steps {
+              script {
               SHAREDPIPELINE.initializeEnvironmentStep()
+              }
             }
           }
           stage('Describe-Build') {
             steps {
+              script {
               SHAREDPIPELINE.describeScheduledTestingStage()
+              }
             }
           }
           stage('Install-Dependencies') {
             steps {
+              script {
               SHAREDPIPELINE.installDependencies()
+              }
             }
           }
           stage('Build-Driver') {
             steps {
+              script {
               SHAREDPIPELINE.buildDriver()
+              }
             }
           }
           stage('Execute-Tests') {
             steps {
+              script {
               SHAREDPIPELINE.executeTests(false)
+              }
             }
             post {
               always {
@@ -396,16 +442,24 @@ pipeline {
       }
       post {
         aborted {
+              script {
           SHAREDPIPELINE.notifySlack('aborted')
+              }
         }
         success {
+              script {
           SHAREDPIPELINE.notifySlack('completed')
+              }
         }
         unstable {
+              script {
           SHAREDPIPELINE.notifySlack('unstable')
+              }
         }
         failure {
+              script {
           SHAREDPIPELINE.notifySlack('FAILED')
+              }
         }
       }
     }
@@ -462,27 +516,37 @@ pipeline {
         stages {
           stage('Initialize-Environment') {
             steps {
+              script {
               SHAREDPIPELINE.initializeEnvironmentStep()
+              }
             }
           }
           stage('Describe-Build') {
             steps {
+              script {
               SHAREDPIPELINE.describeScheduledTestingStage()
+              }
             }
           }
           stage('Install-Dependencies') {
             steps {
+              script {
               SHAREDPIPELINE.installDependencies()
+              }
             }
           }
           stage('Build-Driver') {
             steps {
+              script {
               SHAREDPIPELINE.buildDriver()
+              }
             }
           }
           stage('Execute-Tests') {
             steps {
+              script {
               SHAREDPIPELINE.executeTests(false)
+              }
             }
             post {
               always {
@@ -494,16 +558,24 @@ pipeline {
       }
       post {
         aborted {
+              script {
           SHAREDPIPELINE.notifySlack('aborted')
+              }
         }
         success {
+              script {
           SHAREDPIPELINE.notifySlack('completed')
+              }
         }
         unstable {
+              script {
           SHAREDPIPELINE.notifySlack('unstable')
+              }
         }
         failure {
+              script {
           SHAREDPIPELINE.notifySlack('FAILED')
+              }
         }
       }
     }
@@ -566,27 +638,37 @@ pipeline {
         stages {
           stage('Initialize-Environment') {
             steps {
+              script {
               SHAREDPIPELINE.initializeEnvironmentStep()
+              }
             }
           }
           stage('Describe-Build') {
             steps {
+              script {
               SHAREDPIPELINE.describeScheduledTestingStage()
+              }
             }
           }
           stage('Install-Dependencies') {
             steps {
+              script {
               SHAREDPIPELINE.installDependencies()
+              }
             }
           }
           stage('Build-Driver') {
             steps {
+              script {
               SHAREDPIPELINE.buildDriver()
+              }
             }
           }
           stage('Execute-Tests') {
             steps {
+              script {
               SHAREDPIPELINE.executeTests(false)
+              }
             }
             post {
               always {
@@ -598,16 +680,24 @@ pipeline {
       }
       post {
         aborted {
+              script {
           SHAREDPIPELINE.notifySlack('aborted')
+              }
         }
         success {
+              script {
           SHAREDPIPELINE.notifySlack('completed')
+              }
         }
         unstable {
+              script {
           SHAREDPIPELINE.notifySlack('unstable')
+              }
         }
         failure {
+              script {
           SHAREDPIPELINE.notifySlack('FAILED')
+              }
         }
       }
     }
