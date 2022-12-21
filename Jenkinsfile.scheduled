@@ -1,5 +1,62 @@
 #!groovy
 
+def notifySlack(status = 'started') {
+  // Set the global pipeline scoped environment (this is above each matrix)
+  env.BUILD_STATED_SLACK_NOTIFIED = 'true'
+
+  def osVersionDescription = 'Ubuntu'
+  if (params.CI_SCHEDULE_OS_VERSION == 'win/cs') {
+    osVersionDescription = 'Windows'
+  }
+
+  def buildType = 'Per-Commit'
+  def changeLogMsg = getFirstChangeLogEntry()
+  if (params.CI_SCHEDULE != 'DEFAULT-PER-COMMIT') {
+    buildType = "${params.CI_SCHEDULE.toLowerCase().capitalize()}-${osVersionDescription}"
+  }
+
+  def color = 'good' // Green
+  if (status.equalsIgnoreCase('aborted')) {
+    color = '#808080' // Grey
+  } else if (status.equalsIgnoreCase('unstable')) {
+    color = 'warning' // Orange
+  } else if (status.equalsIgnoreCase('failed')) {
+    color = 'danger' // Red
+  } else if (status.equalsIgnoreCase("started")) {
+    color = '#fde93f' // Yellow
+  }
+
+  def message = """<${env.RUN_DISPLAY_URL}|Build ${env.DRIVER_DISPLAY_NAME} #${env.BUILD_NUMBER} - ${buildType}> ${status}
+Commit <${env.GITHUB_COMMIT_URL}|${env.GIT_SHA}> on branch <${env.GITHUB_BRANCH_URL}|${env.BRANCH_NAME}>"""
+
+  if (!changeLogMsg.equalsIgnoreCase("")) {
+    message += """: _${changeLogMsg}_"""
+  }
+
+  if (!status.equalsIgnoreCase('Started')) {
+    message += """
+${status} after ${currentBuild.durationString - ' and counting'}"""
+  }
+
+  slackSend color: "${color}",
+            channel: "#csharp-driver-dev-bots",
+            message: "${message}"
+}
+
+@NonCPS
+def getFirstChangeLogEntry() {
+  def changeLogSets = currentBuild.changeSets
+  def changeLogSetsSize = changeLogSets.size()
+  if (changeLogSets.size() > 0) {
+    def firstChangeLogSet = changeLogSets[changeLogSets.size() - 1]
+    def entries = firstChangeLogSet.items;
+    if (entries.length > 0) {
+      return entries[entries.length - 1].msg;
+    }
+  }
+  return "";
+}
+
 // branch pattern for cron
 branchPatternCron = ~"(master)"
 
@@ -116,7 +173,7 @@ pipeline {
           stage('Initialize-Environment') {
             steps {
               script {
-                def SHAREDPIPELINE = load "${env.WORKSPACE}/Jenkinsfile-shared.groovy"
+                def SHAREDPIPELINE = load 'Jenkinsfile-shared.groovy'
                 SHAREDPIPELINE.initializeEnvironmentStep()
               }
             }
@@ -158,24 +215,16 @@ pipeline {
       }
       post {
         aborted {
-              script {
-          SHAREDPIPELINE.notifySlack('aborted')
-              }
+          notifySlack('aborted')
         }
         success {
-              script {
-          SHAREDPIPELINE.notifySlack('completed')
-              }
+          notifySlack('completed')
         }
         unstable {
-              script {
-          SHAREDPIPELINE.notifySlack('unstable')
-              }
+          notifySlack('unstable')
         }
         failure {
-              script {
-          SHAREDPIPELINE.notifySlack('FAILED')
-              }
+          notifySlack('FAILED')
         }
       }
     }
@@ -293,24 +342,16 @@ pipeline {
       }
       post {
         aborted {
-              script {
-          SHAREDPIPELINE.notifySlack('aborted')
-              }
+          notifySlack('aborted')
         }
         success {
-              script {
-          SHAREDPIPELINE.notifySlack('completed')
-              }
+          notifySlack('completed')
         }
         unstable {
-              script {
-          SHAREDPIPELINE.notifySlack('unstable')
-              }
+          notifySlack('unstable')
         }
         failure {
-              script {
-          SHAREDPIPELINE.notifySlack('FAILED')
-              }
+          notifySlack('FAILED')
         }
       }
     }
@@ -445,24 +486,16 @@ pipeline {
       }
       post {
         aborted {
-              script {
-          SHAREDPIPELINE.notifySlack('aborted')
-              }
+          notifySlack('aborted')
         }
         success {
-              script {
-          SHAREDPIPELINE.notifySlack('completed')
-              }
+          notifySlack('completed')
         }
         unstable {
-              script {
-          SHAREDPIPELINE.notifySlack('unstable')
-              }
+          notifySlack('unstable')
         }
         failure {
-              script {
-          SHAREDPIPELINE.notifySlack('FAILED')
-              }
+          notifySlack('FAILED')
         }
       }
     }
@@ -562,24 +595,16 @@ pipeline {
       }
       post {
         aborted {
-              script {
-          SHAREDPIPELINE.notifySlack('aborted')
-              }
+          notifySlack('aborted')
         }
         success {
-              script {
-          SHAREDPIPELINE.notifySlack('completed')
-              }
+          notifySlack('completed')
         }
         unstable {
-              script {
-          SHAREDPIPELINE.notifySlack('unstable')
-              }
+          notifySlack('unstable')
         }
         failure {
-              script {
-          SHAREDPIPELINE.notifySlack('FAILED')
-              }
+          notifySlack('FAILED')
         }
       }
     }
@@ -685,24 +710,16 @@ pipeline {
       }
       post {
         aborted {
-              script {
-          SHAREDPIPELINE.notifySlack('aborted')
-              }
+          notifySlack('aborted')
         }
         success {
-              script {
-          SHAREDPIPELINE.notifySlack('completed')
-              }
+          notifySlack('completed')
         }
         unstable {
-              script {
-          SHAREDPIPELINE.notifySlack('unstable')
-              }
+          notifySlack('unstable')
         }
         failure {
-              script {
-          SHAREDPIPELINE.notifySlack('FAILED')
-              }
+          notifySlack('FAILED')
         }
       }
     }
