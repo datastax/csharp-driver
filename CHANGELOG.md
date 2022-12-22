@@ -1,12 +1,24 @@
 # ChangeLog - DataStax C# Driver
 
-## Unreleased
+## 3.19.0
 
-TBD
+2022-12-22
 
 ### Bug fixes
 
 *   [[CSHARP-974](https://datastax-oss.atlassian.net/browse/CSHARP-974)] Race condition in Hashed Wheel Timer causes unhandled exception
+*   [[CSHARP-981](https://datastax-oss.atlassian.net/browse/CSHARP-981)] Memory leak - Diposed Sessions are still referenced by the Cassandra.Cluster that created them
+*   [[CSHARP-987](https://datastax-oss.atlassian.net/browse/CSHARP-987)] Race condition in control connection reconnection
+
+### Improvements
+
+*   [[CSHARP-977](https://datastax-oss.atlassian.net/browse/CSHARP-977)] Reduce memory allocations on BeConverter by renting arrays from ArrayPool
+*   [[CSHARP-979](https://datastax-oss.atlassian.net/browse/CSHARP-979)] Improve  data reading performance by inlining hot methods in RecyclableMemoryStream
+*   [[CSHARP-980](https://datastax-oss.atlassian.net/browse/CSHARP-980)] Improve data reading performance by avoiding using ThreadLocal<T> in the hot loop
+
+### New Features
+
+*   [[CSHARP-986](https://datastax-oss.atlassian.net/browse/CSHARP-986)] LINQ support for writetime\(\) function
 
 ## 3.18.0
 
