@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Structures;
@@ -328,6 +329,37 @@ namespace Cassandra.IntegrationTests.Linq
             Assert.AreEqual(song.Title, recordsArr[0].Song.Title);
         }
 
+        [Test]
+        public void Linq_Writetime_Returns_ValidResult()
+        {
+            var now = DateTime.UtcNow;
+            var writetimeEntityTableName = "writetime_entities";
+            Session.Execute($"CREATE TABLE IF NOT EXISTS {writetimeEntityTableName} (id uuid primary key, propertyint int, propertystring text)");
+
+            var table = new Table<WritetimeEntity>(Session, new MappingConfiguration().Define(
+                new Map<WritetimeEntity>().TableName(writetimeEntityTableName)));
+            var id = Guid.NewGuid();
+            var writetimeEntity = new WritetimeEntity()
+            {
+                Id = id,
+                PropertyInt = 100,
+                PropertyString = "text",
+            };
+            table.Insert(writetimeEntity).Execute();
+            Thread.Sleep(200);
+            table.Where(sr => sr.Id == id).Select(sr => new WritetimeEntity { PropertyInt = 99 }).Update().Execute();
+            var records = table.Where(wte => wte.Id == id).Select(wte => new { wt1 = CqlFunction.WriteTime(wte.PropertyString), wt2 = CqlFunction.WriteTime(wte.PropertyInt) }).Execute();
+            Assert.NotNull(records);
+            var recordsArr = records.ToArray();
+            Assert.AreEqual(1, recordsArr.Length);
+            Assert.NotNull(recordsArr[0]);
+            Assert.GreaterOrEqual(recordsArr[0].wt1, now);
+            Assert.Greater(recordsArr[0].wt2, now);
+            Assert.Greater(recordsArr[0].wt2, recordsArr[0].wt1);
+            Assert.Less(recordsArr[0].wt1, now.AddSeconds(10));
+            Assert.Less(recordsArr[0].wt2, now.AddSeconds(10));
+        }
+
         private Table<Album> GetAlbumTable()
         {
             return new Table<Album>(Session, new MappingConfiguration().Define(new Map<Album>().TableName(_tableNameAlbum)));
@@ -338,6 +370,15 @@ namespace Cassandra.IntegrationTests.Linq
             public Guid Id { get; set; }
             public Song2 Song { get; set; }
             public int Broadcast { get; set; }
+        }
+
+        internal class WritetimeEntity
+        {
+            public Guid Id { get; set; }
+
+            public int PropertyInt { get; set; }
+
+            public string PropertyString { get; set; }
         }
     }
 }

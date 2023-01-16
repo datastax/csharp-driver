@@ -796,7 +796,7 @@ namespace Cassandra.Data.Linq
             }
             if (_parsePhase.Get() == ParsePhase.SelectBinding)
             {
-                if (node.NodeType == ExpressionType.Convert && node.Type.Name == "Nullable`1")
+                if (node.NodeType == ExpressionType.Convert)
                 {
                     // ReSharper disable once AssignNullToNotNullAttribute
                     return Visit(node.Operand);
