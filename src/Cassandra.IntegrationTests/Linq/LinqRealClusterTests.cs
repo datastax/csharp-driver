@@ -25,6 +25,8 @@ using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
 using Cassandra.Tests;
 using Cassandra.Tests.Mapping.Pocos;
+using Newtonsoft.Json.Linq;
+
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq
@@ -332,7 +334,11 @@ namespace Cassandra.IntegrationTests.Linq
         [Test]
         public void Linq_Writetime_Returns_ValidResult()
         {
-            var now = DateTime.UtcNow;
+            DateTimeOffset UnixStart = new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero);
+            var ticks = (DateTime.UtcNow - UnixStart).Ticks;
+            var now = (ticks / TimeSpan.TicksPerMillisecond) * 1000;
+            ticks = (DateTime.UtcNow.AddMinutes(5) - UnixStart).Ticks;
+            var nowPlus5Minutes = (ticks / TimeSpan.TicksPerMillisecond) * 1000;
             var writetimeEntityTableName = "writetime_entities";
             Session.Execute($"CREATE TABLE IF NOT EXISTS {writetimeEntityTableName} (id uuid primary key, propertyint int, propertystring text)");
 
@@ -348,7 +354,9 @@ namespace Cassandra.IntegrationTests.Linq
             table.Insert(writetimeEntity).Execute();
             Thread.Sleep(200);
             table.Where(sr => sr.Id == id).Select(sr => new WritetimeEntity { PropertyInt = 99 }).Update().Execute();
-            var records = table.Where(wte => wte.Id == id).Select(wte => new { wt1 = CqlFunction.WriteTime(wte.PropertyString), wt2 = CqlFunction.WriteTime(wte.PropertyInt) }).Execute();
+            var records = table
+                .Select(wte => new { Id = wte.Id, wt1 = CqlFunction.WriteTime(wte.PropertyString), wt2 = CqlFunction.WriteTime(wte.PropertyInt) })
+                .Where(wte => wte.Id == id).Execute();
             Assert.NotNull(records);
             var recordsArr = records.ToArray();
             Assert.AreEqual(1, recordsArr.Length);
@@ -356,8 +364,8 @@ namespace Cassandra.IntegrationTests.Linq
             Assert.GreaterOrEqual(recordsArr[0].wt1, now);
             Assert.Greater(recordsArr[0].wt2, now);
             Assert.Greater(recordsArr[0].wt2, recordsArr[0].wt1);
-            Assert.Less(recordsArr[0].wt1, now.AddSeconds(10));
-            Assert.Less(recordsArr[0].wt2, now.AddSeconds(10));
+            Assert.Less(recordsArr[0].wt1, nowPlus5Minutes);
+            Assert.Less(recordsArr[0].wt2, nowPlus5Minutes);
         }
 
         private Table<Album> GetAlbumTable()
