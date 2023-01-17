@@ -796,12 +796,12 @@ namespace Cassandra.Data.Linq
             }
             if (_parsePhase.Get() == ParsePhase.SelectBinding)
             {
-                if (node.NodeType == ExpressionType.Convert)
+                var column = _pocoData.GetColumnByMemberName(_currentBindingName.Get());
+                if (node.NodeType == ExpressionType.Convert && (node.Type.Name == "Nullable`1" || column == null || !column.IsCounter))
                 {
                     // ReSharper disable once AssignNullToNotNullAttribute
                     return Visit(node.Operand);
                 }
-                var column = _pocoData.GetColumnByMemberName(_currentBindingName.Get());
                 if (column != null && column.IsCounter)
                 {
                     var value = Expression.Lambda(node).Compile().DynamicInvoke();
@@ -813,7 +813,6 @@ namespace Cassandra.Data.Linq
                     _selectFields.Add(column.ColumnName);
                     return node;
                 }
-
             }
             throw new CqlLinqNotSupportedException(node, _parsePhase.Get());
         }
