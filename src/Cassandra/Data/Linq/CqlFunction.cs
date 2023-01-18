@@ -81,7 +81,7 @@ namespace Cassandra.Data.Linq
         /// <summary>
         /// CQL function writetime
         /// </summary>
-        public static DateTimeOffset WriteTime(object key)
+        public static long WriteTime(object key)
         {
             throw new InvalidOperationException();
         }

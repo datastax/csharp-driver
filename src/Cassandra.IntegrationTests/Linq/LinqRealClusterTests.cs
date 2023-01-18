@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Structures;
@@ -24,6 +25,8 @@ using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
 using Cassandra.Tests;
 using Cassandra.Tests.Mapping.Pocos;
+using Newtonsoft.Json.Linq;
+
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq
@@ -328,6 +331,43 @@ namespace Cassandra.IntegrationTests.Linq
             Assert.AreEqual(song.Title, recordsArr[0].Song.Title);
         }
 
+        [Test]
+        public void Linq_Writetime_Returns_ValidResult()
+        {
+            DateTimeOffset UnixStart = new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero);
+            var ticks = (DateTime.UtcNow - UnixStart).Ticks;
+            var now = (ticks / TimeSpan.TicksPerMillisecond) * 1000;
+            ticks = (DateTime.UtcNow.AddMinutes(5) - UnixStart).Ticks;
+            var nowPlus5Minutes = (ticks / TimeSpan.TicksPerMillisecond) * 1000;
+            var writetimeEntityTableName = "writetime_entities";
+            Session.Execute($"CREATE TABLE IF NOT EXISTS {writetimeEntityTableName} (id uuid primary key, propertyint int, propertystring text)");
+
+            var table = new Table<WritetimeEntity>(Session, new MappingConfiguration().Define(
+                new Map<WritetimeEntity>().TableName(writetimeEntityTableName)));
+            var id = Guid.NewGuid();
+            var writetimeEntity = new WritetimeEntity()
+            {
+                Id = id,
+                PropertyInt = 100,
+                PropertyString = "text",
+            };
+            table.Insert(writetimeEntity).Execute();
+            Thread.Sleep(200);
+            table.Where(sr => sr.Id == id).Select(sr => new WritetimeEntity { PropertyInt = 99 }).Update().Execute();
+            var records = table
+                .Select(wte => new { Id = wte.Id, wt1 = CqlFunction.WriteTime(wte.PropertyString), wt2 = CqlFunction.WriteTime(wte.PropertyInt) })
+                .Where(wte => wte.Id == id).Execute();
+            Assert.NotNull(records);
+            var recordsArr = records.ToArray();
+            Assert.AreEqual(1, recordsArr.Length);
+            Assert.NotNull(recordsArr[0]);
+            Assert.GreaterOrEqual(recordsArr[0].wt1, now);
+            Assert.Greater(recordsArr[0].wt2, now);
+            Assert.Greater(recordsArr[0].wt2, recordsArr[0].wt1);
+            Assert.Less(recordsArr[0].wt1, nowPlus5Minutes);
+            Assert.Less(recordsArr[0].wt2, nowPlus5Minutes);
+        }
+
         private Table<Album> GetAlbumTable()
         {
             return new Table<Album>(Session, new MappingConfiguration().Define(new Map<Album>().TableName(_tableNameAlbum)));
@@ -338,6 +378,15 @@ namespace Cassandra.IntegrationTests.Linq
             public Guid Id { get; set; }
             public Song2 Song { get; set; }
             public int Broadcast { get; set; }
+        }
+
+        internal class WritetimeEntity
+        {
+            public Guid Id { get; set; }
+
+            public int PropertyInt { get; set; }
+
+            public string PropertyString { get; set; }
         }
     }
 }
