@@ -17,8 +17,8 @@ def initializeEnvironment() {
   env.GITHUB_COMMIT_URL = "${GITHUB_PROJECT_URL}/commit/${env.GIT_COMMIT}"
 
   if (env.OS_VERSION.split('/')[0] == 'win') {    
-    env.HOME = 'C:\\Users\\Admin'
-    env.HOME_WSL = '/mnt/c/Users/Admin'
+    env.HOME = 'C:\\Users\\Administrator'
+    env.HOME_WSL = '/mnt/c/Users/Administrator'
 
     powershell label: 'Copy SSL files', script: '''
       wsl bash --login -c "cp -r $env:HOME_WSL/ccm/ssl `$HOME/ssl"
@@ -398,7 +398,7 @@ pipeline {
   environment {
     DOTNET_CLI_TELEMETRY_OPTOUT = '1'
     SERVER_VERSION_SNI = 'dse-6.7.17'
-    SERVER_VERSION_SNI_WINDOWS = '3.11'
+    SERVER_VERSION_SNI_WINDOWS = '' // disabled
     SIMULACRON_PATH = '/home/jenkins/simulacron.jar'
     SIMULACRON_PATH_WINDOWS = 'C:\\Users\\Admin\\simulacron.jar'
     CCM_ENVIRONMENT_SHELL = '/usr/local/bin/ccm_environment.sh'
