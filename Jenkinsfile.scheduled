@@ -400,9 +400,9 @@ pipeline {
     SERVER_VERSION_SNI = 'dse-6.7.17'
     SERVER_VERSION_SNI_WINDOWS = '' // disabled
     SIMULACRON_PATH = '/home/jenkins/simulacron.jar'
-    SIMULACRON_PATH_WINDOWS = 'C:\\Users\\Admin\\simulacron.jar'
+    SIMULACRON_PATH_WINDOWS = 'C:\\Users\\Administrator\\simulacron.jar'
     CCM_ENVIRONMENT_SHELL = '/usr/local/bin/ccm_environment.sh'
-    CCM_ENVIRONMENT_SHELL_WINDOWS = '/mnt/c/Users/Admin/ccm_environment.sh'
+    CCM_ENVIRONMENT_SHELL_WINDOWS = '/mnt/c/Users/Administrator/ccm_environment.sh'
     BuildAllTargets = 'True'
     RunCodeAnalyzers = 'True'
   }
