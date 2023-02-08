@@ -232,7 +232,6 @@ def executeTests(perCommitSchedule) {
   if (env.OS_VERSION.split('/')[0] == 'win') {
     catchError {
       powershell label: "Execute tests for ${env.DOTNET_VERSION}", script: '''
-        . $env:HOME\\Documents\\WindowsPowerShell\\Microsoft.PowerShell_profile.ps1
         . $Env:HOME\\driver-environment.ps1
         dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -v n -f $Env:DOTNET_VERSION -c Release --filter $Env:DOTNET_TEST_FILTER --logger "xunit;LogFilePath=../../TestResult_xunit.xml" -- RunConfiguration.TargetPlatform=x64
       '''
