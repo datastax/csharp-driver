@@ -1,0 +1,47 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>This package builds on the DataStax Enterprise C# driver and DataStax C# Driver for Apache Cassandra, adding a metrics provider implementation using App Metrics.</Description>
+    <Copyright>Copyright © by DataStax</Copyright>
+    <AssemblyVersion>3.99.0.0</AssemblyVersion>
+    <FileVersion>3.19.1.0</FileVersion>
+    <VersionPrefix>3.19.1</VersionPrefix>
+    <Authors>DataStax</Authors>
+    <TargetFrameworks Condition="'$(BuildCoreOnly)' != 'True'">netstandard2.0;net461</TargetFrameworks>
+    <TargetFrameworks Condition="'$(BuildCoreOnly)' == 'True'">netstandard2.0</TargetFrameworks>
+    <Authors>DataStax</Authors>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <AssemblyName>Cassandra.AppMetrics</AssemblyName>
+    <Product>DataStax C# Drivers App Metrics Extension</Product>
+    <AssemblyOriginatorKeyFile>../../../build/datastax.snk</AssemblyOriginatorKeyFile>
+    <SignAssembly>true</SignAssembly>
+    <PackageId>CassandraCSharpDriver.AppMetrics</PackageId>
+    <Title>DataStax C# Drivers App Metrics Extension</Title>
+    <PackageTags>cassandra;apache;datastax;dse;driver;client;metrics;appmetricsdatabase;nosql;dotnet;netcore;db</PackageTags>
+    <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
+    <RepositoryUrl>https://github.com/datastax/csharp-driver</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/datastax/csharp-driver</PackageProjectUrl>
+    <LangVersion>7.1</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\..\LICENSE.md" Pack="true" PackagePath="LICENSE.md"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>Cassandra.Tests, PublicKey=00240000048000009400000006020000002400005253413100040000010001002367a0d2a0b22d308ce0139f644baa0e17ea09bd0d951b5c85f9e6440302d3e0e45f59676a4f31c970ff534c65ff7746184a95d538933d10115bfaf2eaa89332f0ab72bb9d5d1828501c580a3ade6c91d258159701b7317ee5d57f914e8cd28df32f83ad190169c4427c62da85d173aa7ab5d1870e19140bb1275d7620bebab4</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="App.Metrics.Abstractions" Version="3.*" />
+    <PackageReference Include="App.Metrics.Concurrency" Version="2.*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Cassandra\Cassandra.csproj" />
+  </ItemGroup>
+
+</Project>

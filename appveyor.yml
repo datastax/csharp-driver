@@ -1,0 +1,78 @@
+version: "{branch}-{build}"
+skip_tags: true
+shallow_clone: true
+cache:
+  - C:\ProgramData\chocolatey\bin -> .\build\appveyor_install.ps1
+  - C:\ProgramData\chocolatey\lib -> .\build\appveyor_install.ps1
+  - C:\Users\appveyor\.ccm\repository -> .\build\appveyor_install.ps1
+  - C:\Users\appveyor\deps -> .\build\appveyor_install.ps1
+image: Visual Studio 2019
+environment:
+  #APPVEYOR_RDP_PASSWORD: Yy64rr9aB6IW
+  NUNIT_PATH: nunit3-console
+  BuildAllTargets: "True"
+  RunCodeAnalyzers: "True"
+  matrix:
+    - TARGET: net462
+      CI_TYPE: UNIT
+      PROJECT: Cassandra.Tests
+    - TARGET: net452
+      CI_TYPE: UNIT
+      PROJECT: Cassandra.Tests
+    - TARGET: netcoreapp2.1
+      CI_TYPE: UNIT
+      PROJECT: Cassandra.Tests
+    - TARGET: netcoreapp3.1
+      CI_TYPE: UNIT
+      PROJECT: Cassandra.Tests
+    - TARGET: net472
+      CASSANDRA_VERSION: 3.11.6
+      CI_TYPE: INTEGRATION
+      PROJECT: Cassandra.IntegrationTests      
+    - TARGET: net462
+      CASSANDRA_VERSION: 3.11.6
+      CI_TYPE: INTEGRATION_FULL
+      PROJECT: Cassandra.IntegrationTests
+    - TARGET: netcoreapp3.1
+      CASSANDRA_VERSION: 3.11.6
+      CI_TYPE: INTEGRATION
+      PROJECT: Cassandra.IntegrationTests
+    - TARGET: net452
+      CASSANDRA_VERSION: 2.2.7
+      CI_TYPE: INTEGRATION
+      PROJECT: Cassandra.IntegrationTests
+    - TARGET: netcoreapp2.1
+      CASSANDRA_VERSION: 2.2.7
+      CI_TYPE: INTEGRATION
+      PROJECT: Cassandra.IntegrationTests
+    - TARGET: net48
+      CASSANDRA_VERSION: 3.11.6
+      CI_TYPE: INTEGRATION
+      PROJECT: Cassandra.IntegrationTests
+      
+#init:
+#  - ps: $blockRdp = $True; iex ((New-Object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+
+#on_finish:
+#  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+
+install:
+  - ps: .\build\appveyor_install.ps1
+
+build_script:
+  - ps: dotnet --info
+  - ps: dotnet restore src
+
+test_script:
+  - ps: |
+      if(${env:CI_TYPE} -eq "INTEGRATION_FULL")
+      {
+          dotnet test src\${env:PROJECT}\${env:PROJECT}.csproj -v n -c Release -f $env:TARGET --filter "(TestCategory!=long)&(TestCategory!=memory)&(TestCategory!=realclusterlong)" --logger:Appveyor
+      }
+      else 
+      {
+          dotnet test src\${env:PROJECT}\${env:PROJECT}.csproj -v n -c Release -f $env:TARGET --filter "(TestCategory!=long)&(TestCategory!=memory)&(TestCategory!=realcluster)&(TestCategory!=realclusterlong)" --logger:Appveyor
+      }      
+on_failure:
+  - ps: |
+      Write-Host "Build failed"

@@ -1,0 +1,88 @@
+﻿//
+//       Copyright (C) DataStax Inc.
+//
+//    Licensed under the Apache License, Version 2.0 (the "License");
+//    you may not use this file except in compliance with the License.
+//    You may obtain a copy of the License at
+//
+//       http://www.apache.org/licenses/LICENSE-2.0
+//
+//    Unless required by applicable law or agreed to in writing, software
+//    distributed under the License is distributed on an "AS IS" BASIS,
+//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//    See the License for the specific language governing permissions and
+//    limitations under the License.
+//
+
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+namespace Cassandra.Connections.Control
+{
+    internal class SniContactPoint : IContactPoint
+    {
+        private readonly ISniEndPointResolver _resolver;
+
+        public SniContactPoint(ISniEndPointResolver resolver)
+        {
+            _resolver = resolver ?? throw new ArgumentNullException(nameof(resolver));
+        }
+
+        public bool CanBeResolved => true;
+
+        public override string ToString()
+        {
+            return StringRepresentation;
+        }
+
+        public string StringRepresentation => _resolver.GetStaticIdentifier();
+
+        public async Task<IEnumerable<IConnectionEndPoint>> GetConnectionEndPointsAsync(bool refreshCache)
+        {
+            var sniOptions = await _resolver.GetSniOptionsAsync(refreshCache).ConfigureAwait(false);
+            var result = new List<IConnectionEndPoint>();
+            foreach (var serverName in sniOptions.ServerNames)
+            {
+                result.Add(new SniConnectionEndPoint(await _resolver.GetNextEndPointAsync(false).ConfigureAwait(false), serverName, this));
+            }
+
+            return result;
+        }
+
+        private bool TypedEquals(SniContactPoint other)
+        {
+            return _resolver.Equals(other._resolver);
+        }
+
+        public bool Equals(IContactPoint other)
+        {
+            return Equals((object)other);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (object.ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            if (object.ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            if (obj is SniContactPoint typedObj)
+            {
+                return TypedEquals(typedObj);
+            }
+
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            return _resolver.GetHashCode();
+        }
+    }
+}

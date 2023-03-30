@@ -1,0 +1,104 @@
+title:    DataStax C# Driver
+summary:  DataStax C# Driver for Apache Cassandra®
+theme:    datastax
+swiftype_drivers: csharpdrivers
+sections:
+  - title:    Changelog
+    prefix:   /changelog
+    type:     markdown
+    files:    'CHANGELOG.md'
+  - title:    Features
+    prefix:   /features
+    type:     markdown
+    files:    'doc/features/**/*.md'
+  - title:    Frequently Asked Questions
+    prefix:   /faq
+    type:     markdown
+    files:    'doc/faq/**/*.md'
+  - title:    Upgrade Guide
+    prefix:   /upgrade-guide
+    type:     markdown
+    files:    'doc/upgrade-guide/**/*.md'
+  - title:    Examples
+    prefix:   /examples
+    type:     markdown
+    files:    'doc/examples/**/*.md'
+links:
+  - title: Code
+    href:  https://github.com/datastax/csharp-driver/
+  - title: API docs
+    href:  http://docs.datastax.com/en/latest-csharp-driver-api/html/N_Cassandra.htm
+  - title: Issues
+    href:  https://datastax-oss.atlassian.net/projects/CSHARP/issues
+  - title: Mailing List
+    href:  https://groups.google.com/a/lists.datastax.com/forum/#!forum/csharp-driver-user
+  - title: IRC Channel
+    href:  irc://irc.freenode.net/datastax-drivers
+  - title: Nuget
+    href:  https://www.nuget.org/packages/CassandraCSharpDriver
+api_docs:
+  '3.0': http://docs.datastax.com/en/drivers/csharp/3.0
+  '3.1': http://docs.datastax.com/en/drivers/csharp/3.1
+  '3.2': http://docs.datastax.com/en/drivers/csharp/3.2
+  '3.3': http://docs.datastax.com/en/drivers/csharp/3.3
+  '3.4': http://docs.datastax.com/en/drivers/csharp/3.4
+  '3.5': http://docs.datastax.com/en/drivers/csharp/3.5
+  '3.6': http://docs.datastax.com/en/drivers/csharp/3.6
+  '3.7': http://docs.datastax.com/en/drivers/csharp/3.7
+  '3.8': http://docs.datastax.com/en/drivers/csharp/3.8
+  '3.9': http://docs.datastax.com/en/drivers/csharp/3.9
+  '3.10': http://docs.datastax.com/en/drivers/csharp/3.10
+  '3.11': http://docs.datastax.com/en/drivers/csharp/3.11
+  '3.12': http://docs.datastax.com/en/drivers/csharp/3.12
+  '3.13': http://docs.datastax.com/en/drivers/csharp/3.13
+  '3.14': http://docs.datastax.com/en/drivers/csharp/3.14
+  '3.15': http://docs.datastax.com/en/drivers/csharp/3.15
+  '3.16': http://docs.datastax.com/en/drivers/csharp/3.16
+  '3.17': http://docs.datastax.com/en/drivers/csharp/3.17
+  '3.18': http://docs.datastax.com/en/drivers/csharp/3.18
+  '3.19': http://docs.datastax.com/en/drivers/csharp/3.19
+checks:
+  external_links:
+    exclude:
+      - 'https://ci.appveyor.com/api/projects/status/ri1olv8bl7b7yk7y/branch/master?svg=true'
+versions:
+  - name: '3.19'
+    ref: '3.19'
+  - name: '3.18'
+    ref: '3.18'
+  - name: '3.17'
+    ref: '3.17'
+  - name: '3.16'
+    ref: '3.16'
+  - name: '3.15'
+    ref: '3.15'
+  - name: '3.14'
+    ref: '3.14'
+  - name: '3.13'
+    ref: '3.13'
+  - name: '3.12'
+    ref: '3.12'
+  - name: '3.11'
+    ref: '3.11'
+  - name: '3.10'
+    ref: '3.10'
+  - name: '3.9'
+    ref: '3.9'
+  - name: '3.8'
+    ref: '3.8'
+  - name: '3.7'
+    ref: '3.7'
+  - name: '3.6'
+    ref: '3.6'
+  - name: '3.5'
+    ref: '3.5'
+  - name: '3.4'
+    ref: '3.4'
+  - name: '3.3'
+    ref: '3.3'
+  - name: '3.2'
+    ref: '3.2'
+  - name: '3.1'
+    ref: '3.1'
+  - name: '3.0'
+    ref: '3.0'

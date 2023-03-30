@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="App.Metrics" Version="3.2.0" />
+    <PackageReference Include="App.Metrics.Reporting.Graphite" Version="3.2.0" />
+  </ItemGroup>
+
+  <!--This example uses project references. In your project use PackageReference (nuget)-->
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Cassandra\Cassandra.csproj" />
+    <ProjectReference Include="..\..\..\src\Extensions\Cassandra.AppMetrics\Cassandra.AppMetrics.csproj" />
+  </ItemGroup>
+
+</Project>
