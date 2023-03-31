@@ -368,6 +368,31 @@ namespace Cassandra.IntegrationTests.Linq
             Assert.Less(recordsArr[0].wt2, nowPlus5Minutes);
         }
 
+        [Test]
+        public void Linq_Writetime_Returns_Null()
+        {
+            var writetimeEntityTableName = "writetime_entities";
+            Session.Execute($"CREATE TABLE IF NOT EXISTS {writetimeEntityTableName} (id uuid primary key, propertyint int, propertystring text)");
+
+            var table = new Table<WritetimeEntity>(Session, new MappingConfiguration().Define(
+                new Map<WritetimeEntity>().TableName(writetimeEntityTableName)));
+            var id = Guid.NewGuid();
+            var writetimeEntity = new WritetimeEntity()
+            {
+                Id = id,
+            };
+            table.Insert(writetimeEntity, insertNulls: false).Execute();
+            var records = table
+                .Select(wte => new { Id = wte.Id, wt1 = CqlFunction.WriteTime(wte.PropertyString), wt2 = CqlFunction.WriteTime(wte.PropertyInt) })
+                .Where(wte => wte.Id == id).Execute();
+            Assert.NotNull(records);
+            var recordsArr = records.ToArray();
+            Assert.AreEqual(1, recordsArr.Length);
+            Assert.NotNull(recordsArr[0]);
+            Assert.Null(recordsArr[0].wt1);
+            Assert.Null(recordsArr[0].wt2);
+        }
+
         private Table<Album> GetAlbumTable()
         {
             return new Table<Album>(Session, new MappingConfiguration().Define(new Map<Album>().TableName(_tableNameAlbum)));
@@ -384,7 +409,7 @@ namespace Cassandra.IntegrationTests.Linq
         {
             public Guid Id { get; set; }
 
-            public int PropertyInt { get; set; }
+            public int? PropertyInt { get; set; }
 
             public string PropertyString { get; set; }
         }
