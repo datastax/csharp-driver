@@ -1,5 +1,13 @@
 # ChangeLog - DataStax C# Driver
 
+## 3.19.2
+
+2023-03-31
+
+### Bug fixes
+
+*   [[CSHARP-992](https://datastax-oss.atlassian.net/browse/CSHARP-992)] Support null writetime values in LINQ
+
 ## 3.19.1
 
 2023-01-19
