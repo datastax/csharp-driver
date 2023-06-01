@@ -61,7 +61,7 @@ def initializeEnvironment() {
         $newData = "`r`n`$Env:SNI_ENABLED=`"true`""
         $newData += "`r`n`$Env:SINGLE_ENDPOINT_PATH=`"$Env:HOME/proxy/run.ps1`""
         $newData += "`r`n`$Env:SNI_CERTIFICATE_PATH=`"$Env:HOME/proxy/certs/client_key.pfx`""
-        $newData += "`r`n`$Env:SNI_CA_PATH=`"$Env:HOME/proxy/certs/root.crt`""
+        $newData += "`r`n`$Env:SNI_CA_PATH=`"$Env:HOME/proxy/certs/root.crt`"" 
 
         "$newData" | Out-File -filepath $Env:HOME\\driver-environment.ps1 -append
       '''
