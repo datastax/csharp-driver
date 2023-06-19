@@ -9,7 +9,7 @@ It also provides additional features for [DataStax Enterprise][dse]:
 - Serializers for geospatial types which integrate seamlessly with the driver.
 
 The driver supports .NET Framework 4.5.2+ and .NET Core 2.1+ ([LTS](https://dotnet.microsoft.com/platform/support/policy/dotnet-core)).
-
+asdasasd
 ## Installation
 
 [Get it on Nuget][nuget]
