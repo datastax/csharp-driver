@@ -21,8 +21,6 @@
 
 #endregion License
 
-using Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON;
-
 using Newtonsoft.Json.Linq;
 
 namespace Cassandra.DataStax.Graph.Internal

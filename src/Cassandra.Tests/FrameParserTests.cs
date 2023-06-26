@@ -19,10 +19,8 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
-using Cassandra.Requests;
 using Cassandra.Responses;
 using Cassandra.Serialization;
-using Moq;
 using NUnit.Framework;
 
 namespace Cassandra.Tests

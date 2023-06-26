@@ -16,7 +16,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
 using Cassandra.Serialization;
 
 namespace Cassandra.Requests

@@ -17,7 +17,6 @@
 using System;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using Cassandra.SessionManagement;
 
 namespace Cassandra.DataStax.Graph
 {

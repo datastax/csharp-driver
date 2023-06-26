@@ -24,7 +24,6 @@ using System.Text;
 using Cassandra.Data.Linq.ExpressionParsing;
 using Cassandra.Mapping;
 using Cassandra.Mapping.Utils;
-using Cassandra.Serialization.Graph;
 
 namespace Cassandra.Data.Linq
 {

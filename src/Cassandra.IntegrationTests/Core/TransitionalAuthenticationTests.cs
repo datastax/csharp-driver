@@ -14,7 +14,6 @@
 //   limitations under the License.
 //
 
-using System.Diagnostics;
 using System.Linq;
 
 using Cassandra.DataStax.Auth;

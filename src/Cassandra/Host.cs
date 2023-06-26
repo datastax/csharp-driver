@@ -18,7 +18,6 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading;
-using Cassandra.Connections;
 using Cassandra.Connections.Control;
 using Cassandra.SessionManagement;
 

@@ -25,8 +25,6 @@ using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
 using Cassandra.Tests;
 using Cassandra.Tests.Mapping.Pocos;
-using Newtonsoft.Json.Linq;
-
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq

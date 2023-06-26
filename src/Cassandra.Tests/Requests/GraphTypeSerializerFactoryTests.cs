@@ -25,7 +25,6 @@ using Cassandra.ProtocolEvents;
 using Cassandra.Requests;
 using Cassandra.Serialization.Graph;
 using Cassandra.Serialization.Graph.GraphSON2.Tinkerpop;
-using Cassandra.Serialization.Graph.GraphSON3.Dse;
 using Cassandra.Serialization.Graph.GraphSON3.Tinkerpop;
 using Cassandra.SessionManagement;
 using Cassandra.Tests.Connections.TestHelpers;

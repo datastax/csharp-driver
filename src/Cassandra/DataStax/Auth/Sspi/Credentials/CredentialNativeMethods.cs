@@ -24,7 +24,6 @@
 //
 
 using System;
-using System.Runtime.ConstrainedExecution;
 using System.Runtime.InteropServices;
 
 namespace Cassandra.DataStax.Auth.Sspi.Credentials

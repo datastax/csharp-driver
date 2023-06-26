@@ -63,8 +63,7 @@ namespace Cassandra.DataStax.Insights.InfoProviders.StartupMessage
                 Runtime = new RuntimeInfo
                 {
                     Dependencies = dependenciesDictionary,
-                    RuntimeFramework = RuntimeInformation.FrameworkDescription,
-                    TargetFramework = PlatformHelper.GetTargetFramework(),
+                    RuntimeFramework = RuntimeInformation.FrameworkDescription
                 }
             };
         }

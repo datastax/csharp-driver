@@ -24,7 +24,6 @@
 //
 
 using System;
-using System.Runtime.CompilerServices;
 
 namespace Cassandra.DataStax.Auth.Sspi.Credentials
 {

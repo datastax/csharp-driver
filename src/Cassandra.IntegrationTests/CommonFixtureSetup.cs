@@ -16,7 +16,6 @@
 
 using System;
 using System.Diagnostics;
-using System.IO;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
 

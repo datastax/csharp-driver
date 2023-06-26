@@ -157,11 +157,7 @@ namespace Cassandra.DataStax.Cloud
 
         private void DisposeCert2(X509Certificate2 cert2)
         {
-#if NET452
-            cert2?.Reset();
-#else
             cert2?.Dispose();
-#endif
         }
     }
 }

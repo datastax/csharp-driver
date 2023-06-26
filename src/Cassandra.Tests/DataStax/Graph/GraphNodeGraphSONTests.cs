@@ -24,7 +24,6 @@ using System.Text;
 
 using Cassandra.DataStax.Graph;
 using Cassandra.Geometry;
-using Cassandra.Mapping.TypeConversion;
 using Cassandra.Serialization.Graph.GraphSON2;
 using Cassandra.SessionManagement;
 using Moq;

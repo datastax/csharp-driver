@@ -20,7 +20,6 @@ using System.Net;
 using System.Threading.Tasks;
 using Cassandra.Responses;
 using Cassandra.Serialization;
-using Cassandra.Tasks;
 
 namespace Cassandra.Connections.Control
 {

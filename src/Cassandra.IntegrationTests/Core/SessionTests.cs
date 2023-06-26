@@ -355,24 +355,6 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(0, Volatile.Read(ref isDown));
         }
 
-#if NETFRAMEWORK
-
-        [Test, Apartment(ApartmentState.STA)]
-        public void Session_Connect_And_ShutDown_SupportsSTA()
-        {
-            Assert.DoesNotThrow(() =>
-            {
-                using (var localCluster = ClusterBuilder().AddContactPoint(TestCluster.InitialContactPoint).Build())
-                {
-                    var localSession = localCluster.Connect();
-                    var ps = localSession.Prepare("SELECT * FROM system.local");
-                    TestHelper.Invoke(() => localSession.Execute(ps.Bind()), 10);
-                }
-            });
-        }
-
-#endif
-
         [Test]
         public void Session_Execute_Logging_With_Verbose_Level_Test()
         {

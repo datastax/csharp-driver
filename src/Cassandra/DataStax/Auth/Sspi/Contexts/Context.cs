@@ -24,7 +24,6 @@
 //
 
 using System;
-using System.Runtime.CompilerServices;
 using Cassandra.DataStax.Auth.Sspi.Buffers;
 using Cassandra.DataStax.Auth.Sspi.Credentials;
 

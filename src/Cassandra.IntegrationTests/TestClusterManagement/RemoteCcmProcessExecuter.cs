@@ -16,7 +16,6 @@
 using System.Diagnostics;
 using Cassandra.IntegrationTests.TestBase;
 using Renci.SshNet;
-using Renci.SshNet.Common;
 
 namespace Cassandra.IntegrationTests.TestClusterManagement
 {

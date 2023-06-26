@@ -15,9 +15,7 @@
 //
 
 using System;
-using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.Tests;

@@ -185,11 +185,7 @@ namespace Cassandra.Tests.DataStax.Insights.MessageFactories
             Assert.IsFalse(
                 string.IsNullOrWhiteSpace(act.Data.PlatformInfo.Runtime.RuntimeFramework),
                 act.Data.PlatformInfo.Runtime.RuntimeFramework);
-#if NETCOREAPP
-            Assert.AreEqual(".NET Standard 2.0", act.Data.PlatformInfo.Runtime.TargetFramework);
-#else
-            Assert.AreEqual(".NET Framework 4.5.2", act.Data.PlatformInfo.Runtime.TargetFramework);
-#endif
+
             Assert.Greater(
                 act.Data.PlatformInfo.Runtime.Dependencies
                    .Count(c =>

@@ -23,8 +23,6 @@
 //  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 
-using System.Runtime.ConstrainedExecution;
-
 namespace Cassandra.DataStax.Auth.Sspi.Contexts
 {
     /// <summary>

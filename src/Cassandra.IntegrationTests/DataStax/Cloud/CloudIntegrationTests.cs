@@ -19,9 +19,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
-#if NETCOREAPP
 using System.Net.Http;
-#endif
 using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Data.Linq;
@@ -354,52 +352,20 @@ namespace Cassandra.IntegrationTests.DataStax.Cloud
 
         private void AssertCaMismatchSslError(NoHostAvailableException ex)
         {
-#if NETCOREAPP
             var ex2 = ex.InnerException;
             Assert.IsTrue(ex2 is HttpRequestException, ex2.ToString());
             var ex3 = ex2.InnerException;
             Assert.IsTrue(ex2 is HttpRequestException, ex2.ToString());
             Assert.IsTrue(ex2.Message.Contains("The SSL connection could not be established"), ex2.Message);
-#elif NETFRAMEWORK
-            if (TestHelper.IsMono)
-            {
-                var ex2 = ex.InnerException;
-                Assert.IsTrue(ex2 is WebException, ex2.ToString());
-                Assert.IsTrue(ex2.Message.Contains("Authentication failed"), ex2.Message);
-                Assert.IsTrue(ex2.Message.Contains("TrustFailure"), ex2.Message);
-            }
-            else
-            {
-                var ex2 = ex.InnerException;
-                Assert.IsTrue(ex2 is WebException, ex2.ToString());
-                Assert.IsTrue(ex2.Message.Contains("Could not establish trust relationship for the SSL/TLS secure channel"), ex2.Message);
-            }
-#endif
         }
 
         private void AssertIsSslError(NoHostAvailableException ex)
         {
-#if NETFRAMEWORK
-            if (TestHelper.IsMono)
-            {
-                var ex2 = ex.InnerException;
-                Assert.IsTrue(ex2 is WebException, ex2.ToString());
-                Assert.IsTrue(ex2.Message.Contains("Authentication failed"), ex2.Message);
-                Assert.IsTrue(ex2.Message.Contains("SecureChannelFailure"), ex2.Message);
-            }
-            else
-            {
-                var ex2 = ex.InnerException;
-                Assert.IsTrue(ex2 is WebException, ex2.ToString());
-                Assert.IsTrue(ex2.Message.Contains("Could not create SSL/TLS secure channel."), ex2.Message);
-            }
-#else
             var ex2 = ex.InnerException;
             Assert.IsTrue(ex2 is HttpRequestException, ex2.ToString());
 
             // SocketsHttpHandler
             Assert.IsTrue(ex2.Message.Contains("The SSL connection could not be established"), ex2.Message);
-#endif
         }
     }
 }

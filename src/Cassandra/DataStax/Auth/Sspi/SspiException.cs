@@ -24,16 +24,12 @@
 //
 
 using System;
-using System.Runtime.Serialization;
 
 namespace Cassandra.DataStax.Auth.Sspi
 {
     /// <summary>
     /// The exception that is thrown when a problem occurs hwen using the SSPI system.
     /// </summary>
-#if NET452
-    [Serializable]
-#endif
     public class SspiException : Exception
     {
         private SecurityStatus errorCode;
@@ -58,33 +54,6 @@ namespace Cassandra.DataStax.Auth.Sspi
             
         }
         
-#if NET452
-        /// <summary>
-        /// Initializes a new instance of the SSPIException class from serialization data.
-        /// </summary>
-        /// <param name="info"></param>
-        /// <param name="context"></param>
-        protected SspiException( SerializationInfo info, StreamingContext context )
-            : base( info, context )
-        {
-            this.message = info.GetString( "messsage" );
-            this.errorCode = (SecurityStatus)info.GetUInt32( "errorCode" );
-        }
-
-        /// <summary>
-        /// Serializes the exception.
-        /// </summary>
-        /// <param name="info"></param>
-        /// <param name="context"></param>
-        public override void GetObjectData( SerializationInfo info, StreamingContext context )
-        {
-            base.GetObjectData( info, context );
-
-            info.AddValue( "message", this.message );
-            info.AddValue( "errorCode", this.errorCode );
-        }
-#endif
-
         /// <summary>
         /// The error code that was observed during the SSPI call.
         /// </summary>

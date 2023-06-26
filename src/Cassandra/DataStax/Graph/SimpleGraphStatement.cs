@@ -16,11 +16,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using Cassandra.Serialization.Graph;
-using Cassandra.Serialization.Graph.GraphSON1;
-using Cassandra.Serialization.Graph.GraphSON2;
-using Newtonsoft.Json;
 
 namespace Cassandra.DataStax.Graph
 {
