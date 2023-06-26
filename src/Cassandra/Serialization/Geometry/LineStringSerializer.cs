@@ -61,15 +61,9 @@ namespace Cassandra.Serialization.Geometry
             return new LineString(points);
         }
 
-        public override ColumnTypeCode CqlType
-        {
-            get { return ColumnTypeCode.Custom; }
-        }
+        public override ColumnTypeCode CqlType => ColumnTypeCode.Custom;
 
-        public override IColumnInfo TypeInfo
-        {
-            get { return _typeInfo; }
-        }
+        public override IColumnInfo TypeInfo => _typeInfo;
 
         public override byte[] Serialize(ushort protocolVersion, LineString value)
         {

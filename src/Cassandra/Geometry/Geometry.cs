@@ -34,7 +34,7 @@ namespace Cassandra.Geometry
         /// <summary>
         /// Gets the type name to be used for GeoJSON serialization.
         /// </summary>
-        protected virtual string GeoJsonType { get { return GetType().Name; } }
+        protected virtual string GeoJsonType => GetType().Name;
 
         /// <summary>
         /// Gets the coordinates property for GeoJSON serialization.

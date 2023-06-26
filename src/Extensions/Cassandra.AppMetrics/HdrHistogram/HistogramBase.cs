@@ -88,7 +88,7 @@ namespace Cassandra.AppMetrics.HdrHistogram
         /// </summary>
         public string Tag
         {
-            get { return _tag; }
+            get => _tag;
             set
             {
                 if(!string.IsNullOrEmpty(value) && HistogramBase.TagValidation.IsMatch(value))

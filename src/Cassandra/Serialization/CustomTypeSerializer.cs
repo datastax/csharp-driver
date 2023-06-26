@@ -23,15 +23,9 @@ namespace Cassandra.Serialization
     {
         private readonly IColumnInfo _typeInfo;
 
-        public override ColumnTypeCode CqlType
-        {
-            get { return ColumnTypeCode.Custom; }
-        }
+        public override ColumnTypeCode CqlType => ColumnTypeCode.Custom;
 
-        public override IColumnInfo TypeInfo
-        {
-            get { return _typeInfo; }
-        }
+        public override IColumnInfo TypeInfo => _typeInfo;
 
         /// <summary>
         /// Creates a new instance of the serializer for custom types.

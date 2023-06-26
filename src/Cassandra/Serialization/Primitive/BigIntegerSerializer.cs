@@ -24,10 +24,7 @@ namespace Cassandra.Serialization.Primitive
     /// </summary>
     internal class BigIntegerSerializer : TypeSerializer<BigInteger>
     {
-        public override ColumnTypeCode CqlType
-        {
-            get { return ColumnTypeCode.Varint; }
-        }
+        public override ColumnTypeCode CqlType => ColumnTypeCode.Varint;
 
         public override BigInteger Deserialize(ushort protocolVersion, byte[] buffer, int offset, int length, IColumnInfo typeInfo)
         {

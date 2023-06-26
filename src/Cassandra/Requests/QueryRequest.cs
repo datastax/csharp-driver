@@ -30,35 +30,26 @@ namespace Cassandra.Requests
 
         public ConsistencyLevel Consistency
         {
-            get { return _queryOptions.Consistency; }
-            set { _queryOptions.Consistency = value; }
+            get => _queryOptions.Consistency;
+            set => _queryOptions.Consistency = value;
         }
 
         public byte[] PagingState
         {
-            get { return _queryOptions.PagingState; }
-            set { _queryOptions.PagingState = value; }
+            get => _queryOptions.PagingState;
+            set => _queryOptions.PagingState = value;
         }
 
-        public bool SkipMetadata
-        {
-            get { return _queryOptions.SkipMetadata; }
-        }
+        public bool SkipMetadata => _queryOptions.SkipMetadata;
 
-        public int PageSize
-        {
-            get { return _queryOptions.PageSize; }
-        }
+        public int PageSize => _queryOptions.PageSize;
 
-        public ConsistencyLevel SerialConsistency
-        {
-            get { return _queryOptions.SerialConsistency; }
-        }
-        
+        public ConsistencyLevel SerialConsistency => _queryOptions.SerialConsistency;
+
         /// <inheritdoc />
         public override ResultMetadata ResultMetadata => null;
 
-        public string Query { get { return _cqlQuery; } }
+        public string Query => _cqlQuery;
 
         private readonly string _cqlQuery;
         private readonly QueryProtocolOptions _queryOptions;

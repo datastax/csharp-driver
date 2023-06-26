@@ -36,10 +36,7 @@ namespace Cassandra
         /// <summary>
         ///  Gets the query string.
         /// </summary>
-        public override string QueryString
-        {
-            get { return _query; }
-        }
+        public override string QueryString => _query;
 
         /// <summary>
         /// Gets the routing key for the query.
@@ -86,10 +83,7 @@ namespace Cassandra
         /// Consider using a <see cref="ISession"/> connected to single keyspace using 
         /// <see cref="ICluster.Connect(string)"/>.
         /// </remarks>
-        public override string Keyspace
-        {
-            get { return _keyspace; }
-        }
+        public override string Keyspace => _keyspace;
 
         /// <summary>
         /// Creates a new instance of <see cref="SimpleStatement"/> without any query string or parameters.

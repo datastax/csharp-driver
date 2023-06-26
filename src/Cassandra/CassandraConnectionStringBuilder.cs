@@ -23,38 +23,38 @@ namespace Cassandra
     {
         public string ClusterName
         {
-            get { return DefaultIfNotExists("Cluster Name", "Cassandra Cluster"); }
-            set { base["Cluster Name"] = value; }
+            get => DefaultIfNotExists("Cluster Name", "Cassandra Cluster");
+            set => base["Cluster Name"] = value;
         }
 
         public string DefaultKeyspace
         {
-            get { return DefaultIfNotExists<string>("Default Keyspace", null); }
-            set { base["Default Keyspace"] = value; }
+            get => DefaultIfNotExists<string>("Default Keyspace", null);
+            set => base["Default Keyspace"] = value;
         }
 
         public int Port
         {
-            get { return DefaultIfNotExists("Port", ProtocolOptions.DefaultPort); }
-            set { base["Port"] = value; }
+            get => DefaultIfNotExists("Port", ProtocolOptions.DefaultPort);
+            set => base["Port"] = value;
         }
 
         public string[] ContactPoints
         {
-            get { return ThrowIfNotExists<string>("Contact Points").Split(','); }
-            set { base["Contact Points"] = string.Join(",", value); }
+            get => ThrowIfNotExists<string>("Contact Points").Split(',');
+            set => base["Contact Points"] = string.Join(",", value);
         }
 
         public string Username
         {
-            get { return DefaultIfNotExists<string>("Username", null); }
-            set { base["Username"] = value; }
+            get => DefaultIfNotExists<string>("Username", null);
+            set => base["Username"] = value;
         }
 
         public string Password
         {
-            get { return DefaultIfNotExists<string>("Password", null); }
-            set { base["Password"] = value; }
+            get => DefaultIfNotExists<string>("Password", null);
+            set => base["Password"] = value;
         }
 
         public CassandraConnectionStringBuilder()

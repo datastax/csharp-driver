@@ -96,14 +96,8 @@ namespace Cassandra.Data
         /// <inheritdoc />
         public override string ConnectionString
         {
-            get
-            {
-                return _connectionStringBuilder?.ConnectionString;
-            }
-            set
-            {
-                _connectionStringBuilder = new CassandraConnectionStringBuilder(value);
-            }
+            get => _connectionStringBuilder?.ConnectionString;
+            set => _connectionStringBuilder = new CassandraConnectionStringBuilder(value);
         }
 
         /// <inheritdoc />
@@ -116,20 +110,14 @@ namespace Cassandra.Data
         }
 
         /// <inheritdoc />
-        public override string DataSource
-        {
-            get { return _connectionStringBuilder.ClusterName; }
-        }
+        public override string DataSource => _connectionStringBuilder.ClusterName;
 
         /// <summary>
         /// Returns the Keyspace
         /// </summary>
-        public override string Database
-        {
-            get { return ManagedConnection?.Keyspace; }
-        }
+        public override string Database => ManagedConnection?.Keyspace;
 
-        protected override DbProviderFactory DbProviderFactory { get { return CqlProviderFactory.Instance; } }
+        protected override DbProviderFactory DbProviderFactory => CqlProviderFactory.Instance;
 
         /// <inheritdoc />
         public override void Open()
@@ -209,16 +197,10 @@ namespace Cassandra.Data
         }
 
         /// <inheritdoc />
-        public override string ServerVersion
-        {
-            get { return "2.0"; }
-        }
+        public override string ServerVersion => "2.0";
 
         /// <inheritdoc />
-        public override ConnectionState State
-        {
-            get { return _connectionState; }
-        }
+        public override ConnectionState State => _connectionState;
 
         public object Clone()
         {

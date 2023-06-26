@@ -127,37 +127,22 @@ namespace Cassandra.Connections
         /// <summary>
         /// Determines if there isn't any operations pending to be written or inflight.
         /// </summary>
-        public virtual bool HasPendingOperations
-        {
-            get { return InFlight > 0 || !_writeQueue.IsEmpty; }
-        }
+        public virtual bool HasPendingOperations => InFlight > 0 || !_writeQueue.IsEmpty;
 
         /// <summary>
         /// Gets the amount of operations that timed out and didn't get a response
         /// </summary>
-        public virtual int TimedOutOperations
-        {
-            get { return (int)Interlocked.Read(ref _timedOutOperations); }
-        }
+        public virtual int TimedOutOperations => (int)Interlocked.Read(ref _timedOutOperations);
 
         /// <summary>
         /// Determine if the Connection has been explicitly disposed
         /// </summary>
-        public bool IsDisposed
-        {
-            get { return Interlocked.Read(ref _disposed) > 0L; }
-        }
-        
+        public bool IsDisposed => Interlocked.Read(ref _disposed) > 0L;
+
         /// <summary>
         /// Gets the current keyspace.
         /// </summary>
-        public string Keyspace
-        {
-            get
-            {
-                return _keyspace;
-            }
-        }
+        public string Keyspace => _keyspace;
 
         public ProtocolOptions Options => Configuration.ProtocolOptions;
 

@@ -49,65 +49,41 @@ namespace Cassandra
         /// <summary>
         /// Gets the number of milliseconds to wait for the socket to connect
         /// </summary>
-        public int ConnectTimeoutMillis
-        {
-            get { return _connectTimeoutMillis; }
-        }
+        public int ConnectTimeoutMillis => _connectTimeoutMillis;
 
         /// <summary>
         /// Gets if TCP keep-alive must be used 
         /// </summary>
-        public bool? KeepAlive
-        {
-            get { return _keepAlive; }
-        }
+        public bool? KeepAlive => _keepAlive;
 
-        public bool? ReuseAddress
-        {
-            get { return _reuseAddress; }
-        }
+        public bool? ReuseAddress => _reuseAddress;
 
         /// <summary>
         /// Gets the number of seconds to remain open after the Socket.Close() is called.
         /// </summary>
-        public int? SoLinger
-        {
-            get { return _soLinger; }
-        }
+        public int? SoLinger => _soLinger;
 
         /// <summary>
         /// Gets a Boolean value that specifies whether the stream Socket is using the Nagle algorithm.
         /// When set to <c>false</c>, the Nagle algorithm is enabled; when set to <c>true</c> the Nagle algorithm is disabled (no delay). The default is <c>true</c>.
         /// </summary>
-        public bool? TcpNoDelay
-        {
-            get { return _tcpNoDelay; }
-        }
+        public bool? TcpNoDelay => _tcpNoDelay;
 
         /// <summary>
         /// Gets the size of the buffer used by the socket to receive
         /// </summary>
-        public int? ReceiveBufferSize
-        {
-            get { return _receiveBufferSize; }
-        }
+        public int? ReceiveBufferSize => _receiveBufferSize;
 
         /// <summary>
         /// Gets the size of the buffer used by the socket to send
         /// </summary>
-        public int? SendBufferSize
-        {
-            get { return _sendBufferSize; }
-        }
+        public int? SendBufferSize => _sendBufferSize;
 
         /// <summary>
         /// Determines if the driver should use either .NET NetworkStream interface (true) or SocketEventArgs interface (false, default)
         /// to handle the reading and writing
         /// </summary>
-        public bool UseStreamMode
-        {
-            get { return _useStreamMode; }
-        }
+        public bool UseStreamMode => _useStreamMode;
 
         /// <summary>
         /// The per-host read timeout in milliseconds.
@@ -117,20 +93,14 @@ namespace Cassandra
         /// Please note that this is not the maximum time a call to <see cref="Session.Execute(string)"/> may block; this is the maximum time that call will wait for one particular Cassandra host, but other hosts will be tried if one of them timeout. In other words, a <see cref="Session.Execute(string)"/> call may theoretically wait up to ReadTimeoutMillis * {number_of_cassandra_hosts} (though the total number of hosts tried for a given query also depends on the LoadBalancingPolicy in use).
         /// Also note that for efficiency reasons, this read timeout is approximate, it may fire up to late. It is not meant to be used for precise timeout, but rather as a protection against misbehaving Cassandra nodes.
         /// </summary>
-        public int ReadTimeoutMillis
-        {
-            get { return _readTimeoutMillis; }
-        }
+        public int ReadTimeoutMillis => _readTimeoutMillis;
 
         internal int MetadataAbortTimeout => _metadataAbortTimeout;
 
         /// <summary>
         /// Gets the amount of requests that simultaneously have to timeout before closing the connection.
         /// </summary>
-        public int DefunctReadTimeoutThreshold
-        {
-            get { return _defunctReadTimeoutThreshold; }
-        }
+        public int DefunctReadTimeoutThreshold => _defunctReadTimeoutThreshold;
 
         /// <summary>
         /// Sets the number of milliseconds to wait for the socket to connect

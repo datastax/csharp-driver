@@ -151,10 +151,7 @@ namespace Cassandra.Serialization
         /// <summary>
         /// Gets the CLR type for this serializer.
         /// </summary>
-        public Type Type
-        {
-            get { return typeof(T); }
-        }
+        public Type Type => typeof(T);
 
         /// <summary>
         /// Gets the type information for which this serializer is valid.
@@ -163,10 +160,7 @@ namespace Cassandra.Serialization
         /// For primitive types, it should return <c>null</c>.
         /// </para>
         /// </summary>
-        public virtual IColumnInfo TypeInfo
-        {
-            get { return null;}
-        }
+        public virtual IColumnInfo TypeInfo => null;
 
         /// <summary>
         /// Returns the Cassandra data type for the serializer.

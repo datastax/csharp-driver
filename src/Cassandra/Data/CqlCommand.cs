@@ -44,10 +44,7 @@ namespace Cassandra.Data
         /// <inheritdoc />
         public override string CommandText
         {
-            get
-            {
-                return _commandText;
-            }
+            get => _commandText;
             set
             {
                 _preparedStatement = null;
@@ -60,31 +57,23 @@ namespace Cassandra.Data
         /// </summary>
         public ConsistencyLevel ConsistencyLevel
         {
-            get { return _consistencyLevel; }
-            set { _consistencyLevel = value; }
+            get => _consistencyLevel;
+            set => _consistencyLevel = value;
         }
 
         /// <summary>
         /// Gets whether this command has been prepared.
         /// </summary>
-        public bool IsPrepared {
-            get { return Parameters.Count == 0 || _preparedStatement != null; }
-        }
+        public bool IsPrepared => Parameters.Count == 0 || _preparedStatement != null;
 
         /// <summary>
         /// Gets the <see cref="CqlParameter"/>s.
         /// </summary>
-        public new CqlParameterCollection Parameters
-        {
-            get { return _parameters; }
-        }
+        public new CqlParameterCollection Parameters => _parameters;
 
         public override int CommandTimeout
         {
-            get
-            {
-                return Timeout.Infinite;
-            }
+            get => Timeout.Infinite;
             set
             {
             }
@@ -92,10 +81,7 @@ namespace Cassandra.Data
 
         public override CommandType CommandType
         {
-            get
-            {
-                return CommandType.Text;
-            }
+            get => CommandType.Text;
             set
             {
             }
@@ -108,10 +94,7 @@ namespace Cassandra.Data
 
         protected override DbConnection DbConnection
         {
-            get
-            {
-                return CqlConnection;
-            }
+            get => CqlConnection;
             set
             {
                 if (!(value is CqlConnection))
@@ -121,29 +104,17 @@ namespace Cassandra.Data
             }
         }
 
-        protected override DbParameterCollection DbParameterCollection
-        {
-            get { return _parameters; }
-        }
+        protected override DbParameterCollection DbParameterCollection => _parameters;
 
         protected override DbTransaction DbTransaction
         {
-            get
-            {
-                return CqlTransaction;
-            }
-            set
-            {
-                CqlTransaction = (value as CqlBatchTransaction);
-            }
+            get => CqlTransaction;
+            set => CqlTransaction = (value as CqlBatchTransaction);
         }
 
         public override bool DesignTimeVisible
         {
-            get
-            {
-                return true;
-            }
+            get => true;
             set
             {
             }
@@ -276,10 +247,7 @@ namespace Cassandra.Data
 
         public override UpdateRowSource UpdatedRowSource
         {
-            get
-            {
-                return UpdateRowSource.FirstReturnedRecord;
-            }
+            get => UpdateRowSource.FirstReturnedRecord;
             set
             {
             }

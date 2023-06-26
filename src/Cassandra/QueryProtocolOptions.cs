@@ -53,14 +53,9 @@ namespace Cassandra
 
         public ConsistencyLevel Consistency { get; set; }
 
-        public DateTimeOffset? Timestamp
-        {
-            get
-            {
-                return RawTimestamp == null ? (DateTimeOffset?) null :
-                    TypeSerializer.UnixStart.AddTicks(RawTimestamp.Value * 10);
-            }
-        }
+        public DateTimeOffset? Timestamp =>
+            RawTimestamp == null ? (DateTimeOffset?) null :
+                TypeSerializer.UnixStart.AddTicks(RawTimestamp.Value * 10);
 
         internal long? RawTimestamp { get; }
 

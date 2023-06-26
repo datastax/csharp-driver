@@ -47,10 +47,7 @@ namespace Cassandra.Data.Linq
         /// <summary>
         /// IQueryable.Provider implementation
         /// </summary>
-        public IQueryProvider Provider
-        {
-            get { return GetTable(); }
-        }
+        public IQueryProvider Provider => GetTable();
 
         public IEnumerator<TEntity> GetEnumerator()
         {

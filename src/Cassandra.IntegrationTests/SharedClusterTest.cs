@@ -61,10 +61,7 @@ namespace Cassandra.IntegrationTests
         /// It executes the queries provided on test fixture setup.
         /// Ignored when null.
         /// </summary>
-        protected virtual string[] SetupQueries
-        {
-            get { return null; }
-        }
+        protected virtual string[] SetupQueries => null;
 
         /// <summary>
         /// Gets or sets the name of the default keyspace used for this instance

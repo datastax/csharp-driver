@@ -37,10 +37,7 @@ namespace Cassandra.Data.Linq
 
         public abstract bool IsEmpty { get; }
 
-        public override RoutingKey RoutingKey
-        {
-            get { return null; }
-        }
+        public override RoutingKey RoutingKey => null;
 
         public QueryTrace QueryTrace { get; private set; }
 

@@ -121,13 +121,13 @@ namespace Microsoft.IO
         /// Callstack of the constructor. It is only set if MemoryManager.GenerateCallStacks is true,
         /// which should only be in debugging situations.
         /// </summary>
-        internal string AllocationStack { get { return this.allocationStack; } }
+        internal string AllocationStack => this.allocationStack;
 
         /// <summary>
         /// Callstack of the Dispose call. It is only set if MemoryManager.GenerateCallStacks is true,
         /// which should only be in debugging situations.
         /// </summary>
-        internal string DisposeStack { get { return this.disposeStack; } }
+        internal string DisposeStack => this.disposeStack;
 
         /// <summary>
         /// This buffer exists so that WriteByte can forward all of its calls to Write
@@ -369,34 +369,22 @@ namespace Microsoft.IO
         /// <summary>
         /// Whether the stream can currently read
         /// </summary>
-        public override bool CanRead
-        {
-            get { return !this.disposed; }
-        }
+        public override bool CanRead => !this.disposed;
 
         /// <summary>
         /// Whether the stream can currently seek
         /// </summary>
-        public override bool CanSeek
-        {
-            get { return !this.disposed; }
-        }
+        public override bool CanSeek => !this.disposed;
 
         /// <summary>
         /// Always false
         /// </summary>
-        public override bool CanTimeout
-        {
-            get { return false; }
-        }
+        public override bool CanTimeout => false;
 
         /// <summary>
         /// Whether the stream can currently write
         /// </summary>
-        public override bool CanWrite
-        {
-            get { return !this.disposed; }
-        }
+        public override bool CanWrite => !this.disposed;
 
         /// <summary>
         /// Returns a single buffer containing the contents of the stream.

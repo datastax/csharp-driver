@@ -36,18 +36,12 @@ namespace Cassandra.Data.Linq
         /// <summary>
         /// Gets the name of the Table in Cassandra
         /// </summary>
-        public string Name
-        {
-            get { return _name ?? PocoData.TableName; }
-        }
+        public string Name => _name ?? PocoData.TableName;
 
         /// <summary>
         /// Gets the name of the keyspace used. If null, it uses the active session keyspace.
         /// </summary>
-        public string KeyspaceName
-        {
-            get { return _keyspaceName ?? PocoData.KeyspaceName; }
-        }
+        public string KeyspaceName => _keyspaceName ?? PocoData.KeyspaceName;
 
         /// <summary>
         /// <para>Creates a new instance of the Linq IQueryProvider that represents a table in Cassandra using the mapping configuration provided.</para>

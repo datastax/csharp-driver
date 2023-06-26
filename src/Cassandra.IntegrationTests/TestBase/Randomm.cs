@@ -24,10 +24,7 @@ namespace Cassandra.IntegrationTests.TestBase
     {
         [ThreadStatic] private static Randomm _rnd;
 
-        public static Randomm Instance
-        {
-            get { return Randomm._rnd ?? (Randomm._rnd = new Randomm(5)); }
-        }
+        public static Randomm Instance => Randomm._rnd ?? (Randomm._rnd = new Randomm(5));
 
         private Randomm(int seed) : base(seed)
         {

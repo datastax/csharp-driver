@@ -42,40 +42,19 @@ namespace Cassandra.Mapping
         private bool _compactStorage;
         private string _keyspaceName;
 
-        Type ITypeDefinition.PocoType
-        {
-            get { return _pocoType; }
-        }
+        Type ITypeDefinition.PocoType => _pocoType;
 
-        string ITypeDefinition.TableName
-        {
-            get { return _tableName; }
-        }
+        string ITypeDefinition.TableName => _tableName;
 
-        string ITypeDefinition.KeyspaceName
-        {
-            get { return _keyspaceName; }
-        }
+        string ITypeDefinition.KeyspaceName => _keyspaceName;
 
-        bool ITypeDefinition.ExplicitColumns
-        {
-            get { return _explicitColumns; }
-        }
+        bool ITypeDefinition.ExplicitColumns => _explicitColumns;
 
-        bool ITypeDefinition.CaseSensitive
-        {
-            get { return _caseSensitive; }
-        }
+        bool ITypeDefinition.CaseSensitive => _caseSensitive;
 
-        bool ITypeDefinition.AllowFiltering
-        {
-            get { return false; }
-        }
+        bool ITypeDefinition.AllowFiltering => false;
 
-        bool ITypeDefinition.CompactStorage
-        {
-            get { return _compactStorage; }
-        }
+        bool ITypeDefinition.CompactStorage => _compactStorage;
 
         string[] ITypeDefinition.PartitionKeys
         {

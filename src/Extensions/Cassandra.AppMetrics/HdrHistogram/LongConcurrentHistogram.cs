@@ -83,8 +83,8 @@ namespace Cassandra.AppMetrics.HdrHistogram
         /// </summary>
         public override long TotalCount
         {
-            get {return Interlocked.Read(ref _totalCount);}
-            protected set { Interlocked.Exchange(ref _totalCount, value); }
+            get => Interlocked.Read(ref _totalCount);
+            protected set => Interlocked.Exchange(ref _totalCount, value);
         }
 
         /// <summary>

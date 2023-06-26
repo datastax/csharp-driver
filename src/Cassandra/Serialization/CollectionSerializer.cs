@@ -26,10 +26,7 @@ namespace Cassandra.Serialization
     /// </summary>
     internal class CollectionSerializer : TypeSerializer<IEnumerable>
     {
-        public override ColumnTypeCode CqlType
-        {
-            get { throw new NotSupportedException("CollectionSerializer does not represent to a single CQL type"); }
-        }
+        public override ColumnTypeCode CqlType => throw new NotSupportedException("CollectionSerializer does not represent to a single CQL type");
 
         public override IEnumerable Deserialize(ushort protocolVersion, byte[] buffer, int offset, int length, IColumnInfo typeInfo)
         {

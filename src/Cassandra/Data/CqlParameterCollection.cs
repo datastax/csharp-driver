@@ -35,10 +35,7 @@ namespace Cassandra.Data
         /// Specifies the number of items in the collection.
         /// </summary>
         /// <returns>The number of items in the collection.</returns>
-        public override int Count
-        {
-            get { return _parameters.Count; }
-        }
+        public override int Count => _parameters.Count;
 
         /// <summary>
         /// Specifies the <see cref="T:System.Object" /> to be used to synchronize access to the collection.
@@ -47,37 +44,25 @@ namespace Cassandra.Data
         /// A <see cref="T:System.Object" /> to be used to synchronize access 
         /// to the <see cref="T:System.Data.Common.DbParameterCollection" />.
         /// </returns>
-        public override object SyncRoot
-        {
-            get { return _syncLock; }
-        }
-        
+        public override object SyncRoot => _syncLock;
+
         /// <summary>
         /// Specifies whether the collection is a fixed size.
         /// </summary>
         /// <returns>true if the collection is a fixed size; otherwise false.</returns>
-        public override bool IsFixedSize
-        {
-            get { return IsReadOnly; }
-        }
+        public override bool IsFixedSize => IsReadOnly;
 
         /// <summary>
         /// Specifies whether the collection is read-only.
         /// </summary>
         /// <returns>true if the collection is read-only; otherwise false.</returns>
-        public override bool IsReadOnly
-        {
-            get { return false; }
-        }
+        public override bool IsReadOnly => false;
 
         /// <summary>
         /// Specifies whether the collection is synchronized.
         /// </summary>
         /// <returns>true if the collection is synchronized; otherwise false.</returns>
-        public override bool IsSynchronized
-        {
-            get { return false; }
-        }
+        public override bool IsSynchronized => false;
 
         /// <summary>
         /// Adds the specified <see cref="T:System.Data.Common.DbParameter" /> object

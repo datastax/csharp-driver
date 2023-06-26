@@ -40,34 +40,22 @@ namespace Cassandra
         /// <summary>
         /// Gets the hour component of the time represented by the current instance, a number from 0 to 23.
         /// </summary>
-        public int Hour
-        {
-            get { return (int)(TotalNanoseconds / NanosInHour); }
-        }
+        public int Hour => (int)(TotalNanoseconds / NanosInHour);
 
         /// <summary>
         /// Gets the minute component of the time represented by the current instance, a number from 0 to 59.
         /// </summary>
-        public int Minute
-        {
-            get { return (int)(TotalNanoseconds / NanosInMinutes) % 60; }
-        }
+        public int Minute => (int)(TotalNanoseconds / NanosInMinutes) % 60;
 
         /// <summary>
         /// Gets the second component of the time represented by the current instance, a number from 0 to 59.
         /// </summary>
-        public int Second
-        {
-            get { return (int)(TotalNanoseconds / NanosInSeconds) % 60; }
-        }
+        public int Second => (int)(TotalNanoseconds / NanosInSeconds) % 60;
 
         /// <summary>
         /// Gets the nanoseconds component of the time represented by the current instance, a number from 0 to 999,999,999.
         /// </summary>
-        public int Nanoseconds
-        {
-            get { return (int)(TotalNanoseconds % NanosInSeconds) % 1000000000; }
-        }
+        public int Nanoseconds => (int)(TotalNanoseconds % NanosInSeconds) % 1000000000;
 
         /// <summary>
         /// Creates a new instance based on nanoseconds since midnight.

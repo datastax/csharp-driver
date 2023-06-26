@@ -47,15 +47,9 @@ namespace Cassandra.Serialization.Geometry
                 EndianBitConverter.ToDouble(isLe, buffer, offset + 13));
         }
 
-        public override ColumnTypeCode CqlType
-        {
-            get { return ColumnTypeCode.Custom; }
-        }
+        public override ColumnTypeCode CqlType => ColumnTypeCode.Custom;
 
-        public override IColumnInfo TypeInfo
-        {
-            get { return _typeInfo; }
-        }
+        public override IColumnInfo TypeInfo => _typeInfo;
 
         public override byte[] Serialize(ushort protocolVersion, Point value)
         {

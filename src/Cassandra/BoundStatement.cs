@@ -36,10 +36,7 @@ namespace Cassandra
         /// <summary>
         ///  Gets the prepared statement on which this BoundStatement is based.
         /// </summary>
-        public PreparedStatement PreparedStatement
-        {
-            get { return _preparedStatement; }
-        }
+        public PreparedStatement PreparedStatement => _preparedStatement;
 
 
         /// <summary>
@@ -54,10 +51,7 @@ namespace Cassandra
         ///  has been set through <link>PreparedStatement.SetRoutingKey</link>, that value
         ///  takes precedence even if the partition key is part of the bound variables.</p>
         /// </summary>
-        public override RoutingKey RoutingKey
-        {
-            get { return _routingKey; }
-        }
+        public override RoutingKey RoutingKey => _routingKey;
 
         /// <summary>
         /// Returns the keyspace this query operates on, based on the <see cref="PreparedStatement"/> metadata.
@@ -65,10 +59,7 @@ namespace Cassandra
         /// The keyspace returned is used as a hint for token-aware routing.
         /// </para>
         /// </summary>
-        public override string Keyspace
-        {
-            get { return _keyspace; }
-        }
+        public override string Keyspace => _keyspace;
 
         /// <summary>
         /// Initializes a new instance of the Cassandra.BoundStatement class

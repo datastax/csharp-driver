@@ -28,11 +28,8 @@ namespace Cassandra.AppMetrics.HdrHistogram.Utilities
 
         public long this[int index]
         {
-            get { return Interlocked.Read(ref _counts[index]); }
-            set
-            {
-                LazySet(index, value);
-            }
+            get => Interlocked.Read(ref _counts[index]);
+            set => LazySet(index, value);
         }
 
         public long IncrementAndGet(int index)

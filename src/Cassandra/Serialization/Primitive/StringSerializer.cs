@@ -22,10 +22,7 @@ namespace Cassandra.Serialization.Primitive
     {
         private readonly Encoding _encoding;
 
-        public override ColumnTypeCode CqlType
-        {
-            get { return ColumnTypeCode.Text; }
-        }
+        public override ColumnTypeCode CqlType => ColumnTypeCode.Text;
 
         public StringSerializer(Encoding encoding)
         {

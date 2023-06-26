@@ -29,7 +29,7 @@ namespace Cassandra.MetadataHelpers
 
         public int HostLength { get; set; }
 
-        public ISet<string> Racks { get { return _racks; } }
+        public ISet<string> Racks => _racks;
 
         public void AddRack(string name)
         {

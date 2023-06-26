@@ -89,18 +89,12 @@ namespace Cassandra.DataStax.Graph
         /// <summary>
         /// Gets the graph language to use in graph queries. The default is <see cref="DefaultLanguage"/>.
         /// </summary>
-        public string Language
-        {
-            get { return _language; }
-        }
+        public string Language => _language;
 
         /// <summary>
         /// Gets the graph name to use in graph queries.
         /// </summary>
-        public string Name
-        {
-            get { return _name; }
-        }
+        public string Name => _name;
 
         /// <summary>
         /// Gets the consistency level used for read queries
@@ -126,18 +120,12 @@ namespace Cassandra.DataStax.Graph
         /// <para>Default: <c>Timeout.Infinite</c> (-1).</para>
         /// </summary>
         /// <seealso cref="SetReadTimeoutMillis"/>
-        public int ReadTimeoutMillis
-        {
-            get { return _readTimeout; }
-        }
+        public int ReadTimeoutMillis => _readTimeout;
 
         /// <summary>
         /// Gets the graph traversal source name in graph queries.
         /// </summary>
-        public string Source
-        {
-            get { return _source; }
-        }
+        public string Source => _source;
 
         /// <summary>
         /// If not explicitly specified, the following rules apply:

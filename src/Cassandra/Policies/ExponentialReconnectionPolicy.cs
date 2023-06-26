@@ -33,19 +33,13 @@ namespace Cassandra
         ///  Gets the base delay in milliseconds for this policy (e.g. the delay before the
         ///  first reconnection attempt).
         /// </summary>
-        public long BaseDelayMs
-        {
-            get { return _baseDelayMs; }
-        }
+        public long BaseDelayMs => _baseDelayMs;
 
         /// <summary>
         ///  Gets the maximum delay in milliseconds between reconnection attempts for this
         ///  policy.
         /// </summary>
-        public long MaxDelayMs
-        {
-            get { return _maxDelayMs; }
-        }
+        public long MaxDelayMs => _maxDelayMs;
 
         /// <summary>
         ///  Creates a reconnection policy waiting exponentially longer for each new

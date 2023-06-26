@@ -34,10 +34,7 @@ namespace Cassandra
         private readonly Stream _stream;
         private readonly ISerializer _serializer;
 
-        internal ISerializer Serializer
-        {
-            get { return _serializer; }
-        }
+        internal ISerializer Serializer => _serializer;
 
         public FrameReader(Stream stream, ISerializer serializer)
         {

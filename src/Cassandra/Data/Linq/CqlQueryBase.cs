@@ -39,10 +39,7 @@ namespace Cassandra.Data.Linq
 
         public Expression Expression { get; private set; }
 
-        public Type ElementType
-        {
-            get { return typeof (TEntity); }
-        }
+        public Type ElementType => typeof (TEntity);
 
         /// <summary>
         /// After being executed, it retrieves the trace of the CQL query.
@@ -69,10 +66,7 @@ namespace Cassandra.Data.Linq
         /// </summary>
         internal PocoData PocoData { get; set; }
 
-        public override RoutingKey RoutingKey
-        {
-            get { return null; }
-        }
+        public override RoutingKey RoutingKey => null;
 
         /// <inheritdoc />
         public override string Keyspace => null;

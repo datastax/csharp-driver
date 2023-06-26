@@ -27,26 +27,17 @@ namespace Cassandra
         private readonly int _queryAbortTimeout = ClientOptions.DefaultQueryAbortTimeout;
         private readonly bool _withoutRowSetBuffering;
 
-        public bool WithoutRowSetBuffering
-        {
-            get { return _withoutRowSetBuffering; }
-        }
+        public bool WithoutRowSetBuffering => _withoutRowSetBuffering;
 
         /// <summary>
         /// Gets the query abort timeout for synchronous operations in milliseconds.
         /// </summary>
-        public int QueryAbortTimeout
-        {
-            get { return _queryAbortTimeout; }
-        }
+        public int QueryAbortTimeout => _queryAbortTimeout;
 
         /// <summary>
         /// Gets the keyspace to be used after connecting to the cluster.
         /// </summary>
-        public string DefaultKeyspace
-        {
-            get { return _defaultKeyspace; }
-        }
+        public string DefaultKeyspace => _defaultKeyspace;
 
         public ClientOptions()
         {

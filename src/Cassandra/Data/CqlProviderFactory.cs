@@ -52,10 +52,7 @@ namespace Cassandra.Data
             throw new NotSupportedException();
         }
         
-        public override bool CanCreateDataSourceEnumerator
-        {
-            get { return false; }
-        }
+        public override bool CanCreateDataSourceEnumerator => false;
 
         public override DbCommandBuilder CreateCommandBuilder()
         {

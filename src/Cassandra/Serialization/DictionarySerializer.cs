@@ -22,10 +22,7 @@ namespace Cassandra.Serialization
 {
     internal class DictionarySerializer : TypeSerializer<IDictionary>
     {
-        public override ColumnTypeCode CqlType
-        {
-            get { return ColumnTypeCode.Map; }
-        }
+        public override ColumnTypeCode CqlType => ColumnTypeCode.Map;
 
         public override IDictionary Deserialize(ushort protocolVersion, byte[] buffer, int offset, int length, IColumnInfo typeInfo)
         {

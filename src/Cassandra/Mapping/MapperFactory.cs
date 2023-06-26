@@ -64,15 +64,9 @@ namespace Cassandra.Mapping
         private readonly ConcurrentDictionary<Tuple<Type, string, string>, Delegate> _mapperFuncCache;
         private readonly ConcurrentDictionary<Tuple<Type, string>, Delegate> _valueCollectorFuncCache;
 
-        public TypeConverter TypeConverter
-        {
-            get { return _typeConverter; }
-        }
+        public TypeConverter TypeConverter => _typeConverter;
 
-        public PocoDataFactory PocoDataFactory
-        {
-            get { return _pocoDataFactory; }
-        }
+        public PocoDataFactory PocoDataFactory => _pocoDataFactory;
 
         public MapperFactory(TypeConverter typeConverter, PocoDataFactory pocoDataFactory)
         {

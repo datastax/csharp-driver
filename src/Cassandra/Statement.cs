@@ -36,10 +36,8 @@ namespace Cassandra
         private string _authorizationId;
         private IDictionary<string, byte[]> _outgoingPayload;
 
-        public virtual object[] QueryValues
-        {
-            get { return _values; }
-        }
+        public virtual object[] QueryValues => _values;
+
         /// <inheritdoc />
         public bool SkipMetadata { get; private set; }
 
@@ -49,10 +47,7 @@ namespace Cassandra
         /// <summary>
         /// Gets the serial consistency level for this query.
         /// </summary>        
-        public ConsistencyLevel SerialConsistencyLevel
-        {
-            get { return _serialConsistency; }
-        }
+        public ConsistencyLevel SerialConsistencyLevel => _serialConsistency;
 
         /// <inheritdoc />
         public int PageSize { get; private set; }
@@ -73,16 +68,13 @@ namespace Cassandra
         public DateTimeOffset? Timestamp { get; private set; }
 
         /// <inheritdoc />
-        public bool AutoPage
-        {
-            get { return _autoPage; }
-        }
+        public bool AutoPage => _autoPage;
 
         /// <inheritdoc />
         public IDictionary<string, byte[]> OutgoingPayload
         {
-            get { return _outgoingPayload; }
-            private set { RebuildOutgoingPayload(value); }
+            get => _outgoingPayload;
+            private set => RebuildOutgoingPayload(value);
         }
 
         /// <inheritdoc />
@@ -103,10 +95,7 @@ namespace Cassandra
         }
 
         /// <inheritdoc />
-        public virtual string Keyspace
-        {
-            get { return null; }
-        }
+        public virtual string Keyspace => null;
 
         /// <summary>
         /// Gets the host configured on this <see cref="Statement"/>, or <c>null</c> if none is configured.

@@ -37,65 +37,29 @@ namespace Cassandra.Mapping
         private bool _hasFrozenKey;
         private bool _hasFrozenValue;
 
-        MemberInfo IColumnDefinition.MemberInfo
-        {
-            get { return _memberInfo; }
-        }
+        MemberInfo IColumnDefinition.MemberInfo => _memberInfo;
 
-        Type IColumnDefinition.MemberInfoType
-        {
-            get { return _memberInfoType; }
-        }
+        Type IColumnDefinition.MemberInfoType => _memberInfoType;
 
-        string IColumnDefinition.ColumnName
-        {
-            get { return _columnName; }
-        }
+        string IColumnDefinition.ColumnName => _columnName;
 
-        Type IColumnDefinition.ColumnType
-        {
-            get { return _columnType; }
-        }
+        Type IColumnDefinition.ColumnType => _columnType;
 
-        bool IColumnDefinition.Ignore
-        {
-            get { return _ignore; }
-        }
+        bool IColumnDefinition.Ignore => _ignore;
 
-        bool IColumnDefinition.IsExplicitlyDefined
-        {
-            get { return _isExplicitlyDefined; }
-        }
+        bool IColumnDefinition.IsExplicitlyDefined => _isExplicitlyDefined;
 
-        bool IColumnDefinition.SecondaryIndex
-        {
-            get { return _secondaryIndex; }
-        }
+        bool IColumnDefinition.SecondaryIndex => _secondaryIndex;
 
-        bool IColumnDefinition.IsCounter
-        {
-            get { return _isCounter; }
-        }
+        bool IColumnDefinition.IsCounter => _isCounter;
 
-        bool IColumnDefinition.IsStatic
-        {
-            get { return _isStatic; }
-        }
+        bool IColumnDefinition.IsStatic => _isStatic;
 
-        bool IColumnDefinition.IsFrozen
-        {
-            get { return _isFrozen; }
-        }
+        bool IColumnDefinition.IsFrozen => _isFrozen;
 
-        bool IColumnDefinition.HasFrozenKey
-        {
-            get { return _hasFrozenKey; }
-        }
+        bool IColumnDefinition.HasFrozenKey => _hasFrozenKey;
 
-        bool IColumnDefinition.HasFrozenValue
-        {
-            get { return _hasFrozenValue; }
-        }
+        bool IColumnDefinition.HasFrozenValue => _hasFrozenValue;
 
         /// <summary>
         /// Creates a new ColumnMap for the property/field specified by the MemberInfo.

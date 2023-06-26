@@ -132,7 +132,7 @@ namespace Cassandra
         /// </summary>
         public static int MaxProtocolVersion
         {
-            get { return (int)_maxProtocolVersion; }
+            get => (int)_maxProtocolVersion;
             set
             {
                 if (value > (int)ProtocolVersion.MaxSupported)

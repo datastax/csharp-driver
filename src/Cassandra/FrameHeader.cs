@@ -44,13 +44,7 @@ namespace Cassandra
         /// <summary>
         /// Protocol version of the protocol (1, 2, 3)
         /// </summary>
-        public ProtocolVersion Version
-        {
-            get
-            {
-                return (ProtocolVersion)(byte)(_versionByte & 0x7f);
-            }
-        }
+        public ProtocolVersion Version => (ProtocolVersion)(byte)(_versionByte & 0x7f);
 
         /// <summary>
         /// Determines if the response is valid by checking the version byte

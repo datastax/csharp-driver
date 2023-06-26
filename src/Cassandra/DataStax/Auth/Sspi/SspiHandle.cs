@@ -84,10 +84,7 @@ namespace Cassandra.DataStax.Auth.Sspi
             this.rawHandle = new RawSspiHandle();
         }
 
-        public override bool IsInvalid
-        {
-            get { return IsClosed || this.rawHandle.IsZero();  }
-        }
+        public override bool IsInvalid => IsClosed || this.rawHandle.IsZero();
 
         protected override bool ReleaseHandle()
         {

@@ -49,26 +49,17 @@ namespace Cassandra
         /// <summary>
         /// Gets the total amount of values inside the row
         /// </summary>
-        public int Length
-        {
-            get { return _rowValues.Length; }
-        }
+        public int Length => _rowValues.Length;
 
         /// <summary>
         /// Gets the stored value in the column specified by index
         /// </summary>
-        public object this[int index]
-        {
-            get { return GetValue(typeof(object), index); }
-        }
+        public object this[int index] => GetValue(typeof(object), index);
 
         /// <summary>
         /// Gets the stored value in the column specified by name
         /// </summary>
-        public object this[string name]
-        {
-            get { return this[ColumnIndexes[name]]; }
-        }
+        public object this[string name] => this[ColumnIndexes[name]];
 
         /// <summary>
         /// Initializes a new instance of the Cassandra.Row class

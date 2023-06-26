@@ -27,20 +27,11 @@ namespace Cassandra.Serialization
         private readonly ITypeAdapter _adapter;
         private readonly bool _reverse;
 
-        public Type Type
-        {
-            get { return _adapter.GetDataType(); }
-        }
+        public Type Type => _adapter.GetDataType();
 
-        public IColumnInfo TypeInfo
-        {
-            get { return null; }
-        }
+        public IColumnInfo TypeInfo => null;
 
-        public ColumnTypeCode CqlType 
-        {
-            get { return _typeCode; }
-        }
+        public ColumnTypeCode CqlType => _typeCode;
 
         internal LegacyTypeSerializer(ColumnTypeCode typeCode, ITypeAdapter adapter, bool reverse)
         {

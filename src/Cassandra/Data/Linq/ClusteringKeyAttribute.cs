@@ -43,7 +43,7 @@ namespace Cassandra.Data.Linq
                 }
                 return null;
             }
-            set { SetOrder(value); }
+            set => SetOrder(value);
         }
 
         private void SetOrder(string value)

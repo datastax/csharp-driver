@@ -42,10 +42,7 @@ namespace Cassandra.Mapping
         /// <summary>
         /// Global mapping definitions to be reused across all the Application Domain.
         /// </summary>
-        public static MappingConfiguration Global
-        {
-            get { return GlobalInstance; }
-        }
+        public static MappingConfiguration Global => GlobalInstance;
 
         /// <summary>
         /// Retrieves the MapperFactory associated with this configuration instance
@@ -62,8 +59,8 @@ namespace Cassandra.Mapping
         /// </summary>
         public int MaxPreparedStatementsThreshold
         {
-            get { return StatementFactory.MaxPreparedStatementsThreshold; }
-            set { StatementFactory.MaxPreparedStatementsThreshold = value; }
+            get => StatementFactory.MaxPreparedStatementsThreshold;
+            set => StatementFactory.MaxPreparedStatementsThreshold = value;
         }
 
         /// <summary>

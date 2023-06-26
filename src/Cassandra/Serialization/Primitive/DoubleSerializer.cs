@@ -18,10 +18,7 @@ namespace Cassandra.Serialization.Primitive
 {
     internal class DoubleSerializer : TypeSerializer<double>
     {
-        public override ColumnTypeCode CqlType
-        {
-            get { return ColumnTypeCode.Double; }
-        }
+        public override ColumnTypeCode CqlType => ColumnTypeCode.Double;
 
         public override double Deserialize(ushort protocolVersion, byte[] buffer, int offset, int length, IColumnInfo typeInfo)
         {

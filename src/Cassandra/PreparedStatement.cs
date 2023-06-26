@@ -66,34 +66,25 @@ namespace Cassandra
         /// <summary>
         ///  Gets metadata on the bounded variables of this prepared statement.
         /// </summary>
-        public RowSetMetadata Variables
-        {
-            get { return _variablesRowsMetadata; }
-        }
-        
+        public RowSetMetadata Variables => _variablesRowsMetadata;
+
         /// <summary>
         ///  Gets metadata on the columns that will be returned for this prepared statement.
         /// </summary>
-        internal ResultMetadata ResultMetadata
-        {
-            get { return _resultMetadata; }
-        }
+        internal ResultMetadata ResultMetadata => _resultMetadata;
 
         /// <summary>
         /// Gets the routing key for the prepared statement.
         /// </summary>
-        public RoutingKey RoutingKey
-        {
-            get { return _routingKey; }
-        }
+        public RoutingKey RoutingKey => _routingKey;
 
         /// <summary>
         /// Gets or sets the parameter indexes that are part of the partition key
         /// </summary>
         public int[] RoutingIndexes
         {
-            get { return _routingIndexes; }
-            internal set { _routingIndexes = value; }
+            get => _routingIndexes;
+            internal set => _routingIndexes = value;
         }
 
         /// <summary>

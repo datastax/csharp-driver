@@ -24,10 +24,7 @@ namespace Cassandra.Serialization.Primitive
     /// </summary>
     public class DecimalSerializer : TypeSerializer<decimal>
     {
-        public override ColumnTypeCode CqlType
-        {
-            get { return ColumnTypeCode.Decimal; }
-        }
+        public override ColumnTypeCode CqlType => ColumnTypeCode.Decimal;
 
         public override decimal Deserialize(ushort protocolVersion, byte[] buffer, int offset, int length, IColumnInfo typeInfo)
         {

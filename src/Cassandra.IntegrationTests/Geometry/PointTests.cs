@@ -33,9 +33,6 @@ namespace Cassandra.IntegrationTests.Geometry
             }
         }
 
-        protected override string TypeName
-        {
-            get { return "PointType"; }
-        }
+        protected override string TypeName => "PointType";
     }
 }

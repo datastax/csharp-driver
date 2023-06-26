@@ -119,10 +119,7 @@ namespace Cassandra
         /// <returns>the pooling options that will be used by this builder. You can use
         ///  the returned object to define the initial pooling options for the built
         ///  cluster.</returns>
-        public PoolingOptions PoolingOptions
-        {
-            get { return _poolingOptions; }
-        }
+        public PoolingOptions PoolingOptions => _poolingOptions;
 
         /// <summary>
         ///  The socket options used by this builder.
@@ -131,10 +128,7 @@ namespace Cassandra
         /// <returns>the socket options that will be used by this builder. You can use
         ///  the returned object to define the initial socket options for the built
         ///  cluster.</returns>
-        public SocketOptions SocketOptions
-        {
-            get { return _socketOptions; }
-        }
+        public SocketOptions SocketOptions => _socketOptions;
 
         /// <summary>
         /// Gets the contact points that were added as <c>IPEndPoint"</c> instances.

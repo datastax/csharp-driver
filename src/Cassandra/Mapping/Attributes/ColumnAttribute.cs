@@ -31,10 +31,7 @@ namespace Cassandra.Mapping.Attributes
         /// <summary>
         /// The column name in the database this property or field maps to.
         /// </summary>
-        public string Name
-        {
-            get { return _name; }
-        }
+        public string Name => _name;
 
         /// <summary>
         /// Used to override the Type of the column in the database for INSERTs/UPDATEs.  The data in the property/field this attribute is 

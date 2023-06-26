@@ -18,10 +18,7 @@ namespace Cassandra.Serialization.Primitive
 {
     internal class ByteArraySerializer : TypeSerializer<byte[]>
     {
-        public override ColumnTypeCode CqlType
-        {
-            get { return ColumnTypeCode.Blob; }
-        }
+        public override ColumnTypeCode CqlType => ColumnTypeCode.Blob;
 
         public override byte[] Deserialize(ushort protocolVersion, byte[] buffer, int offset, int length, IColumnInfo typeInfo)
         {

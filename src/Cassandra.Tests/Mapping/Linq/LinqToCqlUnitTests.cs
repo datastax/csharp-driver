@@ -546,14 +546,8 @@ APPLY BATCH".Replace("\r", ""));
             [PartitionKey]
             public override int Id
             {
-                get
-                {
-                    return base.Id;
-                }
-                set
-                {
-                    base.Id = value;
-                }
+                get => base.Id;
+                set => base.Id = value;
             }
 
             public string Description { get; set; }

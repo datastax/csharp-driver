@@ -68,14 +68,9 @@ namespace Cassandra.Collections
             throw new NotSupportedException();
         }
 
-        public int Count
-        {
-            get { return _items.Length; }
-        }
+        public int Count => _items.Length;
 
-        public bool IsReadOnly {
-            get { return true; }
-        }
+        public bool IsReadOnly => true;
 
         public int IndexOf(T item)
         {
@@ -94,8 +89,8 @@ namespace Cassandra.Collections
 
         public T this[int index]
         {
-            get { return _items[index]; }
-            set { throw new NotSupportedException(); }
+            get => _items[index];
+            set => throw new NotSupportedException();
         }
     }
 }

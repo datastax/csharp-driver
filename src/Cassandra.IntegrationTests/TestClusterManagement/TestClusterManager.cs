@@ -86,43 +86,22 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         /// <summary>
         /// Gets the IP prefix for the DSE instances
         /// </summary>
-        public static string IpPrefix
-        {
-            get { return Environment.GetEnvironmentVariable("DSE_INITIAL_IPPREFIX") ?? "127.0.0."; }
-        }
+        public static string IpPrefix => Environment.GetEnvironmentVariable("DSE_INITIAL_IPPREFIX") ?? "127.0.0.";
 
         /// <summary>
         /// Gets the path to DSE source code
         /// </summary>
-        public static string DsePath
-        {
-            get { return Environment.GetEnvironmentVariable("DSE_PATH"); }
-        }
+        public static string DsePath => Environment.GetEnvironmentVariable("DSE_PATH");
 
-        public static string InitialContactPoint
-        {
-            get { return IpPrefix + "1"; }
-        }
+        public static string InitialContactPoint => IpPrefix + "1";
 
-        public static string DseVersionString
-        {
-            get { return Environment.GetEnvironmentVariable("DSE_VERSION") ?? "6.7.7"; }
-        }
+        public static string DseVersionString => Environment.GetEnvironmentVariable("DSE_VERSION") ?? "6.7.7";
 
-        public static string CassandraVersionString
-        {
-            get { return Environment.GetEnvironmentVariable("CASSANDRA_VERSION") ?? "3.11.2"; }
-        }
+        public static string CassandraVersionString => Environment.GetEnvironmentVariable("CASSANDRA_VERSION") ?? "3.11.2";
 
-        public static bool IsDse
-        {
-            get { return Environment.GetEnvironmentVariable("DSE_VERSION") != null; }
-        }
-        
-        public static Version DseVersion
-        {
-            get { return IsDse ? new Version(DseVersionString.Split('-')[0]) : TestClusterManager.GetDseVersionFromCassandraVersion(new Version(CassandraVersionString.Split('-')[0])); }
-        }
+        public static bool IsDse => Environment.GetEnvironmentVariable("DSE_VERSION") != null;
+
+        public static Version DseVersion => IsDse ? new Version(DseVersionString.Split('-')[0]) : TestClusterManager.GetDseVersionFromCassandraVersion(new Version(CassandraVersionString.Split('-')[0]));
 
         public static bool CcmUseWsl => bool.Parse(Environment.GetEnvironmentVariable("CCM_USE_WSL") ?? "false");
 

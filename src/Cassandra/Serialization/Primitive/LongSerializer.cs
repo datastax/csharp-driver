@@ -21,10 +21,7 @@ namespace Cassandra.Serialization.Primitive
     /// </summary>
     internal class LongSerializer : TypeSerializer<long>
     {
-        public override ColumnTypeCode CqlType
-        {
-            get { return ColumnTypeCode.Bigint; }
-        }
+        public override ColumnTypeCode CqlType => ColumnTypeCode.Bigint;
 
         public override long Deserialize(ushort protocolVersion, byte[] buffer, int offset, int length, IColumnInfo typeInfo)
         {

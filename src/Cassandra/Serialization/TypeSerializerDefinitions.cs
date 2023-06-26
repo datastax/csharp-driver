@@ -27,10 +27,7 @@ namespace Cassandra.Serialization
     {
         private readonly ICollection<ITypeSerializer> _definitions = new List<ITypeSerializer>();
 
-        internal ICollection<ITypeSerializer> Definitions
-        {
-            get { return _definitions; }
-        }
+        internal ICollection<ITypeSerializer> Definitions => _definitions;
 
         /// <summary>
         /// Defines a new <see cref="TypeSerializer{T}"/> instance to use.

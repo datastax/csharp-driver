@@ -31,10 +31,7 @@ namespace Cassandra.Mapping
         /// <summary>
         /// The table name.
         /// </summary>
-        public string Value
-        {
-            get { return _tableName; }
-        }
+        public string Value => _tableName;
 
         /// <summary>
         /// Specifies the table a POCO maps to.

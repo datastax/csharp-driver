@@ -37,23 +37,14 @@ namespace Cassandra
         /// <summary>
         /// Gets the batch type
         /// </summary>
-        public BatchType BatchType
-        {
-            get { return _batchType; }
-        }
+        public BatchType BatchType => _batchType;
 
         /// <summary>
         /// Determines if the batch does not contain any query
         /// </summary>
-        public bool IsEmpty
-        {
-            get { return _queries.Count == 0; }
-        }
+        public bool IsEmpty => _queries.Count == 0;
 
-        internal List<Statement> Queries
-        {
-            get { return _queries; }
-        }
+        internal List<Statement> Queries => _queries;
 
         /// <summary>
         /// Gets the routing key for the query.

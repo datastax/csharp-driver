@@ -81,7 +81,7 @@ namespace Cassandra.Data
         /// <exception cref="System.NotSupportedException">Cql only supports input parameters</exception>
         public override ParameterDirection Direction
         {
-            get { return ParameterDirection.Input; }
+            get => ParameterDirection.Input;
             set
             {
                 if (value != ParameterDirection.Input)
@@ -95,8 +95,8 @@ namespace Cassandra.Data
         /// <returns>true if null values are accepted; otherwise, false. The default is false. </returns>
         public override bool IsNullable
         {
-            get { return _isNullable; }
-            set { _isNullable = value; }
+            get => _isNullable;
+            set => _isNullable = value;
         }
 
         /// <summary>
@@ -108,8 +108,8 @@ namespace Cassandra.Data
         /// </returns>
         public override string ParameterName
         {
-            get { return _name; }
-            set { SetParameterName(value); }
+            get => _name;
+            set => SetParameterName(value);
         }
 
         /// <summary>
@@ -144,8 +144,8 @@ namespace Cassandra.Data
         /// </returns>
         public override object Value
         {
-            get { return _value; }
-            set { _value = value; }
+            get => _value;
+            set => _value = value;
         }
 
         /// <summary>
@@ -154,7 +154,7 @@ namespace Cassandra.Data
         /// <returns>Always returns 0.</returns>
         public override int Size
         {
-            get { return 0; }
+            get => 0;
             set { }
         }
 
@@ -166,8 +166,8 @@ namespace Cassandra.Data
         /// <returns>true if the source column is nullable; false if it is not. </returns>
         public override bool SourceColumnNullMapping
         {
-            get { return IsNullable; }
-            set { IsNullable = value; }
+            get => IsNullable;
+            set => IsNullable = value;
         }
 
         /// <summary>

@@ -30,9 +30,9 @@ namespace Cassandra.Collections
         private volatile T[] _array;
         private readonly object _writeLock = new object();
 
-        public int Count { get { return _array.Length; } }
+        public int Count => _array.Length;
 
-        public bool IsReadOnly { get { return false; } }
+        public bool IsReadOnly => false;
 
         internal CopyOnWriteList()
         {

@@ -28,15 +28,9 @@ namespace Cassandra.Mapping
 
         public byte[] PagingState { get; private set; }
 
-        public int Count
-        {
-            get { return _list.Count; }
-        }
+        public int Count => _list.Count;
 
-        public bool IsReadOnly
-        {
-            get { return true; }
-        }
+        public bool IsReadOnly => true;
 
         internal Page(IEnumerable<T> items, byte[] currentPagingState, byte[] pagingState)
         {

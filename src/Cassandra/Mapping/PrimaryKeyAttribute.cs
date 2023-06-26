@@ -31,10 +31,7 @@ namespace Cassandra.Mapping
         /// <summary>
         /// The column names of the primary key columns for the table.
         /// </summary>
-        public string[] ColumnNames
-        {
-            get { return _columnNames; }
-        }
+        public string[] ColumnNames => _columnNames;
 
         /// <summary>
         /// Specify the primary key column names (in order) for the table.

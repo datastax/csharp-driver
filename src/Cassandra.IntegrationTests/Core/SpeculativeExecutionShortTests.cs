@@ -149,10 +149,7 @@ namespace Cassandra.IntegrationTests.Core
                 _scheduledMore.AddOrUpdate(plan, executions, (k, v) => executions);
             }
 
-            public ICollection<int> ScheduledMoreThanOnce
-            {
-                get { return _scheduledMore.Values; }
-            }
+            public ICollection<int> ScheduledMoreThanOnce => _scheduledMore.Values;
 
             public void Dispose()
             {
@@ -195,10 +192,7 @@ namespace Cassandra.IntegrationTests.Core
             private ICluster _cluster;
             private int _hostYielded;
 
-            public int HostYielded
-            {
-                get { return Volatile.Read(ref _hostYielded); }
-            }
+            public int HostYielded => Volatile.Read(ref _hostYielded);
 
             public OrderedLoadBalancingPolicy(params string[] addresses)
             {

@@ -49,10 +49,7 @@ namespace Cassandra
         /// The identifier of this trace.
         /// </summary>
         /// <returns>the identifier of this trace.</returns>
-        public Guid TraceId
-        {
-            get { return _traceId; }
-        }
+        public Guid TraceId => _traceId;
 
         /// <summary>
         /// The type of request.
@@ -66,7 +63,7 @@ namespace Cassandra
                 MaybeFetchTrace();
                 return _requestType;
             }
-            internal set { _requestType = value; }
+            internal set => _requestType = value;
         }
 
         /// <summary>
@@ -83,7 +80,7 @@ namespace Cassandra
                 MaybeFetchTrace();
                 return _duration;
             }
-            internal set { _duration = value; }
+            internal set => _duration = value;
         }
 
         /// <summary>
@@ -100,7 +97,7 @@ namespace Cassandra
                 MaybeFetchTrace();
                 return _coordinator;
             }
-            internal set { _coordinator = value; }
+            internal set => _coordinator = value;
         }
 
         /// <summary>
@@ -117,7 +114,7 @@ namespace Cassandra
                 MaybeFetchTrace();
                 return _parameters;
             }
-            internal set { _parameters = value; }
+            internal set => _parameters = value;
         }
 
         /// <summary>
@@ -134,7 +131,7 @@ namespace Cassandra
                 MaybeFetchTrace();
                 return _startedAt;
             }
-            internal set { _startedAt = value; }
+            internal set => _startedAt = value;
         }
 
         /// <summary>
@@ -148,7 +145,7 @@ namespace Cassandra
                 MaybeFetchTrace();
                 return _events;
             }
-            internal set { _events = value; }
+            internal set => _events = value;
         }
 
         /// <summary>
@@ -161,7 +158,7 @@ namespace Cassandra
                 MaybeFetchTrace();
                 return _clientAddress;
             }
-            internal set { _clientAddress = value; }
+            internal set => _clientAddress = value;
         }
 
         public QueryTrace(Guid traceId, ISession session)
@@ -253,28 +250,19 @@ namespace Cassandra
             /// The event description, i.e. which activity this event correspond to.
             /// </summary>
             /// <returns>The event description.</returns>
-            public string Description
-            {
-                get { return _name; }
-            }
+            public string Description => _name;
 
             /// <summary>
             /// The server side timestamp of the event.
             /// </summary>
             /// <returns>The server side timestamp of the event.</returns>
-            public DateTimeOffset Timestamp
-            {
-                get { return _timestamp; }
-            }
+            public DateTimeOffset Timestamp => _timestamp;
 
             /// <summary>
             /// The address of the host having generated this event.
             /// </summary>
             /// <returns>The address of the host having generated this event.</returns>
-            public IPAddress Source
-            {
-                get { return _source; }
-            }
+            public IPAddress Source => _source;
 
             /// <summary>
             /// The number of microseconds elapsed on the source when this event occurred
@@ -282,19 +270,13 @@ namespace Cassandra
             /// </summary>
             /// <returns>the elapsed time on the source host when that event happened in
             ///  microseconds.</returns>
-            public int SourceElapsedMicros
-            {
-                get { return _sourceElapsed; }
-            }
+            public int SourceElapsedMicros => _sourceElapsed;
 
             /// <summary>
             /// The name of the thread on which this event occurred.
             /// </summary>
             /// <returns>the name of the thread on which this event occurred.</returns>
-            public string ThreadName
-            {
-                get { return _threadName; }
-            }
+            public string ThreadName => _threadName;
 
             internal Event(string name, DateTimeOffset timestamp, IPAddress source, int sourceElapsed, string threadName)
             {

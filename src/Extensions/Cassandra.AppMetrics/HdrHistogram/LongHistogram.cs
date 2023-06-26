@@ -101,7 +101,9 @@ namespace Cassandra.AppMetrics.HdrHistogram
         /// <summary>
         /// Gets the total number of recorded values.
         /// </summary>
-        public override long TotalCount { get { return _totalCount; } protected set { _totalCount = value; } }
+        public override long TotalCount { get => _totalCount;
+            protected set => _totalCount = value;
+        }
 
         /// <summary>
         /// Returns the word size of this implementation

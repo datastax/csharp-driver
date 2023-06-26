@@ -34,9 +34,6 @@ namespace Cassandra.IntegrationTests.Geometry
             }
         }
 
-        protected override string TypeName
-        {
-            get { return "PolygonType"; }
-        }
+        protected override string TypeName => "PolygonType";
     }
 }

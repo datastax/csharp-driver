@@ -50,10 +50,7 @@ namespace Cassandra
         /// <summary>
         /// Gets the total amount of hosts in the cluster
         /// </summary>
-        internal int Count
-        {
-            get { return _hosts.Count; }
-        }
+        internal int Count => _hosts.Count;
 
         public bool TryGet(IPEndPoint endpoint, out Host host)
         {

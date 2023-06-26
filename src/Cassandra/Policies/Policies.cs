@@ -58,35 +58,17 @@ namespace Cassandra
         ///  <link>ExponentialReconnectionPolicy</link> where the base delay is 1 second
         ///  and the max delay is 10 minutes;</p>
         /// </summary>
-        public static IReconnectionPolicy DefaultReconnectionPolicy
-        {
-            get
-            {
-                return new ExponentialReconnectionPolicy(1000, 10 * 60 * 1000);
-            }
-        }
-        
+        public static IReconnectionPolicy DefaultReconnectionPolicy => new ExponentialReconnectionPolicy(1000, 10 * 60 * 1000);
+
         /// <summary>
         ///  The default retry policy.The default retry policy is <see cref="Cassandra.DefaultRetryPolicy"/>
         /// </summary>
-        public static IRetryPolicy DefaultRetryPolicy
-        {
-            get
-            {
-                return new DefaultRetryPolicy();
-            }
-        }
-        
+        public static IRetryPolicy DefaultRetryPolicy => new DefaultRetryPolicy();
+
         /// <summary>
         ///  The default extended retry policy.The default extended retry policy is <see cref="Cassandra.DefaultRetryPolicy"/>
         /// </summary>
-        internal static IExtendedRetryPolicy DefaultExtendedRetryPolicy
-        {
-            get
-            {
-                return new DefaultRetryPolicy();
-            }
-        }
+        internal static IExtendedRetryPolicy DefaultExtendedRetryPolicy => new DefaultRetryPolicy();
 
         /// <summary>
         /// The <see cref="ISpeculativeExecutionPolicy"/> to be used by default.
@@ -94,13 +76,7 @@ namespace Cassandra
         /// The default is <see cref="NoSpeculativeExecutionPolicy"/>.
         /// </para>
         /// </summary>
-        public static ISpeculativeExecutionPolicy DefaultSpeculativeExecutionPolicy
-        {
-            get
-            {
-                return NoSpeculativeExecutionPolicy.Instance;
-            }
-        }
+        public static ISpeculativeExecutionPolicy DefaultSpeculativeExecutionPolicy => NoSpeculativeExecutionPolicy.Instance;
 
         /// <summary>
         /// Gets a new instance of the default <see cref="ITimestampGenerator"/> policy.
@@ -108,21 +84,12 @@ namespace Cassandra
         /// The default <see cref="ITimestampGenerator"/> is <see cref="AtomicMonotonicTimestampGenerator"/>
         /// </para>
         /// </summary>
-        public static ITimestampGenerator DefaultTimestampGenerator
-        {
-            get { return new AtomicMonotonicTimestampGenerator(); }
-        }
+        public static ITimestampGenerator DefaultTimestampGenerator => new AtomicMonotonicTimestampGenerator();
 
         /// <summary>
         /// Gets a new instance <see cref="Policies"/> containing default policies of the driver.
         /// </summary>
-        public static Policies DefaultPolicies
-        {
-            get
-            {
-                return new Policies();
-            }
-        }
+        public static Policies DefaultPolicies => new();
 
         private readonly ILoadBalancingPolicy _loadBalancingPolicy;
         private readonly IReconnectionPolicy _reconnectionPolicy;
@@ -135,54 +102,36 @@ namespace Cassandra
         ///  Gets the load balancing policy in use. <p> The load balancing policy defines how
         ///  Cassandra hosts are picked for queries.</p>
         /// </summary>
-        public ILoadBalancingPolicy LoadBalancingPolicy
-        {
-            get { return _loadBalancingPolicy; }
-        }
+        public ILoadBalancingPolicy LoadBalancingPolicy => _loadBalancingPolicy;
 
         /// <summary>
         ///  Gets the reconnection policy in use. <p> The reconnection policy defines how often
         ///  the driver tries to reconnect to a dead node.</p>
         /// </summary>
-        public IReconnectionPolicy ReconnectionPolicy
-        {
-            get { return _reconnectionPolicy; }
-        }
+        public IReconnectionPolicy ReconnectionPolicy => _reconnectionPolicy;
 
         /// <summary>
         ///  Gets the retry policy in use. <p> The retry policy defines in which conditions a
         ///  query should be automatically retries by the driver.</p>
         /// </summary>
-        public IRetryPolicy RetryPolicy
-        {
-            get { return _retryPolicy; }
-        }
+        public IRetryPolicy RetryPolicy => _retryPolicy;
 
         /// <summary>
         /// Gets the <see cref="SpeculativeExecutionPolicy"/> in use.
         /// </summary>
-        public ISpeculativeExecutionPolicy SpeculativeExecutionPolicy
-        {
-            get { return _speculativeExecutionPolicy; }
-        }
+        public ISpeculativeExecutionPolicy SpeculativeExecutionPolicy => _speculativeExecutionPolicy;
 
         /// <summary>
         /// Gets the extended retry policy that contains the default behavior to handle request errors.
         /// The returned value is either the same instance as <see cref="RetryPolicy"/> or the default
         /// retry policy. It can not be null.
         /// </summary>
-        internal IExtendedRetryPolicy ExtendedRetryPolicy
-        {
-            get { return _extendedRetryPolicy; }
-        }
+        internal IExtendedRetryPolicy ExtendedRetryPolicy => _extendedRetryPolicy;
 
         /// <summary>
         /// Gets the <see cref="ITimestampGenerator"/> instance in use.
         /// </summary>
-        public ITimestampGenerator TimestampGenerator
-        {
-            get { return _timestampGenerator; }
-        }
+        public ITimestampGenerator TimestampGenerator => _timestampGenerator;
 
         public Policies() : this(null, null, null, null, null)
         {

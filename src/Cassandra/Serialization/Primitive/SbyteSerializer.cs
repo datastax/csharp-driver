@@ -18,10 +18,7 @@ namespace Cassandra.Serialization.Primitive
 {
     internal class SbyteSerializer : TypeSerializer<sbyte>
     {
-        public override ColumnTypeCode CqlType
-        {
-            get { return ColumnTypeCode.TinyInt; }
-        }
+        public override ColumnTypeCode CqlType => ColumnTypeCode.TinyInt;
 
         public override sbyte Deserialize(ushort protocolVersion, byte[] buffer, int offset, int length, IColumnInfo typeInfo)
         {

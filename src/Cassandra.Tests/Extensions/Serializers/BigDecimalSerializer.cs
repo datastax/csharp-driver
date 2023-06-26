@@ -28,10 +28,7 @@ namespace Cassandra.Tests.Extensions.Serializers
     {
         private readonly BigIntegerSerializer _bigIntegerSerializer = new BigIntegerSerializer();
 
-        public override ColumnTypeCode CqlType
-        {
-            get { return ColumnTypeCode.Decimal; }
-        }
+        public override ColumnTypeCode CqlType => ColumnTypeCode.Decimal;
 
         public override BigDecimal Deserialize(ushort protocolVersion, byte[] buffer, int offset, int length, IColumnInfo typeInfo)
         {

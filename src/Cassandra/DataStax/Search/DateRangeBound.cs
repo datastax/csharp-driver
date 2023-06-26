@@ -61,18 +61,12 @@ namespace Cassandra.DataStax.Search
         /// <summary>
         /// The timestamp portion of the boundary.
         /// </summary>
-        public DateTimeOffset Timestamp
-        {
-            get { return _timestamp; }
-        }
+        public DateTimeOffset Timestamp => _timestamp;
 
         /// <summary>
         /// The precision portion of the boundary.
         /// </summary>
-        public DateRangePrecision Precision
-        {
-            get { return _precision; }
-        }
+        public DateRangePrecision Precision => _precision;
 
         /// <summary>
         /// Creates a new instance of <see cref="DateRangeBound"/>.

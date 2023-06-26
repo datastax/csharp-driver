@@ -20,10 +20,7 @@ namespace Cassandra.Serialization.Primitive
 {
     internal class DateTimeOffsetSerializer : TypeSerializer<DateTimeOffset>
     {
-        public override ColumnTypeCode CqlType
-        {
-            get { return ColumnTypeCode.Timestamp; }
-        }
+        public override ColumnTypeCode CqlType => ColumnTypeCode.Timestamp;
 
         internal static DateTimeOffset Deserialize(byte[] buffer, int offset)
         {

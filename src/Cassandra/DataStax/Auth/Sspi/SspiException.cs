@@ -57,28 +57,17 @@ namespace Cassandra.DataStax.Auth.Sspi
         /// <summary>
         /// The error code that was observed during the SSPI call.
         /// </summary>
-        public int ErrorCode
-        {
-            get
-            {
-                return (int) this.errorCode;
-            }
-        }
+        public int ErrorCode => (int) this.errorCode;
 
         /// <summary>
         /// A human-readable message indicating the nature of the exception.
         /// </summary>
-        public override string Message
-        {
-            get
-            {
-                return string.Format( 
-                    "{0}. Error Code = '0x{1:X}' - \"{2}\".", 
-                    this.message, 
-                    this.errorCode, 
-                    EnumMgr.ToText(this.errorCode) 
-                );
-            }
-        }
+        public override string Message =>
+            string.Format( 
+                "{0}. Error Code = '0x{1:X}' - \"{2}\".", 
+                this.message, 
+                this.errorCode, 
+                EnumMgr.ToText(this.errorCode) 
+            );
     }
 }

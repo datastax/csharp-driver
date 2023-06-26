@@ -71,7 +71,7 @@ namespace Cassandra
         /// </summary>
         internal IControlConnection ControlConnection { get; set; }
 
-        internal ISchemaParser SchemaParser { get { return _schemaParser; } }
+        internal ISchemaParser SchemaParser => _schemaParser;
 
         internal string Partitioner { get; set; }
 

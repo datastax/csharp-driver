@@ -164,10 +164,7 @@ namespace Cassandra.IntegrationTests.TestBase
         /// <summary>
         /// Determines if the test should use a remote ccm instance
         /// </summary>
-        public static bool UseRemoteCcm
-        {
-            get { return false; }
-        }
+        public static bool UseRemoteCcm => false;
 
         public static void WaitForUp(string nodeHost, int nodePort, int maxSecondsToKeepTrying)
         {
@@ -381,10 +378,7 @@ namespace Cassandra.IntegrationTests.TestBase
             return output;
         }
 
-        public static bool IsWin
-        {
-            get { return TestHelper.IsWin; }
-        }
+        public static bool IsWin => TestHelper.IsWin;
 
         private static void ValidateOutput(ProcessOutput output)
         {

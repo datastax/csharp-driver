@@ -32,15 +32,9 @@ namespace Cassandra
         private readonly long _offset;
         private readonly ProtocolVersion _version;
 
-        public long Length
-        {
-            get { return _stream.Length; }
-        }
+        public long Length => _stream.Length;
 
-        internal ISerializer Serializer
-        {
-            get { return _serializer; }
-        }
+        internal ISerializer Serializer => _serializer;
 
         /// <summary>
         /// For testing purposes

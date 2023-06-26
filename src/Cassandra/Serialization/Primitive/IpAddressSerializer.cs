@@ -20,10 +20,7 @@ namespace Cassandra.Serialization.Primitive
 {
     internal class IpAddressSerializer : TypeSerializer<IPAddress>
     {
-        public override ColumnTypeCode CqlType
-        {
-            get { return ColumnTypeCode.Inet; }
-        }
+        public override ColumnTypeCode CqlType => ColumnTypeCode.Inet;
 
         public override IPAddress Deserialize(ushort protocolVersion, byte[] buffer, int offset, int length, IColumnInfo typeInfo)
         {

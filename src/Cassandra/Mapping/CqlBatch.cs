@@ -30,10 +30,7 @@ namespace Cassandra.Mapping
 
         private readonly List<Cql> _statements;
 
-        public IEnumerable<Cql> Statements
-        {
-            get { return _statements; }
-        }
+        public IEnumerable<Cql> Statements => _statements;
 
         public BatchType BatchType { get; private set; }
 

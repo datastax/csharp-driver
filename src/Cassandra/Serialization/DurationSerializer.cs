@@ -32,15 +32,9 @@ namespace Cassandra.Serialization
             }
         }
 
-        public override ColumnTypeCode CqlType
-        {
-            get { return ColumnTypeCode.Custom; }
-        }
+        public override ColumnTypeCode CqlType => ColumnTypeCode.Custom;
 
-        public override IColumnInfo TypeInfo
-        {
-            get { return new CustomColumnInfo("org.apache.cassandra.db.marshal.DurationType"); }
-        }
+        public override IColumnInfo TypeInfo => new CustomColumnInfo("org.apache.cassandra.db.marshal.DurationType");
 
         public override Duration Deserialize(ushort protocolVersion, byte[] buffer, int offset, int length, IColumnInfo typeInfo)
         {

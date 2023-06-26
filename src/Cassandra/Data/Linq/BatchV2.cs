@@ -24,10 +24,7 @@ namespace Cassandra.Data.Linq
     {
         private readonly BatchStatement _batchScript = new BatchStatement();
 
-        public override bool IsEmpty
-        {
-            get { return _batchScript.IsEmpty; }
-        }
+        public override bool IsEmpty => _batchScript.IsEmpty;
 
         internal BatchV2(ISession session, BatchType batchType) : base(session, batchType)
         {

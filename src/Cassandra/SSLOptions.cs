@@ -37,42 +37,27 @@ namespace Cassandra
         /// <summary>
         /// Verifies Cassandra host SSL certificate used for authentication.
         /// </summary>
-        public RemoteCertificateValidationCallback RemoteCertValidationCallback
-        {
-            get { return _remoteCertValidationCallback; }
-        }
+        public RemoteCertificateValidationCallback RemoteCertValidationCallback => _remoteCertValidationCallback;
 
         /// <summary>
         /// Ssl Protocol used for communication with Cassandra hosts.
         /// </summary>
-        public SslProtocols SslProtocol
-        {
-            get { return _sslProtocol; }
-        }
+        public SslProtocols SslProtocol => _sslProtocol;
 
         /// <summary>
         /// Determines whether the certificate revocation list is checked during connection authentication.
         /// </summary>
-        public bool CheckCertificateRevocation
-        {
-            get { return _checkCertificateRevocation; }
-        }
+        public bool CheckCertificateRevocation => _checkCertificateRevocation;
 
         /// <summary>
         /// Gets the method to be use to determine the host name from the IP address
         /// </summary>
-        public Func<IPAddress, string> HostNameResolver
-        {
-            get { return _hostNameResolver; }
-        }
+        public Func<IPAddress, string> HostNameResolver => _hostNameResolver;
 
         /// <summary>
         /// Gets the collection that contains the client certificates
         /// </summary>
-        public X509CertificateCollection CertificateCollection
-        {
-            get { return _certificateCollection; }
-        }
+        public X509CertificateCollection CertificateCollection => _certificateCollection;
 
         /// <summary>
         ///  Creates SSLOptions with default values.   

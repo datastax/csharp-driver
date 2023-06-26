@@ -20,10 +20,7 @@ namespace Cassandra.Serialization.Primitive
 {
     internal class TimeUuidSerializer : TypeSerializer<TimeUuid>
     {
-        public override ColumnTypeCode CqlType
-        {
-            get { return ColumnTypeCode.Timeuuid; }
-        }
+        public override ColumnTypeCode CqlType => ColumnTypeCode.Timeuuid;
 
         public override TimeUuid Deserialize(ushort protocolVersion, byte[] buffer, int offset, int length, IColumnInfo typeInfo)
         {

@@ -28,10 +28,7 @@ namespace Cassandra
         /// <summary>
         /// Gets the constant delay used by this reconnection policy. 
         /// </summary>
-        public long ConstantDelayMs
-        {
-            get { return _delayMs; }
-        }
+        public long ConstantDelayMs => _delayMs;
 
         /// <summary>
         ///  Creates a reconnection policy that creates with the provided constant wait

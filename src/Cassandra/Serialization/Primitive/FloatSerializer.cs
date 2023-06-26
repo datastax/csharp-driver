@@ -18,10 +18,7 @@ namespace Cassandra.Serialization.Primitive
 {
     internal class FloatSerializer : TypeSerializer<float>
     {
-        public override ColumnTypeCode CqlType
-        {
-            get { return ColumnTypeCode.Float; }
-        }
+        public override ColumnTypeCode CqlType => ColumnTypeCode.Float;
 
         public override float Deserialize(ushort protocolVersion, byte[] buffer, int offset, int length, IColumnInfo typeInfo)
         {

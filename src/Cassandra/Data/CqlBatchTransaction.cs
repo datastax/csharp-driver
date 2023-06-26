@@ -26,15 +26,9 @@ namespace Cassandra.Data
         private readonly List<CqlCommand> commands = new List<CqlCommand>();
         internal CqlConnection CqlConnection;
 
-        protected override DbConnection DbConnection
-        {
-            get { return CqlConnection; }
-        }
+        protected override DbConnection DbConnection => CqlConnection;
 
-        public override IsolationLevel IsolationLevel
-        {
-            get { return IsolationLevel.Unspecified; }
-        }
+        public override IsolationLevel IsolationLevel => IsolationLevel.Unspecified;
 
         public CqlBatchTransaction(CqlConnection cqlConnection)
         {

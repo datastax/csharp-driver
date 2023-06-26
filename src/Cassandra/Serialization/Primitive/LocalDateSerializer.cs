@@ -18,10 +18,7 @@ namespace Cassandra.Serialization.Primitive
 {
     internal class LocalDateSerializer : TypeSerializer<LocalDate>
     {
-        public override ColumnTypeCode CqlType
-        {
-            get { return ColumnTypeCode.Date; }
-        }
+        public override ColumnTypeCode CqlType => ColumnTypeCode.Date;
 
         public override LocalDate Deserialize(ushort protocolVersion, byte[] buffer, int offset, int length, IColumnInfo typeInfo)
         {

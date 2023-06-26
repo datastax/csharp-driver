@@ -24,10 +24,7 @@ namespace Cassandra.Serialization
 {
     internal class TupleSerializer : TypeSerializer<IStructuralEquatable>
     {
-        public override ColumnTypeCode CqlType
-        {
-            get { return ColumnTypeCode.Tuple; }
-        }
+        public override ColumnTypeCode CqlType => ColumnTypeCode.Tuple;
 
         public override IStructuralEquatable Deserialize(ushort protocolVersion, byte[] buffer, int offset, int length, IColumnInfo typeInfo)
         {

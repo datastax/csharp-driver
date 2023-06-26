@@ -18,10 +18,7 @@ namespace Cassandra.Serialization.Primitive
 {
     internal class ShortSerializer : TypeSerializer<short>
     {
-        public override ColumnTypeCode CqlType
-        {
-            get { return ColumnTypeCode.SmallInt; }
-        }
+        public override ColumnTypeCode CqlType => ColumnTypeCode.SmallInt;
 
         public override short Deserialize(ushort protocolVersion, byte[] buffer, int offset, int length, IColumnInfo typeInfo)
         {

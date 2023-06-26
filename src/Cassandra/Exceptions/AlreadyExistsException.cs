@@ -37,10 +37,7 @@ namespace Cassandra
         ///  Gets whether the query yielding this exception was a table creation
         ///  attempt.
         /// </summary>
-        public bool WasTableCreation
-        {
-            get { return !string.IsNullOrEmpty((Table)); }
-        }
+        public bool WasTableCreation => !string.IsNullOrEmpty((Table));
 
         public AlreadyExistsException(string keyspace, string table) :
             base(MakeMsg(keyspace, table))

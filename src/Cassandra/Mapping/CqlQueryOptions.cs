@@ -41,10 +41,7 @@ namespace Cassandra.Mapping
         /// <summary>
         /// Whether or not to use a PreparedStatement when executing the query.
         /// </summary>
-        internal bool NoPrepare
-        {
-            get { return _noPrepare; }
-        }
+        internal bool NoPrepare => _noPrepare;
 
         /// <summary>
         /// Sets the consistency level to be used when executing the query.

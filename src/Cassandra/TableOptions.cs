@@ -49,10 +49,7 @@ namespace Cassandra
         /// 
         /// <returns>whether the table uses the <c>COMPACT STORAGE</c>
         ///  option.</returns>
-        public bool IsCompactStorage
-        {
-            get { return isCompactStorage; }
-        }
+        public bool IsCompactStorage => isCompactStorage;
 
         /// <summary>
         ///  The commentary set for this table.
@@ -60,30 +57,21 @@ namespace Cassandra
         /// 
         /// <returns>the commentary set for this table, or <c>null</c> if noe has
         ///  been set.</returns>
-        public string Comment
-        {
-            get { return comment; }
-        }
+        public string Comment => comment;
 
         /// <summary>
         ///  The chance with which a read repair is triggered for this table.
         /// </summary>
         /// 
         /// <returns>the read repair change set for table (in [0.0, 1.0]).</returns>
-        public double ReadRepairChance
-        {
-            get { return readRepair; }
-        }
+        public double ReadRepairChance => readRepair;
 
         /// <summary>
         ///  The (cluster) local read repair chance set for this table.
         /// </summary>
         /// 
         /// <returns>the local read repair change set for table (in [0.0, 1.0]).</returns>
-        public double LocalReadRepairChance
-        {
-            get { return localReadRepair; }
-        }
+        public double LocalReadRepairChance => localReadRepair;
 
         /// <summary>
         ///  Whether replicateOnWrite is set for this table. This is only meaningful for
@@ -91,10 +79,7 @@ namespace Cassandra
         /// </summary>
         /// 
         /// <returns>whether replicateOnWrite is set for this table.</returns>
-        public bool ReplicateOnWrite
-        {
-            get { return replicateOnWrite; }
-        }
+        public bool ReplicateOnWrite => replicateOnWrite;
 
         /// <summary>
         ///  The tombstone garbage collection grace time in seconds for this table.
@@ -102,10 +87,7 @@ namespace Cassandra
         /// 
         /// <returns>the tombstone garbage collection grace time in seconds for this
         ///  table.</returns>
-        public int GcGraceSeconds
-        {
-            get { return gcGrace; }
-        }
+        public int GcGraceSeconds => gcGrace;
 
         /// <summary>
         ///  The false positive chance for the bloom filter of this table.
@@ -113,40 +95,28 @@ namespace Cassandra
         /// 
         /// <returns>the bloom filter false positive chance for this table (in [0.0,
         ///  1.0]).</returns>
-        public double BloomFilterFpChance
-        {
-            get { return bfFpChance; }
-        }
+        public double BloomFilterFpChance => bfFpChance;
 
         /// <summary>
         ///  The caching option for this table.
         /// </summary>
         /// 
         /// <returns>the caching option for this table.</returns>
-        public string Caching
-        {
-            get { return caching; }
-        }
+        public string Caching => caching;
 
         /// <summary>
         ///  The compaction options for this table.
         /// </summary>
         /// 
         /// <returns>a dictionary containing the compaction options for this table.</returns>
-        public SortedDictionary<string, string> CompactionOptions
-        {
-            get { return compactionOptions; }
-        }
+        public SortedDictionary<string, string> CompactionOptions => compactionOptions;
 
         /// <summary>
         ///  The compression options for this table.
         /// </summary>
         /// 
         /// <returns>a dictionary containing the compression options for this table.</returns>
-        public SortedDictionary<string, string> CompressionParams
-        {
-            get { return compressionParams; }
-        }
+        public SortedDictionary<string, string> CompressionParams => compressionParams;
 
         /// <summary>
         /// Represents the nodesync options for this table.

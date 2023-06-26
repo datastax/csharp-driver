@@ -24,10 +24,7 @@ namespace Cassandra
 
         public System.Guid? TraceId { get; internal set; }
 
-        public IDictionary<string, string[]> Options
-        {
-            get { return _options; }
-        }
+        public IDictionary<string, string[]> Options => _options;
 
         internal OutputOptions(FrameReader reader)
         {

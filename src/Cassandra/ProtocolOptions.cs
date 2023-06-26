@@ -48,46 +48,31 @@ namespace Cassandra
         /// </summary>
         /// 
         /// <returns>the port used to connect to the Cassandra hosts.</returns>
-        public int Port
-        {
-            get { return _port; }
-        }
+        public int Port => _port;
 
         /// <summary>
         /// Specified SSL options used to connect to the Cassandra hosts.
         /// </summary>
         /// 
         /// <returns>SSL options used to connect to the Cassandra hosts.</returns>
-        public SSLOptions SslOptions
-        {
-            get { return _sslOptions; }
-        }
+        public SSLOptions SslOptions => _sslOptions;
 
         /// <summary>
         ///  Returns the compression used by the protocol. <p> The default compression is
         ///  <c>Compression.SNAPPY</c>.</p>
         /// </summary>
         /// <returns>the compression used.</returns>
-        public CompressionType Compression
-        {
-            get { return _compression; }
-        }
+        public CompressionType Compression => _compression;
 
         /// <summary>
         ///  Gets the custom compressor specified to be used for the compression type.
         /// </summary>
-        public IFrameCompressor CustomCompressor
-        {
-            get { return _compressor; }
-        }
+        public IFrameCompressor CustomCompressor => _compressor;
 
         /// <summary>
         /// Gets the maximum time to wait for schema agreement before returning from a DDL query.
         /// </summary>
-        public int MaxSchemaAgreementWaitSeconds 
-        {
-            get { return _maxSchemaAgreementWaitSeconds; }
-        }
+        public int MaxSchemaAgreementWaitSeconds => _maxSchemaAgreementWaitSeconds;
 
         /// <summary>
         /// Determines whether NO_COMPACT is enabled as startup option.
@@ -108,15 +93,9 @@ namespace Cassandra
         /// When set, it limits the maximum protocol version used to connect to the nodes.
         /// Useful for using the driver against a cluster that contains nodes with different major/minor versions of Cassandra.
         /// </summary>
-        public byte? MaxProtocolVersion
-        {
-            get { return (byte?) _maxProtocolVersion; }
-        }
+        public byte? MaxProtocolVersion => (byte?) _maxProtocolVersion;
 
-        internal ProtocolVersion? MaxProtocolVersionValue
-        {
-            get { return _maxProtocolVersion; }
-        }
+        internal ProtocolVersion? MaxProtocolVersionValue => _maxProtocolVersion;
 
         /// <summary>
         ///  Creates a new <c>ProtocolOptions</c> instance using the

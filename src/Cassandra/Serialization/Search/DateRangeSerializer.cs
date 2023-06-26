@@ -33,15 +33,9 @@ namespace Cassandra.Serialization.Search
         /// </summary>
         private const int ByteLengthTwoBoundaries = 19;
 
-        public override ColumnTypeCode CqlType
-        {
-            get { return ColumnTypeCode.Custom; }
-        }
+        public override ColumnTypeCode CqlType => ColumnTypeCode.Custom;
 
-        public override IColumnInfo TypeInfo
-        {
-            get { return _typeInfo; }
-        }
+        public override IColumnInfo TypeInfo => _typeInfo;
 
         public override DateRange Deserialize(ushort protocolVersion, byte[] buffer, int offset, int length, IColumnInfo typeInfo)
         {

@@ -20,10 +20,7 @@ namespace Cassandra.Serialization.Primitive
 {
     internal class GuidSerializer : TypeSerializer<Guid>
     {
-        public override ColumnTypeCode CqlType
-        {
-            get { return ColumnTypeCode.Uuid; }
-        }
+        public override ColumnTypeCode CqlType => ColumnTypeCode.Uuid;
 
         public override Guid Deserialize(ushort protocolVersion, byte[] buffer, int offset, int length, IColumnInfo typeInfo)
         {
