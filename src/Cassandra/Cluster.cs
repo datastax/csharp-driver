@@ -99,7 +99,7 @@ namespace Cassandra
 
         internal static Cluster BuildFrom(IInitializer initializer, IReadOnlyList<object> nonIpEndPointContactPoints, Configuration config)
         {
-            nonIpEndPointContactPoints = nonIpEndPointContactPoints ?? new object[0];
+            nonIpEndPointContactPoints = nonIpEndPointContactPoints ?? Array.Empty<object>();
             if (initializer.ContactPoints.Count == 0 && nonIpEndPointContactPoints.Count == 0)
             {
                 throw new ArgumentException("Cannot build a cluster without contact points");

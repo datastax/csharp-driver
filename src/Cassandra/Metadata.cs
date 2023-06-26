@@ -269,7 +269,7 @@ namespace Cassandra
             if (_tokenMap == null)
             {
                 Metadata.Logger.Warning("Metadata.GetReplicas was called but there was no token map.");
-                return new Host[0];
+                return Array.Empty<Host>();
             }
             return _tokenMap.GetReplicas(keyspaceName, _tokenMap.Factory.Hash(partitionKey));
         }
@@ -325,7 +325,7 @@ namespace Cassandra
             if (Configuration.MetadataSyncOptions.MetadataSyncEnabled)
             {
                 return !_keyspaces.TryGetValue(keyspace, out var ksMetadata)
-                    ? new string[0]
+                    ? Array.Empty<string>()
                     : ksMetadata.GetTablesNames();
             }
 

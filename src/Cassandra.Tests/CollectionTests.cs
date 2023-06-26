@@ -62,7 +62,7 @@ namespace Cassandra.Tests
             CollectionAssert.AreEqual(new[] { "two" }, list);
             CollectionAssert.AreEqual(new[] { "two" }, list.ToArray());
             list.Remove("two");
-            CollectionAssert.AreEqual(new string[0], list);
+            CollectionAssert.AreEqual(Array.Empty<string>(), list);
         }
 
         [Test]

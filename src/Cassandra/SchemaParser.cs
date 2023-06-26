@@ -371,7 +371,7 @@ namespace Cassandra
         {
             if (typesString == null)
             {
-                return new ColumnDesc[0];
+                return Array.Empty<ColumnDesc>();
             }
             var indexes = new List<int>();
             for (var i = 1; i < typesString.Length; i++)
@@ -456,7 +456,7 @@ namespace Cassandra
                     {
                         return null;
                     }
-                    var emptyArray = new string[0];
+                    var emptyArray = Array.Empty<string>();
                     return new FunctionMetadata
                     {
                         Name = row.GetValue<string>("function_name"),
@@ -485,7 +485,7 @@ namespace Cassandra
                         return null;
                     }
 
-                    var emptyArray = new string[0];
+                    var emptyArray = Array.Empty<string>();
                     var aggregate = new AggregateMetadata
                     {
                         Name = row.GetValue<string>("aggregate_name"),
@@ -817,7 +817,7 @@ namespace Cassandra
                     {
                         return TaskHelper.ToTask<AggregateMetadata>(null);
                     }
-                    var argumentTypes = row.GetValue<string[]>("argument_types") ?? new string[0];
+                    var argumentTypes = row.GetValue<string[]>("argument_types") ?? Array.Empty<string>();
                     //state_type + return_type + amount of argument types
                     var parseTasks = new Task<ColumnDesc>[2 + argumentTypes.Length];
                     parseTasks[0] = DataTypeParser.ParseTypeName(_udtResolver, row.GetValue<string>("keyspace_name"), row.GetValue<string>("state_type"));
@@ -863,7 +863,7 @@ namespace Cassandra
                     {
                         return TaskHelper.ToTask<FunctionMetadata>(null);
                     }
-                    var argumentTypes = row.GetValue<string[]>("argument_types") ?? new string[0];
+                    var argumentTypes = row.GetValue<string[]>("argument_types") ?? Array.Empty<string>();
                     var parseTasks = new Task<ColumnDesc>[1 + argumentTypes.Length];
                     parseTasks[0] = DataTypeParser.ParseTypeName(_udtResolver, row.GetValue<string>("keyspace_name"), row.GetValue<string>("return_type"));
                     for (var i = 0; i < argumentTypes.Length; i++)
@@ -883,7 +883,7 @@ namespace Cassandra
                             Name = row.GetValue<string>("function_name"),
                             KeyspaceName = row.GetValue<string>("keyspace_name"),
                             Signature = argumentTypes,
-                            ArgumentNames = row.GetValue<string[]>("argument_names") ?? new string[0],
+                            ArgumentNames = row.GetValue<string[]>("argument_names") ?? Array.Empty<string>(),
                             Body = row.GetValue<string>("body"),
                             CalledOnNullInput = row.GetValue<bool>("called_on_null_input"),
                             Language = row.GetValue<string>("language"),

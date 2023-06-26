@@ -350,7 +350,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
 
             public IWhenQueryBuilder WithParams(IWhenQueryBuilder builder)
             {
-                return WithParams(builder, new string[0]);
+                return WithParams(builder, Array.Empty<string>());
             }
 
             public RowsResult CreateRowsResult()

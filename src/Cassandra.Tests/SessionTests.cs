@@ -50,7 +50,7 @@ namespace Cassandra.Tests
             }.Build();
 
             var initializer = Mock.Of<IInitializer>();
-            Mock.Get(initializer).Setup(i => i.ContactPoints).Returns(new IPEndPoint[0]);
+            Mock.Get(initializer).Setup(i => i.ContactPoints).Returns(Array.Empty<IPEndPoint>());
             Mock.Get(initializer).Setup(i => i.GetConfiguration()).Returns(config);
             using (var cluster = Cluster.BuildFrom(initializer, new[] { "127.0.0.1" }, config))
             {

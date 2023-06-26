@@ -558,7 +558,7 @@ namespace Cassandra.Tests.DataStax.Graph
             CollectionAssert.AreEqual(
                 new string[][]
                 {
-                    new [] { "a" }, new string[0], new[] { "c", "d" }, new[] { "e", "f", "g" }, new string[0]
+                    new [] { "a" }, Array.Empty<string>(), new[] { "c", "d" }, new[] { "e", "f", "g" }, Array.Empty<string>()
                 }, path.Labels);
             Assert.AreEqual(2, path.Objects.Count);
             Assert.AreEqual("person", path.Objects.First().ToVertex().Label);

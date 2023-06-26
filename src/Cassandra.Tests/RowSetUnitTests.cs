@@ -182,7 +182,7 @@ namespace Cassandra.Tests
         {
             var pageSize = 10;
             var rs = CreateStringsRowset(10, pageSize);
-            rs.PagingState = new byte[0];
+            rs.PagingState = Array.Empty<byte>();
             var fetchCounter = 0;
             SetFetchNextMethod(rs, (pagingState) =>
             {
@@ -256,13 +256,13 @@ namespace Cassandra.Tests
         {
             var rowLength = 10;
             var rs = CreateStringsRowset(10, rowLength, "page_0_");
-            rs.PagingState = new byte[0];
+            rs.PagingState = Array.Empty<byte>();
             var fetchCounter = 0;
             SetFetchNextMethod(rs, (pagingState) =>
             {
                 fetchCounter++;
                 var pageRowSet = CreateStringsRowset(10, rowLength, "page_" + fetchCounter + "_");
-                pageRowSet.PagingState = fetchCounter < 3 ? new byte[0] : null;
+                pageRowSet.PagingState = fetchCounter < 3 ? Array.Empty<byte>() : null;
                 return pageRowSet;
             });
 
@@ -285,7 +285,7 @@ namespace Cassandra.Tests
         {
             var rowLength = 10;
             var rs = CreateStringsRowset(10, rowLength, "page_0_");
-            rs.PagingState = new byte[0];
+            rs.PagingState = Array.Empty<byte>();
             var fetchCounter = 0;
             SetFetchNextMethod(rs, (pagingState) =>
             {
@@ -294,7 +294,7 @@ namespace Cassandra.Tests
                 if (fetchCounter < 3)
                 {
                     //when retrieving the pages, state that there are more results
-                    pageRowSet.PagingState = new byte[0];
+                    pageRowSet.PagingState = Array.Empty<byte>();
                 }
                 else if (fetchCounter == 3)
                 {

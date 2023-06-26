@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
@@ -99,7 +100,7 @@ namespace Cassandra
             var length = ReadInt16();
             if (length <= 0)
             {
-                return new string[0];
+                return Array.Empty<string>();
             }
             var arr = new string[length];
             for (var i = 0; i < length; i++)

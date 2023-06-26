@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -161,7 +162,7 @@ namespace Cassandra.Tests
             // error body = [int][string][additional]
             return BeConverter.GetBytes(code)
                               .Concat(GetProtocolString(message))
-                              .Concat(additional ?? new byte[0])
+                              .Concat(additional ?? Array.Empty<byte>())
                               .ToArray();
         }
 

@@ -207,7 +207,7 @@ namespace Cassandra.DataStax.Auth.Sspi.Contexts
 
             var trailerLength = input.Length;
 
-            var dataBuffer = new SecureBuffer( new byte[0], BufferType.Data );
+            var dataBuffer = new SecureBuffer( Array.Empty<byte>(), BufferType.Data );
             var trailerBuffer = new SecureBuffer( new byte[trailerLength], BufferType.Stream );
 
             Array.Copy( input, 0, trailerBuffer.Buffer, 0, trailerBuffer.Length );

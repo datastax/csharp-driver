@@ -35,7 +35,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 CassandraYaml = 
                     TestClusterManager.CheckCassandraVersion(true, new Version(4, 0), Comparison.GreaterThanOrEqualsTo ) 
-                        ? new[] { "enable_materialized_views: true" } : new string[0]
+                        ? new[] { "enable_materialized_views: true" } : Array.Empty<string>()
             })
         {
         }

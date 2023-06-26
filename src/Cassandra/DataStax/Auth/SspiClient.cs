@@ -30,7 +30,7 @@ namespace Cassandra.DataStax.Auth
     {
         private delegate byte[] TransitionHandler(byte[] challenge);
         private const ContextAttrib ContextRequestAttributes = ContextAttrib.MutualAuth;
-        private static readonly byte[] EmptyBuffer = new byte[0];
+        private static readonly byte[] EmptyBuffer = Array.Empty<byte>();
         private readonly TransitionHandler[] _transitions;
         private int _transitionIndex = -1;
         private volatile ClientCredential _credentials;

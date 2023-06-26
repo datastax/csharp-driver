@@ -519,12 +519,12 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     Id = 3,
                     NullableId = 5,
-                    IntEnumerable = new int[0],
-                    IntEnumerableSet = new int[0],
+                    IntEnumerable = Array.Empty<int>(),
+                    IntEnumerableSet = Array.Empty<int>(),
                     IntIList = new List<int>(),
                     IntList = new List<int>(),
                     IntReadOnlyList = new List<int>(),
-                    NullableIntEnumerable = new int?[0],
+                    NullableIntEnumerable = Array.Empty<int?>(),
                     NullableIntList = new List<int?>()
                 }
             };

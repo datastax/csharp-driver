@@ -71,7 +71,7 @@ namespace Cassandra.Tests.Requests
                         return new ProxyResultResponse(
                             ResultResponse.ResultResponseKind.Void,
                             new OutputPrepared(
-                                new byte[0], new RowSetMetadata { Columns = new CqlColumn[0] }, new RowSetMetadata { Columns = new CqlColumn[0] }));
+                                Array.Empty<byte>(), new RowSetMetadata { Columns = Array.Empty<CqlColumn>() }, new RowSetMetadata { Columns = Array.Empty<CqlColumn>() }));
                     });
             };
             var queryPlan = mockResult.Session.InternalCluster
@@ -141,7 +141,7 @@ namespace Cassandra.Tests.Requests
                         return new ProxyResultResponse(
                             ResultResponse.ResultResponseKind.Void,
                             new OutputPrepared(
-                                new byte[0], new RowSetMetadata { Columns = new CqlColumn[0] }, new RowSetMetadata { Columns = new CqlColumn[0] }));
+                                Array.Empty<byte>(), new RowSetMetadata { Columns = Array.Empty<CqlColumn>() }, new RowSetMetadata { Columns = Array.Empty<CqlColumn>() }));
                     });
             };
             var queryPlan = mockResult.Session.InternalCluster
@@ -212,7 +212,7 @@ namespace Cassandra.Tests.Requests
                         return new ProxyResultResponse(
                             ResultResponse.ResultResponseKind.Void,
                             new OutputPrepared(
-                                new byte[0], new RowSetMetadata { Columns = new CqlColumn[0] }, new RowSetMetadata { Columns = new CqlColumn[0] }));
+                                Array.Empty<byte>(), new RowSetMetadata { Columns = Array.Empty<CqlColumn>() }, new RowSetMetadata { Columns = Array.Empty<CqlColumn>() }));
                     });
             };
             var queryPlan = mockResult.Session.InternalCluster
@@ -285,7 +285,7 @@ namespace Cassandra.Tests.Requests
                         return new ProxyResultResponse(
                             ResultResponse.ResultResponseKind.Void,
                             new OutputPrepared(
-                                new byte[0], new RowSetMetadata { Columns = new CqlColumn[0] }, new RowSetMetadata { Columns = new CqlColumn[0] }));
+                                Array.Empty<byte>(), new RowSetMetadata { Columns = Array.Empty<CqlColumn>() }, new RowSetMetadata { Columns = Array.Empty<CqlColumn>() }));
                     });
             };
             var queryPlan = mockResult.Session.InternalCluster
@@ -356,7 +356,7 @@ namespace Cassandra.Tests.Requests
                         return new ProxyResultResponse(
                             ResultResponse.ResultResponseKind.Void,
                             new OutputPrepared(
-                                new byte[0], new RowSetMetadata { Columns = new CqlColumn[0] }, new RowSetMetadata { Columns = new CqlColumn[0] }));
+                                Array.Empty<byte>(), new RowSetMetadata { Columns = Array.Empty<CqlColumn>() }, new RowSetMetadata { Columns = Array.Empty<CqlColumn>() }));
                     });
             };
             var queryPlan = mockResult.Session.InternalCluster
@@ -428,7 +428,7 @@ namespace Cassandra.Tests.Requests
                         return new ProxyResultResponse(
                             ResultResponse.ResultResponseKind.Void,
                             new OutputPrepared(
-                                new byte[0], new RowSetMetadata { Columns = new CqlColumn[0] }, new RowSetMetadata { Columns = new CqlColumn[0] }));
+                                Array.Empty<byte>(), new RowSetMetadata { Columns = Array.Empty<CqlColumn>() }, new RowSetMetadata { Columns = Array.Empty<CqlColumn>() }));
                     });
             };
             var queryPlan = mockResult.Session.InternalCluster

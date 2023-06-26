@@ -97,7 +97,7 @@ namespace Cassandra.Mapping
                 .Select(PocoColumn.FromColumnDefinition)
                 .ToLookupKeyedCollection(pc => pc.ColumnName, StringComparer.OrdinalIgnoreCase);
 
-            var clusteringKeyNames = typeDefinition.ClusteringKeys ?? new Tuple<string, SortOrder>[0];
+            var clusteringKeyNames = typeDefinition.ClusteringKeys ?? Array.Empty<Tuple<string, SortOrder>>();
             return new PocoData(pocoType, tableName, typeDefinition.KeyspaceName, columns, pkColumnNames, clusteringKeyNames, typeDefinition.CaseSensitive, typeDefinition.CompactStorage, typeDefinition.AllowFiltering);
         }
 

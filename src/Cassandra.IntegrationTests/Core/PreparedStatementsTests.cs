@@ -713,13 +713,13 @@ namespace Cassandra.IntegrationTests.Core
         {
             Func<string, string, byte[]> calculateKey = (id1, id2) =>
             {
-                return new byte[0]
-                .Concat(new byte[] { 0, (byte)id1.Length })
-                .Concat(System.Text.Encoding.UTF8.GetBytes(id1))
-                .Concat(new byte[] { 0 })
-                .Concat(new byte[] { 0, (byte)id2.Length })
-                .Concat(System.Text.Encoding.UTF8.GetBytes(id2))
-                .Concat(new byte[] { 0 }).ToArray();
+                return Array.Empty<byte>()
+                            .Concat(new byte[] { 0, (byte)id1.Length })
+                            .Concat(System.Text.Encoding.UTF8.GetBytes(id1))
+                            .Concat(new byte[] { 0 })
+                            .Concat(new byte[] { 0, (byte)id2.Length })
+                            .Concat(System.Text.Encoding.UTF8.GetBytes(id2))
+                            .Concat(new byte[] { 0 }).ToArray();
             };
             Session.Execute("CREATE TABLE tbl_ps_multiple_pk_named (a uuid, b text, c text, d text, primary key ((a, b), c))");
             Thread.Sleep(3000);

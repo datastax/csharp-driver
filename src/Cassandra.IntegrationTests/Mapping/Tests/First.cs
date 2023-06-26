@@ -140,12 +140,12 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
                 .First<PocoWithEnumCollections>("SELECT * FROM tbl_with_enum_collections WHERE id = ?", 2001L);
             Assert.NotNull(result);
             Assert.AreEqual(2001L, result.Id);
-            Assert.AreEqual(new HairColor[0], result.List1);
-            Assert.AreEqual(new HairColor[0], result.List2);
-            Assert.AreEqual(new HairColor[0], result.Array1);
-            Assert.AreEqual(new HairColor[0], result.Set1);
-            Assert.AreEqual(new HairColor[0], result.Set2);
-            Assert.AreEqual(new HairColor[0], result.Set3);
+            Assert.AreEqual(Array.Empty<HairColor>(), result.List1);
+            Assert.AreEqual(Array.Empty<HairColor>(), result.List2);
+            Assert.AreEqual(Array.Empty<HairColor>(), result.Array1);
+            Assert.AreEqual(Array.Empty<HairColor>(), result.Set1);
+            Assert.AreEqual(Array.Empty<HairColor>(), result.Set2);
+            Assert.AreEqual(Array.Empty<HairColor>(), result.Set3);
             Assert.AreEqual(new Dictionary<HairColor, TimeUuid>(), result.Dictionary1);
             Assert.AreEqual(new Dictionary<HairColor, TimeUuid>(), result.Dictionary2);
             Assert.AreEqual(new Dictionary<HairColor, TimeUuid>(), result.Dictionary3);

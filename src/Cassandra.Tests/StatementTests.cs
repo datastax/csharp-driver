@@ -34,7 +34,7 @@ namespace Cassandra.Tests
 
         private static PreparedStatement GetPrepared(string query = Query, RowSetMetadata metadata = null, RowSetMetadata resultRowsMetadata = null)
         {
-            return new PreparedStatement(metadata, new byte[0], new ResultMetadata(null, resultRowsMetadata), query, null,
+            return new PreparedStatement(metadata, Array.Empty<byte>(), new ResultMetadata(null, resultRowsMetadata), query, null,
                 new SerializerManager(ProtocolVersion.MaxSupported));
         }
 
@@ -63,7 +63,7 @@ namespace Cassandra.Tests
         public void SimpleStatement_Bind_No_Values()
         {
             var stmt = new SimpleStatement(Query).Bind();
-            Assert.AreEqual(new object[0], stmt.QueryValues);
+            Assert.AreEqual(Array.Empty<object>(), stmt.QueryValues);
         }
 
         [Test]
@@ -200,13 +200,13 @@ namespace Cassandra.Tests
             var bound = ps.Bind(2001, 1001);
             Assert.NotNull(bound.RoutingKey);
             var serializer = new SerializerManager(ProtocolVersion.MaxSupported).GetCurrentSerializer();
-            var expectedRoutingKey = new byte[0]
-                .Concat(new byte[] {0, 4})
-                .Concat(serializer.Serialize(1001))
-                .Concat(new byte[] {0})
-                .Concat(new byte[] {0, 4})
-                .Concat(serializer.Serialize(2001))
-                .Concat(new byte[] {0});
+            var expectedRoutingKey = Array.Empty<byte>()
+                                          .Concat(new byte[] {0, 4})
+                                          .Concat(serializer.Serialize(1001))
+                                          .Concat(new byte[] {0})
+                                          .Concat(new byte[] {0, 4})
+                                          .Concat(serializer.Serialize(2001))
+                                          .Concat(new byte[] {0});
             CollectionAssert.AreEqual(expectedRoutingKey, bound.RoutingKey.RawRoutingKey);
         }
 
@@ -227,13 +227,13 @@ namespace Cassandra.Tests
             Assert.Null(stmt.RoutingKey);
             stmt.SetRoutingValues("id1", "id2");
             stmt.Serializer = new SerializerManager(ProtocolVersion.MaxSupported).GetCurrentSerializer();
-            var expectedRoutingKey = new byte[0]
-                .Concat(new byte[] { 0, 3 })
-                .Concat(stmt.Serializer.Serialize("id1"))
-                .Concat(new byte[] { 0 })
-                .Concat(new byte[] { 0, 3 })
-                .Concat(stmt.Serializer.Serialize("id2"))
-                .Concat(new byte[] { 0 });
+            var expectedRoutingKey = Array.Empty<byte>()
+                                          .Concat(new byte[] { 0, 3 })
+                                          .Concat(stmt.Serializer.Serialize("id1"))
+                                          .Concat(new byte[] { 0 })
+                                          .Concat(new byte[] { 0, 3 })
+                                          .Concat(stmt.Serializer.Serialize("id2"))
+                                          .Concat(new byte[] { 0 });
             CollectionAssert.AreEqual(expectedRoutingKey, stmt.RoutingKey.RawRoutingKey);
         }
 
@@ -254,13 +254,13 @@ namespace Cassandra.Tests
             Assert.Null(batch.RoutingKey);
             batch.SetRoutingValues("id11", "id22");
             batch.Serializer = new SerializerManager(ProtocolVersion.MaxSupported).GetCurrentSerializer();
-            var expectedRoutingKey = new byte[0]
-                .Concat(new byte[] { 0, 4 })
-                .Concat(batch.Serializer.Serialize("id11"))
-                .Concat(new byte[] { 0 })
-                .Concat(new byte[] { 0, 4 })
-                .Concat(batch.Serializer.Serialize("id22"))
-                .Concat(new byte[] { 0 });
+            var expectedRoutingKey = Array.Empty<byte>()
+                                          .Concat(new byte[] { 0, 4 })
+                                          .Concat(batch.Serializer.Serialize("id11"))
+                                          .Concat(new byte[] { 0 })
+                                          .Concat(new byte[] { 0, 4 })
+                                          .Concat(batch.Serializer.Serialize("id22"))
+                                          .Concat(new byte[] { 0 });
             CollectionAssert.AreEqual(expectedRoutingKey, batch.RoutingKey.RawRoutingKey);
         }
 

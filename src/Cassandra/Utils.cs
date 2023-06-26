@@ -251,7 +251,7 @@ namespace Cassandra
         {
             if (value == null)
             {
-                return new object[0];
+                return Array.Empty<object>();
             }
             var type = value.GetType();
             var valueList = new List<object>();
@@ -428,7 +428,7 @@ namespace Cassandra
         {
             if (value == null || value == "[]")
             {
-                return new string[0];
+                return Array.Empty<string>();
             }
             var list = new List<string>();
             string currentItem = null;

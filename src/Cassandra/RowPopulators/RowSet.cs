@@ -53,7 +53,7 @@ namespace Cassandra
     /// <remarks>Parallel enumerations are supported and thread-safe.</remarks>
     public class RowSet : IEnumerable<Row>, IDisposable
     {
-        private static readonly CqlColumn[] EmptyColumns = new CqlColumn[0];
+        private static readonly CqlColumn[] EmptyColumns = Array.Empty<CqlColumn>();
         private volatile Func<byte[], Task<RowSet>> _fetchNextPage;
         private volatile byte[] _pagingState;
         private int _isPaging;

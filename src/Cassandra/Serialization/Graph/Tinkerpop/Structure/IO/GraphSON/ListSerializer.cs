@@ -21,6 +21,7 @@
 
 #endregion
 
+using System;
 using System.Collections.Generic;
 using Cassandra.DataStax.Graph.Internal;
 using Newtonsoft.Json.Linq;
@@ -29,7 +30,7 @@ namespace Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON
 {
     internal class ListSerializer : IGraphSONDeserializer, IGraphSONSerializer
     {
-        private static readonly IReadOnlyList<object> EmptyList = new object[0];
+        private static readonly IReadOnlyList<object> EmptyList = Array.Empty<object>();
         
         public dynamic Objectify(JToken graphsonObject, IGraphSONReader reader)
         {

@@ -250,7 +250,7 @@ namespace Cassandra.Connections
             //NewAuthenticator will throw AuthenticationException when NoneAuthProvider
             var authenticator = Configuration.AuthProvider.NewAuthenticator(EndPoint.GetHostIpEndPointWithFallback());
 
-            var initialResponse = authenticator.InitialResponse() ?? new byte[0];
+            var initialResponse = authenticator.InitialResponse() ?? Array.Empty<byte>();
             return await Authenticate(initialResponse, authenticator).ConfigureAwait(false);
         }
 

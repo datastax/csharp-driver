@@ -70,7 +70,7 @@ namespace Cassandra.Tests
                 bucket.Remove(t6);
                 CollectionAssert.AreEqual(bucket.ToArray(), new[] { t5 });
                 bucket.Remove(t5);
-                CollectionAssert.AreEqual(bucket.ToArray(), new TimeoutItem[0]);
+                CollectionAssert.AreEqual(bucket.ToArray(), Array.Empty<TimeoutItem>());
             }
         }
 
@@ -115,7 +115,7 @@ namespace Cassandra.Tests
                 Assert.AreEqual(bucket.GetTail(), t2);
 
                 bucket.Remove(t2);
-                Assert.AreEqual(bucket.ToArray(), new TimeoutItem[0]);
+                Assert.AreEqual(bucket.ToArray(), Array.Empty<TimeoutItem>());
             }
         }
 

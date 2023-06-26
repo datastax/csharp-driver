@@ -13,6 +13,7 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
+using System;
 using System.Collections.Generic;
 
 namespace Cassandra.Serialization
@@ -28,7 +29,7 @@ namespace Cassandra.Serialization
         /// <summary>
         /// An instance of a buffer that represents the value Unset
         /// </summary>
-        internal static readonly byte[] UnsetBuffer = new byte[0];
+        internal static readonly byte[] UnsetBuffer = Array.Empty<byte>();
 
         private readonly GenericSerializer _genericSerializer;
         private volatile ISerializer _serializer;

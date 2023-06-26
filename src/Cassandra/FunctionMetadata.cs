@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 
+using System;
 using System.Collections.Generic;
 
 namespace Cassandra
@@ -23,7 +24,7 @@ namespace Cassandra
     /// </summary>
     public class FunctionMetadata
     {
-        private static readonly string[] EmptyStringArray = new string[0];
+        private static readonly string[] EmptyStringArray = Array.Empty<string>();
 
         /// <summary>
         /// Name of the CQL function.

@@ -88,7 +88,7 @@ namespace Cassandra.DataStax.Auth
         {
             private readonly byte[] _username;
             private readonly byte[] _password;
-            private readonly byte[] _authorizationId = new byte[0];
+            private readonly byte[] _authorizationId = Array.Empty<byte>();
 
             public PlainTextDseAuthenticator(string authenticatorName, string username, string password,
                 string authorizationId) : base(authenticatorName)

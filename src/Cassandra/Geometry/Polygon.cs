@@ -72,7 +72,7 @@ namespace Cassandra.Geometry
         /// <summary>
         /// Creates a new instance of <see cref="Polygon"/> with no rings (empty).
         /// </summary>
-        public Polygon() : this((IList<IList<Point>>) new IList<Point>[0])
+        public Polygon() : this((IList<IList<Point>>) Array.Empty<IList<Point>>())
         {
             
         }

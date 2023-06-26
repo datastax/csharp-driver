@@ -146,7 +146,7 @@ namespace Cassandra.Tests
             var hosts = new List<Host>
             {
                 { TestHelper.CreateHost("192.168.0.0", "dc1", "rack", new HashSet<string>{"0"})},
-                { TestHelper.CreateHost("192.168.0.1", "dc1", "rack", new string[0])},
+                { TestHelper.CreateHost("192.168.0.1", "dc1", "rack", Array.Empty<string>())},
                 { TestHelper.CreateHost("192.168.0.2", "dc1", "rack", new HashSet<string>{"20"})}
             };
             var keyspaces = new List<KeyspaceMetadata>

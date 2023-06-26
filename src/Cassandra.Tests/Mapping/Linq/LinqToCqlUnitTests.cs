@@ -528,7 +528,7 @@ APPLY BATCH".Replace("\r", ""));
         public void EmptyListTest()
         {
             var table = SessionExtensions.GetTable<LinqDecoratedEntity>(GetSession((_,__) => {}));
-            var keys = new string[0];
+            var keys = Array.Empty<string>();
             var query = table.Where(item => keys.Contains(item.pk));
 
             Assert.True(query.ToString().Contains("\"x_pk\" IN ?"), "The query must contain an empty IN statement");

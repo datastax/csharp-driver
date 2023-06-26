@@ -81,7 +81,7 @@ namespace Cassandra.Mapping
         /// <inheritdoc />
         public Task<IEnumerable<T>> FetchAsync<T>(CqlQueryOptions options = null)
         {
-            return FetchAsync<T>(Cql.New(string.Empty, new object[0], options ?? CqlQueryOptions.None));
+            return FetchAsync<T>(Cql.New(string.Empty, Array.Empty<object>(), options ?? CqlQueryOptions.None));
         }
 
         /// <inheritdoc />
@@ -121,7 +121,7 @@ namespace Cassandra.Mapping
         /// <inheritdoc />
         public Task<IPage<T>> FetchPageAsync<T>(CqlQueryOptions options = null)
         {
-            return FetchPageAsync<T>(Cql.New(string.Empty, new object[0], options ?? new CqlQueryOptions()));
+            return FetchPageAsync<T>(Cql.New(string.Empty, Array.Empty<object>(), options ?? new CqlQueryOptions()));
         }
 
         /// <inheritdoc />
@@ -499,7 +499,7 @@ namespace Cassandra.Mapping
         public IEnumerable<T> Fetch<T>(CqlQueryOptions queryOptions = null)
         {
             // Just let the SQL be auto-generated
-            return Fetch<T>(Cql.New(string.Empty, new object[0], queryOptions ?? CqlQueryOptions.None));
+            return Fetch<T>(Cql.New(string.Empty, Array.Empty<object>(), queryOptions ?? CqlQueryOptions.None));
         }
 
         /// <inheritdoc />
@@ -521,7 +521,7 @@ namespace Cassandra.Mapping
         /// <inheritdoc />
         public IPage<T> FetchPage<T>(CqlQueryOptions queryOptions = null)
         {
-            return FetchPage<T>(Cql.New(string.Empty, new object[0], queryOptions ?? new CqlQueryOptions()));
+            return FetchPage<T>(Cql.New(string.Empty, Array.Empty<object>(), queryOptions ?? new CqlQueryOptions()));
         }
 
         /// <inheritdoc />

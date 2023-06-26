@@ -31,7 +31,7 @@ namespace Cassandra
         private static readonly Logger Logger = new Logger(typeof(Host));
         private long _isUpNow = 1;
         private int _distance = (int)HostDistance.Ignored;
-        private static readonly IReadOnlyCollection<string> WorkloadsDefault = new string[0];
+        private static readonly IReadOnlyCollection<string> WorkloadsDefault = Array.Empty<string>();
 
         /// <summary>
         /// Event that gets raised when the host is set as DOWN (not available) by the driver, after being UP.
@@ -191,7 +191,7 @@ namespace Cassandra
         {
             Datacenter = row.GetValue<string>("data_center");
             Rack = row.GetValue<string>("rack");
-            Tokens = row.GetValue<IEnumerable<string>>("tokens") ?? new string[0];
+            Tokens = row.GetValue<IEnumerable<string>>("tokens") ?? Array.Empty<string>();
 
             if (row.ContainsColumn("release_version"))
             {

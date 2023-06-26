@@ -312,7 +312,7 @@ namespace Cassandra
         {
             if (signature == null)
             {
-                signature = new string[0];
+                signature = Array.Empty<string>();
             }
 
             var key = KeyspaceMetadata.GetFunctionKey(functionName, signature);
@@ -346,7 +346,7 @@ namespace Cassandra
         {
             if (signature == null)
             {
-                signature = new string[0];
+                signature = Array.Empty<string>();
             }
 
             var key = KeyspaceMetadata.GetFunctionKey(aggregateName, signature);

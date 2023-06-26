@@ -141,7 +141,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             var ks = GetCluster(metadataSync).Metadata.GetKeyspace("ks_udf");
             Assert.NotNull(ks);
-            var func = ks.GetFunction("return_one", new string[0]);
+            var func = ks.GetFunction("return_one", Array.Empty<string>());
             Assert.NotNull(func);
             Assert.AreEqual("return_one", func.Name);
             Assert.AreEqual("ks_udf", func.KeyspaceName);
@@ -154,7 +154,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(false, func.CalledOnNullInput);
             Assert.False(func.Monotonic);
             Assert.False(func.Deterministic);
-            Assert.AreEqual(func.MonotonicOn, new string[0]);
+            Assert.AreEqual(func.MonotonicOn, Array.Empty<string>());
         }
 
         [Test, TestCase(true), TestCase(false), TestCassandraVersion(2, 2)]
@@ -173,7 +173,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             var ks = GetCluster(metadataSync).Metadata.GetKeyspace("ks_udf");
             Assert.NotNull(ks);
-            var func = ks.GetFunction("func_does_not_exists", new string[0]);
+            var func = ks.GetFunction("func_does_not_exists", Array.Empty<string>());
             Assert.Null(func);
         }
 

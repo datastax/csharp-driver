@@ -25,7 +25,7 @@ namespace Cassandra.Collections
     /// </summary>
     internal class CopyOnWriteList<T> : ICollection<T>
     {
-        private static readonly T[] Empty = new T[0];
+        private static readonly T[] Empty = Array.Empty<T>();
 
         private volatile T[] _array;
         private readonly object _writeLock = new object();
