@@ -23,7 +23,6 @@ using Cassandra.SessionManagement;
 using Cassandra.Tests.ExecutionProfiles;
 using Moq;
 using NUnit.Framework;
-#pragma warning disable 618
 
 namespace Cassandra.Tests
 {
@@ -48,8 +47,10 @@ namespace Cassandra.Tests
         [Test]
         public void SimpleStatement_Bind_Positional_Values()
         {
+#pragma warning disable 618
             var stmt = new SimpleStatement(Query).Bind(1, "value 2", 10030L);
             CollectionAssert.AreEqual(new object[] { 1, "value 2", 10030L }, stmt.QueryValues);
+#pragma warning restore 618
         }
 
         [Test]
@@ -62,8 +63,10 @@ namespace Cassandra.Tests
         [Test]
         public void SimpleStatement_Bind_No_Values()
         {
+#pragma warning disable 618
             var stmt = new SimpleStatement(Query).Bind();
             Assert.AreEqual(Array.Empty<object>(), stmt.QueryValues);
+#pragma warning restore 618
         }
 
         [Test]
@@ -113,7 +116,9 @@ namespace Cassandra.Tests
         public void SimpleStatement_Bind_Named_Values()
         {
             var values = new { Name = "Futurama", Description = "In Stereo where available", Time = DateTimeOffset.Parse("1963-08-28") };
+#pragma warning disable 618
             var stmt = new SimpleStatement(Query).Bind(values);
+#pragma warning restore 618
             var actualValues = new Dictionary<string, object>();
             Assert.AreEqual(3, stmt.QueryValueNames.Count);
             Assert.AreEqual(3, stmt.QueryValues.Length);

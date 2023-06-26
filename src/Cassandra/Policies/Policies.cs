@@ -48,9 +48,7 @@ namespace Cassandra
         /// </summary>
         public static ILoadBalancingPolicy NewDefaultLoadBalancingPolicy(string localDc)
         {
-#pragma warning disable 618
             return new DefaultLoadBalancingPolicy(localDc);
-#pragma warning restore 618
         }
 
         /// <summary>
