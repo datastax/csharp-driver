@@ -33,7 +33,7 @@ namespace Cassandra.IntegrationTests.Linq.Structures
         [PartitionKey]
         public string StringType { get; set; }
 
-        [Cassandra.Data.Linq.ClusteringKey(1)]
+        [ClusteringKey(1)]
         public Guid GuidType { get; set; }
 
         public DateTime DateTimeType { get; set; }

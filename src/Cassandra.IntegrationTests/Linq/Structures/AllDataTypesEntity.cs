@@ -88,7 +88,7 @@ namespace Cassandra.IntegrationTests.Linq.Structures
         [Cassandra.Data.Linq.Column("string_type")]
         public string StringType { get; set; }
 
-        [Cassandra.Data.Linq.ClusteringKey(1)]
+        [ClusteringKey(1)]
         [Cassandra.Data.Linq.Column("guid_type")]
         public Guid GuidType { get; set; }
 

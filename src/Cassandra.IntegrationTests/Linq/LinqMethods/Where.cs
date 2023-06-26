@@ -774,7 +774,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             [Cassandra.Data.Linq.Column("date")]
             public int Date { get; set; }
 
-            [Cassandra.Data.Linq.ClusteringKey(1)]
+            [ClusteringKey(1)]
             [Cassandra.Data.Linq.Column("time")]
             public long TimeColumn { get; set; }
         }

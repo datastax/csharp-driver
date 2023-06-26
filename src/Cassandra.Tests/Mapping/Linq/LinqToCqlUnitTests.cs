@@ -394,7 +394,7 @@ APPLY BATCH".Replace("\r", ""));
             [PartitionKey]
             public int RowKey { get; set; }
 
-            [Data.Linq.ClusteringKey(1)]
+            [ClusteringKey(1)]
             [Data.Linq.SecondaryIndex]
             public string ClusteringKey { get; set; }
 
@@ -421,7 +421,7 @@ APPLY BATCH".Replace("\r", ""));
             [PartitionKey]
             public int RowKey1 { get; set; }
 
-            [Data.Linq.ClusteringKey(0)]
+            [ClusteringKey(0)]
             public int RowKey2 { get; set; }
 
             [Data.Linq.Counter]
@@ -437,7 +437,7 @@ APPLY BATCH".Replace("\r", ""));
             [PartitionKey(1)]
             public int RowKey2 { get; set; }
 
-            [Data.Linq.ClusteringKey(0)]
+            [ClusteringKey(0)]
             public int CKey1 { get; set; }
 
             [Data.Linq.Counter]

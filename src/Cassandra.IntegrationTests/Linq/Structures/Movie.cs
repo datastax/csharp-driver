@@ -47,7 +47,7 @@ namespace Cassandra.IntegrationTests.Linq.Structures
         [Cassandra.Data.Linq.Column("list")]
         public List<string> ExampleSet = new List<string>();
 
-        [Cassandra.Data.Linq.ClusteringKey(1)]
+        [ClusteringKey(1)]
         [Cassandra.Data.Linq.Column("director")]
         public string Director { get; set; }
 

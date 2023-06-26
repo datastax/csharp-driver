@@ -1014,12 +1014,10 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             [Linq::Column("somepartitionkey2")]
             public string SomePartitionKey2 = "somepartitionkey2_val";
 
-            [Linq::ClusteringKey(1)]
             [ClusteringKey(1)]
             [Linq::Column("guid1")]
             public Guid Guid1;
 
-            [Linq::ClusteringKey(2)]
             [ClusteringKey(2)]
             [Linq::Column("guid2")]
             public Guid Guid2;

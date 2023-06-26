@@ -726,7 +726,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             // ReSharper disable once UnusedMember.Local
             public int Id { get; set; }
 
-            [Cassandra.Data.Linq.ClusteringKey(1)]
+            [ClusteringKey(1)]
             [Cassandra.Data.Linq.Column]
             // ReSharper disable once InconsistentNaming
             // ReSharper disable once UnusedMember.Local

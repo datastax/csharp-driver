@@ -37,7 +37,7 @@ namespace Cassandra.IntegrationTests.CqlFunctions.Structures
         public Guid GuidType { get; set; }
 
         [Cassandra.Data.Linq.Column("time_uuid_type")]
-        [Cassandra.Data.Linq.ClusteringKey(1)]
+        [ClusteringKey(1)]
         public TimeUuid? NullableTimeUuidType { get; set; }
 
         public static void AssertEquals(EntityWithNullableTimeUuid expectedEntity, EntityWithNullableTimeUuid actualEntity)
