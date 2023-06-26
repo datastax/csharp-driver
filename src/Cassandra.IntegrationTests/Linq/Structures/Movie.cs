@@ -33,25 +33,25 @@ namespace Cassandra.IntegrationTests.Linq.Structures
     {
         public const string TableName = "coolMovies";
 
-        [Column("mainGuy")]
+        [Cassandra.Data.Linq.Column("mainGuy")]
         public string MainActor;
 
-        [Cassandra.Data.Linq.PartitionKey]
-        [Column("movie_maker")]
+        [PartitionKey(2)]
+        [Cassandra.Data.Linq.Column("movie_maker")]
         public string MovieMaker;
 
-        [Cassandra.Data.Linq.PartitionKey]
-        [Column("unique_movie_title")]
+        [PartitionKey(1)]
+        [Cassandra.Data.Linq.Column("unique_movie_title")]
         public string Title;
 
-        [Column("list")]
+        [Cassandra.Data.Linq.Column("list")]
         public List<string> ExampleSet = new List<string>();
 
         [Cassandra.Data.Linq.ClusteringKey(1)]
-        [Column("director")]
+        [Cassandra.Data.Linq.Column("director")]
         public string Director { get; set; }
 
-        [Column("yearMade")]
+        [Cassandra.Data.Linq.Column("yearMade")]
         public int? Year { get; set; }
 
         public Movie()

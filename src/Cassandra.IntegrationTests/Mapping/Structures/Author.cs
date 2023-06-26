@@ -29,10 +29,10 @@ namespace Cassandra.IntegrationTests.Mapping.Structures
     public class Author
     {
         [PartitionKey]
-        [Column("authorid")]
+        [Cassandra.Data.Linq.Column("authorid")]
         public string AuthorId;
 
-        [Column("followers")]
+        [Cassandra.Data.Linq.Column("followers")]
         public List<string> Followers;
 
         public void AssertEquals(Author actualAuthor)

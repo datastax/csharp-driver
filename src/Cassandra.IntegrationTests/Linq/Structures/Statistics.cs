@@ -14,7 +14,8 @@
 //   limitations under the License.
 //
 
-using Cassandra.Data.Linq;
+using Cassandra.Mapping.Attributes;
+
 #pragma warning disable 618
 
 namespace Cassandra.IntegrationTests.Linq.Structures
@@ -23,7 +24,7 @@ namespace Cassandra.IntegrationTests.Linq.Structures
     {
         [PartitionKey] public string author_id;
 
-        [Counter] public long followers_count;
-        [Counter] public long tweets_count;
+        [Cassandra.Data.Linq.Counter] public long followers_count;
+        [Cassandra.Data.Linq.Counter] public long tweets_count;
     }
 }

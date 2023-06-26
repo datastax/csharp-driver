@@ -21,7 +21,7 @@ using Cassandra.Mapping.Attributes;
 
 namespace Cassandra.Tests.Mapping.Pocos
 {
-    [Data.Linq.Table(CaseSensitive=false, Name="tbl1")]
+    [Table(CaseSensitive=false, Name="tbl1")]
     public class LinqDecoratedCaseInsensitiveEntity
     {
         [Column("i_id"), PartitionKey]
@@ -31,7 +31,7 @@ namespace Cassandra.Tests.Mapping.Pocos
         public string StringValue { get; set; }
 
         [Column("val2")]
-        [Data.Linq.SecondaryIndex]
+        [SecondaryIndex]
         public string AnotherStringValue { get; set; }
 
         public DateTimeOffset Date { get; set; }

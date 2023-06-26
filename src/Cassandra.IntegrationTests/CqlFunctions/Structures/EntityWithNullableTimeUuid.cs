@@ -29,14 +29,14 @@ namespace Cassandra.IntegrationTests.CqlFunctions.Structures
     {
         private const int DefaultRecordCount = 6;
 
-        [Cassandra.Data.Linq.PartitionKey]
-        [Column("string_type")]
+        [PartitionKey]
+        [Cassandra.Data.Linq.Column("string_type")]
         public string StringType = "someStringVal";
 
-        [Column("guid_type")]
+        [Cassandra.Data.Linq.Column("guid_type")]
         public Guid GuidType { get; set; }
 
-        [Column("time_uuid_type")]
+        [Cassandra.Data.Linq.Column("time_uuid_type")]
         [Cassandra.Data.Linq.ClusteringKey(1)]
         public TimeUuid? NullableTimeUuidType { get; set; }
 

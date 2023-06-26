@@ -14,7 +14,6 @@
 //   limitations under the License.
 //
 
-using Cassandra.Mapping.Attributes;
 using Linq = Cassandra.Data.Linq;
 using Mapping = Cassandra.Mapping;
 
@@ -26,7 +25,7 @@ namespace Cassandra.IntegrationTests.Linq.Structures
     // ReSharper disable once ClassNeverInstantiated.Local
     class EmptyClusteringColumnName
     {
-        [Linq::PartitionKey]
+        [Linq::Column("id")]
         [Mapping::Attributes.PartitionKey]
         [Mapping::Attributes.Column("id")]
         // ReSharper disable once UnusedMember.Local

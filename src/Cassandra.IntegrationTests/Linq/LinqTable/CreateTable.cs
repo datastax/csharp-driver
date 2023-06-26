@@ -721,18 +721,18 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         // ReSharper disable once ClassNeverInstantiated.Local
         private class TestEmptyClusteringColumnName
         {
-            [Cassandra.Data.Linq.PartitionKey]
-            [Column("id")]
+            [PartitionKey]
+            [Cassandra.Data.Linq.Column("id")]
             // ReSharper disable once UnusedMember.Local
             public int Id { get; set; }
 
             [Cassandra.Data.Linq.ClusteringKey(1)]
-            [Column]
+            [Cassandra.Data.Linq.Column]
             // ReSharper disable once InconsistentNaming
             // ReSharper disable once UnusedMember.Local
             public string cluster { get; set; }
             
-            [Column]
+            [Cassandra.Data.Linq.Column]
             // ReSharper disable once InconsistentNaming
             // ReSharper disable once UnusedMember.Local
             public string value { get; set; }

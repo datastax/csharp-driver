@@ -14,36 +14,35 @@
 //   limitations under the License.
 //
 
-using Cassandra.Data.Linq;
 using Cassandra.Mapping.Attributes;
 
 #pragma warning disable 618
 
 namespace Cassandra.Tests.Mapping.Pocos
 {
-    [AllowFiltering]
-    [Data.Linq.Table("x_t")]
+    [Cassandra.Data.Linq.AllowFiltering]
+    [Table("x_t")]
     public class LinqDecoratedEntity
     {
         [PartitionKey]
         [Column("x_pk")]
         public string pk { get; set; }
 
-        [Data.Linq.ClusteringKey(1)]
+        [ClusteringKey(1)]
         [Column("x_ck1")]
         public int? ck1 { get; set; }
 
-        [Data.Linq.ClusteringKey(2)]
+        [ClusteringKey(2)]
         [Column("x_ck2")]
         public int ck2 { get; set; }
 
         [Column("x_f1")]
         public int f1 { get; set; }
 
-        [Data.Linq.Ignore]
+        [Ignore]
         public string Ignored1 { get; set; }
 
-        [Data.Linq.Ignore]
+        [Ignore]
         public FluentUser Ignored2 { get; set; }
     }
 }

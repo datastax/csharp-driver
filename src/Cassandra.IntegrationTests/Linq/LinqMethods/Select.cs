@@ -23,6 +23,7 @@ using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.SimulacronAPI;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
+using Cassandra.Mapping.Attributes;
 using Cassandra.Tests.Mapping.Pocos;
 
 using NUnit.Framework;
@@ -572,10 +573,10 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             Assert.AreEqual(value1, c.S1);
         }
 
-        [Table]
+        [Cassandra.Data.Linq.Table]
         public class TestMapper
         {
-            [PartitionKey]
+            [PartitionKey(1)]
             public int Id;
 
             public string Col1;

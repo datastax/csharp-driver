@@ -20,13 +20,14 @@ using System.Linq;
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.SimulacronAPI;
 using Cassandra.IntegrationTests.TestBase;
+using Cassandra.Mapping.Attributes;
 using NUnit.Framework;
 #pragma warning disable 618
 
 namespace Cassandra.IntegrationTests.Linq.Structures
 {
     [AllowFiltering]
-    [Table(ManyDataTypesEntity.TableName)]
+    [Cassandra.Data.Linq.Table(ManyDataTypesEntity.TableName)]
     public class ManyDataTypesEntity
     {
         public const string TableName = "ManyDataTypesEntity";

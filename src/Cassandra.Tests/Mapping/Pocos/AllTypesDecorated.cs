@@ -24,7 +24,7 @@ namespace Cassandra.Tests.Mapping.Pocos
     /// <summary>
     /// Test utility: Represents an application entity with most of single types as properties
     /// </summary>
-    [Data.Linq.Table("atd")]
+    [Table("atd")]
     public class AllTypesDecorated
     {
         [Column("boolean_VALUE")]
@@ -41,7 +41,7 @@ namespace Cassandra.Tests.Mapping.Pocos
         public int IntValue { get; set; }
         [Column("string_VALUE")]
         public string StringValue { get; set; }
-        [Data.Linq.ClusteringKey(0)]
+        [ClusteringKey(0)]
         [Column("timeuuid_VALUE")]
         public TimeUuid TimeUuidValue { get; set; }
         [PartitionKey]

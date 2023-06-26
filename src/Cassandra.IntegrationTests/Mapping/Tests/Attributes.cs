@@ -913,16 +913,15 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [Linq::Table("pocowithignrdattr_linqandmapping")]
         private class PocoWithIgnrdAttr_LinqAndMapping
         {
-            [Linq::PartitionKey]
             [PartitionKey]
-            [Column("somepartitionkey")]
+            [Linq::Column("somepartitionkey")]
             public string SomePartitionKey = "somePartitionKeyDefaultValue";
 
-            [Column("somenonignoreddouble")]
+            [Linq::Column("somenonignoreddouble")]
             public double SomeNonIgnoredDouble = 123456;
 
             [Cassandra.Mapping.Attributes.Ignore]
-            [Column(Attributes.IgnoredStringAttribute)]
+            [Linq::Column(Attributes.IgnoredStringAttribute)]
             public string IgnoredStringAttribute = "someIgnoredString";
         }
 
@@ -988,45 +987,41 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [Linq::Table("pocowithcompositekey")]
         private class PocoWithCompositeKey
         {
-            [Linq::PartitionKey]
             [PartitionKey(1)]
-            [Column("somepartitionkey1")]
+            [Linq::Column("somepartitionkey1")]
             public string SomePartitionKey1 = "somepartitionkey1_val";
 
-            [Linq::PartitionKey]
             [PartitionKey(2)]
-            [Column("somepartitionkey2")]
+            [Linq::Column("somepartitionkey2")]
             public string SomePartitionKey2 = "somepartitionkey2_val";
 
-            [Column("listofguids")]
+            [Linq::Column("listofguids")]
             public List<Guid> ListOfGuids;
 
             [Cassandra.Mapping.Attributes.Ignore]
-            [Column("ignoredstring")]
+            [Linq::Column("ignoredstring")]
             public string IgnoredString = "someIgnoredString_val";
         }
 
         [Linq::Table("pocowithclusteringkeys")]
         private class PocoWithClusteringKeys
         {
-            [Linq::PartitionKey]
             [PartitionKey(1)]
-            [Column("somepartitionkey1")]
+            [Linq::Column("somepartitionkey1")]
             public string SomePartitionKey1 = "somepartitionkey1_val";
 
-            [Linq::PartitionKey]
             [PartitionKey(2)]
-            [Column("somepartitionkey2")]
+            [Linq::Column("somepartitionkey2")]
             public string SomePartitionKey2 = "somepartitionkey2_val";
 
             [Linq::ClusteringKey(1)]
             [ClusteringKey(1)]
-            [Column("guid1")]
+            [Linq::Column("guid1")]
             public Guid Guid1;
 
             [Linq::ClusteringKey(2)]
             [ClusteringKey(2)]
-            [Column("guid2")]
+            [Linq::Column("guid2")]
             public Guid Guid2;
         }
     }

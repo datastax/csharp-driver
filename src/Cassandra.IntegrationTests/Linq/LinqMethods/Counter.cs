@@ -23,7 +23,7 @@ using Cassandra.IntegrationTests.SimulacronAPI;
 using Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.Then;
 using Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.When;
 using Cassandra.Mapping;
-
+using Cassandra.Mapping.Attributes;
 using NUnit.Framework;
 
 #pragma warning disable 618
@@ -311,10 +311,10 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             [Cassandra.Data.Linq.Counter]
             public long Counter;
 
-            [Cassandra.Data.Linq.PartitionKey]
+            [PartitionKey(1)]
             public Guid KeyPart1;
 
-            [Cassandra.Data.Linq.PartitionKey]
+            [PartitionKey(2)]
             public Decimal KeyPart2;
 
             public static IWhenQueryBuilder WithParams(IWhenQueryBuilder builder, params (string, CounterEntityWithLinqAttributes)[] parameters)

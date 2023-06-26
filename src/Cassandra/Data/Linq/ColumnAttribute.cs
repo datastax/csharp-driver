@@ -14,24 +14,23 @@
 //   limitations under the License.
 //
 
-using Cassandra.Mapping.Attributes;
+using System;
 
-#pragma warning disable 618
-
-namespace Cassandra.Tests.Mapping.Pocos
+namespace Cassandra.Data.Linq
 {
-    [Table(Name = "Items", CaseSensitive = false)]
-    public class LinqDecoratedEntityWithStaticField
+    [Obsolete("Linq attributes are deprecated, use mapping attributes defined in Cassandra.Mapping.Attributes instead.")]
+    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, Inherited = true, AllowMultiple = false)]
+    public sealed class ColumnAttribute : Attribute
     {
-        [PartitionKey]
-        public int Key { get; set; }
+        public string Name { get; set; }
 
-        [StaticColumn]
-        public string KeyName { get; set; }
+        public ColumnAttribute()
+        {
+        }
 
-        [ClusteringKey(1)]
-        public int ItemId { get; set; }
-
-        public decimal Value { get; set; }
+        public ColumnAttribute(string name)
+        {
+            Name = name;
+        }
     }
 }

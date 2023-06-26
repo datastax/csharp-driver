@@ -15,8 +15,9 @@
 //
 
 using System;
-using Cassandra.Data.Linq;
 using System.Diagnostics;
+using Cassandra.Mapping.Attributes;
+
 #pragma warning disable 618
 
 namespace Cassandra.IntegrationTests.Linq.Structures
@@ -26,8 +27,8 @@ namespace Cassandra.IntegrationTests.Linq.Structures
         public string author_id;
 
         public string body;
-        [SecondaryIndex] public DateTimeOffset date;
-        [ClusteringKey(0)] public Guid tweet_id;
+        [Cassandra.Data.Linq.SecondaryIndex] public DateTimeOffset date;
+        [Cassandra.Data.Linq.ClusteringKey(0)] public Guid tweet_id;
         [PartitionKey] public string user_id;
 
         public void display()

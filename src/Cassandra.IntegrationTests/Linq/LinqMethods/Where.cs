@@ -766,16 +766,16 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         {
             public const string TableName = "test1";
 
-            [Cassandra.Data.Linq.PartitionKey]
-            [Column("user")]
+            [PartitionKey(1)]
+            [Cassandra.Data.Linq.Column("user")]
             public int UserId { get; set; }
 
-            [Cassandra.Data.Linq.PartitionKey]
-            [Column("date")]
+            [PartitionKey(2)]
+            [Cassandra.Data.Linq.Column("date")]
             public int Date { get; set; }
 
             [Cassandra.Data.Linq.ClusteringKey(1)]
-            [Column("time")]
+            [Cassandra.Data.Linq.Column("time")]
             public long TimeColumn { get; set; }
         }
     }

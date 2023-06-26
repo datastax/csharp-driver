@@ -17,6 +17,8 @@
 using System;
 using System.Collections.Generic;
 using Cassandra.Data.Linq;
+using Cassandra.Mapping.Attributes;
+
 #pragma warning disable 618
 
 namespace Cassandra.IntegrationTests.Linq.Structures
@@ -25,13 +27,13 @@ namespace Cassandra.IntegrationTests.Linq.Structures
     /// Note: the Table Name meta value here is lowercase so it will be compatible with default behavior with CqlPoco, please leave it lowercase.
     /// </summary>
     [AllowFiltering]
-    [Table("alldatatypesnocolumnmeta")]
+    [Cassandra.Data.Linq.Table("alldatatypesnocolumnmeta")]
     public class AllDataTypesNoColumnMeta : IAllDataTypesEntity
     {
         [PartitionKey]
         public string StringType { get; set; }
 
-        [ClusteringKey(1)]
+        [Cassandra.Data.Linq.ClusteringKey(1)]
         public Guid GuidType { get; set; }
 
         public DateTime DateTimeType { get; set; }
