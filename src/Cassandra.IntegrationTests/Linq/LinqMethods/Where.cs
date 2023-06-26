@@ -24,6 +24,7 @@ using Cassandra.IntegrationTests.SimulacronAPI;
 using Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.Then;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
+using Cassandra.Mapping.Attributes;
 using Cassandra.Tests.Mapping.Pocos;
 
 using NUnit.Framework;
@@ -760,20 +761,20 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         }
 
         [AllowFiltering]
-        [Table(TestTable.TableName)]
+        [Cassandra.Data.Linq.Table(TestTable.TableName)]
         public class TestTable
         {
             public const string TableName = "test1";
 
-            [PartitionKey(1)]
+            [Cassandra.Data.Linq.PartitionKey]
             [Column("user")]
             public int UserId { get; set; }
 
-            [PartitionKey(2)]
+            [Cassandra.Data.Linq.PartitionKey]
             [Column("date")]
             public int Date { get; set; }
 
-            [ClusteringKey(1)]
+            [Cassandra.Data.Linq.ClusteringKey(1)]
             [Column("time")]
             public long TimeColumn { get; set; }
         }

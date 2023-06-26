@@ -21,13 +21,14 @@ using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.SimulacronAPI;
 using Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.Then;
 using Cassandra.IntegrationTests.TestBase;
+using Cassandra.Mapping.Attributes;
 using NUnit.Framework;
 #pragma warning disable 618
 
 namespace Cassandra.IntegrationTests.Linq.Structures
 {
     [AllowFiltering]
-    [Table(Movie.TableName)]
+    [Cassandra.Data.Linq.Table(Movie.TableName)]
     public class Movie
     {
         public const string TableName = "coolMovies";
@@ -35,18 +36,18 @@ namespace Cassandra.IntegrationTests.Linq.Structures
         [Column("mainGuy")]
         public string MainActor;
 
-        [PartitionKey(2)]
+        [Cassandra.Data.Linq.PartitionKey]
         [Column("movie_maker")]
         public string MovieMaker;
 
-        [PartitionKey(1)]
+        [Cassandra.Data.Linq.PartitionKey]
         [Column("unique_movie_title")]
         public string Title;
 
         [Column("list")]
         public List<string> ExampleSet = new List<string>();
 
-        [ClusteringKey(1)]
+        [Cassandra.Data.Linq.ClusteringKey(1)]
         [Column("director")]
         public string Director { get; set; }
 

@@ -23,6 +23,7 @@ using Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder;
 using Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.Then;
 using Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.When;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
+using Cassandra.Mapping.Attributes;
 using Guid = System.Guid;
 
 #pragma warning disable 618
@@ -30,7 +31,7 @@ using Guid = System.Guid;
 namespace Cassandra.IntegrationTests.Linq.Structures
 {
     [AllowFiltering]
-    [Table(AllDataTypesEntity.TableName)]
+    [Cassandra.Data.Linq.Table(AllDataTypesEntity.TableName)]
     public class AllDataTypesEntity : IAllDataTypesEntity
     {
         public const string TableName = "allDataTypes";
@@ -83,11 +84,11 @@ namespace Cassandra.IntegrationTests.Linq.Structures
 
         public const int DefaultListLength = 5;
 
-        [PartitionKey]
+        [Cassandra.Data.Linq.PartitionKey]
         [Column("string_type")]
         public string StringType { get; set; }
 
-        [ClusteringKey(1)]
+        [Cassandra.Data.Linq.ClusteringKey(1)]
         [Column("guid_type")]
         public Guid GuidType { get; set; }
 

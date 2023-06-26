@@ -17,18 +17,19 @@
 using System;
 using System.Collections.Generic;
 using Cassandra.Data.Linq;
+using Cassandra.Mapping.Attributes;
 using NUnit.Framework;
 #pragma warning disable 618
 
 namespace Cassandra.IntegrationTests.CqlFunctions.Structures
 {
-    [Table("EntityWithNullableTimeUuid")]
+    [Cassandra.Data.Linq.Table("EntityWithNullableTimeUuid")]
     [AllowFiltering]
     public class EntityWithNullableTimeUuid
     {
         private const int DefaultRecordCount = 6;
 
-        [PartitionKey]
+        [Cassandra.Data.Linq.PartitionKey]
         [Column("string_type")]
         public string StringType = "someStringVal";
 
@@ -36,7 +37,7 @@ namespace Cassandra.IntegrationTests.CqlFunctions.Structures
         public Guid GuidType { get; set; }
 
         [Column("time_uuid_type")]
-        [ClusteringKey(1)]
+        [Cassandra.Data.Linq.ClusteringKey(1)]
         public TimeUuid? NullableTimeUuidType { get; set; }
 
         public static void AssertEquals(EntityWithNullableTimeUuid expectedEntity, EntityWithNullableTimeUuid actualEntity)

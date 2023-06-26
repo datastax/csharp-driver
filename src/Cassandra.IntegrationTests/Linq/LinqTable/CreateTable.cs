@@ -25,6 +25,7 @@ using Cassandra.IntegrationTests.SimulacronAPI.SystemTables;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.Mapping;
+using Cassandra.Mapping.Attributes;
 using Cassandra.Tests.Mapping.Pocos;
 using NUnit.Framework;
 #pragma warning disable 612
@@ -716,16 +717,16 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         {
         }
 
-        [Table("test_empty_clustering_column_name")]
+        [Cassandra.Data.Linq.Table("test_empty_clustering_column_name")]
         // ReSharper disable once ClassNeverInstantiated.Local
         private class TestEmptyClusteringColumnName
         {
-            [PartitionKey]
+            [Cassandra.Data.Linq.PartitionKey]
             [Column("id")]
             // ReSharper disable once UnusedMember.Local
             public int Id { get; set; }
 
-            [ClusteringKey(1)]
+            [Cassandra.Data.Linq.ClusteringKey(1)]
             [Column]
             // ReSharper disable once InconsistentNaming
             // ReSharper disable once UnusedMember.Local

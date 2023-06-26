@@ -23,6 +23,7 @@ using System.Threading.Tasks;
 using Cassandra.Connections.Control;
 using Cassandra.Data.Linq;
 using Cassandra.Mapping;
+using Cassandra.Mapping.Attributes;
 using Cassandra.Serialization;
 using Cassandra.Tests.Mapping.Pocos;
 using Moq;
@@ -387,14 +388,14 @@ APPLY BATCH".Replace("\r", ""));
             }
         }
 
-        [Table]
+        [Data.Linq.Table]
         private class AllowFilteringTestTable
         {
             [PartitionKey]
             public int RowKey { get; set; }
 
-            [ClusteringKey(1)]
-            [SecondaryIndex]
+            [Data.Linq.ClusteringKey(1)]
+            [Data.Linq.SecondaryIndex]
             public string ClusteringKey { get; set; }
 
             public decimal Value { get; set; }
@@ -414,20 +415,20 @@ APPLY BATCH".Replace("\r", ""));
             Trace.WriteLine(cqlQuery.ToString());
         }
 
-        [Table]
+        [Data.Linq.Table]
         private class CounterTestTable1
         {
             [PartitionKey]
             public int RowKey1 { get; set; }
 
-            [ClusteringKey(0)]
+            [Data.Linq.ClusteringKey(0)]
             public int RowKey2 { get; set; }
 
-            [Counter]
+            [Data.Linq.Counter]
             public long Value { get; set; }
         }
 
-        [Table]
+        [Data.Linq.Table]
         public class CounterTestTable2
         {
             [PartitionKey(0)]
@@ -436,10 +437,10 @@ APPLY BATCH".Replace("\r", ""));
             [PartitionKey(1)]
             public int RowKey2 { get; set; }
 
-            [ClusteringKey(0)]
+            [Data.Linq.ClusteringKey(0)]
             public int CKey1 { get; set; }
 
-            [Counter]
+            [Data.Linq.Counter]
             public long Value { get; set; }
         }
 

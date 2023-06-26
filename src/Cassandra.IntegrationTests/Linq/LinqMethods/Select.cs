@@ -575,7 +575,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         [Table]
         public class TestMapper
         {
-            [PartitionKey(1)]
+            [PartitionKey]
             public int Id;
 
             public string Col1;

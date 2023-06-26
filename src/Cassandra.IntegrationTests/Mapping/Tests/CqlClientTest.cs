@@ -14,12 +14,13 @@
 //   limitations under the License.
 //
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
 using Cassandra.Data.Linq;
 using Cassandra.Mapping;
-
+using Cassandra.Mapping.Attributes;
 using NUnit.Framework;
 
 #pragma warning disable 618
@@ -112,10 +113,10 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         {
             [Cassandra.Data.Linq.PartitionKeyAttribute]
             [Cassandra.Mapping.Attributes.PartitionKey]
-            [Cassandra.Data.Linq.Column("somestring1")]
+            [Column("somestring1")]
             public string SomeString1 = "somevalue_1_";
 
-            [Cassandra.Data.Linq.Column("somedouble1")]
+            [Column("somedouble1")]
             public double SomeDouble1 = 1;
         }
 
@@ -124,10 +125,10 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         {
             [Cassandra.Data.Linq.PartitionKeyAttribute]
             [Cassandra.Mapping.Attributes.PartitionKey]
-            [Cassandra.Data.Linq.Column("somestring2")]
+            [Column("somestring2")]
             public string SomeString2 = "somevalue_2_";
 
-            [Cassandra.Data.Linq.Column("somedouble2")]
+            [Column("somedouble2")]
             public double SomeDouble2 = 2;
         }
 
@@ -150,5 +151,12 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
                 Column(u => u.SomeString2, cm => cm.WithName("somestring2"));
             }
         }
+    }
+}
+
+namespace Cassandra.Data.Linq
+{
+    internal class PartitionKeyAttribute : Attribute
+    {
     }
 }

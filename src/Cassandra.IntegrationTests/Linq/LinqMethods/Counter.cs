@@ -311,10 +311,10 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             [Cassandra.Data.Linq.Counter]
             public long Counter;
 
-            [Cassandra.Data.Linq.PartitionKey(1)]
+            [Cassandra.Data.Linq.PartitionKey]
             public Guid KeyPart1;
 
-            [Cassandra.Data.Linq.PartitionKey(2)]
+            [Cassandra.Data.Linq.PartitionKey]
             public Decimal KeyPart2;
 
             public static IWhenQueryBuilder WithParams(IWhenQueryBuilder builder, params (string, CounterEntityWithLinqAttributes)[] parameters)
