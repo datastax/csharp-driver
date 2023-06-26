@@ -927,24 +927,6 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         }
 
         /// <summary>
-        /// See PocoWithIgnoredAttributes for correctly implemented counterpart
-        /// </summary>
-        [Linq::Table("pocowithwrongfieldlabeledpk")]
-        private class PocoWithWrongFieldLabeledPk
-        {
-            [Linq::PartitionKey]
-            [Linq::Column("somepartitionkey")]
-            public string SomePartitionKey = "somePartitionKeyDefaultValue";
-
-            [Linq::Column("somenonignoreddouble")]
-            public double SomeNonIgnoredDouble = 123456;
-
-            [PartitionKey]
-            [Linq::Column("someotherstring")]
-            public string SomeOtherString = "someOtherString";
-        }
-
-        /// <summary>
         /// Class with Mapping.Attributes.Partition key ommitted
         /// </summary>
         private class PocoWithOnlyPartitionKeyNotLabeled
@@ -975,7 +957,6 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         /// </summary>
         private class PocoWithPartitionKeyOmitted
         {
-            public double SomeDouble = 123456;
             public List<string> SomeList = new List<string>();
         }
 

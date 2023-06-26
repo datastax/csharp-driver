@@ -693,8 +693,10 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
 
         private class PocoWithAdditionalField
         {
+#pragma warning disable CS0414
             public string SomeString = "someStringValue";
             public string SomeOtherString = "someOtherStringValue";
+#pragma warning restore CS0414
         }
     }
 }
