@@ -40,12 +40,6 @@ namespace Cassandra
         /// </summary>
         protected CqlColumn[] Columns { get; set; }
 
-        [Obsolete("This property is deprecated and to be removed in future versions.")]
-        protected byte[][] Values { get; set; }
-
-        [Obsolete("This property is deprecated and to be removed in future versions.")]
-        protected int ProtocolVersion { get; set; }
-
         /// <summary>
         /// Gets the total amount of values inside the row
         /// </summary>
@@ -67,19 +61,6 @@ namespace Cassandra
         public Row()
         {
             //Default constructor for client test and mocking frameworks
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the Cassandra.Row class
-        /// </summary>
-        [Obsolete("This constructor is deprecated and to be removed in future versions. " +
-                  "If you need to create mock instances of Row, use the parameter-less constructor and override GetValue<T>()")]
-        public Row(int protocolVersion, byte[][] values, CqlColumn[] columns, Dictionary<string, int> columnIndexes)
-        {
-            ProtocolVersion = protocolVersion;
-            Values = values;
-            Columns = columns;
-            ColumnIndexes = columnIndexes;
         }
 
         internal Row(object[] values, CqlColumn[] columns, Dictionary<string, int> columnIndexes)

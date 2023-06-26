@@ -28,19 +28,6 @@ namespace Cassandra.DataStax.Insights.InfoProviders.StartupMessage
                 = new Dictionary<Type, Func<ILoadBalancingPolicy, IPolicyInfoMapper<IReconnectionPolicy>, Dictionary<string, object>>>
             {
                 {
-                    typeof(DCAwareRoundRobinPolicy),
-                    (policy, reconnectionPolicyInfoMapper) =>
-                    {
-                        var typedPolicy = (DCAwareRoundRobinPolicy) policy;
-                        return new Dictionary<string, object>
-                        {
-#pragma warning disable 618
-                            { "localDc", typedPolicy.LocalDc }, { "usedHostsPerRemoteDc", typedPolicy.UsedHostsPerRemoteDc }
-#pragma warning restore 618
-                        };
-                    }
-                },
-                {
                     typeof(DefaultLoadBalancingPolicy),
                     (policy, reconnectionPolicyInfoMapper) =>
                     {

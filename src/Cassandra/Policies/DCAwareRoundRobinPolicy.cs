@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -109,12 +109,6 @@ namespace Cassandra
         /// Gets the Local Datacenter. This value is provided in the constructor.
         /// </summary>
         public string LocalDc => _localDc;
-
-        /// <summary>
-        /// Gets the number of hosts per remote datacenter that should be considered. This value is provided in the constructor.
-        /// </summary>
-        [Obsolete(DCAwareRoundRobinPolicy.UsedHostsPerRemoteDcObsoleteMessage)]
-        public int UsedHostsPerRemoteDc => _usedHostsPerRemoteDc;
 
         public void Initialize(ICluster cluster)
         {
