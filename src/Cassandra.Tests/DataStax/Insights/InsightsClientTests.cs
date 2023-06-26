@@ -568,9 +568,7 @@ namespace Cassandra.Tests.DataStax.Insights
                 Policies = new Cassandra.Policies(
                     new RoundRobinPolicy(),
                     new ConstantReconnectionPolicy(150),
-#pragma warning disable 618
-                    DowngradingConsistencyRetryPolicy.Instance,
-#pragma warning restore 618
+                    new DefaultRetryPolicy(),
                     new ConstantSpeculativeExecutionPolicy(1213, 10),
                     null),
                 ProtocolOptions = new ProtocolOptions().SetCompression(CompressionType.Snappy),

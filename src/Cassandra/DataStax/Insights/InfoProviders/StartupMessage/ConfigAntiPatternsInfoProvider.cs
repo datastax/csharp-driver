@@ -43,16 +43,6 @@ namespace Cassandra.DataStax.Insights.InfoProviders.StartupMessage
                     }
                 },
                 { 
-#pragma warning disable 618
-                    typeof(DowngradingConsistencyRetryPolicy),
-#pragma warning restore 618
-                    (obj, antiPatterns) =>
-                    {
-                        antiPatterns["downgradingConsistency"] = "Downgrading consistency retry policy in use";
-                        return antiPatterns;
-                    }
-                },
-                { 
                     typeof(DefaultLoadBalancingPolicy), 
                     (obj, antiPatterns) =>
                     {

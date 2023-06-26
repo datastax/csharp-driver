@@ -45,7 +45,7 @@ namespace Cassandra.IntegrationTests.Core
                 .AddContactPoint(TestCluster.InitialContactPoint)
                 .WithSpeculativeExecutionPolicy(speculativeExecutionPolicy)
                 .WithLoadBalancingPolicy(lbp ?? Cassandra.Policies.DefaultLoadBalancingPolicy)
-                .WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance)
+                .WithRetryPolicy(new DefaultRetryPolicy())
                 .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(0));
             if (pooling != null)
             {

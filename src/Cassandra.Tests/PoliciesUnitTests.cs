@@ -22,6 +22,7 @@ using NUnit.Framework;
 using Moq;
 using System.Threading.Tasks;
 using System.Threading;
+
 #pragma warning disable 618
 
 namespace Cassandra.Tests
@@ -61,6 +62,7 @@ namespace Cassandra.Tests
             {
                 followingRounds.AddRange(policy.NewQueryPlan(null, new SimpleStatement()));
             }
+
             Assert.AreEqual(10 * hostLength, followingRounds.Count);
 
             //Check that the cyclic order is correct
@@ -100,6 +102,7 @@ namespace Cassandra.Tests
                     Thread.Sleep(50);
                     resultingHosts.Add(h);
                 }
+
                 Assert.AreEqual(hostLength, resultingHosts.Count);
                 Assert.AreEqual(hostLength, resultingHosts.Distinct().Count());
             };
@@ -109,7 +112,7 @@ namespace Cassandra.Tests
             {
                 actions.Add(action);
             }
-            
+
             var parallelOptions = new ParallelOptions();
             parallelOptions.TaskScheduler = new ThreadPerTaskScheduler();
             parallelOptions.MaxDegreeOfParallelism = 1000;
@@ -152,8 +155,9 @@ namespace Cassandra.Tests
             {
                 followingRounds.AddRange(policy.NewQueryPlan(null, new SimpleStatement()).ToList());
             }
+
             Assert.AreEqual(10 * (hostLength - 2), followingRounds.Count);
-            
+
             //Check that there aren't remote nodes.
             Assert.AreEqual(0, followingRounds.Count(h => h.Datacenter != "local"));
         }
@@ -275,9 +279,9 @@ namespace Cassandra.Tests
                 var hosts = policy.NewQueryPlan(null, null).ToList();
                 //Check that the value is not repeated
                 Assert.AreEqual(0, hosts.GroupBy(x => x)
-                    .Where(g => g.Count() > 1)
-                    .Select(y => y.Key)
-                    .Count());
+                                        .Where(g => g.Count() > 1)
+                                        .Select(y => y.Key)
+                                        .Count());
                 firstHosts.Add(hosts[0]);
                 //Add to the general list
                 foreach (var h in hosts)
@@ -292,6 +296,7 @@ namespace Cassandra.Tests
             {
                 actions.Add(action);
             }
+
             TestHelper.ParallelInvoke(actions);
 
             //Check that the first nodes where different
@@ -299,13 +304,14 @@ namespace Cassandra.Tests
             {
                 if (h.Datacenter == localDc)
                 {
-                    Assert.AreEqual(times/localHostsLength, firstHosts.Count(hc => hc == h));
+                    Assert.AreEqual(times / localHostsLength, firstHosts.Count(hc => hc == h));
                 }
                 else
                 {
                     Assert.AreEqual(0, firstHosts.Count(hc => hc == h));
                 }
             }
+
             clusterMock.Verify();
         }
 
@@ -364,10 +370,7 @@ namespace Cassandra.Tests
             var clusterMock = new Mock<ICluster>();
             clusterMock
                 .Setup(c => c.AllHosts())
-                .Returns(() =>
-                {
-                    return hostList.ToList();
-                });
+                .Returns(() => { return hostList.ToList(); });
             //Initialize the balancing policy
             var policy = new DCAwareRoundRobinPolicy(localDc, 1);
             policy.Initialize(clusterMock.Object);
@@ -396,7 +399,7 @@ namespace Cassandra.Tests
                 hostList.Add(host);
                 clusterMock.Raise(c => c.HostAdded += null, host);
             });
-            
+
             actionList.Insert(400, () =>
             {
                 var host = hostToRemove;
@@ -415,41 +418,10 @@ namespace Cassandra.Tests
             Assert.False(hostYielded.Any(hl => hl.Any(h => h == hostToRemove)));
         }
 
-        /// <summary>
-        /// Unit test on retry decisions
-        /// </summary>
-        [Test]
-        public void DowngradingConsistencyRetryTest()
-        {
-            var config = new Configuration();
-            var policy = DowngradingConsistencyRetryPolicy.Instance.Wrap(Cassandra.Policies.DefaultExtendedRetryPolicy);
-            var dummyStatement = new SimpleStatement().SetRetryPolicy(policy);
-            //Retry if 1 of 2 replicas are alive
-            var decision = RequestHandlerTests.GetRetryDecisionFromServerError(
-                new UnavailableException(ConsistencyLevel.Two, 2, 1), policy, dummyStatement, config, 0);
-            Assert.True(decision != null && decision.DecisionType == RetryDecision.RetryDecisionType.Retry);
-
-            //Retry if 2 of 3 replicas are alive
-            decision = RequestHandlerTests.GetRetryDecisionFromServerError(
-                new UnavailableException(ConsistencyLevel.Three, 3, 2), policy, dummyStatement, config, 0);
-            Assert.True(decision != null && decision.DecisionType == RetryDecision.RetryDecisionType.Retry);
-
-            //Throw if 0 replicas are alive
-            decision = RequestHandlerTests.GetRetryDecisionFromServerError(
-                new UnavailableException(ConsistencyLevel.Three, 3, 0), policy, dummyStatement, config, 0);
-            Assert.True(decision != null && decision.DecisionType == RetryDecision.RetryDecisionType.Rethrow);
-
-            //Retry if 1 of 3 replicas is alive
-            decision =
-                RequestHandlerTests.GetRetryDecisionFromServerError(new ReadTimeoutException(ConsistencyLevel.All, 3, 1, false),
-                    policy, dummyStatement, config, 0);
-            Assert.True(decision != null && decision.DecisionType == RetryDecision.RetryDecisionType.Retry);
-        }
-
         [Test]
         public void FixedReconnectionPolicyTests()
         {
-            var delays = new long[] {0, 2, 100, 200, 500, 1000};
+            var delays = new long[] { 0, 2, 100, 200, 500, 1000 };
             var policy = new FixedReconnectionPolicy(delays);
             var schedule = policy.NewSchedule();
             const int times = 30;
@@ -458,6 +430,7 @@ namespace Cassandra.Tests
             {
                 actualDelays.Add(schedule.NextDelayMs());
             }
+
             //The last delay will be used for the rest.
             //Add the n times the last delay (1000)
             var expectedDelays = delays.Concat(Enumerable.Repeat<long>(1000, times - delays.Length));
@@ -518,7 +491,7 @@ namespace Cassandra.Tests
             hosts = policy.NewQueryPlan(null, new SimpleStatement().SetRoutingKey(k)).ToList();
             Assert.AreEqual(7, hosts.Count);
             //local replicas first
-            CollectionAssert.AreEquivalent(new[] { 2, 5}, hosts.Take(2).Select(TestHelper.GetLastAddressByte));
+            CollectionAssert.AreEquivalent(new[] { 2, 5 }, hosts.Take(2).Select(TestHelper.GetLastAddressByte));
             //next should be local nodes
             Assert.AreEqual("dc1", hosts[2].Datacenter);
             Assert.AreEqual("dc1", hosts[3].Datacenter);
@@ -677,6 +650,7 @@ namespace Cassandra.Tests
                 var host = TestHelper.CreateHost("0.0." + thirdPosition + "." + i, datacenter);
                 list.Add(host);
             }
+
             return list;
         }
 
@@ -688,13 +662,15 @@ namespace Cassandra.Tests
 
             public int UnavailableCounter { get; set; }
 
-            public RetryDecision OnReadTimeout(IStatement query, ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved, int nbRetry)
+            public RetryDecision OnReadTimeout(IStatement query, ConsistencyLevel cl, int requiredResponses, int receivedResponses,
+                                               bool dataRetrieved, int nbRetry)
             {
                 ReadTimeoutCounter++;
                 return RetryDecision.Ignore();
             }
 
-            public RetryDecision OnWriteTimeout(IStatement query, ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry)
+            public RetryDecision OnWriteTimeout(IStatement query, ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks,
+                                                int nbRetry)
             {
                 WriteTimeoutCounter++;
                 return RetryDecision.Ignore();

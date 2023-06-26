@@ -28,29 +28,6 @@ namespace Cassandra.IntegrationTests.Policies.Tests
     [TestFixture, Category(TestCategory.Long), Ignore("tests that are not marked with 'short' need to be refactored/deleted")]
     public class RetryPolicyTests : TestGlobals
     {
-
-        /// <summary>
-        ///  Tests DowngradingConsistencyRetryPolicy
-        /// </summary>
-        [Test]
-        public void RetryPolicy_DowngradingConsistency()
-        {
-            Builder builder = ClusterBuilder().WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
-            DowngradingConsistencyRetryPolicyTest(builder);
-        }
-
-        /// <summary>
-        ///  Tests DowngradingConsistencyRetryPolicy with LoggingRetryPolicy
-        /// 
-        /// @test_category connection:retry_policy
-        /// </summary>
-        [Test]
-        public void LoggingRetryPolicy_DowngradingConsistency()
-        {
-            Builder builder = ClusterBuilder().WithRetryPolicy(new LoggingRetryPolicy(DowngradingConsistencyRetryPolicy.Instance));
-            DowngradingConsistencyRetryPolicyTest(builder);
-        }
-
         /// <summary>
         ///  Tests DowngradingConsistencyRetryPolicy
         /// 

@@ -206,10 +206,6 @@ namespace Cassandra.Tests.DataStax.Insights.MessageFactories
             Assert.AreEqual(nameof(RoundRobinPolicy), defaultProfile.LoadBalancing.Type);
             Assert.IsNull(defaultProfile.LoadBalancing.Options);
             Assert.AreEqual(1505, defaultProfile.ReadTimeout);
-#pragma warning disable 618
-            Assert.AreEqual(typeof(DowngradingConsistencyRetryPolicy).Namespace, defaultProfile.Retry.Namespace);
-            Assert.AreEqual(nameof(DowngradingConsistencyRetryPolicy), defaultProfile.Retry.Type);
-#pragma warning restore 618
             Assert.IsNull(defaultProfile.Retry.Options);
             Assert.AreEqual(ConsistencyLevel.LocalSerial, defaultProfile.SerialConsistency);
             Assert.AreEqual(typeof(ConstantSpeculativeExecutionPolicy).Namespace, defaultProfile.SpeculativeExecution.Namespace);
@@ -258,9 +254,7 @@ namespace Cassandra.Tests.DataStax.Insights.MessageFactories
                 Policies = new Cassandra.Policies(
                     new RoundRobinPolicy(),
                     new ConstantReconnectionPolicy(150),
-#pragma warning disable 618
-                    DowngradingConsistencyRetryPolicy.Instance,
-#pragma warning restore 618
+                    new DefaultRetryPolicy(),
                     new ConstantSpeculativeExecutionPolicy(1213, 10),
                     null),
                 ProtocolOptions = new ProtocolOptions().SetCompression(CompressionType.Snappy),
