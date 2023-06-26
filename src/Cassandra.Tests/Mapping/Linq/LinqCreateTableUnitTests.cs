@@ -405,7 +405,7 @@ namespace Cassandra.Tests.Mapping.Linq
             var table = sessionMock.Object.GetTable<LinqDecoratedEntity>();
             table.Create();
             //It contains Ignored props: Ignored1 and Ignored2
-            Assert.AreEqual(@"CREATE TABLE ""x_t"" (""x_ck1"" int, ""x_ck2"" int, ""x_f1"" int, ""x_pk"" text, PRIMARY KEY (""x_pk"", ""x_ck1"", ""x_ck2""))", createQuery);
+            Assert.AreEqual(@"CREATE TABLE x_t (x_ck1 int, x_ck2 int, x_f1 int, x_pk text, PRIMARY KEY (x_pk, x_ck1, x_ck2))", createQuery);
         }
 
         [Test]
