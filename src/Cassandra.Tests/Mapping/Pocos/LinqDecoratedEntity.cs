@@ -20,7 +20,6 @@ using Cassandra.Mapping.Attributes;
 
 namespace Cassandra.Tests.Mapping.Pocos
 {
-    [Cassandra.Data.Linq.AllowFiltering]
     [Table("x_t")]
     public class LinqDecoratedEntity
     {

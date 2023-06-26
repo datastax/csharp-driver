@@ -395,7 +395,7 @@ APPLY BATCH".Replace("\r", ""));
             public int RowKey { get; set; }
 
             [ClusteringKey(1)]
-            [Data.Linq.SecondaryIndex]
+            [SecondaryIndex]
             public string ClusteringKey { get; set; }
 
             public decimal Value { get; set; }

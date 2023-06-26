@@ -24,7 +24,6 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests.CqlFunctions.Structures
 {
     [Table("EntityWithNullableTimeUuid")]
-    [AllowFiltering]
     public class EntityWithNullableTimeUuid
     {
         private const int DefaultRecordCount = 6;

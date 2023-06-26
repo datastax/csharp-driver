@@ -26,7 +26,6 @@ namespace Cassandra.IntegrationTests.Linq.Structures
     /// <summary>
     /// Note: the Table Name meta value here is lowercase so it will be compatible with default behavior with CqlPoco, please leave it lowercase.
     /// </summary>
-    [AllowFiltering]
     [Table("alldatatypesnocolumnmeta")]
     public class AllDataTypesNoColumnMeta : IAllDataTypesEntity
     {

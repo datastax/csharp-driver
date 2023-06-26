@@ -30,7 +30,6 @@ using Guid = System.Guid;
 
 namespace Cassandra.IntegrationTests.Linq.Structures
 {
-    [AllowFiltering]
     [Table(AllDataTypesEntity.TableName)]
     public class AllDataTypesEntity : IAllDataTypesEntity
     {

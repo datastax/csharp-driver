@@ -30,7 +30,6 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Mapping.Structures
 {
-    [AllowFiltering]
     [Table(TableName)]
     public class ManyDataTypesPoco
     {

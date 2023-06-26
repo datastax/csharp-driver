@@ -760,7 +760,6 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             Assert.AreEqual(0, table.Where(x => x.Title == "Do I Wanna Know").Execute().Count());
         }
 
-        [AllowFiltering]
         [Table(TestTable.TableName)]
         public class TestTable
         {

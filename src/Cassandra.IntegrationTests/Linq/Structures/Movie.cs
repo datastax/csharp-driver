@@ -27,7 +27,6 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq.Structures
 {
-    [AllowFiltering]
     [Table(Movie.TableName)]
     public class Movie
     {

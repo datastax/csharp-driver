@@ -24,7 +24,6 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq.Structures
 {
-    [AllowFiltering]
     [Table("allDataTypes")]
     public static class AllDataTypesEntityUtil
     {

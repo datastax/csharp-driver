@@ -27,7 +27,8 @@ namespace Cassandra.IntegrationTests.Linq.Structures
         public string author_id;
 
         public string body;
-        [Cassandra.Data.Linq.SecondaryIndex] public DateTimeOffset date;
+        
+        [SecondaryIndex] public DateTimeOffset date;
         [ClusteringKey(0)] public Guid tweet_id;
         [PartitionKey] public string user_id;
 
