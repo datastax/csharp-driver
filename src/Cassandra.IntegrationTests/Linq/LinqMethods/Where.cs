@@ -761,21 +761,21 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         }
 
         [AllowFiltering]
-        [Cassandra.Data.Linq.Table(TestTable.TableName)]
+        [Table(TestTable.TableName)]
         public class TestTable
         {
             public const string TableName = "test1";
 
             [PartitionKey(1)]
-            [Cassandra.Data.Linq.Column("user")]
+            [Column("user")]
             public int UserId { get; set; }
 
             [PartitionKey(2)]
-            [Cassandra.Data.Linq.Column("date")]
+            [Column("date")]
             public int Date { get; set; }
 
             [ClusteringKey(1)]
-            [Cassandra.Data.Linq.Column("time")]
+            [Column("time")]
             public long TimeColumn { get; set; }
         }
     }

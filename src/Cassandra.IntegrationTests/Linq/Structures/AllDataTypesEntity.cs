@@ -31,7 +31,7 @@ using Guid = System.Guid;
 namespace Cassandra.IntegrationTests.Linq.Structures
 {
     [AllowFiltering]
-    [Cassandra.Data.Linq.Table(AllDataTypesEntity.TableName)]
+    [Table(AllDataTypesEntity.TableName)]
     public class AllDataTypesEntity : IAllDataTypesEntity
     {
         public const string TableName = "allDataTypes";
@@ -85,59 +85,59 @@ namespace Cassandra.IntegrationTests.Linq.Structures
         public const int DefaultListLength = 5;
 
         [PartitionKey]
-        [Cassandra.Data.Linq.Column("string_type")]
+        [Column("string_type")]
         public string StringType { get; set; }
 
         [ClusteringKey(1)]
-        [Cassandra.Data.Linq.Column("guid_type")]
+        [Column("guid_type")]
         public Guid GuidType { get; set; }
 
-        [Cassandra.Data.Linq.Column("date_time_type")]
+        [Column("date_time_type")]
         public DateTime DateTimeType { get; set; }
 
-        [Cassandra.Data.Linq.Column("nullable_date_time_type")]
+        [Column("nullable_date_time_type")]
         public DateTime? NullableDateTimeType { get; set; }
 
-        [Cassandra.Data.Linq.Column("date_time_offset_type")]
+        [Column("date_time_offset_type")]
         public DateTimeOffset DateTimeOffsetType { get; set; }
 
-        [Cassandra.Data.Linq.Column("boolean_type")]
+        [Column("boolean_type")]
         public bool BooleanType { get; set; }
 
-        [Cassandra.Data.Linq.Column("decimal_type")]
+        [Column("decimal_type")]
         public Decimal DecimalType { get; set; }
 
-        [Cassandra.Data.Linq.Column("double_type")]
+        [Column("double_type")]
         public double DoubleType { get; set; }
 
-        [Cassandra.Data.Linq.Column("float_type")]
+        [Column("float_type")]
         public float FloatType { get; set; }
 
-        [Cassandra.Data.Linq.Column("nullable_int_type")]
+        [Column("nullable_int_type")]
         public int? NullableIntType { get; set; }
 
-        [Cassandra.Data.Linq.Column("int_type")]
+        [Column("int_type")]
         public int IntType { get; set; }
 
-        [Cassandra.Data.Linq.Column("int64_type")]
+        [Column("int64_type")]
         public Int64 Int64Type { get; set; }
 
-        [Cassandra.Data.Linq.Column("time_uuid_type")]
+        [Column("time_uuid_type")]
         public TimeUuid TimeUuidType { get; set; }
 
-        [Cassandra.Data.Linq.Column("nullable_time_uuid_type")]
+        [Column("nullable_time_uuid_type")]
         public TimeUuid? NullableTimeUuidType { get; set; }
 
-        [Cassandra.Data.Linq.Column("map_type_string_long_type")]
+        [Column("map_type_string_long_type")]
         public Dictionary<string, long> DictionaryStringLongType { get; set; }
 
-        [Cassandra.Data.Linq.Column("map_type_string_string_type")]
+        [Column("map_type_string_string_type")]
         public Dictionary<string, string> DictionaryStringStringType { get; set; }
 
-        [Cassandra.Data.Linq.Column("list_of_guids_type")]
+        [Column("list_of_guids_type")]
         public List<Guid> ListOfGuidsType { get; set; }
 
-        [Cassandra.Data.Linq.Column("list_of_strings_type")]
+        [Column("list_of_strings_type")]
         public List<string> ListOfStringsType { get; set; }
 
         public static AllDataTypesEntity GetRandomInstance()

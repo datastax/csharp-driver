@@ -305,10 +305,10 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             Assert.IsTrue(counters.Contains(counter2));
         }
 
-        [Cassandra.Data.Linq.Table]
+        [Table]
         private class CounterEntityWithLinqAttributes
         {
-            [Cassandra.Data.Linq.Counter]
+            [Counter]
             public long Counter;
 
             [PartitionKey(1)]

@@ -16,10 +16,9 @@
 
 using System.Collections.Generic;
 using System.Linq;
-
 using Cassandra.Data.Linq;
 using Cassandra.Mapping;
-
+using Cassandra.Mapping.Attributes;
 using NUnit.Framework;
 
 #pragma warning disable 618
@@ -107,25 +106,25 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         /// Test Classes
         ////////////////////////////////////////////////////
 
-        [Cassandra.Data.Linq.Table("poco1")]
+        [Table("poco1")]
         private class Poco1
         {
-            [Cassandra.Mapping.Attributes.PartitionKey]
-            [Cassandra.Data.Linq.Column("somestring1")]
+            [PartitionKey]
+            [Column("somestring1")]
             public string SomeString1 = "somevalue_1_";
 
-            [Cassandra.Data.Linq.Column("somedouble1")]
+            [Column("somedouble1")]
             public double SomeDouble1 = 1;
         }
 
-        [Cassandra.Data.Linq.Table("poco2")]
+        [Table("poco2")]
         private class Poco2
         {
-            [Cassandra.Mapping.Attributes.PartitionKey]
-            [Cassandra.Data.Linq.Column("somestring2")]
+            [PartitionKey]
+            [Column("somestring2")]
             public string SomeString2 = "somevalue_2_";
 
-            [Cassandra.Data.Linq.Column("somedouble2")]
+            [Column("somedouble2")]
             public double SomeDouble2 = 2;
         }
 

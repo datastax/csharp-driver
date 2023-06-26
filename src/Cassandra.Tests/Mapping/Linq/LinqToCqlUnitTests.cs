@@ -388,7 +388,7 @@ APPLY BATCH".Replace("\r", ""));
             }
         }
 
-        [Data.Linq.Table]
+        [Table]
         private class AllowFilteringTestTable
         {
             [PartitionKey]
@@ -415,7 +415,7 @@ APPLY BATCH".Replace("\r", ""));
             Trace.WriteLine(cqlQuery.ToString());
         }
 
-        [Data.Linq.Table]
+        [Table]
         private class CounterTestTable1
         {
             [PartitionKey]
@@ -424,11 +424,11 @@ APPLY BATCH".Replace("\r", ""));
             [ClusteringKey(0)]
             public int RowKey2 { get; set; }
 
-            [Data.Linq.Counter]
+            [Counter]
             public long Value { get; set; }
         }
 
-        [Data.Linq.Table]
+        [Table]
         public class CounterTestTable2
         {
             [PartitionKey(0)]
@@ -440,7 +440,7 @@ APPLY BATCH".Replace("\r", ""));
             [ClusteringKey(0)]
             public int CKey1 { get; set; }
 
-            [Data.Linq.Counter]
+            [Counter]
             public long Value { get; set; }
         }
 

@@ -23,7 +23,7 @@ using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.SimulacronAPI;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
-
+using Cassandra.Mapping.Attributes;
 using NUnit.Framework;
 
 #pragma warning disable 618

@@ -23,20 +23,20 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.CqlFunctions.Structures
 {
-    [Cassandra.Data.Linq.Table("EntityWithNullableTimeUuid")]
+    [Table("EntityWithNullableTimeUuid")]
     [AllowFiltering]
     public class EntityWithNullableTimeUuid
     {
         private const int DefaultRecordCount = 6;
 
         [PartitionKey]
-        [Cassandra.Data.Linq.Column("string_type")]
+        [Column("string_type")]
         public string StringType = "someStringVal";
 
-        [Cassandra.Data.Linq.Column("guid_type")]
+        [Column("guid_type")]
         public Guid GuidType { get; set; }
 
-        [Cassandra.Data.Linq.Column("time_uuid_type")]
+        [Column("time_uuid_type")]
         [ClusteringKey(1)]
         public TimeUuid? NullableTimeUuidType { get; set; }
 

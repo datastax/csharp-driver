@@ -23,8 +23,7 @@ namespace Cassandra.IntegrationTests.Linq.Structures
     public class Statistics
     {
         [PartitionKey] public string author_id;
-
-        [Cassandra.Data.Linq.Counter] public long followers_count;
-        [Cassandra.Data.Linq.Counter] public long tweets_count;
+        [Counter] public long followers_count;
+        [Counter] public long tweets_count;
     }
 }

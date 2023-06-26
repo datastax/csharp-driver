@@ -910,18 +910,18 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         /// <summary>
         /// Test poco class that uses both Linq and Cassandra.Mapping attributes at the same time
         /// </summary>
-        [Linq::Table("pocowithignrdattr_linqandmapping")]
+        [Table("pocowithignrdattr_linqandmapping")]
         private class PocoWithIgnrdAttr_LinqAndMapping
         {
             [PartitionKey]
-            [Linq::Column("somepartitionkey")]
+            [Column("somepartitionkey")]
             public string SomePartitionKey = "somePartitionKeyDefaultValue";
 
-            [Linq::Column("somenonignoreddouble")]
+            [Column("somenonignoreddouble")]
             public double SomeNonIgnoredDouble = 123456;
 
             [Cassandra.Mapping.Attributes.Ignore]
-            [Linq::Column(Attributes.IgnoredStringAttribute)]
+            [Column(Attributes.IgnoredStringAttribute)]
             public string IgnoredStringAttribute = "someIgnoredString";
         }
 
@@ -984,42 +984,42 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             }
         }
 
-        [Linq::Table("pocowithcompositekey")]
+        [Table("pocowithcompositekey")]
         private class PocoWithCompositeKey
         {
             [PartitionKey(1)]
-            [Linq::Column("somepartitionkey1")]
+            [Column("somepartitionkey1")]
             public string SomePartitionKey1 = "somepartitionkey1_val";
 
             [PartitionKey(2)]
-            [Linq::Column("somepartitionkey2")]
+            [Column("somepartitionkey2")]
             public string SomePartitionKey2 = "somepartitionkey2_val";
 
-            [Linq::Column("listofguids")]
+            [Column("listofguids")]
             public List<Guid> ListOfGuids;
 
             [Cassandra.Mapping.Attributes.Ignore]
-            [Linq::Column("ignoredstring")]
+            [Column("ignoredstring")]
             public string IgnoredString = "someIgnoredString_val";
         }
 
-        [Linq::Table("pocowithclusteringkeys")]
+        [Table("pocowithclusteringkeys")]
         private class PocoWithClusteringKeys
         {
             [PartitionKey(1)]
-            [Linq::Column("somepartitionkey1")]
+            [Column("somepartitionkey1")]
             public string SomePartitionKey1 = "somepartitionkey1_val";
 
             [PartitionKey(2)]
-            [Linq::Column("somepartitionkey2")]
+            [Column("somepartitionkey2")]
             public string SomePartitionKey2 = "somepartitionkey2_val";
 
             [ClusteringKey(1)]
-            [Linq::Column("guid1")]
+            [Column("guid1")]
             public Guid Guid1;
 
             [ClusteringKey(2)]
-            [Linq::Column("guid2")]
+            [Column("guid2")]
             public Guid Guid2;
         }
     }

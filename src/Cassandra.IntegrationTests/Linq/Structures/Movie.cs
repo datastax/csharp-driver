@@ -28,30 +28,30 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests.Linq.Structures
 {
     [AllowFiltering]
-    [Cassandra.Data.Linq.Table(Movie.TableName)]
+    [Table(Movie.TableName)]
     public class Movie
     {
         public const string TableName = "coolMovies";
 
-        [Cassandra.Data.Linq.Column("mainGuy")]
+        [Column("mainGuy")]
         public string MainActor;
 
         [PartitionKey(2)]
-        [Cassandra.Data.Linq.Column("movie_maker")]
+        [Column("movie_maker")]
         public string MovieMaker;
 
         [PartitionKey(1)]
-        [Cassandra.Data.Linq.Column("unique_movie_title")]
+        [Column("unique_movie_title")]
         public string Title;
 
-        [Cassandra.Data.Linq.Column("list")]
+        [Column("list")]
         public List<string> ExampleSet = new List<string>();
 
         [ClusteringKey(1)]
-        [Cassandra.Data.Linq.Column("director")]
+        [Column("director")]
         public string Director { get; set; }
 
-        [Cassandra.Data.Linq.Column("yearMade")]
+        [Column("yearMade")]
         public int? Year { get; set; }
 
         public Movie()

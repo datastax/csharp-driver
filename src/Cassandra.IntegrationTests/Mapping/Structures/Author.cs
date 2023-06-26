@@ -25,14 +25,14 @@ namespace Cassandra.IntegrationTests.Mapping.Structures
     /// <summary>
     /// Lower case meta tags used so class can be used easily by Linq and CqlPoco
     /// </summary>
-    [Cassandra.Data.Linq.Table("author")]
+    [Table("author")]
     public class Author
     {
         [PartitionKey]
-        [Cassandra.Data.Linq.Column("authorid")]
+        [Column("authorid")]
         public string AuthorId;
 
-        [Cassandra.Data.Linq.Column("followers")]
+        [Column("followers")]
         public List<string> Followers;
 
         public void AssertEquals(Author actualAuthor)

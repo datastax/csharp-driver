@@ -27,7 +27,7 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests.Linq.Structures
 {
     [AllowFiltering]
-    [Cassandra.Data.Linq.Table(ManyDataTypesEntity.TableName)]
+    [Table(ManyDataTypesEntity.TableName)]
     public class ManyDataTypesEntity
     {
         public const string TableName = "ManyDataTypesEntity";

@@ -573,7 +573,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             Assert.AreEqual(value1, c.S1);
         }
 
-        [Cassandra.Data.Linq.Table]
+        [Table]
         public class TestMapper
         {
             [PartitionKey(1)]
