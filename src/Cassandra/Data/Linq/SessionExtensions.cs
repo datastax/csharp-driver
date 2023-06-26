@@ -35,12 +35,6 @@ namespace Cassandra.Data.Linq
         /// <returns></returns>
         public static Table<TEntity> GetTable<TEntity>(this ISession session, string tableName = null, string keyspaceName = null)
         {
-            //Use Linq defaults if no definition has been set for this types
-            //Linq attributes are marked as Obsolete
-            #pragma warning disable 612
-            MappingConfiguration.Global.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(TEntity),
-                () => new LinqAttributeBasedTypeDefinition(typeof (TEntity), tableName, keyspaceName));
-            #pragma warning restore 612
             var config = MappingConfiguration.Global;
             return new Table<TEntity>(session, config, tableName, keyspaceName);
         }

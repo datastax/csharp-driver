@@ -485,8 +485,6 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         public void TableCreate_ClassMissingPartitionKey()
         {
             var mappingConfig = new MappingConfiguration();
-            mappingConfig.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(PrivateClassMissingPartitionKey),
-                 () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(PrivateClassMissingPartitionKey)));
             var table = new Table<PrivateClassMissingPartitionKey>(Session, mappingConfig);
 
             try
@@ -506,8 +504,6 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         public void TableCreate_ClassEmpty()
         {
             var mappingConfig = new MappingConfiguration();
-            mappingConfig.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(PrivateEmptyClass),
-                 () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(PrivateEmptyClass)));
             var table = new Table<PrivateEmptyClass>(Session, mappingConfig);
 
             try

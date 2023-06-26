@@ -66,12 +66,6 @@ namespace Cassandra.Data.Linq
             _session = session;
             _name = tableName;
             _keyspaceName = keyspaceName;
-            //In case no mapping has been defined for the type, determine if the attributes used are Linq or Cassandra.Mapping
-            //Linq attributes are marked as Obsolete
-            #pragma warning disable 612
-            config.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(TEntity),
-                 () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(TEntity)));
-            #pragma warning restore 612
             var pocoData = config.MapperFactory.GetPocoData<TEntity>();
             InternalInitialize(Expression.Constant(this), this, config.MapperFactory, config.StatementFactory, pocoData);
         }

@@ -49,14 +49,10 @@ namespace Cassandra.IntegrationTests.CqlFunctions.Tests
 
             // Create necessary tables
             MappingConfiguration config1 = new MappingConfiguration();
-            config1.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(EntityWithTimeUuid),
-                () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(EntityWithTimeUuid)));
             _tableEntityWithTimeUuid = new Table<EntityWithTimeUuid>(_session, config1);
             _tableEntityWithTimeUuid.Create();
 
             MappingConfiguration config2 = new MappingConfiguration();
-            config2.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(EntityWithNullableTimeUuid),
-                () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(EntityWithNullableTimeUuid)));
             _tableEntityWithNullableTimeUuid = new Table<EntityWithNullableTimeUuid>(_session, config2);
             _tableEntityWithNullableTimeUuid.Create();
 

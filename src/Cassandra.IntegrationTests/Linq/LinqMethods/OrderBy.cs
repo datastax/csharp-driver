@@ -39,8 +39,6 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         {
             base.SetUp();
             MappingConfiguration movieMappingConfig = new MappingConfiguration();
-            movieMappingConfig.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(Movie),
-                () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(Movie)));
             _movieTable = new Table<Movie>(Session, movieMappingConfig);
             Session.ChangeKeyspace(_uniqueKsName);
         }

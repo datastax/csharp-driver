@@ -183,9 +183,6 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         public void Attributes_Ignore_LinqAndMappingAttributes()
         {
             var config = new MappingConfiguration();
-            config.MapperFactory.PocoDataFactory.AddDefinitionDefault(
-                typeof(PocoWithIgnrdAttr_LinqAndMapping),
-                () => Linq::LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(PocoWithIgnrdAttr_LinqAndMapping)));
             var table = new Linq::Table<PocoWithIgnrdAttr_LinqAndMapping>(Session, config);
             table.Create();
 
@@ -489,8 +486,6 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         public void Attributes_MultipleClusteringKeys()
         {
             var config = new MappingConfiguration();
-            config.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(PocoWithClusteringKeys),
-                () => Linq::LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(PocoWithClusteringKeys)));
             var table = new Linq::Table<PocoWithClusteringKeys>(Session, config);
             table.Create();
 

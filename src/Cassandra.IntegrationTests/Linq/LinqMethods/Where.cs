@@ -51,12 +51,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
 
             // drop table if exists, re-create
             var movieMappingConfig = new MappingConfiguration();
-            movieMappingConfig.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(Movie),
-                () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(Movie)));
-            movieMappingConfig.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(ManyDataTypesEntity),
-                () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(ManyDataTypesEntity)));
             _movieTable = new Table<Movie>(Session, movieMappingConfig);
-
             _manyDataTypesEntitiesTable = new Table<ManyDataTypesEntity>(Session, movieMappingConfig);
         }
 
@@ -233,7 +228,6 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             long time = 3;
 
             var config = new MappingConfiguration();
-            config.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(TestTable), () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(TestTable)));
             var table = new Table<TestTable>(Session, config);
 
             var data = new List<TestTable>
