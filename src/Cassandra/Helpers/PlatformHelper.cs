@@ -86,6 +86,7 @@ namespace Cassandra.Helpers
             var count = 0;
             var first = true;
             var firstCpuName = string.Empty;
+#pragma warning disable CA1416
             foreach (var item in new System.Management.ManagementObjectSearcher("Select * from Win32_Processor").Get())
             {
                 if (first)
@@ -95,7 +96,7 @@ namespace Cassandra.Helpers
                 }
 
                 int.TryParse(item["NumberOfCores"].ToString(), out var numberOfCores);
-
+#pragma warning restore CA1416
                 count += numberOfCores;
             }
 

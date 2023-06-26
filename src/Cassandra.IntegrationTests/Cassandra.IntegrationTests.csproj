@@ -13,19 +13,17 @@
   
   <ItemGroup>
     <PackageReference Include="SSH.NET" Version="2020.0.2" />
-    <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Appveyor.TestLogger" Version="2.0.0" />
     <PackageReference Include="Microsoft.DotNet.InternalAbstractions" Version="1.0.0" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.1.1" />
-    <PackageReference Include="Moq" Version="4.7.99" />
-    <PackageReference Include="NUnit" Version="3.8.1" />
-    <PackageReference Include="NUnit3TestAdapter" Version="3.13.0" />
-    <PackageReference Include="NunitXml.TestLogger" Version="2.1.41" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.6.2" />
+    <PackageReference Include="Moq" Version="4.18.4" />
+    <PackageReference Include="NUnit" Version="3.13.3" />
+    <PackageReference Include="NUnit3TestAdapter" Version="3.17.0" />
+    <PackageReference Include="NunitXml.TestLogger" Version="2.1.80" />
     <PackageReference Include="System.Runtime.InteropServices.RuntimeInformation" Version="4.3.0" />
-    <PackageReference Include="System.Runtime.Serialization.Json" Version="4.0.2" />
-    <PackageReference Include="System.Runtime.Serialization.Primitives" Version="4.1.1" />
     <PackageReference Include="System.ValueTuple" Version="4.5.0" />
-    <PackageReference Include="XunitXml.TestLogger" Version="2.1.26" />
+    <PackageReference Include="XunitXml.TestLogger" Version="2.1.45" />
     <PackageReference Include="System.Net.NameResolution" Version="4.3.0" />
   </ItemGroup>
  
