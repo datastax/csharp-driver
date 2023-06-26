@@ -202,7 +202,7 @@ namespace Cassandra.Tests.DataStax.Insights
                         "\"default\":{" +
                             "\"readTimeout\":1505," +
                             "\"retry\":{" +
-                                "\"type\":\"DowngradingConsistencyRetryPolicy\"," +
+                                "\"type\":\"DefaultRetryPolicy\"," +
                                 "\"namespace\":\"Cassandra\"}," +
                             "\"loadBalancing\":{" +
                                 "\"type\":\"RoundRobinPolicy\"," +
@@ -236,8 +236,7 @@ namespace Cassandra.Tests.DataStax.Insights
                     "\"authProvider\":{" +
                         "\"type\":\"NoneAuthProvider\"," +
                         "\"namespace\":\"Cassandra\"}," +
-                    "\"configAntiPatterns\":{" +
-                        "\"downgradingConsistency\":\"Downgrading consistency retry policy in use\"}," +
+                    "\"configAntiPatterns\":{}," +
                     "\"periodicStatusInterval\":5," +
                     "\"platformInfo\":{" +
                         "\"os\":{\"name\":\"os name\",\"version\":\"os version\",\"arch\":\"os arch\"}," +
@@ -298,7 +297,7 @@ namespace Cassandra.Tests.DataStax.Insights
                         "\"default\":{" +
                             "\"readTimeout\":1505," +
                             "\"retry\":{" +
-                                "\"type\":\"DowngradingConsistencyRetryPolicy\"," +
+                                "\"type\":\"DefaultRetryPolicy\"," +
                                 "\"namespace\":\"Cassandra\"}," +
                             "\"loadBalancing\":{" +
                                 "\"type\":\"RoundRobinPolicy\"," +
@@ -360,8 +359,7 @@ namespace Cassandra.Tests.DataStax.Insights
                     "\"authProvider\":{" +
                         "\"type\":\"NoneAuthProvider\"," +
                         "\"namespace\":\"Cassandra\"}," +
-                    "\"configAntiPatterns\":{" +
-                        "\"downgradingConsistency\":\"Downgrading consistency retry policy in use\"}," +
+                    "\"configAntiPatterns\":{}," +
                     "\"periodicStatusInterval\":5," +
                     "\"platformInfo\":{" +
                         "\"os\":{\"name\":\"os name\",\"version\":\"os version\",\"arch\":\"os arch\"}," +

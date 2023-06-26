@@ -115,9 +115,6 @@ namespace Cassandra.Tests.DataStax.Insights.MessageFactories
 
             InsightsMessageFactoryTests.AssertStartupOptions(act);
 
-            Assert.AreEqual(1, act.Data.ConfigAntiPatterns.Count);
-            Assert.IsTrue(act.Data.ConfigAntiPatterns.ContainsKey("downgradingConsistency"));
-
             InsightsMessageFactoryTests.AssertContactPoints(act);
 
             InsightsMessageFactoryTests.AssertExecutionProfile(act);
