@@ -153,10 +153,10 @@ namespace Cassandra
         {
             if (valuesDictionary == null)
             {
-                throw new ArgumentNullException("valuesDictionary");
+                throw new ArgumentNullException(nameof(valuesDictionary));
             }
 
-            _query = query ?? throw new ArgumentNullException("query");
+            _query = query ?? throw new ArgumentNullException(nameof(query));
 
             //The order of the keys and values is unspecified, but is guaranteed to be both in the same order.
             SetParameterNames(valuesDictionary.Keys);

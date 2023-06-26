@@ -59,7 +59,7 @@ namespace Cassandra
         {
             if (udtMaps == null)
             {
-                throw new ArgumentNullException("udtMaps");
+                throw new ArgumentNullException(nameof(udtMaps));
             }
             var sessionKeyspace = _session.Keyspace;
             if (string.IsNullOrEmpty(sessionKeyspace) && udtMaps.Any(map => map.Keyspace == null))

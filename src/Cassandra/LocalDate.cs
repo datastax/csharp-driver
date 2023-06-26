@@ -100,19 +100,19 @@ namespace Cassandra
         {
             if (year > 5881580 || year < -5877641)
             {
-                throw new ArgumentOutOfRangeException("year", month, "Year is out of range");
+                throw new ArgumentOutOfRangeException(nameof(year), month, "Year is out of range");
             }
             if (month < 1 || month > 12)
             {
-                throw new ArgumentOutOfRangeException("month", month, "Month is out of range");
+                throw new ArgumentOutOfRangeException(nameof(month), month, "Month is out of range");
             }
             if (year == 5881580 && month * 100 + day > 711)
             {
-                throw new ArgumentOutOfRangeException("year", "Date is outside the boundaries of a LocalDate representation");
+                throw new ArgumentOutOfRangeException(nameof(year), "Date is outside the boundaries of a LocalDate representation");
             }
             if (year == -5877641 && month * 100 + day < 623)
             {
-                throw new ArgumentOutOfRangeException("year", "Date is outside the boundaries of a LocalDate representation");
+                throw new ArgumentOutOfRangeException(nameof(year), "Date is outside the boundaries of a LocalDate representation");
             }
 
             Year = year;
@@ -148,7 +148,7 @@ namespace Cassandra
             var daysToMonth = IsLeapYear(year) ? DaysToMonthLeap : DaysToMonth;
             if (day < 1 || day > daysToMonth[month] - daysToMonth[month - 1])
             {
-                throw new ArgumentOutOfRangeException("day");
+                throw new ArgumentOutOfRangeException(nameof(day));
             }
             return (
                 //days to the month in the year

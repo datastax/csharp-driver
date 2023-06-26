@@ -80,7 +80,7 @@ namespace Cassandra.Mapping
         /// </summary>
         public MappingConfiguration ConvertTypesUsing(TypeConverter typeConverter)
         {
-            _typeConverter = typeConverter ?? throw new ArgumentNullException("typeConverter");
+            _typeConverter = typeConverter ?? throw new ArgumentNullException(nameof(typeConverter));
             MapperFactory = new MapperFactory(_typeConverter, new PocoDataFactory(_typeDefinitions));
             return this;
         }

@@ -65,7 +65,7 @@ namespace Cassandra
         {
             if (totalNanoseconds < 0L || totalNanoseconds > MaxNanos)
             {
-                throw new ArgumentOutOfRangeException("totalNanoseconds", "Valid total nanoseconds values are in the range 0 to 86399999999999");
+                throw new ArgumentOutOfRangeException(nameof(totalNanoseconds), "Valid total nanoseconds values are in the range 0 to 86399999999999");
             }
             TotalNanoseconds = totalNanoseconds;
         }
@@ -81,19 +81,19 @@ namespace Cassandra
         {
             if (hour < 0 || hour > 23)
             {
-                throw new ArgumentOutOfRangeException("hour", "Hour must be a number between 0 and 23");
+                throw new ArgumentOutOfRangeException(nameof(hour), "Hour must be a number between 0 and 23");
             }
             if (minute < 0 || minute > 59)
             {
-                throw new ArgumentOutOfRangeException("minute", "Minute must be a number between 0 and 59");
+                throw new ArgumentOutOfRangeException(nameof(minute), "Minute must be a number between 0 and 59");
             }
             if (second < 0 || second > 59)
             {
-                throw new ArgumentOutOfRangeException("second", "Second must be a number between 0 and 59");
+                throw new ArgumentOutOfRangeException(nameof(second), "Second must be a number between 0 and 59");
             }
             if (nanosecond < 0 || nanosecond > 999999999)
             {
-                throw new ArgumentOutOfRangeException("nanosecond", "Nanosecond must be a number between 0 and 999,999,999");
+                throw new ArgumentOutOfRangeException(nameof(nanosecond), "Nanosecond must be a number between 0 and 999,999,999");
             }
             TotalNanoseconds =
                 hour*NanosInHour +

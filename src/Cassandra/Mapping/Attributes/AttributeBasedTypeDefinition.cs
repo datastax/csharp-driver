@@ -42,7 +42,7 @@ namespace Cassandra.Mapping.Attributes
         /// </summary>
         public AttributeBasedTypeDefinition(Type type)
         {
-            PocoType = type ?? throw new ArgumentNullException("type");
+            PocoType = type ?? throw new ArgumentNullException(nameof(type));
             //Get the table name from the attribute or the type name
             TableName = type.Name;
             var tableAttribute = (TableAttribute)type.GetTypeInfo().GetCustomAttribute(typeof(TableAttribute), true);

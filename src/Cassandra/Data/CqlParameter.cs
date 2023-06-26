@@ -185,7 +185,7 @@ namespace Cassandra.Data
         {
             if (string.IsNullOrEmpty(name))
             {
-                throw new ArgumentNullException("name");
+                throw new ArgumentNullException(nameof(name));
             }
 
             _name = name.StartsWith(":") ? name : ":" + name;

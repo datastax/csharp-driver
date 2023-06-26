@@ -85,7 +85,7 @@ namespace Cassandra.Geometry
         {
             if (rings == null)
             {
-                throw new ArgumentNullException("rings");
+                throw new ArgumentNullException(nameof(rings));
             }
             Rings = AsReadOnlyCollection(rings, r => AsReadOnlyCollection(r));
             _ringsWithOrderedPoints = Rings.Select(r => (IList<Point>) r.OrderBy(p => p).ToList()).ToList();
@@ -172,7 +172,7 @@ namespace Cassandra.Geometry
         {
             if (textValue == null)
             {
-                throw new ArgumentNullException("textValue");
+                throw new ArgumentNullException(nameof(textValue));
             }
             if (textValue == "POLYGON EMPTY")
             {

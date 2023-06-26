@@ -29,7 +29,7 @@ namespace Cassandra.Serialization.Geometry
         {
             if (buffer == null)
             {
-                throw new ArgumentNullException("buffer");
+                throw new ArgumentNullException(nameof(buffer));
             }
             if (length < 9)
             {

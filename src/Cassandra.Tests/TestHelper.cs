@@ -132,7 +132,7 @@ namespace Cassandra.Tests
         {
             if (valueMap == null)
             {
-                throw new ArgumentNullException("valueMap");
+                throw new ArgumentNullException(nameof(valueMap));
             }
             var rs = new RowSet { Columns = CreateColumns(valueMap) };
             rs.AddRow(CreateRow(valueMap));

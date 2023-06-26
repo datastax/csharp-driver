@@ -165,7 +165,7 @@ namespace Cassandra
         {
             if (session == null)
             {
-                throw new ArgumentNullException("session");
+                throw new ArgumentNullException(nameof(session));
             }
             if (session.Cluster == null)
             {

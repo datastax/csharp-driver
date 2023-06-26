@@ -107,7 +107,7 @@ namespace Cassandra.Mapping
         {
             if (cql == null)
             {
-                throw new ArgumentNullException("cql");
+                throw new ArgumentNullException(nameof(cql));
             }
             cql.AutoPage = false;
             _cqlGenerator.AddSelect<T>(cql);

@@ -43,7 +43,7 @@ namespace Cassandra.Serialization.Primitive
             {
                 //Scale representation is an int, but System.Decimal only supports a scale from -28 to 28
                 throw new ArgumentOutOfRangeException(
-                    "scale", scale, "CLR Decimal structure can not represent numbers with a scale greater than 28");
+                    nameof(scale), scale, "CLR Decimal structure can not represent numbers with a scale greater than 28");
             }
             if (scale < 0)
             {
@@ -54,7 +54,7 @@ namespace Cassandra.Serialization.Primitive
                 catch (OverflowException)
                 {
                     throw new ArgumentOutOfRangeException(
-                        "unscaledValue",
+                        nameof(unscaledValue),
                         unscaledValue*BigInteger.Pow(new BigInteger(10), Math.Abs(scale)),
                         "Value can not be represented as a CLR Decimal");
                 }
@@ -65,7 +65,7 @@ namespace Cassandra.Serialization.Primitive
             if (bigintBytes.Length > 13 || (bigintBytes.Length == 13 && bigintBytes[12] != 0))
             {
                 throw new ArgumentOutOfRangeException(
-                    "unscaledValue", unscaledValue, "Value can not be represented as a CLR Decimal");
+                    nameof(unscaledValue), unscaledValue, "Value can not be represented as a CLR Decimal");
             }
             var intArray = new int[3];
             Buffer.BlockCopy(bigintBytes, 0, intArray, 0, Math.Min(12, bigintBytes.Length));

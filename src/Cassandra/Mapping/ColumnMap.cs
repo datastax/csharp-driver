@@ -66,8 +66,8 @@ namespace Cassandra.Mapping
         /// </summary>
         public ColumnMap(MemberInfo memberInfo, Type memberInfoType, bool isExplicitlyDefined)
         {
-            _memberInfo = memberInfo ?? throw new ArgumentNullException("memberInfo");
-            _memberInfoType = memberInfoType ?? throw new ArgumentNullException("memberInfoType");
+            _memberInfo = memberInfo ?? throw new ArgumentNullException(nameof(memberInfo));
+            _memberInfoType = memberInfoType ?? throw new ArgumentNullException(nameof(memberInfoType));
             _isExplicitlyDefined = isExplicitlyDefined;
         }
 
@@ -85,7 +85,7 @@ namespace Cassandra.Mapping
         /// </summary>
         public ColumnMap WithName(string columnName)
         {
-            _columnName = columnName ?? throw new ArgumentNullException("columnName");
+            _columnName = columnName ?? throw new ArgumentNullException(nameof(columnName));
             return this;
         }
 
@@ -95,7 +95,7 @@ namespace Cassandra.Mapping
         /// </summary>
         public ColumnMap WithDbType(Type type)
         {
-            _columnType = type ?? throw new ArgumentNullException("type");
+            _columnType = type ?? throw new ArgumentNullException(nameof(type));
             return this;
         }
 

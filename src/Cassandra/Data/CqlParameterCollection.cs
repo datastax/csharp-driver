@@ -226,7 +226,7 @@ namespace Cassandra.Data
         public override int IndexOf(string parameterName)
         {
             if (parameterName == null)
-                throw new ArgumentNullException("parameterName");
+                throw new ArgumentNullException(nameof(parameterName));
 
             var name = parameterName.StartsWith(":") ? parameterName : ":" + parameterName;
             return _parameters.FindIndex(p => p.ParameterName == name);
@@ -297,7 +297,7 @@ namespace Cassandra.Data
         public override void CopyTo(Array array, int index)
         {
             if (array == null)
-                throw new ArgumentNullException("array");
+                throw new ArgumentNullException(nameof(array));
 
             var c = (ICollection)_parameters;
             c.CopyTo(array, index);
@@ -314,7 +314,7 @@ namespace Cassandra.Data
         public override void AddRange(Array values)
         {
             if (values == null)
-                throw new ArgumentNullException("values");
+                throw new ArgumentNullException(nameof(values));
 
             foreach (object obj in values)
             {

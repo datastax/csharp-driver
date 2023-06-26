@@ -149,7 +149,7 @@ namespace Cassandra.Mapping
         {
             if (action == null)
             {
-                throw new ArgumentNullException("action");
+                throw new ArgumentNullException(nameof(action));
             }
             action(Options);
             return this;

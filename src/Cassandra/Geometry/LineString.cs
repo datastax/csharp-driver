@@ -76,11 +76,11 @@ namespace Cassandra.Geometry
         {
             if (points == null)
             {
-                throw new ArgumentNullException("points");
+                throw new ArgumentNullException(nameof(points));
             }
             if (points.Count == 1)
             {
-                throw new ArgumentOutOfRangeException("points", "LineString can be either empty or contain 2 or more points");
+                throw new ArgumentOutOfRangeException(nameof(points), "LineString can be either empty or contain 2 or more points");
             }
             Points = AsReadOnlyCollection(points);
         }
@@ -132,7 +132,7 @@ namespace Cassandra.Geometry
         {
             if (textValue == null)
             {
-                throw new ArgumentNullException("textValue");
+                throw new ArgumentNullException(nameof(textValue));
             }
             if (textValue == "LINESTRING EMPTY")
             {

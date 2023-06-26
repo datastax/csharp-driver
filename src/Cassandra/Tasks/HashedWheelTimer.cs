@@ -54,11 +54,11 @@ namespace Cassandra.Tasks
         {
             if (ticksPerWheel < 1)
             {
-                throw new ArgumentOutOfRangeException("ticksPerWheel");
+                throw new ArgumentOutOfRangeException(nameof(ticksPerWheel));
             }
             if (tickDuration < 20)
             {
-                throw new ArgumentOutOfRangeException("tickDuration", "Timer resolution is system dependant, you should not use this class for tick durations lower than 20 ms");
+                throw new ArgumentOutOfRangeException(nameof(tickDuration), "Timer resolution is system dependant, you should not use this class for tick durations lower than 20 ms");
             }
             //Create the wheel
             _wheel = new Bucket[ticksPerWheel];

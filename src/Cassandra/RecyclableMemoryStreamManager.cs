@@ -106,18 +106,18 @@ namespace Microsoft.IO
         {
             if (blockSize <= 0)
             {
-                throw new ArgumentOutOfRangeException("blockSize", blockSize, "blockSize must be a positive number");
+                throw new ArgumentOutOfRangeException(nameof(blockSize), blockSize, "blockSize must be a positive number");
             }
 
             if (largeBufferMultiple <= 0)
             {
-                throw new ArgumentOutOfRangeException("largeBufferMultiple",
+                throw new ArgumentOutOfRangeException(nameof(largeBufferMultiple),
                                                       "largeBufferMultiple must be a positive number");
             }
 
             if (maximumBufferSize < blockSize)
             {
-                throw new ArgumentOutOfRangeException("maximumBufferSize",
+                throw new ArgumentOutOfRangeException(nameof(maximumBufferSize),
                                                       "maximumBufferSize must be at least blockSize");
             }
 
@@ -128,7 +128,7 @@ namespace Microsoft.IO
             if (!this.IsLargeBufferMultiple(maximumBufferSize))
             {
                 throw new ArgumentException("maximumBufferSize is not a multiple of largeBufferMultiple",
-                                            "maximumBufferSize");
+                                            nameof(maximumBufferSize));
             }
 
             this.smallPool = new ConcurrentStack<byte[]>();
@@ -335,7 +335,7 @@ namespace Microsoft.IO
         {
             if (buffer == null)
             {
-                throw new ArgumentNullException("buffer");
+                throw new ArgumentNullException(nameof(buffer));
             }
 
             if (!this.IsLargeBufferMultiple(buffer.Length))
@@ -380,7 +380,7 @@ namespace Microsoft.IO
         {
             if (blocks == null)
             {
-                throw new ArgumentNullException("blocks");
+                throw new ArgumentNullException(nameof(blocks));
             }
 
             var bytesToReturn = blocks.Count * this.BlockSize;

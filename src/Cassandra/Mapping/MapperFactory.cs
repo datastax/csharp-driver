@@ -70,8 +70,8 @@ namespace Cassandra.Mapping
 
         public MapperFactory(TypeConverter typeConverter, PocoDataFactory pocoDataFactory)
         {
-            _typeConverter = typeConverter ?? throw new ArgumentNullException("typeConverter");
-            _pocoDataFactory = pocoDataFactory ?? throw new ArgumentNullException("pocoDataFactory");
+            _typeConverter = typeConverter ?? throw new ArgumentNullException(nameof(typeConverter));
+            _pocoDataFactory = pocoDataFactory ?? throw new ArgumentNullException(nameof(pocoDataFactory));
 
             _mapperFuncCache = new ConcurrentDictionary<Tuple<Type, string, string>, Delegate>();
             _valueCollectorFuncCache = new ConcurrentDictionary<Tuple<Type, string>, Delegate>();

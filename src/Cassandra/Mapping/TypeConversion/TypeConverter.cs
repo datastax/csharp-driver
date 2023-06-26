@@ -730,7 +730,7 @@ namespace Cassandra.Mapping.TypeConversion
         {
             if (method == null)
             {
-                throw new ArgumentNullException("method");
+                throw new ArgumentNullException(nameof(method));
             }
             var delegateType = Expression.GetFuncType(
                 method.GetParameters().Select(p => p.ParameterType)

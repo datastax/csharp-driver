@@ -42,7 +42,7 @@ namespace Cassandra.Serialization
         {
             if (typeSerializer == null)
             {
-                throw new ArgumentNullException("typeSerializer");
+                throw new ArgumentNullException(nameof(typeSerializer));
             }
             switch (typeSerializer.CqlType)
             {

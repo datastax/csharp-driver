@@ -85,11 +85,11 @@ namespace Cassandra.DataStax.Search
         {
             if (precision < DateRangePrecision.Year || precision > DateRangePrecision.Millisecond)
             {
-                throw new ArgumentOutOfRangeException("precision");
+                throw new ArgumentOutOfRangeException(nameof(precision));
             }
             if (utcTimestamp.Offset != TimeSpan.Zero)
             {
-                throw new ArgumentException("Timestamp should be a UTC time", "utcTimestamp");
+                throw new ArgumentException("Timestamp should be a UTC time", nameof(utcTimestamp));
             }
             _timestamp = utcTimestamp;
             _precision = precision;
@@ -191,7 +191,7 @@ namespace Cassandra.DataStax.Search
             }
             if (boundaryString[0] == '-')
             {
-                throw new ArgumentOutOfRangeException("boundaryString",
+                throw new ArgumentOutOfRangeException(nameof(boundaryString),
                     "Dates outside the DateTimeOffset range are not supported");
             }
             var builder = new Builder();

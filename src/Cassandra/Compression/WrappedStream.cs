@@ -54,11 +54,11 @@ namespace Cassandra.Compression
         {
             if (stream == null)
             {
-                throw new ArgumentNullException("stream");
+                throw new ArgumentNullException(nameof(stream));
             }
             if (stream.Position + length > stream.Length)
             {
-                throw new ArgumentOutOfRangeException("length", "length + current position cannot be greater than stream.Length");
+                throw new ArgumentOutOfRangeException(nameof(length), "length + current position cannot be greater than stream.Length");
             }
             _stream = stream;
             _length = length;
@@ -83,15 +83,15 @@ namespace Cassandra.Compression
         {
             if (offset < 0)
             {
-                throw new ArgumentOutOfRangeException("offset", "offset cannot be negative");
+                throw new ArgumentOutOfRangeException(nameof(offset), "offset cannot be negative");
             }
             if (count < 0)
             {
-                throw new ArgumentOutOfRangeException("count", "count cannot be negative");
+                throw new ArgumentOutOfRangeException(nameof(count), "count cannot be negative");
             }
             if (offset >= buffer.Length)
             {
-                throw new ArgumentOutOfRangeException("offset", "offset cannot be greater or equal the buffer length");
+                throw new ArgumentOutOfRangeException(nameof(offset), "offset cannot be greater or equal the buffer length");
             }
             if (count + _position > _length)
             {

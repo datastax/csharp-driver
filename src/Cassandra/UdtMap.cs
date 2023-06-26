@@ -105,7 +105,7 @@ namespace Cassandra
         
         protected UdtMap(Type netType, string udtName, string keyspace)
         {
-            NetType = netType ?? throw new ArgumentNullException("netType");
+            NetType = netType ?? throw new ArgumentNullException(nameof(netType));
             UdtName = string.IsNullOrWhiteSpace(udtName) ? NetType.Name : udtName;
             IgnoreCase = true;
             Keyspace = keyspace;

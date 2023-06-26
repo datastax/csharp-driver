@@ -551,7 +551,7 @@ namespace Cassandra.IntegrationTests.TestBase
         {
             if (path == null)
             {
-                throw new ArgumentNullException("path");
+                throw new ArgumentNullException(nameof(path));
             }
             if (path.Contains(" "))
             {

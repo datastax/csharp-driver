@@ -37,7 +37,7 @@ namespace Cassandra
         /// <param name="childPolicy">The retry policy to wrap.</param>
         public IdempotenceAwareRetryPolicy(IRetryPolicy childPolicy)
         {
-            ChildPolicy = childPolicy ?? throw new ArgumentNullException("childPolicy");
+            ChildPolicy = childPolicy ?? throw new ArgumentNullException(nameof(childPolicy));
             _extendedChildPolicy = childPolicy as IExtendedRetryPolicy;
         }
 

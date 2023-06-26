@@ -43,11 +43,11 @@ namespace Cassandra
         {
             if (string.IsNullOrEmpty(username))
             {
-                throw new ArgumentNullException("username");
+                throw new ArgumentNullException(nameof(username));
             }
             if (string.IsNullOrEmpty(password))
             {
-                throw new ArgumentNullException("password");
+                throw new ArgumentNullException(nameof(password));
             }
             _username = username;
             _password = password;

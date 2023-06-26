@@ -116,7 +116,7 @@ namespace Cassandra.Geometry
         {
             if (textValue == null)
             {
-                throw new ArgumentNullException("textValue");
+                throw new ArgumentNullException(nameof(textValue));
             }
             var match = WktRegex.Match(textValue);
             if (!match.Success)

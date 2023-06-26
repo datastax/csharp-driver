@@ -37,11 +37,11 @@ namespace Cassandra
             MaxSpeculativeExecutions = maxSpeculativeExecutions;
             if (delay <= 0L)
             {
-                throw new ArgumentOutOfRangeException("delay", "The delay must be positive");
+                throw new ArgumentOutOfRangeException(nameof(delay), "The delay must be positive");
             }
             if (maxSpeculativeExecutions <= 0)
             {
-                throw new ArgumentOutOfRangeException("maxSpeculativeExecutions", "The maximum amount of speculative executions must be a positive number");
+                throw new ArgumentOutOfRangeException(nameof(maxSpeculativeExecutions), "The maximum amount of speculative executions must be a positive number");
             }
         }
 

@@ -106,7 +106,7 @@ namespace Cassandra.Mapping
         /// </summary>
         public Map<TPoco> TableName(string tableName)
         {
-            if (string.IsNullOrWhiteSpace(tableName)) throw new ArgumentNullException("tableName");
+            if (string.IsNullOrWhiteSpace(tableName)) throw new ArgumentNullException(nameof(tableName));
             
             _tableName = tableName;
             return this;
@@ -117,8 +117,8 @@ namespace Cassandra.Mapping
         /// </summary>
         public Map<TPoco> PartitionKey(params string[] columnNames)
         {
-            if (columnNames == null) throw new ArgumentNullException("columnNames");
-            if (columnNames.Length == 0) throw new ArgumentOutOfRangeException("columnNames", "Must specify at least one partition key column.");
+            if (columnNames == null) throw new ArgumentNullException(nameof(columnNames));
+            if (columnNames.Length == 0) throw new ArgumentOutOfRangeException(nameof(columnNames), "Must specify at least one partition key column.");
             if (_partitionKeyColumnMembers != null) throw new InvalidOperationException("Partition key columns were already specified.");
             _partitionKeyColumns = columnNames;
             return this;
@@ -129,8 +129,8 @@ namespace Cassandra.Mapping
         /// </summary>
         public Map<TPoco> PartitionKey(params Expression<Func<TPoco, object>>[] columns)
         {
-            if (columns == null) throw new ArgumentNullException("columns");
-            if (columns.Length == 0) throw new ArgumentOutOfRangeException("columns", "Must specify at least one partition key column.");
+            if (columns == null) throw new ArgumentNullException(nameof(columns));
+            if (columns.Length == 0) throw new ArgumentOutOfRangeException(nameof(columns), "Must specify at least one partition key column.");
             if (_partitionKeyColumns != null) throw new InvalidOperationException("Partition key column names were already specified, define multiple using invoking this method with multiple expressions.");
 
             // Validate we got property/field expressions
@@ -152,7 +152,7 @@ namespace Cassandra.Mapping
         /// </summary>
         public Map<TPoco> ClusteringKey(params string[] columnNames)
         {
-            if (columnNames == null) throw new ArgumentNullException("columnNames");
+            if (columnNames == null) throw new ArgumentNullException(nameof(columnNames));
             if (columnNames.Length == 0) return this;
             _clusteringKeyColumns.AddRange(columnNames.Select(name => Tuple.Create(name, SortOrder.Unspecified)));
             return this;
@@ -163,7 +163,7 @@ namespace Cassandra.Mapping
         /// </summary>
         public Map<TPoco> ClusteringKey(params Tuple<string, SortOrder>[] columnNames)
         {
-            if (columnNames == null) throw new ArgumentNullException("columnNames");
+            if (columnNames == null) throw new ArgumentNullException(nameof(columnNames));
             if (columnNames.Length == 0) return this;
             //Allow multiple calls to clustering key
             _clusteringKeyColumns.AddRange(columnNames);
@@ -177,7 +177,7 @@ namespace Cassandra.Mapping
         /// <param name="order">Clustering order</param>
         public Map<TPoco> ClusteringKey(Expression<Func<TPoco, object>> column, SortOrder order)
         {
-            if (column == null) throw new ArgumentNullException("column");
+            if (column == null) throw new ArgumentNullException(nameof(column));
             var memberInfo = GetPropertyOrField(column);
             _clusteringKeyColumnMembers.Add(Tuple.Create(memberInfo, order));
             return this;
@@ -217,8 +217,8 @@ namespace Cassandra.Mapping
         /// </summary>
         public Map<TPoco> Column<TProp>(Expression<Func<TPoco, TProp>> column, Action<ColumnMap> columnConfig)
         {
-            if (column == null) throw new ArgumentNullException("column");
-            if (columnConfig == null) throw new ArgumentNullException("columnConfig");
+            if (column == null) throw new ArgumentNullException(nameof(column));
+            if (columnConfig == null) throw new ArgumentNullException(nameof(columnConfig));
 
             MemberInfo memberInfo = GetPropertyOrField(column);
 
@@ -302,11 +302,11 @@ namespace Cassandra.Mapping
 
             var memberExpression = body as MemberExpression;
             if (memberExpression == null || IsPropertyOrField(memberExpression.Member) == false)
-                throw new ArgumentOutOfRangeException("expression", string.Format("Expression {0} is not a property or field.", expression));
+                throw new ArgumentOutOfRangeException(nameof(expression), string.Format("Expression {0} is not a property or field.", expression));
 
             if (memberExpression.Member.DeclaringType != _pocoType && _pocoType.GetTypeInfo().IsSubclassOf(memberExpression.Member.DeclaringType) == false)
             {
-                throw new ArgumentOutOfRangeException("expression",
+                throw new ArgumentOutOfRangeException(nameof(expression),
                                                       string.Format("Expression {0} refers to a property or field that is not from type {1}",
                                                                     expression, _pocoType));
             }

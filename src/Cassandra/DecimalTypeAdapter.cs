@@ -44,7 +44,7 @@ namespace Cassandra
             if (bigintBytes.Length > 13 || (bigintBytes.Length == 13 && bigintBytes[12] != 0))
             {
                 throw new ArgumentOutOfRangeException(
-                    "decimalBuf",
+                    nameof(decimalBuf),
                     "this java.math.BigDecimal is too big to fit into System.Decimal. Think about using other TypeAdapter for java.math.BigDecimal (e.g. J#, IKVM,...)");
             }
 

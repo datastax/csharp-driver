@@ -120,11 +120,11 @@ namespace Cassandra.Data.Linq
         {
             if (source == null)
             {
-                throw new ArgumentNullException("source");
+                throw new ArgumentNullException(nameof(source));
             }
             if (predicate == null)
             {
-                throw new ArgumentNullException("predicate");
+                throw new ArgumentNullException(nameof(predicate));
             }
             var result = (CqlQuery<IGrouping<TKey, TSource>>)source.Table.CreateQuery<IGrouping<TKey, TSource>>(Expression.Call(
                 null, CqlMthHelps.GroupByMi,

@@ -58,10 +58,10 @@ namespace Cassandra.DataStax.Graph
         /// </example>
         public SimpleGraphStatement(string query, object values)
         {
-            Query = query ?? throw new ArgumentNullException("query");
+            Query = query ?? throw new ArgumentNullException(nameof(query));
             if (values != null && !IsAnonymous(values))
             {
-                throw new ArgumentException("Expected anonymous object containing the parameters as properties", "values");
+                throw new ArgumentException("Expected anonymous object containing the parameters as properties", nameof(values));
             }
             Values = values;
         }
@@ -80,8 +80,8 @@ namespace Cassandra.DataStax.Graph
         /// </example>
         public SimpleGraphStatement(IDictionary<string, object> values, string query)
         {
-            Query = query ?? throw new ArgumentNullException("query");
-            ValuesDictionary = values ?? throw new ArgumentNullException("values");
+            Query = query ?? throw new ArgumentNullException(nameof(query));
+            ValuesDictionary = values ?? throw new ArgumentNullException(nameof(values));
         }
 
         internal override IStatement GetIStatement(GraphOptions options)

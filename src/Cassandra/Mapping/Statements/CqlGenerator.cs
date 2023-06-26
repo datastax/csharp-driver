@@ -113,7 +113,7 @@ namespace Cassandra.Mapping.Statements
             {
                 if (pocoValues == null)
                 {
-                    throw new ArgumentNullException("pocoValues");
+                    throw new ArgumentNullException(nameof(pocoValues));
                 }
                 if (pocoValues.Length != pocoData.Columns.Count)
                 {

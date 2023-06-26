@@ -66,7 +66,7 @@ namespace Cassandra.Requests
 
             if (queryOptions == null)
             {
-                throw new ArgumentNullException("queryOptions");
+                throw new ArgumentNullException(nameof(queryOptions));
             }
 
             if (queryOptions.SerialConsistency != ConsistencyLevel.Any && queryOptions.SerialConsistency.IsSerialConsistencyLevel() == false)

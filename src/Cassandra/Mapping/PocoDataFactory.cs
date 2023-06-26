@@ -40,7 +40,7 @@ namespace Cassandra.Mapping
         /// <param name="predefinedTypeDefinitions">Explicitly declared type definitions</param>
         public PocoDataFactory(LookupKeyedCollection<Type, ITypeDefinition> predefinedTypeDefinitions)
         {
-            _predefinedTypeDefinitions = predefinedTypeDefinitions ?? throw new ArgumentNullException("predefinedTypeDefinitions");
+            _predefinedTypeDefinitions = predefinedTypeDefinitions ?? throw new ArgumentNullException(nameof(predefinedTypeDefinitions));
             _cache = new ConcurrentDictionary<Type, PocoData>();
         }
 

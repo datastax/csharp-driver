@@ -33,7 +33,7 @@ namespace Cassandra
         {
             if (delays == null)
             {
-                throw new ArgumentNullException("delays");
+                throw new ArgumentNullException(nameof(delays));
             }
             if (delays.Length == 0)
             {

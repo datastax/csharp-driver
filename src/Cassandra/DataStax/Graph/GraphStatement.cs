@@ -68,7 +68,7 @@ namespace Cassandra.DataStax.Graph
         {
             if (obj == null)
             {
-                throw new ArgumentNullException("obj");
+                throw new ArgumentNullException(nameof(obj));
             }
             var type = obj.GetType();
             return type.GetTypeInfo().IsGenericType

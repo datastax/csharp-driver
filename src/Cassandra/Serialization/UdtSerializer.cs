@@ -88,7 +88,7 @@ namespace Cassandra.Serialization
         {
             if (value == null)
             {
-                throw new ArgumentNullException("value");
+                throw new ArgumentNullException(nameof(value));
             }
             var map = GetUdtMap(value.GetType());
             if (map == null)

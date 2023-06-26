@@ -335,7 +335,7 @@ namespace Cassandra
         {
             if (string.IsNullOrEmpty(input))
             {
-                throw new ArgumentNullException("input");
+                throw new ArgumentNullException(nameof(input));
             }
             if (input == "0")
             {
