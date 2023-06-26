@@ -681,6 +681,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             public string SomePartitionKey = "somePartitionKey";
         }
 
+#pragma warning disable CS8981
         private class lowercaseclassnamepkcamelcase
         {
             public string SomePartitionKey = "somePartitionKey";
@@ -690,6 +691,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         {
             public string somepartitionkey = "somePartitionKey";
         }
+#pragma warning restore CS8981
 
         private class PocoWithAdditionalField
         {

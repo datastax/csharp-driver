@@ -29,7 +29,7 @@ namespace Cassandra
     {
         private readonly static Logger _logger = new Logger(typeof (SSLOptions));
         private RemoteCertificateValidationCallback _remoteCertValidationCallback = ValidateServerCertificate;
-        private SslProtocols _sslProtocol = SslProtocols.Tls;
+        private SslProtocols _sslProtocol = SslProtocols.Tls12 | SslProtocols.Tls13;
         private bool _checkCertificateRevocation;
         private X509CertificateCollection _certificateCollection = new X509CertificateCollection();
         private Func<IPAddress, string> _hostNameResolver = GetHostName;

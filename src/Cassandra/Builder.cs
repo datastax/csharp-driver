@@ -1213,7 +1213,7 @@ namespace Cassandra
         {
             var certificateValidator = new CustomCaCertificateValidator(bundle.CaCert, bundle.Config.Host);
             var sslOptions = new SSLOptions(
-                SslProtocols.Tls12 | SslProtocols.Tls11 | SslProtocols.Tls,
+                SslProtocols.Tls12 | SslProtocols.Tls13,
                 false,
                 (sender, certificate, chain, errors) => certificateValidator.Validate(certificate, chain, errors));
 

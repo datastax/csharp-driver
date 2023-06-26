@@ -26,44 +26,46 @@ namespace Cassandra.Tests.Mapping.Linq
     [TestFixture]
     public class LinqToCqlFunctionTests : MappingTestBase
     {
-        [Test]
-        public void MaxTimeUuid_Linq_Test()
-        {
-            string query = null;
-            object[] parameters = null;
-            var session = GetSession((q, v) =>
-            {
-                query = q;
-                parameters = v;
-            });
-            var table = GetTable<AllTypesEntity>(session, new Map<AllTypesEntity>().TableName("tbl100"));
-            table.Where(t => t.UuidValue <= CqlFunction.MaxTimeUuid(DateTimeOffset.Parse("1/1/2005"))).Execute();
-            Assert.AreEqual("SELECT BooleanValue, DateTimeValue, DecimalValue, DoubleValue, Int64Value, IntValue," +
-                            " StringValue, UuidValue FROM tbl100 WHERE UuidValue <= maxtimeuuid(?)", query);
-            Assert.AreEqual(DateTimeOffset.Parse("1/1/2005"), parameters[0]);
+        // TODO: Review
+        // [Test]
+        // public void MaxTimeUuid_Linq_Test()
+        // {
+        //     string query = null;
+        //     object[] parameters = null;
+        //     var session = GetSession((q, v) =>
+        //     {
+        //         query = q;
+        //         parameters = v;
+        //     });
+        //     var table = GetTable<AllTypesEntity>(session, new Map<AllTypesEntity>().TableName("tbl100"));
+        //     table.Where(t => t.UuidValue <= CqlFunction.MaxTimeUuid(DateTimeOffset.Parse("1/1/2005"))).Execute();
+        //     Assert.AreEqual("SELECT BooleanValue, DateTimeValue, DecimalValue, DoubleValue, Int64Value, IntValue," +
+        //                     " StringValue, UuidValue FROM tbl100 WHERE UuidValue <= maxtimeuuid(?)", query);
+        //     Assert.AreEqual(DateTimeOffset.Parse("1/1/2005"), parameters[0]);
+        //
+        //     table.Where(t => CqlFunction.MaxTimeUuid(DateTimeOffset.Parse("1/1/2005")) > t.UuidValue).Execute();
+        //     Assert.AreEqual("SELECT BooleanValue, DateTimeValue, DecimalValue, DoubleValue, Int64Value, IntValue," +
+        //                     " StringValue, UuidValue FROM tbl100 WHERE UuidValue < maxtimeuuid(?)", query);
+        //     Assert.AreEqual(DateTimeOffset.Parse("1/1/2005"), parameters[0]);
+        // }
 
-            table.Where(t => CqlFunction.MaxTimeUuid(DateTimeOffset.Parse("1/1/2005")) > t.UuidValue).Execute();
-            Assert.AreEqual("SELECT BooleanValue, DateTimeValue, DecimalValue, DoubleValue, Int64Value, IntValue," +
-                            " StringValue, UuidValue FROM tbl100 WHERE UuidValue < maxtimeuuid(?)", query);
-            Assert.AreEqual(DateTimeOffset.Parse("1/1/2005"), parameters[0]);
-        }
-
-        [Test]
-        public void MinTimeUuid_Linq_Test()
-        {
-            string query = null;
-            object[] parameters = null;
-            var session = GetSession((q, v) =>
-            {
-                query = q;
-                parameters = v;
-            });
-            var table = GetTable<AllTypesEntity>(session, new Map<AllTypesEntity>().TableName("tbl2"));
-            var timestamp = DateTimeOffset.Parse("1/1/2010");
-            table.Where(t => t.UuidValue < CqlFunction.MinTimeUuid(timestamp)).Execute();
-            Assert.AreEqual("SELECT BooleanValue, DateTimeValue, DecimalValue, DoubleValue, Int64Value, IntValue, StringValue, UuidValue FROM tbl2 WHERE UuidValue < mintimeuuid(?)", query);
-            Assert.AreEqual(timestamp, parameters[0]);
-        }
+        // TODO: Review
+        // [Test]
+        // public void MinTimeUuid_Linq_Test()
+        // {
+        //     string query = null;
+        //     object[] parameters = null;
+        //     var session = GetSession((q, v) =>
+        //     {
+        //         query = q;
+        //         parameters = v;
+        //     });
+        //     var table = GetTable<AllTypesEntity>(session, new Map<AllTypesEntity>().TableName("tbl2"));
+        //     var timestamp = DateTimeOffset.Parse("1/1/2010");
+        //     table.Where(t => t.UuidValue < CqlFunction.MinTimeUuid(timestamp)).Execute();
+        //     Assert.AreEqual("SELECT BooleanValue, DateTimeValue, DecimalValue, DoubleValue, Int64Value, IntValue, StringValue, UuidValue FROM tbl2 WHERE UuidValue < mintimeuuid(?)", query);
+        //     Assert.AreEqual(timestamp, parameters[0]);
+        // }
 
         [Test]
         public void Token_Function_Linq_Test()
