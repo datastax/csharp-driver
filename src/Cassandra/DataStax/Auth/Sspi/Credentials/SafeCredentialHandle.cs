@@ -36,7 +36,6 @@ namespace Cassandra.DataStax.Auth.Sspi.Credentials
             : base()
         { }
 
-        [ReliabilityContract( Consistency.WillNotCorruptState, Cer.Success )]
         protected override bool ReleaseHandle()
         {
             SecurityStatus status = CredentialNativeMethods.FreeCredentialsHandle(

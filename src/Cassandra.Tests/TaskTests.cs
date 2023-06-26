@@ -161,7 +161,9 @@ namespace Cassandra.Tests
         [Test]
         public void ConfigureAwait_Used_For_Every_Awaited_Task()
         {
+#pragma warning disable SYSLIB0012
             var assemblyFile = new FileInfo(new Uri(GetType().GetTypeInfo().Assembly.CodeBase).LocalPath);
+#pragma warning restore SYSLIB0012
             var directory = assemblyFile.Directory;
             while (directory != null && directory.Name != "src")
             {

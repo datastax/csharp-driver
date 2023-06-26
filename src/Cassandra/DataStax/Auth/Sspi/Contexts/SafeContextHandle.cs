@@ -32,7 +32,6 @@ namespace Cassandra.DataStax.Auth.Sspi.Contexts
     /// </summary>
     internal class SafeContextHandle : SafeSspiHandle
     {
-        [ReliabilityContract( Consistency.WillNotCorruptState, Cer.Success )]
         protected override bool ReleaseHandle()
         {
             SecurityStatus status = ContextNativeMethods.DeleteSecurityContext(

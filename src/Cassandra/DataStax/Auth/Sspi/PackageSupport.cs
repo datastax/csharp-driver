@@ -49,7 +49,6 @@ namespace Cassandra.DataStax.Auth.Sspi
             rawInfoPtr = new IntPtr();
             info = new SecPkgInfo();
 
-            RuntimeHelpers.PrepareConstrainedRegions();
             try
             { }
             finally
@@ -96,7 +95,6 @@ namespace Cassandra.DataStax.Auth.Sspi
 
             pkgArrayPtr = new IntPtr();
 
-            RuntimeHelpers.PrepareConstrainedRegions();
             try { }
             finally
             {

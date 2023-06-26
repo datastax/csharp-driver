@@ -162,7 +162,6 @@ namespace Cassandra.DataStax.Auth.Sspi.Buffers
             this.descriptorHandle = GCHandle.Alloc( descriptor, GCHandleType.Pinned );
         }
 
-        [ReliabilityContract( Consistency.WillNotCorruptState, Cer.Success )]
         ~SecureBufferAdapter()
         {
             // We bend the typical Dispose pattern here. This finalizer runs in a Constrained Execution Region,
@@ -203,7 +202,6 @@ namespace Cassandra.DataStax.Auth.Sspi.Buffers
         /// nor should we anyway since they may be gone.
         /// </summary>
         /// <param name="disposing">Whether Dispose is being called.</param>
-        [ReliabilityContract( Consistency.WillNotCorruptState, Cer.Success )]
         private void Dispose( bool disposing )
         {
             if ( this.disposed == true ) { return; }

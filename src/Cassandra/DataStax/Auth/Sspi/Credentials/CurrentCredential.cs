@@ -61,7 +61,6 @@ namespace Cassandra.DataStax.Auth.Sspi.Credentials
             // The finally clause is the actual constrained region. The VM pre-allocates any stack space,
             // performs any allocations it needs to prepare methods for execution, and postpones any 
             // instances of the 'uncatchable' exceptions (ThreadAbort, StackOverflow, OutOfMemory).
-            RuntimeHelpers.PrepareConstrainedRegions();
             try { }
             finally
             {

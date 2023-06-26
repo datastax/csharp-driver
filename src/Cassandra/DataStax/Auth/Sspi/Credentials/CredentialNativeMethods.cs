@@ -31,7 +31,6 @@ namespace Cassandra.DataStax.Auth.Sspi.Credentials
 {
     internal static class CredentialNativeMethods
     {
-        [ReliabilityContract( Consistency.WillNotCorruptState, Cer.MayFail)]
         [DllImport( "Secur32.dll", EntryPoint = "AcquireCredentialsHandle", CharSet = CharSet.Unicode )]
         internal static extern SecurityStatus AcquireCredentialsHandle(
             string principleName,
@@ -45,7 +44,6 @@ namespace Cassandra.DataStax.Auth.Sspi.Credentials
             ref TimeStamp expiry
         );
 
-        [ReliabilityContract( Consistency.WillNotCorruptState, Cer.Success )]
         [DllImport( "Secur32.dll", EntryPoint = "FreeCredentialsHandle", CharSet = CharSet.Unicode )]
         internal static extern SecurityStatus FreeCredentialsHandle(
             ref RawSspiHandle credentialHandle
@@ -61,7 +59,6 @@ namespace Cassandra.DataStax.Auth.Sspi.Credentials
         /// <param name="attributeName"></param>
         /// <param name="name"></param>
         /// <returns></returns>
-        [ReliabilityContract( Consistency.WillNotCorruptState, Cer.Success )]
         [DllImport( "Secur32.dll", EntryPoint = "QueryCredentialsAttributes", CharSet = CharSet.Unicode )]
         internal static extern SecurityStatus QueryCredentialsAttribute_Name(
             ref RawSspiHandle credentialHandle,

@@ -38,11 +38,6 @@ namespace Cassandra.DataStax.Cloud
 #if NET452
             return GetWithWebRequestAsync(url, socketOptions, sslOptions);
 #else
-            if (PlatformHelper.RuntimeSupportsCloudTlsSettings())
-            {
-                return GetWithHttpClientAsync(url, socketOptions, sslOptions);
-            }
-
             throw new NotSupportedException("DataStax Astra support in .NET Core requires .NET Core 2.1 runtime or later. " +
                                             "The HTTPS implementation of .NET Core 2.0 and below don't work when some TLS settings are set. " +
                                             $"The runtime that is being used is: .NET Core {PlatformHelper.GetNetCoreVersion()}");
@@ -55,7 +50,9 @@ namespace Cassandra.DataStax.Cloud
             string url, SocketOptions socketOptions, SSLOptions sslOptions)
         {
             ServicePointManager.SecurityProtocol |= ConvertSslProtocolEnum(sslOptions.SslProtocol);
+#pragma warning disable SYSLIB0014
             var request = (HttpWebRequest)WebRequest.Create(url);
+#pragma warning restore SYSLIB0014
             request.KeepAlive = false;
             request.Timeout = socketOptions.ConnectTimeoutMillis;
             request.Accept = "application/json";
@@ -100,10 +97,6 @@ namespace Cassandra.DataStax.Cloud
         private SecurityProtocolType ConvertSslProtocolEnum(SslProtocols protocol)
         {
             SecurityProtocolType securityProtocolType = 0;
-            if ((protocol & SslProtocols.Ssl3) != 0)
-            {
-                securityProtocolType |= SecurityProtocolType.Ssl3;
-            }
             
             if ((protocol & SslProtocols.Tls) != 0)
             {

@@ -241,7 +241,6 @@ namespace Cassandra.DataStax.Auth.Sspi.Contexts
             SecurityStatus status = SecurityStatus.InternalError;
             bool gotRef = false;
 
-            RuntimeHelpers.PrepareConstrainedRegions();
             try
             {
                 this.ContextHandle.DangerousAddRef( ref gotRef );

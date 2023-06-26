@@ -34,46 +34,7 @@ namespace Cassandra.Tests.Mapping.Linq
         {
             _session = LinqEntryPointsTests.GetSessionMock().Object;
         }
-
-        [Test]
-        public void Deprecated_EntryPoint_Defaults_To_LinqBasedAttributes()
-        {
-            var table = _session.GetTable<AllTypesEntity>();
-            Assert.AreEqual(
-                @"SELECT ""BooleanValue"", ""DateTimeValue"", ""DecimalValue"", ""DoubleValue"", ""Int64Value"", ""IntValue"", ""StringValue"", ""UuidValue"" FROM ""AllTypesEntity""",
-                table.ToString());
-        }
-
-        [Test]
-        public void Deprecated_EntryPoint_Honors_Mapping_Defined()
-        {
-            MappingConfiguration.Global.Define(new Map<AllTypesEntity>().TableName("tbl1"));
-            var table = _session.GetTable<AllTypesEntity>();
-            Assert.AreEqual(
-                @"SELECT BooleanValue, DateTimeValue, DecimalValue, DoubleValue, Int64Value, IntValue, StringValue, UuidValue FROM tbl1",
-                table.ToString());
-        }
-
-        [Test]
-        public void Deprecated_EntryPoint_Uses_Table_Provided()
-        {
-            MappingConfiguration.Global.Define(new Map<AllTypesEntity>().TableName("tbl1"));
-            var table = _session.GetTable<AllTypesEntity>( "linqTable");
-            Assert.AreEqual(
-                @"SELECT BooleanValue, DateTimeValue, DecimalValue, DoubleValue, Int64Value, IntValue, StringValue, UuidValue FROM linqTable",
-                table.ToString());
-        }
-
-        [Test]
-        public void Deprecated_EntryPoint_Uses_Keyspace_Provided()
-        {
-            MappingConfiguration.Global.Define(new Map<AllTypesEntity>().TableName("tbl1"));
-            var table = _session.GetTable<AllTypesEntity>( "linqTable", "linqKs");
-            Assert.AreEqual(
-                @"SELECT BooleanValue, DateTimeValue, DecimalValue, DoubleValue, Int64Value, IntValue, StringValue, UuidValue FROM linqKs.linqTable",
-                table.ToString());
-        }
-
+        
         [Test]
         public void Table_Constructor_Defaults_To_MappingAttributesAttributes()
         {

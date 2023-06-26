@@ -40,7 +40,7 @@ namespace Cassandra.IntegrationTests.TestBase
             return "";
         }
 
-        public float NextSingle()
+        public new float NextSingle()
         {
             double numb = NextDouble();
             numb -= 0.5;
@@ -58,7 +58,7 @@ namespace Cassandra.IntegrationTests.TestBase
             return Randomm.Instance.Next();
         }
 
-        public Int64 NextInt64()
+        public new Int64 NextInt64()
         {
             var buffer = new byte[sizeof (Int64)];
             NextBytes(buffer);

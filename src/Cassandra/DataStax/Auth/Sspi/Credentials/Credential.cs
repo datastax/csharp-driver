@@ -105,7 +105,6 @@ namespace Cassandra.DataStax.Auth.Sspi.Credentials
                 status = SecurityStatus.InternalError;
                 carrier = new QueryNameAttribCarrier();
 
-                RuntimeHelpers.PrepareConstrainedRegions();
                 try
                 {
                     this.safeCredHandle.DangerousAddRef( ref gotRef );
