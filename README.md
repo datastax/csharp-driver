@@ -1,3 +1,10 @@
+# Modified version of the DataStax Driver
+- Obsolete code removal
+- Using more up-to-date packages
+- Base .NET version is 7.0
+- Use at your own risk :)
+
+
 # DataStax C# Driver for Apache Cassandra
 
 A modern, [feature-rich][features] and highly tunable C# client library for Apache Cassandra (2.0+) using Cassandra's binary protocol and Cassandra Query Language v3.
