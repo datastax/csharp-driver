@@ -8,9 +8,10 @@ You can should replace the project reference with the package reference of the d
 -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <TargetFramework>net7.0</TargetFramework>
     <RootNamespace>ExecuteInLoop</RootNamespace>
     <AssemblyName>ExecuteInLoop</AssemblyName>
+    <LangVersion>11</LangVersion>
   </PropertyGroup>
 
   <!--This example uses a project reference. In your project use PackageReference (nuget)-->
