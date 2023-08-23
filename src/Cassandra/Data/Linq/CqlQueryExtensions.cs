@@ -29,7 +29,9 @@ namespace Cassandra.Data.Linq
                .SetPageSize(src.PageSize)
                .SetPagingState(src.PagingState)
                .SetRetryPolicy(src.RetryPolicy)
-               .SetAutoPage(src.AutoPage);
+               .SetAutoPage(src.AutoPage)
+               .SetReadTimeoutMillis(src.ReadTimeoutMillis)
+               .SetOutgoingPayload(src.OutgoingPayload);
             if (src.SerialConsistencyLevel != ConsistencyLevel.Any)
             {
                 dst.SetSerialConsistencyLevel(src.SerialConsistencyLevel);
@@ -37,6 +39,10 @@ namespace Cassandra.Data.Linq
             if (src.IsIdempotent.HasValue)
             {
                dst.SetIdempotence(src.IsIdempotent.Value);
+            }
+            if (src.Timestamp.HasValue)
+            {
+               dst.SetTimestamp(src.Timestamp.Value);
             }
         }
         
