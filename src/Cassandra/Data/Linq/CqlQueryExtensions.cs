@@ -34,6 +34,10 @@ namespace Cassandra.Data.Linq
             {
                 dst.SetSerialConsistencyLevel(src.SerialConsistencyLevel);
             }
+            if (src.IsIdempotent.HasValue)
+            {
+               dst.SetIdempotence(src.IsIdempotent.Value);
+            }
         }
         
         /// <summary>
