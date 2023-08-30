@@ -40,10 +40,6 @@ namespace Cassandra.Data.Linq
             {
                dst.SetIdempotence(src.IsIdempotent.Value);
             }
-            if (src.Timestamp.HasValue)
-            {
-               dst.SetTimestamp(src.Timestamp.Value);
-            }
         }
         
         /// <summary>
