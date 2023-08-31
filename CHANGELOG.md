@@ -1,5 +1,13 @@
 # ChangeLog - DataStax C# Driver
 
+## 3.19.3
+
+2023-08-31
+
+### Bug fixes
+
+*   [[CSHARP-995](https://datastax-oss.atlassian.net/browse/CSHARP-995)] Some Statement properties are not being applied in LINQ statements
+
 ## 3.19.2
 
 2023-03-31
