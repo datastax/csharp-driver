@@ -21,7 +21,10 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using Cassandra.Data.Linq;
+using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
+using Cassandra.Mapping;
 using Cassandra.Tests;
 
 using NUnit.Framework;
@@ -131,7 +134,65 @@ namespace Cassandra.IntegrationTests.Core
                 session.Execute(new SimpleStatement(QueryLocal).SetIdempotence(true));
                 semaphore.Release();
             }, 512);
-            Assert.AreEqual(0, policy.ScheduledMoreThanOnce.Count, "Scheduled more than once: [" + String.Join(", ", policy.ScheduledMoreThanOnce.Select(x => x.ToString())) + "]");
+            Assert.AreEqual(0, policy.ScheduledExecutions.Count(e => e > 1), "Scheduled more than once: [" + String.Join(", ", policy.ScheduledExecutions.Where(e => e > 1).Select(x => x.ToString())) + "]");
+        }
+
+        [Test]
+        public void SpeculativeExecution_LINQSelect_Should_Execute_On_Next_Node_When_Idempotent()
+        {
+            var policy = new LoggedSpeculativeExecutionPolicy(5000);
+            var session = GetSession(policy);
+            var numberOfRequests = 64;
+            var parallelism = 4;
+            var semaphore = new SemaphoreSlim(parallelism);
+            TestHelper.ParallelInvoke(() =>
+            {
+                semaphore.Wait();
+                try
+                {
+                    var table = new Table<AllDataTypesEntity>(session, new MappingConfiguration());
+                    table.SetIdempotence(true);
+                    table.Execute();
+                }
+                catch (InvalidTypeException) // we're not priming the query
+                {
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+            }, numberOfRequests);
+            Assert.AreEqual(0, policy.ScheduledExecutions.Count(e => e > 1), "Scheduled more than once: [" + String.Join(", ", policy.ScheduledExecutions.Where(e => e > 1).Select(x => x.ToString())) + "]");
+            Assert.AreEqual(64, policy.ScheduledExecutions.Count(e => e == 1));
+        }
+
+        [Test]
+        public void SpeculativeExecution_LINQInsert_Should_Execute_On_Next_Node_When_Idempotent()
+        {
+            var policy = new LoggedSpeculativeExecutionPolicy(5000);
+            var session = GetSession(policy);
+            var numberOfRequests = 64;
+            var parallelism = 4;
+            var semaphore = new SemaphoreSlim(parallelism);
+            TestHelper.ParallelInvoke(() =>
+            {
+                semaphore.Wait();
+                try
+                {
+                    var insert = new Table<AllDataTypesEntity>(session, new MappingConfiguration()).Insert(new AllDataTypesEntity());
+                    insert.SetIdempotence(true);
+                    insert.Execute();
+                }
+                catch (InvalidTypeException) // we're not priming the query
+                {
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+            }, numberOfRequests);
+            Assert.AreEqual(0, policy.ScheduledExecutions.Count(e => e > 1), "Scheduled more than once: [" + String.Join(", ", policy.ScheduledExecutions.Where(e => e > 1).Select(x => x.ToString())) + "]");
+            Assert.AreEqual(64, policy.ScheduledExecutions.Count(e => e == 1));
         }
 
         private class LoggedSpeculativeExecutionPolicy : ISpeculativeExecutionPolicy
@@ -144,12 +205,15 @@ namespace Cassandra.IntegrationTests.Core
                 _firstDelay = firstFirstDelay;
             }
 
-            private void SetScheduledMore(ISpeculativeExecutionPlan plan, int executions)
+            private void OnScheduled(ISpeculativeExecutionPlan plan)
             {
-                _scheduledMore.AddOrUpdate(plan, executions, (k, v) => executions);
+                _scheduledMore.AddOrUpdate(plan, 1, (k, v) => v + 1);
             }
 
-            public ICollection<int> ScheduledMoreThanOnce => _scheduledMore.Values;
+            public ICollection<int> ScheduledExecutions
+            {
+                get { return _scheduledMore.Values; }
+            }
 
             public void Dispose()
             {
@@ -176,11 +240,11 @@ namespace Cassandra.IntegrationTests.Core
 
                 public long NextExecution(Host lastQueried)
                 {
+                    _policy.OnScheduled(this);
                     if (_executions++ < 1)
                     {
                         return _policy._firstDelay;
                     }
-                    _policy.SetScheduledMore(this, _executions);
                     return 0L;
                 }
             }
@@ -192,7 +256,10 @@ namespace Cassandra.IntegrationTests.Core
             private ICluster _cluster;
             private int _hostYielded;
 
-            public int HostYielded => Volatile.Read(ref _hostYielded);
+            public int HostYielded
+            {
+                get { return Volatile.Read(ref _hostYielded); }
+            }
 
             public OrderedLoadBalancingPolicy(params string[] addresses)
             {
