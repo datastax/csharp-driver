@@ -13,4 +13,4 @@ The heartbeat interval should be set higher than `SocketOptions.ReadTimeoutMilli
 
 To disable heartbeat, set the interval to `0`.
 
-[setheartbeat-api]: http://docs.datastax.com/en/latest-csharp-driver-api/html/M_Cassandra_PoolingOptions_SetHeartBeatInterval.htm
+[setheartbeat-api]: https://docs.datastax.com/en/drivers/csharp/latest/api/Cassandra.PoolingOptions.html#Cassandra_PoolingOptions_SetHeartBeatInterval_System_Int32_
