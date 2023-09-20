@@ -66,6 +66,7 @@ checks:
       - 'https://nuget.org/packages/CassandraCSharpDriver/'
       - 'https://www.nuget.org/packages/CassandraCSharpDriver'
       - 'https://www.nuget.org/packages/CassandraCSharpDriver.AppMetrics/'
+      - 'https://twitter.com/datastax'
 versions:
   - name: '3.19'
     ref: '3.19'
