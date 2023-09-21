@@ -60,9 +60,9 @@ api_docs:
 checks:
   external_links:
     exclude:
-      - 'https://ci.appveyor.com/api/projects/status/ri1olv8bl7b7yk7y/branch/master?svg=true'
+      - 'https://ci.appveyor.com/api/projects/status/ri1olv8bl7b7yk7y/branch/master\?svg=true'
       - 'https://www.nuget.org/packages/CassandraEntityContext/'
-      - 'https://dotnet.microsoft.com/en-us/platform/support/policy/dotnet-core'
+      - 'https://dotnet.microsoft.com/platform/support/policy/dotnet-core'
       - 'https://nuget.org/packages/CassandraCSharpDriver/'
       - 'https://www.nuget.org/packages/CassandraCSharpDriver'
       - 'https://www.nuget.org/packages/CassandraCSharpDriver.AppMetrics/'
@@ -139,3 +139,15 @@ rewrites:
     replace: 'https://docs.datastax.com/en/drivers/csharp/latest/api/Cassandra.RowSet.html'
   - search: 'http://docs.datastax.com/en/latest-csharp-driver-api/html/T_Cassandra_Unset.htm'
     replace: 'https://docs.datastax.com/en/drivers/csharp/latest/api/Cassandra.Unset.html'
+  - search: 'http://datastax.github.io/csharp-driver/features/tuning-policies/'
+    replace: 'https://docs.datastax.com/en/developer/csharp-dse-driver/latest/features/tuning-policies/'
+  - search: 'http://datastax.github.io/csharp-driver/features/components/mapper/'
+    replace: 'https://docs.datastax.com/en/developer/csharp-dse-driver/latest/features/components/mapper/'
+  - search: 'http://datastax.github.io/csharp-driver/features/components/linq/'
+    replace: 'https://docs.datastax.com/en/developer/csharp-dse-driver/latest/features/components/linq/'
+  - search: 'http://datastax.github.io/csharp-driver/features/components/'
+    replace: 'https://docs.datastax.com/en/developer/csharp-dse-driver/latest/features/components/'  
+  - search: 'http://datastax.github.io/csharp-driver/features/'
+    replace: 'https://docs.datastax.com/en/developer/csharp-dse-driver/2.10/features/'
+  - search: 'http://docs.datastax.com/en/glossary/doc/glossary/gloss_tombstone.html'
+    replace: 'https://docs.datastax.com/en/glossary/docs/index.html#tombstone'
