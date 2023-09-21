@@ -109,6 +109,10 @@ versions:
   - name: '3.0'
     ref: '3.0'
 rewrites:
+  - search: 'https://community.datastax.com/index.html'
+    replace: 'https://www.datastax.com/workshops'
+  - search: 'https://community.datastax.com'
+    replace: 'https://www.datastax.com/workshops'
   - search: 'https://academy.datastax.com/resources/getting-started-apache-cassandra-and-c-net'
     replace: 'https://github.com/DataStax-Examples/getting-started-with-astra-csharp'
   - search: 'https://github.com/datastax/csharp-driver/blob/master/doc/upgrade-guide-2.0.md'
@@ -135,5 +139,3 @@ rewrites:
     replace: 'https://docs.datastax.com/en/drivers/csharp/latest/api/Cassandra.RowSet.html'
   - search: 'http://docs.datastax.com/en/latest-csharp-driver-api/html/T_Cassandra_Unset.htm'
     replace: 'https://docs.datastax.com/en/drivers/csharp/latest/api/Cassandra.Unset.html'
-  - search: 'https://community.datastax.com/index.html'
-    replace: 'https://www.datastax.com/workshops'
