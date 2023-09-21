@@ -135,3 +135,5 @@ rewrites:
     replace: 'https://docs.datastax.com/en/drivers/csharp/latest/api/Cassandra.RowSet.html'
   - search: 'http://docs.datastax.com/en/latest-csharp-driver-api/html/T_Cassandra_Unset.htm'
     replace: 'https://docs.datastax.com/en/drivers/csharp/latest/api/Cassandra.Unset.html'
+  - search: 'https://community.datastax.com/index.html'
+    replace: 'https://www.datastax.com/workshops'
