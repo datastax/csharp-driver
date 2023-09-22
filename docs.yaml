@@ -115,7 +115,7 @@ rewrites:
   - search: 'https://community.datastax.com'
     replace: 'https://www.datastax.com/workshops'
   - search: 'https://academy.datastax.com/resources/getting-started-apache-cassandra-and-c-net'
-    replace: 'https://github.com/DataStax-Examples/getting-started-with-astra-csharp'
+    replace: 'https://docs.datastax.com/en/developer/csharp-driver/latest/'
   - search: 'https://github.com/datastax/csharp-driver/blob/master/doc/upgrade-guide-2.0.md'
     replace: 'https://docs.datastax.com/en/developer/csharp-driver/latest/upgrade-guide/#2-0'
   - search: 'https://github.com/datastax/csharp-driver/blob/master/doc/upgrade-guide-2.5.md'
