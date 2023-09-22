@@ -67,6 +67,7 @@ checks:
       - 'https://www.nuget.org/packages/CassandraCSharpDriver'
       - 'https://www.nuget.org/packages/CassandraCSharpDriver.AppMetrics/'
       - 'https://twitter.com/datastax'
+      - 'https://academy.datastax.com/slack'
 versions:
   - name: '3.19'
     ref: '3.19'
@@ -151,3 +152,5 @@ rewrites:
     replace: 'https://docs.datastax.com/en/developer/csharp-dse-driver/2.10/features/'
   - search: 'http://docs.datastax.com/en/glossary/doc/glossary/gloss_tombstone.html'
     replace: 'https://docs.datastax.com/en/glossary/docs/index.html#tombstone'
+  - search: 'http://planetcassandra.org/getting-started-with-apache-cassandra-and-net/'
+    replace: 'https://docs.datastax.com/en/developer/csharp-driver/latest/'
