@@ -412,7 +412,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 [apidocs]: https://docs.datastax.com/en/latest-csharp-driver-api/
 [docindex]: https://docs.datastax.com/en/developer/csharp-driver/latest/
 [features]: https://docs.datastax.com/en/developer/csharp-driver/latest/features/
-[getting-started]: https://academy.datastax.com/resources/getting-started-apache-cassandra-and-c-net
 [faq]: https://docs.datastax.com/en/developer/csharp-driver/latest/faq/
 [nuget]: https://nuget.org/packages/CassandraCSharpDriver/
 [mailinglist]: https://groups.google.com/a/lists.datastax.com/forum/#!forum/csharp-driver-user

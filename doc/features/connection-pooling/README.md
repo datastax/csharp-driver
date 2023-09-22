@@ -42,4 +42,4 @@ foreach (var host in state.GetConnectedHosts())
 }
 ```
 
-[pooling-options-api]: http://docs.datastax.com/en/latest-csharp-driver-api/html/T_Cassandra_PoolingOptions.htm
+[pooling-options-api]: https://docs.datastax.com/en/drivers/csharp/latest/api/Cassandra.PoolingOptions.html
