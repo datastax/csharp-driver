@@ -70,7 +70,7 @@ checks:
       - 'https://academy.datastax.com/slack'
 versions:
   - name: '3.19'
-    ref: '3.19'
+    ref: 'DOC-4062'
   - name: '3.18'
     ref: '3.18'
   - name: '3.17'
