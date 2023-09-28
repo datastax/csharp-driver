@@ -66,6 +66,17 @@ This syntax has a few advantages:
 
 The number of values must match the number of placeholders in the query string, and their types must match the database schema. Note that the driver does not parse simple statements, so it cannot perform those checks on the client side; if you make a mistake, the query will be sent anyway, and the server will reply with an error, that gets translated into a driver exception.
 
+Note: Guardrails ensure consistent behavior by limiting the number of partition keys selected by an IN restriction and by the cartesian product of multiple IN restrictions.
+
+#### Example 1
+
+Providing a WHERE clause with a high number of elements in the IN clause (as such not part of the same partitions) causes the coordinator receiving the request to trigger  other internal requests to cope, making one node unnecessarily busy.
+Instead, distribute a simple request with WHERE and a single value.
+
+#### Example 2
+
+Using more than 25 values in the IN clause is an invalid pattern because the load is transferred from the client to the coordinator. Use parallel queries and reduce on the client side for faster speed and to distribute the load on the nodes.
+
 ### Type inference
 
 Another consequence of not parsing query strings is that the driver has to guess how to serialize values, based on their .NET type (see the [default type mappings](../../../../datatypes)).
