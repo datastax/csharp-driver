@@ -29,8 +29,7 @@ namespace Cassandra.DataStax.Cloud
     /// </summary>
     internal class CustomCaCertificateValidator : ICertificateValidator
     {
-        private const string SubjectAlternateNameOid = "2.5.29.17";
-        private static readonly Regex DnsNameRegex = new Regex(@"^DNS Name=(.+)");
+        private const string SubjectAlternateNameOid = "2.5.29.17"; // Oid for the SAN extension
 
         private static readonly Logger Logger = new Logger(typeof(CustomCaCertificateValidator));
         private readonly X509Certificate2 _trustedRootCertificateAuthority;
@@ -174,7 +173,7 @@ namespace Cassandra.DataStax.Cloud
             var result = new List<string>();
 
             var subjectAlternativeName = cert.Extensions.Cast<X509Extension>()
-                .Where(n => n.Oid.Value == "2.5.29.17") //n.Oid.FriendlyName=="Subject Alternative Name")
+                .Where(n => n.Oid.Value == SubjectAlternateNameOid)
                 .Select(n => new AsnEncodedData(n.Oid, n.RawData))
                 .Select(n => n.Format(true))
                 .FirstOrDefault();
@@ -187,7 +186,7 @@ namespace Cassandra.DataStax.Cloud
                 {
                     var groups = Regex.Match(alternativeName, @"^(.*)=(.*)").Groups; // @"^DNS Name=(.*)").Groups;
 
-                    if (groups.Count > 0 && !String.IsNullOrEmpty(groups[2].Value))
+                    if (groups.Count > 0 && !string.IsNullOrEmpty(groups[2].Value))
                     {
                         result.Add(groups[2].Value);
                     }
