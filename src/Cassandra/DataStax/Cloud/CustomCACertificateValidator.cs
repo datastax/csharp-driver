@@ -15,9 +15,12 @@
 //
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.Security;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using System.Text.RegularExpressions;
 
 namespace Cassandra.DataStax.Cloud
 {
@@ -26,6 +29,8 @@ namespace Cassandra.DataStax.Cloud
     /// </summary>
     internal class CustomCaCertificateValidator : ICertificateValidator
     {
+        private const string SubjectAlternateNameOid = "2.5.29.17"; // Oid for the SAN extension
+
         private static readonly Logger Logger = new Logger(typeof(CustomCaCertificateValidator));
         private readonly X509Certificate2 _trustedRootCertificateAuthority;
         private readonly string _hostname;
@@ -58,28 +63,25 @@ namespace Cassandra.DataStax.Cloud
             {
                 GetOrCreateCert2(ref cert2, cert);
                 var cn = cert2.GetNameInfo(X509NameType.SimpleName, false);
+                var subjectAlternativeNames = GetSubjectAlternativeNames(cert2).ToList();
+                var names = new List<string> { cn }.Concat(subjectAlternativeNames);
                 var validName = false;
-                if (cn == null || _hostname == null || !cn.StartsWith("*."))
+
+                foreach (var name in names)
                 {
-                    if (cn == _hostname)
+                    validName = ValidateName(name);
+                    if (validName)
                     {
-                        validName = true;
-                    }
-                } else if (cn.StartsWith("*."))
-                {
-                    cn = cn.Remove(0, 1);
-                    if (_hostname.EndsWith(cn))
-                    {
-                        validName = true;
+                        break;
                     }
                 }
 
                 if (!validName)
                 {
                     CustomCaCertificateValidator.Logger.Error(
-                        "Failed to validate the server certificate's CN. Expected {0} but found {1}.",
+                        "Failed to validate the server certificate's CN. Expected {0} but found CN={1} and SANs={2}.",
                         _hostname,
-                        cn ?? "null");
+                        cn ?? "null", string.Join(",", subjectAlternativeNames));
                 }
 
                 valid = validName;
@@ -143,6 +145,55 @@ namespace Cassandra.DataStax.Cloud
 
             DisposeCert2(cert2);
             return valid;
+        }
+
+        private bool ValidateName(string name)
+        {
+            if (name == null || _hostname == null || !name.StartsWith("*."))
+            {
+                if (name?.ToLowerInvariant() == _hostname?.ToLowerInvariant())
+                {
+                    return true;
+                }
+            }
+            else if (name.StartsWith("*."))
+            {
+                name = name.Remove(0, 1);
+                if (_hostname.EndsWith(name, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private IEnumerable<string> GetSubjectAlternativeNames(X509Certificate2 cert)
+        {
+            var result = new List<string>();
+
+            var subjectAlternativeName = cert.Extensions.Cast<X509Extension>()
+                .Where(n => n.Oid.Value == SubjectAlternateNameOid)
+                .Select(n => new AsnEncodedData(n.Oid, n.RawData))
+                .Select(n => n.Format(true))
+                .FirstOrDefault();
+
+            if (subjectAlternativeName != null)
+            {
+                var alternativeNames = subjectAlternativeName.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+
+                foreach (var alternativeName in alternativeNames)
+                {
+                    var groups = Regex.Match(alternativeName, @"^(.*)=(.*)").Groups; // @"^DNS Name=(.*)").Groups;
+
+                    if (groups.Count > 0 && !string.IsNullOrEmpty(groups[2].Value))
+                    {
+                        result.Add(groups[2].Value);
+                    }
+                }
+            }
+
+            return result;
         }
 
         private void GetOrCreateCert2(ref X509Certificate2 cert2, X509Certificate cert)
