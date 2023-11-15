@@ -19,7 +19,7 @@
     <PackageId>CassandraCSharpDriver</PackageId>
     <Title>DataStax C# Driver for Apache Cassandra</Title>
     <PackageTags>cassandra;apache;dse;datastax;driver;client;database;nosql;dotnet;netcore;db</PackageTags>
-    <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/datastax/csharp-driver</RepositoryUrl>
     <PackageProjectUrl>https://github.com/datastax/csharp-driver</PackageProjectUrl>
     <LangVersion>7.1</LangVersion>
@@ -30,10 +30,6 @@
   <PropertyGroup Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('$(TargetFramework)', '^netstandard\d'))">
     <DefineConstants>$(DefineConstants);NETSTANDARD</DefineConstants>
   </PropertyGroup>
-  
-  <ItemGroup>
-    <None Include="..\..\LICENSE.md" Pack="true" PackagePath="LICENSE.md"/>
-  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="K4os.Compression.LZ4" Version="1.1.11" />
