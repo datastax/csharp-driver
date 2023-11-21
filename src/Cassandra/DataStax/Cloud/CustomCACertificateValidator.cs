@@ -32,8 +32,58 @@ namespace Cassandra.DataStax.Cloud
         private const string SubjectAlternateNameOid = "2.5.29.17"; // Oid for the SAN extension
 
         private static readonly Logger Logger = new Logger(typeof(CustomCaCertificateValidator));
+
+        private static readonly string PlatformIdentifier;
+        private static readonly char PlatformDelimiter;
+        private static readonly string PlatformSeparator;
+
         private readonly X509Certificate2 _trustedRootCertificateAuthority;
         private readonly string _hostname;
+
+        // https://stackoverflow.com/a/59382929/10896275
+        // MIT licensed
+        static CustomCaCertificateValidator()
+        {
+            // Extracted a well-known X509Extension
+            var x509ExtensionBytes = new byte[] {
+                48, 36, 130, 21, 110, 111, 116, 45, 114, 101, 97, 108, 45, 115, 117, 98, 106, 101, 99,
+                116, 45, 110, 97, 109, 101, 130, 11, 101, 120, 97, 109, 112, 108, 101, 46, 99, 111, 109
+            };
+            const string subjectName1 = "not-real-subject-name";
+
+            var x509Extension = new X509Extension(SubjectAlternateNameOid, x509ExtensionBytes, true);
+            var x509ExtensionFormattedString = x509Extension.Format(false);
+
+            // Each OS has a different dNSName identifier and delimiter
+            // On Windows, dNSName == "DNS Name" (localizable), on Linux, dNSName == "DNS"
+            // e.g.,
+            // Windows: x509ExtensionFormattedString is: "DNS Name=not-real-subject-name, DNS Name=example.com"
+            // Linux:   x509ExtensionFormattedString is: "DNS:not-real-subject-name, DNS:example.com"
+            // Parse: <identifier><delimter><value><separator(s)>
+
+            var delimiterIndex = x509ExtensionFormattedString.IndexOf(subjectName1, StringComparison.Ordinal) - 1;
+            PlatformDelimiter = x509ExtensionFormattedString[delimiterIndex];
+
+            // Make an assumption that all characters from the the start of string to the delimiter 
+            // are part of the identifier
+            PlatformIdentifier = x509ExtensionFormattedString.Substring(0, delimiterIndex);
+
+            var separatorFirstChar = delimiterIndex + subjectName1.Length + 1;
+            var separatorLength = 1;
+            for (var i = separatorFirstChar + 1; i < x509ExtensionFormattedString.Length; i++)
+            {
+                // We advance until the first character of the identifier to determine what the
+                // separator is. This assumes that the identifier assumption above is correct
+                if (x509ExtensionFormattedString[i] == PlatformIdentifier[0])
+                {
+                    break;
+                }
+
+                separatorLength++;
+            }
+
+            PlatformSeparator = x509ExtensionFormattedString.Substring(separatorFirstChar, separatorLength);
+        }
 
         public CustomCaCertificateValidator(X509Certificate2 trustedRootCertificateAuthority, string hostname)
         {
@@ -170,30 +220,17 @@ namespace Cassandra.DataStax.Cloud
 
         private IEnumerable<string> GetSubjectAlternativeNames(X509Certificate2 cert)
         {
-            var result = new List<string>();
-
-            var subjectAlternativeName = cert.Extensions.Cast<X509Extension>()
-                .Where(n => n.Oid.Value == SubjectAlternateNameOid)
-                .Select(n => new AsnEncodedData(n.Oid, n.RawData))
-                .Select(n => n.Format(true))
-                .FirstOrDefault();
-
-            if (subjectAlternativeName != null)
-            {
-                var alternativeNames = subjectAlternativeName.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
-
-                foreach (var alternativeName in alternativeNames)
-                {
-                    var groups = Regex.Match(alternativeName, @"^(.*)=(.*)").Groups; // @"^DNS Name=(.*)").Groups;
-
-                    if (groups.Count > 0 && !string.IsNullOrEmpty(groups[2].Value))
-                    {
-                        result.Add(groups[2].Value);
-                    }
-                }
-            }
-
-            return result;
+            // https://stackoverflow.com/a/59382929/10896275
+            // MIT licensed
+            return cert.Extensions
+                       .Cast<X509Extension>()
+                       .Where(ext => ext.Oid.Value == SubjectAlternateNameOid) // Only use SAN extensions
+                       .Select(ext => new AsnEncodedData(ext.Oid, ext.RawData).Format(false)) // Decode from ASN
+                       // This is dumb but AsnEncodedData.Format changes based on the platform, so our static initialization code handles making sure we parse it correctly
+                       .SelectMany(text => text.Split(new[] {PlatformSeparator}, StringSplitOptions.RemoveEmptyEntries))
+                       .Select(text => text.Split(PlatformDelimiter))
+                       .Where(x => x[0] == PlatformIdentifier)
+                       .Select(x => x[1]);
         }
 
         private void GetOrCreateCert2(ref X509Certificate2 cert2, X509Certificate cert)
