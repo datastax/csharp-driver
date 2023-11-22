@@ -1,5 +1,13 @@
 # ChangeLog - DataStax C# Driver
 
+## 3.19.5
+
+2023-11-23
+
+### Bug fixes
+
+*   [[CSHARP-1003](https://datastax-oss.atlassian.net/browse/CSHARP-1003)] Fix support for Astra custom domain names in linux environments
+
 ## 3.19.4
 
 2023-11-07
