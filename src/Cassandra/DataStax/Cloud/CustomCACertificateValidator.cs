@@ -20,7 +20,6 @@ using System.Linq;
 using System.Net.Security;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
-using System.Text.RegularExpressions;
 
 namespace Cassandra.DataStax.Cloud
 {
@@ -33,56 +32,49 @@ namespace Cassandra.DataStax.Cloud
 
         private static readonly Logger Logger = new Logger(typeof(CustomCaCertificateValidator));
 
-        private static readonly string PlatformIdentifier;
-        private static readonly char PlatformDelimiter;
-        private static readonly string PlatformSeparator;
+        private static readonly string SanPlatformId;
+        private static readonly string SanSeparator;
 
         private readonly X509Certificate2 _trustedRootCertificateAuthority;
         private readonly string _hostname;
 
-        // https://stackoverflow.com/a/59382929/10896275
-        // MIT licensed
         static CustomCaCertificateValidator()
         {
-            // Extracted a well-known X509Extension
-            var x509ExtensionBytes = new byte[] {
-                48, 36, 130, 21, 110, 111, 116, 45, 114, 101, 97, 108, 45, 115, 117, 98, 106, 101, 99,
-                116, 45, 110, 97, 109, 101, 130, 11, 101, 120, 97, 109, 112, 108, 101, 46, 99, 111, 109
-            };
-            const string subjectName1 = "not-real-subject-name";
+            // use a well known example SAN extension to extract the platform identifier (since it is affected by platform and locale/culture)
 
-            var x509Extension = new X509Extension(SubjectAlternateNameOid, x509ExtensionBytes, true);
-            var x509ExtensionFormattedString = x509Extension.Format(false);
+            const string wellKnownSanExtension = @"MBuCC2V4YW1wbGUuY29tggxmYWtlLXN1YmplY3Q=";
+            const string firstWellKnownDomainName = "example.com";
+            const string secondWellKnownDomainName = "fake-subject";
 
-            // Each OS has a different dNSName identifier and delimiter
-            // On Windows, dNSName == "DNS Name" (localizable), on Linux, dNSName == "DNS"
-            // e.g.,
-            // Windows: x509ExtensionFormattedString is: "DNS Name=not-real-subject-name, DNS Name=example.com"
-            // Linux:   x509ExtensionFormattedString is: "DNS:not-real-subject-name, DNS:example.com"
-            // Parse: <identifier><delimter><value><separator(s)>
+            var formattedExtString = new X509Extension(SubjectAlternateNameOid, Convert.FromBase64String(wellKnownSanExtension), true).Format(false);
 
-            var delimiterIndex = x509ExtensionFormattedString.IndexOf(subjectName1, StringComparison.Ordinal) - 1;
-            PlatformDelimiter = x509ExtensionFormattedString[delimiterIndex];
+            // Windows identifier is affected by locale/culture
+            // Example well known SAN extension has the following format:
+            // Windows: "DNS Name=example.com, DNS Name=fake-subject"
+            // Linux: "DNS:example.com, DNS:fake-subject"
+            //
+            // Parse it as the following:
+            // <platform-id><domain-name><separator><platform-id><domain-name>
+            // e.g. for Windows with EN culture:
+            //      platform-id -> "DNS Name="
+            //      first-domain-name -> "example.com"
+            //      second-domain-name -> "fake-subject"
+            //      separator   -> ", "
 
-            // Make an assumption that all characters from the the start of string to the delimiter 
-            // are part of the identifier
-            PlatformIdentifier = x509ExtensionFormattedString.Substring(0, delimiterIndex);
+            // "example.com"
+            var firstDomainNameIndex = formattedExtString.IndexOf(firstWellKnownDomainName, StringComparison.Ordinal);
 
-            var separatorFirstChar = delimiterIndex + subjectName1.Length + 1;
-            var separatorLength = 1;
-            for (var i = separatorFirstChar + 1; i < x509ExtensionFormattedString.Length; i++)
-            {
-                // We advance until the first character of the identifier to determine what the
-                // separator is. This assumes that the identifier assumption above is correct
-                if (x509ExtensionFormattedString[i] == PlatformIdentifier[0])
-                {
-                    break;
-                }
+            // "fake-subject"
+            var secondDomainNameIndex = formattedExtString.IndexOf(secondWellKnownDomainName, StringComparison.Ordinal);
 
-                separatorLength++;
-            }
+            // "DNS Name="
+            SanPlatformId = formattedExtString.Substring(0, firstDomainNameIndex);
 
-            PlatformSeparator = x509ExtensionFormattedString.Substring(separatorFirstChar, separatorLength);
+            // ", "
+            var separatorIndex = firstDomainNameIndex + firstWellKnownDomainName.Length;
+            var lengthUntilSeparator = firstDomainNameIndex + firstWellKnownDomainName.Length;
+            var separatorLength = secondDomainNameIndex - SanPlatformId.Length - lengthUntilSeparator;
+            SanSeparator = formattedExtString.Substring(separatorIndex, separatorLength);
         }
 
         public CustomCaCertificateValidator(X509Certificate2 trustedRootCertificateAuthority, string hostname)
@@ -218,19 +210,23 @@ namespace Cassandra.DataStax.Cloud
             return false;
         }
 
+        /// <summary>
+        /// Check the static constructor inline comments for an explanation about this
+        /// </summary>
         private IEnumerable<string> GetSubjectAlternativeNames(X509Certificate2 cert)
         {
-            // https://stackoverflow.com/a/59382929/10896275
-            // MIT licensed
-            return cert.Extensions
-                       .Cast<X509Extension>()
-                       .Where(ext => ext.Oid.Value == SubjectAlternateNameOid) // Only use SAN extensions
-                       .Select(ext => new AsnEncodedData(ext.Oid, ext.RawData).Format(false)) // Decode from ASN
-                       // This is dumb but AsnEncodedData.Format changes based on the platform, so our static initialization code handles making sure we parse it correctly
-                       .SelectMany(text => text.Split(new[] {PlatformSeparator}, StringSplitOptions.RemoveEmptyEntries))
-                       .Select(text => text.Split(PlatformDelimiter))
-                       .Where(x => x[0] == PlatformIdentifier)
-                       .Select(x => x[1]);
+            var sanStrings = cert.Extensions
+                .Cast<X509Extension>()
+                .Where(ext => ext.Oid.Value == SubjectAlternateNameOid)
+                .Select(ext => new AsnEncodedData(ext.Oid, ext.RawData).Format(false)).ToList();
+
+            var splitSanStrings = sanStrings.SelectMany(s => s.Split(new[] { SanSeparator }, StringSplitOptions.RemoveEmptyEntries));
+
+            // remove the platform identifier (i.e. "DNS Name=") from the strings to get the domain names
+            return splitSanStrings
+                .Where(s => s.StartsWith(SanPlatformId) && s.Length > SanPlatformId.Length)
+                .Select(s => s.Substring(SanPlatformId.Length));
+
         }
 
         private void GetOrCreateCert2(ref X509Certificate2 cert2, X509Certificate cert)
