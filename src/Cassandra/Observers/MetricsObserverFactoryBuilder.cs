@@ -21,9 +21,16 @@ namespace Cassandra.Observers
 {
     internal class MetricsObserverFactoryBuilder : IObserverFactoryBuilder
     {
+        private readonly bool isEnabled;
+
+        public MetricsObserverFactoryBuilder(bool isEnabled)
+        {
+            this.isEnabled = isEnabled;
+        }
+
         public IObserverFactory Build(IMetricsManager manager)
         {
-            return new MetricsObserverFactory(manager);
+            return this.isEnabled ? new MetricsObserverFactory(manager) : NullObserverFactory.Instance;
         }
     }
 }

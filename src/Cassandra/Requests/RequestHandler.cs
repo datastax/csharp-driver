@@ -25,6 +25,7 @@ using System.Threading.Tasks;
 using Cassandra.Collections;
 using Cassandra.Connections;
 using Cassandra.ExecutionProfiles;
+using Cassandra.Observers;
 using Cassandra.Observers.Abstractions;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
@@ -49,6 +50,7 @@ namespace Cassandra.Requests
         private ISpeculativeExecutionPlan _executionPlan;
         private volatile HashedWheelTimer.ITimeout _nextExecutionTimeout;
         private readonly IRequestObserver _requestObserver;
+        private readonly RequestTrackingInfo _requestTrackingInfo;
         public IExtendedRetryPolicy RetryPolicy { get; }
         public ISerializer Serializer { get; }
         public IStatement Statement { get; }
@@ -62,7 +64,8 @@ namespace Cassandra.Requests
         {
             _session = session ?? throw new ArgumentNullException(nameof(session));
             _requestObserver = session.ObserverFactory.CreateRequestObserver();
-            _requestResultHandler = new TcsMetricsRequestResultHandler(_requestObserver);
+            _requestTrackingInfo = new RequestTrackingInfo { Statement = statement };
+            _requestResultHandler = new TcsMetricsRequestResultHandler(_requestObserver, _requestTrackingInfo);
             _request = request;
             Serializer = serializer ?? throw new ArgumentNullException(nameof(session));
             Statement = statement;
@@ -205,7 +208,7 @@ namespace Cassandra.Requests
             }
             if (ex != null)
             {
-                _requestResultHandler.TrySetException(ex);
+                _requestResultHandler.TrySetException(ex, _requestTrackingInfo);
                 return true;
             }
             if (action != null)
@@ -216,16 +219,16 @@ namespace Cassandra.Requests
                     try
                     {
                         action();
-                        _requestResultHandler.TrySetResult(result);
+                        _requestResultHandler.TrySetResult(result, _requestTrackingInfo);
                     }
                     catch (Exception actionEx)
                     {
-                        _requestResultHandler.TrySetException(actionEx);
+                        _requestResultHandler.TrySetException(actionEx, _requestTrackingInfo);
                     }
                 });
                 return true;
             }
-            _requestResultHandler.TrySetResult(result);
+            _requestResultHandler.TrySetResult(result, _requestTrackingInfo);
             return true;
         }
 
@@ -376,7 +379,7 @@ namespace Cassandra.Requests
         {
             if (_request == null)
             {
-                _requestResultHandler.TrySetException(new DriverException("request can not be null"));
+                _requestResultHandler.TrySetException(new DriverException("request can not be null"), _requestTrackingInfo);
                 return _requestResultHandler.Task;
             }
 

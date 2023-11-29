@@ -28,6 +28,7 @@ using Cassandra.DataStax.Graph;
 using Cassandra.ExecutionProfiles;
 using Cassandra.Metrics;
 using Cassandra.Metrics.Abstractions;
+using Cassandra.OpenTelemetry;
 using Cassandra.Serialization;
 
 namespace Cassandra
@@ -71,6 +72,7 @@ namespace Cassandra
         private MetadataSyncOptions _metadataSyncOptions;
         private IEndPointResolver _endPointResolver;
         private IDriverMetricsProvider _driverMetricsProvider;
+        private IRequestTracker _driverTracer;
         private DriverMetricsOptions _metricsOptions;
         private MonitorReportingOptions _monitorReportingOptions = new MonitorReportingOptions();
         private string _sessionName;
@@ -203,7 +205,8 @@ namespace Cassandra
                 _monitorReportingOptions,
                 typeSerializerDefinitions,
                 _keepContactPointsUnresolved,
-                _allowBetaProtocolVersions);
+                _allowBetaProtocolVersions,
+                requestTracker: _driverTracer);
 
             return config;
         }
@@ -1008,6 +1011,12 @@ namespace Cassandra
         {
             _driverMetricsProvider = driverMetricsProvider ?? throw new ArgumentNullException(nameof(driverMetricsProvider));
             _metricsOptions = metricsOptions?.Clone() ?? throw new ArgumentNullException(nameof(metricsOptions));
+            return this;
+        }
+
+        public Builder WithRequestTracker(IRequestTracker trace)
+        {
+            _driverTracer = trace;
             return this;
         }
 

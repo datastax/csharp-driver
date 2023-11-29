@@ -78,7 +78,7 @@ namespace Cassandra.Tests
 
         public IEndPointResolver EndPointResolver { get; set; }
 
-        public IObserverFactoryBuilder ObserverFactoryBuilder { get; set; } = new MetricsObserverFactoryBuilder();
+        public IObserverFactoryBuilder ObserverFactoryBuilder { get; set; } = new MetricsObserverFactoryBuilder(true);
 
         public DriverMetricsOptions MetricsOptions { get; set; } = new DriverMetricsOptions();
 

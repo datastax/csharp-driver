@@ -74,7 +74,7 @@ namespace Cassandra.Requests
             // fail fast: try to choose a host before leaving this thread
             var validHost = _parent.GetNextValidHost(_triedHosts);
 
-            SendToNextHostAsync(validHost).Forget();
+            SendToNextHostAsync(validHost).Forget();            
             return validHost.Host;
         }
 
@@ -389,7 +389,7 @@ namespace Cassandra.Requests
                     break;
             }
 
-            _requestObserver.OnRequestError(host, retryInformation.Reason, retryInformation.Decision.DecisionType);
+            _requestObserver.OnNodeRequestError(host, retryInformation.Reason, retryInformation.Decision.DecisionType);
         }
         
         /// <summary>

@@ -45,7 +45,7 @@ namespace Cassandra.Observers
             _manager.GetOrCreateNodeMetrics(host).SpeculativeExecutions.Increment(1);
         }
 
-        public void OnRequestError(Host host, RequestErrorType errorType, RetryDecision.RetryDecisionType decision)
+        public void OnNodeRequestError(Host host, RequestErrorType errorType, RetryDecision.RetryDecisionType decision)
         {
             var nodeMetrics = _manager.GetOrCreateNodeMetrics(host);
             OnRequestError(nodeMetrics.Errors, errorType);
@@ -127,7 +127,7 @@ namespace Cassandra.Observers
             }
         }
 
-        public void OnRequestStart()
+        public void OnRequestStart(RequestTrackingInfo r)
         {
             if (!_manager.AreSessionTimerMetricsEnabled)
             {
@@ -137,7 +137,7 @@ namespace Cassandra.Observers
             Volatile.Write(ref _startTimestamp, Stopwatch.GetTimestamp());
         }
 
-        public void OnRequestFinish(Exception exception)
+        public void OnRequestFailure(Exception ex, RequestTrackingInfo r)
         {
             if (!_manager.AreSessionTimerMetricsEnabled)
             {
@@ -155,10 +155,15 @@ namespace Cassandra.Observers
 
                 _requestTimer.Record((Stopwatch.GetTimestamp() - startTimestamp) * MetricsRequestObserver.Factor);
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                LogError(ex);
+                LogError(exception);
             }
+        }
+
+        public void OnRequestSuccess(RequestTrackingInfo r)
+        {
+            this.OnRequestFailure(null, r);
         }
 
         private static void LogError(Exception ex)

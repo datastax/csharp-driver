@@ -28,19 +28,23 @@ namespace Cassandra.Observers
         {
         }
 
+        public void OnNodeRequestError(Host host, RequestErrorType errorType, RetryDecision.RetryDecisionType decision)
+        {
+        }
+
+        public void OnRequestFailure(Exception ex, RequestTrackingInfo r)
+        {
+        }
+
+        public void OnRequestStart(RequestTrackingInfo r)
+        {
+        }
+
+        public void OnRequestSuccess(RequestTrackingInfo r)
+        {
+        }
+
         public void OnSpeculativeExecution(Host host, long delay)
-        {
-        }
-
-        public void OnRequestError(Host host, RequestErrorType errorType, RetryDecision.RetryDecisionType decision)
-        {
-        }
-
-        public void OnRequestStart()
-        {
-        }
-
-        public void OnRequestFinish(Exception exception)
         {
         }
     }

@@ -35,6 +35,7 @@ using Cassandra.Metrics;
 using Cassandra.Metrics.Abstractions;
 using Cassandra.Metrics.Providers.Null;
 using Cassandra.Observers;
+using Cassandra.OpenTelemetry;
 using Cassandra.ProtocolEvents;
 using Cassandra.Requests;
 using Cassandra.Serialization;
@@ -181,7 +182,7 @@ namespace Cassandra
         internal bool MetricsEnabled { get; }
 
         internal IObserverFactoryBuilder ObserverFactoryBuilder { get; }
-        
+
         internal static string DefaultApplicationVersion => string.Empty;
 
         internal static string FallbackApplicationName =>
@@ -351,7 +352,8 @@ namespace Cassandra
                                ISchemaParserFactory schemaParserFactory = null,
                                ISupportedOptionsInitializerFactory supportedOptionsInitializerFactory = null,
                                IProtocolVersionNegotiator protocolVersionNegotiator = null,
-                               IServerEventsSubscriber serverEventsSubscriber = null)
+                               IServerEventsSubscriber serverEventsSubscriber = null,
+                               IRequestTracker requestTracker = null)
         {
             AddressTranslator = addressTranslator ?? throw new ArgumentNullException(nameof(addressTranslator));
             QueryOptions = queryOptions ?? throw new ArgumentNullException(nameof(queryOptions));
@@ -389,7 +391,10 @@ namespace Cassandra
             KeepContactPointsUnresolved = keepContactPointsUnresolved ?? false;
             AllowBetaProtocolVersions = allowBetaProtocolVersions ?? false;
             
-            ObserverFactoryBuilder = observerFactoryBuilder ?? (MetricsEnabled ? (IObserverFactoryBuilder)new MetricsObserverFactoryBuilder() : new NullObserverFactoryBuilder());
+            ObserverFactoryBuilder = new CompositeObserverFactoryBuilder(
+                new MetricsObserverFactoryBuilder(MetricsEnabled),
+                new TracerObserverFactoryBuilder(requestTracker));
+
             RequestHandlerFactory = requestHandlerFactory ?? new RequestHandlerFactory();
             HostConnectionPoolFactory = hostConnectionPoolFactory ?? new HostConnectionPoolFactory();
             RequestExecutionFactory = requestExecutionFactory ?? new RequestExecutionFactory();

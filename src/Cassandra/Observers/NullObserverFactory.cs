@@ -20,6 +20,8 @@ namespace Cassandra.Observers
 {
     internal class NullObserverFactory : IObserverFactory
     {
+        public static IObserverFactory Instance = new NullObserverFactory();
+
         public IRequestObserver CreateRequestObserver()
         {
             return NullRequestObserver.Instance;
