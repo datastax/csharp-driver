@@ -27,7 +27,8 @@ namespace Cassandra.ExecutionProfiles
         private ILoadBalancingPolicy _loadBalancingPolicy;
         private ISpeculativeExecutionPolicy _speculativeExecutionPolicy;
         private IExtendedRetryPolicy _retryPolicy;
-        
+        private IColumnEncryptionPolicy _columnEncryptionPolicy;
+
         private GraphOptions _graphOptions;
         
         public IExecutionProfileBuilder WithLoadBalancingPolicy(ILoadBalancingPolicy loadBalancingPolicy)
@@ -45,6 +46,12 @@ namespace Cassandra.ExecutionProfiles
         public IExecutionProfileBuilder WithSpeculativeExecutionPolicy(ISpeculativeExecutionPolicy speculativeExecutionPolicy)
         {
             _speculativeExecutionPolicy = speculativeExecutionPolicy ?? throw new ArgumentNullException(nameof(speculativeExecutionPolicy));
+            return this;
+        }
+
+        public IExecutionProfileBuilder WithColumnEncryptionPolicy(IColumnEncryptionPolicy clePolicy)
+        {
+            _columnEncryptionPolicy = clePolicy ?? throw new ArgumentNullException(nameof(clePolicy));
             return this;
         }
 
@@ -82,6 +89,7 @@ namespace Cassandra.ExecutionProfiles
                 _loadBalancingPolicy,
                 _speculativeExecutionPolicy,
                 _retryPolicy,
+                _columnEncryptionPolicy,
                 _graphOptions);
         }
     }

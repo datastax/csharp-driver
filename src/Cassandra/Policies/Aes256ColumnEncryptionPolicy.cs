@@ -16,13 +16,8 @@
 
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Linq.Expressions;
 using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Cassandra
 {
@@ -75,10 +70,10 @@ namespace Cassandra
                 aes.Padding = PaddingMode.PKCS7;
                 using (var memoryStream = new MemoryStream(encryptedBytes))
                 {
-                    const int IvLength = 16;
-                    var IV = new byte[16];
-                    var bytesRead = memoryStream.Read(IV, 0, IvLength);
-                    if (bytesRead != IvLength)
+                    const int ivLength = 16;
+                    var IV = new byte[ivLength];
+                    var bytesRead = memoryStream.Read(IV, 0, ivLength);
+                    if (bytesRead != ivLength)
                     {
                         throw new DriverInternalError("could not read IV bytes from the buffer");
                     }
@@ -150,14 +145,13 @@ namespace Cassandra
             return _colData.TryGetValue(colDesc, out colData);
         }
 
-        private bool TestKey(byte[] key)
+        private static void TestKey(byte[] key)
         {
             using (var aes = Aes.Create())
             {
                 aes.Key = key;
                 using (var _ = aes.CreateEncryptor())
                 {
-                    return true;
                 }
             }
         }

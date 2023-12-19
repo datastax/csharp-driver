@@ -53,6 +53,7 @@ namespace Cassandra
 
         private ILoadBalancingPolicy _loadBalancingPolicy;
         private ITimestampGenerator _timestampGenerator;
+        private IColumnEncryptionPolicy _columnEncryptionPolicy;
         private int _port = ProtocolOptions.DefaultPort;
         private int _queryAbortTimeout = Builder.DefaultQueryAbortTimeout;
         private QueryOptions _queryOptions = new QueryOptions();
@@ -251,6 +252,7 @@ namespace Cassandra
             var lbp = _loadBalancingPolicy;
             var sep = _speculativeExecutionPolicy;
             var rep = _retryPolicy;
+            var cle = _columnEncryptionPolicy;
 
             if (!_profiles.TryGetValue(Configuration.DefaultExecutionProfileName, out var profile))
             {
@@ -259,7 +261,8 @@ namespace Cassandra
                     _reconnectionPolicy,
                     rep,
                     sep,
-                    _timestampGenerator);
+                    _timestampGenerator,
+                    cle);
             }
 
             if (profile.LoadBalancingPolicy != null && _loadBalancingPolicy != null)
@@ -277,7 +280,7 @@ namespace Cassandra
                     "and another through the default execution profile. Policies provided through the default execution profile " +
                     "take precedence over policies specified through the Builder methods.");
             }
-                
+            
             if (profile.RetryPolicy != null && _retryPolicy != null)
             {
                 Builder.Logger.Warning(
@@ -286,16 +289,26 @@ namespace Cassandra
                     "take precedence over policies specified through the Builder methods.");
             }
 
+            if (profile.ColumnEncryptionPolicy != null && _columnEncryptionPolicy != null)
+            {
+                Builder.Logger.Warning(
+                    "A column encryption policy was provided through the Builder.WithColumnEncryptionPolicy method " +
+                    "and another through the default execution profile. Policies provided through the default execution profile " +
+                    "take precedence over policies specified through the Builder methods.");
+            }
+
             lbp = profile.LoadBalancingPolicy ?? lbp;
             sep = profile.SpeculativeExecutionPolicy ?? sep;
             rep = profile.RetryPolicy ?? rep;
+            cle = profile.ColumnEncryptionPolicy ?? cle;
 
             return new Policies(
                 lbp,
                 _reconnectionPolicy,
                 rep,
                 sep,
-                _timestampGenerator);
+                _timestampGenerator,
+                cle);
         }
 
         /// <summary>
@@ -646,6 +659,17 @@ namespace Cassandra
         public Builder WithSpeculativeExecutionPolicy(ISpeculativeExecutionPolicy policy)
         {
             _speculativeExecutionPolicy = policy;
+            return this;
+        }
+
+        /// <summary>
+        ///  TODO
+        /// </summary>
+        /// <param name="policy"></param>
+        /// <returns></returns>
+        public Builder WithColumnEncryptionPolicy(IColumnEncryptionPolicy policy)
+        {
+            _columnEncryptionPolicy = policy;
             return this;
         }
 
