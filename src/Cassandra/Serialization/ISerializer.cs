@@ -27,11 +27,17 @@ namespace Cassandra.Serialization
 
         object Deserialize(byte[] buffer, int offset, int length, ColumnTypeCode typeCode, IColumnInfo typeInfo);
 
+        object DeserializeAndDecrypt(string ks, string table, string col, byte[] buffer, int offset, int length, ColumnTypeCode typeCode, IColumnInfo typeInfo);
+
         byte[] Serialize(object value);
+
+        byte[] SerializeAndEncrypt(string ks, string table, string col, object value);
 
         /// <summary>
         /// Create a new serializer with the provided protocol version.
         /// </summary>
         ISerializer CloneWithProtocolVersion(ProtocolVersion version);
+
+        bool IsEncryptionEnabled { get; }
     }
 }

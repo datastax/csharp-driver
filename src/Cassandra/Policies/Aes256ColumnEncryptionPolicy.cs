@@ -57,7 +57,7 @@ namespace Cassandra
             }
         }
 
-        public object Decrypt(string ks, string table, string col, byte[] encryptedBytes)
+        public byte[] Decrypt(string ks, string table, string col, byte[] encryptedBytes)
         {
             if (!GetColData(ks, table, col, out var colData))
             {
@@ -92,7 +92,7 @@ namespace Cassandra
             }
         }
 
-        public void AddColumn(string ks, string table, string col, byte[] key, ColumnTypeCode typeCode)
+        public void AddColumn(string ks, string table, string col, byte[] key, ColumnTypeCode typeCode, IColumnInfo columnTypeInfo)
         {
             if (key == null || key.Length == 0)
             {
@@ -118,10 +118,17 @@ namespace Cassandra
             var colData = new ColData
             {
                 Key = key,
-                TypeCode = typeCode
+                TypeCode = typeCode,
+                TypeInfo = columnTypeInfo,
             };
 
             _colData[colDesc] = colData;
+        }
+
+        public Tuple<ColumnTypeCode, IColumnInfo> GetColumn(string ks, string table, string col)
+        {
+            var found = GetColData(ks, table, col, out var colData);
+            return found ? new Tuple<ColumnTypeCode, IColumnInfo>(colData.TypeCode, colData.TypeInfo) : null;
         }
 
         public bool ContainsColumn(string ks, string table, string col)
@@ -191,6 +198,8 @@ namespace Cassandra
             public byte[] Key { get; set; }
 
             public ColumnTypeCode TypeCode { get; set; }
+
+            public IColumnInfo TypeInfo { get; set; }
         }
     }
 }

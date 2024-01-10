@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using Cassandra.ExecutionProfiles;
+using Cassandra.Requests;
 using Cassandra.Serialization;
 
 namespace Cassandra
@@ -38,7 +39,7 @@ namespace Cassandra
         }
 
         public static readonly QueryProtocolOptions Default = 
-            new QueryProtocolOptions(ConsistencyLevel.One, null, false, QueryOptions.DefaultPageSize, null, ConsistencyLevel.Any);
+            new QueryProtocolOptions(ConsistencyLevel.One, null, false, QueryOptions.DefaultPageSize, null, ConsistencyLevel.Any, null, null, null);
 
         public readonly int PageSize;
         public readonly ConsistencyLevel SerialConsistency;
@@ -69,14 +70,17 @@ namespace Cassandra
         /// </summary>
         public IList<string> ValueNames { get; set; }
 
+        internal RowSetMetadata VariablesMetadata { get; }
+
         internal QueryProtocolOptions(ConsistencyLevel consistency,
                                       object[] values,
                                       bool skipMetadata,
                                       int pageSize,
                                       byte[] pagingState,
                                       ConsistencyLevel serialConsistency,
-                                      long? timestamp = null,
-                                      string keyspace = null)
+                                      long? timestamp,
+                                      string keyspace, 
+                                      RowSetMetadata variablesMetadata)
         {
             Consistency = consistency;
             Values = values;
@@ -97,10 +101,11 @@ namespace Cassandra
             SerialConsistency = serialConsistency;
             RawTimestamp = timestamp;
             _keyspace = keyspace;
+            VariablesMetadata = variablesMetadata;
         }
 
         internal static QueryProtocolOptions CreateFromQuery(
-            ProtocolVersion protocolVersion, Statement query, IRequestOptions requestOptions, bool? forceSkipMetadata)
+            ProtocolVersion protocolVersion, Statement query, IRequestOptions requestOptions, bool? forceSkipMetadata, RowSetMetadata variablesMetadata)
         {
             if (query == null)
             {
@@ -130,16 +135,17 @@ namespace Cassandra
                 query.PagingState,
                 requestOptions.GetSerialConsistencyLevelOrDefault(query),
                 timestamp,
-                query.Keyspace);
+                query.Keyspace, 
+                variablesMetadata);
         }
 
         /// <summary>
         /// Returns a new instance with the minimum amount of values, valid to generate a batch request item.
         /// </summary>
-        internal static QueryProtocolOptions CreateForBatchItem(Statement statement)
+        internal static QueryProtocolOptions CreateForBatchItem(Statement statement, RowSetMetadata variablesMetadata)
         {
             return new QueryProtocolOptions(
-                ConsistencyLevel.One, statement.QueryValues, false, 0, null, ConsistencyLevel.Serial);
+                ConsistencyLevel.One, statement.QueryValues, false, 0, null, ConsistencyLevel.Serial, null, null, variablesMetadata);
         }
 
         private QueryFlags GetFlags(ProtocolVersion protocolVersion, bool isPrepared)
@@ -215,7 +221,24 @@ namespace Cassandra
                         var name = ValueNames[i];
                         wb.WriteString(name);
                     }
-                    wb.WriteAsBytes(Values[i]);
+
+                    if (wb.Serializer.IsEncryptionEnabled && VariablesMetadata != null)
+                    {
+                        if (i >= VariablesMetadata.Columns.Length)
+                        {
+                            throw new DriverInternalError($"Unexpected driver internal error: value index ({i}) is equal or greater than the " +
+                                           $"length of the variables metadata columns ({VariablesMetadata.Columns.Length}).");
+                        }
+                        wb.WriteAndEncryptAsBytes(
+                            VariablesMetadata.Keyspace, 
+                            VariablesMetadata.Columns[i].Table, 
+                            VariablesMetadata.Columns[i].Name, 
+                            Values[i]);
+                    }
+                    else
+                    {
+                        wb.WriteAsBytes(Values[i]);
+                    }
                 }
             }
             else if (protocolVersion == ProtocolVersion.V1 && isPrepared)

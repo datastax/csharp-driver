@@ -28,7 +28,6 @@ namespace Cassandra.ExecutionProfiles
             ILoadBalancingPolicy loadBalancingPolicy, 
             ISpeculativeExecutionPolicy speculativeExecutionPolicy, 
             IExtendedRetryPolicy retryPolicy,
-            IColumnEncryptionPolicy columnEncryptionPolicy,
             GraphOptions graphOptions)
         {
             Initialize(
@@ -38,7 +37,6 @@ namespace Cassandra.ExecutionProfiles
                 loadBalancingPolicy, 
                 speculativeExecutionPolicy, 
                 retryPolicy,
-                columnEncryptionPolicy,
                 graphOptions);
         }
 
@@ -61,7 +59,6 @@ namespace Cassandra.ExecutionProfiles
                 profile.LoadBalancingPolicy ?? baseProfile.LoadBalancingPolicy, 
                 profile.SpeculativeExecutionPolicy ?? baseProfile.SpeculativeExecutionPolicy, 
                 profile.RetryPolicy ?? baseProfile.RetryPolicy,
-                profile.ColumnEncryptionPolicy ?? baseProfile.ColumnEncryptionPolicy,
                 profile.GraphOptions ?? baseProfile.GraphOptions);
         }
 
@@ -79,7 +76,6 @@ namespace Cassandra.ExecutionProfiles
                 requestOptions.LoadBalancingPolicy, 
                 requestOptions.SpeculativeExecutionPolicy, 
                 requestOptions.RetryPolicy,
-                requestOptions.ColumnEncryptionPolicy,
                 requestOptions.GraphOptions);
         }
 
@@ -95,8 +91,6 @@ namespace Cassandra.ExecutionProfiles
 
         public IExtendedRetryPolicy RetryPolicy { get; private set; }
 
-        public IColumnEncryptionPolicy ColumnEncryptionPolicy { get; private set; }
-
         public GraphOptions GraphOptions { get; private set; }
 
         private void Initialize(
@@ -106,7 +100,6 @@ namespace Cassandra.ExecutionProfiles
             ILoadBalancingPolicy loadBalancingPolicy,
             ISpeculativeExecutionPolicy speculativeExecutionPolicy,
             IExtendedRetryPolicy retryPolicy,
-            IColumnEncryptionPolicy columnEncryptionPolicy,
             GraphOptions graphOptions)
         {
             ConsistencyLevel = consistencyLevel;
@@ -115,7 +108,6 @@ namespace Cassandra.ExecutionProfiles
             LoadBalancingPolicy = loadBalancingPolicy;
             SpeculativeExecutionPolicy = speculativeExecutionPolicy;
             RetryPolicy = retryPolicy;
-            ColumnEncryptionPolicy = columnEncryptionPolicy;
             GraphOptions = graphOptions;
         }
     }

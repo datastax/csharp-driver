@@ -252,7 +252,6 @@ namespace Cassandra
             var lbp = _loadBalancingPolicy;
             var sep = _speculativeExecutionPolicy;
             var rep = _retryPolicy;
-            var cle = _columnEncryptionPolicy;
 
             if (!_profiles.TryGetValue(Configuration.DefaultExecutionProfileName, out var profile))
             {
@@ -262,7 +261,7 @@ namespace Cassandra
                     rep,
                     sep,
                     _timestampGenerator,
-                    cle);
+                    _columnEncryptionPolicy);
             }
 
             if (profile.LoadBalancingPolicy != null && _loadBalancingPolicy != null)
@@ -289,18 +288,9 @@ namespace Cassandra
                     "take precedence over policies specified through the Builder methods.");
             }
 
-            if (profile.ColumnEncryptionPolicy != null && _columnEncryptionPolicy != null)
-            {
-                Builder.Logger.Warning(
-                    "A column encryption policy was provided through the Builder.WithColumnEncryptionPolicy method " +
-                    "and another through the default execution profile. Policies provided through the default execution profile " +
-                    "take precedence over policies specified through the Builder methods.");
-            }
-
             lbp = profile.LoadBalancingPolicy ?? lbp;
             sep = profile.SpeculativeExecutionPolicy ?? sep;
             rep = profile.RetryPolicy ?? rep;
-            cle = profile.ColumnEncryptionPolicy ?? cle;
 
             return new Policies(
                 lbp,
@@ -308,7 +298,7 @@ namespace Cassandra
                 rep,
                 sep,
                 _timestampGenerator,
-                cle);
+                _columnEncryptionPolicy);
         }
 
         /// <summary>

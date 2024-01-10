@@ -21,11 +21,13 @@ namespace Cassandra.Serialization
     internal class Serializer : ISerializer
     {
         private readonly IGenericSerializer _serializer;
-        
-        public Serializer(ProtocolVersion version, IGenericSerializer serializer)
+        private readonly IColumnEncryptionPolicy _columnEncryptionPolicy;
+
+        public Serializer(ProtocolVersion version, IGenericSerializer serializer, IColumnEncryptionPolicy columnEncryptionPolicy)
         {
             ProtocolVersion = version;
             _serializer = serializer;
+            _columnEncryptionPolicy = columnEncryptionPolicy;
         }
 
         public ProtocolVersion ProtocolVersion { get; }
@@ -35,15 +37,46 @@ namespace Cassandra.Serialization
             return _serializer.Deserialize(ProtocolVersion, buffer, offset, length, typeCode, typeInfo);
         }
 
+        public object DeserializeAndDecrypt(string ks, string table, string column, byte[] buffer, int offset, int length, ColumnTypeCode typeCode, IColumnInfo typeInfo)
+        {
+            if (_columnEncryptionPolicy.ContainsColumn(ks, table, column))
+            {
+                var colData = _columnEncryptionPolicy.GetColumn(ks, table, column);
+                var encryptedData = _serializer.Deserialize(ProtocolVersion, buffer, offset, length, typeCode, typeInfo);
+                if (encryptedData == null)
+                {
+                    throw new DriverInternalError("deserialization of encrypted data returned null");
+                }
+
+                var encryptedDataBuf = (byte[])encryptedData;
+                var decryptedDataBuf = _columnEncryptionPolicy.Decrypt(ks, table, column, encryptedDataBuf);
+                return _serializer.Deserialize(ProtocolVersion, decryptedDataBuf, 0, decryptedDataBuf.Length, colData.Item1, colData.Item2);
+            }
+            return _serializer.Deserialize(ProtocolVersion, buffer, offset, length, typeCode, typeInfo);
+        }
+
         public byte[] Serialize(object value)
         {
             return _serializer.Serialize(ProtocolVersion, value);
         }
+        public byte[] SerializeAndEncrypt(string ks, string table, string column, object value)
+        {
+            var serialized = _serializer.Serialize(ProtocolVersion, value);
+            if (_columnEncryptionPolicy.ContainsColumn(ks, table, column))
+            {
+                serialized = _columnEncryptionPolicy.Encrypt(ks, table, column, serialized);
+                serialized = _serializer.Serialize(ProtocolVersion, serialized);
+            }
+
+            return serialized;
+        }
 
         public ISerializer CloneWithProtocolVersion(ProtocolVersion version)
         {
-            return new Serializer(version, _serializer);
+            return new Serializer(version, _serializer, _columnEncryptionPolicy);
         }
+
+        public bool IsEncryptionEnabled => _columnEncryptionPolicy != null;
 
         public object Deserialize(ProtocolVersion version, byte[] buffer, int offset, int length, ColumnTypeCode typeCode, IColumnInfo typeInfo)
         {

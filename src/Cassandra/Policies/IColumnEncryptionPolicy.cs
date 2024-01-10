@@ -37,13 +37,22 @@ namespace Cassandra
         /// specified column.  Used internally; could be used externally as well but there's
         /// not currently an obvious use case.
         /// </summary>
-        object Decrypt(string ks, string table, string col, byte[] encryptedBytes);
+        byte[] Decrypt(string ks, string table, string col, byte[] encryptedBytes);
 
         /// <summary>
         /// Provide cryptography materials to be used when encrypted and/or decrypting data
         /// for the specified column.
         /// </summary>
-        void AddColumn(string ks, string table, string col, byte[] key, ColumnTypeCode typeCode);
+        void AddColumn(string ks, string table, string col, byte[] key, ColumnTypeCode typeCode, IColumnInfo columnTypeInfo);
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <param name="ks"></param>
+        /// <param name="table"></param>
+        /// <param name="col"></param>
+        /// <returns></returns>
+        Tuple<ColumnTypeCode, IColumnInfo> GetColumn(string ks, string table, string col);
 
         /// <summary>
         /// Predicate to determine if a specific column is supported by this policy.

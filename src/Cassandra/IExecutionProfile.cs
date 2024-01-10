@@ -76,11 +76,6 @@ namespace Cassandra
         ISpeculativeExecutionPolicy SpeculativeExecutionPolicy { get; }
 
         /// <summary>
-        /// TODO
-        /// </summary>
-        IColumnEncryptionPolicy ColumnEncryptionPolicy { get; }
-
-        /// <summary>
         /// <para>Retrieves the DSE Graph options set on this profile.</para>
         /// <para>See <see cref="GraphOptions"/> for additional information on the settings within the <see cref="GraphOptions"/> class.</para>
         /// </summary>

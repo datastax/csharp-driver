@@ -167,11 +167,10 @@ namespace Cassandra
         internal override IQueryRequest CreateBatchRequest(ISerializer serializer)
         {
             // Use the default query options as the individual options of the query will be ignored
-            var options = QueryProtocolOptions.CreateForBatchItem(this);
+            var options = QueryProtocolOptions.CreateForBatchItem(this, PreparedStatement.Variables);
             return new ExecuteRequest(
                 serializer, 
-                PreparedStatement.Id, 
-                PreparedStatement.Variables,
+                PreparedStatement.Id,
                 PreparedStatement.ResultMetadata, 
                 options, 
                 IsTracing, 
@@ -197,7 +196,7 @@ namespace Cassandra
                 for (var i = 0; i < routingIndexes.Length; i++)
                 {
                     var index = routingIndexes[i];
-                    var key = serializer.Serialize(valuesByPosition[index]);
+                    var key = serializer.SerializeAndEncrypt(valuesByPosition[index]);
                     if (key == null)
                     {
                         //The partition key can not be null
@@ -220,7 +219,7 @@ namespace Cassandra
                 }
                 for (var i = 0; i < routingValues.Length; i++)
                 {
-                    var key = serializer.Serialize(routingValues[i]);
+                    var key = serializer.SerializeAndEncrypt(routingValues[i]);
                     if (key == null)
                     {
                         //The partition key can not be null

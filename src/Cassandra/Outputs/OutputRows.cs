@@ -87,8 +87,10 @@ namespace Cassandra
                     rowValues[i] = null;
                     continue;
                 }
+
+                var ks = c.Keyspace ?? resultMetadata.Keyspace;
                 var buffer = GetBuffer(length, c.TypeCode, reusableBuffer);
-                rowValues[i] = reader.ReadFromBytes(buffer, 0, length, c.TypeCode, c.TypeInfo);
+                rowValues[i] = reader.ReadFromBytes(ks, c.Table, c.Name, buffer, 0, length, c.TypeCode, c.TypeInfo);
             }
 
             return new Row(rowValues, resultMetadata.Columns, resultMetadata.ColumnIndexes);

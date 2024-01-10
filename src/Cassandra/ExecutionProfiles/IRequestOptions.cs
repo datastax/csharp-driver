@@ -33,8 +33,6 @@ namespace Cassandra.ExecutionProfiles
 
         IExtendedRetryPolicy RetryPolicy { get; }
 
-        IColumnEncryptionPolicy ColumnEncryptionPolicy { get; }
-
         GraphOptions GraphOptions { get; }
 
         //// next settings don't exist in execution profiles

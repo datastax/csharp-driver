@@ -41,13 +41,6 @@ namespace Cassandra
         IExecutionProfileBuilder WithRetryPolicy(IExtendedRetryPolicy retryPolicy);
 
         /// <summary>
-        /// TODO
-        /// </summary>
-        /// <param name="clePolicy"></param>
-        /// <returns></returns>
-        IExecutionProfileBuilder WithColumnEncryptionPolicy(IColumnEncryptionPolicy clePolicy);
-
-        /// <summary>
         /// Sets the speculative execution policy. 
         /// See <see cref="ISpeculativeExecutionPolicy"/> for additional context on this setting.
         /// If no speculative execution policy is set through this method, <see cref="Policies.DefaultSpeculativeExecutionPolicy"/> will be used instead.

@@ -54,15 +54,14 @@ namespace Cassandra.Requests
 
         public ExecuteRequest(
             ISerializer serializer, 
-            byte[] id, 
-            RowSetMetadata variablesMetadata, 
+            byte[] id,
             ResultMetadata resultMetadata, 
             QueryProtocolOptions queryOptions,
             bool tracingEnabled, 
             IDictionary<string, byte[]> payload) : base(serializer, tracingEnabled, payload)
         {
             var protocolVersion = serializer.ProtocolVersion;
-            if (variablesMetadata != null && queryOptions.Values.Length != variablesMetadata.Columns.Length)
+            if (queryOptions.VariablesMetadata != null && queryOptions.Values.Length != queryOptions.VariablesMetadata.Columns.Length)
             {
                 throw new ArgumentException("Number of values does not match with number of prepared statement markers(?).");
             }
@@ -105,9 +104,18 @@ namespace Cassandra.Requests
             wb.WriteByte(1); //prepared query
             wb.WriteShortBytes(_id);
             wb.WriteUInt16((ushort)_queryOptions.Values.Length);
-            foreach (var queryParameter in _queryOptions.Values)
+            for (var i = 0; i < _queryOptions.Values.Length; i++)
             {
-                wb.WriteAsBytes(queryParameter);
+                var queryParameter = _queryOptions.Values[i];
+                if (wb.Serializer.IsEncryptionEnabled)
+                {
+                    var colMetadata = _queryOptions.VariablesMetadata.Columns[i];
+                    wb.WriteAndEncryptAsBytes(_queryOptions.VariablesMetadata.Keyspace, colMetadata.Table, colMetadata.Name, queryParameter);
+                }
+                else
+                {
+                    wb.WriteAsBytes(queryParameter);
+                }
             }
         }
     }
