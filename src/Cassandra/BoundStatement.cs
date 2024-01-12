@@ -15,6 +15,7 @@
 //
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Cassandra.Requests;
 using Cassandra.Serialization;
@@ -29,6 +30,7 @@ namespace Cassandra
     /// </summary>
     public class BoundStatement : Statement
     {
+        private static readonly Logger Logger = new Logger(typeof(BoundStatement));
         private readonly PreparedStatement _preparedStatement;
         private RoutingKey _routingKey;
         private readonly string _keyspace;
@@ -144,10 +146,29 @@ namespace Cassandra
             {
                 var p = paramsMetadata[i];
                 var value = values[i];
-                if (!serializer.IsAssignableFrom(p, value))
+                bool assignable;
+                ColumnTypeCode typeCode;
+                string failureMsg = null;
+                if (serializer.IsEncryptionEnabled)
                 {
-                    throw new InvalidTypeException(
-                        string.Format("It is not possible to encode a value of type {0} to a CQL type {1}", value.GetType(), p.TypeCode));
+                    var tuple = serializer.IsAssignableFromEncrypted(p.Keyspace ?? Keyspace, p.Table, p.Name, p.TypeCode, value);
+                    assignable = tuple.Item1;
+                    typeCode = tuple.Item2;
+                    if (typeCode != p.TypeCode)
+                    {
+                        failureMsg = string.Format("It is not possible to encode a value of type {0} to a CQL type {1} (encrypted column at client level, cql type in DB is {2})", 
+                            value.GetType(), typeCode, p.TypeCode);
+                    }
+                }
+                else
+                {
+                    assignable = serializer.IsAssignableFrom(p.TypeCode, value);
+                    typeCode = p.TypeCode;
+                }
+                if (!assignable)
+                {
+                    throw new InvalidTypeException(failureMsg ??
+                        string.Format("It is not possible to encode a value of type {0} to a CQL type {1}", value.GetType(), typeCode));
                 }
             }
             if (values.Length < paramsMetadata.Length && serializer.ProtocolVersion.SupportsUnset())
@@ -190,17 +211,36 @@ namespace Cassandra
                 //The routing key was specified by the user
                 return;
             }
+
+            var parametersMetadata = PreparedStatement.Variables;
             if (routingIndexes != null)
             {
                 var keys = new RoutingKey[routingIndexes.Length];
                 for (var i = 0; i < routingIndexes.Length; i++)
                 {
                     var index = routingIndexes[i];
-                    var key = serializer.SerializeAndEncrypt(valuesByPosition[index]);
+                    byte[] key = null;
+                    if (serializer.IsEncryptionEnabled)
+                    {
+                        if (parametersMetadata.Columns == null || index >= parametersMetadata.Columns.Length)
+                        {
+                            Logger.Warning("Could not compute routing key, routing index is {0}, columns length is {1}. Token Aware routing will not be available for this request ({2}).", 
+                                index, parametersMetadata.Columns?.Length, PreparedStatement.Cql);
+                        }
+                        else
+                        {
+                            var col = parametersMetadata.Columns[index];
+                            key = serializer.SerializeAndEncrypt(col.Keyspace ?? PreparedStatement.Keyspace, col.Table, col.Name, valuesByPosition[index]);
+                        }
+                    }
+                    else
+                    {
+                        key = serializer.Serialize(valuesByPosition[index]);
+                    }
                     if (key == null)
                     {
                         //The partition key can not be null
-                        //Get out and let any node reply a Response Error
+                        //Get out and let any node reply a Response Error if appropriate
                         return;
                     }
                     keys[i] = new RoutingKey(key);
@@ -217,12 +257,35 @@ namespace Cassandra
                     //The routing names are not valid
                     return;
                 }
+
                 for (var i = 0; i < routingValues.Length; i++)
                 {
-                    var key = serializer.SerializeAndEncrypt(routingValues[i]);
+                    byte[] key = null;
+                    if (serializer.IsEncryptionEnabled)
+                    {
+                        if (parametersMetadata.ColumnIndexes == null || !parametersMetadata.ColumnIndexes.TryGetValue(routingNames[i], out var colIndex))
+                        {
+                            Logger.Warning("Could not find column metadata for parameter {0} in PreparedStatement ({1}).", routingNames[i], PreparedStatement.Cql);
+                        }
+                        else if (parametersMetadata.Columns == null || colIndex >= parametersMetadata.Columns.Length)
+                        {
+                            Logger.Warning("Could not compute routing key, routing name column index is {0}, columns length is {1}. Token Aware routing will not be available for this request ({2}).",
+                                colIndex, parametersMetadata.Columns?.Length, PreparedStatement.Cql);
+                        }
+                        else
+                        {
+                            var col = parametersMetadata.Columns[colIndex];
+                            key = serializer.SerializeAndEncrypt(col.Keyspace ?? PreparedStatement.Keyspace, col.Table, col.Name, routingValues[i]);
+                        }
+                    }
+                    else
+                    {
+                        key = serializer.Serialize(routingValues[i]);
+                    }
                     if (key == null)
                     {
                         //The partition key can not be null
+                        //Get out and let any node reply a Response Error if appropriate
                         return;
                     }
                     keys[i] = new RoutingKey(key);

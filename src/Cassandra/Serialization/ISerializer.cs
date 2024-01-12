@@ -13,6 +13,8 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
+using System;
+
 namespace Cassandra.Serialization
 {
     /// <summary>
@@ -39,5 +41,16 @@ namespace Cassandra.Serialization
         ISerializer CloneWithProtocolVersion(ProtocolVersion version);
 
         bool IsEncryptionEnabled { get; }
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <param name="ks"></param>
+        /// <param name="table"></param>
+        /// <param name="column"></param>
+        /// <param name="columnTypeCode"></param>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        Tuple<bool, ColumnTypeCode> IsAssignableFromEncrypted(string ks, string table, string column, ColumnTypeCode columnTypeCode, object value);
     }
 }

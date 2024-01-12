@@ -309,43 +309,44 @@ namespace Cassandra.Serialization
         /// Performs a lightweight validation to determine if the source type and target type matches.
         /// It isn't more strict to support miscellaneous uses of the driver, like direct inputs of blobs and all that. (backward compatibility)
         /// </summary>
-        public bool IsAssignableFrom(CqlColumn column, object value)
+        public bool IsAssignableFrom(ColumnTypeCode columnTypeCode, object value)
         {
             if (value == null || value is byte[])
             {
                 return true;
             }
+
             var type = value.GetType();
             if (_primitiveSerializers.TryGetValue(type, out ITypeSerializer typeSerializer))
             {
                 var cqlType = typeSerializer.CqlType;
                 //Its a single type, if the types match -> go ahead
-                if (cqlType == column.TypeCode)
+                if (cqlType == columnTypeCode)
                 {
                     return true;
                 }
                 //Only int32 and blobs are valid cql ints
-                if (column.TypeCode == ColumnTypeCode.Int)
+                if (columnTypeCode == ColumnTypeCode.Int)
                 {
                     return false;
                 }
                 //Only double, longs and blobs are valid cql double
-                if (column.TypeCode == ColumnTypeCode.Double && !(value is long))
+                if (columnTypeCode == ColumnTypeCode.Double && !(value is long))
                 {
                     return false;
                 }
                 //The rest of the single values are not evaluated
                 return true;
             }
-            if (column.TypeCode == ColumnTypeCode.List || column.TypeCode == ColumnTypeCode.Set)
+            if (columnTypeCode == ColumnTypeCode.List || columnTypeCode == ColumnTypeCode.Set)
             {
                 return value is IEnumerable;
             }
-            if (column.TypeCode == ColumnTypeCode.Map)
+            if (columnTypeCode == ColumnTypeCode.Map)
             {
                 return value is IDictionary;
             }
-            if (column.TypeCode == ColumnTypeCode.Tuple)
+            if (columnTypeCode == ColumnTypeCode.Tuple)
             {
                 return value is IStructuralComparable;
             }

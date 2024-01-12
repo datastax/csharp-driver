@@ -230,7 +230,7 @@ namespace Cassandra
                                            $"length of the variables metadata columns ({VariablesMetadata.Columns.Length}).");
                         }
                         wb.WriteAndEncryptAsBytes(
-                            VariablesMetadata.Keyspace, 
+                            VariablesMetadata.Columns[i].Keyspace ?? VariablesMetadata.Keyspace, 
                             VariablesMetadata.Columns[i].Table, 
                             VariablesMetadata.Columns[i].Name, 
                             Values[i]);

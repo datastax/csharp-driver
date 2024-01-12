@@ -110,7 +110,7 @@ namespace Cassandra.Requests
                 if (wb.Serializer.IsEncryptionEnabled)
                 {
                     var colMetadata = _queryOptions.VariablesMetadata.Columns[i];
-                    wb.WriteAndEncryptAsBytes(_queryOptions.VariablesMetadata.Keyspace, colMetadata.Table, colMetadata.Name, queryParameter);
+                    wb.WriteAndEncryptAsBytes(colMetadata.Keyspace ?? _queryOptions.VariablesMetadata.Keyspace, colMetadata.Table, colMetadata.Name, queryParameter);
                 }
                 else
                 {

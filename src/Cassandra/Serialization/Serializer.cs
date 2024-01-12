@@ -78,6 +78,12 @@ namespace Cassandra.Serialization
 
         public bool IsEncryptionEnabled => _columnEncryptionPolicy != null;
 
+        public Tuple<bool, ColumnTypeCode> IsAssignableFromEncrypted(string ks, string table, string column, ColumnTypeCode columnTypeCode, object value)
+        {
+            var colData = _columnEncryptionPolicy.GetColumn(ks, table, column);
+            return new Tuple<bool, ColumnTypeCode>(IsAssignableFrom(colData?.Item1 ?? columnTypeCode, value), colData?.Item1 ?? columnTypeCode);
+        }
+
         public object Deserialize(ProtocolVersion version, byte[] buffer, int offset, int length, ColumnTypeCode typeCode, IColumnInfo typeInfo)
         {
             return _serializer.Deserialize(version, buffer, offset, length, typeCode, typeInfo);
@@ -108,9 +114,9 @@ namespace Cassandra.Serialization
             return _serializer.GetCqlType(type, out typeInfo);
         }
 
-        public bool IsAssignableFrom(CqlColumn column, object value)
+        public bool IsAssignableFrom(ColumnTypeCode columnTypeCode, object value)
         {
-            return _serializer.IsAssignableFrom(column, value);
+            return _serializer.IsAssignableFrom(columnTypeCode, value);
         }
 
         public UdtMap GetUdtMapByName(string name)
