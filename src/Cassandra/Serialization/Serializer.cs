@@ -39,9 +39,9 @@ namespace Cassandra.Serialization
 
         public object DeserializeAndDecrypt(string ks, string table, string column, byte[] buffer, int offset, int length, ColumnTypeCode typeCode, IColumnInfo typeInfo)
         {
-            if (_columnEncryptionPolicy.ContainsColumn(ks, table, column))
+            var colData = _columnEncryptionPolicy.GetColumn(ks, table, column);
+            if (colData != null)
             {
-                var colData = _columnEncryptionPolicy.GetColumn(ks, table, column);
                 var encryptedData = _serializer.Deserialize(ProtocolVersion, buffer, offset, length, typeCode, typeInfo);
                 if (encryptedData == null)
                 {
@@ -62,7 +62,7 @@ namespace Cassandra.Serialization
         public byte[] SerializeAndEncrypt(string ks, string table, string column, object value)
         {
             var serialized = _serializer.Serialize(ProtocolVersion, value);
-            if (_columnEncryptionPolicy.ContainsColumn(ks, table, column))
+            if (_columnEncryptionPolicy.GetColumn(ks, table, column) != null)
             {
                 serialized = _columnEncryptionPolicy.Encrypt(ks, table, column, serialized);
                 serialized = _serializer.Serialize(ProtocolVersion, serialized);

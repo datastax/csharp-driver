@@ -40,12 +40,6 @@ namespace Cassandra
         byte[] Decrypt(string ks, string table, string col, byte[] encryptedBytes);
 
         /// <summary>
-        /// Provide cryptography materials to be used when encrypted and/or decrypting data
-        /// for the specified column.
-        /// </summary>
-        void AddColumn(string ks, string table, string col, byte[] key, ColumnTypeCode typeCode, IColumnInfo columnTypeInfo);
-
-        /// <summary>
         /// TODO
         /// </summary>
         /// <param name="ks"></param>
@@ -53,12 +47,6 @@ namespace Cassandra
         /// <param name="col"></param>
         /// <returns></returns>
         Tuple<ColumnTypeCode, IColumnInfo> GetColumn(string ks, string table, string col);
-
-        /// <summary>
-        /// Predicate to determine if a specific column is supported by this policy.
-        /// Currently only used internally.
-        /// </summary>
-        bool ContainsColumn(string ks, string table, string col);
 
         /// <summary>
         /// Helper function to enable use of this policy on simple (i.e. non-prepared)
