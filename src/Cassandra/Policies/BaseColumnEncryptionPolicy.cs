@@ -33,10 +33,8 @@ namespace Cassandra
         /// Provide cryptography materials to be used when encrypted and/or decrypting data
         /// for the specified column.
         /// </summary>
-        public void AddColumn(string ks, string table, string col, TKey key, ColumnTypeCode typeCode, IColumnInfo columnTypeInfo)
+        public virtual void AddColumn(string ks, string table, string col, TKey key, ColumnTypeCode typeCode, IColumnInfo columnTypeInfo)
         {
-            ValidateKey(key);
-
             var colDesc = new ColDesc
             {
                 Keyspace = ks,
@@ -53,18 +51,20 @@ namespace Cassandra
             _colData[colDesc] = colData;
         }
 
-        public Tuple<ColumnTypeCode, IColumnInfo> GetColumn(string ks, string table, string col)
+        /// <summary>
+        /// Provide cryptography materials to be used when encrypted and/or decrypting data
+        /// for the specified column.
+        /// </summary>
+        public virtual void AddColumn(string ks, string table, string col, TKey key, ColumnTypeCode typeCode)
+        {
+            AddColumn(ks, table, col, key, typeCode, null);
+        }
+
+        public virtual Tuple<ColumnTypeCode, IColumnInfo> GetColumn(string ks, string table, string col)
         {
             var found = GetColData(ks, table, col, out var colData);
             return found ? new Tuple<ColumnTypeCode, IColumnInfo>(colData.TypeCode, colData.TypeInfo) : null;
         }
-
-        public void EncodeAndEncrypt(string ks, string table, string col, object obj)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected abstract void ValidateKey(TKey key);
 
         protected bool GetColData(string ks, string table, string col, out ColData colData)
         {

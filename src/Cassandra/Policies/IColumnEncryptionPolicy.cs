@@ -47,11 +47,5 @@ namespace Cassandra
         /// <param name="col"></param>
         /// <returns></returns>
         Tuple<ColumnTypeCode, IColumnInfo> GetColumn(string ks, string table, string col);
-
-        /// <summary>
-        /// Helper function to enable use of this policy on simple (i.e. non-prepared)
-        /// statements.
-        /// </summary>
-        void EncodeAndEncrypt(string ks, string table, string col, object obj);
     }
 }

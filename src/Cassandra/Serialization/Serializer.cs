@@ -64,8 +64,11 @@ namespace Cassandra.Serialization
             var serialized = _serializer.Serialize(ProtocolVersion, value);
             if (_columnEncryptionPolicy.GetColumn(ks, table, column) != null)
             {
-                serialized = _columnEncryptionPolicy.Encrypt(ks, table, column, serialized);
-                serialized = _serializer.Serialize(ProtocolVersion, serialized);
+                //if (value.GetType() != MARKERCLASS) //TODO
+                //{
+                    serialized = _columnEncryptionPolicy.Encrypt(ks, table, column, serialized);
+                    serialized = _serializer.Serialize(ProtocolVersion, serialized);
+                //}
             }
 
             return serialized;
