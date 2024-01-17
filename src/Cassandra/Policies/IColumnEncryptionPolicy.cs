@@ -14,12 +14,6 @@
 //   limitations under the License.
 //
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 namespace Cassandra
 {
     public interface IColumnEncryptionPolicy
@@ -30,14 +24,14 @@ namespace Cassandra
         /// to non-prepared statements in a way that is consistent with this policy.
         /// </summary>
         /// <returns></returns>
-        byte[] Encrypt(string ks, string table, string col, byte[] objBytes);
+        byte[] Encrypt(object key, byte[] objBytes);
 
         /// <summary>
         /// Decrypt the specified (encrypted) bytes using the cryptography materials for the
         /// specified column.  Used internally; could be used externally as well but there's
         /// not currently an obvious use case.
         /// </summary>
-        byte[] Decrypt(string ks, string table, string col, byte[] encryptedBytes);
+        byte[] Decrypt(object key, byte[] encryptedBytes);
 
         /// <summary>
         /// TODO
@@ -46,6 +40,6 @@ namespace Cassandra
         /// <param name="table"></param>
         /// <param name="col"></param>
         /// <returns></returns>
-        Tuple<ColumnTypeCode, IColumnInfo> GetColumn(string ks, string table, string col);
+        ColumnEncryptionMetadata? GetColumnEncryptionMetadata(string ks, string table, string col);
     }
 }

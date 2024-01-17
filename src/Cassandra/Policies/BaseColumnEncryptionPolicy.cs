@@ -16,18 +16,46 @@
 
 using System;
 using System.Collections.Concurrent;
-using System.IO;
-using System.Security.Cryptography;
 
 namespace Cassandra
 {
-    public abstract class BaseColumnEncryptionPolicy<TKey> : IColumnEncryptionPolicy
+    public abstract class BaseColumnEncryptionPolicy<TKey>: IColumnEncryptionPolicy
     {
-        private readonly ConcurrentDictionary<ColDesc, ColData> _colData = new ConcurrentDictionary<ColDesc, ColData>();
-        
-        public abstract byte[] Encrypt(string ks, string table, string col, byte[] objBytes);
+        private readonly ConcurrentDictionary<ColMetadataKey, ColumnEncryptionMetadata> _colData = new ConcurrentDictionary<ColMetadataKey, ColumnEncryptionMetadata>();
 
-        public abstract byte[] Decrypt(string ks, string table, string col, byte[] encryptedBytes);
+        public byte[] Encrypt(object key, byte[] objBytes)
+        {
+            if (key == null)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
+
+            if (key is TKey typedKey)
+            {
+                return EncryptWithKey(typedKey, objBytes);
+            }
+
+            throw new ArgumentException($"invalid key type, expected {typeof(TKey).AssemblyQualifiedName} but got {key.GetType().AssemblyQualifiedName}");
+        }
+
+        public byte[] Decrypt(object key, byte[] encryptedBytes)
+        {
+            if (key == null)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
+
+            if (key is TKey typedKey)
+            {
+                return DecryptWithKey(typedKey, encryptedBytes);
+            }
+
+            throw new ArgumentException($"invalid key type, expected {typeof(TKey).AssemblyQualifiedName} but got {key.GetType().AssemblyQualifiedName}");
+        }
+
+        public abstract byte[] EncryptWithKey(TKey key, byte[] objBytes);
+
+        public abstract byte[] DecryptWithKey(TKey key, byte[] encryptedBytes);
 
         /// <summary>
         /// Provide cryptography materials to be used when encrypted and/or decrypting data
@@ -35,18 +63,13 @@ namespace Cassandra
         /// </summary>
         public virtual void AddColumn(string ks, string table, string col, TKey key, ColumnTypeCode typeCode, IColumnInfo columnTypeInfo)
         {
-            var colDesc = new ColDesc
+            var colDesc = new ColMetadataKey
             {
                 Keyspace = ks,
                 Table = table,
                 Column = col,
             };
-            var colData = new ColData
-            {
-                Key = key,
-                TypeCode = typeCode,
-                TypeInfo = columnTypeInfo,
-            };
+            var colData = new ColumnEncryptionMetadata(typeCode, columnTypeInfo, key);
 
             _colData[colDesc] = colData;
         }
@@ -57,36 +80,53 @@ namespace Cassandra
         /// </summary>
         public virtual void AddColumn(string ks, string table, string col, TKey key, ColumnTypeCode typeCode)
         {
-            AddColumn(ks, table, col, key, typeCode, null);
+            var colDesc = new ColMetadataKey
+            {
+                Keyspace = ks,
+                Table = table,
+                Column = col,
+            };
+            var colData = new ColumnEncryptionMetadata(typeCode, key);
+
+            _colData[colDesc] = colData;
         }
 
-        public virtual Tuple<ColumnTypeCode, IColumnInfo> GetColumn(string ks, string table, string col)
+        public virtual ColumnEncryptionMetadata? GetColumnEncryptionMetadata(string ks, string table, string col)
         {
-            var found = GetColData(ks, table, col, out var colData);
-            return found ? new Tuple<ColumnTypeCode, IColumnInfo>(colData.TypeCode, colData.TypeInfo) : null;
-        }
-
-        protected bool GetColData(string ks, string table, string col, out ColData colData)
-        {
-            var colDesc = new ColDesc
+            var colDesc = new ColMetadataKey
             {
                 Column = col,
                 Keyspace = ks,
                 Table = table,
             };
-            return _colData.TryGetValue(colDesc, out colData);
+            var found = _colData.TryGetValue(colDesc, out var metadata);
+            if (!found)
+            {
+                return null;
+            }
+            return metadata;
         }
 
-        protected struct ColDesc
+        protected struct ColMetadataKey : IEquatable<ColMetadataKey>
         {
-            private bool Equals(ColDesc other)
+            public static bool operator ==(ColMetadataKey left, ColMetadataKey right)
+            {
+                return left.Equals(right);
+            }
+
+            public static bool operator !=(ColMetadataKey left, ColMetadataKey right)
+            {
+                return !left.Equals(right);
+            }
+
+            public bool Equals(ColMetadataKey other)
             {
                 return Keyspace == other.Keyspace && Table == other.Table && Column == other.Column;
             }
 
             public override bool Equals(object obj)
             {
-                return obj is ColDesc other && Equals(other);
+                return obj is ColMetadataKey other && Equals(other);
             }
 
             public override int GetHashCode()
@@ -105,15 +145,6 @@ namespace Cassandra
             public string Table { get; set; }
 
             public string Column { get; set; }
-        }
-
-        protected struct ColData
-        {
-            public TKey Key { get; set; }
-
-            public ColumnTypeCode TypeCode { get; set; }
-
-            public IColumnInfo TypeInfo { get; set; }
         }
     }
 }

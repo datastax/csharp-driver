@@ -72,6 +72,8 @@ namespace Cassandra
 
         internal RowSetMetadata VariablesMetadata { get; }
 
+        internal string Keyspace => _keyspace;
+
         internal QueryProtocolOptions(ConsistencyLevel consistency,
                                       object[] values,
                                       bool skipMetadata,
@@ -222,23 +224,12 @@ namespace Cassandra
                         wb.WriteString(name);
                     }
 
-                    if (wb.Serializer.IsEncryptionEnabled && VariablesMetadata != null)
-                    {
-                        if (i >= VariablesMetadata.Columns.Length)
-                        {
-                            throw new DriverInternalError($"Unexpected driver internal error: value index ({i}) is equal or greater than the " +
-                                           $"length of the variables metadata columns ({VariablesMetadata.Columns.Length}).");
-                        }
-                        wb.WriteAndEncryptAsBytes(
-                            VariablesMetadata.Columns[i].Keyspace ?? VariablesMetadata.Keyspace, 
-                            VariablesMetadata.Columns[i].Table, 
-                            VariablesMetadata.Columns[i].Name, 
-                            Values[i]);
-                    }
-                    else
-                    {
-                        wb.WriteAsBytes(Values[i]);
-                    }
+                    wb.WriteAndEncryptAsBytes(
+                        _keyspace,
+                        VariablesMetadata,
+                        i,
+                        Values,
+                        i);
                 }
             }
             else if (protocolVersion == ProtocolVersion.V1 && isPrepared)

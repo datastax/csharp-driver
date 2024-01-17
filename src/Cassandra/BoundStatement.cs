@@ -215,27 +215,28 @@ namespace Cassandra
             var parametersMetadata = PreparedStatement.Variables;
             if (routingIndexes != null)
             {
+                if (routingIndexes.Length > 0 && serializer.IsEncryptionEnabled)
+                {
+                    if (parametersMetadata.Columns == null)
+                    {
+                        Logger.Warning("Could not calculate routing key for prepared statement '{0}' because columns are null. " +
+                                       "Token Aware routing will not be available for this request.", PreparedStatement.Cql);
+                        return;
+                    }
+                }
+
                 var keys = new RoutingKey[routingIndexes.Length];
                 for (var i = 0; i < routingIndexes.Length; i++)
                 {
                     var index = routingIndexes[i];
                     byte[] key = null;
-                    if (serializer.IsEncryptionEnabled)
+                    try
                     {
-                        if (parametersMetadata.Columns == null || index >= parametersMetadata.Columns.Length)
-                        {
-                            Logger.Warning("Could not compute routing key, routing index is {0}, columns length is {1}. Token Aware routing will not be available for this request ({2}).", 
-                                index, parametersMetadata.Columns?.Length, PreparedStatement.Cql);
-                        }
-                        else
-                        {
-                            var col = parametersMetadata.Columns[index];
-                            key = serializer.SerializeAndEncrypt(col.Keyspace ?? PreparedStatement.Keyspace, col.Table, col.Name, valuesByPosition[index]);
-                        }
+                        key = serializer.SerializeAndEncrypt(PreparedStatement.Keyspace, parametersMetadata, index, valuesByPosition, index);
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        key = serializer.Serialize(valuesByPosition[index]);
+                        Logger.Warning("Could not compute routing key. Token Aware routing will not be available for this request ({0}). Exception: {1}", PreparedStatement.Cql, ex.ToString());
                     }
                     if (key == null)
                     {
@@ -258,24 +259,41 @@ namespace Cassandra
                     return;
                 }
 
+                if (routingValues.Length > 0 && serializer.IsEncryptionEnabled)
+                {
+                    if (parametersMetadata.ColumnIndexes == null)
+                    {
+                        Logger.Warning("Could not calculate routing key for prepared statement '{0}' because column indexes are null. " +
+                                       "Token Aware routing will not be available for this request.", PreparedStatement.Cql);
+                        return;
+                    }
+                    if (parametersMetadata.Columns == null)
+                    {
+                        Logger.Warning("Could not calculate routing key for prepared statement '{0}' because columns are null. " +
+                                       "Token Aware routing will not be available for this request.", PreparedStatement.Cql);
+                        return;
+                    }
+                }
+
                 for (var i = 0; i < routingValues.Length; i++)
                 {
                     byte[] key = null;
                     if (serializer.IsEncryptionEnabled)
                     {
-                        if (parametersMetadata.ColumnIndexes == null || !parametersMetadata.ColumnIndexes.TryGetValue(routingNames[i], out var colIndex))
+                        if (!parametersMetadata.ColumnIndexes.TryGetValue(routingNames[i], out var colIndex))
                         {
-                            Logger.Warning("Could not find column metadata for parameter {0} in PreparedStatement ({1}).", routingNames[i], PreparedStatement.Cql);
+                            Logger.Warning("Could not compute routing key because there's no column metadata for parameter {0} in PreparedStatement ({1}). " +
+                                           "Token Aware routing will not be available for this request.", routingNames[i], PreparedStatement.Cql);
                         }
-                        else if (parametersMetadata.Columns == null || colIndex >= parametersMetadata.Columns.Length)
+
+                        try
                         {
-                            Logger.Warning("Could not compute routing key, routing name column index is {0}, columns length is {1}. Token Aware routing will not be available for this request ({2}).",
-                                colIndex, parametersMetadata.Columns?.Length, PreparedStatement.Cql);
+                            key = serializer.SerializeAndEncrypt(PreparedStatement.Keyspace, parametersMetadata, colIndex, routingValues, i);
                         }
-                        else
+                        catch (Exception ex)
                         {
-                            var col = parametersMetadata.Columns[colIndex];
-                            key = serializer.SerializeAndEncrypt(col.Keyspace ?? PreparedStatement.Keyspace, col.Table, col.Name, routingValues[i]);
+                            Logger.Warning("Could not compute routing key with routing names {0}. Token Aware routing will not be available for this request ({1}). " +
+                                           "Exception: {2}", string.Join(",", routingNames), PreparedStatement.Cql, ex.ToString());
                         }
                     }
                     else

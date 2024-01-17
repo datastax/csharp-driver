@@ -106,16 +106,7 @@ namespace Cassandra.Requests
             wb.WriteUInt16((ushort)_queryOptions.Values.Length);
             for (var i = 0; i < _queryOptions.Values.Length; i++)
             {
-                var queryParameter = _queryOptions.Values[i];
-                if (wb.Serializer.IsEncryptionEnabled)
-                {
-                    var colMetadata = _queryOptions.VariablesMetadata.Columns[i];
-                    wb.WriteAndEncryptAsBytes(colMetadata.Keyspace ?? _queryOptions.VariablesMetadata.Keyspace, colMetadata.Table, colMetadata.Name, queryParameter);
-                }
-                else
-                {
-                    wb.WriteAsBytes(queryParameter);
-                }
+                wb.WriteAndEncryptAsBytes(_queryOptions.Keyspace, _queryOptions.VariablesMetadata, i, _queryOptions.Values, i);
             }
         }
     }

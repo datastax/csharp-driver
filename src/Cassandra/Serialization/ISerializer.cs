@@ -33,7 +33,10 @@ namespace Cassandra.Serialization
 
         byte[] Serialize(object value);
 
-        byte[] SerializeAndEncrypt(string ks, string table, string col, object value);
+        //TODO
+        //byte[] SerializeAndEncrypt(string ks, string table, string col, object value);
+
+        byte[] SerializeAndEncrypt(string defaultKs, RowSetMetadata metadata, int colMetadataIdx, object[] values, int valueIdx);
 
         /// <summary>
         /// Create a new serializer with the provided protocol version.

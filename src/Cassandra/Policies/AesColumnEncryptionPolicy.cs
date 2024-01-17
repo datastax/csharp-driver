@@ -15,27 +15,24 @@
 //
 
 using System;
-using System.Collections.Concurrent;
 using System.IO;
 using System.Security.Cryptography;
+// ReSharper disable InconsistentNaming
 
 namespace Cassandra
 {
     public class AesColumnEncryptionPolicy : BaseColumnEncryptionPolicy<AesColumnEncryptionPolicy.AesKeyAndIV>
     {
-        public override byte[] Encrypt(string ks, string table, string col, byte[] objBytes)
+        public const int IVLength = 16;
+
+        public override byte[] EncryptWithKey(AesKeyAndIV key, byte[] objBytes)
         {
-            if (!GetColData(ks, table, col, out var colData))
-            {
-                throw new ArgumentException(
-                    $"Can't encrypt because the column {col} from table {ks}.{table} was not added to this column encryption policy.");
-            }
             using (var aes = Aes.Create())
             {
                 aes.Mode = CipherMode.CBC;
                 aes.Padding = PaddingMode.PKCS7;
-                var IV = colData.Key.IV ?? aes.IV;
-                using (var encryptor = aes.CreateEncryptor(colData.Key.Key, IV))
+                var IV = key.IV ?? aes.IV;
+                using (var encryptor = aes.CreateEncryptor(key.Key, IV))
                 {
                     using (var memoryStream = new MemoryStream())
                     {
@@ -52,62 +49,26 @@ namespace Cassandra
             }
         }
 
-        private void CryptoOp(MemoryStream memoryStream, ICryptoTransform transform, byte[] data)
+        public override byte[] DecryptWithKey(AesKeyAndIV key, byte[] encryptedBytes)
         {
-            using (var cryptoStream = new CryptoStream(memoryStream, transform, CryptoStreamMode.Write))
-            {
-                cryptoStream.Write(data, 0, data.Length);
-                cryptoStream.FlushFinalBlock();
-            }
-        }
-
-        public override byte[] Decrypt(string ks, string table, string col, byte[] encryptedBytes)
-        {
-            if (!GetColData(ks, table, col, out var colData))
-            {
-                throw new ArgumentException(
-                    $"Can't decrypt because the column {col} from table {ks}.{table} was not added to this column encryption policy.");
-            }
             using (var aes = Aes.Create())
             {
                 aes.Mode = CipherMode.CBC;
                 aes.Padding = PaddingMode.PKCS7;
-                const int ivLength = 16;
-                if (encryptedBytes == null || encryptedBytes.Length < ivLength)
+                if (encryptedBytes == null || encryptedBytes.Length < IVLength)
                 {
                     throw new DriverInternalError("could not decrypt column value because its size is " + encryptedBytes?.Length);
                 }
-                var IV = new byte[ivLength];
-                Buffer.BlockCopy(encryptedBytes, 0, IV, 0, ivLength);
+                var IV = new byte[IVLength];
+                Buffer.BlockCopy(encryptedBytes, 0, IV, 0, IVLength);
 
-                //using (var memoryStream = new MemoryStream(encryptedBytes))
-                //{
-                //    var IV = new byte[ivLength];
-                //    var bytesRead = memoryStream.Read(IV, 0, ivLength);
-                //    if (bytesRead != ivLength)
-                //    {
-                //        throw new DriverInternalError("could not read IV bytes from the buffer");
-                //    }
-                //    using (var encryptor = aes.CreateDecryptor(colData.Key, IV))
-                //    {
-                //        using (var cryptoStream = new CryptoStream(memoryStream, encryptor, CryptoStreamMode.Read))
-                //        {
-                //            using (var decryptedMemoryStream = new MemoryStream())
-                //            {
-                //                cryptoStream.CopyTo(decryptedMemoryStream);
-                //                return decryptedMemoryStream.ToArray();
-                //            }
-                //        }
-                //    }
-                //}
-
-                using (var encryptor = aes.CreateDecryptor(colData.Key.Key, IV))
+                using (var encryptor = aes.CreateDecryptor(key.Key, IV))
                 {
                     using (var memoryStream = new MemoryStream())
                     {
                         using (var cryptoStream = new CryptoStream(memoryStream, encryptor, CryptoStreamMode.Write))
                         {
-                            cryptoStream.Write(encryptedBytes, ivLength, encryptedBytes.Length - ivLength);
+                            cryptoStream.Write(encryptedBytes, IVLength, encryptedBytes.Length - IVLength);
                             cryptoStream.FlushFinalBlock();
                         }
 
@@ -120,8 +81,6 @@ namespace Cassandra
 
         public class AesKeyAndIV
         {
-            public const int IVLength = 16;
-
             public byte[] Key { get; }
 
             public byte[] IV { get; }

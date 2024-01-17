@@ -149,12 +149,21 @@ namespace Cassandra
             WriteBytes(_serializer.Serialize(value));
         }
 
+        //TODO
+        ///// <summary>
+        ///// Serializes (and potentially encrypts) and writes as protocol <c>bytes</c> (length + bytes)
+        ///// </summary>
+        //public void WriteAndEncryptAsBytes(string ks, string table, string column, object value)
+        //{
+        //    WriteBytes(_serializer.SerializeAndEncrypt(ks, table, column, value));
+        //}
+
         /// <summary>
         /// Serializes (and potentially encrypts) and writes as protocol <c>bytes</c> (length + bytes)
         /// </summary>
-        public void WriteAndEncryptAsBytes(string ks, string table, string column, object value)
+        public void WriteAndEncryptAsBytes(string defaultKs, RowSetMetadata metadata, int colIdx, object[] values, int valueIdx)
         {
-            WriteBytes(_serializer.SerializeAndEncrypt(ks, table, column, value));
+            WriteBytes(_serializer.SerializeAndEncrypt(defaultKs, metadata, colIdx, values, valueIdx));
         }
 
         /// <summary>
