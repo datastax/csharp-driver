@@ -129,7 +129,6 @@ namespace Cassandra.IntegrationTests.Core
                 var executeRequest = new ExecuteRequest(
                     GetSerializer(), 
                     prepareOutput.QueryId, 
-                    null,
                     new ResultMetadata(prepareOutput.ResultMetadataId, prepareOutput.ResultRowsMetadata),
                     QueryProtocolOptions.Default,
                     false,
@@ -154,12 +153,11 @@ namespace Cassandra.IntegrationTests.Core
                 var task = connection.Send(prepareRequest);
                 var prepareOutput = ValidateResult<OutputPrepared>(task.Result);
 
-                var options = new QueryProtocolOptions(ConsistencyLevel.One, new object[] { "local" }, false, 100, null, ConsistencyLevel.Any);
+                var options = new QueryProtocolOptions(ConsistencyLevel.One, new object[] { "local" }, false, 100, null, ConsistencyLevel.Any, null, null, prepareOutput.VariablesRowsMetadata);
 
                 var executeRequest = new ExecuteRequest(
                     GetSerializer(), 
                     prepareOutput.QueryId, 
-                    null, 
                     new ResultMetadata(prepareOutput.ResultMetadataId, prepareOutput.ResultRowsMetadata),
                     options,
                     false,

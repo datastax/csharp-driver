@@ -23,7 +23,7 @@ namespace Cassandra.Serialization
     /// </summary>
     internal class SerializerManager : ISerializerManager
     {
-        internal static readonly ISerializerManager Default = new SerializerManager(ProtocolVersion.V1, null);
+        internal static readonly ISerializerManager Default = new SerializerManager(ProtocolVersion.V1);
 
         /// <summary>
         /// An instance of a buffer that represents the value Unset
@@ -34,7 +34,7 @@ namespace Cassandra.Serialization
         private readonly IColumnEncryptionPolicy _clePolicy;
         private volatile ISerializer _serializer;
 
-        internal SerializerManager(ProtocolVersion protocolVersion, IColumnEncryptionPolicy clePolicy, IEnumerable<ITypeSerializer> typeSerializers = null)
+        internal SerializerManager(ProtocolVersion protocolVersion, IColumnEncryptionPolicy clePolicy = null, IEnumerable<ITypeSerializer> typeSerializers = null)
         {
             _clePolicy = clePolicy;
             _genericSerializer = new GenericSerializer(typeSerializers);

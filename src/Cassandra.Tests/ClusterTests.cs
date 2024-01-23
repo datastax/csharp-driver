@@ -209,7 +209,8 @@ namespace Cassandra.Tests
                     new ConstantReconnectionPolicy(50), 
                     new DefaultRetryPolicy(), 
                     NoSpeculativeExecutionPolicy.Instance, 
-                    new AtomicMonotonicTimestampGenerator()),
+                    new AtomicMonotonicTimestampGenerator(),
+                    null),
                 ExecutionProfiles = lbps.Skip(1).Select(
                     (lbp, idx) => new 
                     { 

@@ -266,6 +266,7 @@ namespace Cassandra.Tests.DataStax.Insights.MessageFactories
                     DowngradingConsistencyRetryPolicy.Instance,
 #pragma warning restore 618
                     new ConstantSpeculativeExecutionPolicy(1213, 10),
+                    null,
                     null),
                 ProtocolOptions = new ProtocolOptions().SetCompression(CompressionType.Snappy),
                 PoolingOptions = new PoolingOptions()
