@@ -19,7 +19,7 @@ using Cassandra.Serialization;
 
 namespace Cassandra
 {
-    public struct ColumnEncryptionMetadata
+    public struct ColumnEncryptionMetadata : IEquatable<ColumnEncryptionMetadata>
     {
         public ColumnTypeCode TypeCode { get; }
 
@@ -37,6 +37,36 @@ namespace Cassandra
             TypeCode = typeCode;
             TypeInfo = typeInfo;
             Key = key;
+        }
+        public bool Equals(ColumnEncryptionMetadata other)
+        {
+            return TypeCode == other.TypeCode && Equals(TypeInfo, other.TypeInfo) && Equals(Key, other.Key);
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is ColumnEncryptionMetadata other && Equals(other);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                var hashCode = (int)TypeCode;
+                hashCode = (hashCode * 397) ^ (TypeInfo != null ? TypeInfo.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (Key != null ? Key.GetHashCode() : 0);
+                return hashCode;
+            }
+        }
+
+        public static bool operator ==(ColumnEncryptionMetadata left, ColumnEncryptionMetadata right)
+        {
+            return left.Equals(right);
+        }
+
+        public static bool operator !=(ColumnEncryptionMetadata left, ColumnEncryptionMetadata right)
+        {
+            return !left.Equals(right);
         }
     }
 }
