@@ -14,6 +14,8 @@
 //   limitations under the License.
 //
 
+using System;
+
 namespace Cassandra
 {
     /// <summary>
@@ -27,7 +29,7 @@ namespace Cassandra
     /// <code>new SimpleStatement(__CQL_STATEMENT__, new EncryptedValue(__PARAMETER_VALUE__, __ENCRYPTION_KEY__));</code>
     /// </para>
     /// </summary>
-    public struct EncryptedValue
+    public struct EncryptedValue : IEquatable<EncryptedValue>
     {
         public object Value { get; }
 
@@ -37,6 +39,34 @@ namespace Cassandra
         {
             Value = value;
             Key = encryptionKey;
+        }
+
+        public bool Equals(EncryptedValue other)
+        {
+            return Equals(Value, other.Value) && Equals(Key, other.Key);
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is EncryptedValue other && Equals(other);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return ((Value != null ? Value.GetHashCode() : 0) * 397) ^ (Key != null ? Key.GetHashCode() : 0);
+            }
+        }
+
+        public static bool operator ==(EncryptedValue left, EncryptedValue right)
+        {
+            return left.Equals(right);
+        }
+
+        public static bool operator !=(EncryptedValue left, EncryptedValue right)
+        {
+            return !left.Equals(right);
         }
     }
 }
