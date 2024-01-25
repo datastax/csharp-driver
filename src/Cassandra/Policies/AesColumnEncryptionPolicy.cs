@@ -21,15 +21,30 @@ using System.Security.Cryptography;
 
 namespace Cassandra
 {
+    /// <summary>
+    /// Implementation of <see cref="IColumnEncryptionPolicy"/> using the system's implementation of <see cref="Aes"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// You can provide a Key and IV for each encrypted column or a key ONLY. If no IV is provided then a random one will be generated every time a value is encrypted. The IV will be stored with the value so prior knowledge of the IV is not needed for decryption.
+    /// </para>
+    /// <para>
+    /// For columns that are used in WHERE clauses of SELECT statements you should always provide the same IV instead of relying on the randomly generated one because the value that is used for server side operations includes the IV.
+    /// </para>
+    /// </remarks>
     public class AesColumnEncryptionPolicy : BaseColumnEncryptionPolicy<AesColumnEncryptionPolicy.AesKeyAndIV>
     {
         public const int IVLength = 16;
+
+        // ReSharper disable once UseArrayEmptyMethod
+        // Array.Empty is not available in net452
+        private static readonly byte[] EmptyArray = new byte[0];
 
         public override byte[] EncryptWithKey(AesKeyAndIV key, byte[] objBytes)
         {
             if (objBytes == null)
             {
-                return new byte[0];
+                return EmptyArray;
             }
             using (var aes = Aes.Create())
             {

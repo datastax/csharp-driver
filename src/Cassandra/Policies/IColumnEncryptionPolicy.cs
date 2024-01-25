@@ -16,30 +16,41 @@
 
 namespace Cassandra
 {
+    /// <summary>
+    /// <para>
+    /// This policy is used by the driver to provide client side encryption capabilities. The only requirement is that the encrypted columns have the 'blob' type at schema level.
+    /// Check https://docs.datastax.com/en/developer/csharp-driver/latest/features/column-encryption/ for more information about this feature.
+    /// </para>
+    /// <para>
+    /// The driver provides an AES based implementation of this policy <see cref="AesColumnEncryptionPolicy"/>.
+    /// </para>
+    /// <para>
+    /// You can implement your own policy by implementing a class that inherits the abstract class <see cref="BaseColumnEncryptionPolicy{TKey}"/>. This class provides some built-in functionality
+    /// to manage the encrypted columns' metadata.
+    /// </para>
+    /// </summary>
     public interface IColumnEncryptionPolicy
     {
         /// <summary>
-        /// Encrypt the specified bytes using the cryptography materials for the specified column.
-        /// Largely used internally, although this could also be used to encrypt values supplied
-        /// to non-prepared statements in a way that is consistent with this policy.
+        /// Encrypt the specified bytes using the cryptography materials.
+        /// This method is used by the driver internally before sending the parameters to the server.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>Encrypted data in a byte array. The returned byte array can't be 'null' because 'blob' types don't allow 'null' values.</returns>
         byte[] Encrypt(object key, byte[] objBytes);
 
         /// <summary>
-        /// Decrypt the specified (encrypted) bytes using the cryptography materials for the
-        /// specified column.  Used internally; could be used externally as well but there's
-        /// not currently an obvious use case.
+        /// Decrypt the specified (encrypted) bytes using the cryptography materials.
+        /// This method is used by the driver internally before providing the results to the application.
         /// </summary>
+        /// <returns>Decrypted data in a byte array.</returns>
         byte[] Decrypt(object key, byte[] encryptedBytes);
 
         /// <summary>
-        /// TODO
+        /// Retrieves the cryptography materials for the specified column. If the column is not encrypted then should return 'null'.
         /// </summary>
-        /// <param name="ks"></param>
-        /// <param name="table"></param>
-        /// <param name="col"></param>
-        /// <returns></returns>
+        /// <param name="ks">Keyspace of this encrypted column's table.</param>
+        /// <param name="table">Table of this encrypted column.</param>
+        /// <param name="col">Name of this encrypted column at schema level.</param>
         ColumnEncryptionMetadata? GetColumnEncryptionMetadata(string ks, string table, string col);
     }
 }

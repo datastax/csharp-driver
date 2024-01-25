@@ -19,10 +19,18 @@ using System.Collections.Concurrent;
 
 namespace Cassandra
 {
+    /// <summary>
+    /// This abstract class provides functionality to manage the column encryption metadata of encrypted columns. You can implement a custom ColumnEncryptionPolicy
+    /// by inheriting this class and overriding <see cref="EncryptWithKey"/> and <see cref="DecryptWithKey"/>.
+    /// </summary>
+    /// <typeparam name="TKey">The type of the "key" object that is used by the implementations of this class. See an example of this in <see cref="AesColumnEncryptionPolicy"/>.
+    /// This is only meant to provide some compile time type safety since the base interface works with the basic "object" type.</typeparam>
     public abstract class BaseColumnEncryptionPolicy<TKey>: IColumnEncryptionPolicy
     {
         private readonly ConcurrentDictionary<ColMetadataKey, ColumnEncryptionMetadata> _colData = new ConcurrentDictionary<ColMetadataKey, ColumnEncryptionMetadata>();
 
+
+        /// <inheritdoc />
         public byte[] Encrypt(object key, byte[] objBytes)
         {
             if (key == null)
@@ -38,6 +46,7 @@ namespace Cassandra
             throw new ArgumentException($"invalid key type, expected {typeof(TKey).AssemblyQualifiedName} but got {key.GetType().AssemblyQualifiedName}");
         }
 
+        /// <inheritdoc />
         public byte[] Decrypt(object key, byte[] encryptedBytes)
         {
             if (key == null)
@@ -53,14 +62,28 @@ namespace Cassandra
             throw new ArgumentException($"invalid key type, expected {typeof(TKey).AssemblyQualifiedName} but got {key.GetType().AssemblyQualifiedName}");
         }
 
+        /// <summary>
+        /// You should implement your column encryption policy encryption logic by overriding this method.
+        /// </summary>
+        /// <param name="key">Key that was previously provided with <see cref="AddColumn(string,string,string,TKey,Cassandra.ColumnTypeCode)"/>.</param>
+        /// <param name="objBytes">Serialized value as a byte array.</param>
+        /// <returns>The encrypted bytes.</returns>
         public abstract byte[] EncryptWithKey(TKey key, byte[] objBytes);
 
+        /// <summary>
+        /// You should implement your column encryption policy decryption logic by overriding this method.
+        /// </summary>
+        /// <param name="key">Key that was previously provided with <see cref="AddColumn(string,string,string,TKey,Cassandra.ColumnTypeCode)"/>.</param>
+        /// <param name="encryptedBytes">Encrypted bytes read from the server.</param>
+        /// <returns>The decrypted bytes (i.e. serialized value) which will then be deserialized by the driver afterwards.</returns>
         public abstract byte[] DecryptWithKey(TKey key, byte[] encryptedBytes);
 
         /// <summary>
         /// Provide cryptography materials to be used when encrypted and/or decrypting data
         /// for the specified column.
         /// </summary>
+        /// <remarks>This overload has an extra parameter (<paramref name="columnTypeInfo"/>) which is used if the <paramref name="typeCode"/> refers to a type that requires extra type information.
+        /// E.g. collection types require information about the type of objects that the collection contains. This overload should only be used if the column is of type 'map', 'list', 'set', 'udt', 'tuple' or 'custom'. </remarks>
         public virtual void AddColumn(string ks, string table, string col, TKey key, ColumnTypeCode typeCode, IColumnInfo columnTypeInfo)
         {
             var colDesc = new ColMetadataKey
@@ -78,6 +101,8 @@ namespace Cassandra
         /// Provide cryptography materials to be used when encrypted and/or decrypting data
         /// for the specified column.
         /// </summary>
+        /// <remarks>If the <paramref name="typeCode"/> is 'map','list','set','udt','tuple' or 'custom' then you have to use the other overload
+        /// (<see cref="AddColumn(string,string,string,TKey,Cassandra.ColumnTypeCode,Cassandra.IColumnInfo)"/>) so you can provide the <see cref="IColumnInfo"/>.</remarks>
         public virtual void AddColumn(string ks, string table, string col, TKey key, ColumnTypeCode typeCode)
         {
             var colDesc = new ColMetadataKey
@@ -91,6 +116,7 @@ namespace Cassandra
             _colData[colDesc] = colData;
         }
 
+        /// <inheritdoc />
         public virtual ColumnEncryptionMetadata? GetColumnEncryptionMetadata(string ks, string table, string col)
         {
             var colDesc = new ColMetadataKey
@@ -107,6 +133,9 @@ namespace Cassandra
             return metadata;
         }
 
+        /// <summary>
+        /// Type used by the internal map that manages the metadata of the encrypted columns. It is used to check whether a particular column is encrypted or not.
+        /// </summary>
         protected struct ColMetadataKey : IEquatable<ColMetadataKey>
         {
             public static bool operator ==(ColMetadataKey left, ColMetadataKey right)

@@ -17,9 +17,17 @@
 namespace Cassandra
 {
     /// <summary>
-    /// TODO
+    /// <para>
+    /// This struct can be used to "tell" the driver that a specific value should be encrypted before sending it to the server.
+    /// You can use this type to effectively use column encryption policies with Simple Statements since the driver can't automatically detect
+    /// that a parameter needs to be encrypted when using Simple Statements.
+    /// </para>
+    /// <para>
+    /// To use this type just call the constructor, e.g.:
+    /// <code>new SimpleStatement(__CQL_STATEMENT__, new EncryptedValue(__PARAMETER_VALUE__, __ENCRYPTION_KEY__));</code>
+    /// </para>
     /// </summary>
-    public class EncryptedValue
+    public struct EncryptedValue
     {
         public object Value { get; }
 
