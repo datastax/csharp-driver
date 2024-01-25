@@ -230,15 +230,7 @@ namespace Cassandra
                 for (var i = 0; i < routingIndexes.Length; i++)
                 {
                     var index = routingIndexes[i];
-                    byte[] key = null;
-                    try
-                    {
-                        key = serializer.SerializeAndEncrypt(PreparedStatement.Keyspace, parametersMetadata, index, valuesByPosition, index);
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.Warning("Could not compute routing key. Token Aware routing will not be available for this request ({0}). Exception: {1}", PreparedStatement.Cql, ex.ToString());
-                    }
+                    byte[] key = serializer.SerializeAndEncrypt(PreparedStatement.Keyspace, parametersMetadata, index, valuesByPosition, index);
                     if (key == null)
                     {
                         //The partition key can not be null
@@ -286,15 +278,9 @@ namespace Cassandra
                             Logger.Warning("Could not compute routing key because there's no column metadata for parameter {0} in PreparedStatement ({1}). " +
                                            "Token Aware routing will not be available for this request.", routingNames[i], PreparedStatement.Cql);
                         }
-
-                        try
+                        else
                         {
                             key = serializer.SerializeAndEncrypt(PreparedStatement.Keyspace, parametersMetadata, colIndex, routingValues, i);
-                        }
-                        catch (Exception ex)
-                        {
-                            Logger.Warning("Could not compute routing key with routing names {0}. Token Aware routing will not be available for this request ({1}). " +
-                                           "Exception: {2}", string.Join(",", routingNames), PreparedStatement.Cql, ex.ToString());
                         }
                     }
                     else

@@ -15,7 +15,6 @@
 //
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Cassandra.IntegrationTests.TestBase;
@@ -68,6 +67,51 @@ namespace Cassandra.IntegrationTests.Policies.Tests
         }
 
         [Test]
+        public async Task Should_InsertAndSelectEncryptedColumnsPartitionKeyOnly_PreparedStatements()
+        {
+            var tableName = TestUtils.GetUniqueTableName().ToLowerInvariant();
+            var policy = BuildColumnEncryptionPolicy(tableName, KeyAndIv);
+            var cluster = GetNewTemporaryCluster(builder => builder.WithColumnEncryptionPolicy(policy));
+            var session = await cluster.ConnectAsync(KeyspaceName).ConfigureAwait(false);
+            CreateEncryptedTable(session, tableName);
+            var clusterNoEncryption = GetNewTemporaryCluster();
+            var sessionNoEncryption = await clusterNoEncryption.ConnectAsync(KeyspaceName).ConfigureAwait(false);
+            var insertQuery = $"INSERT INTO {tableName} (id, name, age, public_notes) VALUES (?, ?, ?, ?)";
+            var selectQuery = $"SELECT * FROM {tableName} WHERE id = ?";
+            var preparedInsert = await Session.PrepareAsync(insertQuery).ConfigureAwait(false);
+            var preparedSelect = await Session.PrepareAsync(selectQuery).ConfigureAwait(false);
+
+            var id = Guid.NewGuid();
+            var newUser = new User
+            {
+                Id = id,
+                Name = "User " + id,
+                Age = id.GetHashCode() % 100,
+                PublicNotes = "These are the public unencrypted notes for user " + id
+            };
+
+            var boundInsert = preparedInsert.Bind(newUser.Id, newUser.Name, newUser.Age, newUser.PublicNotes);
+            var boundSelect = preparedSelect.Bind(newUser.Id);
+            await session.ExecuteAsync(boundInsert).ConfigureAwait(false);
+            var rs = await session.ExecuteAsync(boundSelect).ConfigureAwait(false);
+            var users = rs.ToList();
+            Assert.AreEqual(1, users.Count);
+            var user = users[0];
+
+            Assert.AreEqual(newUser.Id, user["id"]);
+            Assert.AreEqual(newUser.Name, user["name"]);
+            Assert.AreEqual(newUser.Age, user["age"]);
+            Assert.AreEqual(newUser.PublicNotes, user["public_notes"]);
+
+            rs = await sessionNoEncryption.ExecuteAsync(new SimpleStatement($"SELECT * FROM {tableName}")).ConfigureAwait(false);
+            var allUsers = rs.ToList();
+
+            Assert.AreEqual(1, allUsers.Count);
+            VerifyEncryptedUser(newUser, session, policy, KeyAndIv, allUsers[0]);
+        }
+
+        [Test]
+        [TestCassandraVersion(3, 11)]
         public async Task Should_InsertAndSelectEncryptedColumns_PreparedStatements()
         {
             var tableName = TestUtils.GetUniqueTableName().ToLowerInvariant();
@@ -112,6 +156,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
         }
 
         [Test]
+        [TestCassandraVersion(3, 11)]
         public async Task Should_FailSelectEncryptedColumnsWithRandomIV_PreparedStatements()
         {
             var tableName = TestUtils.GetUniqueTableName().ToLowerInvariant();
@@ -150,6 +195,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
         }
 
         [Test]
+        [TestCassandraVersion(3, 11)]
         public async Task Should_InsertAndSelectEncryptedColumns_SimpleStatements()
         {
             var tableName = TestUtils.GetUniqueTableName().ToLowerInvariant();
@@ -182,6 +228,54 @@ namespace Cassandra.IntegrationTests.Policies.Tests
                 new EncryptedValue(newUser.Id, KeyAndIv),
                 new EncryptedValue(newUser.Name, KeyAndIv),
                 new EncryptedValue(newUser.Age, KeyAndIv))).ConfigureAwait(false);
+
+            var users = rs.ToList();
+            Assert.AreEqual(1, users.Count);
+            var user = users[0];
+
+            Assert.AreEqual(newUser.Id, user["id"]);
+            Assert.AreEqual(newUser.Name, user["name"]);
+            Assert.AreEqual(newUser.Age, user["age"]);
+            Assert.AreEqual(newUser.PublicNotes, user["public_notes"]);
+
+            rs = await sessionNoEncryption.ExecuteAsync(new SimpleStatement($"SELECT * FROM {tableName}")).ConfigureAwait(false);
+            var allUsers = rs.ToList();
+
+            Assert.AreEqual(1, allUsers.Count);
+            VerifyEncryptedUser(newUser, session, policy, KeyAndIv, allUsers[0]);
+        }
+
+        [Test]
+        public async Task Should_InsertAndSelectEncryptedColumnsPartitionKeyOnly_SimpleStatements()
+        {
+            var tableName = TestUtils.GetUniqueTableName().ToLowerInvariant();
+            var policy = BuildColumnEncryptionPolicy(tableName, KeyAndIv);
+            var cluster = GetNewTemporaryCluster(builder => builder.WithColumnEncryptionPolicy(policy));
+            var session = await cluster.ConnectAsync(KeyspaceName).ConfigureAwait(false);
+            CreateEncryptedTable(session, tableName);
+            var clusterNoEncryption = GetNewTemporaryCluster();
+            var sessionNoEncryption = await clusterNoEncryption.ConnectAsync(KeyspaceName).ConfigureAwait(false);
+            var insertQuery = $"INSERT INTO {tableName} (id, name, age, public_notes) VALUES (?, ?, ?, ?)";
+            var selectQuery = $"SELECT * FROM {tableName} WHERE id = ?";
+
+            var id = Guid.NewGuid();
+            var newUser = new User
+            {
+                Id = id,
+                Name = "User " + id,
+                Age = id.GetHashCode() % 100,
+                PublicNotes = "These are the public unencrypted notes for user " + id
+            };
+
+            await session.ExecuteAsync(new SimpleStatement(
+                insertQuery,
+                new EncryptedValue(newUser.Id, KeyAndIv),
+                new EncryptedValue(newUser.Name, KeyAndIv),
+                new EncryptedValue(newUser.Age, KeyAndIv),
+                newUser.PublicNotes)).ConfigureAwait(false);
+            var rs = await session.ExecuteAsync(new SimpleStatement(
+                selectQuery,
+                new EncryptedValue(newUser.Id, KeyAndIv))).ConfigureAwait(false);
 
             var users = rs.ToList();
             Assert.AreEqual(1, users.Count);
