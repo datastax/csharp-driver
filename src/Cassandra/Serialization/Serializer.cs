@@ -50,6 +50,10 @@ namespace Cassandra.Serialization
 
                 var encryptedDataBuf = (byte[])encryptedData;
                 var decryptedDataBuf = _columnEncryptionPolicy.Decrypt(columnEncryptionMetadata.Value.Key, encryptedDataBuf);
+                if (decryptedDataBuf == null)
+                {
+                    return null;
+                }
                 return _serializer.Deserialize(ProtocolVersion, decryptedDataBuf, 0, decryptedDataBuf.Length, columnEncryptionMetadata.Value.TypeCode, columnEncryptionMetadata.Value.TypeInfo);
             }
             return _serializer.Deserialize(ProtocolVersion, buffer, offset, length, typeCode, typeInfo);

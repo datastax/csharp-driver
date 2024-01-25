@@ -27,6 +27,10 @@ namespace Cassandra
 
         public override byte[] EncryptWithKey(AesKeyAndIV key, byte[] objBytes)
         {
+            if (objBytes == null)
+            {
+                return new byte[0];
+            }
             using (var aes = Aes.Create())
             {
                 aes.Mode = CipherMode.CBC;
@@ -51,6 +55,10 @@ namespace Cassandra
 
         public override byte[] DecryptWithKey(AesKeyAndIV key, byte[] encryptedBytes)
         {
+            if (encryptedBytes == null || encryptedBytes.Length == 0)
+            {
+                return null;
+            }
             using (var aes = Aes.Create())
             {
                 aes.Mode = CipherMode.CBC;

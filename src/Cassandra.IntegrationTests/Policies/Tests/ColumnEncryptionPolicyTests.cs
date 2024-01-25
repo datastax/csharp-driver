@@ -18,6 +18,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Cassandra.IntegrationTests.TestBase;
+using Cassandra.Serialization;
 using Cassandra.Tests;
 using NUnit.Framework;
 
@@ -41,33 +42,47 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             p.AddColumn(KeyspaceName, tableName, "id", key, ColumnTypeCode.Uuid);
             p.AddColumn(KeyspaceName, tableName, "age", key, ColumnTypeCode.Int);
             p.AddColumn(KeyspaceName, tableName, "name", key, ColumnTypeCode.Text);
+            p.AddColumn(KeyspaceName, tableName, "surname", key, ColumnTypeCode.Text);
             return p;
         }
 
         private static void CreateEncryptedTable(ISession session, string name)
         {
-            session.Execute($"CREATE TABLE {name} (id blob PRIMARY KEY, age blob, name blob, public_notes text)");
+            session.Execute($"CREATE TABLE {name} (id blob PRIMARY KEY, age blob, name blob, surname blob, public_notes text)");
         }
 
         private void VerifyEncryptedUser(User user, ISession session, IColumnEncryptionPolicy policy, object key, Row r)
         {
             var idRaw = r["id"] as byte[];
             var nameRaw = r["name"] as byte[];
+            var surnameRaw = r["surname"] as byte[];
             var ageRaw = r["age"] as byte[];
             var publicNotes = r["public_notes"] as string;
             var serializer = ((Session)session).InternalRef.InternalCluster.GetControlConnection().Serializer.GetCurrentSerializer();
             Assert.NotNull(idRaw);
             Assert.NotNull(nameRaw);
             Assert.NotNull(ageRaw);
-            Assert.NotNull(publicNotes);
-            Assert.AreEqual(user.Id, serializer.Deserialize(policy.Decrypt(key, idRaw), ColumnTypeCode.Uuid, null));
-            Assert.AreEqual(user.Name, serializer.Deserialize(policy.Decrypt(key, nameRaw), ColumnTypeCode.Text, null));
-            Assert.AreEqual(user.Age, serializer.Deserialize(policy.Decrypt(key, ageRaw), ColumnTypeCode.Int, null));
+            Assert.AreEqual(user.Id, DeserializeDecryptedBytes(serializer, policy.Decrypt(key, idRaw), ColumnTypeCode.Uuid, null));
+            Assert.AreEqual(user.Name, DeserializeDecryptedBytes(serializer, policy.Decrypt(key, nameRaw), ColumnTypeCode.Text, null));
+            Assert.AreEqual(user.Surname, DeserializeDecryptedBytes(serializer, policy.Decrypt(key, surnameRaw), ColumnTypeCode.Text, null));
+            Assert.AreEqual(user.Age, DeserializeDecryptedBytes(serializer, policy.Decrypt(key, ageRaw), ColumnTypeCode.Int, null));
             Assert.AreEqual(user.PublicNotes, publicNotes);
         }
 
+        private object DeserializeDecryptedBytes(ISerializer serializer, byte[] decrypted, ColumnTypeCode typeCode, IColumnInfo typeInfo)
+        {
+            if (decrypted == null)
+            {
+                return null;
+            }
+
+            return serializer.Deserialize(decrypted, typeCode, typeInfo);
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
         [Test]
-        public async Task Should_InsertAndSelectEncryptedColumnsPartitionKeyOnly_PreparedStatements()
+        public async Task Should_InsertAndSelectEncryptedColumnsPartitionKeyOnly_PreparedStatements(bool nullValues)
         {
             var tableName = TestUtils.GetUniqueTableName().ToLowerInvariant();
             var policy = BuildColumnEncryptionPolicy(tableName, KeyAndIv);
@@ -76,7 +91,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             CreateEncryptedTable(session, tableName);
             var clusterNoEncryption = GetNewTemporaryCluster();
             var sessionNoEncryption = await clusterNoEncryption.ConnectAsync(KeyspaceName).ConfigureAwait(false);
-            var insertQuery = $"INSERT INTO {tableName} (id, name, age, public_notes) VALUES (?, ?, ?, ?)";
+            var insertQuery = $"INSERT INTO {tableName} (id, name, surname, age, public_notes) VALUES (?, ?, ?, ?, ?)";
             var selectQuery = $"SELECT * FROM {tableName} WHERE id = ?";
             var preparedInsert = await Session.PrepareAsync(insertQuery).ConfigureAwait(false);
             var preparedSelect = await Session.PrepareAsync(selectQuery).ConfigureAwait(false);
@@ -86,11 +101,20 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             {
                 Id = id,
                 Name = "User " + id,
+                Surname = "Surname " + id,
                 Age = id.GetHashCode() % 100,
                 PublicNotes = "These are the public unencrypted notes for user " + id
             };
 
-            var boundInsert = preparedInsert.Bind(newUser.Id, newUser.Name, newUser.Age, newUser.PublicNotes);
+            if (nullValues)
+            {
+                newUser.Name = null;
+                newUser.Surname = "";
+                newUser.Age = null;
+                newUser.PublicNotes = null;
+            }
+
+            var boundInsert = preparedInsert.Bind(newUser.Id, newUser.Name, newUser.Surname, newUser.Age, newUser.PublicNotes);
             var boundSelect = preparedSelect.Bind(newUser.Id);
             await session.ExecuteAsync(boundInsert).ConfigureAwait(false);
             var rs = await session.ExecuteAsync(boundSelect).ConfigureAwait(false);
@@ -100,6 +124,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
 
             Assert.AreEqual(newUser.Id, user["id"]);
             Assert.AreEqual(newUser.Name, user["name"]);
+            Assert.AreEqual(newUser.Surname, user["surname"]);
             Assert.AreEqual(newUser.Age, user["age"]);
             Assert.AreEqual(newUser.PublicNotes, user["public_notes"]);
 
@@ -110,9 +135,11 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             VerifyEncryptedUser(newUser, session, policy, KeyAndIv, allUsers[0]);
         }
 
+        [TestCase(true)]
+        [TestCase(false)]
         [Test]
         [TestCassandraVersion(3, 11)]
-        public async Task Should_InsertAndSelectEncryptedColumns_PreparedStatements()
+        public async Task Should_InsertAndSelectEncryptedColumns_PreparedStatements(bool nullValues)
         {
             var tableName = TestUtils.GetUniqueTableName().ToLowerInvariant();
             var policy = BuildColumnEncryptionPolicy(tableName, KeyAndIv);
@@ -121,8 +148,8 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             CreateEncryptedTable(session, tableName);
             var clusterNoEncryption = GetNewTemporaryCluster();
             var sessionNoEncryption = await clusterNoEncryption.ConnectAsync(KeyspaceName).ConfigureAwait(false);
-            var insertQuery = $"INSERT INTO {tableName} (id, name, age, public_notes) VALUES (?, ?, ?, ?)";
-            var selectQuery = $"SELECT * FROM {tableName} WHERE id = ? AND name = ? AND age = ? ALLOW FILTERING";
+            var insertQuery = $"INSERT INTO {tableName} (id, name, surname, age, public_notes) VALUES (?, ?, ?, ?, ?)";
+            var selectQuery = $"SELECT * FROM {tableName} WHERE id = ? AND name = ? AND surname = ? AND age = ? ALLOW FILTERING";
             var preparedInsert = await Session.PrepareAsync(insertQuery).ConfigureAwait(false);
             var preparedSelect = await Session.PrepareAsync(selectQuery).ConfigureAwait(false);
 
@@ -131,12 +158,21 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             {
                 Id = id,
                 Name = "User " + id,
+                Surname = "Surname " + id,
                 Age = id.GetHashCode() % 100,
                 PublicNotes = "These are the public unencrypted notes for user " + id
             };
 
-            var boundInsert = preparedInsert.Bind(newUser.Id, newUser.Name, newUser.Age, newUser.PublicNotes);
-            var boundSelect = preparedSelect.Bind(newUser.Id, newUser.Name, newUser.Age);
+            if (nullValues)
+            {
+                newUser.Name = null;
+                newUser.Surname = "";
+                newUser.Age = null;
+                newUser.PublicNotes = null;
+            }
+
+            var boundInsert = preparedInsert.Bind(newUser.Id, newUser.Name, newUser.Surname, newUser.Age, newUser.PublicNotes);
+            var boundSelect = preparedSelect.Bind(newUser.Id, newUser.Name, newUser.Surname, newUser.Age);
             await session.ExecuteAsync(boundInsert).ConfigureAwait(false);
             var rs = await session.ExecuteAsync(boundSelect).ConfigureAwait(false);
             var users = rs.ToList();
@@ -145,6 +181,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
 
             Assert.AreEqual(newUser.Id, user["id"]);
             Assert.AreEqual(newUser.Name, user["name"]);
+            Assert.AreEqual(newUser.Surname, user["surname"]);
             Assert.AreEqual(newUser.Age, user["age"]);
             Assert.AreEqual(newUser.PublicNotes, user["public_notes"]);
 
@@ -155,9 +192,11 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             VerifyEncryptedUser(newUser, session, policy, KeyAndIv, allUsers[0]);
         }
 
+        [TestCase(true)]
+        [TestCase(false)]
         [Test]
         [TestCassandraVersion(3, 11)]
-        public async Task Should_FailSelectEncryptedColumnsWithRandomIV_PreparedStatements()
+        public async Task Should_FailSelectEncryptedColumnsWithRandomIV_PreparedStatements(bool nullValues)
         {
             var tableName = TestUtils.GetUniqueTableName().ToLowerInvariant();
             var policy = BuildColumnEncryptionPolicy(tableName, KeyOnly);
@@ -166,8 +205,8 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             CreateEncryptedTable(session, tableName);
             var clusterNoEncryption = GetNewTemporaryCluster();
             var sessionNoEncryption = await clusterNoEncryption.ConnectAsync(KeyspaceName).ConfigureAwait(false);
-            var insertQuery = $"INSERT INTO {tableName} (id, name, age, public_notes) VALUES (?, ?, ?, ?)";
-            var selectQuery = $"SELECT * FROM {tableName} WHERE id = ? AND name = ? AND age = ? ALLOW FILTERING";
+            var insertQuery = $"INSERT INTO {tableName} (id, name, surname, age, public_notes) VALUES (?, ?, ?, ?, ?)";
+            var selectQuery = $"SELECT * FROM {tableName} WHERE id = ? AND name = ? AND surname = ? AND age = ? ALLOW FILTERING";
             var preparedInsert = await Session.PrepareAsync(insertQuery).ConfigureAwait(false);
             var preparedSelect = await Session.PrepareAsync(selectQuery).ConfigureAwait(false);
 
@@ -176,12 +215,21 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             {
                 Id = id,
                 Name = "User " + id,
+                Surname = "Surname " + id,
                 Age = id.GetHashCode() % 100,
                 PublicNotes = "These are the public unencrypted notes for user " + id
             };
 
-            var boundInsert = preparedInsert.Bind(newUser.Id, newUser.Name, newUser.Age, newUser.PublicNotes);
-            var boundSelect = preparedSelect.Bind(newUser.Id, newUser.Name, newUser.Age);
+            if (nullValues)
+            {
+                newUser.Name = null;
+                newUser.Surname = "";
+                newUser.Age = null;
+                newUser.PublicNotes = null;
+            }
+
+            var boundInsert = preparedInsert.Bind(newUser.Id, newUser.Name, newUser.Surname, newUser.Age, newUser.PublicNotes);
+            var boundSelect = preparedSelect.Bind(newUser.Id, newUser.Name, newUser.Surname, newUser.Age);
             await session.ExecuteAsync(boundInsert).ConfigureAwait(false);
             var rs = await session.ExecuteAsync(boundSelect).ConfigureAwait(false);
             var users = rs.ToList();
@@ -194,9 +242,11 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             VerifyEncryptedUser(newUser, session, policy, KeyOnly, allUsers[0]);
         }
 
+        [TestCase(true)]
+        [TestCase(false)]
         [Test]
         [TestCassandraVersion(3, 11)]
-        public async Task Should_InsertAndSelectEncryptedColumns_SimpleStatements()
+        public async Task Should_InsertAndSelectEncryptedColumns_SimpleStatements(bool nullValues)
         {
             var tableName = TestUtils.GetUniqueTableName().ToLowerInvariant();
             var policy = BuildColumnEncryptionPolicy(tableName, KeyAndIv);
@@ -205,28 +255,39 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             CreateEncryptedTable(session, tableName);
             var clusterNoEncryption = GetNewTemporaryCluster();
             var sessionNoEncryption = await clusterNoEncryption.ConnectAsync(KeyspaceName).ConfigureAwait(false);
-            var insertQuery = $"INSERT INTO {tableName} (id, name, age, public_notes) VALUES (?, ?, ?, ?)";
-            var selectQuery = $"SELECT * FROM {tableName} WHERE id = ? AND name = ? AND age = ? ALLOW FILTERING";
+            var insertQuery = $"INSERT INTO {tableName} (id, name, surname, age, public_notes) VALUES (?, ?, ?, ?, ?)";
+            var selectQuery = $"SELECT * FROM {tableName} WHERE id = ? AND name = ? AND surname = ? AND age = ? ALLOW FILTERING";
 
             var id = Guid.NewGuid();
             var newUser = new User
             {
                 Id = id,
                 Name = "User " + id,
+                Surname = "Surname " + id,
                 Age = id.GetHashCode() % 100,
                 PublicNotes = "These are the public unencrypted notes for user " + id
             };
 
+            if (nullValues)
+            {
+                newUser.Name = null;
+                newUser.Surname = "";
+                newUser.Age = null;
+                newUser.PublicNotes = null;
+            }
+
             await session.ExecuteAsync(new SimpleStatement(
                 insertQuery, 
                 new EncryptedValue(newUser.Id, KeyAndIv), 
-                new EncryptedValue(newUser.Name, KeyAndIv), 
+                new EncryptedValue(newUser.Name, KeyAndIv),
+                new EncryptedValue(newUser.Surname, KeyAndIv),
                 new EncryptedValue(newUser.Age, KeyAndIv), 
                 newUser.PublicNotes)).ConfigureAwait(false);
             var rs = await session.ExecuteAsync(new SimpleStatement(
                 selectQuery, 
                 new EncryptedValue(newUser.Id, KeyAndIv),
                 new EncryptedValue(newUser.Name, KeyAndIv),
+                new EncryptedValue(newUser.Surname, KeyAndIv),
                 new EncryptedValue(newUser.Age, KeyAndIv))).ConfigureAwait(false);
 
             var users = rs.ToList();
@@ -235,6 +296,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
 
             Assert.AreEqual(newUser.Id, user["id"]);
             Assert.AreEqual(newUser.Name, user["name"]);
+            Assert.AreEqual(newUser.Surname, user["surname"]);
             Assert.AreEqual(newUser.Age, user["age"]);
             Assert.AreEqual(newUser.PublicNotes, user["public_notes"]);
 
@@ -245,8 +307,10 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             VerifyEncryptedUser(newUser, session, policy, KeyAndIv, allUsers[0]);
         }
 
+        [TestCase(true)]
+        [TestCase(false)]
         [Test]
-        public async Task Should_InsertAndSelectEncryptedColumnsPartitionKeyOnly_SimpleStatements()
+        public async Task Should_InsertAndSelectEncryptedColumnsPartitionKeyOnly_SimpleStatements(bool nullValues)
         {
             var tableName = TestUtils.GetUniqueTableName().ToLowerInvariant();
             var policy = BuildColumnEncryptionPolicy(tableName, KeyAndIv);
@@ -255,7 +319,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             CreateEncryptedTable(session, tableName);
             var clusterNoEncryption = GetNewTemporaryCluster();
             var sessionNoEncryption = await clusterNoEncryption.ConnectAsync(KeyspaceName).ConfigureAwait(false);
-            var insertQuery = $"INSERT INTO {tableName} (id, name, age, public_notes) VALUES (?, ?, ?, ?)";
+            var insertQuery = $"INSERT INTO {tableName} (id, name, surname, age, public_notes) VALUES (?, ?, ?, ?, ?)";
             var selectQuery = $"SELECT * FROM {tableName} WHERE id = ?";
 
             var id = Guid.NewGuid();
@@ -263,14 +327,24 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             {
                 Id = id,
                 Name = "User " + id,
+                Surname = "Surname " + id,
                 Age = id.GetHashCode() % 100,
                 PublicNotes = "These are the public unencrypted notes for user " + id
             };
+
+            if (nullValues)
+            {
+                newUser.Name = null;
+                newUser.Surname = "";
+                newUser.Age = null;
+                newUser.PublicNotes = null;
+            }
 
             await session.ExecuteAsync(new SimpleStatement(
                 insertQuery,
                 new EncryptedValue(newUser.Id, KeyAndIv),
                 new EncryptedValue(newUser.Name, KeyAndIv),
+                new EncryptedValue(newUser.Surname, KeyAndIv),
                 new EncryptedValue(newUser.Age, KeyAndIv),
                 newUser.PublicNotes)).ConfigureAwait(false);
             var rs = await session.ExecuteAsync(new SimpleStatement(
@@ -283,6 +357,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
 
             Assert.AreEqual(newUser.Id, user["id"]);
             Assert.AreEqual(newUser.Name, user["name"]);
+            Assert.AreEqual(newUser.Surname, user["surname"]);
             Assert.AreEqual(newUser.Age, user["age"]);
             Assert.AreEqual(newUser.PublicNotes, user["public_notes"]);
 
@@ -299,7 +374,9 @@ namespace Cassandra.IntegrationTests.Policies.Tests
 
             public string Name { get; set; }
 
-            public int Age { get; set; }
+            public string Surname { get; set; }
+
+            public int? Age { get; set; }
 
             public string PublicNotes { get; set; }
         }
