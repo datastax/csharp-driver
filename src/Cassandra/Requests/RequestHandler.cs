@@ -149,7 +149,8 @@ namespace Cassandra.Requests
                     s2.PreparedStatement.ResultMetadata, 
                     options,
                     s2.IsTracing, 
-                    s2.OutgoingPayload);
+                    s2.OutgoingPayload,
+                    false);
             }
 
             if (statement is BatchStatement s)

@@ -195,7 +195,8 @@ namespace Cassandra
                 PreparedStatement.ResultMetadata, 
                 options, 
                 IsTracing, 
-                null);
+                null,
+                true);
         }
 
         internal void CalculateRoutingKey(

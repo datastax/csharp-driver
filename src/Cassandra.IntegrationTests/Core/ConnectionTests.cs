@@ -132,7 +132,8 @@ namespace Cassandra.IntegrationTests.Core
                     new ResultMetadata(prepareOutput.ResultMetadataId, prepareOutput.ResultRowsMetadata),
                     QueryProtocolOptions.Default,
                     false,
-                    null);
+                    null,
+                    false);
                 task = connection.Send(executeRequest);
                 var output = ValidateResult<OutputRows>(task.Result);
                 var rs = output.RowSet;
@@ -161,7 +162,8 @@ namespace Cassandra.IntegrationTests.Core
                     new ResultMetadata(prepareOutput.ResultMetadataId, prepareOutput.ResultRowsMetadata),
                     options,
                     false,
-                    null);
+                    null,
+                    false);
 
                 task = connection.Send(executeRequest);
                 var output = ValidateResult<OutputRows>(task.Result);
