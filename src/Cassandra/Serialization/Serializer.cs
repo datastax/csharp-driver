@@ -48,7 +48,11 @@ namespace Cassandra.Serialization
                     throw new DriverInternalError("deserialization of encrypted data returned null");
                 }
 
-                var encryptedDataBuf = (byte[])encryptedData;
+                if (!(encryptedData is byte[] encryptedDataBuf))
+                {
+                    throw new ColumnEncryptionInvalidTypeError(column, typeCode, encryptedData);
+                }
+
                 var decryptedDataBuf = _columnEncryptionPolicy.Decrypt(columnEncryptionMetadata.Value.Key, encryptedDataBuf);
                 if (decryptedDataBuf == null)
                 {
