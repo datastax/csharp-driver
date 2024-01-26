@@ -68,29 +68,6 @@ namespace Cassandra.Serialization
             return _serializer.Serialize(ProtocolVersion, value);
         }
 
-        //TODO
-        //public byte[] SerializeAndEncrypt(string ks, string table, string column, object value)
-        //{
-        //    var markedValue = value as EncryptedValue;
-        //    var encrypted = _columnEncryptionPolicy.GetColumnEncryptionMetadata(ks, table, column) != null || markedValue != null;
-        //    value = markedValue == null ? value : markedValue.Value;
-        //    var serialized = _serializer.Serialize(ProtocolVersion, value);
-        //    if (encrypted)
-        //    {
-        //        if (markedValue != null)
-        //        {
-        //            serialized = _columnEncryptionPolicy.Encrypt(markedValue.Key, serialized);
-        //        }
-        //        else
-        //        {
-        //            serialized = _columnEncryptionPolicy.Encrypt(ks, table, column, serialized);
-        //        }
-        //        serialized = _serializer.Serialize(ProtocolVersion, serialized);
-        //    }
-
-        //    return serialized;
-        //}
-
         public byte[] SerializeAndEncrypt(string defaultKs, RowSetMetadata metadata, int colIdx, object[] values, int valueIdx)
         {
             if (values == null)

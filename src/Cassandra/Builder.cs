@@ -655,6 +655,7 @@ namespace Cassandra
         /// <summary>
         /// Configures the column encryption policy to use for the new cluster. This is a client side encryption feature
         /// which requires the column type to be 'blob' at schema level but the application can define at the application level which type the column should be.
+        /// See <see cref="IColumnEncryptionPolicy"/> for more information.
         /// </summary>
         /// <param name="policy">the column encryption policy to use</param>
         /// <returns>this Builder</returns>

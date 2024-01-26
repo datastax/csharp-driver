@@ -63,16 +63,22 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// You should implement your column encryption policy encryption logic by overriding this method.
+        /// Encrypts the provided byte array (serialized value) with the provided key (which was previously added with the <see cref="AddColumn(string,string,string,TKey,Cassandra.ColumnTypeCode)"/> method).
         /// </summary>
+        /// <remarks>
+        /// Implement your column encryption policy encryption logic by overriding this method.
+        /// </remarks>
         /// <param name="key">Key that was previously provided with <see cref="AddColumn(string,string,string,TKey,Cassandra.ColumnTypeCode)"/>.</param>
         /// <param name="objBytes">Serialized value as a byte array.</param>
         /// <returns>The encrypted bytes.</returns>
         public abstract byte[] EncryptWithKey(TKey key, byte[] objBytes);
 
         /// <summary>
-        /// You should implement your column encryption policy decryption logic by overriding this method.
+        /// Decrypts the provided encrypted byte array with the provided key (which was previously added with the <see cref="AddColumn(string,string,string,TKey,Cassandra.ColumnTypeCode)"/> method).
         /// </summary>
+        /// <remarks>
+        /// Implement your column encryption policy decryption logic by overriding this method.
+        /// </remarks>
         /// <param name="key">Key that was previously provided with <see cref="AddColumn(string,string,string,TKey,Cassandra.ColumnTypeCode)"/>.</param>
         /// <param name="encryptedBytes">Encrypted bytes read from the server.</param>
         /// <returns>The decrypted bytes (i.e. serialized value) which will then be deserialized by the driver afterwards.</returns>
@@ -169,10 +175,19 @@ namespace Cassandra
                 }
             }
 
+            /// <summary>
+            /// Keyspace of the encrypted column's table.
+            /// </summary>
             public string Keyspace { get; set; }
 
+            /// <summary>
+            /// The encrypted column's table.
+            /// </summary>
             public string Table { get; set; }
 
+            /// <summary>
+            /// The encrypted column name.
+            /// </summary>
             public string Column { get; set; }
         }
     }

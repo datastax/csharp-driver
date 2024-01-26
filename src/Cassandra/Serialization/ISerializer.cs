@@ -33,9 +33,6 @@ namespace Cassandra.Serialization
 
         byte[] Serialize(object value);
 
-        //TODO
-        //byte[] SerializeAndEncrypt(string ks, string table, string col, object value);
-
         byte[] SerializeAndEncrypt(string defaultKs, RowSetMetadata metadata, int colMetadataIdx, object[] values, int valueIdx);
 
         /// <summary>
@@ -45,15 +42,6 @@ namespace Cassandra.Serialization
 
         bool IsEncryptionEnabled { get; }
 
-        /// <summary>
-        /// TODO
-        /// </summary>
-        /// <param name="ks"></param>
-        /// <param name="table"></param>
-        /// <param name="column"></param>
-        /// <param name="columnTypeCode"></param>
-        /// <param name="value"></param>
-        /// <returns></returns>
         Tuple<bool, ColumnTypeCode> IsAssignableFromEncrypted(string ks, string table, string column, ColumnTypeCode columnTypeCode, object value);
     }
 }

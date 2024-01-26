@@ -186,7 +186,7 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// TODO
+        /// Gets the column encryption policy in use. See <see cref="IColumnEncryptionPolicy"/>.
         /// </summary>
         public IColumnEncryptionPolicy ColumnEncryptionPolicy
         {

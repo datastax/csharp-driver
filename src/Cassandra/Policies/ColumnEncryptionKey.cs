@@ -19,12 +19,35 @@ using Cassandra.Serialization;
 
 namespace Cassandra
 {
+    /// <summary>
+    /// Utility type used in <see cref="IColumnEncryptionPolicy"/> to provide the driver with the encryption key and
+    /// "real" cql type of the column (the server side type should always be 'blob' for encrypted columns but the type at the application level can be any cql type)
+    /// </summary>
     public struct ColumnEncryptionMetadata : IEquatable<ColumnEncryptionMetadata>
     {
+        /// <summary>
+        /// CQL Type code of the encrypted column at the application level.
+        /// The driver will decrypt the encrypted column data and then deserialize it to the type provided here.
+        /// You must ensure that you are providing a .NET value that matches this CQL type code when using encrypted parameter values.
+        /// </summary>
         public ColumnTypeCode TypeCode { get; }
 
+        /// <summary>
+        /// This must be provided in addition to <see cref="TypeCode"/> if the type code refers to 'list','set','map','udt','tuple' or 'custom'.
+        /// Each of these cql types has a ColumnInfo class associated with it (e.g. <see cref="ListColumnInfo"/> for 'list').
+        /// </summary>
         public IColumnInfo TypeInfo { get; }
 
+        /// <summary>
+        /// <para>
+        /// Key object that will provided to the <see cref="IColumnEncryptionPolicy.Encrypt"/> and <see cref="IColumnEncryptionPolicy.Decrypt"/> methods.
+        /// The type that is used for this key has to be a type that is "understood" by the particular implementation of <see cref="IColumnEncryptionPolicy"/> that is used.
+        /// </para>
+        /// <para>
+        /// E.g. For <see cref="AesColumnEncryptionPolicy"/> this key should be an instance of <see cref="AesColumnEncryptionPolicy.AesKeyAndIV"/> (which is forced by
+        /// the <see cref="AesColumnEncryptionPolicy.AddColumn(string,string,string,AesColumnEncryptionPolicy.AesKeyAndIV,Cassandra.ColumnTypeCode)"/> method.
+        /// </para>
+        /// </summary>
         public object Key { get; }
 
         public ColumnEncryptionMetadata(ColumnTypeCode typeCode, object key) : this(typeCode, null, key)
