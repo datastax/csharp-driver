@@ -28,8 +28,11 @@ namespace ColumnEncryptionExample
     /// </summary>
     internal class Program
     {
-        private const string EncryptionKey = "PJC7HnliwcxXw4FM8Ep3sX9NIL3R5CZnDvp8IyyCSlg=";
-        private const string UserIdIv = "f7gd72CubOjEmjrkTUX0uQ==";
+        // for the built in AES policy, this key has to have 128, 192 or 256 bit length
+        private const string Base64EncryptionKey = "PJC7HnliwcxXw4FM8Ep3sX9NIL3R5CZnDvp8IyyCSlg=";
+
+        // for the built in AES policy, the IV has to have a 16 byte length
+        private const string Base64UserIdIv = "f7gd72CubOjEmjrkTUX0uQ==";
 
         private const string Keyspace = "examples";
         private const string Table = "encrypted_users";
@@ -41,7 +44,7 @@ namespace ColumnEncryptionExample
         private ISession _session;
         private PreparedStatement _insertPs;
         private PreparedStatement _selectPs;
-        private AesColumnEncryptionPolicy.AesKeyAndIV _userKey;
+        private AesColumnEncryptionPolicy.AesKeyAndIV _userKeyAndIv;
         private AesColumnEncryptionPolicy.AesKeyAndIV _addressKey;
 
         private static void Main(string[] args)
@@ -54,13 +57,13 @@ namespace ColumnEncryptionExample
             // build column encryption policy
             var policy = new AesColumnEncryptionPolicy();
 
-            // 'id' is in the primary key so we should ensure that the same id input results in the same server side encrypted value. Provide a static IV for this column.
-            _userKey = new AesColumnEncryptionPolicy.AesKeyAndIV(Convert.FromBase64String(EncryptionKey), Convert.FromBase64String(UserIdIv));
-            policy.AddColumn(Keyspace, Table, "id", _userKey, ColumnTypeCode.Uuid);
+            // 'id' is in the primary key so we should ensure that the same id input results in the same server side encrypted value therefore we have to provide a static IV for this column.
+            _userKeyAndIv = new AesColumnEncryptionPolicy.AesKeyAndIV(Convert.FromBase64String(Base64EncryptionKey), Convert.FromBase64String(Base64UserIdIv));
+            policy.AddColumn(Keyspace, Table, "id", _userKeyAndIv, ColumnTypeCode.Uuid);
 
             // No need for the encrypted values of 'address' to be the same when the input is the same (e.g. not used in any WHERE clause, indexes or primary key)
             // so no need to provide IV, let the policy generate a new one per encryption operation (it's more secure).
-            _addressKey = new AesColumnEncryptionPolicy.AesKeyAndIV(Convert.FromBase64String(EncryptionKey));
+            _addressKey = new AesColumnEncryptionPolicy.AesKeyAndIV(Convert.FromBase64String(Base64EncryptionKey));
             policy.AddColumn(Keyspace, Table, "address", _addressKey, ColumnTypeCode.Text);
 
             // build cluster
@@ -124,12 +127,12 @@ namespace ColumnEncryptionExample
             // using encrypted columns with SimpleStatements require the parameters to be wrapped with the EncryptedValue type
             var insert = new SimpleStatement(
                 InsertCqlQuery, 
-                new EncryptedValue(userId, _userKey), 
+                new EncryptedValue(userId, _userKeyAndIv), 
                 new EncryptedValue(address, _addressKey), 
                 publicNotes);
             await _session.ExecuteAsync(insert).ConfigureAwait(false);
 
-            var select = new SimpleStatement(SelectCqlQuery, new EncryptedValue(userId, _userKey));
+            var select = new SimpleStatement(SelectCqlQuery, new EncryptedValue(userId, _userKeyAndIv));
             var rs = await _session.ExecuteAsync(select).ConfigureAwait(false);
 
             var users = rs.ToList();
