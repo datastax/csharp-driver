@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+<!-- 
+This is an example csproj file.
+The reference to the driver is local in order to make sure it builds locally.
+
+You can should replace the project reference with the package reference of the driver.
+-->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <RootNamespace>ColumnEncryptionExample</RootNamespace>
+    <AssemblyName>ColumnEncryptionExample</AssemblyName>
+  </PropertyGroup>
+
+  <!--This example uses a project reference. In your project use PackageReference (nuget)-->
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Cassandra\Cassandra.csproj" />
+  </ItemGroup>
+
+</Project>
