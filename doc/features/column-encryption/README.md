@@ -28,7 +28,7 @@ To mark a column as "encrypted" users need to call the `AddColumn` method. This 
 
 You need to provide the keyspace, table and column names using the `AddColumn` method. Additionally you need to provide a key for each column.
 
-The key type for this implementation is `AesKeyAndIV`. You can create objects of this type using the constructors. The key is mandatory but the IV is optional:
+The key type for this specific policy (i.e. `AESColumnEncryptionPolicy`) is `AesKeyAndIV`. You can create objects of this type using the constructors. The key is mandatory but the IV is optional:
 
 ```csharp
 var keyOnly = new AesColumnEncryptionPolicy.AesKeyAndIV(key, iv);
@@ -150,7 +150,7 @@ policy.AddColumn("ks", "table", "encrypted", KEY, TYPECODE);
 
 ### Named parameters
 
-If you use a named parameter instead of `?` on a prepared statement, the driver will only be able to detect that the parameter should be encrypted if the name of the parameter matches the name of the column. This is essentially the same limitation as the "aliases" one above but there's a work around for this one: you can treat it as a Simple Statement and wrap the parameter value in an instance of the `EncryptedValue` class to tell the driver that the parameter should be encrypted.
+If you use a named parameter instead of `?` on a prepared statement, the driver will only be able to detect that the parameter should be encrypted if the name of the parameter matches the name of the column. This is essentially the same limitation as the "aliases" one above but there's a work around for this one: you can treat it as a Simple Statement and wrap the parameter value in an instance of the `EncryptedValue` type to tell the driver that the parameter should be encrypted.
 
 ```
 CREATE TABLE ks.table (encrypted blob PRIMARY KEY)
