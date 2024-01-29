@@ -164,7 +164,7 @@ INSERT INTO ks.table (encrypted) VALUES (:e);
 ```
 
 ```csharp
-var insert = session.Prepare("INSERT INTO ks.table (encrypted) VALUES (:e)");
+var insert = await session.PrepareAsync("INSERT INTO ks.table (encrypted) VALUES (:e)").ConfigureAwait(false);
 var insertBoundStatement = insert.Bind(new EncryptedValue(VALUE, KEY));
 await session.ExecuteAsync(insertBoundStatement).ConfigureAwait(false);
 ```
