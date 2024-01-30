@@ -5,7 +5,7 @@
 Support for client-side encryption of data was added in version 3.20.0 of the C# driver. When using this feature data will be encrypted on-the-fly according to a provided implementation of `IColumnEncryptionPolicy`. This policy is also used to decrypt data in returned rows.  If a prepared statement is used, this decryption is transparent to the user; retrieved data will be decrypted and converted into the original
 type according to definitions in the encryption policy. Support for simple (i.e. non-prepared) statements is also available, although in this case values must be wrapped using the `EncryptedValue` type.
 
-Client-side encryption and decryption should work against all versions of Cassandra, DSE and Astra. It does not utilize any server-side functionality to do its work.
+Client-side encryption and decryption should work against all versions of Cassandra, DSE, and Astra. It does not utilize any server-side functionality to do its work.
 
 ## Configuration
 
@@ -22,11 +22,11 @@ var cluster =
 
 ### AESColumnEncryptionPolicy
 
-`AESColumnEncryptionPolicy` is an implementation of `IColumnEncryptionPolicy` which provides encryption and decryption via AES-128, AES-192 or AES-256 according to the size of the key that is provided. This class is currently the only available column encryption policy implementation, although users can certainly implement their own by implementing `IColumnEncryptionPolicy` or subclassing the abstract `BaseColumnEncryptionPolicy` class which provides some out of the box functionality to manage the encrypted column metadata.
+`AESColumnEncryptionPolicy` is an implementation of `IColumnEncryptionPolicy` which provides encryption and decryption via AES-128, AES-192, or AES-256 according to the size of the key that is provided. This class is currently the only available column encryption policy implementation, although users can certainly implement their own by implementing `IColumnEncryptionPolicy` or subclassing the abstract `BaseColumnEncryptionPolicy` class which provides some out of the box functionality to manage the encrypted column metadata.
 
 To mark a column as "encrypted" users need to call the `AddColumn` method. This method has two overloads, one of them has an additional `IColumnInfo` parameter which should only be used if the column has a type of `list`, `set`, `map`, `udt`, `tuple` or `custom`. If you are using one of these six types on that particular column then you need to provide a `IColumnInfo` object with a type that matches the cql type (e.g. `list` requires a `ListColumnInfo` object to be provided in the `AddColumn` method).
 
-You need to provide the keyspace, table and column names using the `AddColumn` method. Additionally you need to provide a key for each column.
+You need to provide the keyspace, table, and column names using the `AddColumn` method. Additionally, you need to provide a key for each column.
 
 The key type for this specific policy (i.e. `AESColumnEncryptionPolicy`) is `AesKeyAndIV`. You can create objects of this type using the constructors. The key is mandatory but the IV is optional:
 
