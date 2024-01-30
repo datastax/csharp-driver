@@ -104,7 +104,7 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Provide cryptography materials to be used when encrypted and/or decrypting data
+        /// Provide cryptography materials to be used when encrypting and/or decrypting data
         /// for the specified column.
         /// </summary>
         /// <remarks>If the <paramref name="typeCode"/> is 'map','list','set','udt','tuple' or 'custom' then you have to use the other overload

@@ -46,7 +46,7 @@ namespace Cassandra
         byte[] Decrypt(object key, byte[] encryptedBytes);
 
         /// <summary>
-        /// Retrieves the cryptography materials for the specified column. If the column is not encrypted then should return 'null'.
+        /// Retrieves the cryptography materials for the specified column. If the column is not encrypted then it should return 'null'.
         /// </summary>
         /// <param name="ks">Keyspace of this encrypted column's table.</param>
         /// <param name="table">Table of this encrypted column.</param>
