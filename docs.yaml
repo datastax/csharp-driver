@@ -57,6 +57,7 @@ api_docs:
   '3.17': http://docs.datastax.com/en/drivers/csharp/3.17
   '3.18': http://docs.datastax.com/en/drivers/csharp/3.18
   '3.19': http://docs.datastax.com/en/drivers/csharp/3.19
+  '3.20': http://docs.datastax.com/en/drivers/csharp/3.20
 checks:
   external_links:
     exclude:
@@ -69,6 +70,8 @@ checks:
       - 'https://twitter.com/datastax'
       - 'https://academy.datastax.com/slack'
 versions:
+  - name: '3.20'
+    ref: '3.20'
   - name: '3.19'
     ref: '3.19'
   - name: '3.18'
