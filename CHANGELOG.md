@@ -1,5 +1,13 @@
 # ChangeLog - DataStax C# Driver
 
+## 3.20.0
+
+2024-01-30
+
+### New Features
+
+*   [[CSHARP-1004](https://datastax-oss.atlassian.net/browse/CSHARP-1004)] Client-side encryption specified at column-level
+
 ## 3.19.5
 
 2023-11-27
