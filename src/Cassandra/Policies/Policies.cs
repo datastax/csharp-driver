@@ -130,6 +130,7 @@ namespace Cassandra
         private readonly ISpeculativeExecutionPolicy _speculativeExecutionPolicy;
         private IExtendedRetryPolicy _extendedRetryPolicy;
         private readonly ITimestampGenerator _timestampGenerator;
+        private readonly IColumnEncryptionPolicy _columnEncryptionPolicy;
 
         /// <summary>
         ///  Gets the load balancing policy in use. <p> The load balancing policy defines how
@@ -184,7 +185,15 @@ namespace Cassandra
             get { return _timestampGenerator; }
         }
 
-        public Policies() : this(null, null, null, null, null)
+        /// <summary>
+        /// Gets the column encryption policy in use. See <see cref="IColumnEncryptionPolicy"/>.
+        /// </summary>
+        public IColumnEncryptionPolicy ColumnEncryptionPolicy
+        {
+            get { return _columnEncryptionPolicy; }
+        }
+
+        public Policies() : this(null, null, null, null, null, null)
         {
             //Part of the public API can not be removed
         }
@@ -196,7 +205,7 @@ namespace Cassandra
         /// <param name="reconnectionPolicy"> the reconnection policy to use. </param>
         /// <param name="retryPolicy"> the retry policy to use.</param>
         public Policies(ILoadBalancingPolicy loadBalancingPolicy, IReconnectionPolicy reconnectionPolicy, IRetryPolicy retryPolicy)
-            : this(loadBalancingPolicy, reconnectionPolicy, retryPolicy, DefaultSpeculativeExecutionPolicy, DefaultTimestampGenerator)
+            : this(loadBalancingPolicy, reconnectionPolicy, retryPolicy, DefaultSpeculativeExecutionPolicy, DefaultTimestampGenerator, null)
         {
             //Part of the public API can not be removed
         }
@@ -205,7 +214,8 @@ namespace Cassandra
             IReconnectionPolicy reconnectionPolicy,
             IRetryPolicy retryPolicy,
             ISpeculativeExecutionPolicy speculativeExecutionPolicy,
-            ITimestampGenerator timestampGenerator)
+            ITimestampGenerator timestampGenerator,
+            IColumnEncryptionPolicy columnEncryptionPolicy)
         {
             _loadBalancingPolicy = loadBalancingPolicy ?? DefaultLoadBalancingPolicy;
             _reconnectionPolicy = reconnectionPolicy ?? DefaultReconnectionPolicy;
@@ -213,33 +223,7 @@ namespace Cassandra
             _speculativeExecutionPolicy = speculativeExecutionPolicy ?? DefaultSpeculativeExecutionPolicy;
             _timestampGenerator = timestampGenerator ?? DefaultTimestampGenerator;
             _extendedRetryPolicy = _retryPolicy.Wrap(DefaultExtendedRetryPolicy);
-        }
-
-        private Policies(
-            ILoadBalancingPolicy loadBalancingPolicy,
-            IReconnectionPolicy reconnectionPolicy,
-            IRetryPolicy retryPolicy,
-            ISpeculativeExecutionPolicy speculativeExecutionPolicy,
-            ITimestampGenerator timestampGenerator,
-            IExtendedRetryPolicy extendedRetryPolicy)
-        {
-            _loadBalancingPolicy = loadBalancingPolicy ?? throw new ArgumentNullException(nameof(loadBalancingPolicy));
-            _reconnectionPolicy = reconnectionPolicy ?? throw new ArgumentNullException(nameof(reconnectionPolicy));
-            _retryPolicy = retryPolicy ?? throw new ArgumentNullException(nameof(retryPolicy));
-            _speculativeExecutionPolicy = speculativeExecutionPolicy ?? throw new ArgumentNullException(nameof(speculativeExecutionPolicy));
-            _timestampGenerator = timestampGenerator ?? throw new ArgumentNullException(nameof(timestampGenerator));
-            _extendedRetryPolicy = extendedRetryPolicy ?? throw new ArgumentNullException(nameof(extendedRetryPolicy));
-        }
-
-        internal Policies CloneWithExecutionProfilePolicies(IExecutionProfile defaultProfile)
-        {
-            return new Policies(
-                defaultProfile.LoadBalancingPolicy ?? _loadBalancingPolicy,
-                _reconnectionPolicy,
-                _retryPolicy,
-                defaultProfile.SpeculativeExecutionPolicy ?? _speculativeExecutionPolicy,
-                _timestampGenerator,
-                _extendedRetryPolicy);
+            _columnEncryptionPolicy = columnEncryptionPolicy;
         }
     }
 }

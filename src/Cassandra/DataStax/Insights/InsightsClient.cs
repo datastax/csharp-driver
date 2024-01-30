@@ -186,7 +186,10 @@ namespace Cassandra.DataStax.Insights
                 false,
                 0,
                 null,
-                ConsistencyLevel.Any);
+                ConsistencyLevel.Any,
+                null,
+                null,
+                null);
 
             var response = await RunWithTokenAsync(() => 
                 _cluster.Metadata.ControlConnection.UnsafeSendQueryRequestAsync(

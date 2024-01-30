@@ -54,18 +54,29 @@ namespace Cassandra.Requests
 
         public ExecuteRequest(
             ISerializer serializer, 
-            byte[] id, 
-            RowSetMetadata variablesMetadata, 
+            byte[] id,
             ResultMetadata resultMetadata, 
             QueryProtocolOptions queryOptions,
             bool tracingEnabled, 
-            IDictionary<string, byte[]> payload) : base(serializer, tracingEnabled, payload)
+            IDictionary<string, byte[]> payload,
+            bool isBatchChild) : base(serializer, tracingEnabled, payload)
         {
-            var protocolVersion = serializer.ProtocolVersion;
-            if (variablesMetadata != null && queryOptions.Values.Length != variablesMetadata.Columns.Length)
+            // Variables metadata was always being passed here as "null" prior to CSHARP-1004 but for bound statements only...
+            //     (it was being passed the real value for child statements).
+            // I (Joao) don't understand why this was the cause but "fixing" this caused some simulacron tests to fail
+            //     on this exception so it's safer to just keep the old behavior
+            //     (i.e. perform this check for bound statements within batch statements but not for regular bound statements).
+            // When column encryption is enabled we absolutely need to perform this check even for bound statements
+            //     because otherwise the driver will fail when trying to check if a given parameter is encrypted or not
+            if (isBatchChild || serializer.IsEncryptionEnabled)
             {
-                throw new ArgumentException("Number of values does not match with number of prepared statement markers(?).");
+                if (queryOptions.VariablesMetadata != null && queryOptions.Values.Length != queryOptions.VariablesMetadata.Columns.Length)
+                {
+                    throw new ArgumentException("Number of values does not match with number of prepared statement markers(?).");
+                }
             }
+
+            var protocolVersion = serializer.ProtocolVersion;
             _id = id;
             _queryOptions = queryOptions;
 
@@ -105,9 +116,9 @@ namespace Cassandra.Requests
             wb.WriteByte(1); //prepared query
             wb.WriteShortBytes(_id);
             wb.WriteUInt16((ushort)_queryOptions.Values.Length);
-            foreach (var queryParameter in _queryOptions.Values)
+            for (var i = 0; i < _queryOptions.Values.Length; i++)
             {
-                wb.WriteAsBytes(queryParameter);
+                wb.WriteAndEncryptAsBytes(_queryOptions.Keyspace, _queryOptions.VariablesMetadata, i, _queryOptions.Values, i);
             }
         }
     }

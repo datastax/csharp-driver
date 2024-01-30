@@ -31,7 +31,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cassandra.AppMetrics", "..\
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Mapper", "Mapper", "{A68222F1-E44C-4B20-8CEC-A10A89FC4982}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MultipleKeyspacesSingleSession", "Mapper\MultipleKeyspacesSingleSession\MultipleKeyspacesSingleSession.csproj", "{1A866971-206C-4A6F-B6B1-8B0408B67618}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MultipleKeyspacesSingleSession", "Mapper\MultipleKeyspacesSingleSession\MultipleKeyspacesSingleSession.csproj", "{1A866971-206C-4A6F-B6B1-8B0408B67618}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ColumnEncryption", "ColumnEncryption", "{1320BA10-E76B-4247-B1F1-71221349A94E}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ColumnEncryptionExample", "ColumnEncryption\ColumnEncryptionExample\ColumnEncryptionExample.csproj", "{AE159E33-D289-472C-8174-4FA9C55C29DF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -71,6 +75,10 @@ Global
 		{1A866971-206C-4A6F-B6B1-8B0408B67618}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1A866971-206C-4A6F-B6B1-8B0408B67618}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1A866971-206C-4A6F-B6B1-8B0408B67618}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AE159E33-D289-472C-8174-4FA9C55C29DF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AE159E33-D289-472C-8174-4FA9C55C29DF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AE159E33-D289-472C-8174-4FA9C55C29DF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AE159E33-D289-472C-8174-4FA9C55C29DF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -89,6 +97,8 @@ Global
 		{E08A392D-0251-422C-A804-8699FCEA7D92} = {EE6E727D-835E-42D1-8E62-081E0B6FAAC2}
 		{A68222F1-E44C-4B20-8CEC-A10A89FC4982} = {A589A223-6F57-40C7-BE7D-00E87354A69E}
 		{1A866971-206C-4A6F-B6B1-8B0408B67618} = {A68222F1-E44C-4B20-8CEC-A10A89FC4982}
+		{1320BA10-E76B-4247-B1F1-71221349A94E} = {A589A223-6F57-40C7-BE7D-00E87354A69E}
+		{AE159E33-D289-472C-8174-4FA9C55C29DF} = {1320BA10-E76B-4247-B1F1-71221349A94E}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {A731352A-6C46-4D13-A44F-07731EE671DA}

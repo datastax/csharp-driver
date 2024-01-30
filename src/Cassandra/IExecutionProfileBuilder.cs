@@ -39,7 +39,7 @@ namespace Cassandra
         /// </summary>
         /// <returns>This builder.</returns>
         IExecutionProfileBuilder WithRetryPolicy(IExtendedRetryPolicy retryPolicy);
-        
+
         /// <summary>
         /// Sets the speculative execution policy. 
         /// See <see cref="ISpeculativeExecutionPolicy"/> for additional context on this setting.

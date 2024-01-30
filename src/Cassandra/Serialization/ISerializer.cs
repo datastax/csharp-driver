@@ -13,6 +13,8 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
+using System;
+
 namespace Cassandra.Serialization
 {
     /// <summary>
@@ -27,11 +29,19 @@ namespace Cassandra.Serialization
 
         object Deserialize(byte[] buffer, int offset, int length, ColumnTypeCode typeCode, IColumnInfo typeInfo);
 
+        object DeserializeAndDecrypt(string ks, string table, string col, byte[] buffer, int offset, int length, ColumnTypeCode typeCode, IColumnInfo typeInfo);
+
         byte[] Serialize(object value);
+
+        byte[] SerializeAndEncrypt(string defaultKs, RowSetMetadata metadata, int colMetadataIdx, object[] values, int valueIdx);
 
         /// <summary>
         /// Create a new serializer with the provided protocol version.
         /// </summary>
         ISerializer CloneWithProtocolVersion(ProtocolVersion version);
+
+        bool IsEncryptionEnabled { get; }
+
+        Tuple<bool, ColumnTypeCode> IsAssignableFromEncrypted(string ks, string table, string column, ColumnTypeCode columnTypeCode, object value);
     }
 }

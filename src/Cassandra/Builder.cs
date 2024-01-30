@@ -53,6 +53,7 @@ namespace Cassandra
 
         private ILoadBalancingPolicy _loadBalancingPolicy;
         private ITimestampGenerator _timestampGenerator;
+        private IColumnEncryptionPolicy _columnEncryptionPolicy;
         private int _port = ProtocolOptions.DefaultPort;
         private int _queryAbortTimeout = Builder.DefaultQueryAbortTimeout;
         private QueryOptions _queryOptions = new QueryOptions();
@@ -259,7 +260,8 @@ namespace Cassandra
                     _reconnectionPolicy,
                     rep,
                     sep,
-                    _timestampGenerator);
+                    _timestampGenerator,
+                    _columnEncryptionPolicy);
             }
 
             if (profile.LoadBalancingPolicy != null && _loadBalancingPolicy != null)
@@ -277,7 +279,7 @@ namespace Cassandra
                     "and another through the default execution profile. Policies provided through the default execution profile " +
                     "take precedence over policies specified through the Builder methods.");
             }
-                
+            
             if (profile.RetryPolicy != null && _retryPolicy != null)
             {
                 Builder.Logger.Warning(
@@ -295,7 +297,8 @@ namespace Cassandra
                 _reconnectionPolicy,
                 rep,
                 sep,
-                _timestampGenerator);
+                _timestampGenerator,
+                _columnEncryptionPolicy);
         }
 
         /// <summary>
@@ -646,6 +649,19 @@ namespace Cassandra
         public Builder WithSpeculativeExecutionPolicy(ISpeculativeExecutionPolicy policy)
         {
             _speculativeExecutionPolicy = policy;
+            return this;
+        }
+
+        /// <summary>
+        /// Configures the column encryption policy to use for the new cluster. This is a client side encryption feature
+        /// which requires the column type to be 'blob' at schema level but the application can define at the application level which type the column should be.
+        /// See <see cref="IColumnEncryptionPolicy"/> for more information.
+        /// </summary>
+        /// <param name="policy">the column encryption policy to use</param>
+        /// <returns>this Builder</returns>
+        public Builder WithColumnEncryptionPolicy(IColumnEncryptionPolicy policy)
+        {
+            _columnEncryptionPolicy = policy;
             return this;
         }
 

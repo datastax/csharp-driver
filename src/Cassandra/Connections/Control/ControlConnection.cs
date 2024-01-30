@@ -91,7 +91,7 @@ namespace Cassandra.Connections.Control
             _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
             _reconnectionTimer = new Timer(ReconnectEventHandler, null, Timeout.Infinite, Timeout.Infinite);
             _config = config;
-            _serializer = new SerializerManager(initialProtocolVersion, config.TypeSerializers);
+            _serializer = new SerializerManager(initialProtocolVersion, config.Policies.ColumnEncryptionPolicy, config.TypeSerializers);
             _eventDebouncer = eventDebouncer;
             _contactPoints = contactPoints;
             _topologyRefresher = config.TopologyRefresherFactory.Create(metadata, config);

@@ -68,7 +68,7 @@ namespace Cassandra.Serialization
         private readonly CollectionSerializer _collectionSerializer = new CollectionSerializer();
         private readonly DictionarySerializer _dictionarySerializer = new DictionarySerializer();
         private readonly TupleSerializer _tupleSerializer = new TupleSerializer();
-        private readonly Dictionary<ColumnTypeCode, Func<IColumnInfo, Type>> _defaultTypes = new Dictionary<ColumnTypeCode,Func<IColumnInfo,Type>>();
+        private readonly Dictionary<ColumnTypeCode, Func<IColumnInfo, Type>> _defaultTypes = new Dictionary<ColumnTypeCode, Func<IColumnInfo, Type>>();
         private readonly Dictionary<ColumnTypeCode, Func<IColumnInfo, Type>> _defaultGraphTypes;
         //Udt serializer can be specified
         private UdtSerializer _udtSerializer = new UdtSerializer();
@@ -309,43 +309,44 @@ namespace Cassandra.Serialization
         /// Performs a lightweight validation to determine if the source type and target type matches.
         /// It isn't more strict to support miscellaneous uses of the driver, like direct inputs of blobs and all that. (backward compatibility)
         /// </summary>
-        public bool IsAssignableFrom(CqlColumn column, object value)
+        public bool IsAssignableFrom(ColumnTypeCode columnTypeCode, object value)
         {
             if (value == null || value is byte[])
             {
                 return true;
             }
+
             var type = value.GetType();
             if (_primitiveSerializers.TryGetValue(type, out ITypeSerializer typeSerializer))
             {
                 var cqlType = typeSerializer.CqlType;
                 //Its a single type, if the types match -> go ahead
-                if (cqlType == column.TypeCode)
+                if (cqlType == columnTypeCode)
                 {
                     return true;
                 }
                 //Only int32 and blobs are valid cql ints
-                if (column.TypeCode == ColumnTypeCode.Int)
+                if (columnTypeCode == ColumnTypeCode.Int)
                 {
                     return false;
                 }
                 //Only double, longs and blobs are valid cql double
-                if (column.TypeCode == ColumnTypeCode.Double && !(value is long))
+                if (columnTypeCode == ColumnTypeCode.Double && !(value is long))
                 {
                     return false;
                 }
                 //The rest of the single values are not evaluated
                 return true;
             }
-            if (column.TypeCode == ColumnTypeCode.List || column.TypeCode == ColumnTypeCode.Set)
+            if (columnTypeCode == ColumnTypeCode.List || columnTypeCode == ColumnTypeCode.Set)
             {
                 return value is IEnumerable;
             }
-            if (column.TypeCode == ColumnTypeCode.Map)
+            if (columnTypeCode == ColumnTypeCode.Map)
             {
                 return value is IDictionary;
             }
-            if (column.TypeCode == ColumnTypeCode.Tuple)
+            if (columnTypeCode == ColumnTypeCode.Tuple)
             {
                 return value is IStructuralComparable;
             }
@@ -479,6 +480,69 @@ namespace Cassandra.Serialization
         public void SetUdtMap(string name, UdtMap map)
         {
             _udtSerializer.SetUdtMap(name, map);
+        }
+
+        internal static void ValidateColumnInfo(ColumnTypeCode typeCode, IColumnInfo typeInfo)
+        {
+            string msg = null;
+            bool requiresCheck = false;
+            var typeCodeName = Enum.GetName(typeof(ColumnTypeCode), typeCode);
+            switch (typeCode)
+            {
+                case ColumnTypeCode.List:
+                case ColumnTypeCode.Set:
+                    requiresCheck = true;
+                    if (!(typeInfo is ListColumnInfo) && !(typeInfo is SetColumnInfo))
+                    {
+                        msg =
+                            "list and set column types require a column info object of type ListColumnInfo or SetColumnInfo.";
+                    }
+
+                    break;
+                case ColumnTypeCode.Map:
+                    requiresCheck = true;
+                    if (!(typeInfo is MapColumnInfo))
+                    {
+                        msg = "map column type requires a column info object of type MapColumnInfo.";
+                    }
+
+                    break;
+                case ColumnTypeCode.Custom:
+                    requiresCheck = true;
+                    if (!(typeInfo is CustomColumnInfo))
+                    {
+                        msg = "custom column type requires a column info object of type CustomColumnInfo.";
+                    }
+
+                    break;
+                case ColumnTypeCode.Udt:
+                    requiresCheck = true;
+                    if (!(typeInfo is UdtColumnInfo))
+                    {
+                        msg = "udt column type requires a column info object of type UdtColumnInfo.";
+                    }
+
+                    break;
+                case ColumnTypeCode.Tuple:
+                    requiresCheck = true;
+                    if (!(typeInfo is TupleColumnInfo))
+                    {
+                        msg = "tuple column type requires a column info object of type TupleColumnInfo.";
+                    }
+
+                    break;
+            }
+
+            if (requiresCheck && typeInfo == null)
+            {
+                throw new ArgumentException($"Cql type {typeCodeName} requires a type info object (e.g. list requires " +
+                                            "an instance of ListColumnInfo to be provided).");
+            }
+
+            if (msg != null)
+            {
+                throw new ArgumentException(msg + " An instance of " + typeInfo.GetType().AssemblyQualifiedName + " was provided instead.");
+            }
         }
     }
 }

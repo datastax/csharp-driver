@@ -79,7 +79,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                     builder.SocketOptions =
                         new SocketOptions().SetReadTimeoutMillis(10);
                     builder.Policies = new Cassandra.Policies(
-                        lbpCluster, new ConstantReconnectionPolicy(5), rpCluster, sepCluster, new AtomicMonotonicTimestampGenerator());
+                        lbpCluster, new ConstantReconnectionPolicy(5), rpCluster, sepCluster, new AtomicMonotonicTimestampGenerator(), null);
                 },
                 profile);
 
@@ -134,7 +134,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                     builder.SocketOptions =
                         new SocketOptions().SetReadTimeoutMillis(10);
                     builder.Policies = new Cassandra.Policies(
-                        lbpCluster, new ConstantReconnectionPolicy(5), rpCluster, sepCluster, new AtomicMonotonicTimestampGenerator());
+                        lbpCluster, new ConstantReconnectionPolicy(5), rpCluster, sepCluster, new AtomicMonotonicTimestampGenerator(), null);
                 },
                 profile);
 
@@ -180,7 +180,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                     builder.SocketOptions =
                         new SocketOptions().SetReadTimeoutMillis(10);
                     builder.Policies = new Cassandra.Policies(
-                        lbpCluster, new ConstantReconnectionPolicy(5), rpCluster, sepCluster, new AtomicMonotonicTimestampGenerator());
+                        lbpCluster, new ConstantReconnectionPolicy(5), rpCluster, sepCluster, new AtomicMonotonicTimestampGenerator(), null);
                 },
                 null);
 

@@ -307,7 +307,7 @@ namespace Cassandra.Tests
             var policies = new Cassandra.Policies(
                 Cassandra.Policies.DefaultLoadBalancingPolicy, Cassandra.Policies.DefaultReconnectionPolicy,
                 Cassandra.Policies.DefaultRetryPolicy, Cassandra.Policies.DefaultSpeculativeExecutionPolicy,
-                new NoTimestampGenerator());
+                new NoTimestampGenerator(), null);
             var config = RequestHandlerTests.GetConfig(new QueryOptions(), policies, PoolingOptions.Create());
 
             var request = RequestHandler.GetRequest(
@@ -340,7 +340,7 @@ namespace Cassandra.Tests
             var policies = new Cassandra.Policies(
                 Cassandra.Policies.DefaultLoadBalancingPolicy, Cassandra.Policies.DefaultReconnectionPolicy,
                 Cassandra.Policies.DefaultRetryPolicy, Cassandra.Policies.DefaultSpeculativeExecutionPolicy,
-                new NoTimestampGenerator());
+                new NoTimestampGenerator(), null);
             var config = RequestHandlerTests.GetConfig(new QueryOptions(), policies, PoolingOptions.Create());
             
             var request = RequestHandler.GetRequest(statement, Serializer, config.DefaultRequestOptions);
@@ -424,7 +424,7 @@ namespace Cassandra.Tests
             var policies = new Cassandra.Policies(
                 Cassandra.Policies.DefaultLoadBalancingPolicy, Cassandra.Policies.DefaultReconnectionPolicy,
                 Cassandra.Policies.DefaultRetryPolicy, Cassandra.Policies.DefaultSpeculativeExecutionPolicy,
-                new NoTimestampGenerator());
+                new NoTimestampGenerator(), null);
 
             var config = RequestHandlerTests.GetConfig(new QueryOptions(), policies, PoolingOptions.Create());
             var request = RequestHandler.GetRequest(batch, Serializer, config.DefaultRequestOptions);

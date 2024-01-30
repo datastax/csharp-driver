@@ -27,7 +27,7 @@ namespace Cassandra.ExecutionProfiles
         private ILoadBalancingPolicy _loadBalancingPolicy;
         private ISpeculativeExecutionPolicy _speculativeExecutionPolicy;
         private IExtendedRetryPolicy _retryPolicy;
-        
+
         private GraphOptions _graphOptions;
         
         public IExecutionProfileBuilder WithLoadBalancingPolicy(ILoadBalancingPolicy loadBalancingPolicy)

@@ -130,7 +130,7 @@ namespace Cassandra.Requests
             if (statement is RegularStatement s1)
             {
                 s1.Serializer = serializer;
-                var options = QueryProtocolOptions.CreateFromQuery(serializer.ProtocolVersion, s1, requestOptions, null);
+                var options = QueryProtocolOptions.CreateFromQuery(serializer.ProtocolVersion, s1, requestOptions, null, null);
                 options.ValueNames = s1.QueryValueNames;
                 request = new QueryRequest(serializer, s1.QueryString, options, s1.IsTracing, s1.OutgoingPayload);
             }
@@ -142,15 +142,15 @@ namespace Cassandra.Requests
                     serializer.ProtocolVersion.SupportsResultMetadataId() 
                     && s2.PreparedStatement.ResultMetadata.ContainsColumnDefinitions();
 
-                var options = QueryProtocolOptions.CreateFromQuery(serializer.ProtocolVersion, s2, requestOptions, skipMetadata);
+                var options = QueryProtocolOptions.CreateFromQuery(serializer.ProtocolVersion, s2, requestOptions, skipMetadata, s2.PreparedStatement.Variables);
                 request = new ExecuteRequest(
                     serializer, 
-                    s2.PreparedStatement.Id, 
-                    null,
+                    s2.PreparedStatement.Id,
                     s2.PreparedStatement.ResultMetadata, 
                     options,
                     s2.IsTracing, 
-                    s2.OutgoingPayload);
+                    s2.OutgoingPayload,
+                    false);
             }
 
             if (statement is BatchStatement s)

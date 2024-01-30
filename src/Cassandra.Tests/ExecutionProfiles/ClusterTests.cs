@@ -47,7 +47,8 @@ namespace Cassandra.Tests.ExecutionProfiles
                     new ConstantReconnectionPolicy(50), 
                     new DefaultRetryPolicy(), 
                     seps[0], 
-                    new AtomicMonotonicTimestampGenerator()),
+                    new AtomicMonotonicTimestampGenerator(),
+                    null),
                 ExecutionProfiles = new Dictionary<string, IExecutionProfile>
                 {
                     { "profile1", profile1 },
@@ -123,7 +124,8 @@ namespace Cassandra.Tests.ExecutionProfiles
                     new ConstantReconnectionPolicy(50), 
                     new DefaultRetryPolicy(), 
                     sep, 
-                    new AtomicMonotonicTimestampGenerator())
+                    new AtomicMonotonicTimestampGenerator(),
+                    null)
             }.Build();
             var initializerMock = Mock.Of<IInitializer>();
             Mock.Get(initializerMock)
@@ -160,7 +162,8 @@ namespace Cassandra.Tests.ExecutionProfiles
                     new ConstantReconnectionPolicy(50), 
                     new DefaultRetryPolicy(), 
                     seps[0], 
-                    new AtomicMonotonicTimestampGenerator()),
+                    new AtomicMonotonicTimestampGenerator(),
+                    null),
                 ExecutionProfiles = new Dictionary<string, IExecutionProfile>
                 {
                     { "profile1", profile1 },
@@ -225,7 +228,8 @@ namespace Cassandra.Tests.ExecutionProfiles
                     new ConstantReconnectionPolicy(50), 
                     new DefaultRetryPolicy(), 
                     sep, 
-                    new AtomicMonotonicTimestampGenerator())
+                    new AtomicMonotonicTimestampGenerator(),
+                    null)
             }.Build();
             var initializerMock = Mock.Of<IInitializer>();
             Mock.Get(initializerMock)
@@ -258,7 +262,8 @@ namespace Cassandra.Tests.ExecutionProfiles
                     new ConstantReconnectionPolicy(50), 
                     new DefaultRetryPolicy(), 
                     sep1, 
-                    new AtomicMonotonicTimestampGenerator()),
+                    new AtomicMonotonicTimestampGenerator(),
+                    null),
                 ExecutionProfiles = new Dictionary<string, IExecutionProfile>
                 {
                     { Configuration.DefaultExecutionProfileName, new ExecutionProfile(null, null, null, lbp2, sep2, null, null) }
@@ -296,7 +301,8 @@ namespace Cassandra.Tests.ExecutionProfiles
                     new ConstantReconnectionPolicy(50), 
                     new DefaultRetryPolicy(), 
                     sep1, 
-                    new AtomicMonotonicTimestampGenerator()),
+                    new AtomicMonotonicTimestampGenerator(),
+                    null),
                 ExecutionProfiles = new Dictionary<string, IExecutionProfile>
                 {
                     { Configuration.DefaultExecutionProfileName, new ExecutionProfile(null, null, null, lbp2, sep2, null, null) }
