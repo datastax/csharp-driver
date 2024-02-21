@@ -194,5 +194,5 @@ insert into my_table (k, v) values (1, 1) USING TIMESTAMP 1432764000;
 If you're using Cassandra 2.1 and above, you can use client-side timestamps with the method
 [Statement.SetTimestamp()][settimestamp-api].
 
-[isidempotent-api]: http://docs.datastax.com/en/latest-csharp-driver-api/html/P_Cassandra_IStatement_IsIdempotent.htm
-[settimestamp-api]: http://docs.datastax.com/en/latest-csharp-driver-api/html/M_Cassandra_Statement_SetTimestamp.htm
+[isidempotent-api]: https://docs.datastax.com/en/drivers/csharp/latest/api/Cassandra.IStatement.html#Cassandra_IStatement_IsIdempotent
+[settimestamp-api]: https://docs.datastax.com/en/drivers/csharp/latest/api/Cassandra.Statement.html#Cassandra_Statement_SetTimestamp_System_DateTimeOffset_

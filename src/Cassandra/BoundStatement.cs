@@ -15,6 +15,7 @@
 //
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Cassandra.Requests;
 using Cassandra.Serialization;
@@ -29,6 +30,7 @@ namespace Cassandra
     /// </summary>
     public class BoundStatement : Statement
     {
+        private static readonly Logger Logger = new Logger(typeof(BoundStatement));
         private readonly PreparedStatement _preparedStatement;
         private RoutingKey _routingKey;
         private readonly string _keyspace;
@@ -144,10 +146,29 @@ namespace Cassandra
             {
                 var p = paramsMetadata[i];
                 var value = values[i];
-                if (!serializer.IsAssignableFrom(p, value))
+                bool assignable;
+                ColumnTypeCode typeCode;
+                string failureMsg = null;
+                if (serializer.IsEncryptionEnabled)
                 {
-                    throw new InvalidTypeException(
-                        string.Format("It is not possible to encode a value of type {0} to a CQL type {1}", value.GetType(), p.TypeCode));
+                    var tuple = serializer.IsAssignableFromEncrypted(p.Keyspace ?? Keyspace, p.Table, p.Name, p.TypeCode, value);
+                    assignable = tuple.Item1;
+                    typeCode = tuple.Item2;
+                    if (typeCode != p.TypeCode)
+                    {
+                        failureMsg = string.Format("It is not possible to encode a value of type {0} to a CQL type {1} (encrypted column at client level, cql type in DB is {2})", 
+                            value.GetType(), typeCode, p.TypeCode);
+                    }
+                }
+                else
+                {
+                    assignable = serializer.IsAssignableFrom(p.TypeCode, value);
+                    typeCode = p.TypeCode;
+                }
+                if (!assignable)
+                {
+                    throw new InvalidTypeException(failureMsg ??
+                        string.Format("It is not possible to encode a value of type {0} to a CQL type {1}", value.GetType(), typeCode));
                 }
             }
             if (values.Length < paramsMetadata.Length && serializer.ProtocolVersion.SupportsUnset())
@@ -167,15 +188,15 @@ namespace Cassandra
         internal override IQueryRequest CreateBatchRequest(ISerializer serializer)
         {
             // Use the default query options as the individual options of the query will be ignored
-            var options = QueryProtocolOptions.CreateForBatchItem(this);
+            var options = QueryProtocolOptions.CreateForBatchItem(this, PreparedStatement.Variables);
             return new ExecuteRequest(
                 serializer, 
-                PreparedStatement.Id, 
-                PreparedStatement.Variables,
+                PreparedStatement.Id,
                 PreparedStatement.ResultMetadata, 
                 options, 
                 IsTracing, 
-                null);
+                null,
+                true);
         }
 
         internal void CalculateRoutingKey(
@@ -191,17 +212,29 @@ namespace Cassandra
                 //The routing key was specified by the user
                 return;
             }
+
+            var parametersMetadata = PreparedStatement.Variables;
             if (routingIndexes != null)
             {
+                if (routingIndexes.Length > 0 && serializer.IsEncryptionEnabled)
+                {
+                    if (parametersMetadata.Columns == null)
+                    {
+                        Logger.Warning("Could not calculate routing key for prepared statement '{0}' because columns are null. " +
+                                       "Token Aware routing will not be available for this request.", PreparedStatement.Cql);
+                        return;
+                    }
+                }
+
                 var keys = new RoutingKey[routingIndexes.Length];
                 for (var i = 0; i < routingIndexes.Length; i++)
                 {
                     var index = routingIndexes[i];
-                    var key = serializer.Serialize(valuesByPosition[index]);
+                    byte[] key = serializer.SerializeAndEncrypt(PreparedStatement.Keyspace, parametersMetadata, index, valuesByPosition, index);
                     if (key == null)
                     {
                         //The partition key can not be null
-                        //Get out and let any node reply a Response Error
+                        //Get out and let any node reply a Response Error if appropriate
                         return;
                     }
                     keys[i] = new RoutingKey(key);
@@ -218,12 +251,46 @@ namespace Cassandra
                     //The routing names are not valid
                     return;
                 }
+
+                if (routingValues.Length > 0 && serializer.IsEncryptionEnabled)
+                {
+                    if (parametersMetadata.ColumnIndexes == null)
+                    {
+                        Logger.Warning("Could not calculate routing key for prepared statement '{0}' because column indexes are null. " +
+                                       "Token Aware routing will not be available for this request.", PreparedStatement.Cql);
+                        return;
+                    }
+                    if (parametersMetadata.Columns == null)
+                    {
+                        Logger.Warning("Could not calculate routing key for prepared statement '{0}' because columns are null. " +
+                                       "Token Aware routing will not be available for this request.", PreparedStatement.Cql);
+                        return;
+                    }
+                }
+
                 for (var i = 0; i < routingValues.Length; i++)
                 {
-                    var key = serializer.Serialize(routingValues[i]);
+                    byte[] key = null;
+                    if (serializer.IsEncryptionEnabled)
+                    {
+                        if (!parametersMetadata.ColumnIndexes.TryGetValue(routingNames[i], out var colIndex))
+                        {
+                            Logger.Warning("Could not compute routing key because there's no column metadata for parameter {0} in PreparedStatement ({1}). " +
+                                           "Token Aware routing will not be available for this request.", routingNames[i], PreparedStatement.Cql);
+                        }
+                        else
+                        {
+                            key = serializer.SerializeAndEncrypt(PreparedStatement.Keyspace, parametersMetadata, colIndex, routingValues, i);
+                        }
+                    }
+                    else
+                    {
+                        key = serializer.Serialize(routingValues[i]);
+                    }
                     if (key == null)
                     {
                         //The partition key can not be null
+                        //Get out and let any node reply a Response Error if appropriate
                         return;
                     }
                     keys[i] = new RoutingKey(key);

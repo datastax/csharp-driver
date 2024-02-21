@@ -12,5 +12,5 @@ Introduced in Cassandra 2.2, a date portion without a time-zone, is represented 
 
 Introduced in Cassandra 2.2, a time portion without a time-zone, is represented as a [LocalTime][localtime-api].
 
-[localdate-api]: http://docs.datastax.com/en/latest-csharp-driver-api/html/T_Cassandra_LocalDate.htm
-[localtime-api]: http://docs.datastax.com/en/latest-csharp-driver-api/html/T_Cassandra_LocalTime.htm
+[localdate-api]: https://docs.datastax.com/en/drivers/csharp/latest/api/Cassandra.LocalDate.html
+[localtime-api]: https://docs.datastax.com/en/drivers/csharp/latest/api/Cassandra.LocalTime.html

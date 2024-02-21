@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
@@ -194,6 +195,16 @@ namespace Cassandra
         {
             _stream.Read(buffer, offset, length);
             return _serializer.Deserialize(buffer, 0, length, typeCode, typeInfo);
+        }
+
+        /// <summary>
+        /// Reads from the internal stream, starting from offset, the amount of bytes defined by count and deserializes
+        /// the bytes.
+        /// </summary>
+        internal object ReadFromBytesEncrypted(string ks, string table, string column, byte[] buffer, int offset, int length, ColumnTypeCode typeCode, IColumnInfo typeInfo)
+        {
+            _stream.Read(buffer, offset, length);
+            return _serializer.DeserializeAndDecrypt(ks, table, column, buffer, 0, length, typeCode, typeInfo);
         }
     }
 }

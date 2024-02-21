@@ -4,13 +4,14 @@
     <Copyright>Copyright © by DataStax</Copyright>
     <AssemblyTitle>DataStax C# Driver for Apache Cassandra</AssemblyTitle>
     <AssemblyVersion>3.99.0.0</AssemblyVersion>
-    <FileVersion>3.19.2.0</FileVersion>
-    <VersionPrefix>3.19.2</VersionPrefix>
+    <FileVersion>3.20.0.0</FileVersion>
+    <VersionPrefix>3.20.0</VersionPrefix>
     <Authors>DataStax</Authors>
     <TargetFrameworks Condition="'$(BuildCoreOnly)' != 'True'">net452;netstandard2.0</TargetFrameworks>
     <TargetFramework Condition="'$(BuildCoreOnly)' == 'True'">netstandard2.0</TargetFramework>
     <NoWarn>$(NoWarn);1591</NoWarn>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsNotAsErrors>NU1901;NU1902;NU1903;NU1904</WarningsNotAsErrors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <AssemblyName>Cassandra</AssemblyName>
     <Product>DataStax C# Driver for Apache Cassandra</Product>

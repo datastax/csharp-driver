@@ -8,6 +8,8 @@ You should also visit the [Documentation][doc-index] and [FAQ][faq].
 
 - Concurrent execution
   - [Inserts multiple rows in a table limiting the amount of parallel requests](ConcurrentExecutions/ExecuteInLoop/Program.cs)
+- Mapper
+  - [Use the mapper with multiple keyspaces and only one session](Mapper/MultipleKeyspacesSingleSession/Program.cs)
 - DataStax Astra
   - [Getting started with DataStax Astra and the Secure Connection Bundle](SecureConnectionBundle/MinimalExample/Program.cs)
 - TLS/SSL
@@ -19,6 +21,8 @@ You should also visit the [Documentation][doc-index] and [FAQ][faq].
     - [Using certificates from the certificate store](Ssl/SslTwoWayAuth/WindowsCertificateStoreExample.cs)
 - Metrics
   - [Graphite and Grafana integration with App.Metrics](Metrics/AppMetricsGraphite/Program.cs)
+- Column Encryption
+  - [Example usage of the Column Encryption feature](ColumnEncryption/ColumnEncryptionExample/Program.cs)
 
 Each example is generally structured in a way where the `Cluster` and `Session` are connected at the beginning and shutdown/disposed at the end.
 While this is suitable for example console applications, you should reuse the `Session` and `Cluster` instances and only call `cluster.ShutdownAsync()` / `cluster.Dispose()` when exiting your application.

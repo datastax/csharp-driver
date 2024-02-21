@@ -101,7 +101,7 @@ namespace Cassandra.Tests
                 .SetCoreConnectionsPerHost(HostDistance.Local, coreConnections)
                 .SetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance.Local, 1500)
                 .SetMaxConnectionsPerHost(HostDistance.Local, maxConnections);
-            var policies = new Cassandra.Policies(null, rp, null, null, null);
+            var policies = new Cassandra.Policies(null, rp, null, null, null, null);
             var config = new TestConfigurationBuilder
             {
                 Policies = policies,

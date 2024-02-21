@@ -23,6 +23,7 @@ IMapper mapper = new Mapper(session);
 New `Mapper` instances can be created each time they are needed, as short-lived instances, as long as you are reusing the same `ISession` and `MappingConfiguration` instances. `MappingConfiguration.Global` is used if you don't provide one.
 
 In some scenarios, it might make sense to create multiple `MappingConfiguration` instances and create one mapper instance per `MappingConfiguration` (e.g. reuse the same POCOs for multiple keyspaces).
+See [this example](https://github.com/datastax/csharp-driver/blob/master/examples/Mapper/MultipleKeyspacesSingleSession/MapperManager.cs) for details.
 
 The Mapper works by mapping the column names in your CQL statement to the property names on your classes.
 

@@ -148,6 +148,14 @@ namespace Cassandra
         {
             WriteBytes(_serializer.Serialize(value));
         }
+        
+        /// <summary>
+        /// Serializes (and potentially encrypts) and writes as protocol <c>bytes</c> (length + bytes)
+        /// </summary>
+        public void WriteAndEncryptAsBytes(string defaultKs, RowSetMetadata metadata, int colIdx, object[] values, int valueIdx)
+        {
+            WriteBytes(_serializer.SerializeAndEncrypt(defaultKs, metadata, colIdx, values, valueIdx));
+        }
 
         /// <summary>
         /// Writes protocol <c>short bytes</c> (length + bytes)

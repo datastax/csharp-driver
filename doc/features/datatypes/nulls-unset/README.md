@@ -21,4 +21,4 @@ session.Execute(ps.Bind(id, Unset.Value));
 ```
 
 [tombstone]: http://docs.datastax.com/en/glossary/doc/glossary/gloss_tombstone.html
-[unset-api]: http://docs.datastax.com/en/latest-csharp-driver-api/html/T_Cassandra_Unset.htm
+[unset-api]: https://docs.datastax.com/en/drivers/csharp/latest/api/Cassandra.Unset.html

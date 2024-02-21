@@ -28,7 +28,7 @@ namespace Cassandra.Tests
         [Test]
         public void Should_Allow_Custom_Primitive_Serializers()
         {
-            var serializer = new SerializerManager(ProtocolVersion.MaxSupported, new[] { new BigDecimalSerializer() })
+            var serializer = new SerializerManager(ProtocolVersion.MaxSupported, null, new[] { new BigDecimalSerializer() })
                 .GetCurrentSerializer();
             var value = new BigDecimal(5, 1);
             var buffer = serializer.Serialize(value);
@@ -48,7 +48,7 @@ namespace Cassandra.Tests
         public void Should_Allow_Custom_Cql_Type_Serializers()
         {
             var typeSerializer = new DummyCustomTypeSerializer();
-            var serializer = new SerializerManager(ProtocolVersion.MaxSupported, new ITypeSerializer[] { typeSerializer })
+            var serializer = new SerializerManager(ProtocolVersion.MaxSupported, null, new ITypeSerializer[] { typeSerializer })
                 .GetCurrentSerializer();
             var value = new DummyCustomType(new byte[] { 1, 2 });
             var buffer = serializer.Serialize(value);
@@ -66,7 +66,7 @@ namespace Cassandra.Tests
         public void Should_Allow_Custom_Udt_Serializers()
         {
             var typeSerializer = new UdtSerializerWrapper();
-            var serializer = new SerializerManager(ProtocolVersion.MaxSupported, new ITypeSerializer[] { typeSerializer })
+            var serializer = new SerializerManager(ProtocolVersion.MaxSupported, null, new ITypeSerializer[] { typeSerializer })
                 .GetCurrentSerializer();
             var buffer = serializer.Serialize(new object());
             CollectionAssert.AreEqual(Encoding.UTF8.GetBytes("DUMMY UDT SERIALIZED"), buffer);

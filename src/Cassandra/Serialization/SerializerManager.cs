@@ -31,19 +31,21 @@ namespace Cassandra.Serialization
         internal static readonly byte[] UnsetBuffer = new byte[0];
 
         private readonly GenericSerializer _genericSerializer;
+        private readonly IColumnEncryptionPolicy _clePolicy;
         private volatile ISerializer _serializer;
 
-        internal SerializerManager(ProtocolVersion protocolVersion, IEnumerable<ITypeSerializer> typeSerializers = null)
+        internal SerializerManager(ProtocolVersion protocolVersion, IColumnEncryptionPolicy clePolicy = null, IEnumerable<ITypeSerializer> typeSerializers = null)
         {
+            _clePolicy = clePolicy;
             _genericSerializer = new GenericSerializer(typeSerializers);
-            _serializer = new Serializer(protocolVersion, _genericSerializer);
+            _serializer = new Serializer(protocolVersion, _genericSerializer, _clePolicy);
         }
 
         public ProtocolVersion CurrentProtocolVersion => _serializer.ProtocolVersion;
 
         public void ChangeProtocolVersion(ProtocolVersion version)
         {
-            _serializer = new Serializer(version, _genericSerializer);
+            _serializer = new Serializer(version, _genericSerializer, _clePolicy);
         }
 
         public ISerializer GetCurrentSerializer()

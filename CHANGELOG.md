@@ -1,5 +1,37 @@
 # ChangeLog - DataStax C# Driver
 
+## 3.20.0
+
+2024-01-30
+
+### New Features
+
+*   [[CSHARP-1004](https://datastax-oss.atlassian.net/browse/CSHARP-1004)] Client-side encryption specified at column-level
+
+## 3.19.5
+
+2023-11-27
+
+### Bug fixes
+
+*   [[CSHARP-1003](https://datastax-oss.atlassian.net/browse/CSHARP-1003)] Fix support for Astra custom domain names in linux environments
+
+## 3.19.4
+
+2023-11-07
+
+### Bug fixes
+
+*   [[CSHARP-1000](https://datastax-oss.atlassian.net/browse/CSHARP-1000)] Fix support for Astra custom domains
+
+## 3.19.3
+
+2023-08-31
+
+### Bug fixes
+
+*   [[CSHARP-995](https://datastax-oss.atlassian.net/browse/CSHARP-995)] Some Statement properties are not being applied in LINQ statements
+
 ## 3.19.2
 
 2023-03-31
