@@ -1,10 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks Condition="'$(BuildAllTargets)' == 'True' And '$(BuildMonoOnly)' != 'True'">net48;net462;net472;net452;netcoreapp3.1;netcoreapp2.0;netcoreapp2.1</TargetFrameworks>
-    <TargetFrameworks Condition="'$(BuildAllTargets)' != 'True' And '$(BuildCoreOnly)' != 'True' And '$(BuildMonoOnly)' != 'True'">net462;netcoreapp3.1</TargetFrameworks>
-    <TargetFrameworks Condition="'$(BuildCoreOnly)' == 'True' And '$(NETCORE_RUNTIME)' != '2.0'">netcoreapp2.1;netcoreapp3.1</TargetFrameworks>
-    <TargetFramework Condition="'$(BuildCoreOnly)' == 'True' And '$(NETCORE_RUNTIME)' == '2.0'">netcoreapp2.0</TargetFramework>
-    <TargetFramework Condition="'$(BuildMonoOnly)' == 'True'">net462</TargetFramework>
+    <TargetFrameworks Condition="'$(BuildAllTargets)' == 'True' And '$(BuildMonoOnly)' != 'True'">net8;net7;net6;net481;net462;net472</TargetFrameworks>
+    <TargetFrameworks Condition="'$(BuildAllTargets)' != 'True' And '$(BuildCoreOnly)' != 'True' And '$(BuildMonoOnly)' != 'True'">net481;net8</TargetFrameworks>
+    <TargetFrameworks Condition="'$(BuildCoreOnly)' == 'True' And '$(NETCORE_RUNTIME)' != '8'">net7;net6</TargetFrameworks>
+    <TargetFramework Condition="'$(BuildCoreOnly)' == 'True' And '$(NETCORE_RUNTIME)' == '8'">net8</TargetFramework>
+    <TargetFramework Condition="'$(BuildMonoOnly)' == 'True'">net8</TargetFramework>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <WarningsNotAsErrors>NU1901;NU1902;NU1903;NU1904</WarningsNotAsErrors>
     <PublicSign>false</PublicSign>
@@ -15,20 +15,12 @@
     <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
     <LangVersion>7.1</LangVersion>
   </PropertyGroup>
-  <PropertyGroup Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('$(TargetFramework)', '^net\d'))">
+  <PropertyGroup Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('$(TargetFramework)', '^net4\d'))">
     <DefineConstants>$(DefineConstants);NETFRAMEWORK</DefineConstants>
   </PropertyGroup>
-  <PropertyGroup Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('$(TargetFramework)', '^netcoreapp\d'))">
+  <PropertyGroup Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('$(TargetFramework)', '^net\d$'))">
     <DefineConstants>$(DefineConstants);NETCOREAPP</DefineConstants>
   </PropertyGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net452' ">
-    <ProjectReference Include="..\Cassandra.Tests\Cassandra.Tests.csproj">
-      <SetTargetFramework>TargetFramework=net452</SetTargetFramework>
-    </ProjectReference>
-    <ProjectReference Include="..\Cassandra\Cassandra.csproj">
-      <SetTargetFramework>TargetFramework=net452</SetTargetFramework>
-    </ProjectReference>
-  </ItemGroup>
   <ItemGroup Condition=" '$(TargetFramework)' == 'net462' ">
     <ProjectReference Include="..\Extensions\Cassandra.AppMetrics\Cassandra.AppMetrics.csproj">
       <SetTargetFramework>TargetFramework=net461</SetTargetFramework>
@@ -51,64 +43,62 @@
       <SetTargetFramework>TargetFramework=net452</SetTargetFramework>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net48' ">
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net481' ">
     <ProjectReference Include="..\Extensions\Cassandra.AppMetrics\Cassandra.AppMetrics.csproj">
       <SetTargetFramework>TargetFramework=net461</SetTargetFramework>
     </ProjectReference>
     <ProjectReference Include="..\Cassandra.Tests\Cassandra.Tests.csproj">
-      <SetTargetFramework>TargetFramework=net48</SetTargetFramework>
+      <SetTargetFramework>TargetFramework=net481</SetTargetFramework>
     </ProjectReference>
     <ProjectReference Include="..\Cassandra\Cassandra.csproj">
       <SetTargetFramework>TargetFramework=net452</SetTargetFramework>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp3.1' ">
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net8' ">
     <ProjectReference Include="..\Extensions\Cassandra.AppMetrics\Cassandra.AppMetrics.csproj">
       <SetTargetFramework>TargetFramework=netstandard2.0</SetTargetFramework>
     </ProjectReference>
     <ProjectReference Include="..\Cassandra.Tests\Cassandra.Tests.csproj">
-      <SetTargetFramework>TargetFramework=netcoreapp3.1</SetTargetFramework>
+      <SetTargetFramework>TargetFramework=net8</SetTargetFramework>
     </ProjectReference>
     <ProjectReference Include="..\Cassandra\Cassandra.csproj">
       <SetTargetFramework>TargetFramework=netstandard2.0</SetTargetFramework>
     </ProjectReference>
   </ItemGroup>
 
-  <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.1' ">
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net7' ">
     <ProjectReference Include="..\Extensions\Cassandra.AppMetrics\Cassandra.AppMetrics.csproj">
       <SetTargetFramework>TargetFramework=netstandard2.0</SetTargetFramework>
     </ProjectReference>
     <ProjectReference Include="..\Cassandra.Tests\Cassandra.Tests.csproj">
-      <SetTargetFramework>TargetFramework=netcoreapp2.1</SetTargetFramework>
+      <SetTargetFramework>TargetFramework=net7</SetTargetFramework>
     </ProjectReference>
     <ProjectReference Include="..\Cassandra\Cassandra.csproj">
       <SetTargetFramework>TargetFramework=netstandard2.0</SetTargetFramework>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.0' ">
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net6' ">
     <ProjectReference Include="..\Extensions\Cassandra.AppMetrics\Cassandra.AppMetrics.csproj">
       <SetTargetFramework>TargetFramework=netstandard2.0</SetTargetFramework>
     </ProjectReference>
     <ProjectReference Include="..\Cassandra.Tests\Cassandra.Tests.csproj">
-      <SetTargetFramework>TargetFramework=netcoreapp2.0</SetTargetFramework>
+      <SetTargetFramework>TargetFramework=net6</SetTargetFramework>
     </ProjectReference>
     <ProjectReference Include="..\Cassandra\Cassandra.csproj">
       <SetTargetFramework>TargetFramework=netstandard2.0</SetTargetFramework>
     </ProjectReference>
   </ItemGroup>
 
-  <ItemGroup Condition=" '$(TargetFramework)' != 'net452'">
-    <PackageReference Include="App.Metrics" Version="3.2.0" />
-  </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="App.Metrics" Version="3.2.0" />
     <PackageReference Include="SSH.NET" Version="2020.0.2" />
-    <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Appveyor.TestLogger" Version="2.0.0" />
     <PackageReference Include="Microsoft.DotNet.InternalAbstractions" Version="1.0.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.1.1" />
     <PackageReference Include="Moq" Version="4.7.99" />
-    <PackageReference Include="NUnit" Version="3.8.1" />
-    <PackageReference Include="NUnit3TestAdapter" Version="3.13.0" />
+    <PackageReference Include="NUnit" Version="3.14.0" />
+    <PackageReference Include="NUnit3TestAdapter" Version="3.17.0" />
     <PackageReference Include="NunitXml.TestLogger" Version="2.1.41" />
     <PackageReference Include="System.Runtime.InteropServices.RuntimeInformation" Version="4.3.0" />
     <PackageReference Include="System.Runtime.Serialization.Json" Version="4.0.2" />
@@ -116,16 +106,16 @@
     <PackageReference Include="System.ValueTuple" Version="4.5.0" />
     <PackageReference Include="XunitXml.TestLogger" Version="2.1.26" />
   </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net452' ">
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net462' Or '$(TargetFramework)' == 'net472' Or '$(TargetFramework)' == 'net481' ">
     <Reference Include="System.Data" />
     <Reference Include="System.Numerics" />
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.0' Or '$(TargetFramework)' == 'netcoreapp2.1' Or '$(TargetFramework)' == 'netcoreapp3.1'">
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net6' Or '$(TargetFramework)' == 'net7' Or '$(TargetFramework)' == 'net8'">
     <PackageReference Include="System.Net.NameResolution" Version="4.3.0" />
   </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net452' Or '$(TargetFramework)' == 'net462' Or '$(TargetFramework)' == 'net472' Or '$(TargetFramework)' == 'net48' ">
-    <PackageReference Include="JetBrains.DotMemoryUnit" Version="2.3.20160517.113140" />
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net462' Or '$(TargetFramework)' == 'net472' Or '$(TargetFramework)' == 'net481' ">
+    <PackageReference Include="JetBrains.DotMemoryUnit" Version="3.2.20220510" />
     <Reference Include="System" />
   </ItemGroup>
   <ItemGroup>
