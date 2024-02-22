@@ -64,16 +64,17 @@ To avoid parsing the statement, the **span name** in this implementation has the
 
 This implementation will include, by default, the **required** attributes for Database, and Cassandra spans.\
 `server.address` and `server.port`, despite only **recommended**, are included to give information regarding the client connection.\
-`db.statement` is optional given that this attribute may contain sensitive information:
+`db.statement` is optional given that this attribute may contain sensitive information.
 
-| Attribute  | Description  | Type | Required | Supported Values|
-|---|---|---|---|---|
-| span.kind | Describes the relationship between the Span, its parents, and its children in a Trace. | string | true | client |
-| db.system | An identifier for the database management system (DBMS) product being used. | string | true | cassandra |
-| db.name | The keyspace name in Cassandra. | string | true | *keyspace in use* |
-| db.statement | The database statement being executed. | string | false | *database statement in use* |
-| server.address | Name of the database host. | string | true | e.g.: example.com; 10.1.2.80; /tmp/my.sock |
-| server.port | Server port number. Used in case the port being used is not the default. | int | false | e.g.: 9445 |
+| Attribute  | Description  | Type | Level | Required | Supported Values|
+|---|---|---|---|---|---|
+| span.kind | Describes the relationship between the Span, its parents, and its children in a Trace. | string | - | true | client |
+| db.system | An identifier for the database management system (DBMS) product being used. | string | Connection | true | cassandra |
+| db.name | The keyspace name in Cassandra. | string | Call | true | *keyspace in use* |
+| db.operation | The name of the operation being executed. | string | Call | true if `db.statement` is not applicable. | operation name or method name (eg.: ExecuteAsync()) |
+| db.statement | The database statement being executed. | string | Call | false | *database statement in use* |
+| server.address | Name of the database host. | string | Connection | true | e.g.: example.com; 10.1.2.80; /tmp/my.sock |
+| server.port | Server port number. Used in case the port being used is not the default. | int | Connection | false | e.g.: 9445 |
 
 ## Usage
 
@@ -124,9 +125,12 @@ using var tracerProvider = Sdk.CreateTracerProviderBuilder()
 ### Dependencies and target frameworks
 
 Similar to the existent metrics feature, this functionality will include a project named `Cassandra.OpenTelemetry` that will extend the core `Cassandra` project and will handle the spans'generation.\
-`Cassandra.OpenTelemetry` has a single dependency from the package `System.Diagnostics.DiagnosticSource` which has the lowest non-deprecated version as [`6.0.1`](https://www.nuget.org/packages/System.Diagnostics.DiagnosticSource/6.0.1#dependencies-body-tab). Using this version it is possible to target the same .NET frameworks as the `Cassandra.AppMetrics` project which are `netstandard2.0;net461`.
+`Cassandra.OpenTelemetry` has dependencies from the following packages:
 
-**Note:** There is an alternative that uses `OpenTelemetry.Api` package to avoid code duplication, but that implies changing the minimal target framework from `net461` to `net462`. Such alternative and its drawbacks are mentioned in the section [*Rationale and Alternatives*](#rationale-and-alternatives).
+- `System.Diagnostics.DiagnosticSource`, version [`8.0.0`](https://www.nuget.org/packages/System.Diagnostics.DiagnosticSource/8.0.0#dependencies-body-tab), for activity generation;
+- `OpenTelemetry.Api` package, version [`1.7.0`](https://www.nuget.org/packages/OpenTelemetry.Api/1.7.0), that is used to [record exceptions as activity events](https://github.com/open-telemetry/opentelemetry-dotnet/blob/main/docs/trace/reporting-exceptions/README.md#option-4---use-activityrecordexception) using the most recent industry standards;
+
+With these two package dependencies, the `Cassandra.OpenTelemetry` can target `net462`, `netstandard2.0`, `net6.0`, and `net8.0`.
 
 ### Extension methods
 
@@ -358,13 +362,6 @@ The observer interfaces pose a possibility of disaggregation in a future version
 
 # Rationale and alternatives
 [rationale-and-alternatives]: #rationale-and-alternatives
-
-## Using OpenTelemetry.Api package
-[using-opentelemetry-api-package]: #using-opentelemetry-api-package
-
-The OpenTelemetry repository for .NET describes [how to report Exceptions](https://github.com/open-telemetry/opentelemetry-dotnet/blob/main/docs/trace/reporting-exceptions/README.md) in a trace. The [option 4](https://github.com/open-telemetry/opentelemetry-dotnet/blob/main/docs/trace/reporting-exceptions/README.md#option-4---use-activityrecordexception) mentioned in the document is the preferred approach in the industry on how to record exceptions. It includes the method `RecordException()` that is available in the project `OpenTelemetry.Api` which, since version [`1.3.0`](https://www.nuget.org/packages/OpenTelemetry.Api/1.3.0), only supports the minimal version of `4.6.2` for .NET framework. Using this package in the most recent versions will imply the loss of support for .NET Framework `4.6.1`.
-
-The method [`RecordException()`](https://github.com/open-telemetry/opentelemetry-dotnet/blob/main/src/OpenTelemetry.Api/Trace/ActivityExtensions.cs#L81) is simple enough to be replicated and can be included in the `Cassandra.OpenTelemetry` project. As a downside, that means the Cassandra project will need to keep up with the best practices on how to report exceptions for tracing, and will include code duplication. As an upside, it is possible to target .NET Framework `4.6.1`, and the reference to `OpenTelemetry.Api` is not needed which also allows the Cassandra project to not have a possible deprecated dependency depending on the evolution of reference package.
 
 ## Using OpenTelemetry.SemanticConventions package
 
