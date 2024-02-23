@@ -130,7 +130,7 @@ Similar to the existent metrics feature, this functionality will include a proje
 - `System.Diagnostics.DiagnosticSource`, version [`8.0.0`](https://www.nuget.org/packages/System.Diagnostics.DiagnosticSource/8.0.0#dependencies-body-tab), for activity generation;
 - `OpenTelemetry.Api` package, version [`1.7.0`](https://www.nuget.org/packages/OpenTelemetry.Api/1.7.0), that is used to [record exceptions as activity events](https://github.com/open-telemetry/opentelemetry-dotnet/blob/main/docs/trace/reporting-exceptions/README.md#option-4---use-activityrecordexception) using the most recent industry standards;
 
-With these two package dependencies, the `Cassandra.OpenTelemetry` can target `net462`, `netstandard2.0`, `net6.0`, and `net8.0`.
+With these two package dependencies, the `Cassandra.OpenTelemetry` can target `netstandard2.0`.
 
 ### Extension methods
 
@@ -235,21 +235,7 @@ internal Configuration(...)
 
 As it is necessary to have multiple observers being triggered on driver's actions, this proposal includes a composite pattern that will aggregate multiple observer instances for that work.
 
-The new composite classes will implement the interfaces `IConnectionObserver`, `IObserverFactory`, `IObserverFactoryBuilder`, `IOperationObserver`, `IRequestObserver`, as shown below:
-
-```csharp
-internal class CompositeConnectionObserver : IConnectionObserver
-{
-    private readonly IEnumerable<IConnectionObserver> observers;
-
-    public CompositeConnectionObserver(IEnumerable<IConnectionObserver> observers)
-    {
-        this.observers = observers;
-    }
-
-    (...)
-}
-```
+The new composite classes will implement the interfaces`IObserverFactory`, `IObserverFactoryBuilder`, `IRequestObserver`, as shown below:
 
 ```csharp
 internal class CompositeObserverFactory : IObserverFactory
@@ -273,20 +259,6 @@ internal class CompositeObserverFactoryBuilder : IObserverFactoryBuilder
     public CompositeObserverFactoryBuilder(params IObserverFactoryBuilder[] builders)
     {
         this.builders = builders;
-    }
-    
-    (...)
-}
-```
-
-```csharp
-internal class CompositeOperationObserver : IOperationObserver
-{
-    private readonly IEnumerable<IOperationObserver> observers;
-
-    public CompositeOperationObserver(IEnumerable<IOperationObserver> observers)
-    {
-        this.observers = observers;
     }
     
     (...)
