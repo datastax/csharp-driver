@@ -70,15 +70,17 @@ This implementation will include, by default, the **required** attributes for Da
 |---|---|---|---|---|---|
 | span.kind | Describes the relationship between the Span, its parents, and its children in a Trace. | string | - | true | client |
 | db.system | An identifier for the database management system (DBMS) product being used. | string | Connection | true | cassandra |
-| db.name | The keyspace name in Cassandra. | string | Call | true if available [1] | *keyspace in use* |
-| db.operation | The name of the operation being executed. | string | Call | true if `db.statement` is not applicable. | method name at session level(eg.: ExecuteAsync()) |
-| db.statement | The database statement being executed. | string | Call | false | *database statement in use* [2] |
+| db.name | The keyspace name in Cassandra. | string | Call | conditionally true [1] | *keyspace in use* |
+| db.operation | The name of the operation being executed. | string | Call | true if `db.statement` is not applicable. [2] | method name at session level(eg.: ExecuteAsync()) |
+| db.statement | The database statement being executed. | string | Call | false | *database statement in use* [3] |
 | server.address | Name of the database host. | string | Connection | true | e.g.: example.com; 10.1.2.80; /tmp/my.sock |
 | server.port | Server port number. Used in case the port being used is not the default. | int | Connection | false | e.g.: 9445 |
 
 **[1]:** There are cases where the driver doesn't know about the Keyspace name. If the developer doesn't specify a default Keyspace in the builder, or doesn't run a USE Keyspace statement manually, then the driver won't know about the Keyspace because it doesn't parse statements. If the Keyspace name is not known, the `db.name` attribute is not included.
 
-**[2]:** The statement value is the query string and does not include any query values. As an example, having a query that as the string `SELECT * FROM table WHERE x = ?` with `x` parameter of `123`, the attribute value of `db.statement` will be `SELECT * FROM table WHERE x = ?` and not `SELECT * FROM table WHERE x = 123`.
+**[2]:** Despite not being required, this implementation sets the `db.operation` attribute even if `db.statement` is included.
+
+**[3]:** The statement value is the query string and does not include any query values. As an example, having a query that as the string `SELECT * FROM table WHERE x = ?` with `x` parameter of `123`, the attribute value of `db.statement` will be `SELECT * FROM table WHERE x = ?` and not `SELECT * FROM table WHERE x = 123`.
 
 ## Usage
 
