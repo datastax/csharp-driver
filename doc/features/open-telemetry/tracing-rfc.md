@@ -58,7 +58,7 @@ The specification also (and only) specifies the span name for SQL databases:\
 `<db.operation> <db.name>.<db.sql.table>`, provided that `db.operation` and `db.sql.table` are available. If `db.sql.table` is not available due to its semantics, the span SHOULD be named `<db.operation> <db.name>`. It is not recommended to attempt any client-side parsing of `db.statement` just to get these properties,
 they should only be used if the library being instrumented already provides them. When it's otherwise impossible to get any meaningful span name, `db.name` or the tech-specific database name MAY be used."
 
-To avoid parsing the statement, the **span name** in this implementation has the **keyspace name** as its value.
+To avoid parsing the statement, the **span name** in this implementation will be `<db.operation> <db.name>` if the **keyspace name** is available. Otherwise, it will be `<db.operation>`.
 
 ### Span attributes
 
@@ -70,11 +70,15 @@ This implementation will include, by default, the **required** attributes for Da
 |---|---|---|---|---|---|
 | span.kind | Describes the relationship between the Span, its parents, and its children in a Trace. | string | - | true | client |
 | db.system | An identifier for the database management system (DBMS) product being used. | string | Connection | true | cassandra |
-| db.name | The keyspace name in Cassandra. | string | Call | true | *keyspace in use* |
-| db.operation | The name of the operation being executed. | string | Call | true if `db.statement` is not applicable. | operation name or method name (eg.: ExecuteAsync()) |
-| db.statement | The database statement being executed. | string | Call | false | *database statement in use* |
+| db.name | The keyspace name in Cassandra. | string | Call | true if available [1] | *keyspace in use* |
+| db.operation | The name of the operation being executed. | string | Call | true if `db.statement` is not applicable. | method name at session level(eg.: ExecuteAsync()) |
+| db.statement | The database statement being executed. | string | Call | false | *database statement in use* [2] |
 | server.address | Name of the database host. | string | Connection | true | e.g.: example.com; 10.1.2.80; /tmp/my.sock |
 | server.port | Server port number. Used in case the port being used is not the default. | int | Connection | false | e.g.: 9445 |
+
+**[1]:** There are cases where the driver doesn't know about the Keyspace name. If the developer doesn't specify a default Keyspace in the builder, or doesn't run a USE Keyspace statement manually, then the driver won't know about the Keyspace because it doesn't parse statements. If the Keyspace name is not known, the `db.name` attribute is not included.
+
+**[2]:** The statement value is the query string and does not include any query values. As an example, having a query that as the string `SELECT * FROM table WHERE x = ?` with `x` parameter of `123`, the attribute value of `db.statement` will be `SELECT * FROM table WHERE x = ?` and not `SELECT * FROM table WHERE x = 123`.
 
 ## Usage
 
@@ -135,7 +139,7 @@ With these two package dependencies, the `Cassandra.OpenTelemetry` can target `n
 ### Extension methods
 
 The project will include a `Builder` extension method named `AddOpenTelemetryTraceInstrumentation` that will instantiate a new class named `Trace` which will start and populate the `System.Diagnostics.Activity` class that will have the Cassandra telemetry information.
-This new class will implement an `IDriverTrace` interface that will be included in the Cassandra core, which is a similar implementation that already exists in the `Cassandra.AppMetrics` package.
+This new class will implement an `IRequestTracker` interface that will be included in the Cassandra core, which is a similar implementation that already exists in the `Cassandra.AppMetrics` package.
 
 ## Cassandra core project
 
@@ -151,14 +155,35 @@ internal class TracerObserverFactoryBuilder : IObserverFactoryBuilder
 internal class TracerObserverFactory : IObserverFactory
 ```
 
-When instantiating the factories that will culminate in the creation if the `TracesRequestObserver`, the implementation of `IDriverTrace` will be passed as parameter. This interface will define the following methods:
+When instantiating the factories that will culminate in the creation if the `TracesRequestObserver`, the implementation of `IRequestTracker` will be passed as parameter. This interface will define the following methods:
 
 ```csharp
-public interface IDriverTrace
+public interface IRequestTracker
 {
-    void OnStart(IStatement statement);
+    // returned value is a context object that will be provided to the other methods
+    Task<object> OnStartAsync(RequestTrackingInfo request);
 
-    void OnError(Exception ex);
+    Task OnSuccessAsync(RequestTrackingInfo request, object context);
+
+    Task OnErrorAsync(RequestTrackingInfo request, Exception ex, object context);
+
+    Task OnNodeSuccessAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo, object context);
+
+    Task OnNodeErrorAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo, Exception ex, object context);
+}
+```
+
+Also, two structs with contextual information will be created:
+
+```csharp
+public struct RequestTrackingInfo
+{
+    public IStatement Statement { get; }
+}
+
+public struct HostTrackingInfo 
+{
+    public Host Host { get; }
 }
 ```
 
@@ -190,12 +215,12 @@ public void OnSpeculativeExecution(Host host, long delay)
 
 ### Public API
 
-The `Builder` will include a new method named `WithTracer` that will include an `IDriverTrace` instance being passed as parameter. This method can be used by anyone to pass their tracer implementation and will be used by the extension method `AddOpenTelemetryTraceInstrumentation()` mentioned in the previous section.
+The `Builder` will include a new method named `WithRequestTracker` that will include an `IRequestTracker` instance being passed as parameter. This method can be used by anyone to pass their tracking implementation and will be used by the extension method `AddOpenTelemetryTraceInstrumentation()` mentioned in the previous section.
 
 ```csharp
-public Builder WithTracer(IDriverTrace trace)
+public Builder WithRequestTracker(IRequestTracker trace)
 {
-    _driverTracer = trace;
+    _requestTracker = trace;
     return this;
 }
 ```
@@ -354,11 +379,6 @@ Cassandra also has client-side implementations in other languages in the form of
 - [Java](https://github.com/open-telemetry/opentelemetry-java-instrumentation/tree/main/instrumentation/cassandra) (Community contribution)
 - [NodeJS](https://github.com/open-telemetry/opentelemetry-js-contrib/tree/main/plugins/node/opentelemetry-instrumentation-cassandra) (Community contribution)
 - [Python](https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation/opentelemetry-instrumentation-cassandra) (Community contribution)
-
-# Unresolved questions
-[unresolved-questions]: #unresolved-questions
-
-- The `IStatement` interface includes a property named [`IsTracing`](https://github.com/datastax/csharp-driver/blob/master/src/Cassandra/IStatement.cs#L53) which may be confusing with the OpenTelemetry nomenclature. Should we change part of the naming proposed in this document?
 
 # Future possibilities
 [future-possibilities]: #future-possibilities
