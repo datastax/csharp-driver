@@ -413,18 +413,28 @@ pipeline {
           }
           axis {
             name 'DOTNET_VERSION'
-            values 'mono', 'netcoreapp3.1'
+            values 'mono', 'net8', 'net6'
           }
         }
         excludes {
           exclude {
             axis {
               name 'DOTNET_VERSION'
-              values 'mono'
+              values 'mono', 'net6'
             }
             axis {
               name 'SERVER_VERSION'
               values '2.2', '3.0', 'dse-5.1.35', 'dse-6.8.30'
+            }
+          }
+          exclude {
+            axis {
+              name 'DOTNET_VERSION'
+              values 'net6'
+            }
+            axis {
+              name 'SERVER_VERSION'
+              values 'dse-6.7.17', '3.11'
             }
           }
         }
