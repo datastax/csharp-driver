@@ -6,7 +6,7 @@ cache:
   - C:\ProgramData\chocolatey\lib -> .\build\appveyor_install.ps1
   - C:\Users\appveyor\.ccm\repository -> .\build\appveyor_install.ps1
   - C:\Users\appveyor\deps -> .\build\appveyor_install.ps1
-image: Visual Studio 2019
+image: Visual Studio 2022
 environment:
   #APPVEYOR_RDP_PASSWORD: Yy64rr9aB6IW
   NUNIT_PATH: nunit3-console
@@ -16,10 +16,16 @@ environment:
     - TARGET: net462
       CI_TYPE: UNIT
       PROJECT: Cassandra.Tests
-    - TARGET: net452
+    - TARGET: net472
       CI_TYPE: UNIT
       PROJECT: Cassandra.Tests
-    - TARGET: netcoreapp3.1
+    - TARGET: net481
+      CI_TYPE: UNIT
+      PROJECT: Cassandra.Tests
+    - TARGET: net6
+      CI_TYPE: UNIT
+      PROJECT: Cassandra.Tests
+    - TARGET: net8
       CI_TYPE: UNIT
       PROJECT: Cassandra.Tests
     - TARGET: net472
@@ -30,15 +36,11 @@ environment:
       CASSANDRA_VERSION: 3.11.6
       CI_TYPE: INTEGRATION_FULL
       PROJECT: Cassandra.IntegrationTests
-    - TARGET: netcoreapp3.1
+    - TARGET: net8
       CASSANDRA_VERSION: 3.11.6
       CI_TYPE: INTEGRATION
       PROJECT: Cassandra.IntegrationTests
-    - TARGET: net452
-      CASSANDRA_VERSION: 2.2.7
-      CI_TYPE: INTEGRATION
-      PROJECT: Cassandra.IntegrationTests
-    - TARGET: net48
+    - TARGET: net481
       CASSANDRA_VERSION: 3.11.6
       CI_TYPE: INTEGRATION
       PROJECT: Cassandra.IntegrationTests
