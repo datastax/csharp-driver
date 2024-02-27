@@ -200,7 +200,7 @@ def buildDriver() {
       sh label: 'Build the driver for mono', script: '''#!/bin/bash -le
         export BuildMonoOnly=True
         export RunCodeAnalyzers=False
-        export MSBuildSDKsPath=/opt/dotnet/sdk/$(dotnet --version)/Sdks
+        export MSBuildSDKsPath=/home/jenkins/dotnetcli/sdk/$(dotnet --version)/Sdks
         msbuild /t:restore /v:m /p:RestoreDisableParallel=true src/Cassandra.sln || true
         msbuild /t:restore /v:m /p:RestoreDisableParallel=true src/Cassandra.sln
         msbuild /p:Configuration=Release /v:m /p:RestoreDisableParallel=true /p:DynamicConstants=LINUX src/Cassandra.sln || true
