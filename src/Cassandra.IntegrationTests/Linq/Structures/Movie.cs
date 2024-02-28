@@ -22,6 +22,8 @@ using Cassandra.IntegrationTests.SimulacronAPI;
 using Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.Then;
 using Cassandra.IntegrationTests.TestBase;
 using NUnit.Framework;
+using NUnit.Framework.Internal;
+
 #pragma warning disable 618
 
 namespace Cassandra.IntegrationTests.Linq.Structures
@@ -86,12 +88,17 @@ namespace Cassandra.IntegrationTests.Linq.Structures
         {
             foreach (var expectedMovie in expectedMovies)
             {
-                try
+                using (new TestExecutionContext.IsolatedContext())
                 {
-                    AssertEquals(actualMovie, expectedMovie);
-                    return true;
+                    try
+                    {
+                        AssertEquals(actualMovie, expectedMovie);
+                        return true;
+                    }
+                    catch (AssertionException)
+                    {
+                    }
                 }
-                catch (AssertionException) { }
             }
             return false;
         }

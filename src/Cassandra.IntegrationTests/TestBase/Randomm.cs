@@ -58,6 +58,10 @@ namespace Cassandra.IntegrationTests.TestBase
             return _r.Next(maxValue);
         }
 
+        public double NextDouble()
+        {
+            return _r.NextDouble();
+        }
 
         public float NextSingle()
         {
@@ -129,6 +133,11 @@ namespace Cassandra.IntegrationTests.TestBase
             var btarr = new byte[NextUInt16()];
             _r.NextBytes(btarr);
             return btarr;
+        }
+
+        public void NextBytes(byte[] buffer)
+        {
+            _r.NextBytes(buffer);
         }
 
         public System.Net.IPAddress NextIPAddress()
