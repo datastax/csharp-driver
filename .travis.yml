@@ -12,7 +12,7 @@ branches:
 
 matrix:
   include:
-    - dotnet: 8.0.201
+    - dotnet: 8.0.200
       env: TARGETF="net8" BUILD_EXAMPLES="1" BuildCoreOnly=True CASSANDRA_NETCORE_RUNTIME="8" RunCodeAnalyzers="True"
     - dotnet: 6.0.419
       env: TARGETF="net6" BUILD_EXAMPLES="0" BuildCoreOnly=True CASSANDRA_NETCORE_RUNTIME="6" RunCodeAnalyzers="True"
