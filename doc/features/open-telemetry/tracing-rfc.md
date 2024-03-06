@@ -89,6 +89,7 @@ This implementation will include, by default, the **required** attributes for Da
 The OpenTelemetry implementation will be included in the package `CassandraCSharpDriver.OpenTelemetry`.
 
 ### Exporting Cassandra activity
+[exporting-cassandra-activity]: #exporting-cassandra-activity
 
 The extension method `AddOpenTelemetryTraceInstrumentation()` will be available in the cluster builder, so the activity can be exported for database operations:
 
@@ -106,7 +107,7 @@ The extension method also includes the option to enable the database statement t
 var cluster = Cluster.Builder()
     .AddContactPoint("127.0.0.1")
     .WithSessionName("session-name")
-    .AddOpenTelemetryTraceInstrumentation(options => options.SetDbStatement = true)
+    .AddOpenTelemetryTraceInstrumentation(options => options.IncludeDatabaseStatement = true)
     .Build();
 ```
 
@@ -140,14 +141,94 @@ With these two package dependencies, the `Cassandra.OpenTelemetry` can target `n
 
 ### Extension methods
 
-The project will include a `Builder` extension method named `AddOpenTelemetryTraceInstrumentation` that will instantiate a new class named `Trace` which will start and populate the `System.Diagnostics.Activity` class that will have the Cassandra telemetry information.
-This new class will implement an `IRequestTracker` interface that will be included in the Cassandra core, which is a similar implementation that already exists in the `Cassandra.AppMetrics` package.
+The project will include a `Builder` extension method named `AddOpenTelemetryTraceInstrumentation` that will instantiate a new class named `Trace` which will start, populate, and dispose the `System.Diagnostics.Activity` class that will have the Cassandra telemetry information.
+This new class will implement an `IRequestTracker` interface that will be included in the Cassandra core to track request activity:
+
+```csharp
+public interface IRequestTracker
+{
+    Task OnStartAsync(RequestTrackingInfo request);
+
+    Task OnSuccessAsync(RequestTrackingInfo request);
+
+    Task OnErrorAsync(RequestTrackingInfo request, Exception ex);
+
+    Task OnNodeSuccessAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo);
+
+    Task OnNodeErrorAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo, Exception ex);
+}
+```
+
+Also, a new class, and struct with contextual information will be created:
+
+```csharp
+public class RequestTrackingInfo
+    {
+        public RequestTrackingInfo()
+        {
+            this.Items = new ConcurrentDictionary<string, object>();
+        }
+
+        public ConcurrentDictionary<string, object> Items { get; }
+
+        public IStatement Statement { get; set;  }
+    }
+
+public struct HostTrackingInfo 
+{
+    public Host Host { get; }
+}
+```
+
+The `Trace` class, that implements `IRequesTracker`, will add and extract activity using the `Items` property, so the activity can be created and disposed for each request:
+
+```csharp
+private static readonly string otelActivityKey = "otel_activity";
+
+public Task OnStartAsync(RequestTrackingInfo request)
+{
+    (...)
+
+    var activity = ActivitySource.StartActivity("cassandra", ActivityKind.Client);
+
+    request.Items.TryAdd(otelActivityKey, activity);
+
+    (...)
+}
+```
+
+```csharp
+public Task OnSuccessAsync(RequestTrackingInfo request)
+{
+    (...)
+
+    request.Items.TryGetValue(otelActivityKey, out object context);
+
+    if (context is Activity activity)
+    {
+        activity?.Dispose();
+    }
+
+    (...)
+}
+```
+
+### Cassandra instrumentation options
+
+As mentioned in ["exporting cassandra activity"](#exporting-cassandra-activity) section, the builder extension includes a set of instrumentation options that, for now, includes the option to enable the `db.statement` attribute in the trace. The default value is false.
+
+```csharp
+ public class CassandraInstrumentationOptions
+{
+    public bool IncludeDatabaseStatement { get; set; } = false;
+}
+```
 
 ## Cassandra core project
 
 ### Tracer observers
 
-The tracing implementation will use the already defined factory interfaces for the creation of observer factories, so the following classes will be created:
+The tracing implementation will use the already defined factory interfaces for the creation of the observer and observer factories, so the following classes will be created:
 
 ```csharp
 internal class TracerObserverFactoryBuilder : IObserverFactoryBuilder
@@ -157,61 +238,16 @@ internal class TracerObserverFactoryBuilder : IObserverFactoryBuilder
 internal class TracerObserverFactory : IObserverFactory
 ```
 
-When instantiating the factories that will culminate in the creation if the `TracesRequestObserver`, the implementation of `IRequestTracker` will be passed as parameter. This interface will define the following methods:
-
-```csharp
-public interface IRequestTracker
-{
-    // returned value is a context object that will be provided to the other methods
-    Task<object> OnStartAsync(RequestTrackingInfo request);
-
-    Task OnSuccessAsync(RequestTrackingInfo request, object context);
-
-    Task OnErrorAsync(RequestTrackingInfo request, Exception ex, object context);
-
-    Task OnNodeSuccessAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo, object context);
-
-    Task OnNodeErrorAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo, Exception ex, object context);
-}
-```
-
-Also, two structs with contextual information will be created:
-
-```csharp
-public struct RequestTrackingInfo
-{
-    public IStatement Statement { get; }
-}
-
-public struct HostTrackingInfo 
-{
-    public Host Host { get; }
-}
-```
-
-and will be used in the `TracesRequestObserver`:
-
 ```csharp
 internal class TracesRequestObserver : IRequestObserver
+```
 
-(...)
+The `TracesRequestObserver` receives an `IRequestTracker` and maps the information from the observer against the tracker, ex.:
 
-public void OnRequestError(Host host, RequestErrorType errorType, RetryDecision.RetryDecisionType decision)
+```csharp
+public void OnRequestFailure(Exception ex, RequestTrackingInfo r)
 {
-}
-
-public void OnRequestFinish(Exception exception)
-{
-    _driverTrace.OnError(exception);
-}
-
-public void OnRequestStart(IStatement statement)
-{
-    _driverTrace.OnStart(statement);
-}
-
-public void OnSpeculativeExecution(Host host, long delay)
-{
+    _requestTracker.OnErrorAsync(r, ex);
 }
 ```
 
@@ -220,9 +256,9 @@ public void OnSpeculativeExecution(Host host, long delay)
 The `Builder` will include a new method named `WithRequestTracker` that will include an `IRequestTracker` instance being passed as parameter. This method can be used by anyone to pass their tracking implementation and will be used by the extension method `AddOpenTelemetryTraceInstrumentation()` mentioned in the previous section.
 
 ```csharp
-public Builder WithRequestTracker(IRequestTracker trace)
+public Builder WithRequestTracker(IRequestTracker requestTracker)
 {
-    _requestTracker = trace;
+    _requestTracker = requestTracker;
     return this;
 }
 ```
@@ -231,17 +267,63 @@ public Builder WithRequestTracker(IRequestTracker trace)
 
 #### IRequestObserver
 
-As the tracer implementation needs information included in `IStatement`, it will be necessary to change the definition of the `IRequestObserver.OnRequestStart()` to include it as a parameter.
+The request observer interface will change, so it can be mapped to the request tracking.
+
+- `OnRequestFinish(Exception exception);` will be split into two new methods, `OnRequestFailure()` and `OnRequestSuccess()` to differentiate between finished failed executions and finished successful executions. These two methods will include a `RequestTrackingInfo` parameter.
+
+- `OnRequestStart()` will include a `RequestTrackingInfo` parameter.
+
+- `OnRequestError(...)` will be renamed to `OnNodeRequestError(...)` to differentiate against the new `OnRequestFailure()`.
 
 ```csharp
 internal interface IRequestObserver
 {
-    (...)
+    void OnSpeculativeExecution(Host host, long delay);
 
-    void OnRequestStart(IStatement statement);
+    void OnNodeRequestError(Host host, RequestErrorType errorType, RetryDecision.RetryDecisionType decision);
 
-    (...)
+    void OnRequestStart(RequestTrackingInfo r);
+
+    void OnRequestFailure(Exception ex, RequestTrackingInfo r);
+
+    void OnRequestSuccess(RequestTrackingInfo r);
 }
+```
+
+#### Cassandra.Requests
+
+The request handler and request result handler will have some changes to propagate request activity and information.
+The `RequestHandler` will instantiate a `RequestTrackingInfo` with the statement information:
+
+```csharp
+public RequestHandler(
+    (...)
+
+    _requestTrackingInfo = new RequestTrackingInfo { Statement = statement };
+    
+    (...)
+)
+```
+
+The `IRequestResultHandler` will have its methods `TrySetResult()` and `TrySetException()` to include `RequestTrackingInfo` as a parameter.
+
+`TcsMetricsRequestResultHandler` will change the implementation, according to the interface, and will also receive `RequestTrackingInfo` instance in the constructor, so it can be passed to the updated method `IRequestObserver.OnRequestStart(RequestTrackingInfo)`:
+
+```csharp
+public TcsMetricsRequestResultHandler(
+    IRequestObserver requestObserver,
+    RequestTrackingInfo requestTrackingInfo)
+{
+    _requestObserver = requestObserver;
+    _taskCompletionSource = new TaskCompletionSource<RowSet>();
+    _requestObserver.OnRequestStart(requestTrackingInfo);
+}
+```
+
+Concluding, `RequestHandler` will have start passing `_requestTrackingInfo` as argument to request handler calls, e.g.:
+
+```csharp
+_requestResultHandler.TrySetResult(result, _requestTrackingInfo);
 ```
 
 #### Composite observers and factories
@@ -306,14 +388,14 @@ internal class CompositeRequestObserver : IRequestObserver
 }
 ```
 
-This composite classes, when called, will iterate through all the observer instances being passed in the constructors and will call the method of their respective observer. As an example, the method `IRequestObserver.OnRequestFinish(Exception exception)` will look like this:
+This composite classes, when called, will iterate through all the observer instances being passed in the constructors and will call the method of their respective observer. As an example, the method `IRequestObserver.OnRequestSuccess(RequestTrackingInfo r)` will look like this:
 
 ```csharp
-public void OnRequestFinish(Exception exception)
+public void OnRequestSuccess(RequestTrackingInfo r)
 {
     foreach (var observer in this.observers)
     {
-        observer.OnRequestFinish(exception);
+        observer.OnRequestSuccess(r);
     }
 }
 ```
@@ -339,16 +421,6 @@ public IObserverFactory Build(IMetricsManager manager)
     return this.isEnabled ? new MetricsObserverFactory(manager) : NullObserverFactory.Instance;
 }
 
-```
-
-#### Cassandra.Requests
-
-`TcsMetricsRequestResultHandler` now receives `IStatement` as a constructor parameter, so it can be passed to the updated `IRequestObserver.OnRequestStart(IStatement statement)`.
-
-As so, the instantiation of the `IRequestResultHandler` in `RequestHandler` class will also change to include the statement as parameter_
-
-```csharp
-_requestResultHandler = new TcsMetricsRequestResultHandler(_requestObserver, statement);
 ```
 
 # Drawbacks
