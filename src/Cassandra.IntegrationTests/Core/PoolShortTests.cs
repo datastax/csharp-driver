@@ -19,6 +19,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Security.Authentication;
 using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.SessionManagement;
@@ -236,7 +237,7 @@ namespace Cassandra.IntegrationTests.Core
 
                 using (var cluster = ClusterBuilder()
                                             .AddContactPoint(testCluster.InitialContactPoint)
-                                            .WithSSL(new SSLOptions().SetRemoteCertValidationCallback((a, b, c, d) => true))
+                                            .WithSSL(new SSLOptions(SslProtocols.Tls12, false, (a, b, c, d) => true))
                                             .Build())
                 {
                     Assert.DoesNotThrow(() =>
