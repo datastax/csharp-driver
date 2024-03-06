@@ -86,10 +86,7 @@ def initializeEnvironment() {
       gci env:* | sort-object name
     '''
   } else {
-    sh label: 'Copy SSL files', script: '''#!/bin/bash -le
-      cp -r ${HOME}/ccm/ssl $HOME/ssl
-    '''
-
+    
     sh label: 'Download Apache Cassandra&reg; or DataStax Enterprise', script: '''#!/bin/bash -le
       . ${CCM_ENVIRONMENT_SHELL} ${SERVER_VERSION}
 
@@ -420,7 +417,7 @@ pipeline {
           exclude {
             axis {
               name 'DOTNET_VERSION'
-              values 'mono', 'net6'
+              values 'mono', 'net8'
             }
             axis {
               name 'SERVER_VERSION'
@@ -430,7 +427,7 @@ pipeline {
           exclude {
             axis {
               name 'DOTNET_VERSION'
-              values 'net6'
+              values 'net8'
             }
             axis {
               name 'SERVER_VERSION'

@@ -397,7 +397,7 @@ pipeline {
 
   environment {
     DOTNET_CLI_TELEMETRY_OPTOUT = '1'
-    SERVER_VERSION_SNI = 'dse-6.7.17'
+    SERVER_VERSION_SNI = 'dse-6.8.30'
     SERVER_VERSION_SNI_WINDOWS = '3.11'
     SIMULACRON_PATH = '/home/jenkins/simulacron.jar'
     SIMULACRON_PATH_WINDOWS = 'C:\\Users\\Admin\\simulacron.jar'
@@ -462,11 +462,21 @@ pipeline {
           exclude {
             axis {
               name 'DOTNET_VERSION'
-              values 'net7', 'net6'
+              values 'net7', 'net8'
             }
             axis {
               name 'SERVER_VERSION'
               values '2.1', '2.2', '3.0', 'dse-5.1.35', 'dse-6.0.18'
+            }
+          }
+          exclude {
+            axis {
+              name 'DOTNET_VERSION'
+              values 'net7'
+            }
+            axis {
+              name 'SERVER_VERSION'
+              values 'dse-6.7.17'
             }
           }
         }
@@ -683,21 +693,11 @@ pipeline {
           exclude {
             axis {
               name 'DOTNET_VERSION'
-              values 'net6', 'net7'
+              values 'net8', 'net7'
             }
             axis {
               name 'SERVER_VERSION'
-              values '2.1', '2.2', 'dse-6.0.18'
-            }
-          }
-          exclude {
-            axis {
-              name 'DOTNET_VERSION'
-              values 'net6'
-            }
-            axis {
-              name 'SERVER_VERSION'
-              values 'dse-6.7.17', 
+              values '2.1', '2.2', 'dse-6.0.18', 'dse-5.1.35', 
             }
           }
           exclude {
@@ -707,7 +707,7 @@ pipeline {
             }
             axis {
               name 'SERVER_VERSION'
-              values 'dse-5.1.35', '4.0'
+              values '3.11', 'dse-6.7.17'
             }
           }
         }

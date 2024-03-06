@@ -23,9 +23,9 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.When
     {
         public string QueryOrId { get; set; }
 
-        public Dictionary<string, string> ParamTypes { get; set; }
+        public Dictionary<string, string> ParamTypes { get; set; } = new Dictionary<string, string>();
 
-        public Dictionary<string, object> Params { get; set; }
+        public Dictionary<string, object> Params { get; set; } = new Dictionary<string, object>();
 
         public IDictionary<string, object> ToDictionary()
         {
