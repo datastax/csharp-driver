@@ -92,6 +92,24 @@ def initializeEnvironment() {
 
       echo "CASSANDRA_VERSION=${CCM_CASSANDRA_VERSION}" >> ${HOME}/environment.txt
     '''
+
+    sh label: 'Setup custom openssl.cnf due to .NET 5+ TLS changes on Linux', script: '''#!/bin/bash -le
+      cat >> /home/jenkins/openssl.cnf << OPENSSL_EOF
+openssl_conf = default_conf
+
+[default_conf]
+ssl_conf = ssl_sect
+
+[ssl_sect]
+system_default = system_default_sect
+
+[system_default_sect]
+MinProtocol = TLSv1
+CipherString = @SECLEVEL=2:kEECDH:kRSA:kEDH:kPSK:kDHEPSK:kECDHEPSK:-aDSS:-3DES:!DES:!RC4:!RC2:!IDEA:-SEED:!eNULL:!aNULL:!MD5:-SHA384:-CAMELLIA:-ARIA:-AESCCM8
+Ciphersuites = TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:TLS_AES_128_CCM_SHA256
+OPENSSL_EOF
+      echo "OPENSSL_CONF=/home/jenkins/openssl.cnf" >> ${HOME}/environment.txt
+    '''
     
     if (env.SERVER_VERSION.split('-')[0] == 'dse') {
       env.DSE_FIXED_VERSION = env.SERVER_VERSION.split('-')[1]
@@ -259,7 +277,7 @@ def executeTests(perCommitSchedule) {
           set -o allexport
           . ${HOME}/environment.txt
           set +o allexport
-
+export OPENSSL_CONF=/home/jenkins/openssl.cnf
           dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -v n -f ${DOTNET_VERSION} -c Release --filter $DOTNET_TEST_FILTER --logger "xunit;LogFilePath=../../TestResult_xunit.xml"
         '''
       }
