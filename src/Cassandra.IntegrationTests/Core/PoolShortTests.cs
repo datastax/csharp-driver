@@ -238,7 +238,7 @@ namespace Cassandra.IntegrationTests.Core
 #pragma warning disable SYSLIB0039 // Type or member is obsolete
                 using (var cluster = ClusterBuilder()
                                             .AddContactPoint(testCluster.InitialContactPoint)
-                                            .WithSSL(new SSLOptions(SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12 | SslProtocols.Tls13, false, (a, b, c, d) => true))
+                                            .WithSSL(new SSLOptions(SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12, false, (a, b, c, d) => true))
                                             .Build())
                 {
                     Assert.DoesNotThrow(() =>
