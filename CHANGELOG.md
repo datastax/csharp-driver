@@ -1,5 +1,17 @@
 # ChangeLog - DataStax C# Driver
 
+## 3.20.1
+
+2024-03-08
+
+### Bug fixes
+
+*   [[CSHARP-1007](https://datastax-oss.atlassian.net/browse/CSHARP-1007)] Build fails with .NET 7+ when using operators with CqlFunction and Guid (in LINQ statements)
+
+### Other
+
+*   [[CSHARP-1008](https://datastax-oss.atlassian.net/browse/CSHARP-1008)] Exclude target frameworks which are EOL from test projects and add newer ones
+
 ## 3.20.0
 
 2024-01-30
