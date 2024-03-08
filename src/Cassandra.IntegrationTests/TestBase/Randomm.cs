@@ -20,17 +20,20 @@ using System.Reflection;
 
 namespace Cassandra.IntegrationTests.TestBase
 {
-    internal class Randomm : Random
+    internal class Randomm
     {
         [ThreadStatic] private static Randomm _rnd;
+
+        private readonly Random _r;
 
         public static Randomm Instance
         {
             get { return Randomm._rnd ?? (Randomm._rnd = new Randomm(5)); }
         }
 
-        private Randomm(int seed) : base(seed)
+        private Randomm(int seed)
         {
+            _r = new Random(seed);
         }
 
         internal static object RandomVal(Type tp)
@@ -40,9 +43,29 @@ namespace Cassandra.IntegrationTests.TestBase
             return "";
         }
 
+        public int Next()
+        {
+            return _r.Next();
+        }
+
+        public int Next(int minValue, int maxValue)
+        {
+            return _r.Next(minValue, maxValue);
+        }
+
+        public int Next(int maxValue)
+        {
+            return _r.Next(maxValue);
+        }
+
+        public double NextDouble()
+        {
+            return _r.NextDouble();
+        }
+
         public float NextSingle()
         {
-            double numb = NextDouble();
+            double numb = _r.NextDouble();
             numb -= 0.5;
             numb *= 2;
             return float.MaxValue*(float) numb;
@@ -50,7 +73,7 @@ namespace Cassandra.IntegrationTests.TestBase
 
         public UInt16 NextUInt16()
         {
-            return (ushort) Next(0, 65535);
+            return (ushort) _r.Next(0, 65535);
         }
 
         public static int NextInt32()
@@ -61,14 +84,14 @@ namespace Cassandra.IntegrationTests.TestBase
         public Int64 NextInt64()
         {
             var buffer = new byte[sizeof (Int64)];
-            NextBytes(buffer);
+            _r.NextBytes(buffer);
             return BitConverter.ToInt64(buffer, 0);
         }
 
         public decimal NextDecimal()
         {
-            var scale = (byte) Next(29);
-            bool sign = Next(2) == 1;
+            var scale = (byte) _r.Next(29);
+            bool sign = _r.Next(2) == 1;
 
             return new decimal(Randomm.NextInt32(),
                                Randomm.NextInt32(),
@@ -108,13 +131,18 @@ namespace Cassandra.IntegrationTests.TestBase
         public byte[] NextByte()
         {
             var btarr = new byte[NextUInt16()];
-            NextBytes(btarr);
+            _r.NextBytes(btarr);
             return btarr;
+        }
+
+        public void NextBytes(byte[] buffer)
+        {
+            _r.NextBytes(buffer);
         }
 
         public System.Net.IPAddress NextIPAddress()
         {
-            byte[] btarr = new byte[]{(byte)this.Next(0, 128), (byte)this.Next(0, 128), (byte)this.Next(0, 128), (byte)this.Next(0, 128)};
+            byte[] btarr = new byte[]{(byte)this.Next(0, 128), (byte)this._r.Next(0, 128), (byte)this._r.Next(0, 128), (byte)this._r.Next(0, 128)};
             return new System.Net.IPAddress(btarr);
         }
 

@@ -18,6 +18,8 @@ using System;
 using System.Collections.Generic;
 using Cassandra.Data.Linq;
 using NUnit.Framework;
+using NUnit.Framework.Internal;
+
 #pragma warning disable 618
 
 namespace Cassandra.IntegrationTests.CqlFunctions.Structures
@@ -50,12 +52,17 @@ namespace Cassandra.IntegrationTests.CqlFunctions.Structures
         {
             foreach (var expectedEntity in expectedEntities)
             {
-                try
+                using (new TestExecutionContext.IsolatedContext())
                 {
-                    AssertEquals(expectedEntity, actualEntity);
-                    return true;
+                    try
+                    {
+                        AssertEquals(expectedEntity, actualEntity);
+                        return true;
+                    }
+                    catch (AssertionException)
+                    {
+                    }
                 }
-                catch (AssertionException) { }
             }
             return false;
         }

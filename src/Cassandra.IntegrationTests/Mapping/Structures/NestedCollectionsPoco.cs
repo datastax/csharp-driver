@@ -22,6 +22,8 @@ using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
 using NUnit.Framework;
+using NUnit.Framework.Internal;
+
 #pragma warning disable 618
 
 namespace Cassandra.IntegrationTests.Mapping.Structures
@@ -103,12 +105,17 @@ namespace Cassandra.IntegrationTests.Mapping.Structures
         {
             foreach (var expectedEntity in expectedEntities)
             {
-                try
+                using (new TestExecutionContext.IsolatedContext())
                 {
-                    expectedEntity.AssertEquals(actualEntity);
-                    return true;
+                    try
+                    {
+                        expectedEntity.AssertEquals(actualEntity);
+                        return true;
+                    }
+                    catch (AssertionException)
+                    {
+                    }
                 }
-                catch (AssertionException) { }
             }
             return false;
         }

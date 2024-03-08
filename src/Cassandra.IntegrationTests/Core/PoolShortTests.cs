@@ -19,6 +19,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Security.Authentication;
 using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.SessionManagement;
@@ -234,9 +235,10 @@ namespace Cassandra.IntegrationTests.Core
                 //use ssl
                 var testCluster = TestClusterManager.CreateNew(1, new TestClusterOptions { UseSsl = true });
 
+#pragma warning disable SYSLIB0039 // Type or member is obsolete
                 using (var cluster = ClusterBuilder()
                                             .AddContactPoint(testCluster.InitialContactPoint)
-                                            .WithSSL(new SSLOptions().SetRemoteCertValidationCallback((a, b, c, d) => true))
+                                            .WithSSL(new SSLOptions(SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12, false, (a, b, c, d) => true))
                                             .Build())
                 {
                     Assert.DoesNotThrow(() =>
@@ -245,6 +247,7 @@ namespace Cassandra.IntegrationTests.Core
                         TestHelper.Invoke(() => session.Execute("select * from system.local"), 10);
                     });
                 }
+#pragma warning restore SYSLIB0039 // Type or member is obsolete
             }
             finally
             {

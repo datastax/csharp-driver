@@ -94,17 +94,17 @@ In both cases, the `CASSANDRA_VERSION` environment variable determines which ser
 
 ## Building the driver and running tests
 
-DataStax C# drivers support .NET 4.5.2+ and .NET Core 2.1+. To run the code analyzers you need the .NET Core 3.1 SDK.
+DataStax C# drivers target .NET Framework 4.5.2 and .NET Standard 2.0. The test projects target .NET Framework 4.6.2, 4.7.2, 4.8.1 and .NET 6, 7 and 8. To run the code analyzers you need the .NET 8 SDK.
 
 ### Prerequisites
 
-- [.NET Core 3.1 SDK][dotnetcoresdk]
+- [.NET 8 SDK][dotnetsdk]
 
 ### IDE Support
 
-You can build and run tests on Visual Studio 2019+ and JetBrains Rider by opening the solution file `Cassandra.sln` with any of those applications.
+You can build and run tests on Visual Studio 2022+ and JetBrains Rider by opening the solution file `Cassandra.sln` with any of those applications.
 
-To run the code analyzers you need to update these IDEs to a version that supports `.editorconfig` because the code analysis settings are set on that file. In the case of Visual Studio, [you need Visual Studio 2019 16.3+][vs2019analyzers] because previous versions don't support nested `.editorconfig` files and we have a couple of these on the codebase.
+To run the code analyzers you need to update these IDEs to a version that supports `.editorconfig` because the code analysis settings are set on that file. In the case of Visual Studio, old versions don't support nested `.editorconfig` files and we have a couple of these on the codebase.
 
 You can also use Visual Studio Code although the repository doesn't contain the configuration for it.
 
@@ -115,14 +115,14 @@ dotnet restore src
 dotnet build src/Cassandra.sln
 ```
 
-On Windows, the command `dotnet build src/Cassandra.sln` should succeed while on macOS / Linux it may fail due to the lack of support for .NET Framework builds on non-Windows platforms. In these environments you need to specify a .NET Core target framework in order to successfully build the project.
+On Windows, the command `dotnet build src/Cassandra.sln` should succeed while on macOS / Linux it may fail due to the lack of support for .NET Framework builds on non-Windows platforms. In these environments you need to specify a .NET target framework in order to successfully build the project.
 
 You can build specific projects against specific target frameworks on any platform like this:
 
 ```bash
 dotnet build src/Cassandra/Cassandra.csproj -f netstandard2.0
-dotnet build src/Cassandra.Tests/Cassandra.Tests.csproj -f netcoreapp3.1
-dotnet build src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -f netcoreapp3.1
+dotnet build src/Cassandra.Tests/Cassandra.Tests.csproj -f net8
+dotnet build src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -f net8
 ```
 
 Alternatively you can set the `BuildCoreOnly` environment variable which will cause the projects to support .NET Core / .NET Standard targets only (you can see the conditions on the `.csproj` files).
@@ -130,23 +130,22 @@ Alternatively you can set the `BuildCoreOnly` environment variable which will ca
 ### Running Unit Tests
 
 ```bash
-dotnet test src/Cassandra.Tests/Cassandra.Tests.csproj -f netcoreapp3.1
+dotnet test src/Cassandra.Tests/Cassandra.Tests.csproj -f net8
 ```
 
-The target frameworks supported by the test projects are `netcoreapp3.1` and `net462` (by default). If you set the `BuildAllTargets` environment variable, the test projects will support these targets:
+The target frameworks supported by the test projects are `net8` and `net481` (by default). If you set the `BuildAllTargets` environment variable, the test projects will support these targets:
 
-- `net452`
 - `net462`
 - `net472`
-- `net48`
-- `netcoreapp2.0` (not LTS, might be removed at some point)
-- `netcoreapp2.1`
-- `netcoreapp3.1`
+- `net481`
+- `net6` 
+- `net7`(not LTS, might be removed at some point)
+- `net8`
 
 Running the unit tests for a single target should take no more than 5 minutes (usually less):
 
 ```bash
-dotnet test src/Cassandra.Tests/Cassandra.Tests.csproj -c Release -f netcoreapp3.1 -l "console;verbosity=detailed"
+dotnet test src/Cassandra.Tests/Cassandra.Tests.csproj -c Release -f net8 -l "console;verbosity=detailed"
 ```
 
 ### Running Integration Tests
@@ -187,7 +186,7 @@ Integration tests are tagged with one or more categories. You can see the list o
 CCM tests usually take a bit longer to run so if you want a quick validation you might prefer to run the simulacron tests only. You can do this by running the tests that don't have the `realcluster` or `realclusterlong` categories:
 
 ```bash
-dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -c Release -f netcoreapp3.1 --filter "(TestCategory!=realcluster)&(TestCategory!=realclusterlong)" -l "console;verbosity=detailed"
+dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -c Release -f net8 --filter "(TestCategory!=realcluster)&(TestCategory!=realclusterlong)" -l "console;verbosity=detailed"
 ```
 
 This currently takes less than 10 minutes.
@@ -197,7 +196,7 @@ If you get this error: `Simulacron start error: java.net.BindException: Address 
 To run the integration tests suite that the **per commit** schedule builds use on Appveyor and Jenkins, do this:
 
 ```bash
-dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -c Release -f netcoreapp3.1 --filter "(TestCategory!=realclusterlong)" -l "console;verbosity=detailed"
+dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -c Release -f net8 --filter "(TestCategory!=realclusterlong)" -l "console;verbosity=detailed"
 ```
 
 This test suite contains all simulacron tests and most ccm tests. This currently takes less than 30 minutes for Apache Cassandra 3.11.x (which is the current default server version). You can change this by setting the `CASSANDRA_VERSION` environment variable or changing the default value of the `TestClusterManager.CassandraVersionString` property (don't commit this change).
@@ -205,7 +204,7 @@ This test suite contains all simulacron tests and most ccm tests. This currently
 To run all the integration tests (those that run on the **weekly** and **nightly** schedules), don't specify any filter:
 
 ```bash
-dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -c Release -f netcoreapp3.1 -l "console;verbosity=detailed"
+dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -c Release -f net8 -l "console;verbosity=detailed"
 ```
 
 This currently takes less than 45 minutes for Apache Cassandra 3.11.x.

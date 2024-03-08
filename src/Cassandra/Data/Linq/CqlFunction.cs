@@ -175,7 +175,26 @@ namespace Cassandra.Data.Linq
         {
             throw new InvalidOperationException();
         }
-        
+        public static bool operator ==(CqlFunction a, Guid b)
+        {
+            throw new InvalidOperationException();
+        }
+
+        public static bool operator ==(Guid b, CqlFunction a)
+        {
+            throw new InvalidOperationException();
+        }
+
+        public static bool operator !=(CqlFunction a, Guid b)
+        {
+            throw new InvalidOperationException();
+        }
+
+        public static bool operator !=(Guid b, CqlFunction a)
+        {
+            throw new InvalidOperationException();
+        }
+
         public static bool operator <=(CqlFunction a, Guid b)
         {
             throw new InvalidOperationException();

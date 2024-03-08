@@ -86,16 +86,30 @@ def initializeEnvironment() {
       gci env:* | sort-object name
     '''
   } else {
-    sh label: 'Copy SSL files', script: '''#!/bin/bash -le
-      cp -r ${HOME}/ccm/ssl $HOME/ssl
-    '''
-
+    
     sh label: 'Download Apache Cassandra&reg; or DataStax Enterprise', script: '''#!/bin/bash -le
       . ${CCM_ENVIRONMENT_SHELL} ${SERVER_VERSION}
 
       echo "CASSANDRA_VERSION=${CCM_CASSANDRA_VERSION}" >> ${HOME}/environment.txt
     '''
-    
+//https://learn.microsoft.com/en-us/dotnet/core/compatibility/cryptography/5.0/default-cipher-suites-for-tls-on-linux
+    sh label: 'Setup custom openssl.cnf due to .NET 5+ TLS changes on Linux', script: '''#!/bin/bash -le
+      cat >> /home/jenkins/openssl.cnf << OPENSSL_EOF
+openssl_conf = default_conf
+
+[default_conf]
+ssl_conf = ssl_sect
+
+[ssl_sect]
+system_default = system_default_sect
+
+[system_default_sect]
+MinProtocol = TLSv1
+CipherString = @SECLEVEL=2:kEECDH:kRSA:kEDH:kPSK:kDHEPSK:kECDHEPSK:-aDSS:-3DES:!DES:!RC4:!RC2:!IDEA:-SEED:!eNULL:!aNULL:!MD5:-SHA384:-CAMELLIA:-ARIA:-AESCCM8
+Ciphersuites = TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:TLS_AES_128_CCM_SHA256
+OPENSSL_EOF
+      echo "OPENSSL_CONF=/home/jenkins/openssl.cnf" >> ${HOME}/environment.txt
+    '''    
     if (env.SERVER_VERSION.split('-')[0] == 'dse') {
       env.DSE_FIXED_VERSION = env.SERVER_VERSION.split('-')[1]
       sh label: 'Update environment for DataStax Enterprise', script: '''#!/bin/bash -le
@@ -200,7 +214,7 @@ def buildDriver() {
       sh label: 'Build the driver for mono', script: '''#!/bin/bash -le
         export BuildMonoOnly=True
         export RunCodeAnalyzers=False
-        export MSBuildSDKsPath=/opt/dotnet/sdk/$(dotnet --version)/Sdks
+        export MSBuildSDKsPath=/home/jenkins/dotnetcli/sdk/$(dotnet --version)/Sdks
         msbuild /t:restore /v:m /p:RestoreDisableParallel=true src/Cassandra.sln || true
         msbuild /t:restore /v:m /p:RestoreDisableParallel=true src/Cassandra.sln
         msbuild /p:Configuration=Release /v:m /p:RestoreDisableParallel=true /p:DynamicConstants=LINUX src/Cassandra.sln || true
@@ -262,7 +276,7 @@ def executeTests(perCommitSchedule) {
           set -o allexport
           . ${HOME}/environment.txt
           set +o allexport
-
+export OPENSSL_CONF=/home/jenkins/openssl.cnf
           dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -v n -f ${DOTNET_VERSION} -c Release --filter $DOTNET_TEST_FILTER --logger "xunit;LogFilePath=../../TestResult_xunit.xml"
         '''
       }
@@ -413,18 +427,28 @@ pipeline {
           }
           axis {
             name 'DOTNET_VERSION'
-            values 'mono', 'netcoreapp3.1'
+            values 'mono', 'net8', 'net6'
           }
         }
         excludes {
           exclude {
             axis {
               name 'DOTNET_VERSION'
-              values 'mono'
+              values 'mono', 'net8'
             }
             axis {
               name 'SERVER_VERSION'
               values '2.2', '3.0', 'dse-5.1.35', 'dse-6.8.30'
+            }
+          }
+          exclude {
+            axis {
+              name 'DOTNET_VERSION'
+              values 'net8'
+            }
+            axis {
+              name 'SERVER_VERSION'
+              values 'dse-6.7.17', '3.11'
             }
           }
         }
