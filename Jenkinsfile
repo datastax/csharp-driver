@@ -263,6 +263,12 @@ def executeTests(perCommitSchedule) {
           . ${HOME}/environment.txt
           set +o allexport
 
+          # Fix Java version at Java8 for now because of dependencies in DSE.
+          # TODO: This should last us through testing against Cassandra 4.1.x at least but
+          # will eventually need to be made more generic.
+          . ${JABBA_SHELL}
+          jabba use 1.8
+
           mono ./testrunner/NUnit.ConsoleRunner.3.6.1/tools/nunit3-console.exe src/Cassandra.IntegrationTests/bin/Release/net462/Cassandra.IntegrationTests.dll --where "$MONO_TEST_FILTER" --labels=All --result:"TestResult_nunit.xml"
         '''
       }
@@ -276,7 +282,15 @@ def executeTests(perCommitSchedule) {
           set -o allexport
           . ${HOME}/environment.txt
           set +o allexport
-export OPENSSL_CONF=/home/jenkins/openssl.cnf
+
+          # Fix Java version at Java8 for now because of dependencies in DSE.
+          # TODO: This should last us through testing against Cassandra 4.1.x at least but
+          # will eventually need to be made more generic.
+          . ${JABBA_SHELL}
+          jabba use 1.8
+
+          export OPENSSL_CONF=/home/jenkins/openssl.cnf
+          
           dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -v n -f ${DOTNET_VERSION} -c Release --filter $DOTNET_TEST_FILTER --logger "xunit;LogFilePath=../../TestResult_xunit.xml"
         '''
       }
@@ -395,6 +409,7 @@ pipeline {
     SIMULACRON_PATH_WINDOWS = 'C:\\Users\\Admin\\simulacron.jar'
     CCM_ENVIRONMENT_SHELL = '/usr/local/bin/ccm_environment.sh'
     CCM_ENVIRONMENT_SHELL_WINDOWS = '/mnt/c/Users/Admin/ccm_environment.sh'
+    JABBA_SHELL = '/usr/lib/jabba/jabba.sh'
     BuildAllTargets = 'True'
     RunCodeAnalyzers = 'True'
   }
