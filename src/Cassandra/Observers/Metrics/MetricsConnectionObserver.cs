@@ -15,11 +15,10 @@
 //
 
 using System;
-
 using Cassandra.Metrics.Registries;
 using Cassandra.Observers.Abstractions;
 
-namespace Cassandra.Observers
+namespace Cassandra.Observers.Metrics
 {
     internal class MetricsConnectionObserver : IConnectionObserver
     {

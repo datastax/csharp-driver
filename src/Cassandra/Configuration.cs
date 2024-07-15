@@ -35,7 +35,9 @@ using Cassandra.Metrics;
 using Cassandra.Metrics.Abstractions;
 using Cassandra.Metrics.Providers.Null;
 using Cassandra.Observers;
-using Cassandra.OpenTelemetry;
+using Cassandra.Observers.Composite;
+using Cassandra.Observers.Metrics;
+using Cassandra.Observers.RequestTracker;
 using Cassandra.ProtocolEvents;
 using Cassandra.Requests;
 using Cassandra.Serialization;
@@ -393,7 +395,7 @@ namespace Cassandra
             
             ObserverFactoryBuilder = new CompositeObserverFactoryBuilder(
                 new MetricsObserverFactoryBuilder(MetricsEnabled),
-                new TracerObserverFactoryBuilder(requestTracker));
+                new RequestTrackerObserverFactoryBuilder(requestTracker));
 
             RequestHandlerFactory = requestHandlerFactory ?? new RequestHandlerFactory();
             HostConnectionPoolFactory = hostConnectionPoolFactory ?? new HostConnectionPoolFactory();

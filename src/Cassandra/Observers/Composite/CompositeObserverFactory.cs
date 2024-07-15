@@ -14,24 +14,30 @@
 //   limitations under the License.
 //
 
-using Cassandra.Metrics.Internal;
-using Cassandra.Observers;
+using System.Collections.Generic;
+using System.Linq;
 using Cassandra.Observers.Abstractions;
+using Cassandra.Observers.Null;
 
-namespace Cassandra.OpenTelemetry
+namespace Cassandra.Observers.Composite
 {
-    internal class TracerObserverFactoryBuilder : IObserverFactoryBuilder
+    internal class CompositeObserverFactory : IObserverFactory
     {
-        private readonly IRequestTracker tracer;
+        private readonly IEnumerable<IObserverFactory> factories;
 
-        public TracerObserverFactoryBuilder(IRequestTracker tracer)
+        public CompositeObserverFactory(IEnumerable<IObserverFactory> factories)
         {
-            this.tracer = tracer;
+            this.factories = factories;
+        }
+        public IConnectionObserver CreateConnectionObserver(Host host)
+        {
+            return NullConnectionObserver.Instance;
         }
 
-        public IObserverFactory Build(IMetricsManager manager)
+        public IRequestObserver CreateRequestObserver()
         {
-            return this.tracer != null ? new TracerObserverFactory(this.tracer) : NullObserverFactory.Instance;
+            return new CompositeRequestObserver(
+                factories.Select(x => x.CreateRequestObserver()));
         }
     }
 }

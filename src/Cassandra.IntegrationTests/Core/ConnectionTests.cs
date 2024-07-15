@@ -30,7 +30,7 @@ using Cassandra.Connections;
 using Cassandra.IntegrationTests.SimulacronAPI.Models.Logs;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
-using Cassandra.Observers;
+using Cassandra.Observers.Null;
 using Cassandra.Tasks;
 using Cassandra.Tests;
 using Cassandra.Requests;

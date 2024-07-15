@@ -1,4 +1,4 @@
-﻿//
+//
 //      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,29 +14,34 @@
 //   limitations under the License.
 //
 
-using System.Collections.Generic;
-using System.Linq;
+using System;
 using Cassandra.Observers.Abstractions;
 
-namespace Cassandra.Observers
+namespace Cassandra.Observers.Null
 {
-    internal class CompositeObserverFactory : IObserverFactory
+    internal class NullConnectionObserver : IConnectionObserver
     {
-        private readonly IEnumerable<IObserverFactory> factories;
+        public static readonly IConnectionObserver Instance = new NullConnectionObserver();
 
-        public CompositeObserverFactory(IEnumerable<IObserverFactory> factories)
+        private NullConnectionObserver()
         {
-            this.factories = factories;
-        }
-        public IConnectionObserver CreateConnectionObserver(Host host)
-        {
-            return NullConnectionObserver.Instance;
         }
 
-        public IRequestObserver CreateRequestObserver()
+        public void OnBytesSent(long size)
         {
-            return new CompositeRequestObserver(
-                this.factories.Select(x => x.CreateRequestObserver()));
+        }
+
+        public void OnBytesReceived(long size)
+        {
+        }
+
+        public void OnErrorOnOpen(Exception exception)
+        {
+        }
+
+        public IOperationObserver CreateOperationObserver()
+        {
+            return NullOperationObserver.Instance;
         }
     }
 }

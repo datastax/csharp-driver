@@ -23,7 +23,7 @@ using Cassandra.Metrics.Registries;
 using Cassandra.Observers.Abstractions;
 using Cassandra.Requests;
 
-namespace Cassandra.Observers
+namespace Cassandra.Observers.Metrics
 {
     internal class MetricsRequestObserver : IRequestObserver
     {
@@ -149,11 +149,11 @@ namespace Cassandra.Observers
                 var startTimestamp = Volatile.Read(ref _startTimestamp);
                 if (startTimestamp == 0)
                 {
-                    MetricsRequestObserver.Logger.Warning("Start timestamp wasn't recorded, discarding this measurement.");
+                    Logger.Warning("Start timestamp wasn't recorded, discarding this measurement.");
                     return;
                 }
 
-                _requestTimer.Record((Stopwatch.GetTimestamp() - startTimestamp) * MetricsRequestObserver.Factor);
+                _requestTimer.Record((Stopwatch.GetTimestamp() - startTimestamp) * Factor);
             }
             catch (Exception exception)
             {
@@ -163,7 +163,7 @@ namespace Cassandra.Observers
 
         public void OnRequestSuccess(RequestTrackingInfo r)
         {
-            this.OnRequestFailure(null, r);
+            OnRequestFailure(null, r);
         }
 
         private static void LogError(Exception ex)

@@ -19,7 +19,7 @@ using System.Collections.Generic;
 using System.Net;
 using Cassandra.Connections;
 using Cassandra.ExecutionProfiles;
-using Cassandra.Observers;
+using Cassandra.Observers.Null;
 using Cassandra.Requests;
 using Cassandra.Responses;
 using Cassandra.Serialization;

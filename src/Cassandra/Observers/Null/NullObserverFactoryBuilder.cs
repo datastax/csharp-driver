@@ -17,20 +17,13 @@
 using Cassandra.Metrics.Internal;
 using Cassandra.Observers.Abstractions;
 
-namespace Cassandra.Observers
+namespace Cassandra.Observers.Null
 {
-    internal class MetricsObserverFactoryBuilder : IObserverFactoryBuilder
+    internal class NullObserverFactoryBuilder : IObserverFactoryBuilder
     {
-        private readonly bool isEnabled;
-
-        public MetricsObserverFactoryBuilder(bool isEnabled)
-        {
-            this.isEnabled = isEnabled;
-        }
-
         public IObserverFactory Build(IMetricsManager manager)
         {
-            return this.isEnabled ? new MetricsObserverFactory(manager) : NullObserverFactory.Instance;
+            return new NullObserverFactory();
         }
     }
 }

@@ -57,7 +57,7 @@ namespace Cassandra.OpenTelemetry.Implementation
         /// </summary>
         /// <param name="request">Request contextual information.</param>
         /// <returns>Activity task.</returns>
-        public Task OnStartAsync(RequestTrackingInfo request)
+        public virtual Task OnStartAsync(RequestTrackingInfo request)
         {
             var activityName = !string.IsNullOrEmpty(request.Statement.Keyspace) ? $"{operationName} {request.Statement.Keyspace}" : operationName;
 
@@ -89,7 +89,7 @@ namespace Cassandra.OpenTelemetry.Implementation
         /// </summary>
         /// <param name="request">Request contextual information.</param>
         /// <returns>Completed task.</returns>
-        public Task OnSuccessAsync(RequestTrackingInfo request)
+        public virtual Task OnSuccessAsync(RequestTrackingInfo request)
         {
             request.Items.TryGetValue(otelActivityKey, out object context);
 
@@ -108,7 +108,7 @@ namespace Cassandra.OpenTelemetry.Implementation
         /// <param name="request">Request contextual information.</param>
         /// <param name="ex">Exception information.</param>
         /// <returns>Completed task.</returns>
-        public Task OnErrorAsync(RequestTrackingInfo request, Exception ex)
+        public virtual Task OnErrorAsync(RequestTrackingInfo request, Exception ex)
         {
             request.Items.TryGetValue(otelActivityKey, out object context);
 
@@ -131,7 +131,7 @@ namespace Cassandra.OpenTelemetry.Implementation
         /// <param name="request">Request contextual information.</param>
         /// <param name="hostInfo">Struct with host contextual information.</param>
         /// <returns></returns>
-        public Task OnNodeSuccessAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo)
+        public virtual Task OnNodeSuccessAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo)
         {
             throw new NotImplementedException();
         }
@@ -144,7 +144,7 @@ namespace Cassandra.OpenTelemetry.Implementation
         /// <param name="hostInfo">Struct with host contextual information.</param>
         /// <param name="ex">Exception information.</param>
         /// <returns></returns>
-        public Task OnNodeErrorAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo, Exception ex)
+        public virtual Task OnNodeErrorAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo, Exception ex)
         {
             throw new NotImplementedException();
         }

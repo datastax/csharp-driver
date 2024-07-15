@@ -1,4 +1,4 @@
-﻿//
+//
 //      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,33 +18,30 @@ using System;
 using Cassandra.Observers.Abstractions;
 using Cassandra.Requests;
 
-namespace Cassandra.OpenTelemetry
+namespace Cassandra.Observers.Null
 {
-    internal class TracesRequestObserver : IRequestObserver
+    internal class NullRequestObserver : IRequestObserver
     {
-        private readonly IRequestTracker _requestTracker;
+        public static readonly IRequestObserver Instance = new NullRequestObserver();
 
-        public TracesRequestObserver(IRequestTracker requestTracker)
+        private NullRequestObserver()
         {
-            _requestTracker = requestTracker;
         }
+
         public void OnNodeRequestError(Host host, RequestErrorType errorType, RetryDecision.RetryDecisionType decision)
+        {
+        }
+
+        public void OnRequestFailure(Exception ex, RequestTrackingInfo r)
+        {
+        }
+
+        public void OnRequestStart(RequestTrackingInfo r)
         {
         }
 
         public void OnRequestSuccess(RequestTrackingInfo r)
         {
-            _requestTracker.OnSuccessAsync(r);
-        }
-
-        public void OnRequestFailure(Exception ex, RequestTrackingInfo r)
-        {
-            _requestTracker.OnErrorAsync(r, ex);
-        }
-
-        public void OnRequestStart(RequestTrackingInfo r)
-        {
-            _requestTracker.OnStartAsync(r);
         }
 
         public void OnSpeculativeExecution(Host host, long delay)

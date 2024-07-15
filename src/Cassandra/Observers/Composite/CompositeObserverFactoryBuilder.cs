@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,34 +14,26 @@
 //   limitations under the License.
 //
 
-using System;
+using System.Linq;
+using Cassandra.Metrics.Internal;
 using Cassandra.Observers.Abstractions;
 
-namespace Cassandra.Observers
+namespace Cassandra.Observers.Composite
 {
-    internal class NullConnectionObserver : IConnectionObserver
+    internal class CompositeObserverFactoryBuilder : IObserverFactoryBuilder
     {
-        public static readonly IConnectionObserver Instance = new NullConnectionObserver();
+        private readonly IObserverFactoryBuilder[] builders;
 
-        private NullConnectionObserver()
+        public CompositeObserverFactoryBuilder(params IObserverFactoryBuilder[] builders)
         {
+            this.builders = builders;
         }
 
-        public void OnBytesSent(long size)
+        public IObserverFactory Build(IMetricsManager manager)
         {
-        }
-
-        public void OnBytesReceived(long size)
-        {
-        }
-
-        public void OnErrorOnOpen(Exception exception)
-        {
-        }
-
-        public IOperationObserver CreateOperationObserver()
-        {
-            return NullOperationObserver.Instance;
+            return new CompositeObserverFactory(builders
+                .Select(b => b.Build(manager))
+                .ToArray());
         }
     }
 }
