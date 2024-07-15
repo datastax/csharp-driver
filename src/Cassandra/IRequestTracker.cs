@@ -19,16 +19,48 @@ using System.Threading.Tasks;
 
 namespace Cassandra
 {
+    /// <summary>
+    /// A request tracker with triggerd events for Session and Node lvel requests.
+    /// </summary>
     public interface IRequestTracker
     {
+        /// <summary>
+        /// Triggered when the request starts.
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns>Contextual task.</returns>
         Task OnStartAsync(RequestTrackingInfo request);
 
+        /// <summary>
+        /// Triggered when the session level request finishes successfully.
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns>Contextual task.</returns>
         Task OnSuccessAsync(RequestTrackingInfo request);
 
+        /// <summary>
+        /// Triggered when the session level request finishes unsuccessfully.
+        /// </summary>
+        /// <param name="request">Request contextual information.</param>
+        /// <param name="ex">Request exception.</param>
+        /// <returns>Contextual task.</returns>
         Task OnErrorAsync(RequestTrackingInfo request, Exception ex);
 
+        /// <summary>
+        /// Triggered when the node level request finishes successfully.
+        /// </summary>
+        /// <param name="request">Request contextual information.</param>
+        /// <param name="hostInfo">Struct with host contextual information.</param>
+        /// <returns>Contextual task.</returns>
         Task OnNodeSuccessAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo);
 
+        /// <summary>
+        /// Triggered when the session node request finishes unsuccessfully.
+        /// </summary>
+        /// <param name="request"><see cref="RequestTrackingInfo"/> object with contextual information.</param>
+        /// <param name="hostInfo">Struct with host contextual information.</param>
+        /// <param name="ex">Exception information.</param>
+        /// <returns>Contextual task.</returns>
         Task OnNodeErrorAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo, Exception ex);
     }
 }

@@ -14,10 +14,20 @@
 //    limitations under the License.
 //
 
+using System.Diagnostics;
+using Cassandra.OpenTelemetry.Implementation;
+
 namespace Cassandra.OpenTelemetry
 {
+    /// <summary>
+    /// Instrumentation options that can be used in <see cref="OpenTelemetryRequestTracker"/>.
+    /// </summary>
     public class CassandraInstrumentationOptions
     {
+        /// <summary>
+        /// If true, includes the statement as a tag of the <see cref="Activity"/>.
+        /// Default: false.
+        /// </summary>
         public bool IncludeDatabaseStatement { get; set; } = false;
     }
 }

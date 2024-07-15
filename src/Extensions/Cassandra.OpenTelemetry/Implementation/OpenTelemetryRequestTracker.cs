@@ -28,7 +28,7 @@ namespace Cassandra.OpenTelemetry.Implementation
     /// </summary>
     public class OpenTelemetryRequestTracker : IRequestTracker
     {
-        internal static readonly ActivitySource ActivitySource = new ActivitySource(CassandraInstrumentation.ActivitySourceName, CassandraInstrumentation.Version);
+        internal static readonly ActivitySource ActivitySource = new ActivitySource(CassandraActivitySourceHelper.ActivitySourceName, CassandraActivitySourceHelper.Version);
         private readonly CassandraInstrumentationOptions _instrumentationOptions;
         private static readonly string otelActivityKey = "otel_activity";
         private static readonly string operationName = "Request";
@@ -55,8 +55,8 @@ namespace Cassandra.OpenTelemetry.Implementation
         /// </item>
         /// </list>
         /// </summary>
-        /// <param name="request"><see cref="RequestTrackingInfo"/> object with contextual information.</param>
-        /// <returns></returns>
+        /// <param name="request">Request contextual information.</param>
+        /// <returns>Activity task.</returns>
         public Task OnStartAsync(RequestTrackingInfo request)
         {
             var activityName = !string.IsNullOrEmpty(request.Statement.Keyspace) ? $"{operationName} {request.Statement.Keyspace}" : operationName;
@@ -85,10 +85,10 @@ namespace Cassandra.OpenTelemetry.Implementation
         }
 
         /// <summary>
-        /// Closes the <see cref="Activity"/> when the session level request is successful.
+        /// Closes the <see cref="Activity"/> when the session request is successful.
         /// </summary>
-        /// <param name="request"><see cref="RequestTrackingInfo"/> object with contextual information.</param>
-        /// <returns></returns>
+        /// <param name="request">Request contextual information.</param>
+        /// <returns>Completed task.</returns>
         public Task OnSuccessAsync(RequestTrackingInfo request)
         {
             request.Items.TryGetValue(otelActivityKey, out object context);
@@ -102,12 +102,12 @@ namespace Cassandra.OpenTelemetry.Implementation
         }
 
         /// <summary>
-        /// Closes the <see cref="Activity"/> when the session level request is unsuccessful.
+        /// Closes the <see cref="Activity"/> when the session request is unsuccessful.
         /// Includes an <see cref="ActivityEvent"/> containing information from the specified exception.
         /// </summary>
-        /// <param name="request"><see cref="RequestTrackingInfo"/> object with contextual information.</param>
+        /// <param name="request">Request contextual information.</param>
         /// <param name="ex">Exception information.</param>
-        /// <returns></returns>
+        /// <returns>Completed task.</returns>
         public Task OnErrorAsync(RequestTrackingInfo request, Exception ex)
         {
             request.Items.TryGetValue(otelActivityKey, out object context);
@@ -126,17 +126,24 @@ namespace Cassandra.OpenTelemetry.Implementation
         }
 
         /// <summary>
-        /// Closes the <see cref="Activity"/> when the node 
+        /// Closes the <see cref="Activity"/> when the node request is successful.
         /// </summary>
-        /// <param name="request"></param>
-        /// <param name="hostInfo"></param>
+        /// <param name="request">Request contextual information.</param>
+        /// <param name="hostInfo">Struct with host contextual information.</param>
         /// <returns></returns>
-        /// <exception cref="NotImplementedException"></exception>
         public Task OnNodeSuccessAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Closes the <see cref="Activity"/> when the node request level request is unsuccessful.
+        /// Includes an <see cref="ActivityEvent"/> containing information from the specified exception.
+        /// </summary>
+        /// <param name="request"><see cref="RequestTrackingInfo"/> object with contextual information.</param>
+        /// <param name="hostInfo">Struct with host contextual information.</param>
+        /// <param name="ex">Exception information.</param>
+        /// <returns></returns>
         public Task OnNodeErrorAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo, Exception ex)
         {
             throw new NotImplementedException();
