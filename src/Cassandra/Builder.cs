@@ -1014,9 +1014,9 @@ namespace Cassandra
             return this;
         }
 
-        public Builder WithRequestTracker(IRequestTracker trace)
+        public Builder WithRequestTracker(IRequestTracker requestTracker)
         {
-            _driverTracer = trace;
+            _driverTracer = requestTracker;
             return this;
         }
 

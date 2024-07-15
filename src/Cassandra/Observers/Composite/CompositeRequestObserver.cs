@@ -19,7 +19,7 @@ using System.Collections.Generic;
 using Cassandra.Observers.Abstractions;
 using Cassandra.Requests;
 
-namespace Cassandra.Observers
+namespace Cassandra.Observers.Composite
 {
     internal class CompositeRequestObserver : IRequestObserver
     {
@@ -32,7 +32,7 @@ namespace Cassandra.Observers
 
         public void OnNodeRequestError(Host host, RequestErrorType errorType, RetryDecision.RetryDecisionType decision)
         {
-            foreach(var observer in this.observers)
+            foreach (var observer in observers)
             {
                 observer.OnNodeRequestError(host, errorType, decision);
             }
@@ -40,7 +40,7 @@ namespace Cassandra.Observers
 
         public void OnRequestFailure(Exception ex, RequestTrackingInfo r)
         {
-            foreach (var observer in this.observers)
+            foreach (var observer in observers)
             {
                 observer.OnRequestFailure(ex, r);
             }
@@ -48,7 +48,7 @@ namespace Cassandra.Observers
 
         public void OnRequestSuccess(RequestTrackingInfo r)
         {
-            foreach (var observer in this.observers)
+            foreach (var observer in observers)
             {
                 observer.OnRequestSuccess(r);
             }
@@ -56,7 +56,7 @@ namespace Cassandra.Observers
 
         public void OnRequestStart(RequestTrackingInfo requestTrackingInfo)
         {
-            foreach (var observer in this.observers)
+            foreach (var observer in observers)
             {
                 observer.OnRequestStart(requestTrackingInfo);
             }
@@ -64,7 +64,7 @@ namespace Cassandra.Observers
 
         public void OnSpeculativeExecution(Host host, long delay)
         {
-            foreach (var observer in this.observers)
+            foreach (var observer in observers)
             {
                 observer.OnSpeculativeExecution(host, delay);
             }

@@ -18,7 +18,7 @@ using Cassandra.Connections;
 using Cassandra.Observers.Abstractions;
 using Cassandra.Responses;
 
-namespace Cassandra.Observers
+namespace Cassandra.Observers.Null
 {
     internal class NullOperationObserver : IOperationObserver
     {

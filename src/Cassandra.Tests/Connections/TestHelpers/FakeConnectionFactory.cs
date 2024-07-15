@@ -18,8 +18,8 @@ using System;
 using System.Collections.Concurrent;
 using System.Net;
 using Cassandra.Connections;
-using Cassandra.Observers;
 using Cassandra.Observers.Abstractions;
+using Cassandra.Observers.Null;
 using Cassandra.Serialization;
 using Moq;
 
