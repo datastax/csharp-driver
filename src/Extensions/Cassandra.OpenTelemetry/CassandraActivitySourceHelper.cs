@@ -18,10 +18,17 @@ using System.Reflection;
 
 namespace Cassandra.OpenTelemetry
 {
-    public static class CassandraInstrumentation
+    /// <summary>
+    /// ActivitySource helper properties.
+    /// </summary>
+    public static class CassandraActivitySourceHelper
     {
-        internal static readonly AssemblyName AssemblyName = typeof(CassandraInstrumentation).Assembly.GetName();
+        internal static readonly AssemblyName AssemblyName = typeof(CassandraActivitySourceHelper).Assembly.GetName();
         internal static readonly string Version = AssemblyName.Version.ToString();
+
+        /// <summary>
+        /// ActivitySourceName to be included in the list of subscribed sources.
+        /// </summary>
         public static readonly string ActivitySourceName = AssemblyName.Name;
     }
 }
