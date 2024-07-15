@@ -12,7 +12,6 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
-//
 
 using System;
 using System.Diagnostics;
@@ -21,18 +20,43 @@ using OpenTelemetry.Trace;
 
 namespace Cassandra.OpenTelemetry.Implementation
 {
-    internal class Trace : IRequestTracker
+    /// <summary>
+    /// OpenTelemetry request tracker implementation that includes tracing capabilities and follow
+    /// the Trace Semantic Conventions v1.24.0.
+    /// https://opentelemetry.io/docs/specs/semconv/database/database-spans/
+    /// https://opentelemetry.io/docs/specs/semconv/database/cassandra/
+    /// </summary>
+    public class OpenTelemetryRequestTracker : IRequestTracker
     {
         internal static readonly ActivitySource ActivitySource = new ActivitySource(CassandraInstrumentation.ActivitySourceName, CassandraInstrumentation.Version);
         private readonly CassandraInstrumentationOptions _instrumentationOptions;
         private static readonly string otelActivityKey = "otel_activity";
-        private static readonly string operationName = "ExecuteAsync";
+        private static readonly string operationName = "Request";
 
-        public Trace(CassandraInstrumentationOptions instrumentationOptions)
+        public OpenTelemetryRequestTracker(CassandraInstrumentationOptions instrumentationOptions)
         {
             _instrumentationOptions = instrumentationOptions;
         }
 
+        /// <summary>
+        /// Starts an <see cref="Activity"/> when request starts and includes the following Cassandra specific tags:
+        /// <list type="bullet">
+        /// <item>
+        /// <description>db.system that has a harcoded value of `cassandra`.</description>
+        /// </item>
+        /// <item>
+        /// <description>db.operation that has a harcoded value of `Request`.</description>
+        /// </item>
+        /// <item>
+        /// <description>db.name that has the Keyspace value, if set.</description>
+        /// </item>
+        /// <item>
+        /// <description>db.statement that has the database statement if included in <see cref="CassandraInstrumentationOptions"/>.</description>
+        /// </item>
+        /// </list>
+        /// </summary>
+        /// <param name="request"><see cref="RequestTrackingInfo"/> object with contextual information.</param>
+        /// <returns></returns>
         public Task OnStartAsync(RequestTrackingInfo request)
         {
             var activityName = !string.IsNullOrEmpty(request.Statement.Keyspace) ? $"{operationName} {request.Statement.Keyspace}" : operationName;
@@ -60,6 +84,11 @@ namespace Cassandra.OpenTelemetry.Implementation
             return Task.FromResult(activity as object);
         }
 
+        /// <summary>
+        /// Closes the <see cref="Activity"/> when the session level request is successful.
+        /// </summary>
+        /// <param name="request"><see cref="RequestTrackingInfo"/> object with contextual information.</param>
+        /// <returns></returns>
         public Task OnSuccessAsync(RequestTrackingInfo request)
         {
             request.Items.TryGetValue(otelActivityKey, out object context);
@@ -72,6 +101,13 @@ namespace Cassandra.OpenTelemetry.Implementation
             return Task.CompletedTask;
         }
 
+        /// <summary>
+        /// Closes the <see cref="Activity"/> when the session level request is unsuccessful.
+        /// Includes an <see cref="ActivityEvent"/> containing information from the specified exception.
+        /// </summary>
+        /// <param name="request"><see cref="RequestTrackingInfo"/> object with contextual information.</param>
+        /// <param name="ex">Exception information.</param>
+        /// <returns></returns>
         public Task OnErrorAsync(RequestTrackingInfo request, Exception ex)
         {
             request.Items.TryGetValue(otelActivityKey, out object context);
@@ -89,6 +125,13 @@ namespace Cassandra.OpenTelemetry.Implementation
             return Task.CompletedTask;
         }
 
+        /// <summary>
+        /// Closes the <see cref="Activity"/> when the node 
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="hostInfo"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
         public Task OnNodeSuccessAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo)
         {
             throw new NotImplementedException();
