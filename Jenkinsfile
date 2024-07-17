@@ -432,10 +432,10 @@ pipeline {
         axes {
           axis {
             name 'SERVER_VERSION'
-            values '2.2',     // latest 2.2.x Apache Cassandra�
-                  '3.0',     // latest 3.0.x Apache Cassandra�
+            values '3.0',     // latest 3.0.x Apache Cassandra�
                   '3.11',    // latest 3.11.x Apache Cassandra�
-                  '4.0',    // Development Apache Cassandra�
+                  '4.0',    // latest 4.0.x Apache Cassandra�
+                  '5.0-beta1', // Development Apache Cassandra�
                   'dse-5.1.35', // latest 5.1.x DataStax Enterprise
                   'dse-6.7.17', // latest 6.7.x DataStax Enterprise
                   'dse-6.8.30' // 6.8 current DataStax Enterprise
@@ -453,7 +453,7 @@ pipeline {
             }
             axis {
               name 'SERVER_VERSION'
-              values '2.2', '3.0', 'dse-5.1.35', 'dse-6.8.30'
+              values '3.0', '5.0-beta1', 'dse-5.1.35', 'dse-6.8.30'
             }
           }
           exclude {
