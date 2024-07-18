@@ -82,6 +82,11 @@ namespace Cassandra.IntegrationTests
             Options = options;
         }
 
+        protected SharedClusterTest(
+            Func<TestClusterOptions> options, int amountOfNodes = 1, bool createSession = true) : this(amountOfNodes, createSession, options?.Invoke())
+        {
+        }
+
         protected virtual ITestCluster CreateNew(int nodeLength, TestClusterOptions options, bool startCluster)
         {
             return TestClusterManager.CreateNew(nodeLength, options, startCluster);

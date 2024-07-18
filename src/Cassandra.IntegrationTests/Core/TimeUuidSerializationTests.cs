@@ -38,12 +38,24 @@ namespace Cassandra.IntegrationTests.Core
             $"CREATE TABLE {MinMaxTimeUuidTable} (id uuid, timeuuid_sample timeuuid, PRIMARY KEY((id), timeuuid_sample))",
             string.Format(TestUtils.CreateTableAllTypes, AllTypesTableName)
         };
+
+        private static string GetToDateFunction()
+        {
+            if (TestClusterManager.CheckCassandraVersion(true, new Version(2, 2), Comparison.GreaterThanOrEqualsTo))
+            {
+                return "toDate";
+            }
+            else
+            {
+                return "dateOf";
+            }
+        }
         
         public override void OneTimeSetUp()
         {
             base.OneTimeSetUp();
             var insertQuery = $"INSERT INTO {AllTypesTableName} (id, timeuuid_sample) VALUES (?, ?)";
-            var selectQuery = $"SELECT id, timeuuid_sample, dateOf(timeuuid_sample) FROM {AllTypesTableName} WHERE id = ?";
+            var selectQuery = $"SELECT id, timeuuid_sample, {GetToDateFunction()}(timeuuid_sample) FROM {AllTypesTableName} WHERE id = ?";
             if (TestClusterManager.CheckCassandraVersion(false, new Version(2, 2), Comparison.GreaterThanOrEqualsTo))
             {
                 selectQuery =
@@ -114,7 +126,7 @@ namespace Cassandra.IntegrationTests.Core
             }
             Assert.DoesNotThrow(() => Task.WaitAll(tasks.ToArray()));
 
-            var selectQuery = $"SELECT id, timeuuid_sample, dateOf(timeuuid_sample) FROM {AllTypesTableName} LIMIT 10000";
+            var selectQuery = $"SELECT id, timeuuid_sample, {GetToDateFunction()}(timeuuid_sample) FROM {AllTypesTableName} LIMIT 10000";
             Assert.DoesNotThrow(() =>
                 Session.Execute(selectQuery).Select(r => r.GetValue<TimeUuid>("timeuuid_sample")).ToArray());
         }

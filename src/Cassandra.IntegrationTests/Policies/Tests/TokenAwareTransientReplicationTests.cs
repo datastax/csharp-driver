@@ -28,11 +28,19 @@ namespace Cassandra.IntegrationTests.Policies.Tests
     [Category(TestCategory.Short), Category(TestCategory.ServerApi), Category(TestCategory.RealCluster)]
     public class TokenAwareTransientReplicationTests : SharedClusterTest
     {
-        public TokenAwareTransientReplicationTests() : base(3, false, new TestClusterOptions
+        public TokenAwareTransientReplicationTests() : base(() =>
         {
-            UseVNodes = false,
-            CassandraYaml = new[] { "enable_transient_replication: true" }
-        })
+            var cassandraYaml = "enable_transient_replication: true";
+            if (TestClusterManager.CheckCassandraVersion(false, Version.Parse("5.0"), Comparison.GreaterThanOrEqualsTo))
+            {
+                cassandraYaml = "transient_replication_enabled: true";
+            }
+            return new TestClusterOptions
+            {
+                UseVNodes = false,
+                CassandraYaml = new[] { cassandraYaml }
+            };
+        }, 3, false)
         {
         }
 
