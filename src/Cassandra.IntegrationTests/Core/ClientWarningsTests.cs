@@ -46,7 +46,15 @@ namespace Cassandra.IntegrationTests.Core
             }
 
             string[] cassandraYaml = null;
-            if (TestClusterManager.CheckCassandraVersion(false, Version.Parse("5.0"), Comparison.LessThan))
+            if (TestClusterManager.CheckCassandraVersion(true, Version.Parse("5.0"), Comparison.GreaterThanOrEqualsTo))
+            {
+                cassandraYaml = new[]
+                {
+                    "batch_size_warn_threshold:5KiB",
+                    "batch_size_fail_threshold:50KiB"
+                };
+            }
+            else
             {
                 cassandraYaml = new[]
                 {

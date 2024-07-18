@@ -52,7 +52,7 @@ namespace Cassandra.IntegrationTests.Core
             }
             _testCluster = TestClusterManager.GetTestCluster(1, 0, false, DefaultMaxClusterCreateRetries, false, false);
             var cassandraYaml = "enable_user_defined_functions: true";
-            if (TestClusterManager.CheckCassandraVersion(false, Version.Parse("5.0"), Comparison.GreaterThanOrEqualsTo))
+            if (TestClusterManager.CheckCassandraVersion(true, Version.Parse("5.0"), Comparison.GreaterThanOrEqualsTo))
             {
                 cassandraYaml = "user_defined_functions_enabled: true";
             }

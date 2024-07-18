@@ -34,7 +34,7 @@ namespace Cassandra.IntegrationTests.Core
             base(() =>
             {
                 string[] cassandraYaml = null;
-                if (TestClusterManager.CheckCassandraVersion(false, new Version(5, 0), Comparison.GreaterThanOrEqualsTo))
+                if (TestClusterManager.CheckCassandraVersion(true, new Version(5, 0), Comparison.GreaterThanOrEqualsTo))
                 {
                     cassandraYaml = new[] { "materialized_views_enabled: true" };
                 }
