@@ -45,13 +45,27 @@ namespace Cassandra.IntegrationTests.Core
                 return;
             }
 
+            string[] cassandraYaml = null;
+            if (TestClusterManager.CheckCassandraVersion(true, Version.Parse("5.0"), Comparison.GreaterThanOrEqualsTo))
+            {
+                cassandraYaml = new[]
+                {
+                    "batch_size_warn_threshold:5KiB",
+                    "batch_size_fail_threshold:50KiB"
+                };
+            }
+            else
+            {
+                cassandraYaml = new[]
+                {
+                    "batch_size_warn_threshold_in_kb:5",
+                    "batch_size_fail_threshold_in_kb:50"
+                };
+            }
+
             _testCluster = TestClusterManager.CreateNew(1, new TestClusterOptions
             {
-                CassandraYaml = new[]
-                        {
-                            "batch_size_warn_threshold_in_kb:5",
-                            "batch_size_fail_threshold_in_kb:50"
-                        },
+                CassandraYaml = cassandraYaml,
                 //Using a mirroring handler, the server will reply providing the same payload that was sent
                 JvmArgs = new[] { "-Dcassandra.custom_query_handler_class=org.apache.cassandra.cql3.CustomPayloadMirroringQueryHandler" }
             });

@@ -464,8 +464,9 @@ pipeline {
             values '2.1',     // Legacy Apache Cassandra�
                   '2.2',     // Legacy Apache Cassandra�
                   '3.0',     // Previous Apache Cassandra�
-                  '3.11',    // Current Apache Cassandra�
-                  '4.0',     // Development Apache Cassandra�
+                  '3.11',    // latest 3.11.x Apache Cassandra�
+                  '4.0',    // latest 4.0.x Apache Cassandra�
+                  '5.0-beta1', // Development Apache Cassandra�
                   'dse-5.1.35', // Legacy DataStax Enterprise
                   'dse-6.0.18', // Previous DataStax Enterprise
                   'dse-6.7.17', // Current DataStax Enterprise
@@ -494,7 +495,7 @@ pipeline {
             }
             axis {
               name 'SERVER_VERSION'
-              values '2.1', '2.2', '3.0', 'dse-5.1.35', 'dse-6.0.18'
+              values '2.1', '2.2', '3.0', '5.0-beta1', 'dse-5.1.35', 'dse-6.0.18'
             }
           }
           exclude {
@@ -591,8 +592,9 @@ pipeline {
             name 'SERVER_VERSION'
             values '2.1',     // Legacy Apache Cassandra�
                   '2.2',     // Legacy Apache Cassandra�
-                  '3.11',    // Current Apache Cassandra�
-                  '4.0'     // Development Apache Cassandra�
+                  '3.11',    // latest 3.11.x Apache Cassandra�
+                  '4.0'     // latest 4.0.x Apache Cassandra�
+                  '5.0-beta1'     // Development Apache Cassandra�
           }
           axis {
             name 'DOTNET_VERSION'
@@ -627,7 +629,7 @@ pipeline {
             }
             axis {
               name 'SERVER_VERSION'
-              values '2.1', '2.2', '4.0'
+              values '2.1', '2.2', '5.0-beta1'
             }
           }
         }
@@ -705,8 +707,9 @@ pipeline {
             name 'SERVER_VERSION'
             values '2.1',     // Legacy Apache Cassandra�
                   '2.2',     // Legacy Apache Cassandra�
-                  '3.11',    // Current Apache Cassandra�
-                  '4.0',     // Development Apache Cassandra�
+                  '3.11',    // latest 3.11.x Apache Cassandra�
+                  '4.0',     // latest 4.0.x Apache Cassandra�
+                  '5.0-beta1',     // latest 4.0.x Apache Cassandra�
                   'dse-5.1.35', // Legacy DataStax Enterprise
                   'dse-6.0.18', // Previous DataStax Enterprise
                   'dse-6.7.17', // Current DataStax Enterprise
@@ -725,7 +728,7 @@ pipeline {
             }
             axis {
               name 'SERVER_VERSION'
-              values '2.1', '2.2', 'dse-6.0.18', 'dse-5.1.35'
+              values '2.1', '2.2', 'dse-6.0.18', 'dse-5.1.35', '5.0-beta1'
             }
           }
           exclude {
@@ -813,8 +816,9 @@ pipeline {
             name 'SERVER_VERSION'
             values '2.1',     // Legacy Apache Cassandra�
                   '2.2',     // Legacy Apache Cassandra�
-                  '3.11',    // Current Apache Cassandra�
-                  '4.0'     // Development Apache Cassandra�
+                  '3.11',    // latest 3.11.x Apache Cassandra�
+                  '4.0'     // latest 4.0.x Apache Cassandra�
+                  '5.0-beta1'     // Development Apache Cassandra�
           }
           axis {
             name 'DOTNET_VERSION'
@@ -829,7 +833,7 @@ pipeline {
             }
             axis {
               name 'SERVER_VERSION'
-              values '2.1'
+              values '2.1', '5.0-beta1'
             }
           }
           exclude {

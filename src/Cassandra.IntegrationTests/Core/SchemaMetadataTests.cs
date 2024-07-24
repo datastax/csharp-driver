@@ -30,13 +30,23 @@ namespace Cassandra.IntegrationTests.Core
     [TestFixture, Category(TestCategory.Short), Category(TestCategory.RealCluster), Category(TestCategory.ServerApi)]
     public class SchemaMetadataTests : SharedClusterTest
     {
-        public SchemaMetadataTests() : 
-            base(1, true, new TestClusterOptions
+        public SchemaMetadataTests() :
+            base(() =>
             {
-                CassandraYaml = 
-                    TestClusterManager.CheckCassandraVersion(true, new Version(4, 0), Comparison.GreaterThanOrEqualsTo ) 
-                        ? new[] { "enable_materialized_views: true" } : new string[0]
-            })
+                string[] cassandraYaml = null;
+                if (TestClusterManager.CheckCassandraVersion(true, new Version(5, 0), Comparison.GreaterThanOrEqualsTo))
+                {
+                    cassandraYaml = new[] { "materialized_views_enabled: true" };
+                }
+                else if (TestClusterManager.CheckCassandraVersion(true, new Version(4, 0), Comparison.GreaterThanOrEqualsTo))
+                {
+                    cassandraYaml = new[] { "enable_materialized_views: true" };
+                }
+                return new TestClusterOptions
+                {
+                    CassandraYaml = cassandraYaml
+                };
+            }, 1, true)
         {
         }
 
