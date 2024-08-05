@@ -17,6 +17,7 @@
 using System;
 using System.Diagnostics;
 using System.Threading;
+using System.Threading.Tasks;
 using Cassandra.Metrics.Abstractions;
 using Cassandra.Metrics.Internal;
 using Cassandra.Metrics.Registries;
@@ -45,7 +46,7 @@ namespace Cassandra.Observers.Metrics
             _manager.GetOrCreateNodeMetrics(host).SpeculativeExecutions.Increment(1);
         }
 
-        public void OnNodeRequestError(Host host, RequestErrorType errorType, RetryDecision.RetryDecisionType decision)
+        public Task OnNodeRequestError(Host host, RequestErrorType errorType, RetryDecision.RetryDecisionType decision)
         {
             var nodeMetrics = _manager.GetOrCreateNodeMetrics(host);
             OnRequestError(nodeMetrics.Errors, errorType);
@@ -59,6 +60,8 @@ namespace Cassandra.Observers.Metrics
                     OnRetryPolicyDecision(nodeMetrics.Ignores, errorType);
                     break;
             }
+
+            return Task.FromResult(0);
         }
 
         private void OnRetryPolicyDecision(IRetryPolicyMetrics metricsRegistry, RequestErrorType reason)

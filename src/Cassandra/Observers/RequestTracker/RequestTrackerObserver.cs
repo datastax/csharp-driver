@@ -15,6 +15,7 @@
 //
 
 using System;
+using System.Threading.Tasks;
 using Cassandra.Observers.Abstractions;
 using Cassandra.Requests;
 
@@ -28,23 +29,25 @@ namespace Cassandra.Observers.RequestTracker
         {
             _requestTracker = requestTracker;
         }
-        public void OnNodeRequestError(Host host, RequestErrorType errorType, RetryDecision.RetryDecisionType decision)
+
+        public Task OnNodeRequestError(Host host, RequestErrorType errorType, RetryDecision.RetryDecisionType decision)
         {
+            await _requestTracker.OnNodeErrorAsync():
         }
 
-        public void OnRequestSuccess(RequestTrackingInfo r)
+        public async Task OnRequestSuccess(RequestTrackingInfo r)
         {
-            _requestTracker.OnSuccessAsync(r);
+            await _requestTracker.OnSuccessAsync(r);
         }
 
-        public void OnRequestFailure(Exception ex, RequestTrackingInfo r)
+        public async Task OnRequestFailure(Exception ex, RequestTrackingInfo r)
         {
-            _requestTracker.OnErrorAsync(r, ex);
+            await _requestTracker.OnErrorAsync(r, ex);
         }
 
-        public void OnRequestStart(RequestTrackingInfo r)
+        public async Task OnRequestStart(RequestTrackingInfo r)
         {
-            _requestTracker.OnStartAsync(r);
+            await _requestTracker.OnStartAsync(r);
         }
 
         public void OnSpeculativeExecution(Host host, long delay)
