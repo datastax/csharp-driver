@@ -133,7 +133,17 @@ namespace Cassandra.OpenTelemetry.Implementation
         /// <returns></returns>
         public virtual Task OnNodeSuccessAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo)
         {
-            throw new NotImplementedException();
+            request.Items.TryGetValue(otelActivityKey, out object context);
+
+            if (context is Activity activity)
+            {
+                activity?.AddTag("server.address", hostInfo.Host?.Address?.Address);
+                activity?.AddTag("server.port", hostInfo.Host?.Address?.Port);
+
+                activity?.Dispose();
+            }
+
+            return Task.CompletedTask;
         }
 
         /// <summary>
@@ -146,7 +156,22 @@ namespace Cassandra.OpenTelemetry.Implementation
         /// <returns></returns>
         public virtual Task OnNodeErrorAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo, Exception ex)
         {
-            throw new NotImplementedException();
+            request.Items.TryGetValue(otelActivityKey, out object context);
+
+            if (!(context is Activity activity))
+            {
+                return Task.CompletedTask;
+            }
+
+            activity?.AddTag("server.address", hostInfo.Host?.Address?.Address);
+            activity?.AddTag("server.port", hostInfo.Host?.Address?.Port);
+
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            activity?.RecordException(ex);
+
+            activity?.Dispose();
+
+            return Task.CompletedTask;
         }
     }
 }
