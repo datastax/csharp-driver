@@ -38,7 +38,7 @@ namespace ConsoleExporter
              .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(
                  serviceName: "CassandraDemo",
                  serviceVersion: "1.0.0"))
-             .AddSource(CassandraInstrumentation.ActivitySourceName)
+             .AddSource(CassandraActivitySourceHelper.ActivitySourceName)
              .AddConsoleExporter()
              .Build();
 

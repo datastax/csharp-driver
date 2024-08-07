@@ -36,7 +36,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
         public void AddOpenTelemetry_WithKeyspaceAvailable_DbOperationAndDbNameAreIncluded()
         {
             var keyspace = "system";
-            var expectedActivityName = $"ExecuteAsync {keyspace}";
+            var expectedActivityName = $"Session Request {keyspace}";
             var expectedDbNameAttribute = keyspace;
             var cluster = GetNewTemporaryCluster(b => b.AddOpenTelemetryInstrumentation());
             var session = cluster.Connect();
@@ -45,9 +45,9 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             statement.SetKeyspace(keyspace);
             session.ExecuteAsync(statement);
 
-            var activity = GetActivity();
+           var activity = GetActivities().First(x => x.DisplayName == expectedActivityName);
 
-            ValidateCommonAttributes(activity);
+            ValidateSessionActivityAttributes(activity);
 
             Assert.AreEqual(expectedActivityName, activity.DisplayName);
             Assert.AreEqual(expectedDbNameAttribute, activity.Tags.First(kvp => kvp.Key == "db.name").Value);
@@ -58,7 +58,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
         public void AddOpenTelemetry_WithoutKeyspace_DbNameIsNotIncluded()
         {
             var keyspace = "system";
-            var expectedActivityName = $"ExecuteAsync";
+            var expectedActivityName = $"Session Request";
             var expectedDbNameAttribute = keyspace;
             var cluster = GetNewTemporaryCluster(b => b.AddOpenTelemetryInstrumentation());
             var session = cluster.Connect();
@@ -66,9 +66,9 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             var statement = new SimpleStatement("SELECT key FROM system.local");
             session.ExecuteAsync(statement);
 
-            var activity = GetActivity();
+            var activity = GetActivities().First(x => x.DisplayName == expectedActivityName);
 
-            ValidateCommonAttributes(activity);
+            ValidateSessionActivityAttributes(activity);
 
             Assert.AreEqual(expectedActivityName, activity.DisplayName);
             Assert.IsNull(activity.Tags.FirstOrDefault(kvp => kvp.Key == "db.name").Value);
@@ -84,9 +84,9 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             var statement = new SimpleStatement("SELECT key FROM system.local");
             session.ExecuteAsync(statement);
 
-            var activity = GetActivity();
+            var activity = GetActivities().First();
 
-            ValidateCommonAttributes(activity);
+            ValidateSessionActivityAttributes(activity);
 
             Assert.IsNull(activity.Tags.FirstOrDefault(kvp => kvp.Key == "db.statement").Value);
         }
@@ -103,44 +103,66 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             var statement = new SimpleStatement("SELECT key FROM system.local");
             session.ExecuteAsync(statement);
 
-            var activity = GetActivity();
+            var activity = GetActivities().First();
 
-            ValidateCommonAttributes(activity);
+            ValidateSessionActivityAttributes(activity);
 
             Assert.AreEqual(expectedDbStatement, activity.Tags.First(kvp => kvp.Key == "db.statement").Value);
         }
 
-        private Activity GetActivity()
+        private List<Activity> GetActivities()
         {
             var count = 0;
 
             while(count < 5)
             {
-                if(_exportedActivities.FirstOrDefault() != null)
+                Thread.Sleep(1000);
+
+                if (_exportedActivities.FirstOrDefault() != null)
                 {
-                    return _exportedActivities.FirstOrDefault();
+                    return _exportedActivities;
                 }
 
                 count++;
-                Thread.Sleep(1000);
             }
 
-            return _exportedActivities.FirstOrDefault();
+            return _exportedActivities;
         }
         
-        private static void ValidateCommonAttributes(Activity activity)
+        private static void ValidateSessionActivityAttributes(Activity activity)
         {
             var expectedActivityKind = ActivityKind.Client;
             var expectedTags = new Dictionary<string, string>()
             {
                 {"db.system", "cassandra" },
-                {"db.operation", "ExecuteAsync" },
+                {"db.operation", "Session Request" },
             };
 
             Assert.AreEqual(activity.Kind, expectedActivityKind);
             
             var tags = activity.Tags;
             
+            foreach (var pair in expectedTags)
+            {
+                Assert.AreEqual(tags.FirstOrDefault(x => x.Key == pair.Key).Value, expectedTags[pair.Key]);
+            }
+        }
+
+        private static void ValidateNodeActivityAttributes(Activity activity)
+        {
+            var expectedActivityKind = ActivityKind.Client;
+            var expectedTags = new Dictionary<string, string>()
+            {
+                {"db.system", "cassandra" },
+                {"db.operation", "Node Request" },
+                {"db.address", "127.0.0.1" },
+                {"db.port", "9042" },
+            };
+
+            Assert.AreEqual(activity.Kind, expectedActivityKind);
+
+            var tags = activity.Tags;
+
             foreach (var pair in expectedTags)
             {
                 Assert.AreEqual(tags.FirstOrDefault(x => x.Key == pair.Key).Value, expectedTags[pair.Key]);

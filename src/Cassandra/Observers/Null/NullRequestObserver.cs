@@ -15,6 +15,7 @@
 //
 
 using System;
+using System.Threading.Tasks;
 using Cassandra.Observers.Abstractions;
 using Cassandra.Requests;
 
@@ -32,16 +33,34 @@ namespace Cassandra.Observers.Null
         {
         }
 
-        public void OnRequestFailure(Exception ex, RequestTrackingInfo r)
+        public Task OnNodeRequestError(Host host, RequestErrorType errorType, RetryDecision.RetryDecisionType decision, RequestTrackingInfo r, Exception ex)
         {
+            return Task.FromResult(0);
         }
 
-        public void OnRequestStart(RequestTrackingInfo r)
+        public Task OnNodeStart(Host host, RequestTrackingInfo requestTrackingInfo)
         {
+            return Task.FromResult(0);
         }
 
-        public void OnRequestSuccess(RequestTrackingInfo r)
+        public Task OnNodeSuccess(Host host, RequestTrackingInfo requestTrackingInfo)
         {
+            return Task.FromResult(0);
+        }
+
+        public Task OnRequestFailure(Exception ex, RequestTrackingInfo r)
+        {
+            return Task.FromResult(0);
+        }
+
+        public Task OnRequestStart(RequestTrackingInfo r)
+        {
+            return Task.FromResult(0);
+        }
+
+        public Task OnRequestSuccess(RequestTrackingInfo r)
+        {
+            return Task.FromResult(0);
         }
 
         public void OnSpeculativeExecution(Host host, long delay)

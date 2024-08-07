@@ -30,9 +30,16 @@ namespace Cassandra.Observers.RequestTracker
             _requestTracker = requestTracker;
         }
 
-        public Task OnNodeRequestError(Host host, RequestErrorType errorType, RetryDecision.RetryDecisionType decision)
+        public async Task OnNodeRequestError(
+            Host host,
+            RequestErrorType errorType,
+            RetryDecision.RetryDecisionType decision,
+            RequestTrackingInfo r,
+            Exception ex)
         {
-            await _requestTracker.OnNodeErrorAsync():
+            var hostInfo = new HostTrackingInfo { Host = host };
+            
+            await _requestTracker.OnNodeErrorAsync(r, hostInfo, ex);
         }
 
         public async Task OnRequestSuccess(RequestTrackingInfo r)
@@ -52,6 +59,20 @@ namespace Cassandra.Observers.RequestTracker
 
         public void OnSpeculativeExecution(Host host, long delay)
         {
+        }
+
+        public async Task OnNodeStart(Host host, RequestTrackingInfo requestTrackingInfo)
+        {
+            var hostInfo = new HostTrackingInfo { Host = host };
+
+            await _requestTracker.OnNodeStart(requestTrackingInfo, hostInfo);
+        }
+
+        public async Task OnNodeSuccess(Host host, RequestTrackingInfo requestTrackingInfo)
+        {
+            var hostInfo = new HostTrackingInfo { Host = host };
+
+            await _requestTracker.OnNodeSuccessAsync(requestTrackingInfo, hostInfo);
         }
     }
 }

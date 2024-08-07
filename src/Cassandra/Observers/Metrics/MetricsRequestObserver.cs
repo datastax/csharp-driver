@@ -46,7 +46,7 @@ namespace Cassandra.Observers.Metrics
             _manager.GetOrCreateNodeMetrics(host).SpeculativeExecutions.Increment(1);
         }
 
-        public Task OnNodeRequestError(Host host, RequestErrorType errorType, RetryDecision.RetryDecisionType decision)
+        public Task OnNodeRequestError(Host host, RequestErrorType errorType, RetryDecision.RetryDecisionType decision, RequestTrackingInfo r, Exception ex)
         {
             var nodeMetrics = _manager.GetOrCreateNodeMetrics(host);
             OnRequestError(nodeMetrics.Errors, errorType);
@@ -130,21 +130,23 @@ namespace Cassandra.Observers.Metrics
             }
         }
 
-        public void OnRequestStart(RequestTrackingInfo r)
+        public Task OnRequestStart(RequestTrackingInfo r)
         {
             if (!_manager.AreSessionTimerMetricsEnabled)
             {
-                return;
+                return Task.FromResult(0); ;
             }
 
             Volatile.Write(ref _startTimestamp, Stopwatch.GetTimestamp());
+
+            return Task.FromResult(0);
         }
 
-        public void OnRequestFailure(Exception ex, RequestTrackingInfo r)
+        public Task OnRequestFailure(Exception ex, RequestTrackingInfo r)
         {
             if (!_manager.AreSessionTimerMetricsEnabled)
             {
-                return;
+                return Task.FromResult(0); ;
             }
 
             try
@@ -153,7 +155,7 @@ namespace Cassandra.Observers.Metrics
                 if (startTimestamp == 0)
                 {
                     Logger.Warning("Start timestamp wasn't recorded, discarding this measurement.");
-                    return;
+                    return Task.FromResult(0); ;
                 }
 
                 _requestTimer.Record((Stopwatch.GetTimestamp() - startTimestamp) * Factor);
@@ -162,16 +164,28 @@ namespace Cassandra.Observers.Metrics
             {
                 LogError(exception);
             }
+
+            return Task.FromResult(0);
         }
 
-        public void OnRequestSuccess(RequestTrackingInfo r)
+        public Task OnRequestSuccess(RequestTrackingInfo r)
         {
-            OnRequestFailure(null, r);
+            return OnRequestFailure(null, r);
         }
 
         private static void LogError(Exception ex)
         {
             Logger.Warning("An error occured while recording metrics for a request. Exception = {0}", ex.ToString());
+        }
+
+        public Task OnNodeStart(Host host, RequestTrackingInfo requestTrackingInfo)
+        {
+            return Task.FromResult(0);
+        }
+
+        public Task OnNodeSuccess(Host host, RequestTrackingInfo requestTrackingInfo)
+        {
+            return Task.FromResult(0);
         }
     }
 }

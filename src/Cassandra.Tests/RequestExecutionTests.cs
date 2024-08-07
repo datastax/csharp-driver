@@ -37,6 +37,7 @@ namespace Cassandra.Tests
         {
             var mockSession = Mock.Of<IInternalSession>();
             var requestHandlerFactory = Mock.Of<IRequestHandlerFactory>();
+            var requestTrackingInfo = new RequestTrackingInfo();
             Mock.Get(requestHandlerFactory)
                 .Setup(r => r.Create(
                     It.IsAny<IInternalSession>(), 
@@ -55,7 +56,7 @@ namespace Cassandra.Tests
             Mock.Get(mockRequestExecution)
                 .Setup(m => m.GetNextValidHost(It.IsAny<Dictionary<IPEndPoint, Exception>>()))
                 .Throws(new NoHostAvailableException(new Dictionary<IPEndPoint, Exception>()));
-            var sut = new RequestExecution(mockRequestExecution, mockSession, mockRequest, NullRequestObserver.Instance);
+            var sut = new RequestExecution(mockRequestExecution, mockSession, mockRequest, NullRequestObserver.Instance, requestTrackingInfo);
 
             Assert.Throws<NoHostAvailableException>(() => sut.Start(currentHostRetry));
         }
@@ -65,6 +66,7 @@ namespace Cassandra.Tests
         {
             var mockSession = Mock.Of<IInternalSession>();
             var requestHandlerFactory = Mock.Of<IRequestHandlerFactory>();
+            var requestTrackingInfo = new RequestTrackingInfo();
             Mock.Get(requestHandlerFactory)
                 .Setup(r => r.Create(
                     It.IsAny<IInternalSession>(), 
@@ -90,7 +92,7 @@ namespace Cassandra.Tests
                 .SetupSequence(m => m.GetNextValidHost(It.IsAny<Dictionary<IPEndPoint, Exception>>()))
                 .Returns(validHost)
                 .Throws(new NoHostAvailableException(new Dictionary<IPEndPoint, Exception>()));
-            var sut = new RequestExecution(mockRequestExecution, mockSession, mockRequest, NullRequestObserver.Instance);
+            var sut = new RequestExecution(mockRequestExecution, mockSession, mockRequest, NullRequestObserver.Instance, requestTrackingInfo);
 
             sut.Start(currentHostRetry);
         }
@@ -100,6 +102,7 @@ namespace Cassandra.Tests
         {
             var mockSession = Mock.Of<IInternalSession>();
             var requestHandlerFactory = Mock.Of<IRequestHandlerFactory>();
+            var requestTrackingInfo = new RequestTrackingInfo();
             Mock.Get(requestHandlerFactory)
                 .Setup(r => r.Create(
                     It.IsAny<IInternalSession>(), 
@@ -131,7 +134,7 @@ namespace Cassandra.Tests
             Mock.Get(mockParent)
                 .Setup(m => m.RequestOptions)
                 .Returns(config.DefaultRequestOptions);
-            var sut = new RequestExecution(mockParent, mockSession, mockRequest, NullRequestObserver.Instance);
+            var sut = new RequestExecution(mockParent, mockSession, mockRequest, NullRequestObserver.Instance, requestTrackingInfo);
 
             sut.Start(currentHostRetry);
             TestHelper.RetryAssert(
@@ -149,6 +152,7 @@ namespace Cassandra.Tests
         {
             var mockSession = Mock.Of<IInternalSession>();
             var requestHandlerFactory = Mock.Of<IRequestHandlerFactory>();
+            var requestTrackingInfo = new RequestTrackingInfo();
             Mock.Get(requestHandlerFactory)
                 .Setup(r => r.Create(
                     It.IsAny<IInternalSession>(), 
@@ -211,7 +215,7 @@ namespace Cassandra.Tests
                 .Setup(m => m.RequestOptions)
                 .Returns(config.DefaultRequestOptions);
 
-            var sut = new RequestExecution(mockParent, mockSession, mockRequest, NullRequestObserver.Instance);
+            var sut = new RequestExecution(mockParent, mockSession, mockRequest, NullRequestObserver.Instance, requestTrackingInfo);
             sut.Start(false);
 
             // Validate request is sent

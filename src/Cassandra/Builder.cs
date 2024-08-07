@@ -28,7 +28,6 @@ using Cassandra.DataStax.Graph;
 using Cassandra.ExecutionProfiles;
 using Cassandra.Metrics;
 using Cassandra.Metrics.Abstractions;
-using Cassandra.OpenTelemetry;
 using Cassandra.Serialization;
 
 namespace Cassandra

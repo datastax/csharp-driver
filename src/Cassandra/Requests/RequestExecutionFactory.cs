@@ -22,9 +22,9 @@ namespace Cassandra.Requests
     internal class RequestExecutionFactory : IRequestExecutionFactory
     {
         public IRequestExecution Create(
-            IRequestHandler parent, IInternalSession session, IRequest request, IRequestObserver requestObserver)
+            IRequestHandler parent, IInternalSession session, IRequest request, IRequestObserver requestObserver, RequestTrackingInfo requestTrackingInfo)
         {
-            return new RequestExecution(parent, session, request, requestObserver);
+            return new RequestExecution(parent, session, request, requestObserver, requestTrackingInfo);
         }
     }
 }
