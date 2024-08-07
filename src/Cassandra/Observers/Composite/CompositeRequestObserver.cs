@@ -16,6 +16,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Cassandra.Observers.Abstractions;
 using Cassandra.Requests;
 
@@ -30,35 +31,40 @@ namespace Cassandra.Observers.Composite
             this.observers = observers;
         }
 
-        public void OnNodeRequestError(Host host, RequestErrorType errorType, RetryDecision.RetryDecisionType decision)
+        public async Task OnNodeRequestError(
+            Host host,
+            RequestErrorType errorType,
+            RetryDecision.RetryDecisionType decision,
+            RequestTrackingInfo r,
+            Exception ex)
         {
             foreach (var observer in observers)
             {
-                observer.OnNodeRequestError(host, errorType, decision);
+                await observer.OnNodeRequestError(host, errorType, decision, r, ex);
             }
         }
 
-        public void OnRequestFailure(Exception ex, RequestTrackingInfo r)
+        public async Task OnRequestFailure(Exception ex, RequestTrackingInfo r)
         {
             foreach (var observer in observers)
             {
-                observer.OnRequestFailure(ex, r);
+                await observer.OnRequestFailure(ex, r);
             }
         }
 
-        public void OnRequestSuccess(RequestTrackingInfo r)
+        public async Task OnRequestSuccess(RequestTrackingInfo r)
         {
             foreach (var observer in observers)
             {
-                observer.OnRequestSuccess(r);
+                await observer.OnRequestSuccess(r);
             }
         }
 
-        public void OnRequestStart(RequestTrackingInfo requestTrackingInfo)
+        public async Task OnRequestStart(RequestTrackingInfo requestTrackingInfo)
         {
             foreach (var observer in observers)
             {
-                observer.OnRequestStart(requestTrackingInfo);
+                await observer.OnRequestStart(requestTrackingInfo);
             }
         }
 
@@ -67,6 +73,22 @@ namespace Cassandra.Observers.Composite
             foreach (var observer in observers)
             {
                 observer.OnSpeculativeExecution(host, delay);
+            }
+        }
+
+        public async Task OnNodeStart(Host host, RequestTrackingInfo requestTrackingInfo)
+        {
+            foreach (var observer in observers)
+            {
+                await observer.OnNodeStart(host, requestTrackingInfo);
+            }
+        }
+
+        public async Task OnNodeSuccess(Host host, RequestTrackingInfo requestTrackingInfo)
+        {
+            foreach (var observer in observers)
+            {
+                await observer.OnNodeSuccess(host, requestTrackingInfo);
             }
         }
     }

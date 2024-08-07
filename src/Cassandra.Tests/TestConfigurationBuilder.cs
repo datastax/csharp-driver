@@ -25,6 +25,7 @@ using Cassandra.MetadataHelpers;
 using Cassandra.Metrics;
 using Cassandra.Metrics.Providers.Null;
 using Cassandra.Observers;
+using Cassandra.Observers.Metrics;
 using Cassandra.ProtocolEvents;
 using Cassandra.Requests;
 using Cassandra.Serialization;

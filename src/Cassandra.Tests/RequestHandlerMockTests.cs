@@ -21,7 +21,7 @@ using System.Net;
 using Cassandra.Metrics;
 using Cassandra.Metrics.Internal;
 using Cassandra.Metrics.Providers.Null;
-using Cassandra.Observers;
+using Cassandra.Observers.Metrics;
 using Cassandra.Observers.Abstractions;
 using Cassandra.Requests;
 using Cassandra.Serialization;
@@ -53,7 +53,8 @@ namespace Cassandra.Tests
                     It.IsAny<IRequestHandler>(),
                     It.IsAny<IInternalSession>(),
                     It.IsAny<IRequest>(),
-                    It.IsAny<IRequestObserver>()))
+                    It.IsAny<IRequestObserver>(),
+                    It.IsAny<RequestTrackingInfo>()))
                 .Returns(Mock.Of<IRequestExecution>());
 
             return new TestConfigurationBuilder

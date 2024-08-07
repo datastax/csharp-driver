@@ -62,5 +62,7 @@ namespace Cassandra
         /// <param name="ex">Exception information.</param>
         /// <returns>Contextual task.</returns>
         Task OnNodeErrorAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo, Exception ex);
+
+        Task OnNodeStart(RequestTrackingInfo request, HostTrackingInfo hostInfo);
     }
 }

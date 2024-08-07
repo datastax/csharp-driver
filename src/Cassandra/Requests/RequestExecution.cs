@@ -41,19 +41,21 @@ namespace Cassandra.Requests
         private volatile int _retryCount;
         private volatile OperationState _operation;
         private readonly IRequestObserver _requestObserver;
+        private readonly RequestTrackingInfo _requestTrackingInfo;
 
         /// <summary>
         /// Host that was queried last in this execution. It can be null in case there was no attempt to send the request yet.
         /// </summary>
         private volatile Host _host;
         
-        public RequestExecution(IRequestHandler parent, IInternalSession session, IRequest request, IRequestObserver requestObserver)
+        public RequestExecution(IRequestHandler parent, IInternalSession session, IRequest request, IRequestObserver requestObserver, RequestTrackingInfo requestTrackingInfo)
         {
             _parent = parent;
             _session = session;
             _request = request;
             _host = null;
             _requestObserver = requestObserver;
+            _requestTrackingInfo = requestTrackingInfo;
         }
 
         public void Cancel()
@@ -67,12 +69,16 @@ namespace Cassandra.Requests
         {
             if (currentHostRetry && _host != null)
             {
+                _requestObserver.OnNodeStart(_host, _requestTrackingInfo);
+
                 SendToCurrentHostAsync().Forget();
                 return _host;
             }
 
             // fail fast: try to choose a host before leaving this thread
             var validHost = _parent.GetNextValidHost(_triedHosts);
+
+            _requestObserver.OnNodeStart(validHost.Host, _requestTrackingInfo);
 
             SendToNextHostAsync(validHost).Forget();            
             return validHost.Host;
@@ -205,6 +211,7 @@ namespace Cassandra.Requests
 
         private void HandleRowSetResult(Response response)
         {
+            _requestObserver.OnNodeSuccess(_host, _requestTrackingInfo);
             RequestExecution.ValidateResult(response);
             var resultResponse = (ResultResponse)response;
             if (resultResponse.Output is OutputSchemaChange schemaChange)
@@ -389,7 +396,7 @@ namespace Cassandra.Requests
                     break;
             }
 
-            _requestObserver.OnNodeRequestError(host, retryInformation.Reason, retryInformation.Decision.DecisionType);
+            _requestObserver.OnNodeRequestError(host, retryInformation.Reason, retryInformation.Decision.DecisionType, _requestTrackingInfo, ex);
         }
         
         /// <summary>

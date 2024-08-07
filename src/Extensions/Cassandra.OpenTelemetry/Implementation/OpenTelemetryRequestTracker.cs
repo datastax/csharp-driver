@@ -31,7 +31,8 @@ namespace Cassandra.OpenTelemetry.Implementation
         internal static readonly ActivitySource ActivitySource = new ActivitySource(CassandraActivitySourceHelper.ActivitySourceName, CassandraActivitySourceHelper.Version);
         private readonly CassandraInstrumentationOptions _instrumentationOptions;
         private static readonly string otelActivityKey = "otel_activity";
-        private static readonly string operationName = "Request";
+        private static readonly string sessionOperationName = "Session Request";
+        private static readonly string nodeOperationName = "Node Request";
 
         public OpenTelemetryRequestTracker(CassandraInstrumentationOptions instrumentationOptions)
         {
@@ -59,12 +60,12 @@ namespace Cassandra.OpenTelemetry.Implementation
         /// <returns>Activity task.</returns>
         public virtual Task OnStartAsync(RequestTrackingInfo request)
         {
-            var activityName = !string.IsNullOrEmpty(request.Statement.Keyspace) ? $"{operationName} {request.Statement.Keyspace}" : operationName;
+            var activityName = !string.IsNullOrEmpty(request.Statement.Keyspace) ? $"{sessionOperationName} {request.Statement.Keyspace}" : sessionOperationName;
 
             var activity = ActivitySource.StartActivity(activityName, ActivityKind.Client);
 
             activity?.AddTag("db.system", "cassandra");
-            activity?.AddTag("db.operation", operationName);
+            activity?.AddTag("db.operation", sessionOperationName);
 
             if (activity.IsAllDataRequested)
             {
@@ -133,13 +134,10 @@ namespace Cassandra.OpenTelemetry.Implementation
         /// <returns></returns>
         public virtual Task OnNodeSuccessAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo)
         {
-            request.Items.TryGetValue(otelActivityKey, out object context);
+            request.Items.TryGetValue($"{otelActivityKey}.{hostInfo.Host.HostId}", out object context);
 
             if (context is Activity activity)
             {
-                activity?.AddTag("server.address", hostInfo.Host?.Address?.Address);
-                activity?.AddTag("server.port", hostInfo.Host?.Address?.Port);
-
                 activity?.Dispose();
             }
 
@@ -156,15 +154,12 @@ namespace Cassandra.OpenTelemetry.Implementation
         /// <returns></returns>
         public virtual Task OnNodeErrorAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo, Exception ex)
         {
-            request.Items.TryGetValue(otelActivityKey, out object context);
+            request.Items.TryGetValue($"{otelActivityKey}.{hostInfo.Host.HostId}", out object context);
 
             if (!(context is Activity activity))
             {
                 return Task.CompletedTask;
             }
-
-            activity?.AddTag("server.address", hostInfo.Host?.Address?.Address);
-            activity?.AddTag("server.port", hostInfo.Host?.Address?.Port);
 
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
             activity?.RecordException(ex);
@@ -172,6 +167,35 @@ namespace Cassandra.OpenTelemetry.Implementation
             activity?.Dispose();
 
             return Task.CompletedTask;
+        }
+
+        public Task OnNodeStart(RequestTrackingInfo request, HostTrackingInfo hostInfo)
+        {
+            var activityName = !string.IsNullOrEmpty(request.Statement.Keyspace) ? $"{nodeOperationName} {request.Statement.Keyspace}" : nodeOperationName;
+
+            var activity = ActivitySource.StartActivity(activityName, ActivityKind.Client);
+
+            activity?.AddTag("db.system", "cassandra");
+            activity?.AddTag("db.operation", nodeOperationName);
+            activity?.AddTag("server.address", hostInfo.Host?.Address?.Address.ToString());
+            activity?.AddTag("server.port", hostInfo.Host?.Address?.Port.ToString());
+
+            if (activity.IsAllDataRequested)
+            {
+                if (!string.IsNullOrEmpty(request.Statement.Keyspace))
+                {
+                    activity.AddTag("db.name", request.Statement.Keyspace);
+                }
+
+                if (_instrumentationOptions.IncludeDatabaseStatement)
+                {
+                    activity.AddTag("db.statement", request.Statement.ToString());
+                }
+            }
+
+            request.Items.TryAdd($"{otelActivityKey}.{hostInfo.Host.HostId}", activity);
+
+            return Task.FromResult(activity as object);
         }
     }
 }
