@@ -144,6 +144,16 @@ namespace Cassandra.Observers.Metrics
 
         public Task OnRequestFailure(Exception ex, RequestTrackingInfo r)
         {
+            return OnRequestFinish(ex, r);
+        }
+
+        public Task OnRequestSuccess(RequestTrackingInfo r)
+        {
+            return OnRequestFinish(null, r);
+        }
+
+        private Task OnRequestFinish(Exception ex, RequestTrackingInfo r)
+        {
             if (!_manager.AreSessionTimerMetricsEnabled)
             {
                 return Task.FromResult(0); ;
@@ -166,11 +176,6 @@ namespace Cassandra.Observers.Metrics
             }
 
             return Task.FromResult(0);
-        }
-
-        public Task OnRequestSuccess(RequestTrackingInfo r)
-        {
-            return OnRequestFailure(null, r);
         }
 
         private static void LogError(Exception ex)
