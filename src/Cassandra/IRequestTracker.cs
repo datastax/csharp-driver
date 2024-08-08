@@ -55,7 +55,7 @@ namespace Cassandra
         Task OnNodeSuccessAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo);
 
         /// <summary>
-        /// Triggered when the session node request finishes unsuccessfully.
+        /// Triggered when the node request finishes unsuccessfully.
         /// </summary>
         /// <param name="request"><see cref="RequestTrackingInfo"/> object with contextual information.</param>
         /// <param name="hostInfo">Struct with host contextual information.</param>
@@ -63,6 +63,12 @@ namespace Cassandra
         /// <returns>Contextual task.</returns>
         Task OnNodeErrorAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo, Exception ex);
 
+        /// <summary>
+        /// Triggered when the node request starts.
+        /// </summary>
+        /// <param name="request"><see cref="RequestTrackingInfo"/> object with contextual information.</param>
+        /// <param name="hostInfo">Struct with host contextual information.</param>
+        /// <returns>Contextual task.</returns>
         Task OnNodeStart(RequestTrackingInfo request, HostTrackingInfo hostInfo);
     }
 }
