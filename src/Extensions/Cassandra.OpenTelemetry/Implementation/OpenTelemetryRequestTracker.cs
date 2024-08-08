@@ -46,7 +46,7 @@ namespace Cassandra.OpenTelemetry.Implementation
         /// <description>db.system that has a harcoded value of `cassandra`.</description>
         /// </item>
         /// <item>
-        /// <description>db.operation that has a harcoded value of `Request`.</description>
+        /// <description>db.operation that has a harcoded value of `Session Request`.</description>
         /// </item>
         /// <item>
         /// <description>db.name that has the Keyspace value, if set.</description>
@@ -131,7 +131,7 @@ namespace Cassandra.OpenTelemetry.Implementation
         /// </summary>
         /// <param name="request">Request contextual information.</param>
         /// <param name="hostInfo">Struct with host contextual information.</param>
-        /// <returns></returns>
+        /// <returns>Completed task./returns>
         public virtual Task OnNodeSuccessAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo)
         {
             request.Items.TryGetValue($"{otelActivityKey}.{hostInfo.Host.HostId}", out object context);
@@ -151,7 +151,7 @@ namespace Cassandra.OpenTelemetry.Implementation
         /// <param name="request"><see cref="RequestTrackingInfo"/> object with contextual information.</param>
         /// <param name="hostInfo">Struct with host contextual information.</param>
         /// <param name="ex">Exception information.</param>
-        /// <returns></returns>
+        /// <returns>Completed task./returns>
         public virtual Task OnNodeErrorAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo, Exception ex)
         {
             request.Items.TryGetValue($"{otelActivityKey}.{hostInfo.Host.HostId}", out object context);
@@ -169,6 +169,31 @@ namespace Cassandra.OpenTelemetry.Implementation
             return Task.CompletedTask;
         }
 
+        /// <summary>
+        /// Starts an <see cref="Activity"/> when node request starts and includes the following Cassandra specific tags:
+        /// <list type="bullet">
+        /// <item>
+        /// <description>db.system that has a harcoded value of `cassandra`.</description>
+        /// </item>
+        /// <item>
+        /// <description>db.operation that has a harcoded value of `Node Request`.</description>
+        /// </item>
+        /// <item>
+        /// <description>db.name that has the Keyspace value, if set.</description>
+        /// </item>
+        /// <item>
+        /// <description>db.statement that has the database statement if included in <see cref="CassandraInstrumentationOptions"/>.</description>
+        /// </item>
+        /// <item>
+        /// <description>server.address that has the host address value.</description>
+        /// </item>
+        /// <item>
+        /// <description>server.port that has the host port value.</description>
+        /// </item>
+        /// </list>
+        /// </summary>
+        /// <param name="request">Request contextual information.</param>
+        /// <returns>Activity task.</returns>
         public Task OnNodeStart(RequestTrackingInfo request, HostTrackingInfo hostInfo)
         {
             var activityName = !string.IsNullOrEmpty(request.Statement.Keyspace) ? $"{nodeOperationName} {request.Statement.Keyspace}" : nodeOperationName;
