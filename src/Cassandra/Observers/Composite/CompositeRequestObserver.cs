@@ -40,7 +40,7 @@ namespace Cassandra.Observers.Composite
         {
             foreach (var observer in observers)
             {
-                await observer.OnNodeRequestError(host, errorType, decision, r, ex);
+                await observer.OnNodeRequestError(host, errorType, decision, r, ex).ConfigureAwait(false);
             }
         }
 
@@ -48,7 +48,7 @@ namespace Cassandra.Observers.Composite
         {
             foreach (var observer in observers)
             {
-                await observer.OnRequestFailure(ex, r);
+                await observer.OnRequestFailure(ex, r).ConfigureAwait(false);
             }
         }
 
@@ -56,7 +56,7 @@ namespace Cassandra.Observers.Composite
         {
             foreach (var observer in observers)
             {
-                await observer.OnRequestSuccess(r);
+                await observer.OnRequestSuccess(r).ConfigureAwait(false);
             }
         }
 
@@ -64,7 +64,7 @@ namespace Cassandra.Observers.Composite
         {
             foreach (var observer in observers)
             {
-                await observer.OnRequestStart(requestTrackingInfo);
+                await observer.OnRequestStart(requestTrackingInfo).ConfigureAwait(false);
             }
         }
 
@@ -80,7 +80,7 @@ namespace Cassandra.Observers.Composite
         {
             foreach (var observer in observers)
             {
-                await observer.OnNodeStart(host, requestTrackingInfo);
+                await observer.OnNodeStart(host, requestTrackingInfo).ConfigureAwait(false);
             }
         }
 
@@ -88,7 +88,7 @@ namespace Cassandra.Observers.Composite
         {
             foreach (var observer in observers)
             {
-                await observer.OnNodeSuccess(host, requestTrackingInfo);
+                await observer.OnNodeSuccess(host, requestTrackingInfo).ConfigureAwait(false);
             }
         }
     }
