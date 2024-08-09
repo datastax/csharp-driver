@@ -14,17 +14,34 @@
 //   limitations under the License.
 //
 
+using System;
 using Cassandra.Observers.Abstractions;
-using Cassandra.SessionManagement;
 
-namespace Cassandra.Requests
+namespace Cassandra.Observers.Null
 {
-    internal class RequestExecutionFactory : IRequestExecutionFactory
+    internal class NullConnectionObserver : IConnectionObserver
     {
-        public IRequestExecution Create(
-            IRequestHandler parent, IInternalSession session, IRequest request, IRequestObserver requestObserver, RequestTrackingInfo requestTrackingInfo)
+        public static readonly IConnectionObserver Instance = new NullConnectionObserver();
+
+        private NullConnectionObserver()
         {
-            return new RequestExecution(parent, session, request, requestObserver, requestTrackingInfo);
+        }
+
+        public void OnBytesSent(long size)
+        {
+        }
+
+        public void OnBytesReceived(long size)
+        {
+        }
+
+        public void OnErrorOnOpen(Exception exception)
+        {
+        }
+
+        public IOperationObserver CreateOperationObserver()
+        {
+            return NullOperationObserver.Instance;
         }
     }
 }

@@ -25,9 +25,9 @@ namespace Cassandra.Requests
     /// </summary>
     internal interface IRequestResultHandler
     {
-        void TrySetResult(RowSet result);
+        void TrySetResult(RowSet result, RequestTrackingInfo requestTrackingInfo);
 
-        void TrySetException(Exception exception);
+        void TrySetException(Exception exception, RequestTrackingInfo requestTrackingInfo);
 
         Task<RowSet> Task { get; }
     }

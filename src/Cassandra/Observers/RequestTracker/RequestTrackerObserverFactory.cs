@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,34 +14,28 @@
 //   limitations under the License.
 //
 
-using System;
 using Cassandra.Observers.Abstractions;
-using Cassandra.Requests;
+using Cassandra.Observers.Null;
 
-namespace Cassandra.Observers
+namespace Cassandra.Observers.RequestTracker
 {
-    internal class NullRequestObserver : IRequestObserver
+    internal class RequestTrackerObserverFactory : IObserverFactory
     {
-        public static readonly IRequestObserver Instance = new NullRequestObserver();
+        private readonly IRequestTracker tracer;
 
-        private NullRequestObserver()
+        public RequestTrackerObserverFactory(IRequestTracker tracer)
         {
+            this.tracer = tracer;
         }
 
-        public void OnSpeculativeExecution(Host host, long delay)
+        public IConnectionObserver CreateConnectionObserver(Host host)
         {
+            return NullConnectionObserver.Instance;
         }
 
-        public void OnRequestError(Host host, RequestErrorType errorType, RetryDecision.RetryDecisionType decision)
+        public IRequestObserver CreateRequestObserver()
         {
-        }
-
-        public void OnRequestStart()
-        {
-        }
-
-        public void OnRequestFinish(Exception exception)
-        {
+            return new RequestTrackerObserver(tracer);
         }
     }
 }

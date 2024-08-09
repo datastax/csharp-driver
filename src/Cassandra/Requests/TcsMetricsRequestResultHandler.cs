@@ -25,26 +25,28 @@ namespace Cassandra.Requests
         private readonly IRequestObserver _requestObserver;
         private readonly TaskCompletionSource<RowSet> _taskCompletionSource;
 
-        public TcsMetricsRequestResultHandler(IRequestObserver requestObserver)
+        public TcsMetricsRequestResultHandler(
+            IRequestObserver requestObserver,
+            RequestTrackingInfo requestTrackingInfo)
         {
             _requestObserver = requestObserver;
             _taskCompletionSource = new TaskCompletionSource<RowSet>();
-            _requestObserver.OnRequestStart();
+            _requestObserver.OnRequestStart(requestTrackingInfo);
         }
 
-        public void TrySetResult(RowSet result)
+        public void TrySetResult(RowSet result, RequestTrackingInfo requestTrackingInfo)
         {
             if (_taskCompletionSource.TrySetResult(result))
             {
-                _requestObserver.OnRequestFinish(null);
+                _requestObserver.OnRequestSuccess(requestTrackingInfo);
             }
         }
 
-        public void TrySetException(Exception exception)
+        public void TrySetException(Exception exception, RequestTrackingInfo requestTrackingInfo)
         {
             if (_taskCompletionSource.TrySetException(exception))
             {
-                _requestObserver.OnRequestFinish(exception);
+                _requestObserver.OnRequestFailure(exception, requestTrackingInfo);
             }
         }
 

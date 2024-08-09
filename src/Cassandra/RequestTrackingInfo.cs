@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,26 +14,19 @@
 //   limitations under the License.
 //
 
-using Cassandra.Connections;
-using Cassandra.Observers.Abstractions;
-using Cassandra.Responses;
+using System.Collections.Concurrent;
 
-namespace Cassandra.Observers
+namespace Cassandra
 {
-    internal class NullOperationObserver : IOperationObserver
+    public class RequestTrackingInfo
     {
-        public static readonly IOperationObserver Instance = new NullOperationObserver();
-
-        private NullOperationObserver()
+        public RequestTrackingInfo()
         {
+            this.Items = new ConcurrentDictionary<string, object>();
         }
 
-        public void OnOperationSend(long requestSize, long timestamp)
-        {
-        }
+        public ConcurrentDictionary<string, object> Items { get; }
 
-        public void OnOperationReceive(IRequestError error, Response response, long timestamp)
-        {
-        }
+        public IStatement Statement { get; set; }
     }
 }

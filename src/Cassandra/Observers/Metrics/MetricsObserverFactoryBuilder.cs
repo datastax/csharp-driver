@@ -14,17 +14,24 @@
 //   limitations under the License.
 //
 
+using Cassandra.Metrics.Internal;
 using Cassandra.Observers.Abstractions;
-using Cassandra.SessionManagement;
+using Cassandra.Observers.Null;
 
-namespace Cassandra.Requests
+namespace Cassandra.Observers.Metrics
 {
-    internal class RequestExecutionFactory : IRequestExecutionFactory
+    internal class MetricsObserverFactoryBuilder : IObserverFactoryBuilder
     {
-        public IRequestExecution Create(
-            IRequestHandler parent, IInternalSession session, IRequest request, IRequestObserver requestObserver, RequestTrackingInfo requestTrackingInfo)
+        private readonly bool isEnabled;
+
+        public MetricsObserverFactoryBuilder(bool isEnabled)
         {
-            return new RequestExecution(parent, session, request, requestObserver, requestTrackingInfo);
+            this.isEnabled = isEnabled;
+        }
+
+        public IObserverFactory Build(IMetricsManager manager)
+        {
+            return isEnabled ? new MetricsObserverFactory(manager) : NullObserverFactory.Instance;
         }
     }
 }

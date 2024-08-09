@@ -25,6 +25,7 @@ using Cassandra.MetadataHelpers;
 using Cassandra.Metrics;
 using Cassandra.Metrics.Providers.Null;
 using Cassandra.Observers;
+using Cassandra.Observers.Metrics;
 using Cassandra.ProtocolEvents;
 using Cassandra.Requests;
 using Cassandra.Serialization;
@@ -78,7 +79,7 @@ namespace Cassandra.Tests
 
         public IEndPointResolver EndPointResolver { get; set; }
 
-        public IObserverFactoryBuilder ObserverFactoryBuilder { get; set; } = new MetricsObserverFactoryBuilder();
+        public IObserverFactoryBuilder ObserverFactoryBuilder { get; set; } = new MetricsObserverFactoryBuilder(true);
 
         public DriverMetricsOptions MetricsOptions { get; set; } = new DriverMetricsOptions();
 

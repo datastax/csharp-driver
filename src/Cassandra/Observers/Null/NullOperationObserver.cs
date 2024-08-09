@@ -14,20 +14,26 @@
 //   limitations under the License.
 //
 
+using Cassandra.Connections;
 using Cassandra.Observers.Abstractions;
+using Cassandra.Responses;
 
-namespace Cassandra.Observers
+namespace Cassandra.Observers.Null
 {
-    internal class NullObserverFactory : IObserverFactory
+    internal class NullOperationObserver : IOperationObserver
     {
-        public IRequestObserver CreateRequestObserver()
+        public static readonly IOperationObserver Instance = new NullOperationObserver();
+
+        private NullOperationObserver()
         {
-            return NullRequestObserver.Instance;
         }
 
-        public IConnectionObserver CreateConnectionObserver(Host host)
+        public void OnOperationSend(long requestSize, long timestamp)
         {
-            return NullConnectionObserver.Instance;
+        }
+
+        public void OnOperationReceive(IRequestError error, Response response, long timestamp)
+        {
         }
     }
 }

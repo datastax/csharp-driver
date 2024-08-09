@@ -14,16 +14,22 @@
 //   limitations under the License.
 //
 
-using Cassandra.Metrics.Internal;
 using Cassandra.Observers.Abstractions;
 
-namespace Cassandra.Observers
+namespace Cassandra.Observers.Null
 {
-    internal class MetricsObserverFactoryBuilder : IObserverFactoryBuilder
+    internal class NullObserverFactory : IObserverFactory
     {
-        public IObserverFactory Build(IMetricsManager manager)
+        public static IObserverFactory Instance = new NullObserverFactory();
+
+        public IRequestObserver CreateRequestObserver()
         {
-            return new MetricsObserverFactory(manager);
+            return NullRequestObserver.Instance;
+        }
+
+        public IConnectionObserver CreateConnectionObserver(Host host)
+        {
+            return NullConnectionObserver.Instance;
         }
     }
 }
