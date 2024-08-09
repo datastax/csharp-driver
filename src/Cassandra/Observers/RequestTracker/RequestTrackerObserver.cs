@@ -39,22 +39,22 @@ namespace Cassandra.Observers.RequestTracker
         {
             var hostInfo = new HostTrackingInfo { Host = host };
             
-            await _requestTracker.OnNodeErrorAsync(r, hostInfo, ex);
+            await _requestTracker.OnNodeErrorAsync(r, hostInfo, ex).ConfigureAwait(false);
         }
 
         public async Task OnRequestSuccess(RequestTrackingInfo r)
         {
-            await _requestTracker.OnSuccessAsync(r);
+            await _requestTracker.OnSuccessAsync(r).ConfigureAwait(false);
         }
 
         public async Task OnRequestFailure(Exception ex, RequestTrackingInfo r)
         {
-            await _requestTracker.OnErrorAsync(r, ex);
+            await _requestTracker.OnErrorAsync(r, ex).ConfigureAwait(false);
         }
 
         public async Task OnRequestStart(RequestTrackingInfo r)
         {
-            await _requestTracker.OnStartAsync(r);
+            await _requestTracker.OnStartAsync(r).ConfigureAwait(false);
         }
 
         public void OnSpeculativeExecution(Host host, long delay)
@@ -65,14 +65,14 @@ namespace Cassandra.Observers.RequestTracker
         {
             var hostInfo = new HostTrackingInfo { Host = host };
 
-            await _requestTracker.OnNodeStart(requestTrackingInfo, hostInfo);
+            await _requestTracker.OnNodeStart(requestTrackingInfo, hostInfo).ConfigureAwait(false);
         }
 
         public async Task OnNodeSuccess(Host host, RequestTrackingInfo requestTrackingInfo)
         {
             var hostInfo = new HostTrackingInfo { Host = host };
 
-            await _requestTracker.OnNodeSuccessAsync(requestTrackingInfo, hostInfo);
+            await _requestTracker.OnNodeSuccessAsync(requestTrackingInfo, hostInfo).ConfigureAwait(false);
         }
     }
 }
