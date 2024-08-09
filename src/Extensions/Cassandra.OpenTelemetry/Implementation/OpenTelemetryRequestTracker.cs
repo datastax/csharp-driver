@@ -194,7 +194,7 @@ namespace Cassandra.OpenTelemetry.Implementation
         /// </summary>
         /// <param name="request">Request contextual information.</param>
         /// <returns>Activity task.</returns>
-        public Task OnNodeStart(RequestTrackingInfo request, HostTrackingInfo hostInfo)
+        public virtual Task OnNodeStart(RequestTrackingInfo request, HostTrackingInfo hostInfo)
         {
             var activityName = !string.IsNullOrEmpty(request.Statement.Keyspace) ? $"{nodeOperationName} {request.Statement.Keyspace}" : nodeOperationName;
 
