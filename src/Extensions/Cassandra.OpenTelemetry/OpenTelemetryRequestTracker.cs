@@ -18,7 +18,7 @@ using System.Diagnostics;
 using System.Threading.Tasks;
 using OpenTelemetry.Trace;
 
-namespace Cassandra.OpenTelemetry.Implementation
+namespace Cassandra.OpenTelemetry
 {
     /// <summary>
     /// OpenTelemetry request tracker implementation that includes tracing capabilities and follow
@@ -60,7 +60,7 @@ namespace Cassandra.OpenTelemetry.Implementation
         /// <returns>Activity task.</returns>
         public virtual Task OnStartAsync(RequestTrackingInfo request)
         {
-            var activityName = !string.IsNullOrEmpty(request.Statement.Keyspace) ? $"{sessionOperationName} {request.Statement.Keyspace}" : sessionOperationName;
+            var activityName = !string.IsNullOrEmpty(request.Statement?.Keyspace) ? $"{sessionOperationName} {request.Statement.Keyspace}" : sessionOperationName;
 
             var activity = ActivitySource.StartActivity(activityName, ActivityKind.Client);
 
@@ -69,7 +69,7 @@ namespace Cassandra.OpenTelemetry.Implementation
 
             if (activity.IsAllDataRequested)
             {
-                if (!string.IsNullOrEmpty(request.Statement.Keyspace))
+                if (!string.IsNullOrEmpty(request.Statement?.Keyspace))
                 {
                     activity.AddTag("db.name", request.Statement.Keyspace);
                 }
@@ -196,9 +196,16 @@ namespace Cassandra.OpenTelemetry.Implementation
         /// <returns>Activity task.</returns>
         public virtual Task OnNodeStart(RequestTrackingInfo request, HostTrackingInfo hostInfo)
         {
+            request.Items.TryGetValue(otelActivityKey, out object sessionContext);
+
+            if (!(sessionContext is Activity parentActivity) || parentActivity.Context == null)
+            {
+                return Task.CompletedTask;
+            }
+
             var activityName = !string.IsNullOrEmpty(request.Statement.Keyspace) ? $"{nodeOperationName} {request.Statement.Keyspace}" : nodeOperationName;
 
-            var activity = ActivitySource.StartActivity(activityName, ActivityKind.Client);
+            var activity = ActivitySource.StartActivity(activityName, ActivityKind.Client, parentActivity.Context);
 
             activity?.AddTag("db.system", "cassandra");
             activity?.AddTag("db.operation", nodeOperationName);

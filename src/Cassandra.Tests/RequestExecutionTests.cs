@@ -36,8 +36,9 @@ namespace Cassandra.Tests
         public void Should_ThrowException_When_NoValidHosts(bool currentHostRetry)
         {
             var mockSession = Mock.Of<IInternalSession>();
+            var mockStatement = Mock.Of<IStatement>();
             var requestHandlerFactory = Mock.Of<IRequestHandlerFactory>();
-            var requestTrackingInfo = new RequestTrackingInfo();
+            var requestTrackingInfo = new RequestTrackingInfo(mockStatement);
             Mock.Get(requestHandlerFactory)
                 .Setup(r => r.Create(
                     It.IsAny<IInternalSession>(), 
@@ -66,7 +67,8 @@ namespace Cassandra.Tests
         {
             var mockSession = Mock.Of<IInternalSession>();
             var requestHandlerFactory = Mock.Of<IRequestHandlerFactory>();
-            var requestTrackingInfo = new RequestTrackingInfo();
+            var mockStatement = Mock.Of<IStatement>();
+            var requestTrackingInfo = new RequestTrackingInfo(mockStatement);
             Mock.Get(requestHandlerFactory)
                 .Setup(r => r.Create(
                     It.IsAny<IInternalSession>(), 
@@ -102,7 +104,8 @@ namespace Cassandra.Tests
         {
             var mockSession = Mock.Of<IInternalSession>();
             var requestHandlerFactory = Mock.Of<IRequestHandlerFactory>();
-            var requestTrackingInfo = new RequestTrackingInfo();
+            var mockStatement = Mock.Of<IStatement>();
+            var requestTrackingInfo = new RequestTrackingInfo(mockStatement);
             Mock.Get(requestHandlerFactory)
                 .Setup(r => r.Create(
                     It.IsAny<IInternalSession>(), 
@@ -152,7 +155,8 @@ namespace Cassandra.Tests
         {
             var mockSession = Mock.Of<IInternalSession>();
             var requestHandlerFactory = Mock.Of<IRequestHandlerFactory>();
-            var requestTrackingInfo = new RequestTrackingInfo();
+            var mockStatement = Mock.Of<IStatement>();
+            var requestTrackingInfo = new RequestTrackingInfo(mockStatement);
             Mock.Get(requestHandlerFactory)
                 .Setup(r => r.Create(
                     It.IsAny<IInternalSession>(), 

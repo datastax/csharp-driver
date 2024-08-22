@@ -33,32 +33,32 @@ namespace Cassandra.Observers.Null
         {
         }
 
-        public Task OnNodeRequestError(Host host, RequestErrorType errorType, RetryDecision.RetryDecisionType decision, RequestTrackingInfo r, Exception ex)
+        public Task OnNodeRequestErrorAsync(Host host, RequestErrorType errorType, RetryDecision.RetryDecisionType decision, RequestTrackingInfo r, Exception ex)
         {
             return Task.FromResult(0);
         }
 
-        public Task OnNodeStart(Host host, RequestTrackingInfo requestTrackingInfo)
+        public Task OnNodeStartAsync(Host host, RequestTrackingInfo requestTrackingInfo)
         {
             return Task.FromResult(0);
         }
 
-        public Task OnNodeSuccess(Host host, RequestTrackingInfo requestTrackingInfo)
+        public Task OnNodeSuccessAsync(Host host, RequestTrackingInfo requestTrackingInfo)
         {
             return Task.FromResult(0);
         }
 
-        public Task OnRequestFailure(Exception ex, RequestTrackingInfo r)
+        public Task OnRequestFailureAsync(Exception ex, RequestTrackingInfo r)
         {
             return Task.FromResult(0);
         }
 
-        public Task OnRequestStart(RequestTrackingInfo r)
+        public Task OnRequestStartAsync(RequestTrackingInfo r)
         {
             return Task.FromResult(0);
         }
 
-        public Task OnRequestSuccess(RequestTrackingInfo r)
+        public Task OnRequestSuccessAsync(RequestTrackingInfo r)
         {
             return Task.FromResult(0);
         }

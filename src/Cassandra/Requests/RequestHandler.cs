@@ -64,7 +64,7 @@ namespace Cassandra.Requests
         {
             _session = session ?? throw new ArgumentNullException(nameof(session));
             _requestObserver = session.ObserverFactory.CreateRequestObserver();
-            _requestTrackingInfo = new RequestTrackingInfo { Statement = statement };
+            _requestTrackingInfo = new RequestTrackingInfo(statement);
             _requestResultHandler = new TcsMetricsRequestResultHandler(_requestObserver, _requestTrackingInfo);
             _request = request;
             Serializer = serializer ?? throw new ArgumentNullException(nameof(session));

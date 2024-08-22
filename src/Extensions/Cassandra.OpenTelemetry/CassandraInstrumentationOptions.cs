@@ -15,7 +15,6 @@
 //
 
 using System.Diagnostics;
-using Cassandra.OpenTelemetry.Implementation;
 
 namespace Cassandra.OpenTelemetry
 {

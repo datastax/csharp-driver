@@ -46,7 +46,7 @@ namespace Cassandra.Observers.Metrics
             _manager.GetOrCreateNodeMetrics(host).SpeculativeExecutions.Increment(1);
         }
 
-        public Task OnNodeRequestError(Host host, RequestErrorType errorType, RetryDecision.RetryDecisionType decision, RequestTrackingInfo r, Exception ex)
+        public Task OnNodeRequestErrorAsync(Host host, RequestErrorType errorType, RetryDecision.RetryDecisionType decision, RequestTrackingInfo r, Exception ex)
         {
             var nodeMetrics = _manager.GetOrCreateNodeMetrics(host);
             OnRequestError(nodeMetrics.Errors, errorType);
@@ -130,7 +130,7 @@ namespace Cassandra.Observers.Metrics
             }
         }
 
-        public Task OnRequestStart(RequestTrackingInfo r)
+        public Task OnRequestStartAsync(RequestTrackingInfo r)
         {
             if (!_manager.AreSessionTimerMetricsEnabled)
             {
@@ -142,12 +142,12 @@ namespace Cassandra.Observers.Metrics
             return Task.FromResult(0);
         }
 
-        public Task OnRequestFailure(Exception ex, RequestTrackingInfo r)
+        public Task OnRequestFailureAsync(Exception ex, RequestTrackingInfo r)
         {
             return OnRequestFinish(ex, r);
         }
 
-        public Task OnRequestSuccess(RequestTrackingInfo r)
+        public Task OnRequestSuccessAsync(RequestTrackingInfo r)
         {
             return OnRequestFinish(null, r);
         }
@@ -183,12 +183,12 @@ namespace Cassandra.Observers.Metrics
             Logger.Warning("An error occured while recording metrics for a request. Exception = {0}", ex.ToString());
         }
 
-        public Task OnNodeStart(Host host, RequestTrackingInfo requestTrackingInfo)
+        public Task OnNodeStartAsync(Host host, RequestTrackingInfo requestTrackingInfo)
         {
             return Task.FromResult(0);
         }
 
-        public Task OnNodeSuccess(Host host, RequestTrackingInfo requestTrackingInfo)
+        public Task OnNodeSuccessAsync(Host host, RequestTrackingInfo requestTrackingInfo)
         {
             return Task.FromResult(0);
         }

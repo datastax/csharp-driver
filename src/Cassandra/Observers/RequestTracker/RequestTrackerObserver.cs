@@ -30,7 +30,7 @@ namespace Cassandra.Observers.RequestTracker
             _requestTracker = requestTracker;
         }
 
-        public async Task OnNodeRequestError(
+        public Task OnNodeRequestErrorAsync(
             Host host,
             RequestErrorType errorType,
             RetryDecision.RetryDecisionType decision,
@@ -39,40 +39,40 @@ namespace Cassandra.Observers.RequestTracker
         {
             var hostInfo = new HostTrackingInfo { Host = host };
             
-            await _requestTracker.OnNodeErrorAsync(r, hostInfo, ex).ConfigureAwait(false);
+            return _requestTracker.OnNodeErrorAsync(r, hostInfo, ex);
         }
 
-        public async Task OnRequestSuccess(RequestTrackingInfo r)
+        public Task OnRequestSuccessAsync(RequestTrackingInfo r)
         {
-            await _requestTracker.OnSuccessAsync(r).ConfigureAwait(false);
+            return _requestTracker.OnSuccessAsync(r);
         }
 
-        public async Task OnRequestFailure(Exception ex, RequestTrackingInfo r)
+        public Task OnRequestFailureAsync(Exception ex, RequestTrackingInfo r)
         {
-            await _requestTracker.OnErrorAsync(r, ex).ConfigureAwait(false);
+            return _requestTracker.OnErrorAsync(r, ex);
         }
 
-        public async Task OnRequestStart(RequestTrackingInfo r)
+        public Task OnRequestStartAsync(RequestTrackingInfo r)
         {
-            await _requestTracker.OnStartAsync(r).ConfigureAwait(false);
+            return _requestTracker.OnStartAsync(r);
         }
 
         public void OnSpeculativeExecution(Host host, long delay)
         {
         }
 
-        public async Task OnNodeStart(Host host, RequestTrackingInfo requestTrackingInfo)
+        public Task OnNodeStartAsync(Host host, RequestTrackingInfo requestTrackingInfo)
         {
             var hostInfo = new HostTrackingInfo { Host = host };
 
-            await _requestTracker.OnNodeStart(requestTrackingInfo, hostInfo).ConfigureAwait(false);
+            return _requestTracker.OnNodeStart(requestTrackingInfo, hostInfo);
         }
 
-        public async Task OnNodeSuccess(Host host, RequestTrackingInfo requestTrackingInfo)
+        public Task OnNodeSuccessAsync(Host host, RequestTrackingInfo requestTrackingInfo)
         {
             var hostInfo = new HostTrackingInfo { Host = host };
 
-            await _requestTracker.OnNodeSuccessAsync(requestTrackingInfo, hostInfo).ConfigureAwait(false);
+            return _requestTracker.OnNodeSuccessAsync(requestTrackingInfo, hostInfo);
         }
     }
 }

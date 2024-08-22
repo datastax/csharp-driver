@@ -71,7 +71,7 @@ namespace Cassandra
         private MetadataSyncOptions _metadataSyncOptions;
         private IEndPointResolver _endPointResolver;
         private IDriverMetricsProvider _driverMetricsProvider;
-        private IRequestTracker _driverTracer;
+        private IRequestTracker _requestTracker;
         private DriverMetricsOptions _metricsOptions;
         private MonitorReportingOptions _monitorReportingOptions = new MonitorReportingOptions();
         private string _sessionName;
@@ -205,7 +205,7 @@ namespace Cassandra
                 typeSerializerDefinitions,
                 _keepContactPointsUnresolved,
                 _allowBetaProtocolVersions,
-                requestTracker: _driverTracer);
+                requestTracker: _requestTracker);
 
             return config;
         }
@@ -1015,7 +1015,7 @@ namespace Cassandra
 
         public Builder WithRequestTracker(IRequestTracker requestTracker)
         {
-            _driverTracer = requestTracker;
+            _requestTracker = requestTracker;
             return this;
         }
 

@@ -20,13 +20,16 @@ namespace Cassandra
 {
     public class RequestTrackingInfo
     {
-        public RequestTrackingInfo()
+        private readonly IStatement _statement;
+
+        public RequestTrackingInfo(IStatement statement)
         {
+            this._statement = statement;
             this.Items = new ConcurrentDictionary<string, object>();
         }
 
         public ConcurrentDictionary<string, object> Items { get; }
 
-        public IStatement Statement { get; set; }
+        public IStatement Statement => _statement;
     }
 }

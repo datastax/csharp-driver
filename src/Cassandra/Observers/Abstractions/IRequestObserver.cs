@@ -27,16 +27,16 @@ namespace Cassandra.Observers.Abstractions
     {
         void OnSpeculativeExecution(Host host, long delay);
 
-        Task OnNodeStart(Host host, RequestTrackingInfo requestTrackingInfo);
+        Task OnNodeStartAsync(Host host, RequestTrackingInfo requestTrackingInfo);
 
-        Task OnNodeRequestError(Host host, RequestErrorType errorType, RetryDecision.RetryDecisionType decision, RequestTrackingInfo r, Exception ex);
+        Task OnNodeRequestErrorAsync(Host host, RequestErrorType errorType, RetryDecision.RetryDecisionType decision, RequestTrackingInfo r, Exception ex);
 
-        Task OnNodeSuccess(Host host, RequestTrackingInfo requestTrackingInfo);
+        Task OnNodeSuccessAsync(Host host, RequestTrackingInfo requestTrackingInfo);
 
-        Task OnRequestStart(RequestTrackingInfo requestTrackingInfo);
+        Task OnRequestStartAsync(RequestTrackingInfo requestTrackingInfo);
 
-        Task OnRequestFailure(Exception ex, RequestTrackingInfo requestTrackingInfo);
+        Task OnRequestFailureAsync(Exception ex, RequestTrackingInfo requestTrackingInfo);
 
-        Task OnRequestSuccess(RequestTrackingInfo requestTrackingInfo);
+        Task OnRequestSuccessAsync(RequestTrackingInfo requestTrackingInfo);
     }
 }

@@ -31,14 +31,14 @@ namespace Cassandra.Requests
         {
             _requestObserver = requestObserver;
             _taskCompletionSource = new TaskCompletionSource<RowSet>();
-            _requestObserver.OnRequestStart(requestTrackingInfo);
+            _requestObserver.OnRequestStartAsync(requestTrackingInfo);
         }
 
         public void TrySetResult(RowSet result, RequestTrackingInfo requestTrackingInfo)
         {
             if (_taskCompletionSource.TrySetResult(result))
             {
-                _requestObserver.OnRequestSuccess(requestTrackingInfo);
+                _requestObserver.OnRequestSuccessAsync(requestTrackingInfo);
             }
         }
 
@@ -46,7 +46,7 @@ namespace Cassandra.Requests
         {
             if (_taskCompletionSource.TrySetException(exception))
             {
-                _requestObserver.OnRequestFailure(exception, requestTrackingInfo);
+                _requestObserver.OnRequestFailureAsync(exception, requestTrackingInfo);
             }
         }
 

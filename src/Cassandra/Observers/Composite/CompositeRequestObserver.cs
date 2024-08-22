@@ -31,7 +31,7 @@ namespace Cassandra.Observers.Composite
             this.observers = observers;
         }
 
-        public async Task OnNodeRequestError(
+        public async Task OnNodeRequestErrorAsync(
             Host host,
             RequestErrorType errorType,
             RetryDecision.RetryDecisionType decision,
@@ -40,31 +40,31 @@ namespace Cassandra.Observers.Composite
         {
             foreach (var observer in observers)
             {
-                await observer.OnNodeRequestError(host, errorType, decision, r, ex).ConfigureAwait(false);
+                await observer.OnNodeRequestErrorAsync(host, errorType, decision, r, ex).ConfigureAwait(false);
             }
         }
 
-        public async Task OnRequestFailure(Exception ex, RequestTrackingInfo r)
+        public async Task OnRequestFailureAsync(Exception ex, RequestTrackingInfo r)
         {
             foreach (var observer in observers)
             {
-                await observer.OnRequestFailure(ex, r).ConfigureAwait(false);
+                await observer.OnRequestFailureAsync(ex, r).ConfigureAwait(false);
             }
         }
 
-        public async Task OnRequestSuccess(RequestTrackingInfo r)
+        public async Task OnRequestSuccessAsync(RequestTrackingInfo r)
         {
             foreach (var observer in observers)
             {
-                await observer.OnRequestSuccess(r).ConfigureAwait(false);
+                await observer.OnRequestSuccessAsync(r).ConfigureAwait(false);
             }
         }
 
-        public async Task OnRequestStart(RequestTrackingInfo requestTrackingInfo)
+        public async Task OnRequestStartAsync(RequestTrackingInfo requestTrackingInfo)
         {
             foreach (var observer in observers)
             {
-                await observer.OnRequestStart(requestTrackingInfo).ConfigureAwait(false);
+                await observer.OnRequestStartAsync(requestTrackingInfo).ConfigureAwait(false);
             }
         }
 
@@ -76,19 +76,19 @@ namespace Cassandra.Observers.Composite
             }
         }
 
-        public async Task OnNodeStart(Host host, RequestTrackingInfo requestTrackingInfo)
+        public async Task OnNodeStartAsync(Host host, RequestTrackingInfo requestTrackingInfo)
         {
             foreach (var observer in observers)
             {
-                await observer.OnNodeStart(host, requestTrackingInfo).ConfigureAwait(false);
+                await observer.OnNodeStartAsync(host, requestTrackingInfo).ConfigureAwait(false);
             }
         }
 
-        public async Task OnNodeSuccess(Host host, RequestTrackingInfo requestTrackingInfo)
+        public async Task OnNodeSuccessAsync(Host host, RequestTrackingInfo requestTrackingInfo)
         {
             foreach (var observer in observers)
             {
-                await observer.OnNodeSuccess(host, requestTrackingInfo).ConfigureAwait(false);
+                await observer.OnNodeSuccessAsync(host, requestTrackingInfo).ConfigureAwait(false);
             }
         }
     }
