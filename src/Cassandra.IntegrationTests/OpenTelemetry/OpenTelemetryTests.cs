@@ -154,7 +154,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
                 ValidateSessionActivityAttributes(sessionActivity);
                 ValidateNodeActivityAttributes(nodeActivity);
-            });
+            }).ConfigureAwait(false);
 
             _exportedActivities.Clear();
 
@@ -240,7 +240,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
                     ValidateSessionActivityAttributes(sessionActivity);
                     ValidateNodeActivityAttributes(nodeActivity);
                 }
-                );
+                ).ConfigureAwait(false);
 
             // Clear activities to get the sync Mapping one
             _exportedActivities.Clear();
