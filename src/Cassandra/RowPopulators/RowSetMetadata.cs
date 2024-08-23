@@ -144,6 +144,22 @@ namespace Cassandra
         public IColumnInfo ValueTypeInfo { get; set; }
     }
 
+    public class VectorColumnInfo : CustomColumnInfo
+    {
+        public ColumnTypeCode ValueTypeCode { get; set; }
+        public IColumnInfo ValueTypeInfo { get; set; }
+        public int Dimension { get; set; }
+
+        ColumnDesc GetChildType()
+        {
+            return new ColumnDesc
+            {
+                TypeCode = ValueTypeCode,
+                TypeInfo = ValueTypeInfo
+            };
+        }
+    }
+
     internal interface ICollectionColumnInfo
     {
         ColumnDesc GetChildType();

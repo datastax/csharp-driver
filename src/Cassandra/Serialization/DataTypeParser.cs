@@ -37,6 +37,7 @@ namespace Cassandra.Serialization
         public const string ReversedTypeName = "org.apache.cassandra.db.marshal.ReversedType";
         public const string CompositeTypeName = "org.apache.cassandra.db.marshal.CompositeType";
         private const string EmptyTypeName = "org.apache.cassandra.db.marshal.EmptyType";
+        public const string VectorTypeName = "org.apache.cassandra.db.marshal.VectorType";
 
         /// <summary>
         /// Contains the cql literals of certain types
@@ -49,6 +50,7 @@ namespace Cassandra.Serialization
             public const string Map = "map";
             public const string Tuple = "tuple";
             public const string Empty = "empty";
+            public const string Vector = "vector";
         }
 
         private static readonly Dictionary<string, ColumnTypeCode> SingleFqTypeNames = new Dictionary<string, ColumnTypeCode>()
@@ -262,6 +264,32 @@ namespace Cassandra.Serialization
                 dataType.TypeInfo = tupleInfo;
                 return dataType;
             }
+            if (typeName.IndexOf(VectorTypeName, startIndex, comparison) == startIndex)
+            {
+                //Its a vector
+                //org.apache.cassandra.db.marshal.VectorTypeName(innerType,dimension)
+                //move cursor across the name and bypass the parenthesis
+                startIndex += VectorTypeName.Length + 1;
+                length -= VectorTypeName.Length + 2;
+                var parameters = ParseParams(typeName, startIndex, length);
+                if (parameters.Count != 2)
+                {
+                    throw GetTypeException(typeName);
+                }
+                dataType.TypeCode = ColumnTypeCode.Custom;
+                var subType = ParseFqTypeName(parameters[0]);
+                if (!int.TryParse(parameters[1], out var dimension))
+                {
+                    throw GetTypeException(typeName);
+                }
+                dataType.TypeInfo = new VectorColumnInfo
+                {
+                    ValueTypeCode = subType.TypeCode,
+                    ValueTypeInfo = subType.TypeInfo,
+                    Dimension = dimension
+                };
+                return dataType;
+            }
             // Assume custom type if cannot be parsed up to this point.
             dataType.TypeInfo = new CustomColumnInfo(typeName.Substring(startIndex, length));
             return dataType;
@@ -390,6 +418,33 @@ namespace Cassandra.Serialization
                     dataType.TypeInfo = new TupleColumnInfo(tasks.Select(t => t.Result));
                     return dataType;
                 });
+            }
+            if (typeName.IndexOf(CqlNames.Vector, startIndex, comparison) == startIndex)
+            {
+                //Its a vector: move cursor across the name and bypass the angle brackets
+                startIndex += CqlNames.Set.Length + 1;
+                length -= CqlNames.Set.Length + 2;
+                var parameters = ParseParams(typeName, startIndex, length, '<', '>');
+                if (parameters.Count != 2)
+                {
+                    return TaskHelper.FromException<ColumnDesc>(GetTypeException(typeName));
+                }
+                dataType.TypeCode = ColumnTypeCode.Custom;
+                if (!int.TryParse(parameters[1].Trim(), out var dimension))
+                {
+                    throw GetTypeException(typeName);
+                }
+                return ParseTypeName(udtResolver, keyspace, parameters[0].Trim())
+                    .ContinueSync(subType =>
+                    {
+                        dataType.TypeInfo = new VectorColumnInfo
+                        {
+                            ValueTypeCode = subType.TypeCode,
+                            ValueTypeInfo = subType.TypeInfo,
+                            Dimension = dimension
+                        };
+                        return dataType;
+                    });
             }
             if (startIndex > 0)
             {

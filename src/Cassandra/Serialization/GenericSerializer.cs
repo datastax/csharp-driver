@@ -19,8 +19,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Reflection;
+using System.Runtime.InteropServices.ComTypes;
+using Cassandra.DataStax.Auth.Sspi;
 using Cassandra.Serialization.Geometry;
 using Cassandra.Serialization.Search;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace Cassandra.Serialization
 {
@@ -542,6 +545,42 @@ namespace Cassandra.Serialization
             if (msg != null)
             {
                 throw new ArgumentException(msg + " An instance of " + typeInfo.GetType().AssemblyQualifiedName + " was provided instead.");
+            }
+        }
+
+        internal int GetValueLengthIfFixed(ColumnTypeCode typeCode, IColumnInfo typeInfo)
+        {
+            switch (typeCode)
+            {
+                case ColumnTypeCode.Bigint:
+                case ColumnTypeCode.Boolean:
+                case ColumnTypeCode.Timestamp:
+                case ColumnTypeCode.Double:
+                case ColumnTypeCode.Float:
+                case ColumnTypeCode.Int:
+                case ColumnTypeCode.Timeuuid:
+                case ColumnTypeCode.Uuid:
+
+                case ColumnTypeCode.List:
+                case ColumnTypeCode.Map:
+                case ColumnTypeCode.Set:
+                case ColumnTypeCode.Udt:
+                case ColumnTypeCode.Tuple:
+
+                case ColumnTypeCode.Custom:
+                case ColumnTypeCode.Ascii:
+                case ColumnTypeCode.TinyInt:
+                case ColumnTypeCode.Blob:
+                case ColumnTypeCode.Counter:
+                case ColumnTypeCode.Decimal:
+                case ColumnTypeCode.Duration:
+                case ColumnTypeCode.Inet:
+                case ColumnTypeCode.Varint:
+                case ColumnTypeCode.SmallInt:
+                case ColumnTypeCode.Date:
+                case ColumnTypeCode.Time:
+                case ColumnTypeCode.Text:
+                case ColumnTypeCode.Varchar:
             }
         }
     }
