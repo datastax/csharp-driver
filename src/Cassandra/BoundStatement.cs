@@ -148,25 +148,27 @@ namespace Cassandra
                 var value = values[i];
                 bool assignable;
                 ColumnTypeCode typeCode;
-                string failureMsg = null;
+                IColumnInfo typeInfo;
+                string failureMsg;
                 if (serializer.IsEncryptionEnabled)
                 {
-                    var tuple = serializer.IsAssignableFromEncrypted(p.Keyspace ?? Keyspace, p.Table, p.Name, p.TypeCode, value);
+                    var tuple = serializer.IsAssignableFromEncrypted(p.Keyspace ?? Keyspace, p.Table, p.Name, p.TypeCode, p.TypeInfo, value, out failureMsg);
                     assignable = tuple.Item1;
                     typeCode = tuple.Item2;
+                    typeInfo = tuple.Item3;
                     if (typeCode != p.TypeCode)
-                    {
+                    { // TODO failure msg to is assignablefrom
                         failureMsg = string.Format("It is not possible to encode a value of type {0} to a CQL type {1} (encrypted column at client level, cql type in DB is {2})", 
                             value.GetType(), typeCode, p.TypeCode);
                     }
                 }
                 else
                 {
-                    assignable = serializer.IsAssignableFrom(p.TypeCode, value);
+                    assignable = serializer.IsAssignableFrom(p.TypeCode, p.TypeInfo, value, out failureMsg);
                     typeCode = p.TypeCode;
                 }
                 if (!assignable)
-                {
+                { // TODO failure msg to is assignablefrom
                     throw new InvalidTypeException(failureMsg ??
                         string.Format("It is not possible to encode a value of type {0} to a CQL type {1}", value.GetType(), typeCode));
                 }

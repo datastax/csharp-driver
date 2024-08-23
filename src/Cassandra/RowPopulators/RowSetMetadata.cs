@@ -16,6 +16,7 @@
 
 using System;
 using System.Collections.Generic;
+using Cassandra.Serialization;
 
 // ReSharper disable once CheckNamespace
 namespace Cassandra
@@ -144,20 +145,11 @@ namespace Cassandra
         public IColumnInfo ValueTypeInfo { get; set; }
     }
 
-    public class VectorColumnInfo : CustomColumnInfo
+    public class VectorColumnInfo : IColumnInfo
     {
         public ColumnTypeCode ValueTypeCode { get; set; }
         public IColumnInfo ValueTypeInfo { get; set; }
-        public int Dimension { get; set; }
-
-        ColumnDesc GetChildType()
-        {
-            return new ColumnDesc
-            {
-                TypeCode = ValueTypeCode,
-                TypeInfo = ValueTypeInfo
-            };
-        }
+        public int? Dimension { get; set; }
     }
 
     internal interface ICollectionColumnInfo
@@ -400,6 +392,11 @@ namespace Cassandra
                         KeyTypeInfo = GetColumnInfo(reader, innercode)
                     };
                 case ColumnTypeCode.Custom:
+                    var customTypeName = reader.ReadString();
+                    if (customTypeName.StartsWith(DataTypeParser.VectorTypeName))
+                    {
+                        return DataTypeParser.ParseVectorColumnInfo(customTypeName);
+                    }
                     return new CustomColumnInfo { CustomTypeName = reader.ReadString() };
                 case ColumnTypeCode.Udt:
                     var udtInfo = new UdtColumnInfo(reader.ReadString() + "." + reader.ReadString());

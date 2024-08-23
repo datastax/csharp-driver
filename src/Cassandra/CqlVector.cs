@@ -21,38 +21,34 @@ using System.Linq;
 
 namespace Cassandra
 {
-    public class CqlVector : IEnumerable
+    public class CqlVector<T> : ICollection
     {
-        private readonly Array _arr;
+        private readonly T[] _array;
 
-        public CqlVector(Array arr)
+        internal CqlVector(T[] array)
         {
-            _arr = arr;
+            _array = array;
         }
 
-        public IEnumerator GetEnumerator()
+        public IEnumerator<T> GetEnumerator()
         {
-            return _arr.GetEnumerator();
+            return _array.AsEnumerable().GetEnumerator();
         }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
+        public void CopyTo(Array array, int index)
+        {
+            _array.CopyTo(array, index);
+        }
+
+        public int Count => _array.Length;
+
+        public bool IsSynchronized => _array.IsSynchronized;
+
+        public object SyncRoot => _array.SyncRoot;
     }
-
-    //public class CqlVector<T> : IEnumerable<T>
-    //{
-    //    private readonly T[] _array;
-
-    //    internal CqlVector(T[] array)
-    //    {
-    //        _array = array;
-    //    }
-
-    //    public IEnumerator<T> GetEnumerator()
-    //    {
-    //        return _array.AsEnumerable().GetEnumerator();
-    //    }
-
-    //    IEnumerator IEnumerable.GetEnumerator()
-    //    {
-    //        return GetEnumerator();
-    //    }
-    //}
 }

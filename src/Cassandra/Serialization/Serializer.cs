@@ -133,10 +133,13 @@ namespace Cassandra.Serialization
 
         public bool IsEncryptionEnabled => _columnEncryptionPolicy != null;
 
-        public Tuple<bool, ColumnTypeCode> IsAssignableFromEncrypted(string ks, string table, string column, ColumnTypeCode columnTypeCode, object value)
+        public Tuple<bool, ColumnTypeCode, IColumnInfo> IsAssignableFromEncrypted(string ks, string table, string column, ColumnTypeCode columnTypeCode, IColumnInfo typeInfo, object value, out string failureMsg)
         {
             var colData = _columnEncryptionPolicy.GetColumnEncryptionMetadata(ks, table, column);
-            return new Tuple<bool, ColumnTypeCode>(IsAssignableFrom(colData?.TypeCode ?? columnTypeCode, value), colData?.TypeCode ?? columnTypeCode);
+            return new Tuple<bool, ColumnTypeCode, IColumnInfo>(
+                IsAssignableFrom(colData?.TypeCode ?? columnTypeCode, colData?.TypeInfo ?? typeInfo, value, out failureMsg), 
+                colData?.TypeCode ?? columnTypeCode, 
+                colData?.TypeInfo ?? typeInfo);
         }
 
         public object Deserialize(ProtocolVersion version, byte[] buffer, int offset, int length, ColumnTypeCode typeCode, IColumnInfo typeInfo)
@@ -169,9 +172,9 @@ namespace Cassandra.Serialization
             return _serializer.GetCqlType(type, out typeInfo);
         }
 
-        public bool IsAssignableFrom(ColumnTypeCode columnTypeCode, object value)
+        public bool IsAssignableFrom(ColumnTypeCode columnTypeCode, IColumnInfo typeInfo, object value, out string failureMsg)
         {
-            return _serializer.IsAssignableFrom(columnTypeCode, value);
+            return _serializer.IsAssignableFrom(columnTypeCode, typeInfo, value, out failureMsg);
         }
 
         public UdtMap GetUdtMapByName(string name)
@@ -182,6 +185,11 @@ namespace Cassandra.Serialization
         public UdtMap GetUdtMapByType(Type type)
         {
             return _serializer.GetUdtMapByType(type);
+        }
+
+        public int GetValueLengthIfFixed(ColumnTypeCode typeCode, IColumnInfo typeInfo)
+        {
+            return _serializer.GetValueLengthIfFixed(typeCode, typeInfo);
         }
     }
 }

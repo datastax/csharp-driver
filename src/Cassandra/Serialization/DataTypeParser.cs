@@ -266,28 +266,8 @@ namespace Cassandra.Serialization
             }
             if (typeName.IndexOf(VectorTypeName, startIndex, comparison) == startIndex)
             {
-                //Its a vector
-                //org.apache.cassandra.db.marshal.VectorTypeName(innerType,dimension)
-                //move cursor across the name and bypass the parenthesis
-                startIndex += VectorTypeName.Length + 1;
-                length -= VectorTypeName.Length + 2;
-                var parameters = ParseParams(typeName, startIndex, length);
-                if (parameters.Count != 2)
-                {
-                    throw GetTypeException(typeName);
-                }
                 dataType.TypeCode = ColumnTypeCode.Custom;
-                var subType = ParseFqTypeName(parameters[0]);
-                if (!int.TryParse(parameters[1], out var dimension))
-                {
-                    throw GetTypeException(typeName);
-                }
-                dataType.TypeInfo = new VectorColumnInfo
-                {
-                    ValueTypeCode = subType.TypeCode,
-                    ValueTypeInfo = subType.TypeInfo,
-                    Dimension = dimension
-                };
+                dataType.TypeInfo = ParseVectorColumnInfo(typeName, startIndex, length);
                 return dataType;
             }
             // Assume custom type if cannot be parsed up to this point.
@@ -422,8 +402,8 @@ namespace Cassandra.Serialization
             if (typeName.IndexOf(CqlNames.Vector, startIndex, comparison) == startIndex)
             {
                 //Its a vector: move cursor across the name and bypass the angle brackets
-                startIndex += CqlNames.Set.Length + 1;
-                length -= CqlNames.Set.Length + 2;
+                startIndex += CqlNames.Vector.Length + 1;
+                length -= CqlNames.Vector.Length + 2;
                 var parameters = ParseParams(typeName, startIndex, length, '<', '>');
                 if (parameters.Count != 2)
                 {
@@ -510,6 +490,31 @@ namespace Cassandra.Serialization
         private static Exception GetTypeException(string typeName)
         {
             return new ArgumentException(string.Format("Not a valid type {0}", typeName));
+        }
+
+        internal static VectorColumnInfo ParseVectorColumnInfo(string typeName, int startIndex = 0, int length = 0)
+        {
+            //Its a vector
+            //org.apache.cassandra.db.marshal.VectorTypeName(innerType,dimension)
+            //move cursor across the name and bypass the parenthesis
+            startIndex += VectorTypeName.Length + 1;
+            length -= VectorTypeName.Length + 2;
+            var parameters = ParseParams(typeName, startIndex, length);
+            if (parameters.Count != 2)
+            {
+                throw GetTypeException(typeName);
+            }
+            var subType = ParseFqTypeName(parameters[0]);
+            if (!int.TryParse(parameters[1], out var dimension))
+            {
+                throw GetTypeException(typeName);
+            }
+            return new VectorColumnInfo
+            {
+                ValueTypeCode = subType.TypeCode,
+                ValueTypeInfo = subType.TypeInfo,
+                Dimension = dimension
+            };
         }
     }
 }

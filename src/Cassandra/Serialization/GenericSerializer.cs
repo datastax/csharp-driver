@@ -19,11 +19,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Reflection;
-using System.Runtime.InteropServices.ComTypes;
-using Cassandra.DataStax.Auth.Sspi;
 using Cassandra.Serialization.Geometry;
 using Cassandra.Serialization.Search;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace Cassandra.Serialization
 {
@@ -70,6 +67,7 @@ namespace Cassandra.Serialization
         private readonly IDictionary<Type, ITypeSerializer> _customSerializers = new Dictionary<Type, ITypeSerializer>();
         private readonly CollectionSerializer _collectionSerializer = new CollectionSerializer();
         private readonly DictionarySerializer _dictionarySerializer = new DictionarySerializer();
+        private readonly VectorSerializer _vectorSerializer = new VectorSerializer();
         private readonly TupleSerializer _tupleSerializer = new TupleSerializer();
         private readonly Dictionary<ColumnTypeCode, Func<IColumnInfo, Type>> _defaultTypes = new Dictionary<ColumnTypeCode, Func<IColumnInfo, Type>>();
         private readonly Dictionary<ColumnTypeCode, Func<IColumnInfo, Type>> _defaultGraphTypes;
@@ -81,6 +79,7 @@ namespace Cassandra.Serialization
             InitPrimitiveSerializers();
             _collectionSerializer.SetChildSerializer(this);
             _dictionarySerializer.SetChildSerializer(this);
+            _vectorSerializer.SetChildSerializer(this);
             _tupleSerializer.SetChildSerializer(this);
             _udtSerializer.SetChildSerializer(this);
             InitDefaultTypes();
@@ -105,6 +104,10 @@ namespace Cassandra.Serialization
             {
                 case ColumnTypeCode.Custom:
                 {
+                    if (typeInfo is VectorColumnInfo)
+                    {
+                        return _vectorSerializer.Deserialize((byte)version, buffer, offset, length, typeInfo);
+                    }
                     if (_customDeserializers.Count == 0 || !_customDeserializers.TryGetValue(typeInfo, out typeSerializer))
                     {
                         // Use byte[] by default
@@ -146,6 +149,10 @@ namespace Cassandra.Serialization
 
         public Type GetClrTypeForCustom(IColumnInfo typeInfo)
         {
+            if (typeInfo is VectorColumnInfo vectorColumnInfo)
+            {
+                return _vectorSerializer.GetClrType(vectorColumnInfo);
+            }
             var customTypeInfo = (CustomColumnInfo)typeInfo;
             if (customTypeInfo.CustomTypeName == null || !customTypeInfo.CustomTypeName.StartsWith(DataTypeParser.UdtTypeName))
             {
@@ -188,9 +195,22 @@ namespace Cassandra.Serialization
             }
             if (type.GetTypeInfo().IsGenericType)
             {
-                if (type.GetGenericTypeDefinition() == typeof(Nullable<>))
+                var genericTypeDefinition = type.GetGenericTypeDefinition();
+                if (genericTypeDefinition == typeof(Nullable<>))
                 {
                     return GetCqlType(type.GetTypeInfo().GetGenericArguments()[0], out typeInfo);
+                }
+
+                if (genericTypeDefinition == typeof(CqlVector<>))
+                {
+                    var valueTypeCode = GetCqlType(type.GetTypeInfo().GetGenericArguments()[0], out var valueTypeInfo);
+                    typeInfo = new VectorColumnInfo
+                    {
+                        ValueTypeCode = valueTypeCode,
+                        ValueTypeInfo = valueTypeInfo,
+                        Dimension = null // can't know the dimension just from the CLR type
+                    };
+                    return ColumnTypeCode.Custom;
                 }
                 if (typeof(IEnumerable).GetTypeInfo().IsAssignableFrom(type))
                 {
@@ -312,7 +332,7 @@ namespace Cassandra.Serialization
         /// Performs a lightweight validation to determine if the source type and target type matches.
         /// It isn't more strict to support miscellaneous uses of the driver, like direct inputs of blobs and all that. (backward compatibility)
         /// </summary>
-        public bool IsAssignableFrom(ColumnTypeCode columnTypeCode, object value)
+        public bool IsAssignableFrom(ColumnTypeCode columnTypeCode, IColumnInfo typeInfo, object value, out string failureMsg)
         {
             if (value == null || value is byte[])
             {
@@ -395,6 +415,11 @@ namespace Cassandra.Serialization
                 if (typeof(IDictionary).GetTypeInfo().IsAssignableFrom(type))
                 {
                     return _dictionarySerializer.Serialize((byte)version, (IDictionary)value);
+                }
+
+                if (typeof(CqlVector<>).GetTypeInfo().IsAssignableFrom(type))
+                {
+                    return _vectorSerializer.Serialize((byte)version, (ICollection)value);
                 }
                 return _collectionSerializer.Serialize((byte)version, (IEnumerable)value);
             }
@@ -512,7 +537,7 @@ namespace Cassandra.Serialization
                     break;
                 case ColumnTypeCode.Custom:
                     requiresCheck = true;
-                    if (!(typeInfo is CustomColumnInfo))
+                    if (!(typeInfo is CustomColumnInfo) && !(typeInfo is VectorColumnInfo))
                     {
                         msg = "custom column type requires a column info object of type CustomColumnInfo.";
                     }
@@ -548,26 +573,27 @@ namespace Cassandra.Serialization
             }
         }
 
-        internal int GetValueLengthIfFixed(ColumnTypeCode typeCode, IColumnInfo typeInfo)
+        public int GetValueLengthIfFixed(ColumnTypeCode typeCode, IColumnInfo typeInfo)
         {
             switch (typeCode)
             {
                 case ColumnTypeCode.Bigint:
+                    return 8;
                 case ColumnTypeCode.Boolean:
+                    return 1;
                 case ColumnTypeCode.Timestamp:
+                    return 8;
                 case ColumnTypeCode.Double:
+                    return 8;
                 case ColumnTypeCode.Float:
+                    return 4;
                 case ColumnTypeCode.Int:
+                    return 4;
                 case ColumnTypeCode.Timeuuid:
+                    return 16;
                 case ColumnTypeCode.Uuid:
+                    return 16;
 
-                case ColumnTypeCode.List:
-                case ColumnTypeCode.Map:
-                case ColumnTypeCode.Set:
-                case ColumnTypeCode.Udt:
-                case ColumnTypeCode.Tuple:
-
-                case ColumnTypeCode.Custom:
                 case ColumnTypeCode.Ascii:
                 case ColumnTypeCode.TinyInt:
                 case ColumnTypeCode.Blob:
@@ -581,7 +607,23 @@ namespace Cassandra.Serialization
                 case ColumnTypeCode.Time:
                 case ColumnTypeCode.Text:
                 case ColumnTypeCode.Varchar:
+                case ColumnTypeCode.List:
+                case ColumnTypeCode.Map:
+                case ColumnTypeCode.Set:
+                case ColumnTypeCode.Udt:
+                case ColumnTypeCode.Tuple:
+                    return -1;
+
+                case ColumnTypeCode.Custom:
+                    if (typeInfo is VectorColumnInfo vectorTypeInfo)
+                    {
+                        return GetValueLengthIfFixed(vectorTypeInfo.ValueTypeCode, vectorTypeInfo.ValueTypeInfo);
+                    }
+
+                    return -1;
             }
+
+            throw new DriverInternalError($"could not determine value length for type {typeCode}");
         }
     }
 }

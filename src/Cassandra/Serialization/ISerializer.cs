@@ -42,6 +42,6 @@ namespace Cassandra.Serialization
 
         bool IsEncryptionEnabled { get; }
 
-        Tuple<bool, ColumnTypeCode> IsAssignableFromEncrypted(string ks, string table, string column, ColumnTypeCode columnTypeCode, object value);
+        Tuple<bool, ColumnTypeCode, IColumnInfo> IsAssignableFromEncrypted(string ks, string table, string column, ColumnTypeCode columnTypeCode, IColumnInfo typeInfo, object value, out string failureMsg);
     }
 }

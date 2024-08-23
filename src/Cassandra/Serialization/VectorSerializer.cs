@@ -15,93 +15,98 @@
 //
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
-using System.Reflection;
+using System.Threading;
 
 namespace Cassandra.Serialization
 {
-    internal class VectorSerializer : TypeSerializer<CqlVector>
+    internal class VectorSerializer : TypeSerializer<ICollection>
     {
+        private static readonly ThreadLocal<byte[]> EncodingBuffer = new ThreadLocal<byte[]>(() => new byte[9]);
+
         public override ColumnTypeCode CqlType => ColumnTypeCode.Custom;
 
         public override IColumnInfo TypeInfo => new CustomColumnInfo(DataTypeParser.VectorTypeName);
 
-        public override CqlVector Deserialize(ushort protocolVersion, byte[] buffer, int offset, int length, IColumnInfo typeInfo)
+        public override ICollection Deserialize(ushort protocolVersion, byte[] buffer, int offset, int length, IColumnInfo typeInfo)
         {
-            ColumnTypeCode? childTypeCode = null;
-            IColumnInfo childTypeInfo = null;
-            int dimension = -1;
-            if (typeInfo is VectorColumnInfo vectorColumnInfo)
+            var vectorTypeInfo = GetVectorColumnInfo(typeInfo);
+            if (vectorTypeInfo.Dimension == null)
             {
-                childTypeCode = vectorColumnInfo.ValueTypeCode;
-                childTypeInfo = vectorColumnInfo.ValueTypeInfo;
-                dimension = vectorColumnInfo.Dimension;
+                throw new DriverInternalError("The driver needs to know the vector dimension when deserializing vectors.");
             }
 
-            if (childTypeCode == null)
+            var childSerializer = GetChildSerializer();
+            var childType = GetClrType(vectorTypeInfo.ValueTypeCode, vectorTypeInfo.ValueTypeInfo);
+            var result = Array.CreateInstance(childType, vectorTypeInfo.Dimension.Value);
+            for (var i = 0; i < vectorTypeInfo.Dimension; i++)
             {
-                throw new DriverInternalError(
-                    $"VectorSerializer can not deserialize CQL values of type {(typeInfo == null ? "null" : typeInfo.GetType().FullName)}");
-            }
-            var childType = GetClrType(childTypeCode.Value, childTypeInfo);
-            var result = Array.CreateInstance(childType, dimension);
-            bool? isNullable = null;
-            for (var i = 0; i < dimension; i++)
-            {
-                var itemLength = DecodeCollectionLength((ProtocolVersion)protocolVersion, buffer, ref offset);
+                var itemLength = childSerializer.GetValueLengthIfFixed(vectorTypeInfo.ValueTypeCode, vectorTypeInfo.ValueTypeInfo);
                 if (itemLength < 0)
                 {
-                    if (isNullable == null)
+                    var longItemLength = VintSerializer.ReadUnsignedVInt(buffer, ref offset);
+                    if (longItemLength > int.MaxValue)
                     {
-                        isNullable = !childType.GetTypeInfo().IsValueType;
+                        throw new DriverInternalError(
+                            "The driver doesn't support item lengths greater than int.MaxSize during deserialization and serialization.");
                     }
 
-                    if (!isNullable.Value)
-                    {
-                        var nullableType = typeof(Nullable<>).MakeGenericType(childType);
-                        var newResult = Array.CreateInstance(nullableType, dimension);
-                        for (var j = 0; j < i; j++)
-                        {
-                            newResult.SetValue(result.GetValue(j), j);
-                        }
-                        result = newResult;
-                        childType = nullableType;
-                        isNullable = true;
-                    }
-
-                    result.SetValue(null, i);
+                    itemLength = Convert.ToInt32(longItemLength);
                 }
-                else
-                {
-                    result.SetValue(DeserializeChild(protocolVersion, buffer, offset, itemLength, childTypeCode.Value, childTypeInfo), i);
-                    offset += itemLength;
-                }
+                result.SetValue(DeserializeChild(protocolVersion, buffer, offset, itemLength, vectorTypeInfo.ValueTypeCode, vectorTypeInfo.ValueTypeInfo), i);
+                offset += itemLength;
             }
-            return new CqlVector(result);
+            var dicType = typeof(CqlVector<>).MakeGenericType(childType);
+            return (ICollection)Activator.CreateInstance(dicType);
         }
 
-        public override byte[] Serialize(ushort protocolVersion, CqlVector value)
+        public override byte[] Serialize(ushort protocolVersion, ICollection value)
         {
-            //protocol format: [n items][bytes_1][bytes_n]
-            //where the amount of bytes to express the length are 2 or 4 depending on the protocol version
+            var childSerializer = GetChildSerializer();
+            _ = childSerializer.GetCqlType(value.GetType(), out var columnInfo);
+            var vectorTypeInfo = GetVectorColumnInfo(columnInfo);
+            var itemLength = childSerializer.GetValueLengthIfFixed(vectorTypeInfo.ValueTypeCode, vectorTypeInfo.ValueTypeInfo);
             var bufferList = new LinkedList<byte[]>();
             var totalLength = 0;
-            var itemCount = 0;
-            //We are using IEnumerable, we don't know the length of the underlying collection.
             foreach (var item in value)
             {
                 if (item == null)
                 {
-                    throw new ArgumentNullException(null, "Null values are not supported inside collections");
+                    throw new ArgumentNullException(null, "Null values are not supported inside vectors");
                 }
+
                 var itemBuffer = SerializeChild(protocolVersion, item);
-                var lengthBuffer = EncodeCollectionLength(protocolVersion, itemBuffer.Length);
-                bufferList.AddLast(lengthBuffer);
+                if (itemLength < 0)
+                {
+                    var vIntSize = VintSerializer.WriteUnsignedVInt(itemBuffer.Length, EncodingBuffer.Value);
+                    var lengthBuffer = new byte[vIntSize];
+                    Buffer.BlockCopy(EncodingBuffer.Value, 0, lengthBuffer, 0, vIntSize);
+                    bufferList.AddLast(lengthBuffer);
+                    totalLength += lengthBuffer.Length;
+                }
                 bufferList.AddLast(itemBuffer);
-                totalLength += lengthBuffer.Length + itemBuffer.Length;
-                itemCount++;
+                totalLength += itemBuffer.Length;
             }
             return Utils.JoinBuffers(bufferList, totalLength);
+        }
+
+        internal Type GetClrType(VectorColumnInfo vectorColumnInfo)
+        {
+            var valueType = GetClrType(vectorColumnInfo.ValueTypeCode, vectorColumnInfo.ValueTypeInfo);
+            var openType = typeof(CqlVector<>);
+            return openType.MakeGenericType(valueType);
+        }
+
+        private VectorColumnInfo GetVectorColumnInfo(IColumnInfo typeInfo)
+        {
+            if (typeInfo is VectorColumnInfo vectorColumnInfo)
+            {
+                return vectorColumnInfo;
+            }
+
+            throw new DriverInternalError(
+                $"VectorSerializer can not deserialize CQL values of type {(typeInfo == null ? "null" : typeInfo.GetType().FullName)}");
         }
     }
 }
