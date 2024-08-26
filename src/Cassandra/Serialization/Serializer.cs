@@ -133,13 +133,25 @@ namespace Cassandra.Serialization
 
         public bool IsEncryptionEnabled => _columnEncryptionPolicy != null;
 
-        public Tuple<bool, ColumnTypeCode, IColumnInfo> IsAssignableFromEncrypted(string ks, string table, string column, ColumnTypeCode columnTypeCode, IColumnInfo typeInfo, object value, out string failureMsg)
+        public Tuple<bool, ColumnTypeCode, IColumnInfo> IsAssignableFromEncrypted(
+            string ks, string table, string column, ColumnTypeCode columnTypeCode, IColumnInfo columnTypeInfo, object value, out string failureMsg)
         {
             var colData = _columnEncryptionPolicy.GetColumnEncryptionMetadata(ks, table, column);
-            return new Tuple<bool, ColumnTypeCode, IColumnInfo>(
-                IsAssignableFrom(colData?.TypeCode ?? columnTypeCode, colData?.TypeInfo ?? typeInfo, value, out failureMsg), 
-                colData?.TypeCode ?? columnTypeCode, 
-                colData?.TypeInfo ?? typeInfo);
+            if (colData == null)
+            {
+                var assignable = IsAssignableFrom(columnTypeCode, columnTypeInfo, value, out failureMsg);
+                return new Tuple<bool, ColumnTypeCode, IColumnInfo>(assignable, columnTypeCode, columnTypeInfo);
+            }
+            else
+            {
+                var assignable = IsAssignableFrom(colData.Value.TypeCode, colData.Value.TypeInfo, value, out failureMsg);
+                if (!assignable)
+                {
+                    failureMsg =
+                        $"It is not possible to encode a value of type {value.GetType()} to a CQL type {columnTypeCode} (encrypted column at client level, cql type in DB is {colData.Value.TypeCode})";
+                }
+                return new Tuple<bool, ColumnTypeCode, IColumnInfo>(assignable, colData.Value.TypeCode, colData.Value.TypeInfo);
+            }
         }
 
         public object Deserialize(ProtocolVersion version, byte[] buffer, int offset, int length, ColumnTypeCode typeCode, IColumnInfo typeInfo)

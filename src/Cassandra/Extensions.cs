@@ -14,6 +14,9 @@
 //   limitations under the License.
 //
 
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 using Cassandra.SessionManagement;
 
 namespace Cassandra
@@ -44,6 +47,16 @@ namespace Cassandra
         internal static ISessionState GetState(this IInternalSession instance)
         {
             return SessionState.From(instance);
+        }
+
+        public static CqlVector<T> ToCqlVector<T>(this T[] array)
+        {
+            return new CqlVector<T>(array);
+        }
+
+        public static CqlVector<T> ToCqlVector<T>(IEnumerable<T> enumerable)
+        {
+            return new CqlVector<T>(enumerable.ToArray());
         }
     }
 }

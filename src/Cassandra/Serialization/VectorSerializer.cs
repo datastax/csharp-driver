@@ -15,13 +15,12 @@
 //
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
 
 namespace Cassandra.Serialization
 {
-    internal class VectorSerializer : TypeSerializer<ICollection>
+    internal class VectorSerializer : TypeSerializer<IInternalCqlVector>
     {
         private static readonly ThreadLocal<byte[]> EncodingBuffer = new ThreadLocal<byte[]>(() => new byte[9]);
 
@@ -29,7 +28,7 @@ namespace Cassandra.Serialization
 
         public override IColumnInfo TypeInfo => new CustomColumnInfo(DataTypeParser.VectorTypeName);
 
-        public override ICollection Deserialize(ushort protocolVersion, byte[] buffer, int offset, int length, IColumnInfo typeInfo)
+        public override IInternalCqlVector Deserialize(ushort protocolVersion, byte[] buffer, int offset, int length, IColumnInfo typeInfo)
         {
             var vectorTypeInfo = GetVectorColumnInfo(typeInfo);
             if (vectorTypeInfo.Dimension == null)
@@ -58,10 +57,10 @@ namespace Cassandra.Serialization
                 offset += itemLength;
             }
             var dicType = typeof(CqlVector<>).MakeGenericType(childType);
-            return (ICollection)Activator.CreateInstance(dicType);
+            return (IInternalCqlVector)Activator.CreateInstance(dicType);
         }
 
-        public override byte[] Serialize(ushort protocolVersion, ICollection value)
+        public override byte[] Serialize(ushort protocolVersion, IInternalCqlVector value)
         {
             var childSerializer = GetChildSerializer();
             _ = childSerializer.GetCqlType(value.GetType(), out var columnInfo);

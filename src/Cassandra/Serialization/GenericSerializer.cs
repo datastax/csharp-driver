@@ -19,8 +19,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Reflection;
+using Cassandra.Mapping;
 using Cassandra.Serialization.Geometry;
 using Cassandra.Serialization.Search;
+using Newtonsoft.Json.Linq;
 
 namespace Cassandra.Serialization
 {
@@ -334,6 +336,19 @@ namespace Cassandra.Serialization
         /// </summary>
         public bool IsAssignableFrom(ColumnTypeCode columnTypeCode, IColumnInfo typeInfo, object value, out string failureMsg)
         {
+            failureMsg = null;
+            var assignable = isAssignableHelper(columnTypeCode, typeInfo, value, out var msg);
+            if (!assignable)
+            {
+                failureMsg = msg;
+            }
+
+            return assignable;
+        }
+
+        private bool isAssignableHelper(ColumnTypeCode columnTypeCode, IColumnInfo typeInfo, object value, out string failureMsg)
+        {
+            failureMsg = $"It is not possible to encode a value of type {value?.GetType()} to a CQL type {columnTypeCode}";
             if (value == null || value is byte[])
             {
                 return true;
@@ -372,6 +387,22 @@ namespace Cassandra.Serialization
             if (columnTypeCode == ColumnTypeCode.Tuple)
             {
                 return value is IStructuralComparable;
+            }
+
+            if (typeInfo is VectorColumnInfo vectorColumnInfo)
+            {
+                failureMsg = $"It is not possible to encode a value of type {value?.GetType()} to a vector column, please use the CqlVector<T> type.";
+                if (!type.IsGenericType || type.GetGenericTypeDefinition() != typeof(CqlVector<>))
+                {
+                    return false;
+                }
+
+                var vector = (IInternalCqlVector)value;
+                if (vector.Count != vectorColumnInfo.Dimension)
+                {
+                    failureMsg = $"It is not possible to encode a vector of type {value?.GetType()} with count {vector.Count} to a vector column with dimension {vectorColumnInfo.Dimension}";
+                    return false;
+                }
             }
             return true;
         }
@@ -417,9 +448,9 @@ namespace Cassandra.Serialization
                     return _dictionarySerializer.Serialize((byte)version, (IDictionary)value);
                 }
 
-                if (typeof(CqlVector<>).GetTypeInfo().IsAssignableFrom(type))
+                if (typeof(IInternalCqlVector).GetTypeInfo().IsAssignableFrom(type))
                 {
-                    return _vectorSerializer.Serialize((byte)version, (ICollection)value);
+                    return _vectorSerializer.Serialize((byte)version, (IInternalCqlVector)value);
                 }
                 return _collectionSerializer.Serialize((byte)version, (IEnumerable)value);
             }
