@@ -56,8 +56,10 @@ namespace Cassandra.Serialization
                 result.SetValue(DeserializeChild(protocolVersion, buffer, offset, itemLength, vectorTypeInfo.ValueTypeCode, vectorTypeInfo.ValueTypeInfo), i);
                 offset += itemLength;
             }
-            var dicType = typeof(CqlVector<>).MakeGenericType(childType);
-            return (IInternalCqlVector)Activator.CreateInstance(dicType);
+            var vectorSubType = typeof(CqlVector<>).MakeGenericType(childType);
+            var vector = (IInternalCqlVector)Activator.CreateInstance(vectorSubType, nonPublic: true);
+            vector.SetArray(result);
+            return vector;
         }
 
         public override byte[] Serialize(ushort protocolVersion, IInternalCqlVector value)

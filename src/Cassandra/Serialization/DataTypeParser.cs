@@ -497,6 +497,10 @@ namespace Cassandra.Serialization
             //Its a vector
             //org.apache.cassandra.db.marshal.VectorTypeName(innerType,dimension)
             //move cursor across the name and bypass the parenthesis
+            if (length == 0)
+            {
+                length = typeName.Length;
+            }
             startIndex += VectorTypeName.Length + 1;
             length -= VectorTypeName.Length + 2;
             var parameters = ParseParams(typeName, startIndex, length);

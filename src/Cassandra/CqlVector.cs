@@ -21,13 +21,31 @@ using System.Linq;
 
 namespace Cassandra
 {
-    public sealed class CqlVector<T> : IInternalCqlVector
+    public sealed class CqlVector<T> : IReadOnlyCollection<T>, IEquatable<CqlVector<T>>, IInternalCqlVector
     {
-        private readonly T[] _array;
+        private T[] _array;
 
-        public CqlVector(T[] array)
+        internal CqlVector()
         {
-            _array = array ?? throw new ArgumentNullException(nameof(array));
+        }
+
+        public CqlVector(int dimension)
+        {
+            if (dimension < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(dimension), dimension, "Dimension can not be negative.");
+            }
+            _array = new T[dimension];
+        }
+
+        public CqlVector(params T[] elements)
+        {
+            _array = elements ?? throw new ArgumentNullException(nameof(elements));
+        }
+
+        public static CqlVector<T> FromArray(T[] array)
+        {
+            return new CqlVector<T>(array);
         }
 
         public T this[int index]
@@ -36,18 +54,7 @@ namespace Cassandra
             set => _array[index] = value;
         }
 
-        object IInternalCqlVector.this[int index]
-        {
-            get => this[index];
-            set => this[index] = (T)value;
-        }
-
         public int Count => _array.Length;
-
-        public Type GetSubType()
-        {
-            return typeof(T);
-        }
 
         public T[] AsArray()
         {
@@ -71,7 +78,7 @@ namespace Cassandra
 
         public override bool Equals(object obj)
         {
-            return ReferenceEquals(this, obj) || obj is CqlVector<T> other && Equals(other);
+            return obj is CqlVector<T> other && Equals(other);
         }
 
         public override int GetHashCode()
@@ -81,13 +88,22 @@ namespace Cassandra
 
         public static bool operator ==(CqlVector<T> left, CqlVector<T> right)
         {
-            return Equals(left, right);
+            return CqlVector<T>.Equals(left, right);
         }
 
         public static bool operator !=(CqlVector<T> left, CqlVector<T> right)
         {
-            return !Equals(left, right);
+            return !CqlVector<T>.Equals(left, right);
         }
+
+        public override string ToString()
+        {
+            return _array.ToString();
+        }
+
+        public static explicit operator T[](CqlVector<T> v) => v.AsArray();
+
+        public static implicit operator CqlVector<T>(T[] a) => new CqlVector<T>(a);
 
         private static bool Equals(CqlVector<T> one, CqlVector<T> other)
         {
@@ -100,12 +116,28 @@ namespace Cassandra
                 return false;
             }
 
-            if (ReferenceEquals(one, other))
+            if (object.ReferenceEquals(one, other))
             {
                 return true;
             }
 
-            return Equals(one.AsArray(), other.AsArray());
+            return one._array.SequenceEqual(other._array);
+        }
+
+        object IInternalCqlVector.this[int index]
+        {
+            get => this[index];
+            set => this[index] = (T)value;
+        }
+
+        Type IInternalCqlVector.GetSubType()
+        {
+            return typeof(T);
+        }
+
+        void IInternalCqlVector.SetArray(object array)
+        {
+            _array = (T[])array;
         }
     }
 
@@ -116,5 +148,7 @@ namespace Cassandra
         int Count { get; }
 
         Type GetSubType();
+
+        void SetArray(object array);
     }
 }
