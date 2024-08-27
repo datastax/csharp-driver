@@ -88,8 +88,10 @@ namespace Cassandra.Tests
         /// </summary>
         [Test]
         [TestCaseSource(nameof(SingleValues))]
-        public void EncodeDecodeSingleValuesDefaultsFactory(object value, ColumnTypeCode code)
+        public void EncodeDecodeSingleValuesDefaultsFactory(object[] feed)
         {
+            var value = ((Array)feed[0]).GetValue(0);
+            var code = (ColumnTypeCode)feed[1];
             foreach (var protocolVersion in _protocolVersions)
             {
                 var serializer = NewInstance(protocolVersion);
@@ -99,21 +101,20 @@ namespace Cassandra.Tests
             }
         }
 
+        //TODO: exhaust the types
         static IEnumerable<object[]> SingleValues()
         {
-            yield return new object[] { "just utf8 text olé!", ColumnTypeCode.Text };
-            yield return new object[] { "just utf8 text olé!", ColumnTypeCode.Text };
-            yield return new object[] { 123, ColumnTypeCode.Int };
-            yield return new object[] { Int64.MinValue + 100, ColumnTypeCode.Bigint };
-            yield return new object[] { -144F, ColumnTypeCode.Float };
-            yield return new object[] { 1120D, ColumnTypeCode.Double };
-            yield return new object[] { -9999.89770M, ColumnTypeCode.Decimal };
-            yield return new object[] { -256M, ColumnTypeCode.Decimal };
-            yield return new object[] { new DateTimeOffset(new DateTime(2010, 4, 29)), ColumnTypeCode.Timestamp };
-            yield return new object[] { new IPAddress(new byte[] { 10, 0, 5, 5 }), ColumnTypeCode.Inet };
-            yield return new object[] { Guid.NewGuid(), ColumnTypeCode.Uuid };
-            yield return new object[] { true, ColumnTypeCode.Boolean };
-            yield return new object[] { new byte[] { 255, 128, 64, 32, 16, 9, 9 }, ColumnTypeCode.Blob };
+            yield return new object[] { new [] {"just utf8 text olé!", "another"}, ColumnTypeCode.Text };
+            yield return new object[] { new []{123, -1}, ColumnTypeCode.Int };
+            yield return new object[] { new []{Int64.MinValue + 100, 1}, ColumnTypeCode.Bigint };
+            yield return new object[] { new[]{-144F, 1.25F}, ColumnTypeCode.Float };
+            yield return new object[] { new []{1120D, 1.3456D}, ColumnTypeCode.Double };
+            yield return new object[] { new []{-9999.89770M, 8.0923M}, ColumnTypeCode.Decimal };
+            yield return new object[] { new[]{new DateTimeOffset(new DateTime(2010, 4, 29)), new DateTimeOffset(new DateTime(1980, 1, 9))}, ColumnTypeCode.Timestamp };
+            yield return new object[] { new[]{new IPAddress(new byte[] { 10, 0, 5, 5 }), new IPAddress(new byte[]{127,0,0,1})}, ColumnTypeCode.Inet };
+            yield return new object[] { new[]{Guid.NewGuid(), Guid.NewGuid()}, ColumnTypeCode.Uuid };
+            yield return new object[] { new [] {true, false}, ColumnTypeCode.Boolean };
+            yield return new object[] { new[]{new byte[] { 255, 128, 64, 32, 16, 9, 9 }, new byte[]{0,1,128,9,1,2,3,4}}, ColumnTypeCode.Blob };
         }
         
         [Test]
