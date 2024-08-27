@@ -401,6 +401,7 @@ namespace Cassandra.Serialization
             }
             if (typeName.IndexOf(CqlNames.Vector, startIndex, comparison) == startIndex)
             {
+                //TODO: need to handle nested vectors
                 //Its a vector: move cursor across the name and bypass the angle brackets
                 startIndex += CqlNames.Vector.Length + 1;
                 length -= CqlNames.Vector.Length + 2;
@@ -494,6 +495,7 @@ namespace Cassandra.Serialization
 
         internal static VectorColumnInfo ParseVectorColumnInfo(string typeName, int startIndex = 0, int length = 0)
         {
+            //TODO: need to handle nested vectors
             //Its a vector
             //org.apache.cassandra.db.marshal.VectorTypeName(innerType,dimension)
             //move cursor across the name and bypass the parenthesis
