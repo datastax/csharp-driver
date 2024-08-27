@@ -87,7 +87,7 @@ namespace Cassandra.Tests
         /// Tests that the default target type when is not provided
         /// </summary>
         [Test]
-        [TestCaseSource(nameof(SingleValues))]
+        [TestCaseSource(nameof(SingleValuesTestCases))]
         public void EncodeDecodeSingleValuesDefaultsFactory(object[] feed)
         {
             var value = ((Array)feed[0]).GetValue(0);
@@ -102,9 +102,10 @@ namespace Cassandra.Tests
         }
 
         //TODO: exhaust the types
-        static IEnumerable<object[]> SingleValues()
+        static IEnumerable<object[]> SingleValuesTestCases()
         {
-            yield return new object[] { new [] {"just utf8 text olé!", "another"}, ColumnTypeCode.Text };
+            // 2-element array, type code
+            yield return new object[] { new [] {"just utf8 text olé!", "another"}, ColumnTypeCode.Text};
             yield return new object[] { new []{123, -1}, ColumnTypeCode.Int };
             yield return new object[] { new []{Int64.MinValue + 100, 1}, ColumnTypeCode.Bigint };
             yield return new object[] { new[]{-144F, 1.25F}, ColumnTypeCode.Float };
@@ -116,33 +117,60 @@ namespace Cassandra.Tests
             yield return new object[] { new [] {true, false}, ColumnTypeCode.Boolean };
             yield return new object[] { new[]{new byte[] { 255, 128, 64, 32, 16, 9, 9 }, new byte[]{0,1,128,9,1,2,3,4}}, ColumnTypeCode.Blob };
         }
+
+        static IEnumerable<object[]> CollectionsTestCases()
+        {
+            // value, type code, column info
+            foreach (object[] row in SingleValuesTestCases())
+            {
+                // List
+                yield return new object[]
+                    { row[0], ColumnTypeCode.List, new ListColumnInfo() { ValueTypeCode = (ColumnTypeCode)row[1] } };
+                IEnumerable<object> list = ((Array)row[0]).Cast<object>().ToList();
+                
+                yield return new object[]
+                {
+                    new List<object>(list), ColumnTypeCode.List,
+                    new ListColumnInfo() { ValueTypeCode = (ColumnTypeCode)row[1] }
+                };
+                
+                // Set
+                yield return new object[]
+                {
+                    new List<object>(list), ColumnTypeCode.Set,
+                    new SetColumnInfo() { KeyTypeCode = (ColumnTypeCode)row[1] }
+                };
+                yield return new object[]
+                {
+                    new HashSet<object>(list), ColumnTypeCode.Set,
+                    new SetColumnInfo() { KeyTypeCode = (ColumnTypeCode)row[1] }
+                };
+                yield return new object[]
+                {
+                    row[0], ColumnTypeCode.Set,
+                    new SetColumnInfo() { KeyTypeCode = (ColumnTypeCode)row[1] }
+                };
+                
+                // Vector
+                // yield return new object[]
+                // {
+                //     new CqlVector<object>(list), ColumnTypeCode.
+                // }
+            }
+        }
         
         [Test]
-        public void EncodeDecodeListSetFactoryTest()
+        [TestCaseSource(nameof(CollectionsTestCases))]
+        public void EncodeDecodeListSetFactoryTest(object[] feed)
         {
-            var initialValues = new object[]
-            {
-                //Lists
-                new object[] {new List<int>(new [] {1, 2, 1000}), ColumnTypeCode.List, new ListColumnInfo() {ValueTypeCode = ColumnTypeCode.Int}},
-                new object[] {new List<double>(new [] {-1D, 2.333D, 1.2D}), ColumnTypeCode.List, new ListColumnInfo() {ValueTypeCode = ColumnTypeCode.Double}},
-                new object[] {new [] {5D, 4.333D, 1.2D}, ColumnTypeCode.List, new ListColumnInfo() {ValueTypeCode = ColumnTypeCode.Double}},
-                //Sets
-                new object[] {new List<decimal>(new [] {-1M, 2.333M, 1.2M, 256M}), ColumnTypeCode.Set, new SetColumnInfo() {KeyTypeCode = ColumnTypeCode.Decimal}},
-                new object[] {new SortedSet<string>(new [] {"a", "b", "c"}), ColumnTypeCode.Set, new SetColumnInfo() {KeyTypeCode = ColumnTypeCode.Text}},
-                new object[] {new HashSet<string>(new [] {"ADADD", "AA", "a"}), ColumnTypeCode.Set, new SetColumnInfo() {KeyTypeCode = ColumnTypeCode.Text}},
-                new object[] {new [] {"ADADD", "AA", "a"}, ColumnTypeCode.Set, new SetColumnInfo() {KeyTypeCode = ColumnTypeCode.Text}}
-            };
             foreach (var version in _protocolVersions)
             {
                 var serializer = NewInstance(version);
-                foreach (object[] value in initialValues)
-                {
-                    var valueToEncode = (IEnumerable)value[0];
-                    var encoded = serializer.Serialize(valueToEncode);
-                    var decoded = (IEnumerable)serializer.Deserialize(encoded, (ColumnTypeCode)value[1], (IColumnInfo)value[2]);
-                    Assert.IsInstanceOf<Array>(decoded);
-                    CollectionAssert.AreEqual(valueToEncode, decoded);
-                }
+                var valueToEncode = (IEnumerable) feed [0];
+                var encoded = serializer.Serialize(valueToEncode);
+                var decoded = (IEnumerable)serializer.Deserialize(encoded, (ColumnTypeCode)feed[1], (IColumnInfo)feed[2]);
+                Assert.IsInstanceOf<Array>(decoded);
+                CollectionAssert.AreEqual(valueToEncode, decoded);
             }
         }
 
