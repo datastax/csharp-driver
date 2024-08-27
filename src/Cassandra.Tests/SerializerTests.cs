@@ -87,35 +87,35 @@ namespace Cassandra.Tests
         /// Tests that the default target type when is not provided
         /// </summary>
         [Test]
-        public void EncodeDecodeSingleValuesDefaultsFactory()
+        [TestCaseSource(nameof(SingleValues))]
+        public void EncodeDecodeSingleValuesDefaultsFactory(object value, ColumnTypeCode code)
         {
-            var initialValues = new object[]
+            foreach (var protocolVersion in _protocolVersions)
             {
-                new object[] {"just utf8 text olé!", ColumnTypeCode.Text},
-                new object[] {123, ColumnTypeCode.Int},
-                new object[] {Int64.MinValue + 100, ColumnTypeCode.Bigint},
-                new object[] {-144F, ColumnTypeCode.Float},
-                new object[] {1120D, ColumnTypeCode.Double},
-                new object[] {-9999.89770M, ColumnTypeCode.Decimal},
-                new object[] {-256M, ColumnTypeCode.Decimal},
-                new object[] {new DateTimeOffset(new DateTime(2010, 4, 29)), ColumnTypeCode.Timestamp},
-                new object[] {new IPAddress(new byte[] { 10, 0, 5, 5}), ColumnTypeCode.Inet},
-                new object[] {Guid.NewGuid(), ColumnTypeCode.Uuid},
-                new object[] {true, ColumnTypeCode.Boolean},
-                new object[] {new byte [] { 255, 128, 64, 32, 16, 9, 9}, ColumnTypeCode.Blob}
-            };
-            foreach (var version in _protocolVersions)
-            {
-                var serializer = NewInstance(version);
-                foreach (object[] value in initialValues)
-                {
-                    byte[] encoded = serializer.Serialize(value[0]);
-                    //Set object as the target CSharp type, it should get the default value
-                    Assert.AreEqual(value[0], serializer.Deserialize(encoded, (ColumnTypeCode)value[1], null));
-                }   
+                var serializer = NewInstance(protocolVersion);
+                byte[] encoded = serializer.Serialize(value);
+                //Set object as the target CSharp type, it should get the default value
+                Assert.AreEqual(value, serializer.Deserialize(encoded, code, null));
             }
         }
 
+        static IEnumerable<object[]> SingleValues()
+        {
+            yield return new object[] { "just utf8 text olé!", ColumnTypeCode.Text };
+            yield return new object[] { "just utf8 text olé!", ColumnTypeCode.Text };
+            yield return new object[] { 123, ColumnTypeCode.Int };
+            yield return new object[] { Int64.MinValue + 100, ColumnTypeCode.Bigint };
+            yield return new object[] { -144F, ColumnTypeCode.Float };
+            yield return new object[] { 1120D, ColumnTypeCode.Double };
+            yield return new object[] { -9999.89770M, ColumnTypeCode.Decimal };
+            yield return new object[] { -256M, ColumnTypeCode.Decimal };
+            yield return new object[] { new DateTimeOffset(new DateTime(2010, 4, 29)), ColumnTypeCode.Timestamp };
+            yield return new object[] { new IPAddress(new byte[] { 10, 0, 5, 5 }), ColumnTypeCode.Inet };
+            yield return new object[] { Guid.NewGuid(), ColumnTypeCode.Uuid };
+            yield return new object[] { true, ColumnTypeCode.Boolean };
+            yield return new object[] { new byte[] { 255, 128, 64, 32, 16, 9, 9 }, ColumnTypeCode.Blob };
+        }
+        
         [Test]
         public void EncodeDecodeListSetFactoryTest()
         {
