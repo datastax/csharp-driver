@@ -397,7 +397,7 @@ namespace Cassandra
                     {
                         return DataTypeParser.ParseVectorColumnInfo(customTypeName);
                     }
-                    return new CustomColumnInfo { CustomTypeName = reader.ReadString() };
+                    return new CustomColumnInfo { CustomTypeName = customTypeName };
                 case ColumnTypeCode.Udt:
                     var udtInfo = new UdtColumnInfo(reader.ReadString() + "." + reader.ReadString());
                     var fieldLength = reader.ReadInt16();
