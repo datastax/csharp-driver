@@ -114,7 +114,7 @@ namespace Cassandra.Tests
             yield return new object[] { new[]{new DateTimeOffset(new DateTime(2010, 4, 29)), new DateTimeOffset(new DateTime(1980, 1, 9))}, ColumnTypeCode.Timestamp };
             yield return new object[] { new[]{new IPAddress(new byte[] { 10, 0, 5, 5 }), new IPAddress(new byte[]{127,0,0,1})}, ColumnTypeCode.Inet };
             yield return new object[] { new[]{Guid.NewGuid(), Guid.NewGuid()}, ColumnTypeCode.Uuid };
-            yield return new object[] { new [] {true, false}, ColumnTypeCode.Boolean };
+            yield return new object[] { new[]{true, false}, ColumnTypeCode.Boolean };
             yield return new object[] { new[]{new byte[] { 255, 128, 64, 32, 16, 9, 9 }, new byte[]{0,1,128,9,1,2,3,4}}, ColumnTypeCode.Blob };
         }
 
@@ -131,7 +131,7 @@ namespace Cassandra.Tests
                 yield return new object[]
                 {
                     new List<object>(list), ColumnTypeCode.List,
-                    new ListColumnInfo() { ValueTypeCode = (ColumnTypeCode)row[1] }
+                    new ListColumnInfo() { ValueTypeCode = (ColumnTypeCode)row[1], ValueTypeInfo = new ListColumnInfo(){}}
                 };
                 
                 // Set
@@ -152,11 +152,46 @@ namespace Cassandra.Tests
                 };
                 
                 // Vector
-                // yield return new object[]
-                // {
-                //     new CqlVector<object>(list), ColumnTypeCode.
-                // }
+                yield return new object[]
+                {
+                    CreateCqlVectorDynamicType((Array)row[0]), ColumnTypeCode.Custom,
+                    new VectorColumnInfo() { ValueTypeCode = (ColumnTypeCode)row[1], Dimension = 2}
+                };
             }
+        }
+
+        static IEnumerable<object[]> VectorsTestCases()
+        {
+            // value, type code, column info
+            foreach (object[] singleValueRow in SingleValuesTestCases())
+            {
+                yield return new[]
+                {
+                    CreateCqlVectorDynamicType((Array)singleValueRow[0]), ColumnTypeCode.Custom,
+                    new VectorColumnInfo() { ValueTypeCode = (ColumnTypeCode)singleValueRow[1], Dimension = 2}
+                };
+            }
+
+            foreach (object[] collectionRow in CollectionsTestCases())
+            {
+                Type subtype = collectionRow[0].GetType();
+                Type cqlVectorType = typeof(CqlVector<>).MakeGenericType(subtype);
+                object[] param = new[] { collectionRow[0], collectionRow[0] };
+                object vector = Activator.CreateInstance(cqlVectorType, param);
+                yield return new[]
+                {
+                    vector, ColumnTypeCode.Custom,
+                    new VectorColumnInfo() { ValueTypeCode = (ColumnTypeCode)collectionRow[1], Dimension = 2, ValueTypeInfo = (IColumnInfo) collectionRow[2] }
+                };
+            }
+        }
+        
+        static object CreateCqlVectorDynamicType(Array array)
+        {
+            Type elementType = array.GetType().GetElementType();
+            Type cqlVectorType = typeof(CqlVector<>).MakeGenericType(elementType);
+            ConstructorInfo constructor = cqlVectorType.GetConstructor(new Type[] { array.GetType() });
+            return constructor.Invoke(new object[] { array });
         }
         
         [Test]
@@ -169,7 +204,20 @@ namespace Cassandra.Tests
                 var valueToEncode = (IEnumerable) feed [0];
                 var encoded = serializer.Serialize(valueToEncode);
                 var decoded = (IEnumerable)serializer.Deserialize(encoded, (ColumnTypeCode)feed[1], (IColumnInfo)feed[2]);
-                Assert.IsInstanceOf<Array>(decoded);
+                CollectionAssert.AreEqual(valueToEncode, decoded);
+            }
+        }
+
+        [Test]
+        [TestCaseSource(nameof(VectorsTestCases))]
+        public void EncodeDecodeVectorFactoryTest(object[] feed)
+        {
+            foreach (var version in _protocolVersions)
+            {
+                var serializer = NewInstance(version);
+                var valueToEncode = (IEnumerable) feed [0];
+                var encoded = serializer.Serialize(valueToEncode);
+                var decoded = (IEnumerable)serializer.Deserialize(encoded, (ColumnTypeCode)feed[1], (IColumnInfo)feed[2]);
                 CollectionAssert.AreEqual(valueToEncode, decoded);
             }
         }
