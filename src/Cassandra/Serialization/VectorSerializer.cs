@@ -41,6 +41,7 @@ namespace Cassandra.Serialization
             var result = Array.CreateInstance(childType, vectorTypeInfo.Dimension.Value);
             for (var i = 0; i < vectorTypeInfo.Dimension; i++)
             {
+                //TODO: if not enough bytes, throw
                 var itemLength = childSerializer.GetValueLengthIfFixed(vectorTypeInfo.ValueTypeCode, vectorTypeInfo.ValueTypeInfo);
                 if (itemLength < 0)
                 {
@@ -52,10 +53,12 @@ namespace Cassandra.Serialization
                     }
 
                     itemLength = Convert.ToInt32(longItemLength);
+                    //TODO: do we need to offset += vIntSize?
                 }
                 result.SetValue(DeserializeChild(protocolVersion, buffer, offset, itemLength, vectorTypeInfo.ValueTypeCode, vectorTypeInfo.ValueTypeInfo), i);
                 offset += itemLength;
             }
+            //TODO: if still bytes left, throw
             var vectorSubType = typeof(CqlVector<>).MakeGenericType(childType);
             var vector = (IInternalCqlVector)Activator.CreateInstance(vectorSubType, nonPublic: true);
             vector.SetArray(result);

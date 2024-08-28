@@ -205,11 +205,11 @@ namespace Cassandra.Serialization
 
                 if (genericTypeDefinition == typeof(CqlVector<>))
                 {
-                    var valueTypeCode = GetCqlType(type.GetTypeInfo().GetGenericArguments()[0], out var valueTypeInfo);
+                    var valueTypeCode = GetCqlType(type.GetTypeInfo().GetGenericArguments()[0], out var vectorSubtypeInfo);
                     typeInfo = new VectorColumnInfo
                     {
                         ValueTypeCode = valueTypeCode,
-                        ValueTypeInfo = valueTypeInfo,
+                        ValueTypeInfo = vectorSubtypeInfo,
                         Dimension = null // can't know the dimension just from the CLR type
                     };
                     return ColumnTypeCode.Custom;
