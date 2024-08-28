@@ -19,10 +19,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Reflection;
-using Cassandra.Mapping;
 using Cassandra.Serialization.Geometry;
 using Cassandra.Serialization.Search;
-using Newtonsoft.Json.Linq;
 
 namespace Cassandra.Serialization
 {
@@ -337,7 +335,7 @@ namespace Cassandra.Serialization
         public bool IsAssignableFrom(ColumnTypeCode columnTypeCode, IColumnInfo typeInfo, object value, out string failureMsg)
         {
             failureMsg = null;
-            var assignable = isAssignableHelper(columnTypeCode, typeInfo, value, out var msg);
+            var assignable = IsAssignableHelper(columnTypeCode, typeInfo, value, out var msg);
             if (!assignable)
             {
                 failureMsg = msg;
@@ -346,7 +344,7 @@ namespace Cassandra.Serialization
             return assignable;
         }
 
-        private bool isAssignableHelper(ColumnTypeCode columnTypeCode, IColumnInfo typeInfo, object value, out string failureMsg)
+        private bool IsAssignableHelper(ColumnTypeCode columnTypeCode, IColumnInfo typeInfo, object value, out string failureMsg)
         {
             failureMsg = $"It is not possible to encode a value of type {value?.GetType()} to a CQL type {columnTypeCode}";
             if (value == null || value is byte[])
@@ -648,13 +646,82 @@ namespace Cassandra.Serialization
                 case ColumnTypeCode.Custom:
                     if (typeInfo is VectorColumnInfo vectorTypeInfo)
                     {
-                        return GetValueLengthIfFixed(vectorTypeInfo.ValueTypeCode, vectorTypeInfo.ValueTypeInfo);
+                        var subTypeValueLength = GetValueLengthIfFixed(vectorTypeInfo.ValueTypeCode, vectorTypeInfo.ValueTypeInfo);
+                        if (subTypeValueLength < 0)
+                        {
+                            return -1;
+                        }
+
+                        if (!vectorTypeInfo.Dimension.HasValue)
+                        {
+                            throw new DriverInternalError("Can not compute vector value length without the dimension.");
+                        }
+
+                        return subTypeValueLength * vectorTypeInfo.Dimension.Value;
                     }
 
                     return -1;
             }
 
             throw new DriverInternalError($"could not determine value length for type {typeCode}");
+        }
+
+        public int GetValueLengthIfFixed(object value)
+        {
+            if (value == null)
+            {
+                throw new ArgumentNullException(nameof(value));
+            }
+            var type = value.GetType();
+            if (_primitiveSerializers.TryGetValue(type, out ITypeSerializer typeSerializer))
+            {
+                return GetValueLengthIfFixed(typeSerializer.CqlType, typeSerializer.TypeInfo);
+            }
+            if (_customSerializers.Count > 0 && _customSerializers.TryGetValue(type, out typeSerializer))
+            {
+                return GetValueLengthIfFixed(typeSerializer.CqlType, typeSerializer.TypeInfo);
+            }
+            if (type.IsArray)
+            {
+                return -1;
+            }
+            if (type.GetTypeInfo().IsGenericType)
+            {
+                var genericTypeDefinition = type.GetGenericTypeDefinition();
+
+                if (genericTypeDefinition == typeof(CqlVector<>))
+                {
+                    var vector = (IInternalCqlVector)value;
+                    if (vector.Count <= 0)
+                    {
+                        throw new ArgumentException("vector dimension has to be greater than 0");
+                    }
+
+                    var subTypeValueLength = GetValueLengthIfFixed(vector[0]);
+                    if (subTypeValueLength < 0)
+                    {
+                        return -1;
+                    }
+
+                    return subTypeValueLength * vector.Count;
+                }
+                if (typeof(IEnumerable).GetTypeInfo().IsAssignableFrom(type))
+                {
+                    return -1;
+                }
+                if (typeof(IStructuralComparable).GetTypeInfo().IsAssignableFrom(type) && type.FullName.StartsWith("System.Tuple"))
+                {
+                    return -1;
+                }
+            }
+
+            //Determine if its a Udt type
+            var udtMap = _udtSerializer.GetUdtMap(type);
+            if (udtMap != null)
+            {
+                return -1;
+            }
+            throw new DriverInternalError($"could not determine value length for type {type.FullName}");
         }
     }
 }

@@ -43,7 +43,8 @@ namespace Cassandra.Serialization
             {
                 if (offset >= buffer.Length)
                 {
-                    throw new 
+                    throw new DriverInternalError(
+                        $"No more bytes while deserializing vector with subtype {typeInfo.GetType().FullName} and dimension {vectorTypeInfo.Dimension}");
                 }
                 var itemLength = childSerializer.GetValueLengthIfFixed(vectorTypeInfo.ValueTypeCode, vectorTypeInfo.ValueTypeInfo);
                 if (itemLength < 0)
@@ -56,12 +57,16 @@ namespace Cassandra.Serialization
                     }
 
                     itemLength = Convert.ToInt32(longItemLength);
-                    //TODO: do we need to offset += vIntSize?
                 }
                 result.SetValue(DeserializeChild(protocolVersion, buffer, offset, itemLength, vectorTypeInfo.ValueTypeCode, vectorTypeInfo.ValueTypeInfo), i);
                 offset += itemLength;
             }
-            //TODO: if still bytes left, throw
+
+            if (offset < length - 1)
+            {
+                throw new DriverInternalError(
+                    $"There are still bytes left while deserializing vector with subtype {typeInfo.GetType().FullName} and dimension {vectorTypeInfo.Dimension}");
+            }
             var vectorSubType = typeof(CqlVector<>).MakeGenericType(childType);
             var vector = (IInternalCqlVector)Activator.CreateInstance(vectorSubType, nonPublic: true);
             vector.SetArray(result);
@@ -70,10 +75,13 @@ namespace Cassandra.Serialization
 
         public override byte[] Serialize(ushort protocolVersion, IInternalCqlVector value)
         {
+            if (value.Count <= 0)
+            {
+                throw new ArgumentException("Can't serialize vector: dimension has to be greater than 0.");
+            }
+
             var childSerializer = GetChildSerializer();
-            _ = childSerializer.GetCqlType(value.GetType(), out var columnInfo);
-            var vectorTypeInfo = GetVectorColumnInfo(columnInfo);
-            var itemLength = childSerializer.GetValueLengthIfFixed(vectorTypeInfo.ValueTypeCode, vectorTypeInfo.ValueTypeInfo);
+            var itemLength = childSerializer.GetValueLengthIfFixed(value[0]);
             var bufferList = new LinkedList<byte[]>();
             var totalLength = 0;
             foreach (var item in value)

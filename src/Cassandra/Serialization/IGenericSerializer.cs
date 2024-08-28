@@ -46,5 +46,7 @@ namespace Cassandra.Serialization
         UdtMap GetUdtMapByType(Type type);
 
         int GetValueLengthIfFixed(ColumnTypeCode typeCode, IColumnInfo typeInfo);
+
+        int GetValueLengthIfFixed(object value);
     }
 }

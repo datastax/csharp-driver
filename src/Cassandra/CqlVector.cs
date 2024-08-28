@@ -21,7 +21,7 @@ using System.Linq;
 
 namespace Cassandra
 {
-    public sealed class CqlVector<T> : IReadOnlyCollection<T>, IEquatable<CqlVector<T>>, IInternalCqlVector
+    public sealed class CqlVector<T> : IReadOnlyCollection<T>, IInternalCqlVector
     {
         private T[] _array;
 
@@ -83,11 +83,6 @@ namespace Cassandra
             return _array.GetEnumerator();
         }
 
-        public bool Equals(CqlVector<T> other)
-        {
-            return CqlVector<T>.Equals(this, other);
-        }
-
         public override bool Equals(object obj)
         {
             return obj is CqlVector<T> other && Equals(other);
@@ -110,7 +105,6 @@ namespace Cassandra
 
         public override string ToString()
         {
-            //TODO: we may want to add quotes for some elements
             return _array.ToString();
         }
 

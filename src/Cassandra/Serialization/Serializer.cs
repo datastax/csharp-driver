@@ -203,5 +203,10 @@ namespace Cassandra.Serialization
         {
             return _serializer.GetValueLengthIfFixed(typeCode, typeInfo);
         }
+
+        public int GetValueLengthIfFixed(object value)
+        {
+            return _serializer.GetValueLengthIfFixed(value);
+        }
     }
 }
