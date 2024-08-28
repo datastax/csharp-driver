@@ -31,9 +31,9 @@ namespace Cassandra
 
         public CqlVector(int dimension)
         {
-            if (dimension < 0)
+            if (dimension <= 0) // C* only allows positive dimension
             {
-                throw new ArgumentOutOfRangeException(nameof(dimension), dimension, "Dimension can not be negative.");
+                throw new ArgumentOutOfRangeException(nameof(dimension), dimension, "Dimension can not be zero or negative.");
             }
             _array = new T[dimension];
         }
@@ -98,6 +98,7 @@ namespace Cassandra
 
         public override string ToString()
         {
+            //TODO: we may want to add quotes for some elements
             return _array.ToString();
         }
 
