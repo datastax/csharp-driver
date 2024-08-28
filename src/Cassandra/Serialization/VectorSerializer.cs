@@ -41,7 +41,10 @@ namespace Cassandra.Serialization
             var result = Array.CreateInstance(childType, vectorTypeInfo.Dimension.Value);
             for (var i = 0; i < vectorTypeInfo.Dimension; i++)
             {
-                //TODO: if not enough bytes, throw
+                if (offset >= buffer.Length)
+                {
+                    throw new 
+                }
                 var itemLength = childSerializer.GetValueLengthIfFixed(vectorTypeInfo.ValueTypeCode, vectorTypeInfo.ValueTypeInfo);
                 if (itemLength < 0)
                 {
