@@ -33,19 +33,31 @@ namespace Cassandra
         {
             if (dimension <= 0) // C* only allows positive dimension
             {
-                throw new ArgumentOutOfRangeException(nameof(dimension), dimension, "Dimension can not be zero or negative.");
+                throw new ArgumentOutOfRangeException(nameof(dimension), dimension, "Vector dimension can not be zero or negative.");
             }
             _array = new T[dimension];
         }
 
         public CqlVector(params T[] elements)
         {
-            _array = elements ?? throw new ArgumentNullException(nameof(elements));
+            if (elements == null)
+            {
+                throw new ArgumentNullException(nameof(elements));
+            }
+            if (elements.Length <= 0) // C* only allows positive dimension
+            {
+                throw new ArgumentOutOfRangeException(nameof(elements), elements, "Vector dimension can not be zero or negative.");
+            }
+            _array = elements;
         }
 
         public static CqlVector<T> FromArray(T[] array)
         {
-            return new CqlVector<T>(array);
+            var v = new CqlVector<T>
+            {
+                _array = array
+            };
+            return v;
         }
 
         public T this[int index]
