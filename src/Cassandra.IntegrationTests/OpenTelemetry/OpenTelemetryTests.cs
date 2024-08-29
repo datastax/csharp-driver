@@ -20,7 +20,11 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Cassandra.Data.Linq;
+using Cassandra.IntegrationTests.Policies.Util;
+using Cassandra.IntegrationTests.SimulacronAPI;
 using Cassandra.IntegrationTests.TestBase;
+using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using Cassandra.Mapping;
 using Cassandra.OpenTelemetry;
 using Cassandra.Tests;
@@ -42,10 +46,13 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
         private readonly List<Activity> _exportedActivities = new List<Activity>();
 
+        private readonly ActivitySource InternalActivitySource = new ActivitySource("testeActivitySource");
+
         public OpenTelemetryTests()
         {
             Sdk.CreateTracerProviderBuilder()
               .AddSource(OpenTelemetrySourceName)
+              .AddSource(InternalActivitySource.Name)
               .AddInMemoryExporter(_exportedActivities)
               .Build();
         }
@@ -191,16 +198,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
             session.ChangeKeyspace(keyspace);
 
-            string createTableQuery = @"
-            CREATE TABLE IF NOT EXISTS song (
-                Artist text,
-                Title text,
-                Id uuid,
-                ReleaseDate timestamp,
-                PRIMARY KEY (id)
-            )";
-
-            session.Execute(createTableQuery);
+            CreateSongTable(session);
 
             var mapper = new Mapper(session);
 
@@ -259,6 +257,174 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             ValidateNodeActivityAttributes(syncNodeActivity);
         }
 
+        [Category(TestCategory.RealClusterLong)]
+        [Test]
+        [NUnit.Framework.Ignore("LINQ flow seems different than the flow in which OTEL is implemented!")]
+        public void AddOpenTelemetry_Linq_SessionRequestIsParentOfNodeRequest()
+        {
+            var keyspace = TestUtils.GetUniqueKeyspaceName().ToLowerInvariant();
+
+            var cluster = GetNewTemporaryCluster(b => b
+                .AddOpenTelemetryInstrumentation());
+
+            var session = cluster.Connect();
+
+            session.CreateKeyspaceIfNotExists(keyspace);
+
+            session.ChangeKeyspace(keyspace);
+
+            CreateSongTable(session);
+
+            var table = new Table<Song>(Session, new MappingConfiguration().Define(new Map<Song>().TableName("song")));
+
+            var song = new Song
+            {
+                Id = Guid.NewGuid(),
+                Artist = "Led Zeppelin",
+                Title = "Mothership",
+                ReleaseDate = DateTimeOffset.UtcNow
+            };
+
+            // Clear activities to get the Linq one
+            _exportedActivities.Clear();
+
+            table.Insert(song);
+
+            var syncActivities = GetActivities();
+        }
+
+        [Test]
+        public void AddOpenTelemetry_WhenMethodIsInvokedAfterQuery_TraceIdIsTheSameThroughRequest()
+        {
+            var firstMethodName = "FirstMethod";
+            var secondMethodName = "SecondMethod";
+
+            using (var activity = InternalActivitySource.StartActivity(firstMethodName, ActivityKind.Internal))
+            {
+                var cluster = GetNewTemporaryCluster(b => b.AddOpenTelemetryInstrumentation());
+                var session = cluster.Connect();
+
+                var statement = new SimpleStatement("SELECT key FROM system.local");
+                session.Execute(statement);
+
+                SecondMethod(secondMethodName);
+            }
+
+            var firstMethodActivity = GetActivities().First(x => x.DisplayName == firstMethodName);
+            var secondMethodActivity = GetActivities().First(x => x.DisplayName == secondMethodName);
+            var sessionActivity = GetActivities().First(x => x.DisplayName == SessionActivityName);
+
+            Assert.AreEqual(firstMethodActivity.TraceId, sessionActivity.TraceId);
+            Assert.AreEqual(firstMethodActivity.SpanId, sessionActivity.ParentSpanId);
+
+            Assert.AreEqual(firstMethodActivity.TraceId, secondMethodActivity.TraceId);
+            Assert.AreEqual(firstMethodActivity.SpanId, secondMethodActivity.ParentSpanId);
+        }
+
+        [Test]
+        public void AddOpenTelemetry_RetryOnNextHost_ShouldProduceOneErrorAndOneValidSpansForTheSameSessionSpan()
+        {
+            var expectedErrorDescription = "overloaded";
+
+            using (var simulacronCluster = SimulacronCluster.CreateNew(3))
+            {
+                var contactPoint = simulacronCluster.InitialContactPoint;
+                var nodes = simulacronCluster.GetNodes().ToArray();
+                var loadBalancingPolicy = new CustomLoadBalancingPolicy(
+                    nodes.Select(n => n.ContactPoint).ToArray());
+                
+                var builder = ClusterBuilder()
+                                     .AddContactPoint(contactPoint)
+                                     .WithSocketOptions(new SocketOptions()
+                                                        .SetConnectTimeoutMillis(10000)
+                                                        .SetReadTimeoutMillis(5000))
+                                     .WithLoadBalancingPolicy(loadBalancingPolicy)
+                                     .WithRetryPolicy(TryNextHostRetryPolicy.Instance)
+                                     .AddOpenTelemetryInstrumentation();
+
+                using (var cluster = builder.Build())
+                {
+                    var session = (Session)cluster.Connect();
+                    const string cql = "select * from table2";
+
+                    nodes[0].PrimeFluent(
+                        b => b.WhenQuery(cql).
+                               ThenOverloaded(expectedErrorDescription));
+
+                    nodes[1].PrimeFluent(
+                        b => b.WhenQuery(cql).
+                               ThenRowsSuccess(new[] { ("text", DataType.Ascii) }, rows => rows.WithRow("test1").WithRow("test2")));
+
+                    session.Execute(new SimpleStatement(cql).SetConsistencyLevel(ConsistencyLevel.One));
+
+                    var activities = GetActivities();
+                    var sessionActivity = activities.First(x => x.DisplayName.StartsWith(SessionActivityName));
+                    var validNodeActivity = activities.First(x => x.DisplayName.StartsWith(NodeActivityName) && x.Status != ActivityStatusCode.Error);
+                    var errorNodeActivity = activities.First(x => x.DisplayName.StartsWith(NodeActivityName) && x.Status == ActivityStatusCode.Error);
+                    
+                    Assert.AreEqual(sessionActivity.TraceId, validNodeActivity.TraceId);
+                    Assert.AreEqual(sessionActivity.TraceId, errorNodeActivity.TraceId);
+                    Assert.AreEqual(sessionActivity.SpanId, validNodeActivity.ParentSpanId);
+                    Assert.AreEqual(sessionActivity.SpanId, errorNodeActivity.ParentSpanId);
+                    Assert.AreEqual(expectedErrorDescription, errorNodeActivity.StatusDescription);
+                    Assert.True(validNodeActivity.StartTimeUtc > errorNodeActivity.StartTimeUtc);
+                }
+            }
+        }
+
+        [Test]
+        public void AddOpenTelemetry_WithPaginationOnQuery_ShouldMultipleSpansForTheSameTraceId()
+        {
+            var expectedNumberOfSessionActivities = 2;
+
+            using (var activity = InternalActivitySource.StartActivity("Paging", ActivityKind.Internal))
+            {
+                var session = GetNewTemporaryCluster(b => b.AddOpenTelemetryInstrumentation()).Connect();
+
+                session.CreateKeyspaceIfNotExists(KeyspaceName, null, false);
+
+                session.ChangeKeyspace(KeyspaceName);
+
+                CreateSongTable(session);
+
+                for (int i = 0; i < expectedNumberOfSessionActivities; i++)
+                {
+                    session.Execute(string.Format("INSERT INTO {0}.song (Artist, Title, Id, ReleaseDate) VALUES('Pink Floyd', 'The Dark Side Of The Moon', {1}, {2})", KeyspaceName, Guid.NewGuid(), ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeSeconds()));
+                }
+
+                _exportedActivities.Clear();
+
+                var rs = session.Execute(new SimpleStatement(string.Format("SELECT * FROM {0}.song", KeyspaceName)).SetPageSize(1));
+
+                rs.FetchMoreResults();
+
+                var sessionActivities = GetActivities().Where(x => x.DisplayName == SessionActivityName);
+
+                Assert.AreEqual(expectedNumberOfSessionActivities, sessionActivities.Count());
+                Assert.AreEqual(expectedNumberOfSessionActivities, rs.InnerQueueCount);
+
+                var firstActivity = sessionActivities.First();
+                var lastActivity = sessionActivities.Last();
+                
+                Assert.AreEqual(firstActivity.TraceId, lastActivity.TraceId);
+                Assert.AreNotEqual(firstActivity.SpanId, lastActivity.SpanId);
+            }
+        }
+
+        private static void CreateSongTable(ISession session)
+        {
+            string createTableQuery = @"
+            CREATE TABLE IF NOT EXISTS song (
+                Artist text,
+                Title text,
+                Id uuid,
+                ReleaseDate timestamp,
+                PRIMARY KEY (id)
+            )";
+
+            session.Execute(createTableQuery);
+        }
+
         private List<Activity> GetActivities()
         {
             var count = 0;
@@ -315,6 +481,14 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             foreach (var pair in expectedTags)
             {
                 Assert.AreEqual(tags.FirstOrDefault(x => x.Key == pair.Key).Value, expectedTags[pair.Key]);
+            }
+        }
+
+        private void SecondMethod(string activityName)
+        {
+            using (var activity = InternalActivitySource.StartActivity(activityName, ActivityKind.Internal))
+            {
+                activity.AddTag("db.test", "t");
             }
         }
     }

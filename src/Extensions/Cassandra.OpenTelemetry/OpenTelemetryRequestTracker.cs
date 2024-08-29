@@ -134,12 +134,16 @@ namespace Cassandra.OpenTelemetry
         /// <returns>Completed task./returns>
         public virtual Task OnNodeSuccessAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo)
         {
-            request.Items.TryGetValue($"{otelActivityKey}.{hostInfo.Host.HostId}", out object context);
+            var activityKey = $"{otelActivityKey}.{hostInfo.Host.HostId}";
+
+            request.Items.TryGetValue(activityKey, out object context);
 
             if (context is Activity activity)
             {
                 activity?.Dispose();
             }
+
+            request.Items.TryRemove(activityKey, out _);
 
             return Task.CompletedTask;
         }
@@ -154,7 +158,9 @@ namespace Cassandra.OpenTelemetry
         /// <returns>Completed task./returns>
         public virtual Task OnNodeErrorAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo, Exception ex)
         {
-            request.Items.TryGetValue($"{otelActivityKey}.{hostInfo.Host.HostId}", out object context);
+            var activityKey = $"{otelActivityKey}.{hostInfo.Host.HostId}";
+            
+            request.Items.TryGetValue(activityKey, out object context);
 
             if (!(context is Activity activity))
             {
@@ -165,6 +171,8 @@ namespace Cassandra.OpenTelemetry
             activity?.RecordException(ex);
 
             activity?.Dispose();
+
+            request.Items.TryRemove(activityKey, out _);
 
             return Task.CompletedTask;
         }

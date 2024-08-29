@@ -25,7 +25,6 @@ using System.Threading.Tasks;
 using Cassandra.Collections;
 using Cassandra.Connections;
 using Cassandra.ExecutionProfiles;
-using Cassandra.Observers;
 using Cassandra.Observers.Abstractions;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
