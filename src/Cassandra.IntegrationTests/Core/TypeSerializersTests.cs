@@ -333,7 +333,7 @@ namespace Cassandra.IntegrationTests.Core
             };
 
             vectorSimpleStmtTestFn((i, v) => new SimpleStatement($"INSERT INTO {tableName} (i, j) VALUES (?, ?)", i, v));
-            vectorSimpleStmtTestFn((i, v) => new SimpleStatement(new Dictionary<string, object> { { "index", i }, { "vector", v } }, $"INSERT INTO {tableName} (i, j) VALUES (:index, :vector)"));
+            vectorSimpleStmtTestFn((i, v) => new SimpleStatement(new Dictionary<string, object> { { "idx", i }, { "vec", v } }, $"INSERT INTO {tableName} (i, j) VALUES (:idx, :vec)"));
         }
     }
 }

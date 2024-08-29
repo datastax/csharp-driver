@@ -72,6 +72,17 @@ namespace Cassandra.Tests
         }
 
         [Test]
+        public void ParseDataTypeNameSingleTestWithSpaces()
+        {
+            var dataType = DataTypeParser.ParseFqTypeName("org.apache.cassandra.db.marshal.Int32Type ");
+            Assert.AreEqual(ColumnTypeCode.Int, dataType.TypeCode);
+            dataType = DataTypeParser.ParseFqTypeName(" org.apache.cassandra.db.marshal.Int32Type ");
+            Assert.AreEqual(ColumnTypeCode.Int, dataType.TypeCode);
+            dataType = DataTypeParser.ParseFqTypeName("    org.apache.cassandra.db.marshal.Int32Type    ");
+            Assert.AreEqual(ColumnTypeCode.Int, dataType.TypeCode);
+        }
+
+        [Test]
         public void Parse_DataType_Name_Multiple_Test()
         {
             var dataType = DataTypeParser.ParseFqTypeName("org.apache.cassandra.db.marshal.ListType(org.apache.cassandra.db.marshal.Int32Type)");
@@ -94,6 +105,26 @@ namespace Cassandra.Tests
             Assert.IsInstanceOf<MapColumnInfo>(dataType.TypeInfo);
             Assert.AreEqual(ColumnTypeCode.Varchar, ((MapColumnInfo) dataType.TypeInfo).KeyTypeCode);
             Assert.AreEqual(ColumnTypeCode.Bigint, ((MapColumnInfo) dataType.TypeInfo).ValueTypeCode);
+        }
+
+        [Test]
+        public void Parse_DataType_Name_Vector_Test()
+        {
+            void AssertFn(string str)
+            {
+                var dataType = DataTypeParser.ParseFqTypeName(str);
+                Assert.AreEqual(ColumnTypeCode.Custom, dataType.TypeCode);
+                Assert.IsInstanceOf<VectorColumnInfo>(dataType.TypeInfo);
+                Assert.AreEqual(ColumnTypeCode.Int, ((VectorColumnInfo)dataType.TypeInfo).ValueTypeCode);
+                Assert.AreEqual(null, ((VectorColumnInfo)dataType.TypeInfo).ValueTypeInfo);
+                Assert.AreEqual(3, ((VectorColumnInfo)dataType.TypeInfo).Dimension);
+            }
+
+            AssertFn("org.apache.cassandra.db.marshal.VectorType(org.apache.cassandra.db.marshal.Int32Type,3)");
+            AssertFn("org.apache.cassandra.db.marshal.VectorType(org.apache.cassandra.db.marshal.Int32Type , 3)");
+            AssertFn("org.apache.cassandra.db.marshal.VectorType( org.apache.cassandra.db.marshal.Int32Type , 3 )");
+            AssertFn("org.apache.cassandra.db.marshal.VectorType(  org.apache.cassandra.db.marshal.Int32Type  ,  3  )");
+            AssertFn("org.apache.cassandra.db.marshal.VectorType(  org.apache.cassandra.db.marshal.Int32Type  ,  3  ) ");
         }
 
         [Test]

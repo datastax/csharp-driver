@@ -109,17 +109,37 @@ namespace Cassandra.Serialization
         /// Parses a given fully-qualified class type name to get the data type information
         /// </summary>
         /// <exception cref="ArgumentException" />
-        internal static ColumnDesc ParseFqTypeName(string typeName, int startIndex = 0, int length = 0)
+        internal static ColumnDesc ParseFqTypeName(string typeName)
+        {
+            return ParseFqTypeName(typeName, 0, typeName.Length);
+        }
+
+        /// <summary>
+        /// Parses a given fully-qualified class type name to get the data type information
+        /// </summary>
+        /// <exception cref="ArgumentException" />
+        internal static ColumnDesc ParseFqTypeName(string typeName, int startIndex, int length)
         {
             const StringComparison comparison = StringComparison.Ordinal;
             var dataType = new ColumnDesc
             {
                 TypeCode = ColumnTypeCode.Custom
             };
-            if (length == 0)
+            var newLength = length;
+            for (var i = startIndex; i < length; i++)
             {
-                length = typeName.Length;
+                if (IsBlankChar(typeName[i]))
+                {
+                    startIndex++;
+                    newLength--;
+                }
+                else
+                {
+                    break;
+                }
             }
+
+            length = newLength;
             if (length > ReversedTypeName.Length && typeName.IndexOf(ReversedTypeName, startIndex, comparison) == startIndex)
             {
                 //move the start index and subtract the length plus parenthesis
@@ -465,9 +485,18 @@ namespace Cassandra.Serialization
             var types = new List<string>();
             var paramStart = startIndex;
             var level = 0;
+            var lastBlanks = 0;
+            var skipped = 0;
             for (var i = startIndex; i < startIndex + length; i++)
             {
                 var c = value[i];
+                if (i == paramStart && IsBlankChar(c))
+                {
+                    paramStart++;
+                    skipped++;
+                    lastBlanks = 0;
+                    continue;
+                }
                 if (c == open)
                 {
                     level++;
@@ -478,13 +507,25 @@ namespace Cassandra.Serialization
                 }
                 if (level == 0 && c == ',')
                 {
-                    types.Add(value.Substring(paramStart, i - paramStart));
+                    types.Add(value.Substring(paramStart, i - paramStart - lastBlanks));
                     paramStart = i + 1;
+                }
+                if (IsBlankChar(c))
+                {
+                    lastBlanks++;
+                } else
+                {
+                    lastBlanks = 0;
                 }
             }
             //Add the last one
-            types.Add(value.Substring(paramStart, length - (paramStart - startIndex)));
+            types.Add(value.Substring(paramStart, (length + startIndex) - paramStart - lastBlanks - skipped));
             return types;
+        }
+
+        private static bool IsBlankChar(char c)
+        {
+            return c == ' ' || c == '\t' || c == '\n';
         }
 
         private static Exception GetTypeException(string typeName)
