@@ -15,6 +15,7 @@
 //
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -25,7 +26,6 @@ using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.Serialization;
 using Cassandra.Tests;
 using Cassandra.Tests.Extensions.Serializers;
-
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
@@ -297,6 +297,43 @@ namespace Cassandra.IntegrationTests.Core
             var ret = new byte[elt.Length];
             Buffer.BlockCopy(elt.GetBuffer(), 0, ret, 0, (int)elt.Length);
             return ret;
+        }
+
+        private static IEnumerable VectorTestCaseData()
+        {
+            var r = new Random();
+            Action<object, object> defaultAssert = (expected, actual) => Assert.AreEqual(expected, actual);
+            return new[]
+            {
+                    new TestCaseData("int", (Func<int>)(()=>r.Next()), defaultAssert),
+                    new TestCaseData("bigint", (Func<long>)(()=>(long)r.NextDouble()), defaultAssert),
+                    new TestCaseData("smallint", (Func<short>)(()=>(short)r.Next()), defaultAssert),
+                    new TestCaseData("tinyint", (Func<sbyte>)(()=>(sbyte)r.Next()), defaultAssert),
+                    new TestCaseData("varint", (Func<BigInteger>)(()=>new BigInteger((long)r.NextDouble())), defaultAssert),
+                };
+        }
+
+        [Test, TestCassandraVersion(5, 0, Comparison.GreaterThanOrEqualsTo), TestCaseSource(nameof(VectorTestCaseData))]
+        public void VectorSimpleStatementTest<T>(string cqlSubType, Func<T> elementGeneratorFn, Action<object, object> assertFn)
+        {
+            var tableName = "vectortest_" + cqlSubType.Replace("<", "A").Replace(">", "B").Replace(",", "C") + "isH";
+            var ddl = $"CREATE TABLE IF NOT EXISTS {tableName} (i int PRIMARY KEY, j vector<{cqlSubType}, 3>)";
+            Session.Execute(ddl);
+
+            Action<Func<int, CqlVector<T>, SimpleStatement>> vectorSimpleStmtTestFn = simpleStmtFn =>
+            {
+                var vector = new CqlVector<T>(elementGeneratorFn(), elementGeneratorFn(), elementGeneratorFn());
+                var i = new Random().Next();
+                Session.Execute(simpleStmtFn(i, vector));
+                var rs = Session.Execute($"SELECT * FROM {tableName} WHERE i = {i}");
+                var rowList = rs.ToList();
+                Assert.AreEqual(1, rowList.Count);
+                var retrievedVector = rowList[0].GetValue<CqlVector<T>>("j");
+                assertFn(vector, retrievedVector);
+            };
+
+            vectorSimpleStmtTestFn((i, v) => new SimpleStatement($"INSERT INTO {tableName} (i, j) VALUES (?, ?)", i, v));
+            vectorSimpleStmtTestFn((i, v) => new SimpleStatement(new Dictionary<string, object> { { "index", i }, { "vector", v } }, $"INSERT INTO {tableName} (i, j) VALUES (:index, :vector)"));
         }
     }
 }
