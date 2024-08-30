@@ -140,6 +140,7 @@ namespace Cassandra.Tests
                 Assert.AreEqual(ColumnTypeCode.Int, ((VectorColumnInfo)subType.ValueTypeInfo).ValueTypeCode);
                 Assert.AreEqual(2, ((VectorColumnInfo)subType.ValueTypeInfo).Dimension);
             }
+            AssertComplexFn("org.apache.cassandra.db.marshal.VectorType(org.apache.cassandra.db.marshal.FrozenType(org.apache.cassandra.db.marshal.ListType(org.apache.cassandra.db.marshal.VectorType(org.apache.cassandra.db.marshal.Int32Type,2))),4)");
             AssertComplexFn("org.apache.cassandra.db.marshal.VectorType(org.apache.cassandra.db.marshal.FrozenType(org.apache.cassandra.db.marshal.ListType(org.apache.cassandra.db.marshal.VectorType(org.apache.cassandra.db.marshal.Int32Type , 2))) , 4)");
             AssertComplexFn("org.apache.cassandra.db.marshal.VectorType(org.apache.cassandra.db.marshal.ListType(org.apache.cassandra.db.marshal.VectorType(org.apache.cassandra.db.marshal.Int32Type , 2)) , 4)");
             AssertComplexFn("org.apache.cassandra.db.marshal.VectorType(  org.apache.cassandra.db.marshal.ListType(  org.apache.cassandra.db.marshal.VectorType(  org.apache.cassandra.db.marshal.Int32Type,2)),4)");
@@ -271,6 +272,48 @@ namespace Cassandra.Tests
                 Assert.AreEqual(kv.Value, type.TypeCode);
                 Assert.AreEqual(true, type.IsFrozen);
             }
+        }
+
+        [Test]
+        public void ParseTypeName_Should_Parse_Vector_Type()
+        {
+            void AssertFn(string str)
+            {
+                var dataType = DataTypeParser.ParseTypeName(null, null, str).GetAwaiter().GetResult();
+                Assert.AreEqual(ColumnTypeCode.Custom, dataType.TypeCode);
+                Assert.IsInstanceOf<VectorColumnInfo>(dataType.TypeInfo);
+                Assert.AreEqual(ColumnTypeCode.Int, ((VectorColumnInfo)dataType.TypeInfo).ValueTypeCode);
+                Assert.AreEqual(null, ((VectorColumnInfo)dataType.TypeInfo).ValueTypeInfo);
+                Assert.AreEqual(3, ((VectorColumnInfo)dataType.TypeInfo).Dimension);
+            }
+
+            AssertFn("vector<int,3>");
+            AssertFn("vector<int , 3>");
+            AssertFn("vector< int,3 >");
+            AssertFn("vector<  int  ,  3  >");
+            AssertFn("vector<  int  ,  3  > ");
+            AssertFn(" vector<  int  ,  3  > ");
+
+            void AssertComplexFn(string str)
+            {
+                var dataType = DataTypeParser.ParseTypeName(null, null, str).GetAwaiter().GetResult();
+                Assert.AreEqual(ColumnTypeCode.Custom, dataType.TypeCode);
+                Assert.IsInstanceOf<VectorColumnInfo>(dataType.TypeInfo);
+                Assert.AreEqual(ColumnTypeCode.List, ((VectorColumnInfo)dataType.TypeInfo).ValueTypeCode);
+                Assert.AreEqual(4, ((VectorColumnInfo)dataType.TypeInfo).Dimension);
+                var subType = (ListColumnInfo)(((VectorColumnInfo)dataType.TypeInfo).ValueTypeInfo);
+                Assert.AreEqual(ColumnTypeCode.Custom, subType.ValueTypeCode);
+                Assert.IsInstanceOf<VectorColumnInfo>(subType.ValueTypeInfo);
+                Assert.AreEqual(ColumnTypeCode.Int, ((VectorColumnInfo)subType.ValueTypeInfo).ValueTypeCode);
+                Assert.AreEqual(2, ((VectorColumnInfo)subType.ValueTypeInfo).Dimension);
+            }
+
+            AssertComplexFn("vector<frozen<list<vector<int,2>>>,4>");
+            AssertComplexFn("vector<frozen<list<vector<int , 2>>> , 4>");
+            AssertComplexFn("vector<list<vector<int , 2>> , 4>");
+            AssertComplexFn("vector<  list<  vector<  int , 2>> , 4>");
+            AssertComplexFn("vector< list< vector< int  ,  2>>  ,  4  >");
+            AssertComplexFn("vector< list< vector< int  ,  2>>  ,  4  >   ");
         }
 
         [Test]

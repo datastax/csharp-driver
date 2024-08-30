@@ -245,6 +245,9 @@ namespace Cassandra
                         return (TimeUuid)(Guid)value;
                     }
                     return value;
+                case ColumnTypeCode.Custom:
+                    return column.TypeInfo is VectorColumnInfo ? TryConvertToCollection(value, column, targetType) : value;
+
                 default:
                     return value;
             }
@@ -269,8 +272,17 @@ namespace Cassandra
                 // Is IEnumerable
                 if (childTargetType != childType)
                 {
+                    var valueType = value.GetType();
                     // Conversion is needed
-                    value = Row.GetArray((Array)value, childTargetType, column.TypeInfo);
+                    if (valueType.IsGenericType && valueType.GetGenericTypeDefinition() == typeof(CqlVector<>))
+                    {
+                        var vector = (IInternalCqlVector)value;
+                        value = Utils.ToVectorType(childTargetType, Row.GetArray(vector.GetArray(), childTargetType, column.TypeInfo));
+                    }
+                    else
+                    {
+                        value = Row.GetArray((Array)value, childTargetType, column.TypeInfo);
+                    }
                 }
                 if (genericTargetType == typeof(IEnumerable<>))
                 {
@@ -292,6 +304,10 @@ namespace Cassandra
                 if (genericTargetType == typeof(HashSet<>))
                 {
                     return Utils.ToCollectionType(typeof(HashSet<>), childTargetType, (Array)value);
+                }
+                if (genericTargetType == typeof(CqlVector<>))
+                {
+                    return value;
                 }
             }
             throw new InvalidCastException(string.Format("Unable to cast object of type '{0}' to type '{1}'",

@@ -146,6 +146,11 @@ namespace Cassandra
         {
             _array = (T[])array;
         }
+
+        Array IInternalCqlVector.GetArray()
+        {
+            return _array;
+        }
     }
 
     internal interface IInternalCqlVector : IEnumerable
@@ -157,5 +162,7 @@ namespace Cassandra
         Type GetSubType();
 
         void SetArray(object array);
+
+        Array GetArray();
     }
 }

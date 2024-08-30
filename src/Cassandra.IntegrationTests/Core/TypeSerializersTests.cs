@@ -17,8 +17,10 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Numerics;
 
 using Cassandra.IntegrationTests.TestBase;
@@ -302,7 +304,10 @@ namespace Cassandra.IntegrationTests.Core
         private static IEnumerable VectorTestCaseData()
         {
             var r = new Random();
-            Action<object, object> defaultAssert = (expected, actual) => Assert.AreEqual(expected, actual);
+            Action<object, object> defaultAssert = Assert.AreEqual;
+            Action<object, object> listVectorAssert = (expected, actual) => CollectionAssert.AreEqual((IEnumerable)expected, (IEnumerable)actual);
+            Action<object, object> setMapAssert = (expected, actual) => CollectionAssert.AreEquivalent((IEnumerable)expected, (IEnumerable)actual);
+            var buf = new byte[128];
             return new[]
             {
                     new TestCaseData("int", (Func<int>)(()=>r.Next()), defaultAssert),
@@ -310,6 +315,78 @@ namespace Cassandra.IntegrationTests.Core
                     new TestCaseData("smallint", (Func<short>)(()=>(short)r.Next()), defaultAssert),
                     new TestCaseData("tinyint", (Func<sbyte>)(()=>(sbyte)r.Next()), defaultAssert),
                     new TestCaseData("varint", (Func<BigInteger>)(()=>new BigInteger((long)r.NextDouble())), defaultAssert),
+
+                    new TestCaseData("float", (Func<float>)(()=>(float)r.NextDouble()), defaultAssert),
+                    new TestCaseData("double", (Func<double>)(()=>(double)r.NextDouble()), defaultAssert),
+                    new TestCaseData("decimal", (Func<decimal>)(()=>(decimal)r.NextDouble()), defaultAssert),
+
+                    new TestCaseData("ascii", (Func<string>)(()=>r.Next().ToString(CultureInfo.InvariantCulture)), defaultAssert),
+                    new TestCaseData("text", (Func<string>)(()=>r.Next().ToString(CultureInfo.InvariantCulture)), defaultAssert),
+
+                    new TestCaseData("date", (Func<LocalDate>)(()=>new LocalDate((uint)(r.Next()%100000))), defaultAssert),
+                    new TestCaseData("time", (Func<LocalTime>)(()=>new LocalTime(r.Next())), defaultAssert),
+                    new TestCaseData("timestamp", (Func<DateTimeOffset>)(()=>new DateTimeOffset(DateTime.UtcNow)), defaultAssert),
+
+                    new TestCaseData("uuid", (Func<Guid>)(Guid.NewGuid), defaultAssert),
+                    new TestCaseData("timeuuid", (Func<TimeUuid>)(TimeUuid.NewId), defaultAssert),
+                     
+                    new TestCaseData("boolean", (Func<bool>)(()=>r.Next()%2==0), defaultAssert),
+                    new TestCaseData("duration", (Func<Duration>)(()=>Duration.FromTimeSpan(new TimeSpan(DateTime.UtcNow.Ticks))), defaultAssert),
+                    new TestCaseData("inet", (Func<IPAddress>)(()=> IPAddress.Parse($"{(r.Next()%255) + 1}.{r.Next()%255}.{r.Next()%255}.{(r.Next()%255) + 1}")), defaultAssert),
+                    new TestCaseData("blob", (Func<byte[]>)(()=>
+                    {
+                        r.NextBytes(buf);
+                        return buf;
+                    }), defaultAssert),
+
+                    new TestCaseData("list<int>", (Func<int[]>)(()=>Enumerable.Range(0, r.Next()%200).Select(i => r.Next()).ToArray()), listVectorAssert),
+                    new TestCaseData("list<int>", (Func<IEnumerable<int>>)(()=>Enumerable.Range(0, r.Next()%200).Select(i => r.Next()).ToList()), listVectorAssert),
+                    new TestCaseData("list<int>", (Func<List<int>>)(()=>Enumerable.Range(0, r.Next()%200).Select(i => r.Next()).ToList()), listVectorAssert),
+                    new TestCaseData("list<varint>", (Func<IEnumerable<BigInteger>>)(()=>Enumerable.Range(0, r.Next()%200).Select(i => new BigInteger((long)r.NextDouble())).ToList()), listVectorAssert),
+
+                    new TestCaseData("set<int>", (Func<ISet<int>>)(()=>Enumerable.Range(0, r.Next()%200).Distinct().Select(i => i).ToHashSet()), setMapAssert),
+                    new TestCaseData("set<int>", (Func<HashSet<int>>)(()=>Enumerable.Range(0, r.Next()%200).Distinct().Select(i => i).ToHashSet()), setMapAssert),
+
+                    new TestCaseData("map<int,int>", (Func<IDictionary<int, int>>)(()=>Enumerable.Range(0, r.Next()%200).Distinct().ToDictionary(i => i, i => r.Next())), setMapAssert),
+                    new TestCaseData("map<int,varint>", (Func<IDictionary<int, BigInteger>>)(()=>Enumerable.Range(0, r.Next()%200).Distinct().ToDictionary(i =>i, i => new BigInteger((long)r.NextDouble()))), setMapAssert),
+                    new TestCaseData("map<varint,int>", (Func<IDictionary<BigInteger, int>>)(()=>Enumerable.Range(0, r.Next()%200).Distinct().ToDictionary(i => new BigInteger(i), i => r.Next())), setMapAssert),
+                    new TestCaseData("map<varint,varint>", (Func<IDictionary<BigInteger, BigInteger>>)(()=>Enumerable.Range(0, r.Next()%200).Distinct().ToDictionary(i => new BigInteger(i), i => new BigInteger((long)r.NextDouble()))), setMapAssert),
+
+                    new TestCaseData("vector<int,2>", (Func<CqlVector<int>>)(()=>CqlVector<int>.FromArray(Enumerable.Range(0, 2).Select(i => r.Next()).ToArray())), listVectorAssert),
+                    new TestCaseData("vector<int,2>", (Func<CqlVector<int>>)(()=>new CqlVector<int>(r.Next(), r.Next())), listVectorAssert),
+                    new TestCaseData("vector<varint,2>", (Func<CqlVector<BigInteger>>)(()=>CqlVector<BigInteger>.FromArray(Enumerable.Range(0, 2).Select(i => new BigInteger((long)r.NextDouble())).ToArray())), listVectorAssert),
+                    
+                    new TestCaseData("tuple<int,int>", (Func<Tuple<int,int>>)(()=>new Tuple<int, int>(r.Next(), r.Next())), defaultAssert),
+                    new TestCaseData("tuple<int,varint>", (Func<Tuple<int,BigInteger>>)(()=>new Tuple<int, BigInteger>(r.Next(), new BigInteger((long)r.NextDouble()))), defaultAssert),
+                    new TestCaseData("tuple<varint,int>", (Func<Tuple<BigInteger, int>>)(()=>new Tuple<BigInteger, int>(new BigInteger((long)r.NextDouble()), r.Next())), defaultAssert),
+                    new TestCaseData("tuple<varint,varint>", (Func<Tuple<BigInteger, BigInteger>>)(()=>new Tuple<BigInteger, BigInteger>(new BigInteger((long)r.NextDouble()), new BigInteger((long)r.NextDouble()))), defaultAssert),
+                    /*
+                     *
+
+                           self.session.execute("create type {}.fixed_type (a int, b int)".format(self.keyspace_name))
+                           self.session.execute("create type {}.mixed_type_one (a int, b varint)".format(self.keyspace_name))
+                           self.session.execute("create type {}.mixed_type_two (a varint, b int)".format(self.keyspace_name))
+                           self.session.execute("create type {}.var_type (a varint, b varint)".format(self.keyspace_name))
+
+                           class GeneralUDT:
+                               def __init__(self, a, b):
+                                   self.a = a
+                                   self.b = b
+
+                           self.cluster.register_user_type(self.keyspace_name,'fixed_type', GeneralUDT)
+                           self.cluster.register_user_type(self.keyspace_name,'mixed_type_one', GeneralUDT)
+                           self.cluster.register_user_type(self.keyspace_name,'mixed_type_two', GeneralUDT)
+                           self.cluster.register_user_type(self.keyspace_name,'var_type', GeneralUDT)
+
+                           def _random_udt():
+                               return GeneralUDT(random.randint(0,100000),random.randint(0,100000))
+
+                           self._round_trip_test("fixed_type", _random_udt, _udt_equal_test_fn)
+                           self._round_trip_test("mixed_type_one", _random_udt, _udt_equal_test_fn)
+                           self._round_trip_test("mixed_type_two", _random_udt, _udt_equal_test_fn)
+                           self._round_trip_test("var_type", _random_udt, _udt_equal_test_fn)
+                     */
+
                 };
         }
 
