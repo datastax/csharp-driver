@@ -125,6 +125,26 @@ namespace Cassandra.Tests
             AssertFn("org.apache.cassandra.db.marshal.VectorType( org.apache.cassandra.db.marshal.Int32Type , 3 )");
             AssertFn("org.apache.cassandra.db.marshal.VectorType(  org.apache.cassandra.db.marshal.Int32Type  ,  3  )");
             AssertFn("org.apache.cassandra.db.marshal.VectorType(  org.apache.cassandra.db.marshal.Int32Type  ,  3  ) ");
+            AssertFn(" org.apache.cassandra.db.marshal.VectorType(  org.apache.cassandra.db.marshal.Int32Type  ,  3  ) ");
+
+            void AssertComplexFn(string str)
+            {
+                var dataType = DataTypeParser.ParseFqTypeName(str); 
+                Assert.AreEqual(ColumnTypeCode.Custom, dataType.TypeCode);
+                Assert.IsInstanceOf<VectorColumnInfo>(dataType.TypeInfo);
+                Assert.AreEqual(ColumnTypeCode.List, ((VectorColumnInfo)dataType.TypeInfo).ValueTypeCode);
+                Assert.AreEqual(4, ((VectorColumnInfo)dataType.TypeInfo).Dimension);
+                var subType = (ListColumnInfo)(((VectorColumnInfo)dataType.TypeInfo).ValueTypeInfo);
+                Assert.AreEqual(ColumnTypeCode.Custom, subType.ValueTypeCode);
+                Assert.IsInstanceOf<VectorColumnInfo>(subType.ValueTypeInfo);
+                Assert.AreEqual(ColumnTypeCode.Int, ((VectorColumnInfo)subType.ValueTypeInfo).ValueTypeCode);
+                Assert.AreEqual(2, ((VectorColumnInfo)subType.ValueTypeInfo).Dimension);
+            }
+            AssertComplexFn("org.apache.cassandra.db.marshal.VectorType(org.apache.cassandra.db.marshal.FrozenType(org.apache.cassandra.db.marshal.ListType(org.apache.cassandra.db.marshal.VectorType(org.apache.cassandra.db.marshal.Int32Type , 2))) , 4)");
+            AssertComplexFn("org.apache.cassandra.db.marshal.VectorType(org.apache.cassandra.db.marshal.ListType(org.apache.cassandra.db.marshal.VectorType(org.apache.cassandra.db.marshal.Int32Type , 2)) , 4)");
+            AssertComplexFn("org.apache.cassandra.db.marshal.VectorType(  org.apache.cassandra.db.marshal.ListType(  org.apache.cassandra.db.marshal.VectorType(  org.apache.cassandra.db.marshal.Int32Type,2)),4)");
+            AssertComplexFn("org.apache.cassandra.db.marshal.VectorType( org.apache.cassandra.db.marshal.ListType( org.apache.cassandra.db.marshal.VectorType( org.apache.cassandra.db.marshal.Int32Type  ,  2  ))   ,   4  )");
+            AssertComplexFn("   org.apache.cassandra.db.marshal.VectorType( org.apache.cassandra.db.marshal.ListType( org.apache.cassandra.db.marshal.VectorType( org.apache.cassandra.db.marshal.Int32Type  ,  2  ))   ,   4  )   ");
         }
 
         [Test]

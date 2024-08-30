@@ -125,21 +125,9 @@ namespace Cassandra.Serialization
             {
                 TypeCode = ColumnTypeCode.Custom
             };
-            var newLength = length;
-            for (var i = startIndex; i < length; i++)
-            {
-                if (IsBlankChar(typeName[i]))
-                {
-                    startIndex++;
-                    newLength--;
-                }
-                else
-                {
-                    break;
-                }
-            }
-
-            length = newLength;
+            var trimmedTypeName = typeName.Trim();
+            length -= typeName.Length-trimmedTypeName.Length;
+            typeName = trimmedTypeName;
             if (length > ReversedTypeName.Length && typeName.IndexOf(ReversedTypeName, startIndex, comparison) == startIndex)
             {
                 //move the start index and subtract the length plus parenthesis
@@ -310,6 +298,9 @@ namespace Cassandra.Serialization
             {
                 length = typeName.Length;
             }
+            var trimmedTypeName = typeName.Trim();
+            length -= typeName.Length - trimmedTypeName.Length;
+            typeName = trimmedTypeName;
             if (typeName.IndexOf(CqlNames.Frozen, startIndex, comparison) == startIndex)
             {
                 //Remove the frozen
@@ -486,17 +477,9 @@ namespace Cassandra.Serialization
             var paramStart = startIndex;
             var level = 0;
             var lastBlanks = 0;
-            var skipped = 0;
             for (var i = startIndex; i < startIndex + length; i++)
             {
                 var c = value[i];
-                if (i == paramStart && IsBlankChar(c))
-                {
-                    paramStart++;
-                    skipped++;
-                    lastBlanks = 0;
-                    continue;
-                }
                 if (c == open)
                 {
                     level++;
@@ -512,14 +495,23 @@ namespace Cassandra.Serialization
                 }
                 if (IsBlankChar(c))
                 {
-                    lastBlanks++;
-                } else
+                    if (i == paramStart)
+                    {
+                        paramStart++;
+                        lastBlanks = 0;
+                    }
+                    else
+                    {
+                        lastBlanks++;
+                    }
+                }
+                else
                 {
                     lastBlanks = 0;
                 }
             }
             //Add the last one
-            types.Add(value.Substring(paramStart, (length + startIndex) - paramStart - lastBlanks - skipped));
+            types.Add(value.Substring(paramStart, (length + startIndex) - paramStart - lastBlanks));
             return types;
         }
 
