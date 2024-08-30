@@ -344,8 +344,8 @@ namespace Cassandra.IntegrationTests.Core
                     new TestCaseData("list<int>", (Func<List<int>>)(()=>Enumerable.Range(0, r.Next()%200).Select(i => r.Next()).ToList()), listVectorAssert),
                     new TestCaseData("list<varint>", (Func<IEnumerable<BigInteger>>)(()=>Enumerable.Range(0, r.Next()%200).Select(i => new BigInteger((long)r.NextDouble())).ToList()), listVectorAssert),
 
-                    new TestCaseData("set<int>", (Func<ISet<int>>)(()=>Enumerable.Range(0, r.Next()%200).Distinct().Select(i => i).ToHashSet()), setMapAssert),
-                    new TestCaseData("set<int>", (Func<HashSet<int>>)(()=>Enumerable.Range(0, r.Next()%200).Distinct().Select(i => i).ToHashSet()), setMapAssert),
+                    new TestCaseData("set<int>", (Func<ISet<int>>)(()=>new HashSet<int>(Enumerable.Range(0, r.Next()%200).Distinct().Select(i => i))), setMapAssert),
+                    new TestCaseData("set<int>", (Func<HashSet<int>>)(()=>new HashSet<int>(Enumerable.Range(0, r.Next()%200).Distinct().Select(i => i))), setMapAssert),
 
                     new TestCaseData("map<int,int>", (Func<IDictionary<int, int>>)(()=>Enumerable.Range(0, r.Next()%200).Distinct().ToDictionary(i => i, i => r.Next())), setMapAssert),
                     new TestCaseData("map<int,varint>", (Func<IDictionary<int, BigInteger>>)(()=>Enumerable.Range(0, r.Next()%200).Distinct().ToDictionary(i =>i, i => new BigInteger((long)r.NextDouble()))), setMapAssert),
