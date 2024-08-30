@@ -85,7 +85,7 @@ namespace Cassandra
 
         public override bool Equals(object obj)
         {
-            return obj is CqlVector<T> other && Equals(other);
+            return obj is CqlVector<T> other && CqlVector<T>.Equals(this, other);
         }
 
         public override int GetHashCode()
