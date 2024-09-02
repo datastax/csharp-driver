@@ -259,7 +259,6 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
         [Category(TestCategory.RealClusterLong)]
         [Test]
-        [NUnit.Framework.Ignore("LINQ flow seems different than the flow in which OTEL is implemented!")]
         public void AddOpenTelemetry_Linq_SessionRequestIsParentOfNodeRequest()
         {
             var keyspace = TestUtils.GetUniqueKeyspaceName().ToLowerInvariant();
@@ -275,7 +274,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
             CreateSongTable(session);
 
-            var table = new Table<Song>(Session, new MappingConfiguration().Define(new Map<Song>().TableName("song")));
+            var table = new Table<Song>(session, new MappingConfiguration().Define(new Map<Song>().TableName("song")));
 
             var song = new Song
             {
@@ -288,9 +287,19 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             // Clear activities to get the Linq one
             _exportedActivities.Clear();
 
-            table.Insert(song);
+            table.Insert(song).Execute();
 
             var syncActivities = GetActivities();
+
+            var syncSessionActivity = syncActivities.First(x => x.DisplayName.StartsWith(SessionActivityName));
+            var syncNodeActivity = syncActivities.First(x => x.DisplayName.StartsWith(NodeActivityName));
+
+            Assert.IsNull(syncSessionActivity.ParentId);
+            Assert.AreEqual(syncSessionActivity.TraceId, syncNodeActivity.TraceId);
+            Assert.AreEqual(syncSessionActivity.SpanId, syncNodeActivity.ParentSpanId);
+
+            ValidateSessionActivityAttributes(syncSessionActivity);
+            ValidateNodeActivityAttributes(syncNodeActivity);
         }
 
         [Test]
