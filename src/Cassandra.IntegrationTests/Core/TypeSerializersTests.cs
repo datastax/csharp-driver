@@ -22,7 +22,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Numerics;
-
+using System.Threading;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.Serialization;
@@ -47,6 +47,8 @@ namespace Cassandra.IntegrationTests.Core
         private const string CustomTypeName2 = "org.apache.cassandra.db.marshal.DynamicCompositeType(" +
                                                "i=>org.apache.cassandra.db.marshal.Int32Type," +
                                                "s=>org.apache.cassandra.db.marshal.UTF8Type)";
+
+        private static long vectorSchemaSetUp = 0;
 
         protected override string[] SetupQueries
         {
@@ -325,7 +327,7 @@ namespace Cassandra.IntegrationTests.Core
 
                     new TestCaseData("date", (Func<LocalDate>)(()=>new LocalDate((uint)(r.Next()%100000))), defaultAssert),
                     new TestCaseData("time", (Func<LocalTime>)(()=>new LocalTime(r.Next())), defaultAssert),
-                    new TestCaseData("timestamp", (Func<DateTimeOffset>)(()=>new DateTimeOffset(DateTime.UtcNow)), defaultAssert),
+                    new TestCaseData("timestamp", (Func<DateTimeOffset>)(()=>DateTimeOffset.FromUnixTimeMilliseconds(r.Next() % 10000000)), defaultAssert),
 
                     new TestCaseData("uuid", (Func<Guid>)(Guid.NewGuid), defaultAssert),
                     new TestCaseData("timeuuid", (Func<TimeUuid>)(TimeUuid.NewId), defaultAssert),
@@ -360,42 +362,22 @@ namespace Cassandra.IntegrationTests.Core
                     new TestCaseData("tuple<int,varint>", (Func<Tuple<int,BigInteger>>)(()=>new Tuple<int, BigInteger>(r.Next(), new BigInteger((long)r.NextDouble()))), defaultAssert),
                     new TestCaseData("tuple<varint,int>", (Func<Tuple<BigInteger, int>>)(()=>new Tuple<BigInteger, int>(new BigInteger((long)r.NextDouble()), r.Next())), defaultAssert),
                     new TestCaseData("tuple<varint,varint>", (Func<Tuple<BigInteger, BigInteger>>)(()=>new Tuple<BigInteger, BigInteger>(new BigInteger((long)r.NextDouble()), new BigInteger((long)r.NextDouble()))), defaultAssert),
-                    /*
-                     *
 
-                           self.session.execute("create type {}.fixed_type (a int, b int)".format(self.keyspace_name))
-                           self.session.execute("create type {}.mixed_type_one (a int, b varint)".format(self.keyspace_name))
-                           self.session.execute("create type {}.mixed_type_two (a varint, b int)".format(self.keyspace_name))
-                           self.session.execute("create type {}.var_type (a varint, b varint)".format(self.keyspace_name))
-
-                           class GeneralUDT:
-                               def __init__(self, a, b):
-                                   self.a = a
-                                   self.b = b
-
-                           self.cluster.register_user_type(self.keyspace_name,'fixed_type', GeneralUDT)
-                           self.cluster.register_user_type(self.keyspace_name,'mixed_type_one', GeneralUDT)
-                           self.cluster.register_user_type(self.keyspace_name,'mixed_type_two', GeneralUDT)
-                           self.cluster.register_user_type(self.keyspace_name,'var_type', GeneralUDT)
-
-                           def _random_udt():
-                               return GeneralUDT(random.randint(0,100000),random.randint(0,100000))
-
-                           self._round_trip_test("fixed_type", _random_udt, _udt_equal_test_fn)
-                           self._round_trip_test("mixed_type_one", _random_udt, _udt_equal_test_fn)
-                           self._round_trip_test("mixed_type_two", _random_udt, _udt_equal_test_fn)
-                           self._round_trip_test("var_type", _random_udt, _udt_equal_test_fn)
-                     */
-
+                    new TestCaseData("fixed_type", (Func<FixedType>)(()=>new FixedType { a = r.Next(), b = r.Next()}), defaultAssert),
+                    new TestCaseData("mixed_type_one", (Func<MixedTypeOne>)(()=>new MixedTypeOne { a = r.Next(), b = (long)r.NextDouble()}), defaultAssert),
+                    new TestCaseData("mixed_type_two", (Func<MixedTypeTwo>)(()=>new MixedTypeTwo { a = (long)r.NextDouble(), b = r.Next()}), defaultAssert),
+                    new TestCaseData("var_type", (Func<VarType>)(()=>new VarType { a = (long)r.NextDouble(), b = (long)r.NextDouble()}), defaultAssert),
+                    new TestCaseData("complex_vector_udt", (Func<ComplexVectorUdt>)(()=>new ComplexVectorUdt { a = new CqlVector<int>(r.Next(), r.Next(), r.Next()), b = new CqlVector<BigInteger>(r.Next(), r.Next(), r.Next())}), defaultAssert),
                 };
         }
 
-        [Test, TestCassandraVersion(5, 0, Comparison.GreaterThanOrEqualsTo), TestCaseSource(nameof(VectorTestCaseData))]
+        [Test, TestBothServersVersion(5, 0, 6, 9), TestCaseSource(nameof(VectorTestCaseData))]
         public void VectorSimpleStatementTest<T>(string cqlSubType, Func<T> elementGeneratorFn, Action<object, object> assertFn)
         {
-            var tableName = "vectortest_" + cqlSubType.Replace("<", "A").Replace(">", "B").Replace(",", "C") + "isH";
-            var ddl = $"CREATE TABLE IF NOT EXISTS {tableName} (i int PRIMARY KEY, j vector<{cqlSubType}, 3>)";
-            Session.Execute(ddl);
+            SetupVectorUdtSchema();
+            var baseName = "vectortest_" + cqlSubType.Replace("<", "A").Replace(">", "B").Replace(",", "C");
+            var tableName = baseName + "isH";
+            Session.Execute($"CREATE TABLE IF NOT EXISTS {tableName} (i int PRIMARY KEY, j vector<{cqlSubType}, 3>)");
 
             Action<Func<int, CqlVector<T>, SimpleStatement>> vectorSimpleStmtTestFn = simpleStmtFn =>
             {
@@ -406,11 +388,233 @@ namespace Cassandra.IntegrationTests.Core
                 var rowList = rs.ToList();
                 Assert.AreEqual(1, rowList.Count);
                 var retrievedVector = rowList[0].GetValue<CqlVector<T>>("j");
-                assertFn(vector, retrievedVector);
+                Assert.AreEqual(3, retrievedVector.Count);
+                for (var idx = 0; idx < retrievedVector.Count; idx++)
+                {
+                    assertFn(vector[idx], retrievedVector[idx]);
+                }
             };
 
             vectorSimpleStmtTestFn((i, v) => new SimpleStatement($"INSERT INTO {tableName} (i, j) VALUES (?, ?)", i, v));
             vectorSimpleStmtTestFn((i, v) => new SimpleStatement(new Dictionary<string, object> { { "idx", i }, { "vec", v } }, $"INSERT INTO {tableName} (i, j) VALUES (:idx, :vec)"));
+        }
+
+        [Test, TestBothServersVersion(5, 0, 6, 9), TestCaseSource(nameof(VectorTestCaseData))]
+        public void VectorSimpleStatementTestComplex<T>(string cqlSubType, Func<T> elementGeneratorFn, Action<object, object> assertFn)
+        {
+            SetupVectorUdtSchema();
+            var baseName = "vectortest_" + cqlSubType.Replace("<", "A").Replace(">", "B").Replace(",", "C");
+            var tableNameComplex = baseName + "_complex";
+            Session.Execute($"CREATE TABLE IF NOT EXISTS {tableNameComplex} (i int PRIMARY KEY, k vector<vector<{cqlSubType}, 3>, 3>, l vector<list<vector<{cqlSubType}, 3>>, 3>)");
+
+            Action<Func<int, List<CqlVector<T>>, SimpleStatement>> vectorSimpleStmtTestFn = simpleStmtFn =>
+            {
+                var vectorList = new List<CqlVector<T>>
+                {
+                    new CqlVector<T>(elementGeneratorFn(), elementGeneratorFn(), elementGeneratorFn()),
+                    new CqlVector<T>(elementGeneratorFn(), elementGeneratorFn(), elementGeneratorFn()),
+                    new CqlVector<T>(elementGeneratorFn(), elementGeneratorFn(), elementGeneratorFn()),
+                };
+                var i = new Random().Next();
+                Session.Execute(simpleStmtFn(i, vectorList));
+                var rs = Session.Execute($"SELECT * FROM {tableNameComplex} WHERE i = {i}");
+                var rowList = rs.ToList();
+                Assert.AreEqual(1, rowList.Count);
+
+                var retrievedVector1 = rowList[0].GetValue<CqlVector<CqlVector<T>>>("k");
+                Assert.AreEqual(3, retrievedVector1.Count);
+                for (var idx = 0; idx < 3; idx++)
+                {
+                    Assert.AreEqual(3, retrievedVector1[idx].Count);
+                    for (var idxj = 0; idxj < vectorList[idx].Count; idxj++)
+                    {
+                        assertFn(vectorList[idx][idxj], retrievedVector1[idx][idxj]);
+                    }
+                }
+                var retrievedVector2 = rowList[0].GetValue<CqlVector<List<CqlVector<T>>>>("l");
+                Assert.AreEqual(3, retrievedVector2.Count);
+                for (var idx = 0; idx < 3; idx++)
+                {
+                    Assert.AreEqual(1, retrievedVector2[idx].Count);
+                    Assert.AreEqual(3, retrievedVector2[idx][0].Count);
+                    for (var idxj = 0; idxj < vectorList[idx].Count; idxj++)
+                    {
+                        assertFn(vectorList[idx][idxj], retrievedVector2[idx][0][idxj]);
+                    }
+                }
+            };
+
+            vectorSimpleStmtTestFn((i, v) => new SimpleStatement(
+                $"INSERT INTO {tableNameComplex} (i, k, l) VALUES (?, ?, ?)", 
+                i, 
+                new CqlVector<CqlVector<T>>(v[0], v[1], v[2]), 
+                new CqlVector<List<CqlVector<T>>>(new List<CqlVector<T>> { v[0] }, new List<CqlVector<T>> { v[1] }, new List<CqlVector<T>> { v[2] })));
+            vectorSimpleStmtTestFn((i, v) => new SimpleStatement(
+                new Dictionary<string, object>
+                {
+                    { "idx", i }, 
+                    { "vec", new CqlVector<CqlVector<T>>(v[0], v[1], v[2]) }, 
+                    { "vecc", new CqlVector<List<CqlVector<T>>>(new List<CqlVector<T>> { v[0] }, new List<CqlVector<T>> { v[1] }, new List<CqlVector<T>> { v[2] }) }
+                }, 
+                $"INSERT INTO {tableNameComplex} (i, k, l) VALUES (:idx, :vec, :vecc)"));
+        }
+
+        private void SetupVectorUdtSchema()
+        {
+            if (Interlocked.CompareExchange(ref vectorSchemaSetUp, 1, 0) == 0)
+            {
+                Session.Execute("create type if not exists fixed_type (a int, b int)");
+                Session.Execute("create type if not exists mixed_type_one (a int, b varint)");
+                Session.Execute("create type if not exists mixed_type_two (a varint, b int)");
+                Session.Execute("create type if not exists var_type (a varint, b varint)");
+                Session.Execute("create type if not exists complex_vector_udt (a vector<int, 3>, b vector<varint, 3>)");
+            }
+            Session.UserDefinedTypes.Define(
+                UdtMap.For<FixedType>("fixed_type"),
+                UdtMap.For<MixedTypeOne>("mixed_type_one"),
+                UdtMap.For<MixedTypeTwo>("mixed_type_two"),
+                UdtMap.For<VarType>("var_type"),
+                UdtMap.For<ComplexVectorUdt>("complex_vector_udt"));
+        }
+
+        public class FixedType
+        {
+            protected bool Equals(FixedType other)
+            {
+                return a == other.a && b == other.b;
+            }
+
+            public override bool Equals(object obj)
+            {
+                if (obj is null) return false;
+                if (ReferenceEquals(this, obj)) return true;
+                if (obj.GetType() != GetType()) return false;
+                return Equals((FixedType)obj);
+            }
+
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    return (a * 397) ^ b;
+                }
+            }
+
+            public int a { get; set; }
+
+            public int b { get; set; }
+        }
+
+        public class MixedTypeOne
+        {
+            protected bool Equals(MixedTypeOne other)
+            {
+                return a == other.a && b.Equals(other.b);
+            }
+
+            public override bool Equals(object obj)
+            {
+                if (obj is null) return false;
+                if (ReferenceEquals(this, obj)) return true;
+                if (obj.GetType() != GetType()) return false;
+                return Equals((MixedTypeOne)obj);
+            }
+
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    return (a * 397) ^ b.GetHashCode();
+                }
+            }
+
+            public int a { get; set; }
+
+            public BigInteger b { get; set; }
+        }
+
+        public class MixedTypeTwo
+        {
+            protected bool Equals(MixedTypeTwo other)
+            {
+                return a.Equals(other.a) && b == other.b;
+            }
+
+            public override bool Equals(object obj)
+            {
+                if (obj is null) return false;
+                if (ReferenceEquals(this, obj)) return true;
+                if (obj.GetType() != GetType()) return false;
+                return Equals((MixedTypeTwo)obj);
+            }
+
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    return (a.GetHashCode() * 397) ^ b;
+                }
+            }
+
+            public BigInteger a { get; set; }
+
+            public int b { get; set; }
+        }
+
+        public class VarType
+        {
+            protected bool Equals(VarType other)
+            {
+                return a.Equals(other.a) && b.Equals(other.b);
+            }
+
+            public override bool Equals(object obj)
+            {
+                if (obj is null) return false;
+                if (ReferenceEquals(this, obj)) return true;
+                if (obj.GetType() != GetType()) return false;
+                return Equals((VarType)obj);
+            }
+
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    return (a.GetHashCode() * 397) ^ b.GetHashCode();
+                }
+            }
+
+            public BigInteger a { get; set; }
+
+            public BigInteger b { get; set; }
+        }
+
+        public class ComplexVectorUdt
+        {
+            protected bool Equals(ComplexVectorUdt other)
+            {
+                return Equals(a, other.a) && Equals(b, other.b);
+            }
+
+            public override bool Equals(object obj)
+            {
+                if (obj is null) return false;
+                if (ReferenceEquals(this, obj)) return true;
+                if (obj.GetType() != GetType()) return false;
+                return Equals((ComplexVectorUdt)obj);
+            }
+
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    return ((a != null ? a.GetHashCode() : 0) * 397) ^ (b != null ? b.GetHashCode() : 0);
+                }
+            }
+
+            public CqlVector<int> a { get; set; }
+
+            public CqlVector<BigInteger> b { get; set; }
         }
     }
 }
