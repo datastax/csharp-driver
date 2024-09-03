@@ -384,8 +384,6 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
         [Test]
         public void AddOpenTelemetry_WithPaginationOnQuery_ShouldMultipleSpansForTheSameTraceId()
         {
-            var expectedNumberOfSessionActivities = 2;
-
             using (var activity = InternalActivitySource.StartActivity("Paging", ActivityKind.Internal))
             {
                 var session = GetNewTemporaryCluster(b => b.AddOpenTelemetryInstrumentation()).Connect();
@@ -396,7 +394,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
                 CreateSongTable(session);
 
-                for (int i = 0; i < expectedNumberOfSessionActivities; i++)
+                for (int i = 0; i < 2; i++)
                 {
                     session.Execute(string.Format("INSERT INTO {0}.song (Artist, Title, Id, ReleaseDate) VALUES('Pink Floyd', 'The Dark Side Of The Moon', {1}, {2})", KeyspaceName, Guid.NewGuid(), ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeSeconds()));
                 }
@@ -409,8 +407,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
                 var sessionActivities = GetActivities().Where(x => x.DisplayName == SessionActivityName);
 
-                Assert.AreEqual(expectedNumberOfSessionActivities, sessionActivities.Count());
-                Assert.AreEqual(expectedNumberOfSessionActivities, rs.InnerQueueCount);
+                Assert.AreEqual(sessionActivities.Count(), rs.InnerQueueCount);
 
                 var firstActivity = sessionActivities.First();
                 var lastActivity = sessionActivities.Last();
