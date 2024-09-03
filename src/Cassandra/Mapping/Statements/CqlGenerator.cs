@@ -403,6 +403,15 @@ namespace Cassandra.Mapping.Statements
                 // Escape keyspace and name from the UDT
                 typeName = string.Join(".", udtInfo.Name.Split('.').Select(k => "\"" + k + "\""));
             }
+            else if (typeInfo is VectorColumnInfo vectorInfo)
+            {
+                if (vectorInfo.Dimension == null)
+                {
+                    throw new NotSupportedException("The driver can not dynamically compute the CQL Vector type string from the CqlVector<T> type. " +
+                                                    "For this reason, the Table.Create() method is not supported for tables with vector columns at this time. " +
+                                                    "An alternative is to use simple statements to create tables with vector tables but this requires the CREATE cql string to be provided.");
+                }
+            }
 
             if (typeName == null)
             {
