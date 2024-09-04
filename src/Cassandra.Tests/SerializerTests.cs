@@ -116,6 +116,7 @@ namespace Cassandra.Tests
             yield return new object[] { new[]{Guid.NewGuid(), Guid.NewGuid()}, ColumnTypeCode.Uuid };
             yield return new object[] { new[]{true, false}, ColumnTypeCode.Boolean };
             yield return new object[] { new[]{new byte[] { 255, 128, 64, 32, 16, 9, 9 }, new byte[]{0,1,128,9,1,2,3,4}}, ColumnTypeCode.Blob };
+            yield return new object[] { new[] { TimeUuid.NewId(), TimeUuid.NewId() }, ColumnTypeCode.Timeuuid };
         }
 
         static IEnumerable<object[]> CollectionsTestCases()

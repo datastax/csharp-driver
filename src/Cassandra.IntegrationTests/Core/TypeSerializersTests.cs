@@ -385,14 +385,7 @@ namespace Cassandra.IntegrationTests.Core
                 var i = new Random().Next();
                 Session.Execute(simpleStmtFn(i, vector));
                 var rs = Session.Execute($"SELECT * FROM {tableName} WHERE i = {i}");
-                var rowList = rs.ToList();
-                Assert.AreEqual(1, rowList.Count);
-                var retrievedVector = rowList[0].GetValue<CqlVector<T>>("j");
-                Assert.AreEqual(3, retrievedVector.Count);
-                for (var idx = 0; idx < retrievedVector.Count; idx++)
-                {
-                    assertFn(vector[idx], retrievedVector[idx]);
-                }
+                AssertSimpleVectorTest(vector, rs, assertFn);
             };
 
             vectorSimpleStmtTestFn((i, v) => new SimpleStatement($"INSERT INTO {tableName} (i, j) VALUES (?, ?)", i, v));
@@ -418,30 +411,7 @@ namespace Cassandra.IntegrationTests.Core
                 var i = new Random().Next();
                 Session.Execute(simpleStmtFn(i, vectorList));
                 var rs = Session.Execute($"SELECT * FROM {tableNameComplex} WHERE i = {i}");
-                var rowList = rs.ToList();
-                Assert.AreEqual(1, rowList.Count);
-
-                var retrievedVector1 = rowList[0].GetValue<CqlVector<CqlVector<T>>>("k");
-                Assert.AreEqual(3, retrievedVector1.Count);
-                for (var idx = 0; idx < 3; idx++)
-                {
-                    Assert.AreEqual(3, retrievedVector1[idx].Count);
-                    for (var idxj = 0; idxj < vectorList[idx].Count; idxj++)
-                    {
-                        assertFn(vectorList[idx][idxj], retrievedVector1[idx][idxj]);
-                    }
-                }
-                var retrievedVector2 = rowList[0].GetValue<CqlVector<List<CqlVector<T>>>>("l");
-                Assert.AreEqual(3, retrievedVector2.Count);
-                for (var idx = 0; idx < 3; idx++)
-                {
-                    Assert.AreEqual(1, retrievedVector2[idx].Count);
-                    Assert.AreEqual(3, retrievedVector2[idx][0].Count);
-                    for (var idxj = 0; idxj < vectorList[idx].Count; idxj++)
-                    {
-                        assertFn(vectorList[idx][idxj], retrievedVector2[idx][0][idxj]);
-                    }
-                }
+                AssertComplexVectorTest(vectorList, rs, assertFn);
             };
 
             vectorSimpleStmtTestFn((i, v) => new SimpleStatement(
@@ -457,6 +427,256 @@ namespace Cassandra.IntegrationTests.Core
                     { "vecc", new CqlVector<List<CqlVector<T>>>(new List<CqlVector<T>> { v[0] }, new List<CqlVector<T>> { v[1] }, new List<CqlVector<T>> { v[2] }) }
                 }, 
                 $"INSERT INTO {tableNameComplex} (i, k, l) VALUES (:idx, :vec, :vecc)"));
+        }
+
+        [Test, TestBothServersVersion(5, 0, 6, 9), TestCaseSource(nameof(VectorTestCaseData))]
+        public void VectorPreparedStatementTest<T>(string cqlSubType, Func<T> elementGeneratorFn, Action<object, object> assertFn)
+        {
+            SetupVectorUdtSchema();
+            var baseName = "vectortest_prep_" + cqlSubType.Replace("<", "A").Replace(">", "B").Replace(",", "C");
+            var tableName = baseName + "isH";
+            Session.Execute($"CREATE TABLE IF NOT EXISTS {tableName} (i int PRIMARY KEY, j vector<{cqlSubType}, 3>)");
+
+            Action<string, Func<int, CqlVector<T>, PreparedStatement, BoundStatement>> vectorPreparedStmtTestFn = (cql, preparedStmtFn) =>
+            {
+                var vector = new CqlVector<T>(elementGeneratorFn(), elementGeneratorFn(), elementGeneratorFn());
+                var i = new Random().Next();
+                var ps = Session.Prepare(cql);
+                Session.Execute(preparedStmtFn(i, vector, ps));
+                ps = Session.Prepare($"SELECT * FROM {tableName} WHERE i = ?");
+                var bs = ps.Bind(i);
+                var rs = Session.Execute(bs);
+                AssertSimpleVectorTest(vector, rs, assertFn);
+            };
+
+            vectorPreparedStmtTestFn($"INSERT INTO {tableName} (i, j) VALUES (?, ?)", (i, v, ps) => ps.Bind(i, v));
+            vectorPreparedStmtTestFn($"INSERT INTO {tableName} (i, j) VALUES (:idx, :vec)", (i, v, ps) => ps.Bind(new { idx = i, vec = v }));
+        }
+
+        [Test, TestBothServersVersion(5, 0, 6, 9), TestCaseSource(nameof(VectorTestCaseData))]
+        public void VectorPreparedStatementTestComplex<T>(string cqlSubType, Func<T> elementGeneratorFn, Action<object, object> assertFn)
+        {
+            SetupVectorUdtSchema();
+            var baseName = "vectortest_prep_" + cqlSubType.Replace("<", "A").Replace(">", "B").Replace(",", "C");
+            var tableNameComplex = baseName + "_complex";
+            Session.Execute($"CREATE TABLE IF NOT EXISTS {tableNameComplex} (i int PRIMARY KEY, k vector<vector<{cqlSubType}, 3>, 3>, l vector<list<vector<{cqlSubType}, 3>>, 3>)");
+
+            Action<string, Func<int, List<CqlVector<T>>, PreparedStatement, BoundStatement>> vectorPreparedStmtTestFn = (cql, preparedStmtFn) =>
+            {
+                var vectorList = new List<CqlVector<T>>
+                {
+                    new CqlVector<T>(elementGeneratorFn(), elementGeneratorFn(), elementGeneratorFn()),
+                    new CqlVector<T>(elementGeneratorFn(), elementGeneratorFn(), elementGeneratorFn()),
+                    new CqlVector<T>(elementGeneratorFn(), elementGeneratorFn(), elementGeneratorFn()),
+                };
+                var i = new Random().Next();
+                var ps = Session.Prepare(cql);
+                Session.Execute(preparedStmtFn(i, vectorList, ps));
+                ps = Session.Prepare($"SELECT * FROM {tableNameComplex} WHERE i = ?");
+                var bs = ps.Bind(i);
+                var rs = Session.Execute(bs);
+                AssertComplexVectorTest(vectorList, rs, assertFn);
+            };
+
+            vectorPreparedStmtTestFn(
+                $"INSERT INTO {tableNameComplex} (i, k, l) VALUES (?, ?, ?)",
+                (i, v, ps) =>
+                    ps.Bind(
+                        i,
+                        new CqlVector<CqlVector<T>>(v[0], v[1], v[2]),
+                        new CqlVector<List<CqlVector<T>>>(new List<CqlVector<T>> { v[0] }, new List<CqlVector<T>> { v[1] }, new List<CqlVector<T>> { v[2] })));
+            vectorPreparedStmtTestFn(
+                $"INSERT INTO {tableNameComplex} (i, k, l) VALUES (:idx, :vec, :vecc)",
+                (i, v, ps) =>
+                    ps.Bind(
+                        new
+                        {
+                            idx = i,
+                            vec = new CqlVector<CqlVector<T>>(v[0], v[1], v[2]),
+                            vecc = new CqlVector<List<CqlVector<T>>>(new List<CqlVector<T>> { v[0] }, new List<CqlVector<T>> { v[1] }, new List<CqlVector<T>> { v[2] })
+                        }
+                ));
+        }
+
+        [Test, TestBothServersVersion(5, 0, 6, 9), TestCaseSource(nameof(VectorTestCaseData))]
+        public void VectorTestCollectionConversion<T>(string cqlSubType, Func<T> elementGeneratorFn, Action<object, object> assertFn)
+        {
+            SetupVectorUdtSchema();
+            var baseName = "vectortest_conv_" + cqlSubType.Replace("<", "A").Replace(">", "B").Replace(",", "C");
+            var tableName = baseName + "isH";
+            Session.Execute($"CREATE TABLE IF NOT EXISTS {tableName} (i int PRIMARY KEY, j vector<{cqlSubType}, 3>)");
+
+            Action<string, Func<int, CqlVector<T>, PreparedStatement, BoundStatement>> vectorPreparedStmtTestFn = (cql, preparedStmtFn) =>
+            {
+                var vector = new CqlVector<T>(elementGeneratorFn(), elementGeneratorFn(), elementGeneratorFn());
+                var i = new Random().Next();
+                var ps = Session.Prepare(cql);
+                Session.Execute(preparedStmtFn(i, vector, ps));
+                ps = Session.Prepare($"SELECT * FROM {tableName} WHERE i = ?");
+                var bs = ps.Bind(i);
+                var rs = Session.Execute(bs);
+                var rowList = rs.ToList();
+
+                Assert.AreEqual(1, rowList.Count);
+                var retrievedVector1 = rowList[0].GetValue<IEnumerable<T>>("j");
+                AssertSimpleVectorEquals(vector, retrievedVector1, assertFn);
+                var retrievedVector2 = rowList[0].GetValue<T[]>("j");
+                AssertSimpleVectorEquals(vector, retrievedVector2, assertFn);
+                var retrievedVector3 = rowList[0].GetValue<List<T>>("j");
+                AssertSimpleVectorEquals(vector, retrievedVector3, assertFn);
+                var retrievedVector4 = rowList[0].GetValue<IList<T>>("j");
+                AssertSimpleVectorEquals(vector, retrievedVector4, assertFn);
+                var retrievedVector5 = rowList[0].GetValue<ICollection<T>>("j");
+                AssertSimpleVectorEquals(vector, retrievedVector5, assertFn);
+            };
+
+            vectorPreparedStmtTestFn($"INSERT INTO {tableName} (i, j) VALUES (?, ?)", (i, v, ps) => ps.Bind(i, v));
+            vectorPreparedStmtTestFn($"INSERT INTO {tableName} (i, j) VALUES (:idx, :vec)", (i, v, ps) => ps.Bind(new { idx = i, vec = v }));
+        }
+
+        [Test, TestBothServersVersion(5, 0, 6, 9), TestCaseSource(nameof(VectorTestCaseData))]
+        public void VectorTestCollectionConversionComplex<T>(string cqlSubType, Func<T> elementGeneratorFn, Action<object, object> assertFn)
+        {
+            SetupVectorUdtSchema();
+            var baseName = "vectortest_conv_" + cqlSubType.Replace("<", "A").Replace(">", "B").Replace(",", "C");
+            var tableNameComplex = baseName + "_complex";
+            Session.Execute($"CREATE TABLE IF NOT EXISTS {tableNameComplex} (i int PRIMARY KEY, k vector<vector<{cqlSubType}, 3>, 3>, l vector<list<vector<{cqlSubType}, 3>>, 3>)");
+
+            Action<string, Func<int, List<CqlVector<T>>, PreparedStatement, BoundStatement>> vectorPreparedStmtTestFn = (cql, preparedStmtFn) =>
+            {
+                var vectorList = new List<CqlVector<T>>
+                {
+                    new CqlVector<T>(elementGeneratorFn(), elementGeneratorFn(), elementGeneratorFn()),
+                    new CqlVector<T>(elementGeneratorFn(), elementGeneratorFn(), elementGeneratorFn()),
+                    new CqlVector<T>(elementGeneratorFn(), elementGeneratorFn(), elementGeneratorFn()),
+                };
+                var i = new Random().Next();
+                var ps = Session.Prepare(cql);
+                Session.Execute(preparedStmtFn(i, vectorList, ps));
+                ps = Session.Prepare($"SELECT * FROM {tableNameComplex} WHERE i = ?");
+                var bs = ps.Bind(i);
+                var rs = Session.Execute(bs);
+                var rowList = rs.ToList();
+
+                Assert.AreEqual(1, rowList.Count);
+                var retrievedVector11 = rowList[0].GetValue<IEnumerable<IEnumerable<T>>>("k");
+                var retrievedVector12 = rowList[0].GetValue<IEnumerable<IEnumerable<IEnumerable<T>>>>("l");
+                AssertComplexVectorEquals(vectorList, retrievedVector11, retrievedVector12, assertFn);
+
+                var retrievedVector21 = rowList[0].GetValue<T[][]>("k");
+                var retrievedVector22 = rowList[0].GetValue<T[][][]>("l");
+                AssertComplexVectorEquals(vectorList, retrievedVector21, retrievedVector22, assertFn);
+
+                var retrievedVector31 = rowList[0].GetValue<List<List<T>>>("k");
+                var retrievedVector32 = rowList[0].GetValue<List<List<List<T>>>>("l");
+                AssertComplexVectorEquals(vectorList, retrievedVector31, retrievedVector32, assertFn);
+
+                var retrievedVector41 = rowList[0].GetValue<ICollection<ICollection<T>>>("k");
+                var retrievedVector42 = rowList[0].GetValue<ICollection<ICollection<ICollection<T>>>>("l");
+                AssertComplexVectorEquals(vectorList, retrievedVector41, retrievedVector42, assertFn);
+            };
+
+            vectorPreparedStmtTestFn(
+                $"INSERT INTO {tableNameComplex} (i, k, l) VALUES (?, ?, ?)",
+                (i, v, ps) =>
+                    ps.Bind(
+                        i,
+                        new CqlVector<CqlVector<T>>(v[0], v[1], v[2]),
+                        new CqlVector<List<CqlVector<T>>>(new List<CqlVector<T>> { v[0] }, new List<CqlVector<T>> { v[1] }, new List<CqlVector<T>> { v[2] })));
+            vectorPreparedStmtTestFn(
+                $"INSERT INTO {tableNameComplex} (i, k, l) VALUES (:idx, :vec, :vecc)",
+                (i, v, ps) =>
+                    ps.Bind(
+                        new
+                        {
+                            idx = i,
+                            vec = new CqlVector<CqlVector<T>>(v[0], v[1], v[2]),
+                            vecc = new CqlVector<List<CqlVector<T>>>(new List<CqlVector<T>> { v[0] }, new List<CqlVector<T>> { v[1] }, new List<CqlVector<T>> { v[2] })
+                        }
+                ));
+        }
+
+        private void AssertSimpleVectorTest<T>(CqlVector<T> expected, RowSet rs, Action<object, object> assertFn)
+        {
+            var rowList = rs.ToList();
+            Assert.AreEqual(1, rowList.Count);
+            var retrievedVector = rowList[0].GetValue<CqlVector<T>>("j");
+            Assert.AreEqual(3, retrievedVector.Count);
+            for (var idx = 0; idx < retrievedVector.Count; idx++)
+            {
+                assertFn(expected[idx], retrievedVector[idx]);
+            }
+        }
+
+        private void AssertSimpleVectorEquals<T>(CqlVector<T> expected, IEnumerable<T> actual, Action<object, object> assertFn)
+        {
+            var list = actual.ToList();
+            Assert.AreEqual(3, list.Count);
+            for (var idx = 0; idx < list.Count; idx++)
+            {
+                assertFn(expected[idx], list[idx]);
+            }
+        }
+
+        private void AssertComplexVectorTest<T>(List<CqlVector<T>> vectorList, RowSet rs, Action<object, object> assertFn)
+        {
+            var rowList = rs.ToList();
+            Assert.AreEqual(1, rowList.Count);
+
+            var retrievedVector1 = rowList[0].GetValue<CqlVector<CqlVector<T>>>("k");
+            Assert.AreEqual(3, retrievedVector1.Count);
+            for (var idx = 0; idx < 3; idx++)
+            {
+                Assert.AreEqual(3, retrievedVector1[idx].Count);
+                for (var idxj = 0; idxj < vectorList[idx].Count; idxj++)
+                {
+                    assertFn(vectorList[idx][idxj], retrievedVector1[idx][idxj]);
+                }
+            }
+            var retrievedVector2 = rowList[0].GetValue<CqlVector<List<CqlVector<T>>>>("l");
+            Assert.AreEqual(3, retrievedVector2.Count);
+            for (var idx = 0; idx < 3; idx++)
+            {
+                Assert.AreEqual(1, retrievedVector2[idx].Count);
+                Assert.AreEqual(3, retrievedVector2[idx][0].Count);
+                for (var idxj = 0; idxj < vectorList[idx].Count; idxj++)
+                {
+                    assertFn(vectorList[idx][idxj], retrievedVector2[idx][0][idxj]);
+                }
+            }
+        }
+
+        private void AssertComplexVectorEquals<T>(
+            List<CqlVector<T>> vectorList, 
+            IEnumerable<IEnumerable<T>> actual1, 
+            IEnumerable<IEnumerable<IEnumerable<T>>> actual2, 
+            Action<object, object> assertFn)
+        {
+            var retrievedVector1 = actual1.ToList();
+            Assert.AreEqual(3, retrievedVector1.Count);
+            for (var idx = 0; idx < 3; idx++)
+            {
+                var elem = retrievedVector1[idx].ToList();
+                Assert.AreEqual(3, elem.Count);
+                for (var idxj = 0; idxj < vectorList[idx].Count; idxj++)
+                {
+                    assertFn(vectorList[idx][idxj], elem[idxj]);
+                }
+            }
+
+            var retrievedVector2 = actual2.ToList();
+            Assert.AreEqual(3, retrievedVector2.Count);
+            for (var idx = 0; idx < 3; idx++)
+            {
+                var elem = retrievedVector2[idx].ToList();
+                Assert.AreEqual(1, elem.Count);
+                var subElem = elem[0].ToList();
+                Assert.AreEqual(3, subElem.Count);
+                for (var idxj = 0; idxj < vectorList[idx].Count; idxj++)
+                {
+                    assertFn(vectorList[idx][idxj], subElem[idxj]);
+                }
+            }
         }
 
         private void SetupVectorUdtSchema()

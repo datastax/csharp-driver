@@ -257,14 +257,19 @@ namespace Cassandra
         {
             var targetTypeInfo = targetType.GetTypeInfo();
             // value is an array, according to TypeCodec
-            var childType = value.GetType().GetTypeInfo().GetElementType();
+            var valueType = value.GetType();
+            var childType = valueType.GetTypeInfo().GetElementType();
+            if (childType == null && valueType.IsGenericType && valueType.GetGenericTypeDefinition() == typeof(CqlVector<>))
+            {
+                childType = valueType.GenericTypeArguments[0];
+            }
             Type childTargetType;
             if (targetTypeInfo.IsArray)
             {
                 childTargetType = targetTypeInfo.GetElementType();
                 return childTargetType == childType
-                    ? value
-                    : Row.GetArray((Array)value, childTargetType, column.TypeInfo);
+                    ? GetCollectionArray(value)
+                    : Row.GetArray(GetCollectionArray(value), childTargetType, column.TypeInfo);
             }
             if (Utils.IsIEnumerable(targetType, out childTargetType))
             {
@@ -272,7 +277,6 @@ namespace Cassandra
                 // Is IEnumerable
                 if (childTargetType != childType)
                 {
-                    var valueType = value.GetType();
                     // Conversion is needed
                     if (valueType.IsGenericType && valueType.GetGenericTypeDefinition() == typeof(CqlVector<>))
                     {
@@ -295,15 +299,15 @@ namespace Cassandra
                 {
                     // Use List<T> by default when a list is expected and the target type 
                     // is not an object or an array
-                    return Utils.ToCollectionType(typeof(List<>), childTargetType, (Array)value);
+                    return Utils.ToCollectionType(typeof(List<>), childTargetType, GetCollectionArray(value));
                 }
                 if (genericTargetType == typeof(SortedSet<>) || genericTargetType == typeof(ISet<>))
                 {
-                    return Utils.ToCollectionType(typeof(SortedSet<>), childTargetType, (Array)value);
+                    return Utils.ToCollectionType(typeof(SortedSet<>), childTargetType, GetCollectionArray(value));
                 }
                 if (genericTargetType == typeof(HashSet<>))
                 {
-                    return Utils.ToCollectionType(typeof(HashSet<>), childTargetType, (Array)value);
+                    return Utils.ToCollectionType(typeof(HashSet<>), childTargetType, GetCollectionArray(value));
                 }
                 if (genericTargetType == typeof(CqlVector<>))
                 {
@@ -312,6 +316,12 @@ namespace Cassandra
             }
             throw new InvalidCastException(string.Format("Unable to cast object of type '{0}' to type '{1}'",
                 value.GetType(), targetType));
+        }
+
+        private static Array GetCollectionArray(object source)
+        {
+            var arr = source as Array;
+            return arr ?? ((IInternalCqlVector)source).GetArray();
         }
 
         private static Array GetArray(Array source, Type childTargetType, IColumnInfo columnInfo)

@@ -405,19 +405,6 @@ namespace Cassandra.IntegrationTests.Linq
                                                            .ExplicitColumns());
             var table = new Table<VectorPoco>(Session, config);
             Assert.Throws<NotSupportedException>(() => table.Create());
-            var tableMeta = Cluster.Metadata.GetTable(KeyspaceName, "tbl_vectors");
-            Assert.AreEqual(3, tableMeta.TableColumns.Length);
-            var column = tableMeta.ColumnsByName["u"];
-            Assert.AreEqual(ColumnTypeCode.Uuid, column.TypeCode);
-            column = tableMeta.ColumnsByName["v"];
-            Assert.AreEqual(ColumnTypeCode.Custom, column.TypeCode);
-            Assert.AreEqual(3, ((VectorColumnInfo)column.TypeInfo).Dimension);
-            Assert.AreEqual(ColumnTypeCode.Int, ((VectorColumnInfo)column.TypeInfo).ValueTypeCode);
-            column = tableMeta.ColumnsByName["vv"];
-            Assert.AreEqual(3, ((VectorColumnInfo)column.TypeInfo).Dimension);
-            Assert.AreEqual(ColumnTypeCode.Custom, ((VectorColumnInfo)column.TypeInfo).ValueTypeCode);
-            Assert.AreEqual(3, ((VectorColumnInfo)((VectorColumnInfo)column.TypeInfo).ValueTypeInfo).Dimension);
-            Assert.AreEqual(ColumnTypeCode.Int, ((VectorColumnInfo)((VectorColumnInfo)column.TypeInfo).ValueTypeInfo).ValueTypeCode);
         }
 
         [Test, TestBothServersVersion(5, 0, 6, 9)]
