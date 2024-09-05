@@ -117,7 +117,7 @@ namespace Cassandra.Tests
                 Assert.IsInstanceOf<VectorColumnInfo>(dataType.TypeInfo);
                 Assert.AreEqual(ColumnTypeCode.Int, ((VectorColumnInfo)dataType.TypeInfo).ValueTypeCode);
                 Assert.AreEqual(null, ((VectorColumnInfo)dataType.TypeInfo).ValueTypeInfo);
-                Assert.AreEqual(3, ((VectorColumnInfo)dataType.TypeInfo).Dimension);
+                Assert.AreEqual(3, ((VectorColumnInfo)dataType.TypeInfo).Dimensions);
             }
 
             AssertFn("org.apache.cassandra.db.marshal.VectorType(org.apache.cassandra.db.marshal.Int32Type,3)");
@@ -133,12 +133,12 @@ namespace Cassandra.Tests
                 Assert.AreEqual(ColumnTypeCode.Custom, dataType.TypeCode);
                 Assert.IsInstanceOf<VectorColumnInfo>(dataType.TypeInfo);
                 Assert.AreEqual(ColumnTypeCode.List, ((VectorColumnInfo)dataType.TypeInfo).ValueTypeCode);
-                Assert.AreEqual(4, ((VectorColumnInfo)dataType.TypeInfo).Dimension);
+                Assert.AreEqual(4, ((VectorColumnInfo)dataType.TypeInfo).Dimensions);
                 var subType = (ListColumnInfo)(((VectorColumnInfo)dataType.TypeInfo).ValueTypeInfo);
                 Assert.AreEqual(ColumnTypeCode.Custom, subType.ValueTypeCode);
                 Assert.IsInstanceOf<VectorColumnInfo>(subType.ValueTypeInfo);
                 Assert.AreEqual(ColumnTypeCode.Int, ((VectorColumnInfo)subType.ValueTypeInfo).ValueTypeCode);
-                Assert.AreEqual(2, ((VectorColumnInfo)subType.ValueTypeInfo).Dimension);
+                Assert.AreEqual(2, ((VectorColumnInfo)subType.ValueTypeInfo).Dimensions);
             }
             AssertComplexFn("org.apache.cassandra.db.marshal.VectorType(org.apache.cassandra.db.marshal.FrozenType(org.apache.cassandra.db.marshal.ListType(org.apache.cassandra.db.marshal.VectorType(org.apache.cassandra.db.marshal.Int32Type,2))),4)");
             AssertComplexFn("org.apache.cassandra.db.marshal.VectorType(org.apache.cassandra.db.marshal.FrozenType(org.apache.cassandra.db.marshal.ListType(org.apache.cassandra.db.marshal.VectorType(org.apache.cassandra.db.marshal.Int32Type , 2))) , 4)");
@@ -286,7 +286,7 @@ namespace Cassandra.Tests
                 Assert.IsInstanceOf<VectorColumnInfo>(dataType.TypeInfo);
                 Assert.AreEqual(ColumnTypeCode.Int, ((VectorColumnInfo)dataType.TypeInfo).ValueTypeCode);
                 Assert.AreEqual(null, ((VectorColumnInfo)dataType.TypeInfo).ValueTypeInfo);
-                Assert.AreEqual(3, ((VectorColumnInfo)dataType.TypeInfo).Dimension);
+                Assert.AreEqual(3, ((VectorColumnInfo)dataType.TypeInfo).Dimensions);
             }
 
             AssertFn("vector<int,3>");
@@ -302,12 +302,12 @@ namespace Cassandra.Tests
                 Assert.AreEqual(ColumnTypeCode.Custom, dataType.TypeCode);
                 Assert.IsInstanceOf<VectorColumnInfo>(dataType.TypeInfo);
                 Assert.AreEqual(ColumnTypeCode.List, ((VectorColumnInfo)dataType.TypeInfo).ValueTypeCode);
-                Assert.AreEqual(4, ((VectorColumnInfo)dataType.TypeInfo).Dimension);
+                Assert.AreEqual(4, ((VectorColumnInfo)dataType.TypeInfo).Dimensions);
                 var subType = (ListColumnInfo)(((VectorColumnInfo)dataType.TypeInfo).ValueTypeInfo);
                 Assert.AreEqual(ColumnTypeCode.Custom, subType.ValueTypeCode);
                 Assert.IsInstanceOf<VectorColumnInfo>(subType.ValueTypeInfo);
                 Assert.AreEqual(ColumnTypeCode.Int, ((VectorColumnInfo)subType.ValueTypeInfo).ValueTypeCode);
-                Assert.AreEqual(2, ((VectorColumnInfo)subType.ValueTypeInfo).Dimension);
+                Assert.AreEqual(2, ((VectorColumnInfo)subType.ValueTypeInfo).Dimensions);
             }
 
             AssertComplexFn("vector<frozen<list<vector<int,2>>>,4>");

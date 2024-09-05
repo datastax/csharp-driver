@@ -21,39 +21,85 @@ using System.Linq;
 
 namespace Cassandra
 {
+    /// <summary>
+    /// <para>Type used by the driver to represent the Apache Cassandra Vector type.</para>
+    /// <para>
+    /// Examples of how to create a vector object (using int as a sub type here but all CQL types are supported):
+    /// <code>
+    /// var vector = new CqlVector&lt;int&gt;(1, 2, 3);
+    /// 
+    /// var vector = CqlVector&lt;int&gt;.New(new int[] { 1, 2, 3 });
+    ///
+    /// // note that ToArray() performs a copy 
+    /// var vector = CqlVector&lt;int&gt;.New(new List&lt;int&gt; { 1, 2, 3 }.ToArray());
+    /// 
+    /// var vector = CqlVector&lt;int&gt;.New(3);
+    /// vector[0] = 1;
+    /// vector[1] = 2;
+    /// vector[2] = 3;
+    ///
+    /// // no copy
+    /// var vector = new int[] { 1, 2, 3 }.AsCqlVector();
+    ///
+    /// // with copy
+    /// var vector = new int[] { 1, 2, 3 }.ToCqlVector();
+    /// </code>
+    /// </para>
+    /// </summary>
+    /// <typeparam name="T">Type of the vector elements.</typeparam>
     public sealed class CqlVector<T> : IReadOnlyCollection<T>, IInternalCqlVector
     {
         private static readonly T[] Empty = new T[0];
 
         private T[] _array;
 
+        /// <summary>
+        /// Creates a new vector with an empty array.
+        /// </summary>
         public CqlVector()
         {
             _array = Empty;
         }
 
-        public CqlVector(int dimension)
-        {
-            if (dimension < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(dimension), dimension, "Vector dimension can not be negative.");
-            }
-            _array = new T[dimension];
-        }
-
+        /// <summary>
+        /// Creates a new vector with the provided array. Note that no copy is made, the provided array is used directly by the new vector object.
+        /// </summary>
         public CqlVector(params T[] elements)
         {
             _array = elements ?? throw new ArgumentNullException(nameof(elements));
         }
 
-        public static CqlVector<T> FromArray(T[] array)
+        /// <summary>
+        /// Creates a new vector with the provided number of dimensions.
+        /// </summary>
+        public static CqlVector<T> New(int dimensions)
         {
-            var v = new CqlVector<T>
+            if (dimensions == 0)
             {
-                _array = array
-            };
-            return v;
+                return new CqlVector<T>();
+            }
+
+            if (dimensions < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(dimensions), dimensions, "Vector dimensions can not be negative.");
+            }
+
+            return new CqlVector<T>(new T[dimensions]);
         }
+
+        /// <summary>
+        /// Creates a new vector with the provided array.
+        /// This is equivalent to calling the constructor <see cref="CqlVector{T}(T[])"/>. Note that no copy is made, the provided array is used directly by the new vector object.
+        /// </summary>
+        public static CqlVector<T> New(T[] arr)
+        {
+            return new CqlVector<T>(arr);
+        }
+
+        /// <summary>Gets or sets the element at the specified index.</summary>
+        /// <param name="index">The zero-based index of the element to get or set.</param>
+        /// <returns>The element at the specified index.</returns>
+        /// <exception cref="T:System.ArgumentOutOfRangeException"><paramref name="index">index</paramref> is less than 0.   -or-  <paramref name="index">index</paramref> is equal to or greater than <see cref="CqlVector{T}.Count"></see>.</exception>
 
         public T this[int index]
         {
@@ -61,28 +107,39 @@ namespace Cassandra
             set => _array[index] = value;
         }
 
+        /// <summary>
+        /// Gets the size of this vector (number of dimensions).
+        /// </summary>
         public int Count => _array.Length;
 
+        /// <summary>
+        /// Gets the underlying array. No copy is made. If a copy is desired, use the IEnumerable extension method <see cref="System.Linq.Enumerable.ToArray{T}(IEnumerable{T})"/>.
+        /// </summary>
+        /// <returns>The underlying array.</returns>
         public T[] AsArray()
         {
             return _array;
         }
 
+        /// <inheritdoc/>
         public IEnumerator<T> GetEnumerator()
         {
             return _array.AsEnumerable().GetEnumerator();
         }
 
+        /// <inheritdoc/>
         IEnumerator IEnumerable.GetEnumerator()
         {
             return _array.GetEnumerator();
         }
 
+        /// <inheritdoc/>
         public override bool Equals(object obj)
         {
             return obj is CqlVector<T> other && CqlVector<T>.Equals(this, other);
         }
 
+        /// <inheritdoc/>
         public override int GetHashCode()
         {
             return _array.GetHashCode();
@@ -96,11 +153,6 @@ namespace Cassandra
         public static bool operator !=(CqlVector<T> left, CqlVector<T> right)
         {
             return !CqlVector<T>.Equals(left, right);
-        }
-
-        public override string ToString()
-        {
-            return _array.ToString();
         }
 
         public static explicit operator T[](CqlVector<T> v) => v.AsArray();

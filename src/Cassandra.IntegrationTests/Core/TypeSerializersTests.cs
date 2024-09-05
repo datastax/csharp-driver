@@ -354,9 +354,9 @@ namespace Cassandra.IntegrationTests.Core
                     new TestCaseData("map<varint,int>", (Func<IDictionary<BigInteger, int>>)(()=>Enumerable.Range(0, r.Next()%200).Distinct().ToDictionary(i => new BigInteger(i), i => r.Next())), setMapAssert),
                     new TestCaseData("map<varint,varint>", (Func<IDictionary<BigInteger, BigInteger>>)(()=>Enumerable.Range(0, r.Next()%200).Distinct().ToDictionary(i => new BigInteger(i), i => new BigInteger((long)r.NextDouble()))), setMapAssert),
 
-                    new TestCaseData("vector<int,2>", (Func<CqlVector<int>>)(()=>CqlVector<int>.FromArray(Enumerable.Range(0, 2).Select(i => r.Next()).ToArray())), listVectorAssert),
+                    new TestCaseData("vector<int,2>", (Func<CqlVector<int>>)(()=>new CqlVector<int>(Enumerable.Range(0, 2).Select(i => r.Next()).ToArray())), listVectorAssert),
                     new TestCaseData("vector<int,2>", (Func<CqlVector<int>>)(()=>new CqlVector<int>(r.Next(), r.Next())), listVectorAssert),
-                    new TestCaseData("vector<varint,2>", (Func<CqlVector<BigInteger>>)(()=>CqlVector<BigInteger>.FromArray(Enumerable.Range(0, 2).Select(i => new BigInteger((long)r.NextDouble())).ToArray())), listVectorAssert),
+                    new TestCaseData("vector<varint,2>", (Func<CqlVector<BigInteger>>)(()=>new CqlVector<BigInteger>(Enumerable.Range(0, 2).Select(i => new BigInteger((long)r.NextDouble())).ToArray())), listVectorAssert),
                     
                     new TestCaseData("tuple<int,int>", (Func<Tuple<int,int>>)(()=>new Tuple<int, int>(r.Next(), r.Next())), defaultAssert),
                     new TestCaseData("tuple<int,varint>", (Func<Tuple<int,BigInteger>>)(()=>new Tuple<int, BigInteger>(r.Next(), new BigInteger((long)r.NextDouble()))), defaultAssert),

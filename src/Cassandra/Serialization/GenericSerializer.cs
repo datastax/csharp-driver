@@ -208,7 +208,7 @@ namespace Cassandra.Serialization
                     {
                         ValueTypeCode = valueTypeCode,
                         ValueTypeInfo = vectorSubtypeInfo,
-                        Dimension = null // can't know the dimension just from the CLR type
+                        Dimensions = null // can't know the dimensions just from the CLR type
                     };
                     return ColumnTypeCode.Custom;
                 }
@@ -396,9 +396,9 @@ namespace Cassandra.Serialization
                 }
 
                 var vector = (IInternalCqlVector)value;
-                if (vector.Count != vectorColumnInfo.Dimension)
+                if (vector.Count != vectorColumnInfo.Dimensions)
                 {
-                    failureMsg = $"It is not possible to encode a vector of type {value?.GetType()} with count {vector.Count} to a vector column with dimension {vectorColumnInfo.Dimension}";
+                    failureMsg = $"It is not possible to encode a vector of type {value?.GetType()} with dimensions {vector.Count} to a vector column with dimensions {vectorColumnInfo.Dimensions}";
                     return false;
                 }
             }
@@ -652,12 +652,12 @@ namespace Cassandra.Serialization
                             return -1;
                         }
 
-                        if (!vectorTypeInfo.Dimension.HasValue)
+                        if (!vectorTypeInfo.Dimensions.HasValue)
                         {
-                            throw new DriverInternalError("Can not compute vector value length without the dimension.");
+                            throw new DriverInternalError("Can not compute vector value length without the dimensions.");
                         }
 
-                        return subTypeValueLength * vectorTypeInfo.Dimension.Value;
+                        return subTypeValueLength * vectorTypeInfo.Dimensions.Value;
                     }
 
                     return -1;
@@ -694,7 +694,7 @@ namespace Cassandra.Serialization
                     var vector = (IInternalCqlVector)value;
                     if (vector.Count <= 0)
                     {
-                        throw new ArgumentException("vector dimension has to be greater than 0");
+                        throw new ArgumentException("vector dimensions have to be greater than 0");
                     }
 
                     var subTypeValueLength = GetValueLengthIfFixed(vector[0]);

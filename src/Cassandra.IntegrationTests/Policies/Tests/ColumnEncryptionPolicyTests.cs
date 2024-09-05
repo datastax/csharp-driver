@@ -47,7 +47,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             p.AddColumn(KeyspaceName, tableName, "surname", key, ColumnTypeCode.Text);
             if (_withVector)
             {
-                p.AddColumn(KeyspaceName, tableName, "vv", key, ColumnTypeCode.Custom, new VectorColumnInfo { Dimension = 3, ValueTypeCode = ColumnTypeCode.Int });
+                p.AddColumn(KeyspaceName, tableName, "vv", key, ColumnTypeCode.Custom, new VectorColumnInfo { Dimensions = 3, ValueTypeCode = ColumnTypeCode.Int });
             }
             return p;
         }
@@ -79,7 +79,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             {
                 var vvRaw = r["vv"] as byte[];
                 Assert.NotNull(vvRaw);
-                Assert.AreEqual(user.Vv, DeserializeDecryptedBytes(serializer, policy.Decrypt(key, vvRaw), ColumnTypeCode.Custom, new VectorColumnInfo { Dimension = 3, ValueTypeCode = ColumnTypeCode.Int }));
+                Assert.AreEqual(user.Vv, DeserializeDecryptedBytes(serializer, policy.Decrypt(key, vvRaw), ColumnTypeCode.Custom, new VectorColumnInfo { Dimensions = 3, ValueTypeCode = ColumnTypeCode.Int }));
             }
         }
 

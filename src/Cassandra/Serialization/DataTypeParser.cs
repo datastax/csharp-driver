@@ -421,7 +421,7 @@ namespace Cassandra.Serialization
                     return TaskHelper.FromException<ColumnDesc>(GetTypeException(typeName));
                 }
                 dataType.TypeCode = ColumnTypeCode.Custom;
-                if (!int.TryParse(parameters[1].Trim(), out var dimension))
+                if (!int.TryParse(parameters[1].Trim(), out var dimensions))
                 {
                     throw GetTypeException(typeName);
                 }
@@ -432,7 +432,7 @@ namespace Cassandra.Serialization
                         {
                             ValueTypeCode = subType.TypeCode,
                             ValueTypeInfo = subType.TypeInfo,
-                            Dimension = dimension
+                            Dimensions = dimensions
                         };
                         return dataType;
                     });
@@ -532,7 +532,7 @@ namespace Cassandra.Serialization
         internal static VectorColumnInfo ParseVectorColumnInfo(string typeName, int startIndex = 0, int length = 0)
         {
             //Its a vector
-            //org.apache.cassandra.db.marshal.VectorTypeName(innerType,dimension)
+            //org.apache.cassandra.db.marshal.VectorTypeName(innerType,dimensions)
             //move cursor across the name and bypass the parenthesis
             if (length == 0)
             {
@@ -546,7 +546,7 @@ namespace Cassandra.Serialization
                 throw GetTypeException(typeName);
             }
             var subType = ParseFqTypeName(parameters[0]);
-            if (!int.TryParse(parameters[1], out var dimension))
+            if (!int.TryParse(parameters[1], out var dimensions))
             {
                 throw GetTypeException(typeName);
             }
@@ -554,7 +554,7 @@ namespace Cassandra.Serialization
             {
                 ValueTypeCode = subType.TypeCode,
                 ValueTypeInfo = subType.TypeInfo,
-                Dimension = dimension
+                Dimensions = dimensions
             };
         }
     }

@@ -405,7 +405,7 @@ namespace Cassandra.Mapping.Statements
             }
             else if (typeInfo is VectorColumnInfo vectorInfo)
             {
-                if (vectorInfo.Dimension == null)
+                if (vectorInfo.Dimensions == null)
                 {
                     throw new NotSupportedException("The driver can not dynamically compute the CQL Vector type string from the CqlVector<T> type. " +
                                                     "For this reason, the Table.Create() method is not supported for tables with vector columns at this time. " +

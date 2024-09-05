@@ -49,11 +49,22 @@ namespace Cassandra
             return SessionState.From(instance);
         }
 
-        public static CqlVector<T> ToCqlVector<T>(this T[] array)
+        /// <summary>
+        /// Creates a new vector with the provided array. No copy is made. Equivalent to using <see cref="CqlVector{T}.New(T[])"/> or <see cref="CqlVector{T}(T[])"/>/>
+        /// </summary>
+        public static CqlVector<T> AsCqlVector<T>(this T[] array)
         {
             return new CqlVector<T>(array);
         }
 
+        /// <summary>
+        /// Creates a new vector after copying the provided enumerable. Equivalent to:
+        /// <code>
+        /// new CqlVector&lt;int&gt;(enumerable.ToArray());
+        /// // or
+        /// CqlVector&lt;int&gt;.New(enumerable.ToArray());
+        /// </code>
+        /// </summary>
         public static CqlVector<T> ToCqlVector<T>(IEnumerable<T> enumerable)
         {
             return new CqlVector<T>(enumerable.ToArray());

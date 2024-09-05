@@ -161,7 +161,7 @@ namespace Cassandra.Tests
                 yield return new object[]
                 {
                     CreateCqlVectorDynamicType((Array)row[0]), ColumnTypeCode.Custom,
-                    new VectorColumnInfo() { ValueTypeCode = (ColumnTypeCode)row[1], Dimension = 2}
+                    new VectorColumnInfo() { ValueTypeCode = (ColumnTypeCode)row[1], Dimensions = 2}
                 };
             }
         }
@@ -174,7 +174,7 @@ namespace Cassandra.Tests
                 yield return new[]
                 {
                     CreateCqlVectorDynamicType((Array)singleValueRow[0]), ColumnTypeCode.Custom,
-                    new VectorColumnInfo() { ValueTypeCode = (ColumnTypeCode)singleValueRow[1], Dimension = 2}
+                    new VectorColumnInfo() { ValueTypeCode = (ColumnTypeCode)singleValueRow[1], Dimensions = 2}
                 };
             }
 
@@ -187,7 +187,7 @@ namespace Cassandra.Tests
                 yield return new[]
                 {
                     vector, ColumnTypeCode.Custom,
-                    new VectorColumnInfo() { ValueTypeCode = (ColumnTypeCode)collectionRow[1], Dimension = 2, ValueTypeInfo = (IColumnInfo) collectionRow[2] }
+                    new VectorColumnInfo() { ValueTypeCode = (ColumnTypeCode)collectionRow[1], Dimensions = 2, ValueTypeInfo = (IColumnInfo) collectionRow[2] }
                 };
             }
         }

@@ -149,7 +149,7 @@ namespace Cassandra
     {
         public ColumnTypeCode ValueTypeCode { get; set; }
         public IColumnInfo ValueTypeInfo { get; set; }
-        public int? Dimension { get; set; }
+        public int? Dimensions { get; set; }
         ColumnDesc ICollectionColumnInfo.GetChildType()
         {
             return new ColumnDesc
