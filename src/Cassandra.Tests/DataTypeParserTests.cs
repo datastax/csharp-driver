@@ -277,9 +277,11 @@ namespace Cassandra.Tests
         [Test]
         public void ParseTypeName_Should_Parse_Vector_Type()
         {
+            Func<string, string, Task<UdtColumnInfo>> udtResolver = (s, s1) => Task.FromResult<UdtColumnInfo>(null);
+
             void AssertFn(string str)
             {
-                var dataType = DataTypeParser.ParseTypeName(null, null, str).GetAwaiter().GetResult();
+                var dataType = DataTypeParser.ParseTypeName(udtResolver, null, str).GetAwaiter().GetResult();
                 Assert.AreEqual(ColumnTypeCode.Custom, dataType.TypeCode);
                 Assert.IsInstanceOf<VectorColumnInfo>(dataType.TypeInfo);
                 Assert.AreEqual(ColumnTypeCode.Int, ((VectorColumnInfo)dataType.TypeInfo).ValueTypeCode);
@@ -296,7 +298,7 @@ namespace Cassandra.Tests
 
             void AssertComplexFn(string str)
             {
-                var dataType = DataTypeParser.ParseTypeName(null, null, str).GetAwaiter().GetResult();
+                var dataType = DataTypeParser.ParseTypeName(udtResolver, null, str).GetAwaiter().GetResult();
                 Assert.AreEqual(ColumnTypeCode.Custom, dataType.TypeCode);
                 Assert.IsInstanceOf<VectorColumnInfo>(dataType.TypeInfo);
                 Assert.AreEqual(ColumnTypeCode.List, ((VectorColumnInfo)dataType.TypeInfo).ValueTypeCode);

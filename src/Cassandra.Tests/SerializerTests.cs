@@ -101,7 +101,6 @@ namespace Cassandra.Tests
             }
         }
 
-        //TODO: exhaust the types
         static IEnumerable<object[]> SingleValuesTestCases()
         {
             // 2-element array, type code
@@ -116,7 +115,13 @@ namespace Cassandra.Tests
             yield return new object[] { new[]{Guid.NewGuid(), Guid.NewGuid()}, ColumnTypeCode.Uuid };
             yield return new object[] { new[]{true, false}, ColumnTypeCode.Boolean };
             yield return new object[] { new[]{new byte[] { 255, 128, 64, 32, 16, 9, 9 }, new byte[]{0,1,128,9,1,2,3,4}}, ColumnTypeCode.Blob };
-            yield return new object[] { new[] { TimeUuid.NewId().ToGuid(), TimeUuid.NewId().ToGuid() }, ColumnTypeCode.Timeuuid };
+            yield return new object[] { new[] { TimeUuid.NewId().ToGuid(), TimeUuid.NewId().ToGuid() }, ColumnTypeCode.Timeuuid }; 
+            yield return new object[] { new sbyte[] { 0, 1 }, ColumnTypeCode.TinyInt };
+            yield return new object[] { new short[] { -1, 1 }, ColumnTypeCode.SmallInt };
+            yield return new object[] { new[] { BigInteger.Parse("10000000"), BigInteger.One }, ColumnTypeCode.Varint };
+            yield return new object[] { new[] { Duration.Zero, Duration.Parse("1y2mo") }, ColumnTypeCode.Duration };
+            yield return new object[] { new[] { new LocalDate(2020, 1, 2), new LocalDate(1970, 12, 12) }, ColumnTypeCode.Date };
+            yield return new object[] { new[] { new LocalTime(1, 2, 3, 4), new LocalTime(23, 59, 59, 999) }, ColumnTypeCode.Time };
         }
 
         static IEnumerable<object[]> CollectionsTestCases()

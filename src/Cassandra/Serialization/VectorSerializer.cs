@@ -68,7 +68,7 @@ namespace Cassandra.Serialization
                     $"There are still bytes left while deserializing vector with subtype {typeInfo.GetType().FullName} and dimension {vectorTypeInfo.Dimension}");
             }
             var vectorSubType = typeof(CqlVector<>).MakeGenericType(childType);
-            var vector = (IInternalCqlVector)Activator.CreateInstance(vectorSubType, nonPublic: true);
+            var vector = (IInternalCqlVector)Activator.CreateInstance(vectorSubType);
             vector.SetArray(result);
             return vector;
         }

@@ -355,7 +355,7 @@ namespace Cassandra
         public static object ToVectorType(Type valueType, Array value)
         {
             var vectorType = typeof(CqlVector<>).MakeGenericType(valueType);
-            var vector = (IInternalCqlVector) Activator.CreateInstance(vectorType, true);
+            var vector = (IInternalCqlVector) Activator.CreateInstance(vectorType);
             vector.SetArray(value);
             return vector;
         }
