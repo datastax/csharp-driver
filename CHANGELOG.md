@@ -1,5 +1,13 @@
 # ChangeLog - DataStax C# Driver
 
+## 3.21.0
+
+2024-09-09
+
+### New Features
+
+*   [[CSHARP-1014](https://datastax-oss.atlassian.net/browse/CSHARP-1014)] Add support for vector type
+
 ## 3.20.1
 
 2024-03-08
