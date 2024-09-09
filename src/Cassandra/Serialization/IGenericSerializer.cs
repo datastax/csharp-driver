@@ -39,10 +39,14 @@ namespace Cassandra.Serialization
         /// Performs a lightweight validation to determine if the source type and target type matches.
         /// It isn't more strict to support miscellaneous uses of the driver, like direct inputs of blobs and all that. (backward compatibility)
         /// </summary>
-        bool IsAssignableFrom(ColumnTypeCode columnTypeCode, object value);
+        bool IsAssignableFrom(ColumnTypeCode columnTypeCode, IColumnInfo typeInfo, object value, out string failureMsg);
 
         UdtMap GetUdtMapByName(string name);
 
         UdtMap GetUdtMapByType(Type type);
+
+        int GetValueLengthIfFixed(ColumnTypeCode typeCode, IColumnInfo typeInfo);
+
+        int GetValueLengthIfFixed(object value);
     }
 }

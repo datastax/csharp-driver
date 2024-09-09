@@ -133,10 +133,25 @@ namespace Cassandra.Serialization
 
         public bool IsEncryptionEnabled => _columnEncryptionPolicy != null;
 
-        public Tuple<bool, ColumnTypeCode> IsAssignableFromEncrypted(string ks, string table, string column, ColumnTypeCode columnTypeCode, object value)
+        public Tuple<bool, ColumnTypeCode, IColumnInfo> IsAssignableFromEncrypted(
+            string ks, string table, string column, ColumnTypeCode columnTypeCode, IColumnInfo columnTypeInfo, object value, out string failureMsg)
         {
             var colData = _columnEncryptionPolicy.GetColumnEncryptionMetadata(ks, table, column);
-            return new Tuple<bool, ColumnTypeCode>(IsAssignableFrom(colData?.TypeCode ?? columnTypeCode, value), colData?.TypeCode ?? columnTypeCode);
+            if (colData == null)
+            {
+                var assignable = IsAssignableFrom(columnTypeCode, columnTypeInfo, value, out failureMsg);
+                return new Tuple<bool, ColumnTypeCode, IColumnInfo>(assignable, columnTypeCode, columnTypeInfo);
+            }
+            else
+            {
+                var assignable = IsAssignableFrom(colData.Value.TypeCode, colData.Value.TypeInfo, value, out failureMsg);
+                if (!assignable)
+                {
+                    failureMsg =
+                        $"It is not possible to encode a value of type {value.GetType()} to a CQL type {columnTypeCode} (encrypted column at client level, cql type in DB is {colData.Value.TypeCode})";
+                }
+                return new Tuple<bool, ColumnTypeCode, IColumnInfo>(assignable, colData.Value.TypeCode, colData.Value.TypeInfo);
+            }
         }
 
         public object Deserialize(ProtocolVersion version, byte[] buffer, int offset, int length, ColumnTypeCode typeCode, IColumnInfo typeInfo)
@@ -169,9 +184,9 @@ namespace Cassandra.Serialization
             return _serializer.GetCqlType(type, out typeInfo);
         }
 
-        public bool IsAssignableFrom(ColumnTypeCode columnTypeCode, object value)
+        public bool IsAssignableFrom(ColumnTypeCode columnTypeCode, IColumnInfo typeInfo, object value, out string failureMsg)
         {
-            return _serializer.IsAssignableFrom(columnTypeCode, value);
+            return _serializer.IsAssignableFrom(columnTypeCode, typeInfo, value, out failureMsg);
         }
 
         public UdtMap GetUdtMapByName(string name)
@@ -182,6 +197,16 @@ namespace Cassandra.Serialization
         public UdtMap GetUdtMapByType(Type type)
         {
             return _serializer.GetUdtMapByType(type);
+        }
+
+        public int GetValueLengthIfFixed(ColumnTypeCode typeCode, IColumnInfo typeInfo)
+        {
+            return _serializer.GetValueLengthIfFixed(typeCode, typeInfo);
+        }
+
+        public int GetValueLengthIfFixed(object value)
+        {
+            return _serializer.GetValueLengthIfFixed(value);
         }
     }
 }

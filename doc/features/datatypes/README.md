@@ -2,7 +2,7 @@
 
 When retrieving the value of a column from a `Row` object, you use a getter based on the type of the column.
 
-CQL3 data type|C# type
+CQL data type|C# type
 ---|---
 ascii|string
 bigint|long
@@ -29,3 +29,4 @@ tinyint|sbyte
 uuid|Guid
 varchar|string
 varint|BigInteger
+vector|[CqlVector](../vectors)

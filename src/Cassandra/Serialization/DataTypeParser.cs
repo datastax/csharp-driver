@@ -37,6 +37,7 @@ namespace Cassandra.Serialization
         public const string ReversedTypeName = "org.apache.cassandra.db.marshal.ReversedType";
         public const string CompositeTypeName = "org.apache.cassandra.db.marshal.CompositeType";
         private const string EmptyTypeName = "org.apache.cassandra.db.marshal.EmptyType";
+        public const string VectorTypeName = "org.apache.cassandra.db.marshal.VectorType";
 
         /// <summary>
         /// Contains the cql literals of certain types
@@ -49,6 +50,7 @@ namespace Cassandra.Serialization
             public const string Map = "map";
             public const string Tuple = "tuple";
             public const string Empty = "empty";
+            public const string Vector = "vector";
         }
 
         private static readonly Dictionary<string, ColumnTypeCode> SingleFqTypeNames = new Dictionary<string, ColumnTypeCode>()
@@ -107,17 +109,25 @@ namespace Cassandra.Serialization
         /// Parses a given fully-qualified class type name to get the data type information
         /// </summary>
         /// <exception cref="ArgumentException" />
-        internal static ColumnDesc ParseFqTypeName(string typeName, int startIndex = 0, int length = 0)
+        internal static ColumnDesc ParseFqTypeName(string typeName)
+        {
+            return ParseFqTypeName(typeName, 0, typeName.Length);
+        }
+
+        /// <summary>
+        /// Parses a given fully-qualified class type name to get the data type information
+        /// </summary>
+        /// <exception cref="ArgumentException" />
+        internal static ColumnDesc ParseFqTypeName(string typeName, int startIndex, int length)
         {
             const StringComparison comparison = StringComparison.Ordinal;
             var dataType = new ColumnDesc
             {
                 TypeCode = ColumnTypeCode.Custom
             };
-            if (length == 0)
-            {
-                length = typeName.Length;
-            }
+            var trimmedTypeName = typeName.Trim();
+            length -= typeName.Length-trimmedTypeName.Length;
+            typeName = trimmedTypeName;
             if (length > ReversedTypeName.Length && typeName.IndexOf(ReversedTypeName, startIndex, comparison) == startIndex)
             {
                 //move the start index and subtract the length plus parenthesis
@@ -262,6 +272,12 @@ namespace Cassandra.Serialization
                 dataType.TypeInfo = tupleInfo;
                 return dataType;
             }
+            if (typeName.IndexOf(VectorTypeName, startIndex, comparison) == startIndex)
+            {
+                dataType.TypeCode = ColumnTypeCode.Custom;
+                dataType.TypeInfo = ParseVectorColumnInfo(typeName, startIndex, length);
+                return dataType;
+            }
             // Assume custom type if cannot be parsed up to this point.
             dataType.TypeInfo = new CustomColumnInfo(typeName.Substring(startIndex, length));
             return dataType;
@@ -282,6 +298,9 @@ namespace Cassandra.Serialization
             {
                 length = typeName.Length;
             }
+            var trimmedTypeName = typeName.Trim();
+            length -= typeName.Length - trimmedTypeName.Length;
+            typeName = trimmedTypeName;
             if (typeName.IndexOf(CqlNames.Frozen, startIndex, comparison) == startIndex)
             {
                 //Remove the frozen
@@ -391,6 +410,33 @@ namespace Cassandra.Serialization
                     return dataType;
                 });
             }
+            if (typeName.IndexOf(CqlNames.Vector, startIndex, comparison) == startIndex)
+            {
+                //Its a vector: move cursor across the name and bypass the angle brackets
+                startIndex += CqlNames.Vector.Length + 1;
+                length -= CqlNames.Vector.Length + 2;
+                var parameters = ParseParams(typeName, startIndex, length, '<', '>');
+                if (parameters.Count != 2)
+                {
+                    return TaskHelper.FromException<ColumnDesc>(GetTypeException(typeName));
+                }
+                dataType.TypeCode = ColumnTypeCode.Custom;
+                if (!int.TryParse(parameters[1].Trim(), out var dimensions))
+                {
+                    throw GetTypeException(typeName);
+                }
+                return ParseTypeName(udtResolver, keyspace, parameters[0].Trim())
+                    .ContinueSync(subType =>
+                    {
+                        dataType.TypeInfo = new VectorColumnInfo
+                        {
+                            ValueTypeCode = subType.TypeCode,
+                            ValueTypeInfo = subType.TypeInfo,
+                            Dimensions = dimensions
+                        };
+                        return dataType;
+                    });
+            }
             if (startIndex > 0)
             {
                 typeName = typeName.Substring(startIndex, length);
@@ -401,6 +447,10 @@ namespace Cassandra.Serialization
                 return TaskHelper.ToTask(dataType);
             }
             typeName = typeName.Replace("\"", "");
+            if (udtResolver == null)
+            {
+                throw new ArgumentNullException(nameof(udtResolver));
+            }
             return udtResolver(keyspace, typeName).ContinueSync(typeInfo =>
             {
                 dataType.TypeCode = ColumnTypeCode.Udt;
@@ -430,6 +480,7 @@ namespace Cassandra.Serialization
             var types = new List<string>();
             var paramStart = startIndex;
             var level = 0;
+            var lastBlanks = 0;
             for (var i = startIndex; i < startIndex + length; i++)
             {
                 var c = value[i];
@@ -443,18 +494,68 @@ namespace Cassandra.Serialization
                 }
                 if (level == 0 && c == ',')
                 {
-                    types.Add(value.Substring(paramStart, i - paramStart));
+                    types.Add(value.Substring(paramStart, i - paramStart - lastBlanks));
                     paramStart = i + 1;
+                }
+                if (IsBlankChar(c))
+                {
+                    if (i == paramStart)
+                    {
+                        paramStart++;
+                        lastBlanks = 0;
+                    }
+                    else
+                    {
+                        lastBlanks++;
+                    }
+                }
+                else
+                {
+                    lastBlanks = 0;
                 }
             }
             //Add the last one
-            types.Add(value.Substring(paramStart, length - (paramStart - startIndex)));
+            types.Add(value.Substring(paramStart, (length + startIndex) - paramStart - lastBlanks));
             return types;
+        }
+
+        private static bool IsBlankChar(char c)
+        {
+            return c == ' ' || c == '\t' || c == '\n';
         }
 
         private static Exception GetTypeException(string typeName)
         {
             return new ArgumentException(string.Format("Not a valid type {0}", typeName));
+        }
+
+        internal static VectorColumnInfo ParseVectorColumnInfo(string typeName, int startIndex = 0, int length = 0)
+        {
+            //Its a vector
+            //org.apache.cassandra.db.marshal.VectorTypeName(innerType,dimensions)
+            //move cursor across the name and bypass the parenthesis
+            if (length == 0)
+            {
+                length = typeName.Length;
+            }
+            startIndex += VectorTypeName.Length + 1;
+            length -= VectorTypeName.Length + 2;
+            var parameters = ParseParams(typeName, startIndex, length);
+            if (parameters.Count != 2)
+            {
+                throw GetTypeException(typeName);
+            }
+            var subType = ParseFqTypeName(parameters[0]);
+            if (!int.TryParse(parameters[1], out var dimensions))
+            {
+                throw GetTypeException(typeName);
+            }
+            return new VectorColumnInfo
+            {
+                ValueTypeCode = subType.TypeCode,
+                ValueTypeInfo = subType.TypeInfo,
+                Dimensions = dimensions
+            };
         }
     }
 }
