@@ -23,6 +23,7 @@ using System.Net;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
+using Cassandra.Mapping;
 
 namespace Cassandra
 {
@@ -345,6 +346,18 @@ namespace Cassandra
         {
             var listType = collectionType.MakeGenericType(valueType);
             return Activator.CreateInstance(listType, value);
+        }
+
+
+        /// <summary>
+        /// Creates a new instance of the collection type with the values provided
+        /// </summary>
+        public static object ToVectorType(Type valueType, Array value)
+        {
+            var vectorType = typeof(CqlVector<>).MakeGenericType(valueType);
+            var vector = (IInternalCqlVector) Activator.CreateInstance(vectorType);
+            vector.SetArray(value);
+            return vector;
         }
 
         /// <summary>
