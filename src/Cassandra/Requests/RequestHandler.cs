@@ -231,7 +231,7 @@ namespace Cassandra.Requests
             return true;
         }
 
-        public void SetNoMoreHosts(NoHostAvailableException ex, IRequestExecution execution)
+        public Task SetNoMoreHostsAsync(NoHostAvailableException ex, IRequestExecution execution)
         {
             //An execution ended with a NoHostAvailableException (retrying or starting).
             //If there is a running execution, do not yield it to the user
@@ -239,9 +239,9 @@ namespace Cassandra.Requests
             if (_running.Count > 0)
             {
                 RequestHandler.Logger.Info("Could not obtain an available host for speculative execution");
-                return;
+                return TaskHelper.Completed;
             }
-            SetCompletedAsync(ex);
+            return SetCompletedAsync(ex);
         }
 
         public bool HasCompleted()

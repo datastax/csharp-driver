@@ -357,7 +357,7 @@ namespace Cassandra.Requests
             if (ex is NoHostAvailableException exception)
             {
                 //A NoHostAvailableException when trying to retrieve
-                _parent.SetNoMoreHosts(exception, this);
+                await _parent.SetNoMoreHostsAsync(exception, this).ConfigureAwait(false);
                 return;
             }
 
@@ -535,6 +535,7 @@ namespace Cassandra.Requests
                     if (error?.Exception != null)
                     {
                         await HandleRequestErrorAsync(error, host).ConfigureAwait(false);
+                        return;
                     }
 
                     RequestExecution.ValidateResult(response);
