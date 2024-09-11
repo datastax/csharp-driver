@@ -541,7 +541,7 @@ namespace Cassandra.Requests
                     var output = ((ResultResponse) response).Output;
                     if (!(output is OutputPrepared outputPrepared))
                     {
-                        await _parent.SetCompletedAsync(new DriverInternalError("Expected prepared response, obtained " + output.GetType().FullName));
+                        await _parent.SetCompletedAsync(new DriverInternalError("Expected prepared response, obtained " + output.GetType().FullName)).ConfigureAwait(false);
                         return;
                     }
 
