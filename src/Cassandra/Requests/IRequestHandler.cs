@@ -47,7 +47,7 @@ namespace Cassandra.Requests
         /// </summary>
         Task<bool> SetCompletedAsync(RowSet result, Func<Task> action);
 
-        void SetNoMoreHosts(NoHostAvailableException ex, IRequestExecution execution);
+        Task SetNoMoreHostsAsync(NoHostAvailableException ex, IRequestExecution execution);
 
         bool HasCompleted();
         
