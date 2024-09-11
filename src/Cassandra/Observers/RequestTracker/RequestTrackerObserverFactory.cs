@@ -21,11 +21,11 @@ namespace Cassandra.Observers.RequestTracker
 {
     internal class RequestTrackerObserverFactory : IObserverFactory
     {
-        private readonly IRequestTracker tracer;
+        private readonly IRequestTracker _tracker;
 
-        public RequestTrackerObserverFactory(IRequestTracker tracer)
+        public RequestTrackerObserverFactory(IRequestTracker tracker)
         {
-            this.tracer = tracer;
+            this._tracker = tracker;
         }
 
         public IConnectionObserver CreateConnectionObserver(Host host)
@@ -35,7 +35,7 @@ namespace Cassandra.Observers.RequestTracker
 
         public IRequestObserver CreateRequestObserver()
         {
-            return new RequestTrackerObserver(tracer);
+            return new RequestTrackerObserver(_tracker);
         }
     }
 }

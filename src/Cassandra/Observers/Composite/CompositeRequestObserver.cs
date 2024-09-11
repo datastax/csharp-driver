@@ -23,11 +23,11 @@ namespace Cassandra.Observers.Composite
 {
     internal class CompositeRequestObserver : IRequestObserver
     {
-        private readonly IEnumerable<IRequestObserver> observers;
+        private readonly IList<IRequestObserver> _observers;
 
-        public CompositeRequestObserver(IEnumerable<IRequestObserver> observers)
+        public CompositeRequestObserver(IList<IRequestObserver> observers)
         {
-            this.observers = observers;
+            _observers = observers;
         }
 
         public void OnNodeRequestError(
@@ -37,7 +37,7 @@ namespace Cassandra.Observers.Composite
             RequestTrackingInfo r,
             Exception ex)
         {
-            foreach (var observer in observers)
+            foreach (var observer in _observers)
             {
                 observer.OnNodeRequestError(host, errorType, decision, r, ex);
             }
@@ -45,7 +45,7 @@ namespace Cassandra.Observers.Composite
 
         public void OnRequestFailure(Exception ex, RequestTrackingInfo r)
         {
-            foreach (var observer in observers)
+            foreach (var observer in _observers)
             {
                 observer.OnRequestFailure(ex, r);
             }
@@ -53,7 +53,7 @@ namespace Cassandra.Observers.Composite
 
         public void OnRequestSuccess(RequestTrackingInfo r)
         {
-            foreach (var observer in observers)
+            foreach (var observer in _observers)
             {
                 observer.OnRequestSuccess(r);
             }
@@ -61,7 +61,7 @@ namespace Cassandra.Observers.Composite
 
         public void OnRequestStart(RequestTrackingInfo requestTrackingInfo)
         {
-            foreach (var observer in observers)
+            foreach (var observer in _observers)
             {
                 observer.OnRequestStart(requestTrackingInfo);
             }
@@ -69,7 +69,7 @@ namespace Cassandra.Observers.Composite
 
         public void OnSpeculativeExecution(Host host, long delay)
         {
-            foreach (var observer in observers)
+            foreach (var observer in _observers)
             {
                 observer.OnSpeculativeExecution(host, delay);
             }
@@ -77,7 +77,7 @@ namespace Cassandra.Observers.Composite
 
         public void OnNodeStart(Host host, RequestTrackingInfo requestTrackingInfo)
         {
-            foreach (var observer in observers)
+            foreach (var observer in _observers)
             {
                 observer.OnNodeStart(host, requestTrackingInfo);
             }
@@ -85,7 +85,7 @@ namespace Cassandra.Observers.Composite
 
         public void OnNodeSuccess(Host host, RequestTrackingInfo requestTrackingInfo)
         {
-            foreach (var observer in observers)
+            foreach (var observer in _observers)
             {
                 observer.OnNodeSuccess(host, requestTrackingInfo);
             }

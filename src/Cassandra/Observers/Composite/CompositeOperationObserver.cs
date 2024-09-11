@@ -15,29 +15,35 @@
 //
 
 using System.Collections.Generic;
-using System.Linq;
+using Cassandra.Connections;
 using Cassandra.Observers.Abstractions;
+using Cassandra.Responses;
 
 namespace Cassandra.Observers.Composite
 {
-    internal class CompositeObserverFactory : IObserverFactory
+    internal class CompositeOperationObserver : IOperationObserver
     {
-        private readonly IList<IObserverFactory> _factories;
+        private readonly IList<IOperationObserver> _observers;
 
-        public CompositeObserverFactory(IList<IObserverFactory> factories)
+        public CompositeOperationObserver(IList<IOperationObserver> observers)
         {
-            _factories = factories;
-        }
-        public IConnectionObserver CreateConnectionObserver(Host host)
-        {
-            return new CompositeConnectionObserver(
-                _factories.Select(x => x.CreateConnectionObserver(host)).ToList());
+            this._observers = observers;
         }
 
-        public IRequestObserver CreateRequestObserver()
+        public void OnOperationSend(long requestSize, long timestamp)
         {
-            return new CompositeRequestObserver(
-                _factories.Select(x => x.CreateRequestObserver()).ToList());
+            foreach (var o in _observers)
+            {
+                o.OnOperationSend(requestSize, timestamp);
+            }
+        }
+
+        public void OnOperationReceive(IRequestError exception, Response response, long timestamp)
+        {
+            foreach (var o in _observers)
+            {
+                o.OnOperationReceive(exception, response, timestamp);
+            }
         }
     }
 }
