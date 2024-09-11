@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 
+using System.Threading.Tasks;
 using Cassandra.ExecutionProfiles;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
@@ -22,11 +23,11 @@ namespace Cassandra.Requests
 {
     internal interface IRequestHandlerFactory
     {
-        IRequestHandler Create(IInternalSession session, ISerializer serializer, IRequest request, IStatement statement, IRequestOptions options);
+        Task<IRequestHandler> CreateAsync(IInternalSession session, ISerializer serializer, IRequest request, IStatement statement, IRequestOptions options);
 
-        IRequestHandler Create(IInternalSession session, ISerializer serializer, IStatement statement, IRequestOptions options);
+        Task<IRequestHandler> CreateAsync(IInternalSession session, ISerializer serializer, IStatement statement, IRequestOptions options);
 
-        IRequestHandler Create(IInternalSession session, ISerializer serializer);
+        Task<IRequestHandler> CreateAsync(IInternalSession session, ISerializer serializer);
         
         IGraphRequestHandler CreateGraphRequestHandler(IInternalSession session, IGraphTypeSerializerFactory graphTypeSerializerFactory);
     }

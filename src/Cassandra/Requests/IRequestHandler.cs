@@ -40,12 +40,12 @@ namespace Cassandra.Requests
         /// <summary>
         /// Marks this instance as completed (if not already) and sets the exception or result
         /// </summary>
-        bool SetCompleted(Exception ex, RowSet result = null);
+        Task<bool> SetCompletedAsync(Exception ex, RowSet result = null);
 
         /// <summary>
         /// Marks this instance as completed (if not already) and in a new Task using the default scheduler, it invokes the action and sets the result
         /// </summary>
-        bool SetCompleted(RowSet result, Action action);
+        Task<bool> SetCompletedAsync(RowSet result, Func<Task> action);
 
         void SetNoMoreHosts(NoHostAvailableException ex, IRequestExecution execution);
 

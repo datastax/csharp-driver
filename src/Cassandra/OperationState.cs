@@ -41,8 +41,8 @@ namespace Cassandra
         private const int StateCancelled = 1;
         private const int StateTimedout = 2;
         private const int StateCompleted = 3;
-        private Action<IRequestError, Response, long> _callback;
-        public static readonly Action<IRequestError, Response, long> Noop = (_, __, ___) => { };
+        private Func<IRequestError, Response, long, Task> _callback;
+        public static readonly Func<IRequestError, Response, long, Task> Noop = (_, __, ___) => TaskHelper.Completed;
         private volatile bool _timeoutCallbackSet;
         private int _state = StateInit;
         private volatile HashedWheelTimer.ITimeout _timeout;
@@ -65,13 +65,13 @@ namespace Cassandra
         /// <summary>
         /// Creates a new operation state with the provided callback
         /// </summary>
-        public OperationState(Action<IRequestError, Response> callback, IRequest request, int timeoutMillis, IOperationObserver operationObserver)
+        public OperationState(Func<IRequestError, Response, Task> callback, IRequest request, int timeoutMillis, IOperationObserver operationObserver)
         {
-            Volatile.Write(ref _callback, (exception, response, timestamp) =>
+            Volatile.Write(ref _callback, async (exception, response, timestamp) =>
             {
                 try
                 {
-                    callback(exception, response);
+                    await callback(exception, response).ConfigureAwait(false);
                     operationObserver.OnOperationReceive(exception, response, timestamp);
                 }
                 catch (Exception ex)
@@ -112,14 +112,14 @@ namespace Cassandra
         /// Note that the returned callback might be a reference to <see cref="Noop"/>, as the original callback
         /// might be already called.
         /// </summary>
-        public Action<IRequestError, Response, long> SetCompleted()
+        public Func<IRequestError, Response, long, Task> SetCompleted()
         {
             var previousState = Interlocked.CompareExchange(ref _state, StateCompleted, StateInit);
             if (previousState == StateCancelled || previousState == StateCompleted)
             {
                 return Noop;
             }
-            Action<IRequestError, Response, long> callback;
+            Func<IRequestError, Response, long, Task> callback;
             if (previousState == StateInit)
             {
                 callback = Interlocked.Exchange(ref _callback, Noop);
@@ -155,14 +155,14 @@ namespace Cassandra
             }
             //Invoke the callback in a new thread in the thread pool
             //This way we don't let the user block on a thread used by the Connection
-            Task.Factory.StartNew(() => callback(error, null, timestamp), CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
+            Task.Run(() => callback(error, null, timestamp), CancellationToken.None);
         }
 
         /// <summary>
         /// Marks this operation as timed-out, callbacks with the exception
         /// and sets a handler when the response is received
         /// </summary>
-        public bool MarkAsTimedOut(OperationTimedOutException ex, Action onReceive, long timestamp)
+        public bool MarkAsTimedOut(OperationTimedOutException ex, Func<Task> onReceive, long timestamp)
         {
             var previousState = Interlocked.CompareExchange(ref _state, StateTimedout, StateInit);
             if (previousState != StateInit)
@@ -175,7 +175,7 @@ namespace Cassandra
             Thread.MemoryBarrier();
 
             _timeoutCallbackSet = true;
-            Task.Factory.StartNew(() => callback(RequestError.CreateClientError(ex, false), null, timestamp), CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
+            Task.Run(() => callback(RequestError.CreateClientError(ex, false), null, timestamp), CancellationToken.None);
             return true;
         }
 
@@ -204,14 +204,14 @@ namespace Cassandra
         /// </summary>
         internal static void CallbackMultiple(IEnumerable<OperationState> ops, IRequestError error, long timestamp)
         {
-            Task.Factory.StartNew(() =>
+            Task.Run(async () =>
             {
                 foreach (var state in ops)
                 {
                     var callback = state.SetCompleted();
-                    callback(error, null, timestamp);
+                    await callback(error, null, timestamp).ConfigureAwait(false);
                 }
-            }, CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
+            }, CancellationToken.None);
         }
     }
 }

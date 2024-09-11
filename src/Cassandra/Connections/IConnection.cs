@@ -115,7 +115,7 @@ namespace Cassandra.Connections
         /// <summary>
         /// Sends a new request if possible and executes the callback when the response is parsed. If it is not possible it queues it up.
         /// </summary>
-        OperationState Send(IRequest request, Action<IRequestError, Response> callback, int timeoutMillis);
+        OperationState Send(IRequest request, Func<IRequestError, Response, Task> callback, int timeoutMillis);
 
         /// <summary>
         /// Sends a new request if possible with the default timeout. If it is not possible it queues it up.
@@ -125,7 +125,7 @@ namespace Cassandra.Connections
         /// <summary>
         /// Sends a new request if possible and executes the callback when the response is parsed with the default timeout. If it is not possible it queues it up.
         /// </summary>
-        OperationState Send(IRequest request, Action<IRequestError, Response> callback);
+        OperationState Send(IRequest request, Func<IRequestError, Response, Task> callback);
 
         /// <summary>
         /// Sets the keyspace of the connection.
