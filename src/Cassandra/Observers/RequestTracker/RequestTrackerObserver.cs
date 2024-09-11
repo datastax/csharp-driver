@@ -38,22 +38,22 @@ namespace Cassandra.Observers.RequestTracker
         {
             var hostInfo = new HostTrackingInfo { Host = host };
             
-            _requestTracker.OnNodeErrorAsync(r, hostInfo, ex);
+            _requestTracker.OnNodeError(r, hostInfo, ex);
         }
 
         public void OnRequestSuccess(RequestTrackingInfo r)
         {
-            _requestTracker.OnSuccessAsync(r);
+            _requestTracker.OnSuccess(r);
         }
 
         public void OnRequestFailure(Exception ex, RequestTrackingInfo r)
         {
-            _requestTracker.OnErrorAsync(r, ex);
+            _requestTracker.OnError(r, ex);
         }
 
         public void OnRequestStart(RequestTrackingInfo r)
         {
-            _requestTracker.OnStartAsync(r);
+            _requestTracker.OnStart(r);
         }
 
         public void OnSpeculativeExecution(Host host, long delay)
@@ -71,7 +71,7 @@ namespace Cassandra.Observers.RequestTracker
         {
             var hostInfo = new HostTrackingInfo { Host = host };
 
-            _requestTracker.OnNodeSuccessAsync(requestTrackingInfo, hostInfo);
+            _requestTracker.OnNodeSuccess(requestTrackingInfo, hostInfo);
         }
     }
 }

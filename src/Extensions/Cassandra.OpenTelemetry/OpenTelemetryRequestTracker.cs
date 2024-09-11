@@ -58,7 +58,7 @@ namespace Cassandra.OpenTelemetry
         /// </summary>
         /// <param name="request">Request contextual information.</param>
         /// <returns>Activity task.</returns>
-        public virtual Task OnStartAsync(RequestTrackingInfo request)
+        public virtual void OnStart(RequestTrackingInfo request)
         {
             var activityName = !string.IsNullOrEmpty(request.Statement?.Keyspace) ? $"{sessionOperationName} {request.Statement.Keyspace}" : sessionOperationName;
 
@@ -81,8 +81,6 @@ namespace Cassandra.OpenTelemetry
             }
 
             request.Items.TryAdd(otelActivityKey, activity);
-
-            return Task.FromResult(activity as object);
         }
 
         /// <summary>
@@ -90,7 +88,7 @@ namespace Cassandra.OpenTelemetry
         /// </summary>
         /// <param name="request">Request contextual information.</param>
         /// <returns>Completed task.</returns>
-        public virtual Task OnSuccessAsync(RequestTrackingInfo request)
+        public virtual void OnSuccess(RequestTrackingInfo request)
         {
             request.Items.TryGetValue(otelActivityKey, out object context);
 
@@ -98,8 +96,6 @@ namespace Cassandra.OpenTelemetry
             {
                 activity?.Dispose();
             }
-
-            return Task.CompletedTask;
         }
 
         /// <summary>
@@ -109,21 +105,19 @@ namespace Cassandra.OpenTelemetry
         /// <param name="request">Request contextual information.</param>
         /// <param name="ex">Exception information.</param>
         /// <returns>Completed task.</returns>
-        public virtual Task OnErrorAsync(RequestTrackingInfo request, Exception ex)
+        public virtual void OnError(RequestTrackingInfo request, Exception ex)
         {
             request.Items.TryGetValue(otelActivityKey, out object context);
 
             if (!(context is Activity activity))
             {
-                return Task.CompletedTask;
+                return;
             }
 
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
             activity?.RecordException(ex);
 
             activity?.Dispose();
-
-            return Task.CompletedTask;
         }
 
         /// <summary>
@@ -132,7 +126,7 @@ namespace Cassandra.OpenTelemetry
         /// <param name="request">Request contextual information.</param>
         /// <param name="hostInfo">Struct with host contextual information.</param>
         /// <returns>Completed task./returns>
-        public virtual Task OnNodeSuccessAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo)
+        public virtual void OnNodeSuccess(RequestTrackingInfo request, HostTrackingInfo hostInfo)
         {
             var activityKey = $"{otelActivityKey}.{hostInfo.Host.HostId}";
 
@@ -144,8 +138,6 @@ namespace Cassandra.OpenTelemetry
             }
 
             request.Items.TryRemove(activityKey, out _);
-
-            return Task.CompletedTask;
         }
 
         /// <summary>
@@ -156,7 +148,7 @@ namespace Cassandra.OpenTelemetry
         /// <param name="hostInfo">Struct with host contextual information.</param>
         /// <param name="ex">Exception information.</param>
         /// <returns>Completed task./returns>
-        public virtual Task OnNodeErrorAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo, Exception ex)
+        public virtual void OnNodeError(RequestTrackingInfo request, HostTrackingInfo hostInfo, Exception ex)
         {
             var activityKey = $"{otelActivityKey}.{hostInfo.Host.HostId}";
             
@@ -164,7 +156,7 @@ namespace Cassandra.OpenTelemetry
 
             if (!(context is Activity activity))
             {
-                return Task.CompletedTask;
+                return;
             }
 
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
@@ -173,8 +165,6 @@ namespace Cassandra.OpenTelemetry
             activity?.Dispose();
 
             request.Items.TryRemove(activityKey, out _);
-
-            return Task.CompletedTask;
         }
 
         /// <summary>
@@ -202,13 +192,13 @@ namespace Cassandra.OpenTelemetry
         /// </summary>
         /// <param name="request">Request contextual information.</param>
         /// <returns>Activity task.</returns>
-        public virtual Task OnNodeStart(RequestTrackingInfo request, HostTrackingInfo hostInfo)
+        public virtual void OnNodeStart(RequestTrackingInfo request, HostTrackingInfo hostInfo)
         {
             request.Items.TryGetValue(otelActivityKey, out object sessionContext);
 
             if (!(sessionContext is Activity parentActivity) || parentActivity.Context == null)
             {
-                return Task.CompletedTask;
+                return;
             }
 
             var activityName = !string.IsNullOrEmpty(request.Statement.Keyspace) ? $"{nodeOperationName} {request.Statement.Keyspace}" : nodeOperationName;
@@ -234,8 +224,6 @@ namespace Cassandra.OpenTelemetry
             }
 
             request.Items.TryAdd($"{otelActivityKey}.{hostInfo.Host.HostId}", activity);
-
-            return Task.FromResult(activity as object);
         }
     }
 }

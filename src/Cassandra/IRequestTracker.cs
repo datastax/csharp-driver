@@ -29,14 +29,14 @@ namespace Cassandra
         /// </summary>
         /// <param name="request"></param>
         /// <returns>Contextual task.</returns>
-        Task OnStartAsync(RequestTrackingInfo request);
+        void OnStart(RequestTrackingInfo request);
 
         /// <summary>
         /// Triggered when the session level request finishes successfully.
         /// </summary>
         /// <param name="request"></param>
         /// <returns>Contextual task.</returns>
-        Task OnSuccessAsync(RequestTrackingInfo request);
+        void OnSuccess(RequestTrackingInfo request);
 
         /// <summary>
         /// Triggered when the session level request finishes unsuccessfully.
@@ -44,7 +44,7 @@ namespace Cassandra
         /// <param name="request">Request contextual information.</param>
         /// <param name="ex">Request exception.</param>
         /// <returns>Contextual task.</returns>
-        Task OnErrorAsync(RequestTrackingInfo request, Exception ex);
+        void OnError(RequestTrackingInfo request, Exception ex);
 
         /// <summary>
         /// Triggered when the node level request finishes successfully.
@@ -52,7 +52,7 @@ namespace Cassandra
         /// <param name="request">Request contextual information.</param>
         /// <param name="hostInfo">Struct with host contextual information.</param>
         /// <returns>Contextual task.</returns>
-        Task OnNodeSuccessAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo);
+        void OnNodeSuccess(RequestTrackingInfo request, HostTrackingInfo hostInfo);
 
         /// <summary>
         /// Triggered when the node request finishes unsuccessfully.
@@ -61,7 +61,7 @@ namespace Cassandra
         /// <param name="hostInfo">Struct with host contextual information.</param>
         /// <param name="ex">Exception information.</param>
         /// <returns>Contextual task.</returns>
-        Task OnNodeErrorAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo, Exception ex);
+        void OnNodeError(RequestTrackingInfo request, HostTrackingInfo hostInfo, Exception ex);
 
         /// <summary>
         /// Triggered when the node request starts.
@@ -69,6 +69,6 @@ namespace Cassandra
         /// <param name="request"><see cref="RequestTrackingInfo"/> object with contextual information.</param>
         /// <param name="hostInfo">Struct with host contextual information.</param>
         /// <returns>Contextual task.</returns>
-        Task OnNodeStart(RequestTrackingInfo request, HostTrackingInfo hostInfo);
+        void OnNodeStart(RequestTrackingInfo request, HostTrackingInfo hostInfo);
     }
 }
