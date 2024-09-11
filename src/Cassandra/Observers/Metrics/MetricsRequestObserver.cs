@@ -23,6 +23,7 @@ using Cassandra.Metrics.Internal;
 using Cassandra.Metrics.Registries;
 using Cassandra.Observers.Abstractions;
 using Cassandra.Requests;
+using Cassandra.Tasks;
 
 namespace Cassandra.Observers.Metrics
 {
@@ -61,7 +62,7 @@ namespace Cassandra.Observers.Metrics
                     break;
             }
 
-            return Task.FromResult(0);
+            return TaskHelper.Completed;
         }
 
         private void OnRetryPolicyDecision(IRetryPolicyMetrics metricsRegistry, RequestErrorType reason)
@@ -134,12 +135,12 @@ namespace Cassandra.Observers.Metrics
         {
             if (!_manager.AreSessionTimerMetricsEnabled)
             {
-                return Task.FromResult(0);
+                return TaskHelper.Completed;
             }
 
             Interlocked.Exchange(ref _startTimestamp, Stopwatch.GetTimestamp());
 
-            return Task.FromResult(0);
+            return TaskHelper.Completed;
         }
 
         public Task OnRequestFailureAsync(Exception ex, RequestTrackingInfo r)
@@ -156,7 +157,7 @@ namespace Cassandra.Observers.Metrics
         {
             if (!_manager.AreSessionTimerMetricsEnabled)
             {
-                return Task.FromResult(0);
+                return TaskHelper.Completed;
             }
 
             try
@@ -165,7 +166,7 @@ namespace Cassandra.Observers.Metrics
                 if (startTimestamp == 0)
                 {
                     Logger.Warning("Start timestamp wasn't recorded, discarding this measurement.");
-                    return Task.FromResult(0);
+                    return TaskHelper.Completed;
                 }
 
                 _requestTimer.Record((Stopwatch.GetTimestamp() - startTimestamp) * Factor);
@@ -175,7 +176,7 @@ namespace Cassandra.Observers.Metrics
                 LogError(exception);
             }
 
-            return Task.FromResult(0);
+            return TaskHelper.Completed;
         }
 
         private static void LogError(Exception ex)
@@ -185,12 +186,12 @@ namespace Cassandra.Observers.Metrics
 
         public Task OnNodeStartAsync(Host host, RequestTrackingInfo requestTrackingInfo)
         {
-            return Task.FromResult(0);
+            return TaskHelper.Completed;
         }
 
         public Task OnNodeSuccessAsync(Host host, RequestTrackingInfo requestTrackingInfo)
         {
-            return Task.FromResult(0);
+            return TaskHelper.Completed;
         }
     }
 }
