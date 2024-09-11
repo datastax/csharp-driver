@@ -69,7 +69,7 @@ namespace Cassandra.Requests
         {
             if (currentHostRetry && _host != null)
             {
-                _requestObserver.OnNodeStartAsync(_host, _requestTrackingInfo);
+                _requestObserver.OnNodeStart(_host, _requestTrackingInfo);
 
                 SendToCurrentHostAsync().Forget();
                 return _host;
@@ -78,7 +78,7 @@ namespace Cassandra.Requests
             // fail fast: try to choose a host before leaving this thread
             var validHost = _parent.GetNextValidHost(_triedHosts);
 
-            _requestObserver.OnNodeStartAsync(validHost.Host, _requestTrackingInfo);
+            _requestObserver.OnNodeStart(validHost.Host, _requestTrackingInfo);
 
             SendToNextHostAsync(validHost).Forget();            
             return validHost.Host;
@@ -211,7 +211,7 @@ namespace Cassandra.Requests
 
         private void HandleRowSetResult(Response response)
         {
-            _requestObserver.OnNodeSuccessAsync(_host, _requestTrackingInfo);
+            _requestObserver.OnNodeSuccess(_host, _requestTrackingInfo);
             RequestExecution.ValidateResult(response);
             var resultResponse = (ResultResponse)response;
             if (resultResponse.Output is OutputSchemaChange schemaChange)
@@ -382,21 +382,21 @@ namespace Cassandra.Requests
             switch (retryInformation.Decision.DecisionType)
             {
                 case RetryDecision.RetryDecisionType.Rethrow:
-                    _requestObserver.OnNodeRequestErrorAsync(host, retryInformation.Reason, RetryDecision.RetryDecisionType.Rethrow, _requestTrackingInfo, ex);
+                    _requestObserver.OnNodeRequestError(host, retryInformation.Reason, RetryDecision.RetryDecisionType.Rethrow, _requestTrackingInfo, ex);
                     _parent.SetCompleted(ex);
                     break;
                 case RetryDecision.RetryDecisionType.Ignore:
-                    _requestObserver.OnNodeRequestErrorAsync(host, retryInformation.Reason, RetryDecision.RetryDecisionType.Ignore, _requestTrackingInfo, ex);
+                    _requestObserver.OnNodeRequestError(host, retryInformation.Reason, RetryDecision.RetryDecisionType.Ignore, _requestTrackingInfo, ex);
                     // The error was ignored by the RetryPolicy, return an empty rowset
                     _parent.SetCompleted(null, FillRowSet(RowSet.Empty(), null));
                     break;
                 case RetryDecision.RetryDecisionType.Retry:
-                    _requestObserver.OnNodeRequestErrorAsync(host, retryInformation.Reason, RetryDecision.RetryDecisionType.Retry, _requestTrackingInfo, ex);
+                    _requestObserver.OnNodeRequestError(host, retryInformation.Reason, RetryDecision.RetryDecisionType.Retry, _requestTrackingInfo, ex);
                     //Retry the Request using the new consistency level
                     Retry(retryInformation.Decision.RetryConsistencyLevel, retryInformation.Decision.UseCurrentHost, host);
                     break;
                 default:
-                    _requestObserver.OnNodeRequestErrorAsync(host, retryInformation.Reason, retryInformation.Decision.DecisionType, _requestTrackingInfo, ex);
+                    _requestObserver.OnNodeRequestError(host, retryInformation.Reason, retryInformation.Decision.DecisionType, _requestTrackingInfo, ex);
                     break;
             }
         }

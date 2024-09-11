@@ -16,7 +16,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using Cassandra.Observers.Abstractions;
 using Cassandra.Requests;
 
@@ -31,7 +30,7 @@ namespace Cassandra.Observers.Composite
             this.observers = observers;
         }
 
-        public async Task OnNodeRequestErrorAsync(
+        public void OnNodeRequestError(
             Host host,
             RequestErrorType errorType,
             RetryDecision.RetryDecisionType decision,
@@ -40,31 +39,31 @@ namespace Cassandra.Observers.Composite
         {
             foreach (var observer in observers)
             {
-                await observer.OnNodeRequestErrorAsync(host, errorType, decision, r, ex).ConfigureAwait(false);
+                observer.OnNodeRequestError(host, errorType, decision, r, ex);
             }
         }
 
-        public async Task OnRequestFailureAsync(Exception ex, RequestTrackingInfo r)
+        public void OnRequestFailure(Exception ex, RequestTrackingInfo r)
         {
             foreach (var observer in observers)
             {
-                await observer.OnRequestFailureAsync(ex, r).ConfigureAwait(false);
+                observer.OnRequestFailure(ex, r);
             }
         }
 
-        public async Task OnRequestSuccessAsync(RequestTrackingInfo r)
+        public void OnRequestSuccess(RequestTrackingInfo r)
         {
             foreach (var observer in observers)
             {
-                await observer.OnRequestSuccessAsync(r).ConfigureAwait(false);
+                observer.OnRequestSuccess(r);
             }
         }
 
-        public async Task OnRequestStartAsync(RequestTrackingInfo requestTrackingInfo)
+        public void OnRequestStart(RequestTrackingInfo requestTrackingInfo)
         {
             foreach (var observer in observers)
             {
-                await observer.OnRequestStartAsync(requestTrackingInfo).ConfigureAwait(false);
+                observer.OnRequestStart(requestTrackingInfo);
             }
         }
 
@@ -76,19 +75,19 @@ namespace Cassandra.Observers.Composite
             }
         }
 
-        public async Task OnNodeStartAsync(Host host, RequestTrackingInfo requestTrackingInfo)
+        public void OnNodeStart(Host host, RequestTrackingInfo requestTrackingInfo)
         {
             foreach (var observer in observers)
             {
-                await observer.OnNodeStartAsync(host, requestTrackingInfo).ConfigureAwait(false);
+                observer.OnNodeStart(host, requestTrackingInfo);
             }
         }
 
-        public async Task OnNodeSuccessAsync(Host host, RequestTrackingInfo requestTrackingInfo)
+        public void OnNodeSuccess(Host host, RequestTrackingInfo requestTrackingInfo)
         {
             foreach (var observer in observers)
             {
-                await observer.OnNodeSuccessAsync(host, requestTrackingInfo).ConfigureAwait(false);
+                observer.OnNodeSuccess(host, requestTrackingInfo);
             }
         }
     }
