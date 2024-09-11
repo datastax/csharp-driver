@@ -134,10 +134,10 @@ namespace Cassandra.Observers.Metrics
         {
             if (!_manager.AreSessionTimerMetricsEnabled)
             {
-                return Task.FromResult(0); ;
+                return Task.FromResult(0);
             }
 
-            Volatile.Write(ref _startTimestamp, Stopwatch.GetTimestamp());
+            Interlocked.Exchange(ref _startTimestamp, Stopwatch.GetTimestamp());
 
             return Task.FromResult(0);
         }
@@ -156,16 +156,16 @@ namespace Cassandra.Observers.Metrics
         {
             if (!_manager.AreSessionTimerMetricsEnabled)
             {
-                return Task.FromResult(0); ;
+                return Task.FromResult(0);
             }
 
             try
             {
-                var startTimestamp = Volatile.Read(ref _startTimestamp);
+                var startTimestamp = Interlocked.Read(ref _startTimestamp);
                 if (startTimestamp == 0)
                 {
                     Logger.Warning("Start timestamp wasn't recorded, discarding this measurement.");
-                    return Task.FromResult(0); ;
+                    return Task.FromResult(0);
                 }
 
                 _requestTimer.Record((Stopwatch.GetTimestamp() - startTimestamp) * Factor);

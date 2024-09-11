@@ -49,7 +49,7 @@ namespace Cassandra.Observers.Metrics
 
             try
             {
-                Volatile.Write(ref _startTimestamp, timestamp);
+                Interlocked.Exchange(ref _startTimestamp, timestamp);
             }
             catch (Exception ex)
             {
@@ -66,7 +66,7 @@ namespace Cassandra.Observers.Metrics
 
             try
             {
-                var startTimestamp = Volatile.Read(ref _startTimestamp);
+                var startTimestamp = Interlocked.Read(ref _startTimestamp);
                 if (startTimestamp == 0)
                 {
                     Logger.Warning("Start timestamp wasn't recorded, discarding this measurement.");

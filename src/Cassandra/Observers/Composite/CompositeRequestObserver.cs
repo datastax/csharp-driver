@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+
 using Cassandra.Observers.Abstractions;
 using Cassandra.Requests;
 
@@ -24,11 +25,11 @@ namespace Cassandra.Observers.Composite
 {
     internal class CompositeRequestObserver : IRequestObserver
     {
-        private readonly IEnumerable<IRequestObserver> observers;
+        private readonly IList<IRequestObserver> _observers;
 
-        public CompositeRequestObserver(IEnumerable<IRequestObserver> observers)
+        public CompositeRequestObserver(IList<IRequestObserver> observers)
         {
-            this.observers = observers;
+            _observers = observers;
         }
 
         public async Task OnNodeRequestErrorAsync(
@@ -38,7 +39,7 @@ namespace Cassandra.Observers.Composite
             RequestTrackingInfo r,
             Exception ex)
         {
-            foreach (var observer in observers)
+            foreach (var observer in _observers)
             {
                 await observer.OnNodeRequestErrorAsync(host, errorType, decision, r, ex).ConfigureAwait(false);
             }
@@ -46,7 +47,7 @@ namespace Cassandra.Observers.Composite
 
         public async Task OnRequestFailureAsync(Exception ex, RequestTrackingInfo r)
         {
-            foreach (var observer in observers)
+            foreach (var observer in _observers)
             {
                 await observer.OnRequestFailureAsync(ex, r).ConfigureAwait(false);
             }
@@ -54,7 +55,7 @@ namespace Cassandra.Observers.Composite
 
         public async Task OnRequestSuccessAsync(RequestTrackingInfo r)
         {
-            foreach (var observer in observers)
+            foreach (var observer in _observers)
             {
                 await observer.OnRequestSuccessAsync(r).ConfigureAwait(false);
             }
@@ -62,7 +63,7 @@ namespace Cassandra.Observers.Composite
 
         public async Task OnRequestStartAsync(RequestTrackingInfo requestTrackingInfo)
         {
-            foreach (var observer in observers)
+            foreach (var observer in _observers)
             {
                 await observer.OnRequestStartAsync(requestTrackingInfo).ConfigureAwait(false);
             }
@@ -70,7 +71,7 @@ namespace Cassandra.Observers.Composite
 
         public void OnSpeculativeExecution(Host host, long delay)
         {
-            foreach (var observer in observers)
+            foreach (var observer in _observers)
             {
                 observer.OnSpeculativeExecution(host, delay);
             }
@@ -78,7 +79,7 @@ namespace Cassandra.Observers.Composite
 
         public async Task OnNodeStartAsync(Host host, RequestTrackingInfo requestTrackingInfo)
         {
-            foreach (var observer in observers)
+            foreach (var observer in _observers)
             {
                 await observer.OnNodeStartAsync(host, requestTrackingInfo).ConfigureAwait(false);
             }
@@ -86,7 +87,7 @@ namespace Cassandra.Observers.Composite
 
         public async Task OnNodeSuccessAsync(Host host, RequestTrackingInfo requestTrackingInfo)
         {
-            foreach (var observer in observers)
+            foreach (var observer in _observers)
             {
                 await observer.OnNodeSuccessAsync(host, requestTrackingInfo).ConfigureAwait(false);
             }

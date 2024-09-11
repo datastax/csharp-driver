@@ -22,16 +22,16 @@ namespace Cassandra.Observers.Composite
 {
     internal class CompositeObserverFactoryBuilder : IObserverFactoryBuilder
     {
-        private readonly IObserverFactoryBuilder[] builders;
+        private readonly IObserverFactoryBuilder[] _builders;
 
         public CompositeObserverFactoryBuilder(params IObserverFactoryBuilder[] builders)
         {
-            this.builders = builders;
+            _builders = builders;
         }
 
         public IObserverFactory Build(IMetricsManager manager)
         {
-            return new CompositeObserverFactory(builders
+            return new CompositeObserverFactory(_builders
                 .Select(b => b.Build(manager))
                 .ToArray());
         }
