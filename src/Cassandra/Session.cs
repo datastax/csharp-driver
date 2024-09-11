@@ -346,11 +346,11 @@ namespace Cassandra
             return InternalRef.ExecuteAsync(statement, InternalRef.GetRequestOptions(executionProfileName));
         }
 
-        Task<RowSet> IInternalSession.ExecuteAsync(IStatement statement, IRequestOptions requestOptions)
+        async Task<RowSet> IInternalSession.ExecuteAsync(IStatement statement, IRequestOptions requestOptions)
         {
-            return Configuration.RequestHandlerFactory
+            return await Configuration.RequestHandlerFactory
                                 .Create(this, _serializerManager.GetCurrentSerializer(), statement, requestOptions)
-                                .SendAsync();
+                                .SendAsync().ConfigureAwait(false);
         }
 
         /// <inheritdoc />
