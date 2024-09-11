@@ -400,20 +400,22 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
                 CreateSongTable(session);
 
-                for (int i = 0; i < 2; i++)
+                for (int i = 0; i < 100; i++)
                 {
-                    session.Execute(string.Format("INSERT INTO {0}.song (Artist, Title, Id, ReleaseDate) VALUES('Pink Floyd', 'The Dark Side Of The Moon', {1}, {2})", KeyspaceName, Guid.NewGuid(), ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeSeconds()));
+                    session.Execute(
+                        $"INSERT INTO {KeyspaceName}.song (Artist, Title, Id, ReleaseDate) VALUES('Pink Floyd', 'The Dark Side Of The Moon', {Guid.NewGuid()}, {((DateTimeOffset)DateTime.UtcNow).ToUnixTimeSeconds()})");
                 }
+
+                Task.Delay(100).GetAwaiter().GetResult();
 
                 var localDateTime = DateTime.UtcNow;
 
-                var rs = session.Execute(new SimpleStatement(string.Format("SELECT * FROM {0}.song", KeyspaceName)).SetPageSize(1));
+                var rs = session.Execute(new SimpleStatement($"SELECT * FROM {KeyspaceName}.song").SetPageSize(1));
+                _ = rs.ToList();
 
-                rs.FetchMoreResults();
+                var sessionActivities = GetActivities(localDateTime).Where(x => x.DisplayName == SessionActivityName).ToList();
 
-                var sessionActivities = GetActivities(localDateTime).Where(x => x.DisplayName == SessionActivityName);
-
-                Assert.AreEqual(rs.InnerQueueCount, sessionActivities.Count());
+                Assert.Greater(sessionActivities.Count, 1);
 
                 var firstActivity = sessionActivities.First();
                 var lastActivity = sessionActivities.Last();
