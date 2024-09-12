@@ -8,7 +8,7 @@ The `vector` type is handled by the driver the same way as any other CQL type. Y
 
 ## The `CqlVector<T>` C# type
 
-The [API documentation](cqlvector-api) for this class contains useful information. Here's some examples:
+The [API documentation][cqlvector-api] for this class contains useful information. Here's some examples:
 
 ### Creating vectors
 
