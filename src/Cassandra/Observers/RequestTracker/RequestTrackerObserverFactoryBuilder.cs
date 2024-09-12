@@ -22,16 +22,16 @@ namespace Cassandra.Observers.RequestTracker
 {
     internal class RequestTrackerObserverFactoryBuilder : IObserverFactoryBuilder
     {
-        private readonly IRequestTracker tracer;
+        private readonly IRequestTracker _tracker;
 
-        public RequestTrackerObserverFactoryBuilder(IRequestTracker tracer)
+        public RequestTrackerObserverFactoryBuilder(IRequestTracker tracker)
         {
-            this.tracer = tracer;
+            this._tracker = tracker;
         }
 
         public IObserverFactory Build(IMetricsManager manager)
         {
-            return tracer != null ? new RequestTrackerObserverFactory(tracer) : NullObserverFactory.Instance;
+            return _tracker != null ? new RequestTrackerObserverFactory(_tracker) : NullObserverFactory.Instance;
         }
     }
 }

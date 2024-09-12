@@ -285,19 +285,21 @@ namespace Cassandra.Tests.ExecutionProfiles
             var options = profile != null
                 ? new RequestOptions(profile, null, config.Policies, config.SocketOptions, config.QueryOptions, config.ClientOptions)
                 : config.DefaultRequestOptions;
+            var requestTrackingInfoAndObserver = RequestHandler.CreateRequestObserver(session, statement).GetAwaiter().GetResult();
             var requestHandler = new RequestHandler(
                 session,
                 new SerializerManager(ProtocolVersion.V3).GetCurrentSerializer(),
-                statement,
-                options);
+                requestTrackingInfoAndObserver.Item1,
+                options,
+                requestTrackingInfoAndObserver.Item2);
 
             // create mock result object
             var mockResult = new RequestHandlerMockResult(requestHandler);
 
             // mock connection send
             Mock.Get(connection)
-                .Setup(c => c.Send(It.IsAny<IRequest>(), It.IsAny<Action<IRequestError, Response>>(), It.IsAny<int>()))
-                .Returns<IRequest, Action<IRequestError, Response>, int>((req, act, timeout) =>
+                .Setup(c => c.Send(It.IsAny<IRequest>(), It.IsAny<Func<IRequestError, Response, Task>>(), It.IsAny<int>()))
+                .Returns<IRequest, Func<IRequestError, Response, Task>, int>((req, act, timeout) =>
                 {
                     mockResult.SendResults.Enqueue(new ConnectionSendResult { Request = req, TimeoutMillis = timeout });
                     Task.Run(async () =>
@@ -307,7 +309,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                         if (Interlocked.Read(ref rp.Count) > 0 && Interlocked.Read(ref sep.Count) > 0)
                         {
                             await Task.Delay(1, cts.Token).ConfigureAwait(false);
-                            act(null, new ProxyResultResponse(ResultResponse.ResultResponseKind.Void));
+                            await act(null, new ProxyResultResponse(ResultResponse.ResultResponseKind.Void)).ConfigureAwait(false);
                             cts.Cancel();
                         }
                         else
@@ -318,7 +320,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                             }
                             finally
                             {
-                                act(RequestError.CreateServerError(new OverloadedException(string.Empty)), null);
+                                await act(RequestError.CreateServerError(new OverloadedException(string.Empty)), null).ConfigureAwait(false);
                             }
                         }
                     });

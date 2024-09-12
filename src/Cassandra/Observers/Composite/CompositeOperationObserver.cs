@@ -14,28 +14,33 @@
 //   limitations under the License.
 //
 
+using Cassandra.Connections;
 using Cassandra.Observers.Abstractions;
+using Cassandra.Responses;
 
 namespace Cassandra.Observers.Composite
 {
-    internal class CompositeObserverFactory : IObserverFactory
+    internal class CompositeOperationObserver : IOperationObserver
     {
-        private readonly IObserverFactory _f1;
-        private readonly IObserverFactory _f2;
+        private readonly IOperationObserver _o1;
+        private readonly IOperationObserver _o2;
 
-        public CompositeObserverFactory(IObserverFactory f1, IObserverFactory f2)
+        public CompositeOperationObserver(IOperationObserver o1, IOperationObserver o2)
         {
-            _f1 = f1;
-            _f2 = f2;
-        }
-        public IConnectionObserver CreateConnectionObserver(Host host)
-        {
-            return new CompositeConnectionObserver(_f1.CreateConnectionObserver(host), _f2.CreateConnectionObserver(host));
+            _o1 = o1;
+            _o2 = o2;
         }
 
-        public IRequestObserver CreateRequestObserver()
+        public void OnOperationSend(long requestSize, long timestamp)
         {
-            return new CompositeRequestObserver(_f1.CreateRequestObserver(), _f2.CreateRequestObserver());
+            _o1.OnOperationSend(requestSize, timestamp);
+            _o2.OnOperationSend(requestSize, timestamp);
+        }
+
+        public void OnOperationReceive(IRequestError exception, Response response, long timestamp)
+        {
+            _o1.OnOperationReceive(exception, response, timestamp);
+            _o2.OnOperationReceive(exception, response, timestamp);
         }
     }
 }

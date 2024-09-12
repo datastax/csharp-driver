@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Threading.Tasks;
 using Cassandra.Connections;
 using Cassandra.ExecutionProfiles;
 using Cassandra.Observers.Null;
@@ -40,13 +41,13 @@ namespace Cassandra.Tests
             var requestHandlerFactory = Mock.Of<IRequestHandlerFactory>();
             var requestTrackingInfo = new RequestTrackingInfo(mockStatement);
             Mock.Get(requestHandlerFactory)
-                .Setup(r => r.Create(
+                .Setup(r => r.CreateAsync(
                     It.IsAny<IInternalSession>(), 
                     It.IsAny<ISerializer>(), 
                     It.IsAny<IRequest>(),
                     It.IsAny<IStatement>(),
                     It.IsAny<IRequestOptions>()))
-                .Returns(Mock.Of<IRequestHandler>());
+                .Returns(Task.FromResult(Mock.Of<IRequestHandler>()));
             var config = new TestConfigurationBuilder
             {
                 RequestHandlerFactory = requestHandlerFactory
@@ -59,7 +60,7 @@ namespace Cassandra.Tests
                 .Throws(new NoHostAvailableException(new Dictionary<IPEndPoint, Exception>()));
             var sut = new RequestExecution(mockRequestExecution, mockSession, mockRequest, NullRequestObserver.Instance, requestTrackingInfo);
 
-            Assert.Throws<NoHostAvailableException>(() => sut.Start(currentHostRetry));
+            Assert.ThrowsAsync<NoHostAvailableException>(() => sut.StartAsync(currentHostRetry));
         }
 
         [Test, TestCase(true), TestCase(false)]
@@ -70,13 +71,13 @@ namespace Cassandra.Tests
             var mockStatement = Mock.Of<IStatement>();
             var requestTrackingInfo = new RequestTrackingInfo(mockStatement);
             Mock.Get(requestHandlerFactory)
-                .Setup(r => r.Create(
+                .Setup(r => r.CreateAsync(
                     It.IsAny<IInternalSession>(), 
                     It.IsAny<ISerializer>(), 
                     It.IsAny<IRequest>(),
                     It.IsAny<IStatement>(),
                     It.IsAny<IRequestOptions>()))
-                .Returns(Mock.Of<IRequestHandler>());
+                .Returns(Task.FromResult(Mock.Of<IRequestHandler>()));
             var config = new TestConfigurationBuilder
             {
                 RequestHandlerFactory = requestHandlerFactory
@@ -96,7 +97,7 @@ namespace Cassandra.Tests
                 .Throws(new NoHostAvailableException(new Dictionary<IPEndPoint, Exception>()));
             var sut = new RequestExecution(mockRequestExecution, mockSession, mockRequest, NullRequestObserver.Instance, requestTrackingInfo);
 
-            sut.Start(currentHostRetry);
+            sut.StartAsync(currentHostRetry).GetAwaiter().GetResult();
         }
 
         [Test, TestCase(true), TestCase(false)]
@@ -107,13 +108,13 @@ namespace Cassandra.Tests
             var mockStatement = Mock.Of<IStatement>();
             var requestTrackingInfo = new RequestTrackingInfo(mockStatement);
             Mock.Get(requestHandlerFactory)
-                .Setup(r => r.Create(
+                .Setup(r => r.CreateAsync(
                     It.IsAny<IInternalSession>(), 
                     It.IsAny<ISerializer>(), 
                     It.IsAny<IRequest>(),
                     It.IsAny<IStatement>(),
                     It.IsAny<IRequestOptions>()))
-                .Returns(Mock.Of<IRequestHandler>());
+                .Returns(Task.FromResult(Mock.Of<IRequestHandler>()));
             var config = new TestConfigurationBuilder
             {
                 RequestHandlerFactory = requestHandlerFactory
@@ -139,13 +140,13 @@ namespace Cassandra.Tests
                 .Returns(config.DefaultRequestOptions);
             var sut = new RequestExecution(mockParent, mockSession, mockRequest, NullRequestObserver.Instance, requestTrackingInfo);
 
-            sut.Start(currentHostRetry);
+            sut.StartAsync(currentHostRetry).GetAwaiter().GetResult();
             TestHelper.RetryAssert(
                 () =>
                 {
                     Mock.Get(connection)
                         .Verify(
-                            c => c.Send(mockRequest, It.IsAny<Action<IRequestError, Response>>(), It.IsAny<int>()),
+                            c => c.Send(mockRequest, It.IsAny<Func<IRequestError, Response, Task>>(), It.IsAny<int>()),
                             Times.Once);
                 });
         }
@@ -158,13 +159,13 @@ namespace Cassandra.Tests
             var mockStatement = Mock.Of<IStatement>();
             var requestTrackingInfo = new RequestTrackingInfo(mockStatement);
             Mock.Get(requestHandlerFactory)
-                .Setup(r => r.Create(
+                .Setup(r => r.CreateAsync(
                     It.IsAny<IInternalSession>(), 
                     It.IsAny<ISerializer>(), 
                     It.IsAny<IRequest>(),
                     It.IsAny<IStatement>(),
                     It.IsAny<IRequestOptions>()))
-                .Returns(Mock.Of<IRequestHandler>());
+                .Returns(Task.FromResult(Mock.Of<IRequestHandler>()));
             var config = new TestConfigurationBuilder
             {
                 RequestHandlerFactory = requestHandlerFactory
@@ -220,14 +221,14 @@ namespace Cassandra.Tests
                 .Returns(config.DefaultRequestOptions);
 
             var sut = new RequestExecution(mockParent, mockSession, mockRequest, NullRequestObserver.Instance, requestTrackingInfo);
-            sut.Start(false);
+            sut.StartAsync(false).GetAwaiter().GetResult();
 
             // Validate request is sent
             TestHelper.RetryAssert(
                 () =>
                 {
                     Mock.Get(connection).Verify(
-                        c => c.Send(mockRequest, It.IsAny<Action<IRequestError, Response>>(), It.IsAny<int>()),
+                        c => c.Send(mockRequest, It.IsAny<Func<IRequestError, Response, Task>>(), It.IsAny<int>()),
                         Times.Once);
                 });
 

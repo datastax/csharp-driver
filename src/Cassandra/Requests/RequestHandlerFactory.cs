@@ -14,6 +14,8 @@
 //   limitations under the License.
 //
 
+using System.Threading.Tasks;
+
 using Cassandra.ExecutionProfiles;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
@@ -22,20 +24,23 @@ namespace Cassandra.Requests
 {
     internal class RequestHandlerFactory : IRequestHandlerFactory
     {
-        public IRequestHandler Create(IInternalSession session, ISerializer serializer, IRequest request, IStatement statement, IRequestOptions options)
+        public async Task<IRequestHandler> CreateAsync(IInternalSession session, ISerializer serializer, IRequest request, IStatement statement, IRequestOptions options)
         {
-            return new RequestHandler(session, serializer, request, statement, options);
+            var infoAndObserver = await RequestHandler.CreateRequestObserver(session, statement).ConfigureAwait(false);
+            return new RequestHandler(session, serializer, request, infoAndObserver.Item1, options, infoAndObserver.Item2);
         }
 
-        public IRequestHandler Create(
+        public async Task<IRequestHandler> CreateAsync(
             IInternalSession session, ISerializer serializer, IStatement statement, IRequestOptions options)
         {
-            return new RequestHandler(session, serializer, statement, options);
+            var infoAndObserver = await RequestHandler.CreateRequestObserver(session, statement).ConfigureAwait(false);
+            return new RequestHandler(session, serializer, infoAndObserver.Item1, options, infoAndObserver.Item2);
         }
 
-        public IRequestHandler Create(IInternalSession session, ISerializer serializer)
+        public async Task<IRequestHandler> CreateAsync(IInternalSession session, ISerializer serializer)
         {
-            return new RequestHandler(session, serializer);
+            var infoAndObserver = await RequestHandler.CreateRequestObserver(session, null).ConfigureAwait(false);
+            return new RequestHandler(session, serializer, infoAndObserver.Item1, infoAndObserver.Item2);
         }
 
         public IGraphRequestHandler CreateGraphRequestHandler(IInternalSession session, IGraphTypeSerializerFactory graphTypeSerializerFactory)

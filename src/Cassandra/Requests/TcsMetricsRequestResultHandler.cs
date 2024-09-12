@@ -17,6 +17,7 @@
 using System;
 using System.Threading.Tasks;
 using Cassandra.Observers.Abstractions;
+using Cassandra.Tasks;
 
 namespace Cassandra.Requests
 {
@@ -31,23 +32,26 @@ namespace Cassandra.Requests
         {
             _requestObserver = requestObserver;
             _taskCompletionSource = new TaskCompletionSource<RowSet>();
-            _requestObserver.OnRequestStartAsync(requestTrackingInfo);
         }
 
-        public void TrySetResult(RowSet result, RequestTrackingInfo requestTrackingInfo)
+        public Task TrySetResultAsync(RowSet result, RequestTrackingInfo requestTrackingInfo)
         {
             if (_taskCompletionSource.TrySetResult(result))
             {
-                _requestObserver.OnRequestSuccessAsync(requestTrackingInfo);
+                return _requestObserver.OnRequestSuccessAsync(requestTrackingInfo);
             }
+
+            return TaskHelper.Completed;
         }
 
-        public void TrySetException(Exception exception, RequestTrackingInfo requestTrackingInfo)
+        public Task TrySetExceptionAsync(Exception exception, RequestTrackingInfo requestTrackingInfo)
         {
             if (_taskCompletionSource.TrySetException(exception))
             {
-                _requestObserver.OnRequestFailureAsync(exception, requestTrackingInfo);
+                return _requestObserver.OnRequestFailureAsync(exception, requestTrackingInfo);
             }
+
+            return TaskHelper.Completed;
         }
 
         public Task<RowSet> Task => _taskCompletionSource.Task;

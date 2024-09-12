@@ -79,8 +79,6 @@ namespace Cassandra.Tests
 
         public IEndPointResolver EndPointResolver { get; set; }
 
-        public IObserverFactoryBuilder ObserverFactoryBuilder { get; set; } = new MetricsObserverFactoryBuilder(true);
-
         public DriverMetricsOptions MetricsOptions { get; set; } = new DriverMetricsOptions();
 
         public string SessionName { get; set; } = Configuration.DefaultSessionName;
@@ -162,7 +160,6 @@ namespace Cassandra.Tests
                 ControlConnectionFactory,
                 PrepareHandlerFactory,
                 TimerFactory,
-                ObserverFactoryBuilder,
                 InsightsClientFactory,
                 ContactPointParser,
                 ServerNameResolver,

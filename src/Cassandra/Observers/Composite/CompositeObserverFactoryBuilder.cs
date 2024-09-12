@@ -14,7 +14,6 @@
 //   limitations under the License.
 //
 
-using System.Linq;
 using Cassandra.Metrics.Internal;
 using Cassandra.Observers.Abstractions;
 
@@ -22,18 +21,18 @@ namespace Cassandra.Observers.Composite
 {
     internal class CompositeObserverFactoryBuilder : IObserverFactoryBuilder
     {
-        private readonly IObserverFactoryBuilder[] builders;
+        private readonly IObserverFactoryBuilder _b1;
+        private readonly IObserverFactoryBuilder _b2;
 
-        public CompositeObserverFactoryBuilder(params IObserverFactoryBuilder[] builders)
+        public CompositeObserverFactoryBuilder(IObserverFactoryBuilder b1, IObserverFactoryBuilder b2)
         {
-            this.builders = builders;
+            _b1 = b1;
+            _b2 = b2;
         }
 
         public IObserverFactory Build(IMetricsManager manager)
         {
-            return new CompositeObserverFactory(builders
-                .Select(b => b.Build(manager))
-                .ToArray());
+            return new CompositeObserverFactory(_b1.Build(manager), _b2.Build(manager));
         }
     }
 }

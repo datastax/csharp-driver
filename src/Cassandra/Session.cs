@@ -238,7 +238,7 @@ namespace Cassandra
             if (Keyspace != null)
             {
                 // Borrow a connection, trying to fail fast
-                var handler = Configuration.RequestHandlerFactory.Create(this, _serializerManager.GetCurrentSerializer());
+                var handler = await Configuration.RequestHandlerFactory.CreateAsync(this, _serializerManager.GetCurrentSerializer()).ConfigureAwait(false);
                 await handler.GetNextConnectionAsync(new Dictionary<IPEndPoint, Exception>()).ConfigureAwait(false);
             }
 
@@ -346,11 +346,11 @@ namespace Cassandra
             return InternalRef.ExecuteAsync(statement, InternalRef.GetRequestOptions(executionProfileName));
         }
 
-        Task<RowSet> IInternalSession.ExecuteAsync(IStatement statement, IRequestOptions requestOptions)
+        async Task<RowSet> IInternalSession.ExecuteAsync(IStatement statement, IRequestOptions requestOptions)
         {
-            return Configuration.RequestHandlerFactory
-                                .Create(this, _serializerManager.GetCurrentSerializer(), statement, requestOptions)
-                                .SendAsync();
+            var handler = await Configuration.RequestHandlerFactory
+                                .CreateAsync(this, _serializerManager.GetCurrentSerializer(), statement, requestOptions).ConfigureAwait(false);
+            return await handler.SendAsync().ConfigureAwait(false);
         }
 
         /// <inheritdoc />

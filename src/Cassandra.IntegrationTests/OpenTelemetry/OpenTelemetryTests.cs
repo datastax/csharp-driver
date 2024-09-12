@@ -71,7 +71,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             _exportedActivities.Clear();
         }
 
-        [Category(TestCategory.RealClusterLong)]
+        [Category(TestCategory.RealCluster)]
         [Test]
         public void AddOpenTelemetry_WithKeyspaceAvailable_DbOperationAndDbNameAreIncluded()
         {
@@ -93,12 +93,10 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             Assert.AreEqual(expectedDbNameAttribute, activity.Tags.First(kvp => kvp.Key == "db.name").Value);
         }
 
-        [Category(TestCategory.RealClusterLong)]
+        [Category(TestCategory.RealCluster)]
         [Test]
         public void AddOpenTelemetry_WithoutKeyspace_DbNameIsNotIncluded()
         {
-            var keyspace = "system";
-            var expectedDbNameAttribute = keyspace;
             var cluster = GetNewTemporaryCluster(b => b.AddOpenTelemetryInstrumentation());
             var session = cluster.Connect();
 
@@ -113,7 +111,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             Assert.IsNull(activity.Tags.FirstOrDefault(kvp => kvp.Key == "db.name").Value);
         }
 
-        [Category(TestCategory.RealClusterLong)]
+        [Category(TestCategory.RealCluster)]
         [Test]
         public void AddOpenTelemetry_WithDefaultOptions_DbStatementIsNotIncludedAsAttribute()
         {
@@ -130,7 +128,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             Assert.IsNull(activity.Tags.FirstOrDefault(kvp => kvp.Key == "db.statement").Value);
         }
 
-        [Category(TestCategory.RealClusterLong)]
+        [Category(TestCategory.RealCluster)]
         [Test]
         public void AddOpenTelemetry_WithIncludeDatabaseStatementOption_DbStatementIsIncludedAsAttribute()
         {
@@ -149,7 +147,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             Assert.AreEqual(expectedDbStatement, activity.Tags.First(kvp => kvp.Key == "db.statement").Value);
         }
 
-        [Category(TestCategory.RealClusterLong)]
+        [Category(TestCategory.RealCluster)]
         [Test]
         public async Task AddOpenTelemetry_ExecuteAndExecuteAsync_SessionRequestIsParentOfNodeRequest()
         {
@@ -188,7 +186,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             ValidateNodeActivityAttributes(syncNodeActivity);
         }
 
-        [Category(TestCategory.RealClusterLong)]
+        [Category(TestCategory.RealCluster)]
         [Test]
         public async Task AddOpenTelemetry_MapperAndMapperAsync_SessionRequestIsParentOfNodeRequest()
         {
@@ -264,7 +262,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             ValidateNodeActivityAttributes(syncNodeActivity);
         }
 
-        [Category(TestCategory.RealClusterLong)]
+        [Category(TestCategory.RealCluster)]
         [Test]
         public void AddOpenTelemetry_Linq_SessionRequestIsParentOfNodeRequest()
         {
@@ -307,30 +305,84 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
         }
 
         [Test]
-        public void AddOpenTelemetry_WhenMethodIsInvokedAfterQuery_TraceIdIsTheSameThroughRequest()
+        [Category(TestCategory.RealCluster)]
+        public void AddOpenTelemetry_WhenMethodIsInvokedAfterQuery_TraceIdIsTheSameThroughRequest_Sync()
         {
             var firstMethodName = "FirstMethod";
             var secondMethodName = "SecondMethod";
 
-            using (var activity = InternalActivitySource.StartActivity(firstMethodName, ActivityKind.Internal))
+            using (var _ = InternalActivitySource.StartActivity(firstMethodName, ActivityKind.Internal))
             {
                 var cluster = GetNewTemporaryCluster(b => b.AddOpenTelemetryInstrumentation());
                 var session = cluster.Connect();
 
-                var statement = new SimpleStatement("SELECT key FROM system.local");
-                session.Execute(statement);
+                var keyspace = TestUtils.GetUniqueKeyspaceName().ToLowerInvariant();
+                session.CreateKeyspaceIfNotExists(keyspace);
+                session.ChangeKeyspace(keyspace);
+
+                SimpleStatementMethod(session);
+                LinqMethod(session);
+                MapperMethod(session);
+
 
                 SecondMethod(secondMethodName);
             }
 
-            var activities = GetActivities(testStartDateTime);
+            var activities = GetActivities(testStartDateTime).ToList();
 
             var firstMethodActivity = activities.First(x => x.DisplayName == firstMethodName);
             var secondMethodActivity = activities.First(x => x.DisplayName == secondMethodName);
-            var sessionActivity = activities.First(x => x.DisplayName == SessionActivityName);
+            var sessionActivities = activities.Where(x => x.DisplayName == SessionActivityName).ToList();
 
-            Assert.AreEqual(firstMethodActivity.TraceId, sessionActivity.TraceId);
-            Assert.AreEqual(firstMethodActivity.SpanId, sessionActivity.ParentSpanId);
+            Assert.AreEqual(5, sessionActivities.Count); // 2 x CREATE TABLE IF NOT EXISTS + 1 SELECT + 2 INSERTS
+
+            sessionActivities.ForEach(act =>
+            {
+                Assert.AreEqual(firstMethodActivity.TraceId, act.TraceId);
+                Assert.AreEqual(firstMethodActivity.SpanId, act.ParentSpanId);
+            });
+
+            Assert.AreEqual(firstMethodActivity.TraceId, secondMethodActivity.TraceId);
+            Assert.AreEqual(firstMethodActivity.SpanId, secondMethodActivity.ParentSpanId);
+        }
+
+        [Test]
+        [Category(TestCategory.RealCluster)]
+        public async Task AddOpenTelemetry_WhenMethodIsInvokedAfterQuery_TraceIdIsTheSameThroughRequest_Async()
+        {
+            var firstMethodName = "FirstMethod";
+            var secondMethodName = "SecondMethod";
+
+            using (var _ = InternalActivitySource.StartActivity(firstMethodName, ActivityKind.Internal))
+            {
+                var cluster = GetNewTemporaryCluster(b => b.AddOpenTelemetryInstrumentation());
+                var session = await cluster.ConnectAsync().ConfigureAwait(false);
+
+                var keyspace = TestUtils.GetUniqueKeyspaceName().ToLowerInvariant();
+                session.CreateKeyspaceIfNotExists(keyspace);
+                session.ChangeKeyspace(keyspace);
+
+                await SimpleStatementMethodAsync(session).ConfigureAwait(false);
+                await LinqMethodAsync(session).ConfigureAwait(false);
+                await MapperMethodAsync(session).ConfigureAwait(false);
+
+
+                SecondMethod(secondMethodName);
+            }
+
+            var activities = GetActivities(testStartDateTime).ToList();
+
+            var firstMethodActivity = activities.First(x => x.DisplayName == firstMethodName);
+            var secondMethodActivity = activities.First(x => x.DisplayName == secondMethodName);
+            var sessionActivities = activities.Where(x => x.DisplayName == SessionActivityName).ToList();
+
+            Assert.AreEqual(5, sessionActivities.Count); // 2 x CREATE TABLE IF NOT EXISTS + 1 SELECT + 2 INSERTS
+
+            sessionActivities.ForEach(act =>
+            {
+                Assert.AreEqual(firstMethodActivity.TraceId, act.TraceId);
+                Assert.AreEqual(firstMethodActivity.SpanId, act.ParentSpanId);
+            });
 
             Assert.AreEqual(firstMethodActivity.TraceId, secondMethodActivity.TraceId);
             Assert.AreEqual(firstMethodActivity.SpanId, secondMethodActivity.ParentSpanId);
@@ -347,7 +399,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
                 var nodes = simulacronCluster.GetNodes().ToArray();
                 var loadBalancingPolicy = new CustomLoadBalancingPolicy(
                     nodes.Select(n => n.ContactPoint).ToArray());
-                
+
                 var builder = ClusterBuilder()
                                      .AddContactPoint(contactPoint)
                                      .WithSocketOptions(new SocketOptions()
@@ -376,7 +428,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
                     var sessionActivity = activities.First(x => x.DisplayName.StartsWith(SessionActivityName));
                     var validNodeActivity = activities.First(x => x.DisplayName.StartsWith(NodeActivityName) && x.Status != ActivityStatusCode.Error);
                     var errorNodeActivity = activities.First(x => x.DisplayName.StartsWith(NodeActivityName) && x.Status == ActivityStatusCode.Error);
-                    
+
                     Assert.AreEqual(sessionActivity.TraceId, validNodeActivity.TraceId);
                     Assert.AreEqual(sessionActivity.TraceId, errorNodeActivity.TraceId);
                     Assert.AreEqual(sessionActivity.SpanId, validNodeActivity.ParentSpanId);
@@ -388,6 +440,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
         }
 
         [Test]
+        [Category(TestCategory.RealCluster)]
         public void AddOpenTelemetry_WithPaginationOnQuery_ShouldMultipleSpansForTheSameTraceId()
         {
             using (var activity = InternalActivitySource.StartActivity("Paging", ActivityKind.Internal))
@@ -400,27 +453,109 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
                 CreateSongTable(session);
 
-                for (int i = 0; i < 2; i++)
+                for (int i = 0; i < 100; i++)
                 {
-                    session.Execute(string.Format("INSERT INTO {0}.song (Artist, Title, Id, ReleaseDate) VALUES('Pink Floyd', 'The Dark Side Of The Moon', {1}, {2})", KeyspaceName, Guid.NewGuid(), ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeSeconds()));
+                    session.Execute(
+                        $"INSERT INTO {KeyspaceName}.song (Artist, Title, Id, ReleaseDate) VALUES('Pink Floyd', 'The Dark Side Of The Moon', {Guid.NewGuid()}, {((DateTimeOffset)DateTime.UtcNow).ToUnixTimeSeconds()})");
                 }
+
+                Task.Delay(100).GetAwaiter().GetResult();
 
                 var localDateTime = DateTime.UtcNow;
 
-                var rs = session.Execute(new SimpleStatement(string.Format("SELECT * FROM {0}.song", KeyspaceName)).SetPageSize(1));
+                var rs = session.Execute(new SimpleStatement($"SELECT * FROM {KeyspaceName}.song").SetPageSize(1));
+                _ = rs.ToList();
 
-                rs.FetchMoreResults();
+                var sessionActivities = GetActivities(localDateTime).Where(x => x.DisplayName == SessionActivityName).ToList();
 
-                var sessionActivities = GetActivities(localDateTime).Where(x => x.DisplayName == SessionActivityName);
-
-                Assert.AreEqual(rs.InnerQueueCount, sessionActivities.Count());
+                Assert.Greater(sessionActivities.Count, 1);
 
                 var firstActivity = sessionActivities.First();
                 var lastActivity = sessionActivities.Last();
-                
+
                 Assert.AreEqual(firstActivity.TraceId, lastActivity.TraceId);
                 Assert.AreNotEqual(firstActivity.SpanId, lastActivity.SpanId);
             }
+        }
+
+        private async Task SimpleStatementMethodAsync(ISession session)
+        {
+            var statement = new SimpleStatement("SELECT key FROM system.local");
+            await session.ExecuteAsync(statement).ConfigureAwait(false);
+        }
+
+        private void SimpleStatementMethod(ISession session)
+        {
+            var statement = new SimpleStatement("SELECT key FROM system.local");
+            session.Execute(statement);
+        }
+
+        private async Task LinqMethodAsync(ISession session)
+        {
+            CreateSongTable(session);
+
+            var table = new Table<Song>(session, new MappingConfiguration().Define(new Map<Song>().TableName("song")));
+
+            var song = new Song
+            {
+                Id = Guid.NewGuid(),
+                Artist = "Led Zeppelin",
+                Title = "Mothership",
+                ReleaseDate = DateTimeOffset.UtcNow
+            };
+
+            await table.Insert(song).ExecuteAsync().ConfigureAwait(false);
+        }
+
+        private void LinqMethod(ISession session)
+        {
+            CreateSongTable(session);
+
+            var table = new Table<Song>(session, new MappingConfiguration().Define(new Map<Song>().TableName("song")));
+
+            var song = new Song
+            {
+                Id = Guid.NewGuid(),
+                Artist = "Led Zeppelin",
+                Title = "Mothership",
+                ReleaseDate = DateTimeOffset.UtcNow
+            };
+
+            table.Insert(song).Execute();
+        }
+
+        private async Task MapperMethodAsync(ISession session)
+        {
+            CreateSongTable(session);
+
+            var table = new Mapper(session, new MappingConfiguration().Define(new Map<Song>().TableName("song")));
+
+            var song = new Song
+            {
+                Id = Guid.NewGuid(),
+                Artist = "Led Zeppelin",
+                Title = "Mothership",
+                ReleaseDate = DateTimeOffset.UtcNow
+            };
+
+            await table.InsertAsync(song).ConfigureAwait(false);
+        }
+
+        private void MapperMethod(ISession session)
+        {
+            CreateSongTable(session);
+
+            var table = new Mapper(session, new MappingConfiguration().Define(new Map<Song>().TableName("song")));
+
+            var song = new Song
+            {
+                Id = Guid.NewGuid(),
+                Artist = "Led Zeppelin",
+                Title = "Mothership",
+                ReleaseDate = DateTimeOffset.UtcNow
+            };
+
+            table.Insert(song);
         }
 
         private static void CreateSongTable(ISession session)

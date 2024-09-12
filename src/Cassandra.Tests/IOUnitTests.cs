@@ -23,6 +23,7 @@ using System.Threading;
 using Cassandra.Compression;
 using Cassandra.Responses;
 using Cassandra.Serialization;
+using Cassandra.Tasks;
 using Microsoft.IO;
 
 namespace Cassandra.Tests
@@ -50,7 +51,11 @@ namespace Cassandra.Tests
                     () =>
                     {
                         var timedout = state.MarkAsTimedOut(
-                            new OperationTimedOutException(new IPEndPoint(0, 1), 200), () => Interlocked.Increment(ref timedOutReceived), 0);
+                            new OperationTimedOutException(new IPEndPoint(0, 1), 200), () =>
+                            {
+                                Interlocked.Increment(ref timedOutReceived);
+                                return TaskHelper.Completed;
+                            }, 0);
                         Interlocked.Add(ref expectedTimedout, timedout ? 1 : 0);
                     },
                     () =>

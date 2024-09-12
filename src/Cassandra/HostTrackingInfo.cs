@@ -24,7 +24,12 @@ namespace Cassandra
 
         public bool Equals(HostTrackingInfo other)
         {
-            return other.Host == Host;
+            if (other.Host == null)
+            {
+                return Host == null;
+            }
+
+            return other.Host.Equals(Host);
         }
 
         public static bool operator ==(HostTrackingInfo a, HostTrackingInfo b)
@@ -39,11 +44,11 @@ namespace Cassandra
 
         public override bool Equals(object obj)
         {
-            if (!(obj is HostTrackingInfo))
+            if (!(obj is HostTrackingInfo info))
             {
                 return false;
             }
-            return Equals((HostTrackingInfo)obj);
+            return Equals(info);
         }
 
         public override int GetHashCode()
