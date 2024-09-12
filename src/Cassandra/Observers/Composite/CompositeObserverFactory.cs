@@ -14,30 +14,28 @@
 //   limitations under the License.
 //
 
-using System.Collections.Generic;
-using System.Linq;
 using Cassandra.Observers.Abstractions;
 
 namespace Cassandra.Observers.Composite
 {
     internal class CompositeObserverFactory : IObserverFactory
     {
-        private readonly IList<IObserverFactory> _factories;
+        private readonly IObserverFactory _f1;
+        private readonly IObserverFactory _f2;
 
-        public CompositeObserverFactory(IList<IObserverFactory> factories)
+        public CompositeObserverFactory(IObserverFactory f1, IObserverFactory f2)
         {
-            _factories = factories;
+            _f1 = f1;
+            _f2 = f2;
         }
         public IConnectionObserver CreateConnectionObserver(Host host)
         {
-            return new CompositeConnectionObserver(
-                _factories.Select(x => x.CreateConnectionObserver(host)).ToList());
+            return new CompositeConnectionObserver(_f1.CreateConnectionObserver(host), _f2.CreateConnectionObserver(host));
         }
 
         public IRequestObserver CreateRequestObserver()
         {
-            return new CompositeRequestObserver(
-                _factories.Select(x => x.CreateRequestObserver()).ToList());
+            return new CompositeRequestObserver(_f1.CreateRequestObserver(), _f2.CreateRequestObserver());
         }
     }
 }

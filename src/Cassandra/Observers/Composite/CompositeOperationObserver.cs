@@ -14,7 +14,6 @@
 //   limitations under the License.
 //
 
-using System.Collections.Generic;
 using Cassandra.Connections;
 using Cassandra.Observers.Abstractions;
 using Cassandra.Responses;
@@ -23,27 +22,25 @@ namespace Cassandra.Observers.Composite
 {
     internal class CompositeOperationObserver : IOperationObserver
     {
-        private readonly IList<IOperationObserver> _observers;
+        private readonly IOperationObserver _o1;
+        private readonly IOperationObserver _o2;
 
-        public CompositeOperationObserver(IList<IOperationObserver> observers)
+        public CompositeOperationObserver(IOperationObserver o1, IOperationObserver o2)
         {
-            this._observers = observers;
+            _o1 = o1;
+            _o2 = o2;
         }
 
         public void OnOperationSend(long requestSize, long timestamp)
         {
-            foreach (var o in _observers)
-            {
-                o.OnOperationSend(requestSize, timestamp);
-            }
+            _o1.OnOperationSend(requestSize, timestamp);
+            _o2.OnOperationSend(requestSize, timestamp);
         }
 
         public void OnOperationReceive(IRequestError exception, Response response, long timestamp)
         {
-            foreach (var o in _observers)
-            {
-                o.OnOperationReceive(exception, response, timestamp);
-            }
+            _o1.OnOperationReceive(exception, response, timestamp);
+            _o2.OnOperationReceive(exception, response, timestamp);
         }
     }
 }

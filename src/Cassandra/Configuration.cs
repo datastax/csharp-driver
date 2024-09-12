@@ -344,7 +344,6 @@ namespace Cassandra
                                IControlConnectionFactory controlConnectionFactory = null,
                                IPrepareHandlerFactory prepareHandlerFactory = null,
                                ITimerFactory timerFactory = null,
-                               IObserverFactoryBuilder observerFactoryBuilder = null,
                                IInsightsClientFactory insightsClientFactory = null,
                                IContactPointParser contactPointParser = null,
                                IServerNameResolver serverNameResolver = null,

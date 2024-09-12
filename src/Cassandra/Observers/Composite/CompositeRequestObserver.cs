@@ -15,7 +15,6 @@
 //
 
 using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 
 using Cassandra.Observers.Abstractions;
@@ -25,11 +24,13 @@ namespace Cassandra.Observers.Composite
 {
     internal class CompositeRequestObserver : IRequestObserver
     {
-        private readonly IList<IRequestObserver> _observers;
+        private readonly IRequestObserver _o1;
+        private readonly IRequestObserver _o2;
 
-        public CompositeRequestObserver(IList<IRequestObserver> observers)
+        public CompositeRequestObserver(IRequestObserver o1, IRequestObserver o2)
         {
-            _observers = observers;
+            _o1 = o1;
+            _o2 = o2;
         }
 
         public async Task OnNodeRequestErrorAsync(
@@ -39,58 +40,44 @@ namespace Cassandra.Observers.Composite
             RequestTrackingInfo r,
             Exception ex)
         {
-            foreach (var observer in _observers)
-            {
-                await observer.OnNodeRequestErrorAsync(host, errorType, decision, r, ex).ConfigureAwait(false);
-            }
+            await _o1.OnNodeRequestErrorAsync(host, errorType, decision, r, ex).ConfigureAwait(false);
+            await _o2.OnNodeRequestErrorAsync(host, errorType, decision, r, ex).ConfigureAwait(false);
         }
 
         public async Task OnRequestFailureAsync(Exception ex, RequestTrackingInfo r)
         {
-            foreach (var observer in _observers)
-            {
-                await observer.OnRequestFailureAsync(ex, r).ConfigureAwait(false);
-            }
+            await _o1.OnRequestFailureAsync(ex, r).ConfigureAwait(false);
+            await _o2.OnRequestFailureAsync(ex, r).ConfigureAwait(false);
         }
 
         public async Task OnRequestSuccessAsync(RequestTrackingInfo r)
         {
-            foreach (var observer in _observers)
-            {
-                await observer.OnRequestSuccessAsync(r).ConfigureAwait(false);
-            }
+            await _o1.OnRequestSuccessAsync(r).ConfigureAwait(false);
+            await _o2.OnRequestSuccessAsync(r).ConfigureAwait(false);
         }
 
         public async Task OnRequestStartAsync(RequestTrackingInfo requestTrackingInfo)
         {
-            foreach (var observer in _observers)
-            {
-                await observer.OnRequestStartAsync(requestTrackingInfo).ConfigureAwait(false);
-            }
+            await _o1.OnRequestStartAsync(requestTrackingInfo).ConfigureAwait(false);
+            await _o2.OnRequestStartAsync(requestTrackingInfo).ConfigureAwait(false);
         }
 
         public void OnSpeculativeExecution(Host host, long delay)
         {
-            foreach (var observer in _observers)
-            {
-                observer.OnSpeculativeExecution(host, delay);
-            }
+            _o1.OnSpeculativeExecution(host, delay);
+            _o2.OnSpeculativeExecution(host, delay);
         }
 
         public async Task OnNodeStartAsync(Host host, RequestTrackingInfo requestTrackingInfo)
         {
-            foreach (var observer in _observers)
-            {
-                await observer.OnNodeStartAsync(host, requestTrackingInfo).ConfigureAwait(false);
-            }
+            await _o1.OnNodeStartAsync(host, requestTrackingInfo).ConfigureAwait(false);
+            await _o2.OnNodeStartAsync(host, requestTrackingInfo).ConfigureAwait(false);
         }
 
         public async Task OnNodeSuccessAsync(Host host, RequestTrackingInfo requestTrackingInfo)
         {
-            foreach (var observer in _observers)
-            {
-                await observer.OnNodeSuccessAsync(host, requestTrackingInfo).ConfigureAwait(false);
-            }
+            await _o1.OnNodeSuccessAsync(host, requestTrackingInfo).ConfigureAwait(false);
+            await _o2.OnNodeSuccessAsync(host, requestTrackingInfo).ConfigureAwait(false);
         }
     }
 }
