@@ -15,9 +15,9 @@
 //
 
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Observers.Abstractions;
-using Cassandra.Tasks;
 
 namespace Cassandra.Requests
 {
@@ -25,33 +25,30 @@ namespace Cassandra.Requests
     {
         private readonly IRequestObserver _requestObserver;
         private readonly TaskCompletionSource<RowSet> _taskCompletionSource;
+        private long _done = 0;
 
-        public TcsMetricsRequestResultHandler(
-            IRequestObserver requestObserver,
-            RequestTrackingInfo requestTrackingInfo)
+        public TcsMetricsRequestResultHandler(IRequestObserver requestObserver)
         {
             _requestObserver = requestObserver;
             _taskCompletionSource = new TaskCompletionSource<RowSet>();
         }
 
-        public Task TrySetResultAsync(RowSet result, RequestTrackingInfo requestTrackingInfo)
+        public async Task TrySetResultAsync(RowSet result, RequestTrackingInfo requestTrackingInfo)
         {
-            if (_taskCompletionSource.TrySetResult(result))
+            if (Interlocked.CompareExchange(ref _done, 1, 0) == 0)
             {
-                return _requestObserver.OnRequestSuccessAsync(requestTrackingInfo);
+                await _requestObserver.OnRequestSuccessAsync(requestTrackingInfo).ConfigureAwait(false);
+                _taskCompletionSource.SetResult(result);
             }
-
-            return TaskHelper.Completed;
         }
 
-        public Task TrySetExceptionAsync(Exception exception, RequestTrackingInfo requestTrackingInfo)
+        public async Task TrySetExceptionAsync(Exception exception, RequestTrackingInfo requestTrackingInfo)
         {
-            if (_taskCompletionSource.TrySetException(exception))
+            if (Interlocked.CompareExchange(ref _done, 1, 0) == 0)
             {
-                return _requestObserver.OnRequestFailureAsync(exception, requestTrackingInfo);
+                await _requestObserver.OnRequestFailureAsync(exception, requestTrackingInfo).ConfigureAwait(false);
+                _taskCompletionSource.SetException(exception);
             }
-
-            return TaskHelper.Completed;
         }
 
         public Task<RowSet> Task => _taskCompletionSource.Task;
