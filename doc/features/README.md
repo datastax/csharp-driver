@@ -24,6 +24,7 @@ The DataStax C# Driver for Apache Cassandra and DataStax Enterprise is a feature
   - [App.Metrics Provider](metrics/app-metrics)
   - [List of metrics](metrics/metrics-list)
 - [Native protocol](native-protocol)
+- [OpenTelemetry](opentelemetry)
 - [Parametrized queries](parametrized-queries)
 - [Query timestamps](query-timestamps)
 - [Query warnings](query-warnings)
