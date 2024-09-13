@@ -84,6 +84,8 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             statement.SetKeyspace(keyspace);
             session.Execute(statement);
 
+            RetryUntilActivities(_testStartDateTime, expectedActivityName, 1);
+
            var activity = GetActivities(_testStartDateTime).First(x => x.DisplayName == expectedActivityName);
 
             ValidateSessionActivityAttributes(activity);
@@ -102,6 +104,8 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             var statement = new SimpleStatement("SELECT key FROM system.local");
             session.Execute(statement);
 
+            RetryUntilActivities(_testStartDateTime, SessionActivityName, 1);
+
             var activity = GetActivities(_testStartDateTime).First(x => x.DisplayName == SessionActivityName);
 
             ValidateSessionActivityAttributes(activity);
@@ -119,6 +123,8 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
             var statement = new SimpleStatement("SELECT key FROM system.local");
             session.Execute(statement);
+
+            RetryUntilActivities(_testStartDateTime, SessionActivityName, 1);
 
             var activity = GetActivities(_testStartDateTime).First(x => x.DisplayName == SessionActivityName);
 
@@ -139,6 +145,8 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             var statement = new SimpleStatement("SELECT key FROM system.local");
             session.Execute(statement);
 
+            RetryUntilActivities(_testStartDateTime, SessionActivityName, 1);
+
             var activity = GetActivities(_testStartDateTime).First(x => x.DisplayName == SessionActivityName);
 
             ValidateSessionActivityAttributes(activity);
@@ -157,6 +165,8 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             var statement = new SimpleStatement("SELECT key FROM system.local");
             await session.ExecuteAsync(statement).ContinueWith(t =>
             {
+                RetryUntilActivities(localDateTime, SessionActivityName, 1);
+                RetryUntilActivities(localDateTime, NodeActivityName, 1);
                 var activities = GetActivities(localDateTime);
                 var sessionActivity = activities.First(x => x.DisplayName.StartsWith(SessionActivityName));
                 var nodeActivity = activities.First(x => x.DisplayName.StartsWith(NodeActivityName));
@@ -170,8 +180,12 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             }).ConfigureAwait(false);
 
             localDateTime = DateTime.UtcNow;
+            await Task.Delay(200).ConfigureAwait(false);
 
             session.Execute(statement);
+
+            RetryUntilActivities(localDateTime, SessionActivityName, 1);
+            RetryUntilActivities(localDateTime, NodeActivityName, 1);
 
             var syncActivities = GetActivities(localDateTime);
             var syncSessionActivity = syncActivities.First(x => x.DisplayName == SessionActivityName);
@@ -207,7 +221,8 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
             CreateSongTable(session);
 
-            var mapper = new Mapper(session);
+            var mapper = new Mapper(session, new MappingConfiguration()
+                .Define(new Map<Song>().PartitionKey(s => s.Id).TableName("song").KeyspaceName(keyspace)));
 
             var songOne = new Song
             {
@@ -217,20 +232,11 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
                 ReleaseDate = DateTimeOffset.UtcNow
             };
 
-            var songTwo = new Song
-            {
-                Id = Guid.NewGuid(),
-                Artist = "Pink Floyd",
-                Title = "The Dark Side Of The Moon",
-                ReleaseDate = DateTimeOffset.UtcNow
-            };
-
-            var mappingConfig = new MappingConfiguration()
-                .Define(new Map<Song>().PartitionKey(s => s.Id).TableName("song").KeyspaceName(keyspace));
-
             await mapper.InsertIfNotExistsAsync(songOne, testProfile, true, null)
                 .ContinueWith(t =>
                 {
+                    RetryUntilActivities(localDateTime, SessionActivityName, 4, displayNameStartsWith: true);
+                    RetryUntilActivities(localDateTime, NodeActivityName, 4, displayNameStartsWith: true);
                     var activities = GetActivities(localDateTime);
                     var sessionActivity = activities.First(x => x.DisplayName.StartsWith(SessionActivityName));
                     var nodeActivity = activities.First(x => x.DisplayName.StartsWith(NodeActivityName));
@@ -246,8 +252,12 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
             // Filter activity time to get the sync Mapping one
             localDateTime = DateTime.UtcNow;
+            await Task.Delay(200).ConfigureAwait(false);
 
             mapper.InsertIfNotExists(songOne, testProfile, true, null);
+
+            RetryUntilActivities(localDateTime, $"{SessionActivityName} {keyspace}", 1);
+            RetryUntilActivities(localDateTime, $"{NodeActivityName} {keyspace}", 1);
 
             var syncActivities = GetActivities(localDateTime);
             var syncSessionActivity = syncActivities.First(x => x.DisplayName.StartsWith(SessionActivityName));
@@ -290,6 +300,8 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
             table.Insert(song).Execute();
 
+            RetryUntilActivities(_testStartDateTime, SessionActivityName, 4, displayNameStartsWith: true);
+            RetryUntilActivities(_testStartDateTime, NodeActivityName, 4, displayNameStartsWith: true);
             var syncActivities = GetActivities(_testStartDateTime);
 
             var syncSessionActivity = syncActivities.First(x => x.DisplayName.StartsWith(SessionActivityName));
@@ -327,6 +339,9 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
                 SecondMethod(secondMethodName);
             }
 
+            RetryUntilActivities(_testStartDateTime, SessionActivityName, 5);
+            RetryUntilActivities(_testStartDateTime, secondMethodName, 1);
+            RetryUntilActivities(_testStartDateTime, firstMethodName, 1);
             var activities = GetActivities(_testStartDateTime).ToList();
 
             var firstMethodActivity = activities.First(x => x.DisplayName == firstMethodName);
@@ -369,6 +384,9 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
                 SecondMethod(secondMethodName);
             }
 
+            RetryUntilActivities(_testStartDateTime, SessionActivityName, 5);
+            RetryUntilActivities(_testStartDateTime, secondMethodName, 1);
+            RetryUntilActivities(_testStartDateTime, firstMethodName, 1);
             var activities = GetActivities(_testStartDateTime).ToList();
 
             var firstMethodActivity = activities.First(x => x.DisplayName == firstMethodName);
@@ -423,6 +441,8 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
                     session.Execute(new SimpleStatement(cql).SetConsistencyLevel(ConsistencyLevel.One));
 
+                    RetryUntilActivities(_testStartDateTime, SessionActivityName, 1);
+                    RetryUntilActivities(_testStartDateTime, NodeActivityName, 2);
                     var activities = GetActivities(_testStartDateTime);
                     var sessionActivity = activities.First(x => x.DisplayName.StartsWith(SessionActivityName));
                     var validNodeActivity = activities.First(x => x.DisplayName.StartsWith(NodeActivityName) && x.Status != ActivityStatusCode.Error);
@@ -461,10 +481,12 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
                 Task.Delay(100).GetAwaiter().GetResult();
 
                 var localDateTime = DateTime.UtcNow;
+                Task.Delay(200).GetAwaiter().GetResult();
 
                 var rs = session.Execute(new SimpleStatement($"SELECT * FROM {KeyspaceName}.song").SetPageSize(1));
                 _ = rs.ToList();
 
+                RetryUntilActivities(_testStartDateTime, SessionActivityName, 2, true);
                 var sessionActivities = GetActivities(localDateTime).Where(x => x.DisplayName == SessionActivityName).ToList();
 
                 Assert.Greater(sessionActivities.Count, 1);
@@ -622,6 +644,32 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             {
                 activity.AddTag("db.test", "t");
             }
+        }
+
+        private void RetryUntilActivities(DateTime dt, string displayName, int count, bool greaterOrEqual = false, bool displayNameStartsWith = false, int retries = 50, int delayPerRetryMs = 100)
+        {
+            var lastCount = 0;
+            for (var i = 0; i < retries; i++)
+            {
+                var activities = GetActivities(dt);
+                lastCount = displayNameStartsWith ? activities.Count(a => a.DisplayName.StartsWith(displayName)) : activities.Count(a => a.DisplayName == displayName);
+                if (greaterOrEqual)
+                {
+                    if (lastCount >= count)
+                    {
+                        return;
+                    }
+                }
+                else
+                {
+                    if (lastCount == count)
+                    {
+                        return;
+                    }
+                }
+                Task.Delay(delayPerRetryMs).GetAwaiter().GetResult();
+            }
+            Assert.Fail($"Could not find the expected number of activities (expected {(greaterOrEqual ? ">=" : "==")} {count}, found {lastCount}) with name {displayName}");
         }
 
         private class CopyOnReadList<T> : ICollection<T>
