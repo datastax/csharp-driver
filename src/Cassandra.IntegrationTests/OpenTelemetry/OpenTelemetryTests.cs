@@ -15,10 +15,10 @@
 //
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Policies.Util;
@@ -44,30 +44,29 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
         private const string NodeActivityName = "Node Request";
 
-        private readonly List<Activity> _exportedActivities = new List<Activity>();
+        private readonly CopyOnReadList<Activity> _exportedActivities = new CopyOnReadList<Activity>();
 
-        private readonly ActivitySource InternalActivitySource = new ActivitySource("testeActivitySource");
+        private readonly ActivitySource _internalActivitySource = new ActivitySource("testeActivitySource");
         
-        private DateTime testStartDateTime;
+        private DateTime _testStartDateTime;
 
-        public OpenTelemetryTests()
-        {
-            Sdk.CreateTracerProviderBuilder()
-              .AddSource(OpenTelemetrySourceName)
-              .AddSource(InternalActivitySource.Name)
-              .AddInMemoryExporter(_exportedActivities)
-              .Build();
-        }
+        private TracerProvider _sdk;
 
         [SetUp]
         public void SetUp()
         {
-            testStartDateTime = DateTime.UtcNow;
+            _sdk = Sdk.CreateTracerProviderBuilder()
+                     .AddSource(OpenTelemetrySourceName)
+                     .AddSource(_internalActivitySource.Name)
+                     .AddInMemoryExporter(_exportedActivities)
+                     .Build();
+            _testStartDateTime = DateTime.UtcNow;
         }
 
         [TearDown]
         public void Teardown()
         {
+            _sdk.Dispose();
             _exportedActivities.Clear();
         }
 
@@ -85,7 +84,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             statement.SetKeyspace(keyspace);
             session.Execute(statement);
 
-           var activity = GetActivities(testStartDateTime).First(x => x.DisplayName == expectedActivityName);
+           var activity = GetActivities(_testStartDateTime).First(x => x.DisplayName == expectedActivityName);
 
             ValidateSessionActivityAttributes(activity);
 
@@ -103,7 +102,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             var statement = new SimpleStatement("SELECT key FROM system.local");
             session.Execute(statement);
 
-            var activity = GetActivities(testStartDateTime).First(x => x.DisplayName == SessionActivityName);
+            var activity = GetActivities(_testStartDateTime).First(x => x.DisplayName == SessionActivityName);
 
             ValidateSessionActivityAttributes(activity);
 
@@ -121,7 +120,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             var statement = new SimpleStatement("SELECT key FROM system.local");
             session.Execute(statement);
 
-            var activity = GetActivities(testStartDateTime).First(x => x.DisplayName == SessionActivityName);
+            var activity = GetActivities(_testStartDateTime).First(x => x.DisplayName == SessionActivityName);
 
             ValidateSessionActivityAttributes(activity);
 
@@ -140,7 +139,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             var statement = new SimpleStatement("SELECT key FROM system.local");
             session.Execute(statement);
 
-            var activity = GetActivities(testStartDateTime).First(x => x.DisplayName == SessionActivityName);
+            var activity = GetActivities(_testStartDateTime).First(x => x.DisplayName == SessionActivityName);
 
             ValidateSessionActivityAttributes(activity);
 
@@ -291,7 +290,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
             table.Insert(song).Execute();
 
-            var syncActivities = GetActivities(testStartDateTime);
+            var syncActivities = GetActivities(_testStartDateTime);
 
             var syncSessionActivity = syncActivities.First(x => x.DisplayName.StartsWith(SessionActivityName));
             var syncNodeActivity = syncActivities.First(x => x.DisplayName.StartsWith(NodeActivityName));
@@ -311,7 +310,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             var firstMethodName = "FirstMethod";
             var secondMethodName = "SecondMethod";
 
-            using (var _ = InternalActivitySource.StartActivity(firstMethodName, ActivityKind.Internal))
+            using (var _ = _internalActivitySource.StartActivity(firstMethodName, ActivityKind.Internal))
             {
                 var cluster = GetNewTemporaryCluster(b => b.AddOpenTelemetryInstrumentation());
                 var session = cluster.Connect();
@@ -328,7 +327,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
                 SecondMethod(secondMethodName);
             }
 
-            var activities = GetActivities(testStartDateTime).ToList();
+            var activities = GetActivities(_testStartDateTime).ToList();
 
             var firstMethodActivity = activities.First(x => x.DisplayName == firstMethodName);
             var secondMethodActivity = activities.First(x => x.DisplayName == secondMethodName);
@@ -353,7 +352,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             var firstMethodName = "FirstMethod";
             var secondMethodName = "SecondMethod";
 
-            using (var _ = InternalActivitySource.StartActivity(firstMethodName, ActivityKind.Internal))
+            using (var _ = _internalActivitySource.StartActivity(firstMethodName, ActivityKind.Internal))
             {
                 var cluster = GetNewTemporaryCluster(b => b.AddOpenTelemetryInstrumentation());
                 var session = await cluster.ConnectAsync().ConfigureAwait(false);
@@ -370,7 +369,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
                 SecondMethod(secondMethodName);
             }
 
-            var activities = GetActivities(testStartDateTime).ToList();
+            var activities = GetActivities(_testStartDateTime).ToList();
 
             var firstMethodActivity = activities.First(x => x.DisplayName == firstMethodName);
             var secondMethodActivity = activities.First(x => x.DisplayName == secondMethodName);
@@ -424,7 +423,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
                     session.Execute(new SimpleStatement(cql).SetConsistencyLevel(ConsistencyLevel.One));
 
-                    var activities = GetActivities(testStartDateTime);
+                    var activities = GetActivities(_testStartDateTime);
                     var sessionActivity = activities.First(x => x.DisplayName.StartsWith(SessionActivityName));
                     var validNodeActivity = activities.First(x => x.DisplayName.StartsWith(NodeActivityName) && x.Status != ActivityStatusCode.Error);
                     var errorNodeActivity = activities.First(x => x.DisplayName.StartsWith(NodeActivityName) && x.Status == ActivityStatusCode.Error);
@@ -443,7 +442,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
         [Category(TestCategory.RealCluster)]
         public void AddOpenTelemetry_WithPaginationOnQuery_ShouldMultipleSpansForTheSameTraceId()
         {
-            using (var activity = InternalActivitySource.StartActivity("Paging", ActivityKind.Internal))
+            using (var activity = _internalActivitySource.StartActivity("Paging", ActivityKind.Internal))
             {
                 var session = GetNewTemporaryCluster(b => b.AddOpenTelemetryInstrumentation()).Connect();
 
@@ -574,9 +573,6 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
         private IEnumerable<Activity> GetActivities(DateTime from)
         {
-            // Wait 2 seconds for the activities to close
-            Thread.Sleep(2000);
-
             return _exportedActivities.Where(x => x.StartTimeUtc >= from);
         }
 
@@ -622,9 +618,86 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
         private void SecondMethod(string activityName)
         {
-            using (var activity = InternalActivitySource.StartActivity(activityName, ActivityKind.Internal))
+            using (var activity = _internalActivitySource.StartActivity(activityName, ActivityKind.Internal))
             {
                 activity.AddTag("db.test", "t");
+            }
+        }
+
+        private class CopyOnReadList<T> : ICollection<T>
+        {
+            private readonly object _writeLock = new object();
+            private readonly ICollection<T> _collectionImplementation = new List<T>();
+
+            public int Count
+            {
+                get
+                {
+                    lock (_writeLock)
+                    {
+                        return _collectionImplementation.Count;
+                    }
+                }
+            }
+
+            public bool IsReadOnly => false;
+
+            public IEnumerator<T> GetEnumerator()
+            {
+                return NewSnapshot().GetEnumerator();
+            }
+
+            IEnumerator IEnumerable.GetEnumerator()
+            {
+                return ((IEnumerable)NewSnapshot()).GetEnumerator();
+            }
+
+            public void Add(T item)
+            {
+                lock (_writeLock)
+                {
+                    _collectionImplementation.Add(item);
+                }
+            }
+
+            public void Clear()
+            {
+                lock (_writeLock)
+                {
+                    _collectionImplementation.Clear();
+                }
+            }
+
+            public bool Contains(T item)
+            {
+                lock (_writeLock)
+                {
+                    return _collectionImplementation.Contains(item);
+                }
+            }
+
+            public void CopyTo(T[] array, int arrayIndex)
+            {
+                lock (_writeLock)
+                {
+                    _collectionImplementation.CopyTo(array, arrayIndex);
+                }
+            }
+
+            public bool Remove(T item)
+            {
+                lock (_writeLock)
+                {
+                    return _collectionImplementation.Remove(item);
+                }
+            }
+
+            private IEnumerable<T> NewSnapshot()
+            {
+                lock (_writeLock)
+                {
+                    return _collectionImplementation.ToList();
+                }
             }
         }
     }
