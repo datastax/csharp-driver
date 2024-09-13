@@ -74,7 +74,7 @@ namespace Cassandra.OpenTelemetry
                     activity.AddTag("db.name", request.Statement.Keyspace);
                 }
 
-                if (_instrumentationOptions.IncludeDatabaseStatement)
+                if (_instrumentationOptions.IncludeDatabaseStatement && request.Statement != null)
                 {
                     activity.AddTag("db.statement", request.Statement.ToString());
                 }
@@ -227,7 +227,7 @@ namespace Cassandra.OpenTelemetry
                     activity.AddTag("db.name", request.Statement.Keyspace);
                 }
 
-                if (_instrumentationOptions.IncludeDatabaseStatement)
+                if (_instrumentationOptions.IncludeDatabaseStatement && request.Statement != null)
                 {
                     activity.AddTag("db.statement", request.Statement.ToString());
                 }
