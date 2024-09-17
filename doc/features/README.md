@@ -28,6 +28,7 @@ The DataStax C# Driver for Apache Cassandra and DataStax Enterprise is a feature
 - [Parametrized queries](parametrized-queries)
 - [Query timestamps](query-timestamps)
 - [Query warnings](query-warnings)
+- [Request tracker](request-tracker)
 - [Result paging](paging)
 - [Routing queries](routing-queries)
 - [Speculative executions](speculative-retries)
