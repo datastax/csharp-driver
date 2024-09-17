@@ -72,7 +72,7 @@ namespace Cassandra.OpenTelemetry
             }
 
             activity.AddTag("db.system", "cassandra");
-            activity.AddTag("db.operation", $"{SessionOperationName}: {request.Statement?.GetType().Name}");
+            activity.AddTag("db.operation", $"{SessionOperationName} - {request.Statement?.GetType().Name}");
 
             if (activity.IsAllDataRequested)
             {
@@ -230,7 +230,7 @@ namespace Cassandra.OpenTelemetry
             }
 
             activity.AddTag("db.system", "cassandra");
-            activity.AddTag("db.operation.name", $"{NodeOperationName}: {request.Statement?.GetType().Name}");
+            activity.AddTag("db.operation.name", $"{NodeOperationName} - {request.Statement?.GetType().Name}");
             activity.AddTag("server.address", hostInfo.Host?.Address?.Address.ToString());
             activity.AddTag("server.port", hostInfo.Host?.Address?.Port.ToString());
 
@@ -262,14 +262,22 @@ namespace Cassandra.OpenTelemetry
                 case BatchStatement s:
                     var i = 0;
                     var sb = new StringBuilder();
+                    var first = true;
                     foreach (var stmt in s.Statements)
                     {
                         if (i >= _instrumentationOptions.BatchChildStatementLimit)
                         {
                             break;
                         }
-
-                        sb.Append($"{stmt};");
+                        if (!first)
+                        {
+                            sb.Append($"; {stmt}");
+                        }
+                        else
+                        {
+                            sb.Append($"{stmt}");
+                            first = false;
+                        }
                     }
 
                     str = sb.ToString();
