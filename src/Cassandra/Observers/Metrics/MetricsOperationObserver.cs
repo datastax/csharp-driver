@@ -23,7 +23,7 @@ using Cassandra.Metrics.Registries;
 using Cassandra.Observers.Abstractions;
 using Cassandra.Responses;
 
-namespace Cassandra.Observers
+namespace Cassandra.Observers.Metrics
 {
     internal class MetricsOperationObserver : IOperationObserver
     {
@@ -49,11 +49,11 @@ namespace Cassandra.Observers
 
             try
             {
-                Volatile.Write(ref _startTimestamp, timestamp);
+                Interlocked.Exchange(ref _startTimestamp, timestamp);
             }
             catch (Exception ex)
             {
-                MetricsOperationObserver.LogError(ex);
+                LogError(ex);
             }
         }
 
@@ -66,24 +66,24 @@ namespace Cassandra.Observers
 
             try
             {
-                var startTimestamp = Volatile.Read(ref _startTimestamp);
+                var startTimestamp = Interlocked.Read(ref _startTimestamp);
                 if (startTimestamp == 0)
                 {
-                    MetricsOperationObserver.Logger.Warning("Start timestamp wasn't recorded, discarding this measurement.");
+                    Logger.Warning("Start timestamp wasn't recorded, discarding this measurement.");
                     return;
                 }
 
-                _operationTimer.Record((timestamp - startTimestamp) * MetricsOperationObserver.Factor);
+                _operationTimer.Record((timestamp - startTimestamp) * Factor);
             }
             catch (Exception ex)
             {
-                MetricsOperationObserver.LogError(ex);
+                LogError(ex);
             }
         }
 
         private static void LogError(Exception ex)
         {
-            MetricsOperationObserver.Logger.Warning("An error occured while recording metrics for a connection operation. Exception = {0}", ex.ToString());
+            Logger.Warning("An error occured while recording metrics for a connection operation. Exception = {0}", ex.ToString());
         }
     }
 }

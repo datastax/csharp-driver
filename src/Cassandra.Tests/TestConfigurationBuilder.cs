@@ -25,6 +25,7 @@ using Cassandra.MetadataHelpers;
 using Cassandra.Metrics;
 using Cassandra.Metrics.Providers.Null;
 using Cassandra.Observers;
+using Cassandra.Observers.Metrics;
 using Cassandra.ProtocolEvents;
 using Cassandra.Requests;
 using Cassandra.Serialization;
@@ -77,8 +78,6 @@ namespace Cassandra.Tests
         public ITimerFactory TimerFactory { get; set; } = new TaskBasedTimerFactory();
 
         public IEndPointResolver EndPointResolver { get; set; }
-
-        public IObserverFactoryBuilder ObserverFactoryBuilder { get; set; } = new MetricsObserverFactoryBuilder();
 
         public DriverMetricsOptions MetricsOptions { get; set; } = new DriverMetricsOptions();
 
@@ -161,7 +160,6 @@ namespace Cassandra.Tests
                 ControlConnectionFactory,
                 PrepareHandlerFactory,
                 TimerFactory,
-                ObserverFactoryBuilder,
                 InsightsClientFactory,
                 ContactPointParser,
                 ServerNameResolver,

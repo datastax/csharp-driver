@@ -49,6 +49,7 @@ namespace Cassandra.Requests
         private ISpeculativeExecutionPlan _executionPlan;
         private volatile HashedWheelTimer.ITimeout _nextExecutionTimeout;
         private readonly IRequestObserver _requestObserver;
+        private readonly RequestTrackingInfo _requestTrackingInfo;
         public IExtendedRetryPolicy RetryPolicy { get; }
         public ISerializer Serializer { get; }
         public IStatement Statement { get; }
@@ -58,40 +59,41 @@ namespace Cassandra.Requests
         /// Creates a new instance using a request, the statement and the execution profile.
         /// </summary>
         public RequestHandler(
-            IInternalSession session, ISerializer serializer, IRequest request, IStatement statement, IRequestOptions requestOptions)
+            IInternalSession session, ISerializer serializer, IRequest request, RequestTrackingInfo requestTrackingInfo, IRequestOptions requestOptions, IRequestObserver requestObserver)
         {
             _session = session ?? throw new ArgumentNullException(nameof(session));
-            _requestObserver = session.ObserverFactory.CreateRequestObserver();
+            _requestObserver = requestObserver;
+            _requestTrackingInfo = requestTrackingInfo;
             _requestResultHandler = new TcsMetricsRequestResultHandler(_requestObserver);
             _request = request;
-            Serializer = serializer ?? throw new ArgumentNullException(nameof(session));
-            Statement = statement;
+            Serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
+            Statement = requestTrackingInfo.Statement;
             RequestOptions = requestOptions ?? throw new ArgumentNullException(nameof(requestOptions));
 
             RetryPolicy = RequestOptions.RetryPolicy;
 
-            if (statement?.RetryPolicy != null)
+            if (requestTrackingInfo.Statement?.RetryPolicy != null)
             {
-                RetryPolicy = statement.RetryPolicy.Wrap(RetryPolicy);
+                RetryPolicy = requestTrackingInfo.Statement.RetryPolicy.Wrap(RetryPolicy);
             }
 
-            _queryPlan = RequestHandler.GetQueryPlan(session, statement, RequestOptions.LoadBalancingPolicy).GetEnumerator();
+            _queryPlan = RequestHandler.GetQueryPlan(session, requestTrackingInfo.Statement, RequestOptions.LoadBalancingPolicy).GetEnumerator();
         }
 
         /// <summary>
         /// Creates a new instance using the statement to build the request.
         /// Statement can not be null.
         /// </summary>
-        public RequestHandler(IInternalSession session, ISerializer serializer, IStatement statement, IRequestOptions requestOptions)
-            : this(session, serializer, RequestHandler.GetRequest(statement, serializer, requestOptions), statement, requestOptions)
+        public RequestHandler(IInternalSession session, ISerializer serializer, RequestTrackingInfo requestTrackingInfo, IRequestOptions requestOptions, IRequestObserver requestObserver)
+            : this(session, serializer, RequestHandler.GetRequest(requestTrackingInfo.Statement, serializer, requestOptions), requestTrackingInfo, requestOptions, requestObserver)
         {
         }
 
         /// <summary>
         /// Creates a new instance with no request, suitable for getting a connection.
         /// </summary>
-        public RequestHandler(IInternalSession session, ISerializer serializer)
-            : this(session, serializer, null, null, session.Cluster.Configuration.DefaultRequestOptions)
+        public RequestHandler(IInternalSession session, ISerializer serializer, RequestTrackingInfo requestTrackingInfo, IRequestObserver requestObserver)
+            : this(session, serializer, null, requestTrackingInfo, session.Cluster.Configuration.DefaultRequestOptions, requestObserver)
         {
         }
 
@@ -172,15 +174,15 @@ namespace Cassandra.Requests
         }
 
         /// <inheritdoc />
-        public bool SetCompleted(Exception ex, RowSet result = null)
+        public Task<bool> SetCompletedAsync(Exception ex, RowSet result = null)
         {
-            return SetCompleted(ex, result, null);
+            return SetCompletedAsync(ex, result, null);
         }
 
         /// <inheritdoc />
-        public bool SetCompleted(RowSet result, Action action)
+        public Task<bool> SetCompletedAsync(RowSet result, Func<Task> action)
         {
-            return SetCompleted(null, result, action);
+            return SetCompletedAsync(null, result, action);
         }
 
         /// <summary>
@@ -188,7 +190,7 @@ namespace Cassandra.Requests
         /// If ex is not null, sets the exception.
         /// If action is not null, it invokes it using the default task scheduler.
         /// </summary>
-        private bool SetCompleted(Exception ex, RowSet result, Action action)
+        private async Task<bool> SetCompletedAsync(Exception ex, RowSet result, Func<Task> action)
         {
             var finishedNow = Interlocked.CompareExchange(ref _state, RequestHandler.StateCompleted, RequestHandler.StateInit) == RequestHandler.StateInit;
             if (!finishedNow)
@@ -205,31 +207,31 @@ namespace Cassandra.Requests
             }
             if (ex != null)
             {
-                _requestResultHandler.TrySetException(ex);
+                await _requestResultHandler.TrySetExceptionAsync(ex, _requestTrackingInfo).ConfigureAwait(false);
                 return true;
             }
             if (action != null)
             {
                 //Create a new Task using the default scheduler, invoke the action and set the result
-                Task.Factory.StartNew(() =>
+                Task.Run(async () =>
                 {
                     try
                     {
-                        action();
-                        _requestResultHandler.TrySetResult(result);
+                        await action().ConfigureAwait(false);
+                        await _requestResultHandler.TrySetResultAsync(result, _requestTrackingInfo).ConfigureAwait(false);
                     }
                     catch (Exception actionEx)
                     {
-                        _requestResultHandler.TrySetException(actionEx);
+                        await _requestResultHandler.TrySetExceptionAsync(actionEx, _requestTrackingInfo).ConfigureAwait(false);
                     }
-                });
+                }, CancellationToken.None).Forget();
                 return true;
             }
-            _requestResultHandler.TrySetResult(result);
+            await _requestResultHandler.TrySetResultAsync(result, _requestTrackingInfo).ConfigureAwait(false);
             return true;
         }
 
-        public void SetNoMoreHosts(NoHostAvailableException ex, IRequestExecution execution)
+        public Task SetNoMoreHostsAsync(NoHostAvailableException ex, IRequestExecution execution)
         {
             //An execution ended with a NoHostAvailableException (retrying or starting).
             //If there is a running execution, do not yield it to the user
@@ -237,9 +239,9 @@ namespace Cassandra.Requests
             if (_running.Count > 0)
             {
                 RequestHandler.Logger.Info("Could not obtain an available host for speculative execution");
-                return;
+                return TaskHelper.Completed;
             }
-            SetCompleted(ex);
+            return SetCompletedAsync(ex);
         }
 
         public bool HasCompleted()
@@ -372,27 +374,27 @@ namespace Cassandra.Requests
             }
         }
 
-        public Task<RowSet> SendAsync()
+        public async Task<RowSet> SendAsync()
         {
             if (_request == null)
             {
-                _requestResultHandler.TrySetException(new DriverException("request can not be null"));
-                return _requestResultHandler.Task;
+                await _requestResultHandler.TrySetExceptionAsync(new DriverException("request can not be null"), _requestTrackingInfo).ConfigureAwait(false);
+                return await _requestResultHandler.Task.ConfigureAwait(false);
             }
 
-            StartNewExecution();
-            return _requestResultHandler.Task;
+            await StartNewExecutionAsync().ConfigureAwait(false);
+            return await _requestResultHandler.Task.ConfigureAwait(false);
         }
 
         /// <summary>
         /// Starts a new execution and adds it to the executions collection
         /// </summary>
-        private void StartNewExecution()
+        private async Task StartNewExecutionAsync()
         {
             try
             {
-                var execution = _session.Cluster.Configuration.RequestExecutionFactory.Create(this, _session, _request, _requestObserver);
-                var lastHost = execution.Start(false);
+                var execution = _session.Cluster.Configuration.RequestExecutionFactory.Create(this, _session, _request, _requestObserver, _requestTrackingInfo);
+                var lastHost = await execution.StartAsync(false).ConfigureAwait(false);
                 _running.Add(execution);
                 ScheduleNext(lastHost);
             }
@@ -402,14 +404,14 @@ namespace Cassandra.Requests
                 {
                     //Its the sending of the first execution
                     //There isn't any host available, yield it to the user
-                    SetCompleted(ex);
+                    await SetCompletedAsync(ex).ConfigureAwait(false);
                 }
                 //Let's wait for the other executions
             }
             catch (Exception ex)
             {
                 //There was an Exception before sending: a protocol error or the keyspace does not exists
-                SetCompleted(ex);
+                await SetCompletedAsync(ex).ConfigureAwait(false);
             }
         }
 
@@ -440,14 +442,22 @@ namespace Cassandra.Requests
                 {
                     if (HasCompleted())
                     {
-                        return;
+                        return TaskHelper.Completed;
                     }
 
                     RequestHandler.Logger.Info("Starting new speculative execution after {0} ms. Last used host: {1}", delay, currentHost.Address);
                     _requestObserver.OnSpeculativeExecution(currentHost, delay);
-                    StartNewExecution();
-                });
+                    return StartNewExecutionAsync();
+                }, CancellationToken.None);
             }, null, delay);
+        }
+
+        public static async Task<Tuple<RequestTrackingInfo, IRequestObserver>> CreateRequestObserver(IInternalSession session, IStatement statement)
+        {
+            var requestTrackingInfo = new RequestTrackingInfo(statement);
+            var observer = session.ObserverFactory.CreateRequestObserver();
+            await observer.OnRequestStartAsync(requestTrackingInfo).ConfigureAwait(false);
+            return new Tuple<RequestTrackingInfo, IRequestObserver>(requestTrackingInfo, observer);
         }
     }
 }

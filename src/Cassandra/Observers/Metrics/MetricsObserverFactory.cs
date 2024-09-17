@@ -17,7 +17,7 @@
 using Cassandra.Metrics.Internal;
 using Cassandra.Observers.Abstractions;
 
-namespace Cassandra.Observers
+namespace Cassandra.Observers.Metrics
 {
     internal class MetricsObserverFactory : IObserverFactory
     {
@@ -36,8 +36,8 @@ namespace Cassandra.Observers
         public IConnectionObserver CreateConnectionObserver(Host host)
         {
             return new MetricsConnectionObserver(
-                _metricsManager.GetSessionMetrics(), 
-                _metricsManager.GetOrCreateNodeMetrics(host), 
+                _metricsManager.GetSessionMetrics(),
+                _metricsManager.GetOrCreateNodeMetrics(host),
                 _metricsManager.AreNodeTimerMetricsEnabled);
         }
     }
