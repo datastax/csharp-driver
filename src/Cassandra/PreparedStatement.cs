@@ -292,5 +292,16 @@ namespace Cassandra
         {
             OutgoingPayload = payload;
             return this;
-        }    }
+        }
+
+        /// <summary>
+        /// Returns the string of the query that was prepared to yield this PreparedStatement.
+        /// </summary>
+        public string QueryString => Cql;
+
+        public override string ToString()
+        {
+            return QueryString;
+        }
+    }
 }

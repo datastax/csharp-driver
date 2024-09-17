@@ -15,6 +15,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Text;
 using System.Threading.Tasks;
 using OpenTelemetry.Trace;
 
@@ -30,9 +31,10 @@ namespace Cassandra.OpenTelemetry
     {
         internal static readonly ActivitySource ActivitySource = new ActivitySource(CassandraActivitySourceHelper.ActivitySourceName, CassandraActivitySourceHelper.Version);
         private readonly CassandraInstrumentationOptions _instrumentationOptions;
-        private static readonly string otelActivityKey = "otel_activity";
-        private static readonly string sessionOperationName = "Session Request";
-        private static readonly string nodeOperationName = "Node Request";
+        private const string OtelActivityKey = "otel_activity";
+        private const string OtelStmtKey = "otel_statement_string";
+        private const string SessionOperationName = "Session Request";
+        private const string NodeOperationName = "Node Request";
 
         public OpenTelemetryRequestTracker(CassandraInstrumentationOptions instrumentationOptions)
         {
@@ -60,14 +62,19 @@ namespace Cassandra.OpenTelemetry
         /// <returns>Activity task.</returns>
         public virtual Task OnStartAsync(RequestTrackingInfo request)
         {
-            var activityName = !string.IsNullOrEmpty(request.Statement?.Keyspace) ? $"{sessionOperationName} {request.Statement.Keyspace}" : sessionOperationName;
+            var activityName = !string.IsNullOrEmpty(request.Statement?.Keyspace) ? $"{SessionOperationName} {request.Statement.Keyspace}" : SessionOperationName;
 
             var activity = ActivitySource.StartActivity(activityName, ActivityKind.Client);
 
-            activity?.AddTag("db.system", "cassandra");
-            activity?.AddTag("db.operation.name", sessionOperationName);
+            if (activity == null)
+            {
+                return Task.CompletedTask;
+            }
 
-            if (activity != null && activity.IsAllDataRequested)
+            activity.AddTag("db.system", "cassandra");
+            activity.AddTag("db.operation", $"{SessionOperationName}: {request.Statement?.GetType().Name}");
+
+            if (activity.IsAllDataRequested)
             {
                 if (!string.IsNullOrEmpty(request.Statement?.Keyspace))
                 {
@@ -76,13 +83,15 @@ namespace Cassandra.OpenTelemetry
 
                 if (_instrumentationOptions.IncludeDatabaseStatement && request.Statement != null)
                 {
-                    activity.AddTag("db.query.text", request.Statement.ToString());
+                    var stmt = GetStatementString(request.Statement);
+                    activity.AddTag("db.query.text", stmt);
+                    request.Items.TryAdd(OtelStmtKey, stmt);
                 }
             }
 
-            request.Items.TryAdd(otelActivityKey, activity);
+            request.Items.TryAdd(OtelActivityKey, activity);
 
-            return Task.FromResult(activity as object);
+            return Task.CompletedTask;
         }
 
         /// <summary>
@@ -92,11 +101,11 @@ namespace Cassandra.OpenTelemetry
         /// <returns>Completed task.</returns>
         public virtual Task OnSuccessAsync(RequestTrackingInfo request)
         {
-            request.Items.TryGetValue(otelActivityKey, out object context);
+            request.Items.TryGetValue(OtelActivityKey, out object context);
 
             if (context is Activity activity)
             {
-                activity?.Dispose();
+                activity.Dispose();
             }
 
             return Task.CompletedTask;
@@ -111,17 +120,17 @@ namespace Cassandra.OpenTelemetry
         /// <returns>Completed task.</returns>
         public virtual Task OnErrorAsync(RequestTrackingInfo request, Exception ex)
         {
-            request.Items.TryGetValue(otelActivityKey, out object context);
+            request.Items.TryGetValue(OtelActivityKey, out object context);
 
             if (!(context is Activity activity))
             {
                 return Task.CompletedTask;
             }
 
-            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-            activity?.RecordException(ex);
+            activity.SetStatus(ActivityStatusCode.Error, ex.Message);
+            activity.RecordException(ex);
 
-            activity?.Dispose();
+            activity.Dispose();
 
             return Task.CompletedTask;
         }
@@ -131,16 +140,16 @@ namespace Cassandra.OpenTelemetry
         /// </summary>
         /// <param name="request">Request contextual information.</param>
         /// <param name="hostInfo">Struct with host contextual information.</param>
-        /// <returns>Completed task./returns>
+        /// <returns>Completed task.</returns>
         public virtual Task OnNodeSuccessAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo)
         {
-            var activityKey = $"{otelActivityKey}.{hostInfo.Host.HostId}";
+            var activityKey = $"{OtelActivityKey}.{hostInfo.Host?.HostId}";
 
-            request.Items.TryGetValue(activityKey, out object context);
+            request.Items.TryGetValue(activityKey, out var context);
 
             if (context is Activity activity)
             {
-                activity?.Dispose();
+                activity.Dispose();
             }
 
             request.Items.TryRemove(activityKey, out _);
@@ -155,22 +164,22 @@ namespace Cassandra.OpenTelemetry
         /// <param name="request"><see cref="RequestTrackingInfo"/> object with contextual information.</param>
         /// <param name="hostInfo">Struct with host contextual information.</param>
         /// <param name="ex">Exception information.</param>
-        /// <returns>Completed task./returns>
+        /// <returns>Completed task.</returns>
         public virtual Task OnNodeErrorAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo, Exception ex)
         {
-            var activityKey = $"{otelActivityKey}.{hostInfo.Host.HostId}";
+            var activityKey = $"{OtelActivityKey}.{hostInfo.Host?.HostId}";
             
-            request.Items.TryGetValue(activityKey, out object context);
+            request.Items.TryGetValue(activityKey, out var context);
 
             if (!(context is Activity activity))
             {
                 return Task.CompletedTask;
             }
 
-            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-            activity?.RecordException(ex);
+            activity.SetStatus(ActivityStatusCode.Error, ex.Message);
+            activity.RecordException(ex);
 
-            activity?.Dispose();
+            activity.Dispose();
 
             request.Items.TryRemove(activityKey, out _);
 
@@ -204,21 +213,26 @@ namespace Cassandra.OpenTelemetry
         /// <returns>Activity task.</returns>
         public virtual Task OnNodeStartAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo)
         {
-            request.Items.TryGetValue(otelActivityKey, out object sessionContext);
+            request.Items.TryGetValue(OtelActivityKey, out object sessionContext);
 
-            if (!(sessionContext is Activity parentActivity) || parentActivity.Context == null)
+            if (!(sessionContext is Activity parentActivity))
             {
                 return Task.CompletedTask;
             }
 
-            var activityName = !string.IsNullOrEmpty(request.Statement?.Keyspace) ? $"{nodeOperationName} {request.Statement.Keyspace}" : nodeOperationName;
+            var activityName = !string.IsNullOrEmpty(request.Statement?.Keyspace) ? $"{NodeOperationName} {request.Statement.Keyspace}" : NodeOperationName;
 
             var activity = ActivitySource.StartActivity(activityName, ActivityKind.Client, parentActivity.Context);
 
-            activity?.AddTag("db.system", "cassandra");
-            activity?.AddTag("db.operation.name", nodeOperationName);
-            activity?.AddTag("server.address", hostInfo.Host?.Address?.Address.ToString());
-            activity?.AddTag("server.port", hostInfo.Host?.Address?.Port.ToString());
+            if (activity == null)
+            {
+                return Task.CompletedTask;
+            }
+
+            activity.AddTag("db.system", "cassandra");
+            activity.AddTag("db.operation.name", $"{NodeOperationName}: {request.Statement?.GetType().Name}");
+            activity.AddTag("server.address", hostInfo.Host?.Address?.Address.ToString());
+            activity.AddTag("server.port", hostInfo.Host?.Address?.Port.ToString());
 
             if (activity != null && activity.IsAllDataRequested)
             {
@@ -229,13 +243,43 @@ namespace Cassandra.OpenTelemetry
 
                 if (_instrumentationOptions.IncludeDatabaseStatement && request.Statement != null)
                 {
-                    activity.AddTag("db.query.text", request.Statement.ToString());
+                    var stmt = GetStatementString(request.Statement);
+                    activity.AddTag("db.query.text", stmt);
+                    request.Items.TryAdd(OtelStmtKey, stmt);
                 }
             }
 
-            request.Items.TryAdd($"{otelActivityKey}.{hostInfo.Host.HostId}", activity);
+            request.Items.TryAdd($"{OtelActivityKey}.{hostInfo.Host?.HostId}", activity);
 
-            return Task.FromResult(activity as object);
+            return Task.CompletedTask;
+        }
+
+        private string GetStatementString(IStatement statement)
+        {
+            string str;
+            switch (statement)
+            {
+                case BatchStatement s:
+                    var i = 0;
+                    var sb = new StringBuilder();
+                    foreach (var stmt in s.Statements)
+                    {
+                        if (i >= _instrumentationOptions.BatchChildStatementLimit)
+                        {
+                            break;
+                        }
+
+                        sb.Append($"{stmt};");
+                    }
+
+                    str = sb.ToString();
+                    break;
+                default:
+                    str = statement.ToString();
+                    break;
+            }
+
+            return str;
         }
     }
 }
