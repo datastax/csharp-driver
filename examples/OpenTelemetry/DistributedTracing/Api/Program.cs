@@ -25,6 +25,7 @@ namespace Api
                 .WithTracing(tracing => tracing
                     .AddAspNetCoreInstrumentation()
                     .AddSource(CassandraActivitySourceHelper.ActivitySourceName)
+                    //.AddOtlpExporter(opt => opt.Endpoint = new Uri("http://localhost:4317")) // uncomment if you want to use an OTPL exporter like Jaeger
                     .AddConsoleExporter());
             builder.Services.AddSingleton<ICluster>(_ =>
             {

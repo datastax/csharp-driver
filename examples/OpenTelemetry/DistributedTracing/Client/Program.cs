@@ -20,6 +20,7 @@ namespace Client
                     serviceName: "Weather Forecast Client",
                     serviceVersion: "1.0.0"))
                 .AddSource(ClientActivity.Name)
+                //.AddOtlpExporter(opt => opt.Endpoint = new Uri("http://localhost:4317")) // uncomment if you want to use an OTPL exporter like Jaeger
                 .Build();
             var cts = new CancellationTokenSource();
             var task = Task.Run(async () =>
@@ -30,15 +31,17 @@ namespace Client
                 {
                     try
                     {
-                        using var activity = ClientActivity.StartActivity(ActivityKind.Internal);
-                        await Console.Out.WriteLineAsync("TraceId: " + Activity.Current?.TraceId + Environment.NewLine + "Sending request.").ConfigureAwait(false);
-                        var forecastResponse = await httpClient.GetAsync(WeatherForecastEndpointUri, cts.Token).ConfigureAwait(false);
-
-                        if (forecastResponse.IsSuccessStatusCode)
+                        using (var _ = ClientActivity.StartActivity(ActivityKind.Client))
                         {
-                            var content = await forecastResponse.Content.ReadAsStringAsync(cts.Token).ConfigureAwait(false);
-                            //var forecast = JsonSerializer.DeserializeAsync<WeatherForecast>(content).ConfigureAwait(false);
-                            await Console.Out.WriteLineAsync("TraceId: " + Activity.Current?.TraceId + Environment.NewLine + content + Environment.NewLine).ConfigureAwait(false);
+                            await Console.Out.WriteLineAsync("TraceId: " + Activity.Current?.TraceId + Environment.NewLine + "Sending request.").ConfigureAwait(false);
+                            var forecastResponse = await httpClient.GetAsync(WeatherForecastEndpointUri, cts.Token).ConfigureAwait(false);
+
+                            if (forecastResponse.IsSuccessStatusCode)
+                            {
+                                var content = await forecastResponse.Content.ReadAsStringAsync(cts.Token).ConfigureAwait(false);
+                                //var forecast = JsonSerializer.DeserializeAsync<WeatherForecast>(content).ConfigureAwait(false);
+                                await Console.Out.WriteLineAsync("TraceId: " + Activity.Current?.TraceId + Environment.NewLine + content + Environment.NewLine).ConfigureAwait(false);
+                            }
                         }
 
                         await Task.Delay(5000, cts.Token).ConfigureAwait(false);
