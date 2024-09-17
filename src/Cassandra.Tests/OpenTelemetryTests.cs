@@ -79,13 +79,17 @@ namespace Cassandra.Tests
 
                 var cassandraInstrumentationOptions = new CassandraInstrumentationOptions { IncludeDatabaseStatement = true };
                 var requestTracker = new OpenTelemetryRequestTracker(cassandraInstrumentationOptions);
+                
                 IStatement statement = null;
                 var requestTrackingInfo = new RequestTrackingInfo(statement);
-                var host = new HostTrackingInfo();
 
-                requestTracker.OnNodeStart(requestTrackingInfo, host);
+                var host = new Host(new System.Net.IPEndPoint(1, 9042), new ConstantReconnectionPolicy(1));
+                var hostTrackingInfo = new HostTrackingInfo() { Host = host };
 
-                requestTrackingInfo.Items.TryGetValue(otelActivityKey, out object context);
+                requestTracker.OnStartAsync(requestTrackingInfo);
+                requestTracker.OnNodeStartAsync(requestTrackingInfo, hostTrackingInfo);
+
+                requestTrackingInfo.Items.TryGetValue($"{otelActivityKey}.{host.HostId}", out object context);
 
                 var activity = context as Activity;
 
@@ -108,13 +112,17 @@ namespace Cassandra.Tests
 
                 var cassandraInstrumentationOptions = new CassandraInstrumentationOptions { IncludeDatabaseStatement = true };
                 var requestTracker = new OpenTelemetryRequestTracker(cassandraInstrumentationOptions);
+                
                 IStatement statement = null;
                 var requestTrackingInfo = new RequestTrackingInfo(statement);
-                var host = new HostTrackingInfo();
+                
+                var host = new Host(new System.Net.IPEndPoint(1, 9042), new ConstantReconnectionPolicy(1));
+                var hostTrackingInfo = new HostTrackingInfo() { Host = host };
 
-                requestTracker.OnNodeStart(requestTrackingInfo, host);
+                requestTracker.OnStartAsync(requestTrackingInfo);
+                requestTracker.OnNodeStartAsync(requestTrackingInfo, hostTrackingInfo);
 
-                requestTrackingInfo.Items.TryGetValue(otelActivityKey, out object context);
+                requestTrackingInfo.Items.TryGetValue($"{otelActivityKey}.{host.HostId}", out object context);
 
                 var activity = context as Activity;
 

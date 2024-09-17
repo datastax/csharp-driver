@@ -65,7 +65,7 @@ namespace Cassandra.Observers.RequestTracker
         {
             var hostInfo = new HostTrackingInfo { Host = host };
 
-            return _requestTracker.OnNodeStart(requestTrackingInfo, hostInfo);
+            return _requestTracker.OnNodeStartAsync(requestTrackingInfo, hostInfo);
         }
 
         public Task OnNodeSuccessAsync(Host host, RequestTrackingInfo requestTrackingInfo)

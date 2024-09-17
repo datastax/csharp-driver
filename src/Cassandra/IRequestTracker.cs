@@ -69,6 +69,6 @@ namespace Cassandra
         /// <param name="request"><see cref="RequestTrackingInfo"/> object with contextual information.</param>
         /// <param name="hostInfo">Struct with host contextual information.</param>
         /// <returns>Contextual task.</returns>
-        Task OnNodeStart(RequestTrackingInfo request, HostTrackingInfo hostInfo);
+        Task OnNodeStartAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo);
     }
 }

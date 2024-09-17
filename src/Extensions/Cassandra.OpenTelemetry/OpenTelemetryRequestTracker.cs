@@ -202,7 +202,7 @@ namespace Cassandra.OpenTelemetry
         /// </summary>
         /// <param name="request">Request contextual information.</param>
         /// <returns>Activity task.</returns>
-        public virtual Task OnNodeStart(RequestTrackingInfo request, HostTrackingInfo hostInfo)
+        public virtual Task OnNodeStartAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo)
         {
             request.Items.TryGetValue(otelActivityKey, out object sessionContext);
 
@@ -211,7 +211,7 @@ namespace Cassandra.OpenTelemetry
                 return Task.CompletedTask;
             }
 
-            var activityName = !string.IsNullOrEmpty(request.Statement.Keyspace) ? $"{nodeOperationName} {request.Statement.Keyspace}" : nodeOperationName;
+            var activityName = !string.IsNullOrEmpty(request.Statement?.Keyspace) ? $"{nodeOperationName} {request.Statement.Keyspace}" : nodeOperationName;
 
             var activity = ActivitySource.StartActivity(activityName, ActivityKind.Client, parentActivity.Context);
 
@@ -222,7 +222,7 @@ namespace Cassandra.OpenTelemetry
 
             if (activity != null && activity.IsAllDataRequested)
             {
-                if (!string.IsNullOrEmpty(request.Statement.Keyspace))
+                if (!string.IsNullOrEmpty(request.Statement?.Keyspace))
                 {
                     activity.AddTag("db.namespace", request.Statement.Keyspace);
                 }
