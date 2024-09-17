@@ -46,13 +46,13 @@ namespace Cassandra.OpenTelemetry
         /// <description>db.system that has a harcoded value of `cassandra`.</description>
         /// </item>
         /// <item>
-        /// <description>db.operation that has a harcoded value of `Session Request`.</description>
+        /// <description>db.operation.name that has a harcoded value of `Session Request`.</description>
         /// </item>
         /// <item>
         /// <description>db.name that has the Keyspace value, if set.</description>
         /// </item>
         /// <item>
-        /// <description>db.statement that has the database statement if included in <see cref="CassandraInstrumentationOptions"/>.</description>
+        /// <description>db.query.text that has the database query if included in <see cref="CassandraInstrumentationOptions"/>.</description>
         /// </item>
         /// </list>
         /// </summary>
@@ -65,18 +65,18 @@ namespace Cassandra.OpenTelemetry
             var activity = ActivitySource.StartActivity(activityName, ActivityKind.Client);
 
             activity?.AddTag("db.system", "cassandra");
-            activity?.AddTag("db.operation", sessionOperationName);
+            activity?.AddTag("db.operation.name", sessionOperationName);
 
-            if (activity.IsAllDataRequested)
+            if (activity != null && activity.IsAllDataRequested)
             {
                 if (!string.IsNullOrEmpty(request.Statement?.Keyspace))
                 {
-                    activity.AddTag("db.name", request.Statement.Keyspace);
+                    activity.AddTag("db.namespace", request.Statement.Keyspace);
                 }
 
                 if (_instrumentationOptions.IncludeDatabaseStatement && request.Statement != null)
                 {
-                    activity.AddTag("db.statement", request.Statement.ToString());
+                    activity.AddTag("db.query.text", request.Statement.ToString());
                 }
             }
 
@@ -184,13 +184,13 @@ namespace Cassandra.OpenTelemetry
         /// <description>db.system that has a harcoded value of `cassandra`.</description>
         /// </item>
         /// <item>
-        /// <description>db.operation that has a harcoded value of `Node Request`.</description>
+        /// <description>db.operation.name that has a harcoded value of `Node Request`.</description>
         /// </item>
         /// <item>
         /// <description>db.name that has the Keyspace value, if set.</description>
         /// </item>
         /// <item>
-        /// <description>db.statement that has the database statement if included in <see cref="CassandraInstrumentationOptions"/>.</description>
+        /// <description>db.query.text that has the database query if included in <see cref="CassandraInstrumentationOptions"/>.</description>
         /// </item>
         /// <item>
         /// <description>server.address that has the host address value.</description>
@@ -216,20 +216,20 @@ namespace Cassandra.OpenTelemetry
             var activity = ActivitySource.StartActivity(activityName, ActivityKind.Client, parentActivity.Context);
 
             activity?.AddTag("db.system", "cassandra");
-            activity?.AddTag("db.operation", nodeOperationName);
+            activity?.AddTag("db.operation.name", nodeOperationName);
             activity?.AddTag("server.address", hostInfo.Host?.Address?.Address.ToString());
             activity?.AddTag("server.port", hostInfo.Host?.Address?.Port.ToString());
 
-            if (activity.IsAllDataRequested)
+            if (activity != null && activity.IsAllDataRequested)
             {
                 if (!string.IsNullOrEmpty(request.Statement.Keyspace))
                 {
-                    activity.AddTag("db.name", request.Statement.Keyspace);
+                    activity.AddTag("db.namespace", request.Statement.Keyspace);
                 }
 
                 if (_instrumentationOptions.IncludeDatabaseStatement && request.Statement != null)
                 {
-                    activity.AddTag("db.statement", request.Statement.ToString());
+                    activity.AddTag("db.query.text", request.Statement.ToString());
                 }
             }
 

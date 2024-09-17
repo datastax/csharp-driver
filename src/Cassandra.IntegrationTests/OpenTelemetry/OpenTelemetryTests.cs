@@ -91,7 +91,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             ValidateSessionActivityAttributes(activity);
 
             Assert.AreEqual(expectedActivityName, activity.DisplayName);
-            Assert.AreEqual(expectedDbNameAttribute, activity.Tags.First(kvp => kvp.Key == "db.name").Value);
+            Assert.AreEqual(expectedDbNameAttribute, activity.Tags.First(kvp => kvp.Key == "db.namespace").Value);
         }
 
         [Category(TestCategory.RealCluster)]
@@ -111,7 +111,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             ValidateSessionActivityAttributes(activity);
 
             Assert.AreEqual(SessionActivityName, activity.DisplayName);
-            Assert.IsNull(activity.Tags.FirstOrDefault(kvp => kvp.Key == "db.name").Value);
+            Assert.IsNull(activity.Tags.FirstOrDefault(kvp => kvp.Key == "db.namespace").Value);
         }
 
         [Category(TestCategory.RealCluster)]
@@ -130,7 +130,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
             ValidateSessionActivityAttributes(activity);
 
-            Assert.IsNull(activity.Tags.FirstOrDefault(kvp => kvp.Key == "db.statement").Value);
+            Assert.IsNull(activity.Tags.FirstOrDefault(kvp => kvp.Key == "db.query.text").Value);
         }
 
         [Category(TestCategory.RealCluster)]
@@ -151,7 +151,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
             ValidateSessionActivityAttributes(activity);
 
-            Assert.AreEqual(expectedDbStatement, activity.Tags.First(kvp => kvp.Key == "db.statement").Value);
+            Assert.AreEqual(expectedDbStatement, activity.Tags.First(kvp => kvp.Key == "db.query.text").Value);
         }
 
         [Category(TestCategory.RealCluster)]
@@ -604,7 +604,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             var expectedTags = new Dictionary<string, string>()
             {
                 {"db.system", "cassandra" },
-                {"db.operation", "Session Request" },
+                {"db.operation.name", "Session Request" },
             };
 
             Assert.AreEqual(activity.Kind, expectedActivityKind);
@@ -623,7 +623,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             var expectedTags = new Dictionary<string, string>()
             {
                 {"db.system", "cassandra" },
-                {"db.operation", "Node Request" },
+                {"db.operation.name", "Node Request" },
                 {"server.address", "127.0.0.1" },
                 {"server.port", "9042" },
             };
