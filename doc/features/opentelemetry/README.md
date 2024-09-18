@@ -28,9 +28,9 @@ The table below displays the list of included attributes in this feature:
 
 | Attribute  | Description  | Output Values|
 |---|---|---|
-| db.name | The keyspace name. | *keyspace in use* |
-| db.operation | The type name of the operation being executed. | *Session Request* for session level calls and *Node Request* for node level calls |
-| db.statement | The database statement being executed. Included as [optional configuration](#include-statement-as-an-attribute). | *database statement in use* |
+| db.namespace | The keyspace name. | *keyspace in use* |
+| db.operation.name | The type name of the operation being executed. | *Session Request* for session level calls and *Node Request* for node level calls |
+| db.query.text | The database statement being executed. Included as [optional configuration](#include-statement-as-an-attribute). | *database statement in use* |
 | db.system | An identifier for the database management system (DBMS) product being used. | cassandra |
 | server.address | The host node. | e.g.: 127.0.0.1 |
 | server.port | Port number. | e.g.: 9042 |
@@ -49,9 +49,9 @@ Activity.StartTime:          2024-09-13T14:08:36.9762191Z
 Activity.Duration:           00:00:00.0416284
 Activity.Tags:
     db.system: cassandra
-    db.operation: Session Request
-    db.name: system
-    db.statement: SELECT * FROM system.local
+    db.operation.name: Session Request
+    db.namespace: system
+    db.query.text: SELECT * FROM system.local
 Resource associated with Activity:
     service.name: CassandraDemo
     service.version: 1.0.0
@@ -67,7 +67,7 @@ The instrumentation can be configured to extend the default behavior by using `C
 
 ### Include Statement as an attribute
 
-As mentioned above, the attribute `db.statement` is not included by default in the activity. To change it, set the `CassandraInstrumentationOptions` property `IncludeDatabaseStatement` as *true* when building the cluster:
+As mentioned above, the attribute `db.query.text` is not included by default in the activity. To change it, set the `CassandraInstrumentationOptions` property `IncludeDatabaseStatement` as *true* when building the cluster:
 
 ```csharp
 var cluster = Cluster.Builder()
