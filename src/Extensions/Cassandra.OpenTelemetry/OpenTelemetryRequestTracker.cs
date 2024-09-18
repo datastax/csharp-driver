@@ -49,7 +49,7 @@ namespace Cassandra.OpenTelemetry
         /// <description>db.operation.name that has a harcoded value of `Session Request`.</description>
         /// </item>
         /// <item>
-        /// <description>db.name that has the Keyspace value, if set.</description>
+        /// <description>db.namespace that has the Keyspace value, if set.</description>
         /// </item>
         /// <item>
         /// <description>db.query.text that has the database query if included in <see cref="CassandraInstrumentationOptions"/>.</description>
@@ -187,7 +187,7 @@ namespace Cassandra.OpenTelemetry
         /// <description>db.operation.name that has a harcoded value of `Node Request`.</description>
         /// </item>
         /// <item>
-        /// <description>db.name that has the Keyspace value, if set.</description>
+        /// <description>db.namespace that has the Keyspace value, if set.</description>
         /// </item>
         /// <item>
         /// <description>db.query.text that has the database query if included in <see cref="CassandraInstrumentationOptions"/>.</description>
