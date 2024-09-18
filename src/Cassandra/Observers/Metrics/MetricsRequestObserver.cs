@@ -140,6 +140,13 @@ namespace Cassandra.Observers.Metrics
             }
         }
 
+        public Task OnNodeRequestAbortedAsync(RequestTrackingInfo requestTrackingInfo, HostTrackingInfo hostTrackingInfo)
+        {
+            var nodeMetrics = _manager.GetOrCreateNodeMetrics(hostTrackingInfo.Host);
+            OnRequestError(nodeMetrics.Errors, RequestErrorType.Aborted);
+            return TaskHelper.Completed;
+        }
+
         public Task OnRequestStartAsync(RequestTrackingInfo r)
         {
             if (!_manager.AreSessionTimerMetricsEnabled)

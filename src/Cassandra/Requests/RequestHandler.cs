@@ -283,12 +283,7 @@ namespace Cassandra.Requests
             }
             foreach (var kvp in executions)
             {
-                await _requestObserver
-                      .OnNodeRequestErrorAsync(
-                          RequestError.CreateClientError(new DriverException("Execution aborted because another one already completed."), false),
-                          _requestTrackingInfo,
-                          kvp.Value)
-                      .ConfigureAwait(false);
+                await _requestObserver.OnNodeRequestAbortedAsync(_requestTrackingInfo, kvp.Value).ConfigureAwait(false);
             }
         }
 

@@ -514,8 +514,8 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
                     var validNodeActivity1 = activities.Where(x => x.DisplayName.StartsWith(NodeActivityName)).ElementAt(0);
                     var validNodeActivity2 = activities.Where(x => x.DisplayName.StartsWith(NodeActivityName)).ElementAt(1);
                     var validNodeActivity3 = activities.Where(x => x.DisplayName.StartsWith(NodeActivityName)).ElementAt(2);
-                    var successActivities = activities.Where(x => x.DisplayName.StartsWith(NodeActivityName) && x.Status != ActivityStatusCode.Error);
-                    var abortedActivities = activities.Where(x => x.DisplayName.StartsWith(NodeActivityName) && x.Status == ActivityStatusCode.Error);
+                    var successActivities = activities.Where(x => x.DisplayName.StartsWith(NodeActivityName) && x.Status == ActivityStatusCode.Ok);
+                    var abortedActivities = activities.Where(x => x.DisplayName.StartsWith(NodeActivityName) && x.Status == ActivityStatusCode.Unset);
 
                     Assert.AreEqual(sessionActivity.TraceId, validNodeActivity1.TraceId);
                     Assert.AreEqual(sessionActivity.TraceId, validNodeActivity2.TraceId);

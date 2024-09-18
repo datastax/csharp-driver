@@ -56,6 +56,11 @@ namespace Cassandra.Observers.RequestTracker
             return _requestTracker.OnErrorAsync(r, ex);
         }
 
+        public Task OnNodeRequestAbortedAsync(RequestTrackingInfo requestTrackingInfo, HostTrackingInfo hostTrackingInfo)
+        {
+            return _requestTracker.OnNodeAborted(requestTrackingInfo, hostTrackingInfo);
+        }
+
         public Task OnRequestStartAsync(RequestTrackingInfo r)
         {
             return _requestTracker.OnStartAsync(r);

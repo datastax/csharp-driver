@@ -36,6 +36,8 @@ namespace Cassandra.Observers.Abstractions
 
         Task OnNodeSuccessAsync(RequestTrackingInfo requestTrackingInfo, HostTrackingInfo hostTrackingInfo);
 
+        Task OnNodeRequestAbortedAsync(RequestTrackingInfo requestTrackingInfo, HostTrackingInfo hostTrackingInfo);
+
         Task OnRequestStartAsync(RequestTrackingInfo requestTrackingInfo);
 
         Task OnRequestFailureAsync(Exception ex, RequestTrackingInfo requestTrackingInfo);

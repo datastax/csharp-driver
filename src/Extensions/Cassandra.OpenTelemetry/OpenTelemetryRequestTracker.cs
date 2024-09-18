@@ -110,7 +110,7 @@ namespace Cassandra.OpenTelemetry
             {
                 return Task.CompletedTask;
             }
-
+            activity.SetStatus(ActivityStatusCode.Ok);
             activity.Dispose();
 
             return Task.CompletedTask;
@@ -156,7 +156,7 @@ namespace Cassandra.OpenTelemetry
             {
                 return Task.CompletedTask;
             }
-
+            activity.SetStatus(ActivityStatusCode.Ok);
             activity.Dispose();
 
             return Task.CompletedTask;
@@ -184,6 +184,29 @@ namespace Cassandra.OpenTelemetry
             activity.SetStatus(ActivityStatusCode.Error, ex.Message);
             activity.RecordException(ex);
 
+            activity.Dispose();
+
+            return Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Closes the <see cref="Activity"/> when the node request is aborted (e.g. pending speculative execution).
+        /// </summary>
+        /// <param name="request">Request contextual information.</param>
+        /// <param name="hostInfo">Struct with host contextual information.</param>
+        /// <returns>Completed task.</returns>
+        public Task OnNodeAborted(RequestTrackingInfo request, HostTrackingInfo hostInfo)
+        {
+            var activityKey = $"{OtelActivityKey}.{hostInfo.ExecutionId}";
+
+            request.Items.TryRemove(activityKey, out var context);
+
+            if (!(context is Activity activity))
+            {
+                return Task.CompletedTask;
+            }
+
+            activity.SetStatus(ActivityStatusCode.Unset);
             activity.Dispose();
 
             return Task.CompletedTask;

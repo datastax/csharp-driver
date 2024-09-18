@@ -62,6 +62,12 @@ namespace Cassandra.Observers.Composite
             await _o2.OnRequestSuccessAsync(r).ConfigureAwait(false);
         }
 
+        public async Task OnNodeRequestAbortedAsync(RequestTrackingInfo requestTrackingInfo, HostTrackingInfo hostTrackingInfo)
+        {
+            await _o1.OnNodeRequestAbortedAsync(requestTrackingInfo, hostTrackingInfo).ConfigureAwait(false);
+            await _o2.OnNodeRequestAbortedAsync(requestTrackingInfo, hostTrackingInfo).ConfigureAwait(false);
+        }
+
         public async Task OnRequestStartAsync(RequestTrackingInfo requestTrackingInfo)
         {
             await _o1.OnRequestStartAsync(requestTrackingInfo).ConfigureAwait(false);
