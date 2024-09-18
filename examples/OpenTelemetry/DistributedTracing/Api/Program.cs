@@ -32,7 +32,7 @@ namespace Api
                 var cassandraBuilder = Cluster.Builder()
                     .AddContactPoint(CassandraContactPoint)
                     .WithPort(CassandraPort)
-                    .AddOpenTelemetryInstrumentation(opts => opts.IncludeDatabaseStatement = true);
+                    .WithOpenTelemetryInstrumentation(opts => opts.IncludeDatabaseStatement = true);
                 return cassandraBuilder.Build();
             });
             builder.Services.AddSingleton<ISession>(provider =>

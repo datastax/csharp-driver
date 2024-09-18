@@ -45,7 +45,7 @@ namespace ConsoleExporter
             var cluster = Cluster.Builder()
                 .AddContactPoint(Program.ContactPoint)
                 .WithSessionName(Program.SessionName)
-                .AddOpenTelemetryInstrumentation(options => options.IncludeDatabaseStatement = true)
+                .WithOpenTelemetryInstrumentation(options => options.IncludeDatabaseStatement = true)
                 .Build();
 
             var session = await cluster.ConnectAsync().ConfigureAwait(false);
