@@ -33,8 +33,8 @@ namespace Cassandra.OpenTelemetry
         private readonly CassandraInstrumentationOptions _instrumentationOptions;
         private const string OtelActivityKey = "otel_activity";
         private const string OtelStmtKey = "otel_statement_string";
-        private const string SessionOperationName = "SessionRequest";
-        private const string NodeOperationName = "NodeRequest";
+        private const string SessionOperationName = "Session_Request";
+        private const string NodeOperationName = "Node_Request";
 
         /// <summary>
         /// Request Tracker implementation that implements OpenTelemetry instrumentation.
@@ -259,12 +259,12 @@ namespace Cassandra.OpenTelemetry
 
         private string GetSessionOperationName(RequestTrackingInfo request)
         {
-            return $"{SessionOperationName}_{request.Statement?.GetType().Name}";
+            return $"{SessionOperationName}({request.Statement?.GetType().Name})";
         }
 
         private string GetNodeOperationName(RequestTrackingInfo request)
         {
-            return $"{NodeOperationName}_{request.Statement?.GetType().Name}";
+            return $"{NodeOperationName}({request.Statement?.GetType().Name})";
         }
 
         private string GetActivityName(string operationName, RequestTrackingInfo request)

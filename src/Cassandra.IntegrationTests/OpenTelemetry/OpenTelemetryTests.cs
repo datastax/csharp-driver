@@ -40,9 +40,9 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
     {
         private const string OpenTelemetrySourceName = "Cassandra.OpenTelemetry";
 
-        private const string SessionActivityName = "SessionRequest";
+        private const string SessionActivityName = "Session_Request";
 
-        private const string NodeActivityName = "NodeRequest";
+        private const string NodeActivityName = "Node_Request";
 
         private readonly CopyOnReadList<Activity> _exportedActivities = new CopyOnReadList<Activity>();
 
@@ -75,7 +75,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
         public void AddOpenTelemetry_WithKeyspaceAvailable_DbOperationAndDbNameAreIncluded()
         {
             var keyspace = "system";
-            var expectedActivityName = $"{SessionActivityName}_{nameof(SimpleStatement)} {keyspace}";
+            var expectedActivityName = $"{SessionActivityName}({nameof(SimpleStatement)}) {keyspace}";
             var expectedDbNameAttribute = keyspace;
             var cluster = GetNewTemporaryCluster(b => b.WithOpenTelemetryInstrumentation());
             var session = cluster.Connect();
@@ -110,7 +110,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
             ValidateSessionActivityAttributes(activity, typeof(SimpleStatement));
 
-            Assert.AreEqual($"{SessionActivityName}_{nameof(SimpleStatement)}", activity.DisplayName);
+            Assert.AreEqual($"{SessionActivityName}({nameof(SimpleStatement)})", activity.DisplayName);
             Assert.IsNull(activity.Tags.FirstOrDefault(kvp => kvp.Key == "db.namespace").Value);
         }
 
@@ -261,8 +261,8 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
             mapper.InsertIfNotExists(songOne, testProfile, true, null);
 
-            RetryUntilActivities(localDateTime, $"{SessionActivityName}_{nameof(BoundStatement)} {keyspace}", 1);
-            RetryUntilActivities(localDateTime, $"{NodeActivityName}_{nameof(BoundStatement)} {keyspace}", 1);
+            RetryUntilActivities(localDateTime, $"{SessionActivityName}({nameof(BoundStatement)}) {keyspace}", 1);
+            RetryUntilActivities(localDateTime, $"{NodeActivityName}({nameof(BoundStatement)}) {keyspace}", 1);
 
             var syncActivities = GetActivities(localDateTime);
             var syncSessionActivity = syncActivities.First(x => x.DisplayName.StartsWith(SessionActivityName));
@@ -617,8 +617,8 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             batch.Insert(songTwo);
             await mapper.ExecuteAsync(batch).ConfigureAwait(false);
 
-            RetryUntilActivities(localDateTime, $"{SessionActivityName}_{nameof(BatchStatement)} {keyspace}", 1);
-            RetryUntilActivities(localDateTime, $"{NodeActivityName}_{nameof(BatchStatement)} {keyspace}", 1);
+            RetryUntilActivities(localDateTime, $"{SessionActivityName}({nameof(BatchStatement)}) {keyspace}", 1);
+            RetryUntilActivities(localDateTime, $"{NodeActivityName}({nameof(BatchStatement)}) {keyspace}", 1);
 
             var syncActivities = GetActivities(localDateTime);
             var syncSessionActivity = syncActivities.First(x => x.DisplayName.StartsWith(SessionActivityName));
@@ -742,7 +742,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             var expectedTags = new Dictionary<string, string>()
             {
                 {"db.system", "cassandra" },
-                {"db.operation.name", $"SessionRequest_{statementType.Name}" },
+                {"db.operation.name", $"Session_Request({statementType.Name})" },
             };
 
             Assert.AreEqual(activity.Kind, expectedActivityKind);
@@ -761,7 +761,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             var expectedTags = new Dictionary<string, string>()
             {
                 {"db.system", "cassandra" },
-                {"db.operation.name", $"NodeRequest_{statementType.Name}" },
+                {"db.operation.name", $"Node_Request({statementType.Name})" },
                 {"server.address", "127.0.0.1" },
                 {"server.port", "9042" },
             };
