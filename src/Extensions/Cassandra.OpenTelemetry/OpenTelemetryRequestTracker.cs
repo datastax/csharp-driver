@@ -33,8 +33,8 @@ namespace Cassandra.OpenTelemetry
         private readonly CassandraInstrumentationOptions _instrumentationOptions;
         private const string OtelActivityKey = "otel_activity";
         private const string OtelStmtKey = "otel_statement_string";
-        private const string SessionOperationName = "Session Request";
-        private const string NodeOperationName = "Node Request";
+        private const string SessionOperationName = "SessionRequest";
+        private const string NodeOperationName = "NodeRequest";
 
         /// <summary>
         /// Request Tracker implementation that implements OpenTelemetry instrumentation.
@@ -65,9 +65,9 @@ namespace Cassandra.OpenTelemetry
         /// <returns>Activity task.</returns>
         public virtual Task OnStartAsync(RequestTrackingInfo request)
         {
-            var activityName = !string.IsNullOrEmpty(request.Statement?.Keyspace) ? $"{SessionOperationName} {request.Statement.Keyspace}" : SessionOperationName;
+            var operationName = GetSessionOperationName(request);
 
-            var activity = ActivitySource.StartActivity(activityName, ActivityKind.Client);
+            var activity = ActivitySource.StartActivity(GetActivityName(operationName, request), ActivityKind.Client);
 
             if (activity == null)
             {
@@ -75,7 +75,7 @@ namespace Cassandra.OpenTelemetry
             }
 
             activity.AddTag("db.system", "cassandra");
-            activity.AddTag("db.operation.name", $"{SessionOperationName} - {request.Statement?.GetType().Name}");
+            activity.AddTag("db.operation.name", operationName);
 
             if (activity.IsAllDataRequested)
             {
@@ -222,9 +222,9 @@ namespace Cassandra.OpenTelemetry
                 return Task.CompletedTask;
             }
 
-            var activityName = !string.IsNullOrEmpty(request.Statement?.Keyspace) ? $"{NodeOperationName} {request.Statement.Keyspace}" : NodeOperationName;
+            var operationName = GetNodeOperationName(request);
 
-            var activity = ActivitySource.StartActivity(activityName, ActivityKind.Client, parentActivity.Context);
+            var activity = ActivitySource.StartActivity(GetActivityName(operationName, request), ActivityKind.Client, parentActivity.Context);
 
             if (activity == null)
             {
@@ -232,7 +232,7 @@ namespace Cassandra.OpenTelemetry
             }
 
             activity.AddTag("db.system", "cassandra");
-            activity.AddTag("db.operation.name", $"{NodeOperationName} - {request.Statement?.GetType().Name}");
+            activity.AddTag("db.operation.name", operationName);
             activity.AddTag("server.address", hostInfo.Host?.Address?.Address.ToString());
             activity.AddTag("server.port", hostInfo.Host?.Address?.Port.ToString());
 
@@ -255,6 +255,21 @@ namespace Cassandra.OpenTelemetry
             request.Items.TryAdd($"{OtelActivityKey}.{hostInfo.ExecutionId}", activity);
 
             return Task.CompletedTask;
+        }
+
+        private string GetSessionOperationName(RequestTrackingInfo request)
+        {
+            return $"{SessionOperationName}_{request.Statement?.GetType().Name}";
+        }
+
+        private string GetNodeOperationName(RequestTrackingInfo request)
+        {
+            return $"{NodeOperationName}_{request.Statement?.GetType().Name}";
+        }
+
+        private string GetActivityName(string operationName, RequestTrackingInfo request)
+        {
+            return string.IsNullOrEmpty(request.Statement?.Keyspace) ? $"{operationName}" : $"{operationName} {request.Statement.Keyspace}";
         }
 
         private string GetStatementString(IStatement statement)
