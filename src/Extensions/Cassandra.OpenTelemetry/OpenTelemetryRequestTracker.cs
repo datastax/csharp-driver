@@ -23,7 +23,7 @@ namespace Cassandra.OpenTelemetry
 {
     /// <summary>
     /// OpenTelemetry request tracker implementation that includes tracing capabilities and follow
-    /// the Trace Semantic Conventions v1.24.0.
+    /// the Trace Semantic Conventions v1.27.0.
     /// https://opentelemetry.io/docs/specs/semconv/database/database-spans/
     /// https://opentelemetry.io/docs/specs/semconv/database/cassandra/
     /// </summary>
@@ -36,6 +36,9 @@ namespace Cassandra.OpenTelemetry
         private const string SessionOperationName = "Session Request";
         private const string NodeOperationName = "Node Request";
 
+        /// <summary>
+        /// Request Tracker implementation that implements OpenTelemetry instrumentation.
+        /// </summary>
         public OpenTelemetryRequestTracker(CassandraInstrumentationOptions instrumentationOptions)
         {
             _instrumentationOptions = instrumentationOptions;
@@ -209,7 +212,6 @@ namespace Cassandra.OpenTelemetry
         /// </item>
         /// </list>
         /// </summary>
-        /// <param name="request">Request contextual information.</param>
         /// <returns>Activity task.</returns>
         public virtual Task OnNodeStartAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo)
         {

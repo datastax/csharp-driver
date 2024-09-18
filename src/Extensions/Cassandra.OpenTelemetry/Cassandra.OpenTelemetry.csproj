@@ -1,9 +1,25 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <Description>This package builds on the DataStax Enterprise C# driver and DataStax C# Driver for Apache Cassandra, adding OpenTelemetry instrumentation.</Description>
+    <Copyright>Copyright © by DataStax</Copyright>
+    <AssemblyVersion>3.99.0.0</AssemblyVersion>
+    <FileVersion>3.21.0.0</FileVersion>
+    <VersionPrefix>3.21.0</VersionPrefix>
+    <Authors>DataStax</Authors>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <SignAssembly>True</SignAssembly>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <AssemblyName>Cassandra.OpenTelemetry</AssemblyName>
+    <Product>DataStax C# Drivers OpenTelemetry Extension</Product>
     <AssemblyOriginatorKeyFile>../../../build/datastax.snk</AssemblyOriginatorKeyFile>
+    <SignAssembly>True</SignAssembly>
+    <PackageId>CassandraCSharpDriver.OpenTelemetry</PackageId>
+    <Title>DataStax C# Drivers OpenTelemetry Extension</Title>
+    <PackageTags>cassandra;apache;datastax;dse;driver;client;opentelemetry;tracing;instrumentation;nosql;dotnet;netcore;db</PackageTags>
+    <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
+    <RepositoryUrl>https://github.com/datastax/csharp-driver</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/datastax/csharp-driver</PackageProjectUrl>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,6 +29,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Cassandra\Cassandra.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\..\LICENSE.md" Pack="true" PackagePath="LICENSE.md"/>
   </ItemGroup>
 
 </Project>

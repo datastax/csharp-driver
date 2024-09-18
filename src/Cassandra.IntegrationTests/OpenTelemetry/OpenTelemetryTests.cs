@@ -77,7 +77,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             var keyspace = "system";
             var expectedActivityName = $"{SessionActivityName} {keyspace}";
             var expectedDbNameAttribute = keyspace;
-            var cluster = GetNewTemporaryCluster(b => b.AddOpenTelemetryInstrumentation());
+            var cluster = GetNewTemporaryCluster(b => b.WithOpenTelemetryInstrumentation());
             var session = cluster.Connect();
 
             var statement = new SimpleStatement("SELECT key FROM system.local");
@@ -98,7 +98,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
         [Test]
         public void AddOpenTelemetry_WithoutKeyspace_DbNameIsNotIncluded()
         {
-            var cluster = GetNewTemporaryCluster(b => b.AddOpenTelemetryInstrumentation());
+            var cluster = GetNewTemporaryCluster(b => b.WithOpenTelemetryInstrumentation());
             var session = cluster.Connect();
 
             var statement = new SimpleStatement("SELECT key FROM system.local");
@@ -118,7 +118,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
         [Test]
         public void AddOpenTelemetry_WithDefaultOptions_DbStatementIsNotIncludedAsAttribute()
         {
-            var cluster = GetNewTemporaryCluster(b => b.AddOpenTelemetryInstrumentation());
+            var cluster = GetNewTemporaryCluster(b => b.WithOpenTelemetryInstrumentation());
             var session = cluster.Connect();
 
             var statement = new SimpleStatement("SELECT key FROM system.local");
@@ -139,7 +139,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
         {
             var expectedDbStatement = "SELECT key FROM system.local";
 
-            var cluster = GetNewTemporaryCluster(b => b.AddOpenTelemetryInstrumentation(options => options.IncludeDatabaseStatement = true));
+            var cluster = GetNewTemporaryCluster(b => b.WithOpenTelemetryInstrumentation(options => options.IncludeDatabaseStatement = true));
             var session = cluster.Connect();
 
             var statement = new SimpleStatement("SELECT key FROM system.local");
@@ -159,7 +159,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
         public async Task AddOpenTelemetry_ExecuteAndExecuteAsync_SessionRequestIsParentOfNodeRequest()
         {
             var localDateTime = DateTime.UtcNow;
-            var cluster = GetNewTemporaryCluster(b => b.AddOpenTelemetryInstrumentation(opt => opt.IncludeDatabaseStatement = true));
+            var cluster = GetNewTemporaryCluster(b => b.WithOpenTelemetryInstrumentation(opt => opt.IncludeDatabaseStatement = true));
             var session = cluster.Connect();
 
             var statement = new SimpleStatement("SELECT key FROM system.local");
@@ -209,7 +209,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             var keyspace = TestUtils.GetUniqueKeyspaceName().ToLowerInvariant();
 
             var cluster = GetNewTemporaryCluster(b => b
-                .AddOpenTelemetryInstrumentation(opt => opt.IncludeDatabaseStatement = true)
+                .WithOpenTelemetryInstrumentation(opt => opt.IncludeDatabaseStatement = true)
                 .WithExecutionProfiles(opts => opts
                                   .WithProfile(testProfile, profile => profile
                                       .WithConsistencyLevel(ConsistencyLevel.One))));
@@ -287,7 +287,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             var keyspace = TestUtils.GetUniqueKeyspaceName().ToLowerInvariant();
 
             var cluster = GetNewTemporaryCluster(b => b
-                .AddOpenTelemetryInstrumentation());
+                .WithOpenTelemetryInstrumentation());
 
             var session = cluster.Connect();
 
@@ -337,7 +337,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
             using (var _ = _internalActivitySource.StartActivity(firstMethodName, ActivityKind.Internal))
             {
-                var cluster = GetNewTemporaryCluster(b => b.AddOpenTelemetryInstrumentation());
+                var cluster = GetNewTemporaryCluster(b => b.WithOpenTelemetryInstrumentation());
                 var session = cluster.Connect();
 
                 var keyspace = TestUtils.GetUniqueKeyspaceName().ToLowerInvariant();
@@ -382,7 +382,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
             using (var _ = _internalActivitySource.StartActivity(firstMethodName, ActivityKind.Internal))
             {
-                var cluster = GetNewTemporaryCluster(b => b.AddOpenTelemetryInstrumentation());
+                var cluster = GetNewTemporaryCluster(b => b.WithOpenTelemetryInstrumentation());
                 var session = await cluster.ConnectAsync().ConfigureAwait(false);
 
                 var keyspace = TestUtils.GetUniqueKeyspaceName().ToLowerInvariant();
@@ -437,7 +437,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
                                                         .SetReadTimeoutMillis(5000))
                                      .WithLoadBalancingPolicy(loadBalancingPolicy)
                                      .WithRetryPolicy(TryNextHostRetryPolicy.Instance)
-                                     .AddOpenTelemetryInstrumentation();
+                                     .WithOpenTelemetryInstrumentation();
 
                 using (var cluster = builder.Build())
                 {
@@ -477,7 +477,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
         {
             using (var activity = _internalActivitySource.StartActivity("Paging", ActivityKind.Internal))
             {
-                var session = GetNewTemporaryCluster(b => b.AddOpenTelemetryInstrumentation()).Connect();
+                var session = GetNewTemporaryCluster(b => b.WithOpenTelemetryInstrumentation()).Connect();
 
                 session.CreateKeyspaceIfNotExists(KeyspaceName, null, false);
 
@@ -519,7 +519,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             var keyspace = TestUtils.GetUniqueKeyspaceName().ToLowerInvariant();
 
             var cluster = GetNewTemporaryCluster(b => b
-                .AddOpenTelemetryInstrumentation(opt => opt.IncludeDatabaseStatement = true));
+                .WithOpenTelemetryInstrumentation(opt => opt.IncludeDatabaseStatement = true));
 
             var session = cluster.Connect();
 
