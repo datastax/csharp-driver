@@ -24,9 +24,9 @@ namespace Cassandra.Tests
     [TestFixture]
     public class OpenTelemetryTests
     {
-        private static readonly string otelActivityKey = "otel_activity";
-        private static readonly string dbNamespaceTag = "db.namespace";
-        private static readonly string dbQueryTextTag = "db.query.text";
+        private const string OtelActivityKey = "otel_activity";
+        private const string DbNamespaceTag = "db.namespace";
+        private const string DbQueryTextTag = "db.query.text";
 
         [Test]
         public void OpenTelemetryRequestTrackerOnStartAsync_StatementIsNull_DbQueryTextAndDbNamespaceTagsAreNotIncluded()
@@ -46,13 +46,13 @@ namespace Cassandra.Tests
 
                 requestTracker.OnStartAsync(requestTrackingInfo);
 
-                requestTrackingInfo.Items.TryGetValue(otelActivityKey, out object context);
+                requestTrackingInfo.Items.TryGetValue(OtelActivityKey, out object context);
 
                 var activity = context as Activity;
 
                 Assert.NotNull(activity);
-                Assert.Null(activity.Tags.FirstOrDefault(x => x.Key == dbNamespaceTag).Value);
-                Assert.Null(activity.Tags.FirstOrDefault(x => x.Key == dbQueryTextTag).Value);
+                Assert.Null(activity.Tags.FirstOrDefault(x => x.Key == DbNamespaceTag).Value);
+                Assert.Null(activity.Tags.FirstOrDefault(x => x.Key == DbQueryTextTag).Value);
             }
         }
 
@@ -74,7 +74,7 @@ namespace Cassandra.Tests
 
                 requestTracker.OnStartAsync(requestTrackingInfo);
 
-                requestTrackingInfo.Items.TryGetValue(otelActivityKey, out object context);
+                requestTrackingInfo.Items.TryGetValue(OtelActivityKey, out object context);
 
                 var activity = context as Activity;
 
@@ -105,13 +105,13 @@ namespace Cassandra.Tests
                 requestTracker.OnStartAsync(requestTrackingInfo);
                 requestTracker.OnNodeStartAsync(requestTrackingInfo, hostTrackingInfo);
 
-                requestTrackingInfo.Items.TryGetValue($"{otelActivityKey}.{host.HostId}", out object context);
+                requestTrackingInfo.Items.TryGetValue($"{OtelActivityKey}.{host.HostId}", out object context);
 
                 var activity = context as Activity;
 
                 Assert.NotNull(activity);
-                Assert.Null(activity.Tags.FirstOrDefault(x => x.Key == dbNamespaceTag).Value);
-                Assert.Null(activity.Tags.FirstOrDefault(x => x.Key == dbQueryTextTag).Value);
+                Assert.Null(activity.Tags.FirstOrDefault(x => x.Key == DbNamespaceTag).Value);
+                Assert.Null(activity.Tags.FirstOrDefault(x => x.Key == DbQueryTextTag).Value);
             }
         }
 
@@ -138,7 +138,7 @@ namespace Cassandra.Tests
                 requestTracker.OnStartAsync(requestTrackingInfo);
                 requestTracker.OnNodeStartAsync(requestTrackingInfo, hostTrackingInfo);
 
-                requestTrackingInfo.Items.TryGetValue($"{otelActivityKey}.{host.HostId}", out object context);
+                requestTrackingInfo.Items.TryGetValue($"{OtelActivityKey}.{host.HostId}", out object context);
 
                 var activity = context as Activity;
 

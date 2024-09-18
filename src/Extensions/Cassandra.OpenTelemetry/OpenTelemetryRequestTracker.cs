@@ -72,7 +72,7 @@ namespace Cassandra.OpenTelemetry
             }
 
             activity.AddTag("db.system", "cassandra");
-            activity.AddTag("db.operation", $"{SessionOperationName} - {request.Statement?.GetType().Name}");
+            activity.AddTag("db.operation.name", $"{SessionOperationName} - {request.Statement?.GetType().Name}");
 
             if (activity.IsAllDataRequested)
             {

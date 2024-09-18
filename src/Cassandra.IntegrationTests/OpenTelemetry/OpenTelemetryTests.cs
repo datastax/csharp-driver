@@ -17,7 +17,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Data;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
@@ -198,8 +197,8 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
             ValidateSessionActivityAttributes(syncSessionActivity, typeof(SimpleStatement));
             ValidateNodeActivityAttributes(syncNodeActivity, typeof(SimpleStatement));
-            Assert.Contains(new KeyValuePair<string, string>("db.statement", "SELECT key FROM system.local"), syncSessionActivity.Tags.ToArray());
-            Assert.Contains(new KeyValuePair<string, string>("db.statement", "SELECT key FROM system.local"), syncNodeActivity.Tags.ToArray());
+            Assert.Contains(new KeyValuePair<string, string>("db.query.text", "SELECT key FROM system.local"), syncSessionActivity.Tags.ToArray());
+            Assert.Contains(new KeyValuePair<string, string>("db.query.text", "SELECT key FROM system.local"), syncNodeActivity.Tags.ToArray());
         }
 
         [Category(TestCategory.RealCluster)]
@@ -276,9 +275,9 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             ValidateSessionActivityAttributes(syncSessionActivity, typeof(BoundStatement));
             ValidateNodeActivityAttributes(syncNodeActivity, typeof(BoundStatement));
             Assert.Contains(new KeyValuePair<string, string>(
-                "db.statement", $"INSERT INTO {keyspace}.song (Artist, Id, ReleaseDate, Title) VALUES (?, ?, ?, ?) IF NOT EXISTS"), syncSessionActivity.Tags.ToArray());
+                "db.query.text", $"INSERT INTO {keyspace}.song (Artist, Id, ReleaseDate, Title) VALUES (?, ?, ?, ?) IF NOT EXISTS"), syncSessionActivity.Tags.ToArray());
             Assert.Contains(new KeyValuePair<string, string>(
-                "db.statement", $"INSERT INTO {keyspace}.song (Artist, Id, ReleaseDate, Title) VALUES (?, ?, ?, ?) IF NOT EXISTS"), syncNodeActivity.Tags.ToArray());
+                "db.query.text", $"INSERT INTO {keyspace}.song (Artist, Id, ReleaseDate, Title) VALUES (?, ?, ?, ?) IF NOT EXISTS"), syncNodeActivity.Tags.ToArray());
         }
 
         [Category(TestCategory.RealCluster)]
@@ -574,8 +573,8 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             var expectedStatement =
                 $"INSERT INTO {keyspace}.song (Artist, Id, ReleaseDate, Title) VALUES (?, ?, ?, ?); " +
                 $"INSERT INTO {keyspace}.song (Artist, Id, ReleaseDate, Title) VALUES (?, ?, ?, ?)";
-            Assert.Contains(new KeyValuePair<string, string>("db.statement", expectedStatement), syncSessionActivity.Tags.ToArray());
-            Assert.Contains(new KeyValuePair<string, string>("db.statement", expectedStatement), syncNodeActivity.Tags.ToArray());
+            Assert.Contains(new KeyValuePair<string, string>("db.query.text", expectedStatement), syncSessionActivity.Tags.ToArray());
+            Assert.Contains(new KeyValuePair<string, string>("db.query.text", expectedStatement), syncNodeActivity.Tags.ToArray());
         }
 
         private async Task SimpleStatementMethodAsync(ISession session)
