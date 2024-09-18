@@ -15,6 +15,7 @@
 //
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -54,6 +55,10 @@ namespace Cassandra.Requests
         public ISerializer Serializer { get; }
         public IStatement Statement { get; }
         public IRequestOptions RequestOptions { get; }
+
+        private readonly Dictionary<Guid, HostTrackingInfo> _nodeExecutions = new Dictionary<Guid, HostTrackingInfo>(1);
+        private readonly object _nodeExecutionLock = new object();
+        private bool _nodeExecutionsCleared = false;
 
         /// <summary>
         /// Creates a new instance using a request, the statement and the execution profile.
@@ -116,6 +121,28 @@ namespace Cassandra.Requests
         public IRequest BuildRequest()
         {
             return RequestHandler.GetRequest(Statement, Serializer, RequestOptions);
+        }
+
+        public bool OnNewNodeExecution(HostTrackingInfo hostInfo)
+        {
+            lock (_nodeExecutionLock)
+            {
+                if (!_nodeExecutionsCleared && !_nodeExecutions.ContainsKey(hostInfo.ExecutionId))
+                {
+                    _nodeExecutions[hostInfo.ExecutionId] = hostInfo;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public bool SetNodeExecutionCompleted(Guid executionId)
+        {
+            lock (_nodeExecutionLock)
+            {
+                return _nodeExecutions.Remove(executionId);
+            }
         }
 
         /// <summary>
@@ -197,6 +224,7 @@ namespace Cassandra.Requests
             {
                 return false;
             }
+
             //Cancel the current timer
             //When the next execution timer is being scheduled at the *same time*
             //the timer is not going to be cancelled, in that case, this instance is going to stay alive a little longer
@@ -218,17 +246,50 @@ namespace Cassandra.Requests
                     try
                     {
                         await action().ConfigureAwait(false);
-                        await _requestResultHandler.TrySetResultAsync(result, _requestTrackingInfo).ConfigureAwait(false);
                     }
                     catch (Exception actionEx)
                     {
+                        await ClearNodeExecutionsAsync().ConfigureAwait(false);
                         await _requestResultHandler.TrySetExceptionAsync(actionEx, _requestTrackingInfo).ConfigureAwait(false);
+                        return;
                     }
+
+                    await ClearNodeExecutionsAsync().ConfigureAwait(false);
+                    await _requestResultHandler.TrySetResultAsync(result, _requestTrackingInfo).ConfigureAwait(false);
                 }, CancellationToken.None).Forget();
                 return true;
             }
+
+            await ClearNodeExecutionsAsync().ConfigureAwait(false);
             await _requestResultHandler.TrySetResultAsync(result, _requestTrackingInfo).ConfigureAwait(false);
             return true;
+        }
+
+        private async Task ClearNodeExecutionsAsync()
+        {
+            IEnumerable<KeyValuePair<Guid, HostTrackingInfo>> executions;
+            lock (_nodeExecutionLock)
+            {
+                if (_nodeExecutions.Count > 0)
+                {
+                    executions = _nodeExecutions.ToArray();
+                    _nodeExecutions.Clear();
+                }
+                else
+                {
+                    executions = Enumerable.Empty<KeyValuePair<Guid, HostTrackingInfo>>();
+                }
+                _nodeExecutionsCleared = true;
+            }
+            foreach (var kvp in executions)
+            {
+                await _requestObserver
+                      .OnNodeRequestErrorAsync(
+                          RequestError.CreateClientError(new DriverException("Execution aborted because another one already completed."), false),
+                          _requestTrackingInfo,
+                          kvp.Value)
+                      .ConfigureAwait(false);
+            }
         }
 
         public Task SetNoMoreHostsAsync(NoHostAvailableException ex, IRequestExecution execution)
@@ -394,7 +455,7 @@ namespace Cassandra.Requests
             try
             {
                 var execution = _session.Cluster.Configuration.RequestExecutionFactory.Create(this, _session, _request, _requestObserver, _requestTrackingInfo);
-                var lastHost = await execution.StartAsync(false).ConfigureAwait(false);
+                var lastHost = execution.Start(false);
                 _running.Add(execution);
                 ScheduleNext(lastHost);
             }

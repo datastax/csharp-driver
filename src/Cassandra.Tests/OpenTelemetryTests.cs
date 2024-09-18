@@ -14,8 +14,10 @@
 //   limitations under the License.
 //
 
+using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading.Tasks;
 using Cassandra.OpenTelemetry;
 using NUnit.Framework;
 
@@ -100,7 +102,7 @@ namespace Cassandra.Tests
                 var requestTrackingInfo = new RequestTrackingInfo(statement);
 
                 var host = new Host(new System.Net.IPEndPoint(1, 9042), new ConstantReconnectionPolicy(1));
-                var hostTrackingInfo = new HostTrackingInfo() { Host = host };
+                var hostTrackingInfo = new HostTrackingInfo(host, Guid.NewGuid());
 
                 requestTracker.OnStartAsync(requestTrackingInfo);
                 requestTracker.OnNodeStartAsync(requestTrackingInfo, hostTrackingInfo);
@@ -133,7 +135,7 @@ namespace Cassandra.Tests
                 var requestTrackingInfo = new RequestTrackingInfo(statement);
                 
                 var host = new Host(new System.Net.IPEndPoint(1, 9042), new ConstantReconnectionPolicy(1));
-                var hostTrackingInfo = new HostTrackingInfo() { Host = host };
+                var hostTrackingInfo = new HostTrackingInfo(host, Guid.NewGuid());
 
                 requestTracker.OnStartAsync(requestTrackingInfo);
                 requestTracker.OnNodeStartAsync(requestTrackingInfo, hostTrackingInfo);

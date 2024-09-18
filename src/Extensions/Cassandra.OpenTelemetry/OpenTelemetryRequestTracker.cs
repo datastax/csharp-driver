@@ -104,12 +104,14 @@ namespace Cassandra.OpenTelemetry
         /// <returns>Completed task.</returns>
         public virtual Task OnSuccessAsync(RequestTrackingInfo request)
         {
-            request.Items.TryGetValue(OtelActivityKey, out object context);
+            request.Items.TryRemove(OtelActivityKey, out var context);
 
-            if (context is Activity activity)
+            if (!(context is Activity activity))
             {
-                activity.Dispose();
+                return Task.CompletedTask;
             }
+
+            activity.Dispose();
 
             return Task.CompletedTask;
         }
@@ -123,7 +125,7 @@ namespace Cassandra.OpenTelemetry
         /// <returns>Completed task.</returns>
         public virtual Task OnErrorAsync(RequestTrackingInfo request, Exception ex)
         {
-            request.Items.TryGetValue(OtelActivityKey, out object context);
+            request.Items.TryRemove(OtelActivityKey, out var context);
 
             if (!(context is Activity activity))
             {
@@ -146,16 +148,16 @@ namespace Cassandra.OpenTelemetry
         /// <returns>Completed task.</returns>
         public virtual Task OnNodeSuccessAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo)
         {
-            var activityKey = $"{OtelActivityKey}.{hostInfo.Host?.HostId}";
+            var activityKey = $"{OtelActivityKey}.{hostInfo.ExecutionId}";
 
-            request.Items.TryGetValue(activityKey, out var context);
+            request.Items.TryRemove(activityKey, out var context);
 
-            if (context is Activity activity)
+            if (!(context is Activity activity))
             {
-                activity.Dispose();
+                return Task.CompletedTask;
             }
 
-            request.Items.TryRemove(activityKey, out _);
+            activity.Dispose();
 
             return Task.CompletedTask;
         }
@@ -170,9 +172,9 @@ namespace Cassandra.OpenTelemetry
         /// <returns>Completed task.</returns>
         public virtual Task OnNodeErrorAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo, Exception ex)
         {
-            var activityKey = $"{OtelActivityKey}.{hostInfo.Host?.HostId}";
+            var activityKey = $"{OtelActivityKey}.{hostInfo.ExecutionId}";
             
-            request.Items.TryGetValue(activityKey, out var context);
+            request.Items.TryRemove(activityKey, out var context);
 
             if (!(context is Activity activity))
             {
@@ -183,8 +185,6 @@ namespace Cassandra.OpenTelemetry
             activity.RecordException(ex);
 
             activity.Dispose();
-
-            request.Items.TryRemove(activityKey, out _);
 
             return Task.CompletedTask;
         }
@@ -215,7 +215,7 @@ namespace Cassandra.OpenTelemetry
         /// <returns>Activity task.</returns>
         public virtual Task OnNodeStartAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo)
         {
-            request.Items.TryGetValue(OtelActivityKey, out object sessionContext);
+            request.Items.TryGetValue(OtelActivityKey, out var sessionContext);
 
             if (!(sessionContext is Activity parentActivity))
             {
@@ -236,7 +236,7 @@ namespace Cassandra.OpenTelemetry
             activity.AddTag("server.address", hostInfo.Host?.Address?.Address.ToString());
             activity.AddTag("server.port", hostInfo.Host?.Address?.Port.ToString());
 
-            if (activity != null && activity.IsAllDataRequested)
+            if (activity.IsAllDataRequested)
             {
                 if (!string.IsNullOrEmpty(request.Statement?.Keyspace))
                 {
@@ -245,13 +245,14 @@ namespace Cassandra.OpenTelemetry
 
                 if (_instrumentationOptions.IncludeDatabaseStatement && request.Statement != null)
                 {
-                    var stmt = GetStatementString(request.Statement);
-                    activity.AddTag("db.query.text", stmt);
-                    request.Items.TryAdd(OtelStmtKey, stmt);
+                    if (request.Items.TryGetValue(OtelStmtKey, out var stmt))
+                    {
+                        activity.AddTag("db.query.text", stmt);
+                    }
                 }
             }
 
-            request.Items.TryAdd($"{OtelActivityKey}.{hostInfo.Host?.HostId}", activity);
+            request.Items.TryAdd($"{OtelActivityKey}.{hostInfo.ExecutionId}", activity);
 
             return Task.CompletedTask;
         }

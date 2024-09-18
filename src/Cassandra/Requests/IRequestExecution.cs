@@ -14,8 +14,6 @@
 //   limitations under the License.
 //
 
-using System.Threading.Tasks;
-
 namespace Cassandra.Requests
 {
     internal interface IRequestExecution
@@ -32,6 +30,6 @@ namespace Cassandra.Requests
         /// <returns>Host chosen to which a connection will be obtained first.
         /// The actual host that will be queried might be different if a connection is not successfully obtained.
         /// In this scenario, the next host will be chosen according to the query plan.</returns>
-        Task<Host> StartAsync(bool currentHostRetry);
+        Host Start(bool currentHostRetry);
     }
 }

@@ -472,6 +472,67 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
         }
 
         [Test]
+        public void AddOpenTelemetry_WithSpeculativeExecutionOnSameNode_ShouldProduceValidActivities()
+        {
+            using (var simulacronCluster = SimulacronCluster.CreateNew(3))
+            {
+                var contactPoint = simulacronCluster.InitialContactPoint;
+                var nodes = simulacronCluster.GetNodes().ToArray();
+                var loadBalancingPolicy = new CustomLoadBalancingPolicy(nodes.Select(n => n.ContactPoint).ToArray());
+
+                var builder = ClusterBuilder()
+                                     .AddContactPoint(contactPoint)
+                                     .WithSocketOptions(new SocketOptions()
+                                                        .SetConnectTimeoutMillis(10000)
+                                                        .SetReadTimeoutMillis(5000))
+                                     .WithLoadBalancingPolicy(loadBalancingPolicy)
+                                     .WithSpeculativeExecutionPolicy(new ConstantSpeculativeExecutionPolicy(500, 2))
+                                     .WithOpenTelemetryInstrumentation();
+
+                using (var cluster = builder.Build())
+                {
+                    var session = (Session)cluster.Connect();
+                    const string cql = "select * from table2";
+
+                    nodes[0].PrimeFluent(
+                        b => b.WhenQuery(cql).
+                               ThenRowsSuccess(new[] { ("text", DataType.Ascii) }, rows => rows.WithRow("test1").WithRow("test2"))
+                               .WithDelayInMs(5000));
+                    nodes[1].PrimeFluent(
+                        b => b.WhenQuery(cql).
+                               ThenRowsSuccess(new[] { ("text", DataType.Ascii) }, rows => rows.WithRow("test1").WithRow("test2"))
+                               .WithDelayInMs(5000));
+                    nodes[2].PrimeFluent(
+                        b => b.WhenQuery(cql).
+                               ThenRowsSuccess(new[] { ("text", DataType.Ascii) }, rows => rows.WithRow("test1").WithRow("test2")));
+
+                    session.Execute(new SimpleStatement(cql).SetConsistencyLevel(ConsistencyLevel.One).SetIdempotence(true));
+
+                    RetryUntilActivities(_testStartDateTime, SessionActivityName, 1);
+                    RetryUntilActivities(_testStartDateTime, NodeActivityName, 3);
+                    var activities = GetActivities(_testStartDateTime);
+                    var sessionActivity = activities.First(x => x.DisplayName.StartsWith(SessionActivityName));
+                    var validNodeActivity1 = activities.Where(x => x.DisplayName.StartsWith(NodeActivityName)).ElementAt(0);
+                    var validNodeActivity2 = activities.Where(x => x.DisplayName.StartsWith(NodeActivityName)).ElementAt(1);
+                    var validNodeActivity3 = activities.Where(x => x.DisplayName.StartsWith(NodeActivityName)).ElementAt(2);
+                    var successActivities = activities.Where(x => x.DisplayName.StartsWith(NodeActivityName) && x.Status != ActivityStatusCode.Error);
+                    var abortedActivities = activities.Where(x => x.DisplayName.StartsWith(NodeActivityName) && x.Status == ActivityStatusCode.Error);
+
+                    Assert.AreEqual(sessionActivity.TraceId, validNodeActivity1.TraceId);
+                    Assert.AreEqual(sessionActivity.TraceId, validNodeActivity2.TraceId);
+                    Assert.AreEqual(sessionActivity.TraceId, validNodeActivity3.TraceId);
+                    Assert.AreEqual(sessionActivity.SpanId, validNodeActivity1.ParentSpanId);
+                    Assert.AreEqual(sessionActivity.SpanId, validNodeActivity2.ParentSpanId);
+                    Assert.AreEqual(sessionActivity.SpanId, validNodeActivity3.ParentSpanId);
+                    Assert.AreEqual(1, successActivities.Count());
+                    Assert.AreEqual(2, abortedActivities.Count());
+                    Assert.True(successActivities.First().StartTimeUtc > abortedActivities.ElementAt(0).StartTimeUtc);
+                    Assert.True(successActivities.First().StartTimeUtc > abortedActivities.ElementAt(1).StartTimeUtc);
+                }
+            }
+        }
+
+        [Test]
         [Category(TestCategory.RealCluster)]
         public void AddOpenTelemetry_WithPaginationOnQuery_ShouldMultipleSpansForTheSameTraceId()
         {

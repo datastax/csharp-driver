@@ -16,7 +16,7 @@
 
 using System;
 using System.Threading.Tasks;
-
+using Cassandra.Connections;
 using Cassandra.Observers.Abstractions;
 using Cassandra.Requests;
 
@@ -34,14 +34,20 @@ namespace Cassandra.Observers.Composite
         }
 
         public async Task OnNodeRequestErrorAsync(
-            Host host,
             RequestErrorType errorType,
             RetryDecision.RetryDecisionType decision,
-            RequestTrackingInfo r,
+            RequestTrackingInfo r, 
+            HostTrackingInfo hostTrackingInfo,
             Exception ex)
         {
-            await _o1.OnNodeRequestErrorAsync(host, errorType, decision, r, ex).ConfigureAwait(false);
-            await _o2.OnNodeRequestErrorAsync(host, errorType, decision, r, ex).ConfigureAwait(false);
+            await _o1.OnNodeRequestErrorAsync(errorType, decision, r, hostTrackingInfo, ex).ConfigureAwait(false);
+            await _o2.OnNodeRequestErrorAsync(errorType, decision, r, hostTrackingInfo, ex).ConfigureAwait(false);
+        }
+
+        public async Task OnNodeRequestErrorAsync(IRequestError error, RequestTrackingInfo r, HostTrackingInfo hostTrackingInfo)
+        {
+            await _o1.OnNodeRequestErrorAsync(error, r, hostTrackingInfo).ConfigureAwait(false);
+            await _o2.OnNodeRequestErrorAsync(error, r, hostTrackingInfo).ConfigureAwait(false);
         }
 
         public async Task OnRequestFailureAsync(Exception ex, RequestTrackingInfo r)
@@ -68,16 +74,16 @@ namespace Cassandra.Observers.Composite
             _o2.OnSpeculativeExecution(host, delay);
         }
 
-        public async Task OnNodeStartAsync(Host host, RequestTrackingInfo requestTrackingInfo)
+        public async Task OnNodeStartAsync(RequestTrackingInfo requestTrackingInfo, HostTrackingInfo hostTrackingInfo)
         {
-            await _o1.OnNodeStartAsync(host, requestTrackingInfo).ConfigureAwait(false);
-            await _o2.OnNodeStartAsync(host, requestTrackingInfo).ConfigureAwait(false);
+            await _o1.OnNodeStartAsync(requestTrackingInfo, hostTrackingInfo).ConfigureAwait(false);
+            await _o2.OnNodeStartAsync(requestTrackingInfo, hostTrackingInfo).ConfigureAwait(false);
         }
 
-        public async Task OnNodeSuccessAsync(Host host, RequestTrackingInfo requestTrackingInfo)
+        public async Task OnNodeSuccessAsync(RequestTrackingInfo requestTrackingInfo, HostTrackingInfo hostTrackingInfo)
         {
-            await _o1.OnNodeSuccessAsync(host, requestTrackingInfo).ConfigureAwait(false);
-            await _o2.OnNodeSuccessAsync(host, requestTrackingInfo).ConfigureAwait(false);
+            await _o1.OnNodeSuccessAsync(requestTrackingInfo, hostTrackingInfo).ConfigureAwait(false);
+            await _o2.OnNodeSuccessAsync(requestTrackingInfo, hostTrackingInfo).ConfigureAwait(false);
         }
     }
 }

@@ -16,6 +16,7 @@
 
 using System;
 using System.Threading.Tasks;
+using Cassandra.Connections;
 using Cassandra.Observers.Abstractions;
 using Cassandra.Requests;
 
@@ -31,15 +32,18 @@ namespace Cassandra.Observers.RequestTracker
         }
 
         public Task OnNodeRequestErrorAsync(
-            Host host,
             RequestErrorType errorType,
             RetryDecision.RetryDecisionType decision,
-            RequestTrackingInfo r,
+            RequestTrackingInfo r, 
+            HostTrackingInfo hostTrackingInfo,
             Exception ex)
         {
-            var hostInfo = new HostTrackingInfo { Host = host };
-            
-            return _requestTracker.OnNodeErrorAsync(r, hostInfo, ex);
+            return _requestTracker.OnNodeErrorAsync(r, hostTrackingInfo, ex);
+        }
+
+        public Task OnNodeRequestErrorAsync(IRequestError error, RequestTrackingInfo r, HostTrackingInfo hostTrackingInfo)
+        {
+            return _requestTracker.OnNodeErrorAsync(r, hostTrackingInfo, error.Exception);
         }
 
         public Task OnRequestSuccessAsync(RequestTrackingInfo r)
@@ -61,18 +65,14 @@ namespace Cassandra.Observers.RequestTracker
         {
         }
 
-        public Task OnNodeStartAsync(Host host, RequestTrackingInfo requestTrackingInfo)
+        public Task OnNodeStartAsync(RequestTrackingInfo requestTrackingInfo, HostTrackingInfo hostTrackingInfo)
         {
-            var hostInfo = new HostTrackingInfo { Host = host };
-
-            return _requestTracker.OnNodeStartAsync(requestTrackingInfo, hostInfo);
+            return _requestTracker.OnNodeStartAsync(requestTrackingInfo, hostTrackingInfo);
         }
 
-        public Task OnNodeSuccessAsync(Host host, RequestTrackingInfo requestTrackingInfo)
+        public Task OnNodeSuccessAsync(RequestTrackingInfo requestTrackingInfo, HostTrackingInfo hostTrackingInfo)
         {
-            var hostInfo = new HostTrackingInfo { Host = host };
-
-            return _requestTracker.OnNodeSuccessAsync(requestTrackingInfo, hostInfo);
+            return _requestTracker.OnNodeSuccessAsync(requestTrackingInfo, hostTrackingInfo);
         }
     }
 }

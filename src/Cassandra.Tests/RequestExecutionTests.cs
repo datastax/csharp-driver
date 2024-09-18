@@ -60,7 +60,7 @@ namespace Cassandra.Tests
                 .Throws(new NoHostAvailableException(new Dictionary<IPEndPoint, Exception>()));
             var sut = new RequestExecution(mockRequestExecution, mockSession, mockRequest, NullRequestObserver.Instance, requestTrackingInfo);
 
-            Assert.ThrowsAsync<NoHostAvailableException>(() => sut.StartAsync(currentHostRetry));
+            Assert.Throws<NoHostAvailableException>(() => sut.Start(currentHostRetry));
         }
 
         [Test, TestCase(true), TestCase(false)]
@@ -97,7 +97,7 @@ namespace Cassandra.Tests
                 .Throws(new NoHostAvailableException(new Dictionary<IPEndPoint, Exception>()));
             var sut = new RequestExecution(mockRequestExecution, mockSession, mockRequest, NullRequestObserver.Instance, requestTrackingInfo);
 
-            sut.StartAsync(currentHostRetry).GetAwaiter().GetResult();
+            sut.Start(currentHostRetry);
         }
 
         [Test, TestCase(true), TestCase(false)]
@@ -140,7 +140,7 @@ namespace Cassandra.Tests
                 .Returns(config.DefaultRequestOptions);
             var sut = new RequestExecution(mockParent, mockSession, mockRequest, NullRequestObserver.Instance, requestTrackingInfo);
 
-            sut.StartAsync(currentHostRetry).GetAwaiter().GetResult();
+            sut.Start(currentHostRetry);
             TestHelper.RetryAssert(
                 () =>
                 {
@@ -221,7 +221,7 @@ namespace Cassandra.Tests
                 .Returns(config.DefaultRequestOptions);
 
             var sut = new RequestExecution(mockParent, mockSession, mockRequest, NullRequestObserver.Instance, requestTrackingInfo);
-            sut.StartAsync(false).GetAwaiter().GetResult();
+            sut.Start(false);
 
             // Validate request is sent
             TestHelper.RetryAssert(

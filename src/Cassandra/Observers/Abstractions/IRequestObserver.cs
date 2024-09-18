@@ -16,6 +16,7 @@
 
 using System;
 using System.Threading.Tasks;
+using Cassandra.Connections;
 using Cassandra.Requests;
 
 namespace Cassandra.Observers.Abstractions
@@ -27,11 +28,13 @@ namespace Cassandra.Observers.Abstractions
     {
         void OnSpeculativeExecution(Host host, long delay);
 
-        Task OnNodeStartAsync(Host host, RequestTrackingInfo requestTrackingInfo);
+        Task OnNodeStartAsync(RequestTrackingInfo requestTrackingInfo, HostTrackingInfo hostTrackingInfo);
 
-        Task OnNodeRequestErrorAsync(Host host, RequestErrorType errorType, RetryDecision.RetryDecisionType decision, RequestTrackingInfo r, Exception ex);
+        Task OnNodeRequestErrorAsync(RequestErrorType errorType, RetryDecision.RetryDecisionType decision, RequestTrackingInfo r, HostTrackingInfo hostTrackingInfo, Exception ex);
 
-        Task OnNodeSuccessAsync(Host host, RequestTrackingInfo requestTrackingInfo);
+        Task OnNodeRequestErrorAsync(IRequestError error, RequestTrackingInfo r, HostTrackingInfo hostTrackingInfo);
+
+        Task OnNodeSuccessAsync(RequestTrackingInfo requestTrackingInfo, HostTrackingInfo hostTrackingInfo);
 
         Task OnRequestStartAsync(RequestTrackingInfo requestTrackingInfo);
 

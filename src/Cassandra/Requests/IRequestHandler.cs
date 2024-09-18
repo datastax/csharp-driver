@@ -94,5 +94,9 @@ namespace Cassandra.Requests
         /// Builds the Request to send to a cassandra node based on the statement type
         /// </summary>
         IRequest BuildRequest();
+
+        bool OnNewNodeExecution(HostTrackingInfo hostInfo);
+
+        bool SetNodeExecutionCompleted(Guid executionId);
     }
 }

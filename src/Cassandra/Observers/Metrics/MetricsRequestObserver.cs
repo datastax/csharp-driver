@@ -18,6 +18,7 @@ using System;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
+using Cassandra.Connections;
 using Cassandra.Metrics.Abstractions;
 using Cassandra.Metrics.Internal;
 using Cassandra.Metrics.Registries;
@@ -47,9 +48,9 @@ namespace Cassandra.Observers.Metrics
             _manager.GetOrCreateNodeMetrics(host).SpeculativeExecutions.Increment(1);
         }
 
-        public Task OnNodeRequestErrorAsync(Host host, RequestErrorType errorType, RetryDecision.RetryDecisionType decision, RequestTrackingInfo r, Exception ex)
+        public Task OnNodeRequestErrorAsync(RequestErrorType errorType, RetryDecision.RetryDecisionType decision, RequestTrackingInfo r, HostTrackingInfo hostInfo, Exception ex)
         {
-            var nodeMetrics = _manager.GetOrCreateNodeMetrics(host);
+            var nodeMetrics = _manager.GetOrCreateNodeMetrics(hostInfo.Host);
             OnRequestError(nodeMetrics.Errors, errorType);
             switch (decision)
             {
@@ -62,6 +63,14 @@ namespace Cassandra.Observers.Metrics
                     break;
             }
 
+            return TaskHelper.Completed;
+        }
+
+        public Task OnNodeRequestErrorAsync(IRequestError error, RequestTrackingInfo r, HostTrackingInfo hostTrackingInfo)
+        {
+            var nodeMetrics = _manager.GetOrCreateNodeMetrics(hostTrackingInfo.Host);
+            var errorType = RequestExecution.GetErrorType(error);
+            OnRequestError(nodeMetrics.Errors, errorType);
             return TaskHelper.Completed;
         }
 
@@ -184,12 +193,12 @@ namespace Cassandra.Observers.Metrics
             Logger.Warning("An error occured while recording metrics for a request. Exception = {0}", ex.ToString());
         }
 
-        public Task OnNodeStartAsync(Host host, RequestTrackingInfo requestTrackingInfo)
+        public Task OnNodeStartAsync(RequestTrackingInfo requestTrackingInfo, HostTrackingInfo hostInfo)
         {
             return TaskHelper.Completed;
         }
 
-        public Task OnNodeSuccessAsync(Host host, RequestTrackingInfo requestTrackingInfo)
+        public Task OnNodeSuccessAsync(RequestTrackingInfo requestTrackingInfo, HostTrackingInfo hostInfo)
         {
             return TaskHelper.Completed;
         }
