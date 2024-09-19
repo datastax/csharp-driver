@@ -39,7 +39,6 @@ namespace Client
                             if (forecastResponse.IsSuccessStatusCode)
                             {
                                 var content = await forecastResponse.Content.ReadAsStringAsync(cts.Token).ConfigureAwait(false);
-                                //var forecast = JsonSerializer.DeserializeAsync<WeatherForecast>(content).ConfigureAwait(false);
                                 await Console.Out.WriteLineAsync("TraceId: " + Activity.Current?.TraceId + Environment.NewLine + content + Environment.NewLine).ConfigureAwait(false);
                             }
                         }

@@ -13,3 +13,4 @@ The full API doc is available [here](https://docs.datastax.com/en/drivers/csharp
 - **OnNodeStartAsync** - that is triggered when the node request starts
 - **OnNodeSuccessAsync** - that is triggered when the node level request finishes successfully.
 - **OnNodeErrorAsync** - that is triggered when the node request finishes unsuccessfully.
+- **OnNodeAbortedAsync** - that is triggered when the node request is aborted (e.g. pending speculative execution).
