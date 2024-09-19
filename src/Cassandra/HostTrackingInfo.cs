@@ -18,7 +18,7 @@ using System;
 
 namespace Cassandra
 {
-    public struct HostTrackingInfo : IEquatable<HostTrackingInfo>
+    public class HostTrackingInfo : IEquatable<HostTrackingInfo>
     {
         public Host Host { get; }
 
@@ -32,11 +32,16 @@ namespace Cassandra
 
         public bool Equals(HostTrackingInfo other)
         {
-            return other.ExecutionId.Equals(ExecutionId);
+            return other != null && other.ExecutionId.Equals(ExecutionId);
         }
 
         public static bool operator ==(HostTrackingInfo a, HostTrackingInfo b)
         {
+            if (a == null)
+            {
+                return b == null;
+            }
+
             return a.Equals(b);
         }
 
