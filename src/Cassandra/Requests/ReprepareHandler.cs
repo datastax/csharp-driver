@@ -113,11 +113,11 @@ namespace Cassandra.Requests
             SemaphoreSlim sem,
             bool throwException)
         {
-            HostTrackingInfo? hostInfo = null;
+            HostTrackingInfo hostInfo = null;
             if (observer != null)
             {
                 hostInfo = new HostTrackingInfo(poolKvp.Key, Guid.NewGuid());
-                await observer.OnNodeStartAsync(requestTrackingInfo, hostInfo.Value).ConfigureAwait(false);
+                await observer.OnNodeStartAsync(requestTrackingInfo, hostInfo).ConfigureAwait(false);
             }
 
             try
@@ -130,7 +130,7 @@ namespace Cassandra.Requests
                     await connection.Send(request).ConfigureAwait(false);
                     if (observer != null)
                     {
-                        await observer.OnNodeSuccessAsync(requestTrackingInfo, hostInfo.Value).ConfigureAwait(false);
+                        await observer.OnNodeSuccessAsync(requestTrackingInfo, hostInfo).ConfigureAwait(false);
                     }
                     return;
                 }
@@ -148,7 +148,7 @@ namespace Cassandra.Requests
                         await observer.OnNodeRequestErrorAsync(
                             RequestError.CreateServerError(ex),
                             requestTrackingInfo,
-                            hostInfo.Value).ConfigureAwait(false);
+                            hostInfo).ConfigureAwait(false);
                     }
                     return;
                 }
@@ -163,7 +163,7 @@ namespace Cassandra.Requests
                     await observer.OnNodeRequestErrorAsync(
                         RequestError.CreateClientError(new DriverInternalError($"Could not obtain an existing connection to prepare query on {poolKvp.Key}."), false),
                         requestTrackingInfo,
-                        hostInfo.Value).ConfigureAwait(false);
+                        hostInfo).ConfigureAwait(false);
                 }
             }
             catch (Exception ex)
@@ -173,7 +173,7 @@ namespace Cassandra.Requests
                     await observer.OnNodeRequestErrorAsync(
                         RequestError.CreateServerError(ex), 
                         requestTrackingInfo, 
-                        hostInfo.Value).ConfigureAwait(false);
+                        hostInfo).ConfigureAwait(false);
                 }
                 LogOrThrow(
                     throwException,
