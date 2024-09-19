@@ -15,21 +15,37 @@
 //
 
 using System.Collections.Concurrent;
+using Cassandra.Requests;
 
 namespace Cassandra
 {
-    public class RequestTrackingInfo
+    /// <summary>
+    /// Class used to hold data that is passed to implementations of <see cref="IRequestTracker"/>.
+    /// Either <see cref="Statement"/> or <see cref="PrepareRequest"/> will be set, never both.
+    /// </summary>
+    public sealed class RequestTrackingInfo
     {
-        private readonly IStatement _statement;
-
-        public RequestTrackingInfo(IStatement statement)
+        internal RequestTrackingInfo(IStatement statement)
         {
-            this._statement = statement;
-            this.Items = new ConcurrentDictionary<string, object>();
+            Statement = statement;
         }
 
-        public ConcurrentDictionary<string, object> Items { get; }
+        internal RequestTrackingInfo(InternalPrepareRequest prepareRequest)
+        {
+            PrepareRequest = new PrepareRequest(prepareRequest.Query, prepareRequest.Keyspace);
+        }
 
-        public IStatement Statement => _statement;
+        public ConcurrentDictionary<string, object> Items { get; } = new ConcurrentDictionary<string, object>();
+
+        /// <summary>
+        /// If this request is associated with a <see cref="IStatement"/> object, then this property is set.
+        /// </summary>
+        public IStatement Statement { get; }
+
+        /// <summary>
+        /// If this request is a PREPARE request, then this property is set.
+        /// </summary>
+        public PrepareRequest PrepareRequest { get; }
+        
     }
 }

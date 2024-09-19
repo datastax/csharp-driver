@@ -240,11 +240,11 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             await mapper.InsertIfNotExistsAsync(songOne, testProfile, true, null)
                 .ContinueWith(t =>
                 {
-                    RetryUntilActivities(localDateTime, SessionActivityName, 1, displayNameStartsWith: true);
-                    RetryUntilActivities(localDateTime, NodeActivityName, 1, displayNameStartsWith: true);
+                    RetryUntilActivities(localDateTime, $"{SessionActivityName}({nameof(BoundStatement)}) {keyspace}", 1);
+                    RetryUntilActivities(localDateTime, $"{NodeActivityName}({nameof(BoundStatement)}) {keyspace}", 1);
                     var activities = GetActivities(localDateTime);
-                    var sessionActivity = activities.First(x => x.DisplayName.StartsWith(SessionActivityName));
-                    var nodeActivity = activities.First(x => x.DisplayName.StartsWith(NodeActivityName));
+                    var sessionActivity = activities.First(x => x.DisplayName == $"{SessionActivityName}({nameof(BoundStatement)}) {keyspace}");
+                    var nodeActivity = activities.First(x => x.DisplayName == $"{NodeActivityName}({nameof(BoundStatement)}) {keyspace}");
 
                     Assert.IsNull(sessionActivity.ParentId);
                     Assert.AreEqual(sessionActivity.TraceId, nodeActivity.TraceId);
@@ -313,12 +313,12 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
             table.Insert(song).Execute();
 
-            RetryUntilActivities(_testStartDateTime, SessionActivityName, 1, displayNameStartsWith: true);
-            RetryUntilActivities(_testStartDateTime, NodeActivityName,  1, displayNameStartsWith: true);
+            RetryUntilActivities(_testStartDateTime, $"{SessionActivityName}({nameof(BoundStatement)}) {keyspace}", 1);
+            RetryUntilActivities(_testStartDateTime, $"{NodeActivityName}({nameof(BoundStatement)}) {keyspace}",  1);
             var syncActivities = GetActivities(_testStartDateTime);
 
-            var syncSessionActivity = syncActivities.First(x => x.DisplayName.StartsWith(SessionActivityName));
-            var syncNodeActivity = syncActivities.First(x => x.DisplayName.StartsWith(NodeActivityName));
+            var syncSessionActivity = syncActivities.First(x => x.DisplayName == $"{SessionActivityName}({nameof(BoundStatement)}) {keyspace}");
+            var syncNodeActivity = syncActivities.First(x => x.DisplayName == $"{NodeActivityName}({nameof(BoundStatement)}) {keyspace}");
 
             Assert.IsNull(syncSessionActivity.ParentId);
             Assert.AreEqual(syncSessionActivity.TraceId, syncNodeActivity.TraceId);
@@ -352,7 +352,9 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
                 SecondMethod(secondMethodName);
             }
 
-            RetryUntilActivities(_testStartDateTime, SessionActivityName, 7);  // simple + 2xlinq(prepare+bound) + 2xmapper(prepare+bound) + create + change
+            var prepareCount = 2 * this.AmountOfNodes; // 2 * because Mapper + LINQ, AmountOfNodes because PREPARE goes to every node by default
+
+            RetryUntilActivities(_testStartDateTime, SessionActivityName, 7 + prepareCount); // create + change keyspace + simple + 2xlinq(create+bound) + 2xmapper(create+bound) + PREPAREs
             RetryUntilActivities(_testStartDateTime, secondMethodName, 1);
             RetryUntilActivities(_testStartDateTime, firstMethodName, 1);
             var activities = GetActivities(_testStartDateTime).ToList();
@@ -361,7 +363,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             var secondMethodActivity = activities.First(x => x.DisplayName == secondMethodName);
             var sessionActivities = activities.Where(x => x.DisplayName.StartsWith(SessionActivityName)).ToList();
 
-            Assert.AreEqual(7, sessionActivities.Count);  // simple + 2xlinq(prepare+bound) + 2xmapper(prepare+bound) + create + change
+            Assert.AreEqual(7 + prepareCount, sessionActivities.Count); // create + change keyspace + simple + 2xlinq(create+bound) + 2xmapper(create+bound) + PREPAREs
 
             sessionActivities.ForEach(act =>
             {
@@ -396,7 +398,9 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
                 SecondMethod(secondMethodName);
             }
 
-            RetryUntilActivities(_testStartDateTime, SessionActivityName, 7); // simple + 2xlinq(prepare+bound) + 2xmapper(prepare+bound) + create + change
+            var prepareCount = 2 * this.AmountOfNodes; // 2 * because Mapper + LINQ, AmountOfNodes because PREPARE goes to every node by default
+
+            RetryUntilActivities(_testStartDateTime, SessionActivityName, 7 + prepareCount); // create + change keyspace + simple + 2xlinq(create+bound) + 2xmapper(create+bound) + PREPAREs
             RetryUntilActivities(_testStartDateTime, secondMethodName, 1);
             RetryUntilActivities(_testStartDateTime, firstMethodName, 1);
             var activities = GetActivities(_testStartDateTime).ToList();
@@ -405,7 +409,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             var secondMethodActivity = activities.First(x => x.DisplayName == secondMethodName);
             var sessionActivities = activities.Where(x => x.DisplayName.StartsWith(SessionActivityName)).ToList();
 
-            Assert.AreEqual(7, sessionActivities.Count); // simple + 2xlinq(prepare+bound) + 2xmapper(prepare+bound) + create + change
+            Assert.AreEqual(7 + prepareCount, sessionActivities.Count); // create + change keyspace + simple + 3xlinq(create+prepare+bound) + 3xmapper(create+prepare+bound)
 
             sessionActivities.ForEach(act =>
             {
@@ -621,8 +625,8 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             RetryUntilActivities(localDateTime, $"{NodeActivityName}({nameof(BatchStatement)}) {keyspace}", 1);
 
             var syncActivities = GetActivities(localDateTime);
-            var syncSessionActivity = syncActivities.First(x => x.DisplayName.StartsWith(SessionActivityName));
-            var syncNodeActivity = syncActivities.First(x => x.DisplayName.StartsWith(NodeActivityName));
+            var syncSessionActivity = syncActivities.First(x => x.DisplayName == $"{SessionActivityName}({nameof(BatchStatement)}) {keyspace}");
+            var syncNodeActivity = syncActivities.First(x => x.DisplayName == $"{NodeActivityName}({nameof(BatchStatement)}) {keyspace}");
 
             Assert.IsNull(syncSessionActivity.ParentId);
             Assert.AreEqual(syncSessionActivity.TraceId, syncNodeActivity.TraceId);
@@ -635,6 +639,81 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
                 $"INSERT INTO {keyspace}.song (Artist, Id, ReleaseDate, Title) VALUES (?, ?, ?, ?)";
             Assert.Contains(new KeyValuePair<string, string>("db.query.text", expectedStatement), syncSessionActivity.Tags.ToArray());
             Assert.Contains(new KeyValuePair<string, string>("db.query.text", expectedStatement), syncNodeActivity.Tags.ToArray());
+        }
+
+        [Category(TestCategory.RealCluster)]
+        [Test]
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task AddOpenTelemetry_Mapper_ExpectedPrepareActivities(bool prepareOnAllHosts)
+        {
+            var keyspace = TestUtils.GetUniqueKeyspaceName().ToLowerInvariant();
+
+            var cluster = GetNewTemporaryCluster(b => b
+                .WithOpenTelemetryInstrumentation(opt => opt.IncludeDatabaseStatement = true)
+                .WithQueryOptions(new QueryOptions().SetPrepareOnAllHosts(prepareOnAllHosts)));
+
+            var session = cluster.Connect();
+
+            session.CreateKeyspaceIfNotExists(keyspace);
+
+            session.ChangeKeyspace(keyspace);
+
+            CreateSongTable(session);
+
+            Task.Delay(100).GetAwaiter().GetResult();
+
+            var localDateTime = DateTime.UtcNow;
+
+            var mapper = new Mapper(session, new MappingConfiguration()
+                .Define(new Map<Song>().PartitionKey(s => s.Id).TableName("song").KeyspaceName(keyspace)));
+
+            var songOne = new Song
+            {
+                Id = Guid.NewGuid(),
+                Artist = "Led Zeppelin",
+                Title = "Mothership",
+                ReleaseDate = DateTimeOffset.UtcNow
+            };
+
+            await mapper.InsertAsync(songOne).ConfigureAwait(false);
+
+            RetryUntilActivities(localDateTime, $"{SessionActivityName}({nameof(BoundStatement)}) {keyspace}", 1);
+            RetryUntilActivities(localDateTime, $"{NodeActivityName}({nameof(BoundStatement)}) {keyspace}", 1);
+            RetryUntilActivities(localDateTime, $"{SessionActivityName}({nameof(PrepareRequest)})", prepareOnAllHosts ? AmountOfNodes : 1);
+            RetryUntilActivities(localDateTime, $"{NodeActivityName}({nameof(PrepareRequest)})", prepareOnAllHosts ? AmountOfNodes : 1);
+
+            var allActivities = GetActivities(localDateTime).ToList();
+            var boundStmtSessionActivity = allActivities.Single(x => x.DisplayName == $"{SessionActivityName}({nameof(BoundStatement)}) {keyspace}");
+            var boundStmtNodeActivity = allActivities.Single(x => x.DisplayName == $"{NodeActivityName}({nameof(BoundStatement)}) {keyspace}");
+            var prepareStmtSessionActivities = allActivities.Where(x => x.DisplayName == $"{SessionActivityName}({nameof(PrepareRequest)})").ToList();
+            var prepareStmtNodeActivities = allActivities.Where(x => x.DisplayName == $"{NodeActivityName}({nameof(PrepareRequest)})").ToList();
+
+            Assert.IsNull(boundStmtSessionActivity.ParentId);
+            Assert.AreEqual(boundStmtSessionActivity.TraceId, boundStmtNodeActivity.TraceId);
+            Assert.AreEqual(boundStmtSessionActivity.SpanId, boundStmtNodeActivity.ParentSpanId);
+
+            var expectedStatement = $"INSERT INTO {keyspace}.song (Artist, Id, ReleaseDate, Title) VALUES (?, ?, ?, ?)";
+
+            ValidateSessionActivityAttributes(boundStmtSessionActivity, typeof(BoundStatement));
+            ValidateNodeActivityAttributes(boundStmtNodeActivity, typeof(BoundStatement));
+            Assert.Contains(new KeyValuePair<string, string>("db.query.text", expectedStatement), boundStmtSessionActivity.Tags.ToArray());
+            Assert.Contains(new KeyValuePair<string, string>("db.query.text", expectedStatement), boundStmtNodeActivity.Tags.ToArray());
+
+            foreach (var prepareStmtSessionActivity in prepareStmtSessionActivities)
+            {
+                ValidateSessionActivityAttributes(prepareStmtSessionActivity, typeof(PrepareRequest));
+                Assert.Contains(new KeyValuePair<string, string>("db.query.text", expectedStatement), prepareStmtSessionActivity.Tags.ToArray());
+            }
+
+            foreach (var prepareStmtNodeActivity in prepareStmtNodeActivities)
+            {
+                ValidateNodeActivityAttributes(prepareStmtNodeActivity, typeof(PrepareRequest));
+                Assert.Contains(new KeyValuePair<string, string>("db.query.text", expectedStatement), prepareStmtNodeActivity.Tags.ToArray());
+                Assert.IsNotNull(prepareStmtNodeActivity.ParentId);
+                var parentActivity = prepareStmtSessionActivities.Single(a => a.SpanId == prepareStmtNodeActivity.ParentSpanId);
+                ValidateSessionActivityAttributes(parentActivity, typeof(PrepareRequest));
+            }
         }
 
         private async Task SimpleStatementMethodAsync(ISession session)

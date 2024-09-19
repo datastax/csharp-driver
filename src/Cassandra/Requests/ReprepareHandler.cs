@@ -21,6 +21,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Connections;
+using Cassandra.Observers.Abstractions;
 using Cassandra.SessionManagement;
 
 namespace Cassandra.Requests
@@ -29,7 +30,7 @@ namespace Cassandra.Requests
     {
         /// <inheritdoc />
         public async Task ReprepareOnAllNodesWithExistingConnections(
-            IInternalSession session, PrepareRequest request, PrepareResult prepareResult)
+            IInternalSession session, InternalPrepareRequest request, PrepareResult prepareResult, IRequestObserver observer, RequestTrackingInfo requestTrackingInfo)
         {
             var pools = session.GetPools();
             var hosts = session.InternalCluster.AllHosts();
@@ -97,10 +98,28 @@ namespace Cassandra.Requests
             }
         }
 
-        /// <inheritdoc />
-        public async Task ReprepareOnSingleNodeAsync(
+        public Task ReprepareOnSingleNodeAsync(
             KeyValuePair<Host, IHostConnectionPool> poolKvp, PreparedStatement ps, IRequest request, SemaphoreSlim sem, bool throwException)
         {
+            return ReprepareOnSingleNodeAsync(null, null, poolKvp, ps, request, sem, throwException);
+        }
+
+        public async Task ReprepareOnSingleNodeAsync(
+            IRequestObserver observer,
+            RequestTrackingInfo requestTrackingInfo,
+            KeyValuePair<Host, IHostConnectionPool> poolKvp,
+            PreparedStatement ps,
+            IRequest request,
+            SemaphoreSlim sem,
+            bool throwException)
+        {
+            HostTrackingInfo? hostInfo = null;
+            if (observer != null)
+            {
+                hostInfo = new HostTrackingInfo(poolKvp.Key, Guid.NewGuid());
+                await observer.OnNodeStartAsync(requestTrackingInfo, hostInfo.Value).ConfigureAwait(false);
+            }
+
             try
             {
                 var triedHosts = new Dictionary<IPEndPoint, Exception>();
@@ -109,33 +128,58 @@ namespace Cassandra.Requests
                 if (connection != null)
                 {
                     await connection.Send(request).ConfigureAwait(false);
+                    if (observer != null)
+                    {
+                        await observer.OnNodeSuccessAsync(requestTrackingInfo, hostInfo.Value).ConfigureAwait(false);
+                    }
                     return;
                 }
 
                 if (triedHosts.TryGetValue(poolKvp.Key.Address, out var ex))
                 {
                     LogOrThrow(
-                        throwException, 
-                        ex, 
-                        $"An error occured while attempting to prepare query on {{0}}:{Environment.NewLine}{{1}}", 
-                        poolKvp.Key, 
+                        throwException,
+                        ex,
+                        $"An error occured while attempting to prepare query on {{0}}:{Environment.NewLine}{{1}}",
+                        poolKvp.Key,
                         ex);
+                    if (observer != null)
+                    {
+                        await observer.OnNodeRequestErrorAsync(
+                            RequestError.CreateServerError(ex),
+                            requestTrackingInfo,
+                            hostInfo.Value).ConfigureAwait(false);
+                    }
                     return;
                 }
-                
+
                 LogOrThrow(
-                    throwException, 
-                    null, 
-                    "Could not obtain an existing connection to prepare query on {0}.", 
+                    throwException,
+                    null,
+                    "Could not obtain an existing connection to prepare query on {0}.",
                     poolKvp.Key);
+                if (observer != null)
+                {
+                    await observer.OnNodeRequestErrorAsync(
+                        RequestError.CreateClientError(new DriverInternalError($"Could not obtain an existing connection to prepare query on {poolKvp.Key}."), false),
+                        requestTrackingInfo,
+                        hostInfo.Value).ConfigureAwait(false);
+                }
             }
             catch (Exception ex)
             {
+                if (observer != null)
+                {
+                    await observer.OnNodeRequestErrorAsync(
+                        RequestError.CreateServerError(ex), 
+                        requestTrackingInfo, 
+                        hostInfo.Value).ConfigureAwait(false);
+                }
                 LogOrThrow(
-                    throwException, 
-                    ex, 
-                    $"An error occured while attempting to prepare query on {{0}}:{Environment.NewLine}{{1}}", 
-                    poolKvp.Key, 
+                    throwException,
+                    ex,
+                    $"An error occured while attempting to prepare query on {{0}}:{Environment.NewLine}{{1}}",
+                    poolKvp.Key,
                     ex);
             }
             finally

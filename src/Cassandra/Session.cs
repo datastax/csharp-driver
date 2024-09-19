@@ -477,7 +477,7 @@ namespace Cassandra
                 throw new NotSupportedException($"Protocol version {currentVersion} does not support" +
                                                 " setting the keyspace as part of the PREPARE request");
             }
-            var request = new PrepareRequest(serializer, cqlQuery, keyspace, customPayload);
+            var request = new InternalPrepareRequest(serializer, cqlQuery, keyspace, customPayload);
             return await _cluster.Prepare(this, _serializerManager, request).ConfigureAwait(false);
         }
 

@@ -557,7 +557,7 @@ namespace Cassandra.Requests
             }
 
             var preparedKeyspace = boundStatement.PreparedStatement.Keyspace;
-            var request = new PrepareRequest(_parent.Serializer, boundStatement.PreparedStatement.Cql, preparedKeyspace, null);
+            var request = new InternalPrepareRequest(_parent.Serializer, boundStatement.PreparedStatement.Cql, preparedKeyspace, null);
 
             if (!_parent.Serializer.ProtocolVersion.SupportsKeyspaceInRequest() &&
                 preparedKeyspace != null && _session.Keyspace != preparedKeyspace)

@@ -17,6 +17,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Connections;
+using Cassandra.Observers.Abstractions;
 using Cassandra.SessionManagement;
 
 namespace Cassandra.Requests
@@ -26,14 +27,20 @@ namespace Cassandra.Requests
         /// <summary>
         /// Sends the prepare request to all nodes have have an existing open connection. Will not attempt to send the request to hosts that were tried before (successfully or not).
         /// </summary>
-        /// <param name="session"></param>
-        /// <param name="request"></param>
-        /// <param name="prepareResult">The result of the prepare request on the first node.</param>
         /// <returns></returns>
         Task ReprepareOnAllNodesWithExistingConnections(
-            IInternalSession session, PrepareRequest request, PrepareResult prepareResult);
+            IInternalSession session, InternalPrepareRequest request, PrepareResult prepareResult, IRequestObserver observer, RequestTrackingInfo requestTrackingInfo);
 
         Task ReprepareOnSingleNodeAsync(
             KeyValuePair<Host, IHostConnectionPool> poolKvp, PreparedStatement ps, IRequest request, SemaphoreSlim sem, bool throwException);
+
+        Task ReprepareOnSingleNodeAsync(
+            IRequestObserver observer, 
+            RequestTrackingInfo requestTrackingInfo, 
+            KeyValuePair<Host, IHostConnectionPool> poolKvp, 
+            PreparedStatement ps, 
+            IRequest request, 
+            SemaphoreSlim sem, 
+            bool throwException);
     }
 }

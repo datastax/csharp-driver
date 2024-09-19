@@ -14,16 +14,27 @@
 //   limitations under the License.
 //
 
-using System.Collections.Generic;
-using System.Threading.Tasks;
-
-using Cassandra.SessionManagement;
-
-namespace Cassandra.Requests
+namespace Cassandra
 {
-    internal interface IPrepareHandler
+    /// <summary>
+    /// A PREPARE request.
+    /// </summary>
+    public sealed class PrepareRequest
     {
-        Task<PreparedStatement> Prepare(
-            InternalPrepareRequest request, IInternalSession session, IEnumerator<Host> queryPlan);
+        internal PrepareRequest(string cql, string keyspace)
+        {
+            Query = cql;
+            Keyspace = keyspace;
+        }
+
+        /// <summary>
+        /// Returns the keyspace this PREPARE operates on. Can be null.
+        /// </summary>
+        public string Keyspace { get; }
+
+        /// <summary>
+        /// Returns the query string of this PREPARE request.
+        /// </summary>
+        public string Query { get; }
     }
 }

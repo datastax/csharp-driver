@@ -67,7 +67,8 @@ namespace Cassandra.OpenTelemetry
         {
             var operationName = GetSessionOperationName(request);
 
-            var activity = ActivitySource.StartActivity(GetActivityName(operationName, request), ActivityKind.Client);
+            var keyspace = GetKeyspace(request);
+            var activity = ActivitySource.StartActivity(GetActivityName(operationName, keyspace), ActivityKind.Client);
 
             if (activity == null)
             {
@@ -79,16 +80,16 @@ namespace Cassandra.OpenTelemetry
 
             if (activity.IsAllDataRequested)
             {
-                if (!string.IsNullOrEmpty(request.Statement?.Keyspace))
+                if (!string.IsNullOrEmpty(keyspace))
                 {
-                    activity.AddTag("db.namespace", request.Statement.Keyspace);
+                    activity.AddTag("db.namespace", keyspace);
                 }
 
-                if (_instrumentationOptions.IncludeDatabaseStatement && request.Statement != null)
+                var queryText = GetQueryText(request);
+                if (_instrumentationOptions.IncludeDatabaseStatement && queryText != null)
                 {
-                    var stmt = GetStatementString(request.Statement);
-                    activity.AddTag("db.query.text", stmt);
-                    request.Items.TryAdd(OtelStmtKey, stmt);
+                    activity.AddTag("db.query.text", queryText);
+                    request.Items.TryAdd(OtelStmtKey, queryText);
                 }
             }
 
@@ -246,8 +247,8 @@ namespace Cassandra.OpenTelemetry
             }
 
             var operationName = GetNodeOperationName(request);
-
-            var activity = ActivitySource.StartActivity(GetActivityName(operationName, request), ActivityKind.Client, parentActivity.Context);
+            var keyspace = GetKeyspace(request);
+            var activity = ActivitySource.StartActivity(GetActivityName(operationName, keyspace), ActivityKind.Client, parentActivity.Context);
 
             if (activity == null)
             {
@@ -261,12 +262,12 @@ namespace Cassandra.OpenTelemetry
 
             if (activity.IsAllDataRequested)
             {
-                if (!string.IsNullOrEmpty(request.Statement?.Keyspace))
+                if (!string.IsNullOrEmpty(keyspace))
                 {
-                    activity.AddTag("db.namespace", request.Statement.Keyspace);
+                    activity.AddTag("db.namespace", keyspace);
                 }
 
-                if (_instrumentationOptions.IncludeDatabaseStatement && request.Statement != null)
+                if (_instrumentationOptions.IncludeDatabaseStatement)
                 {
                     if (request.Items.TryGetValue(OtelStmtKey, out var stmt))
                     {
@@ -282,20 +283,30 @@ namespace Cassandra.OpenTelemetry
 
         private string GetSessionOperationName(RequestTrackingInfo request)
         {
-            return $"{SessionOperationName}({request.Statement?.GetType().Name})";
+            return $"{SessionOperationName}({request.Statement?.GetType().Name ?? request.PrepareRequest?.GetType().Name})";
         }
 
         private string GetNodeOperationName(RequestTrackingInfo request)
         {
-            return $"{NodeOperationName}({request.Statement?.GetType().Name})";
+            return $"{NodeOperationName}({request.Statement?.GetType().Name ?? request.PrepareRequest?.GetType().Name})";
         }
 
-        private string GetActivityName(string operationName, RequestTrackingInfo request)
+        private string GetKeyspace(RequestTrackingInfo request)
         {
-            return string.IsNullOrEmpty(request.Statement?.Keyspace) ? $"{operationName}" : $"{operationName} {request.Statement.Keyspace}";
+            return request.Statement == null ? request.PrepareRequest?.Keyspace : request.Statement?.Keyspace;
         }
 
-        private string GetStatementString(IStatement statement)
+        private string GetQueryText(RequestTrackingInfo request)
+        {
+            return request.Statement == null ? request.PrepareRequest?.Query : GetQueryTextFromStatement(request.Statement);
+        }
+
+        private string GetActivityName(string operationName, string ks)
+        {
+            return string.IsNullOrEmpty(ks) ? $"{operationName}" : $"{operationName} {ks}";
+        }
+
+        private string GetQueryTextFromStatement(IStatement statement)
         {
             string str;
             switch (statement)
