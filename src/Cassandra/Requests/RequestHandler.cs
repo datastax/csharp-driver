@@ -58,7 +58,7 @@ namespace Cassandra.Requests
 
         private readonly Dictionary<Guid, HostTrackingInfo> _nodeExecutions = new Dictionary<Guid, HostTrackingInfo>(1);
         private readonly object _nodeExecutionLock = new object();
-        private volatile bool _nodeExecutionsCleared = false;
+        private bool _nodeExecutionsCleared = false;
 
         /// <summary>
         /// Creates a new instance using a request, the statement and the execution profile.
