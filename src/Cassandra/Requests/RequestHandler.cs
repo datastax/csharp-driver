@@ -58,7 +58,7 @@ namespace Cassandra.Requests
 
         private readonly Dictionary<Guid, HostTrackingInfo> _nodeExecutions = new Dictionary<Guid, HostTrackingInfo>(1);
         private readonly object _nodeExecutionLock = new object();
-        private bool _nodeExecutionsCleared = false;
+        private volatile bool _nodeExecutionsCleared = false;
 
         /// <summary>
         /// Creates a new instance using a request, the statement and the execution profile.
@@ -127,10 +127,17 @@ namespace Cassandra.Requests
         {
             lock (_nodeExecutionLock)
             {
-                if (!_nodeExecutionsCleared && !_nodeExecutions.ContainsKey(hostInfo.ExecutionId))
+                if (!_nodeExecutionsCleared)
                 {
-                    _nodeExecutions[hostInfo.ExecutionId] = hostInfo;
-                    return true;
+                    try
+                    {
+                        _nodeExecutions.Add(hostInfo.ExecutionId, hostInfo);
+                        return true;
+                    }
+                    catch
+                    {
+                        return false;
+                    }
                 }
             }
 
@@ -141,8 +148,13 @@ namespace Cassandra.Requests
         {
             lock (_nodeExecutionLock)
             {
-                return _nodeExecutions.Remove(executionId);
+                if (_nodeExecutions.Count > 0)
+                {
+                    return _nodeExecutions.Remove(executionId);
+                }
             }
+
+            return false;
         }
 
         /// <summary>
@@ -270,6 +282,7 @@ namespace Cassandra.Requests
             IEnumerable<KeyValuePair<Guid, HostTrackingInfo>> executions;
             lock (_nodeExecutionLock)
             {
+                _nodeExecutionsCleared = true;
                 if (_nodeExecutions.Count > 0)
                 {
                     executions = _nodeExecutions.ToArray();
@@ -277,9 +290,8 @@ namespace Cassandra.Requests
                 }
                 else
                 {
-                    executions = Enumerable.Empty<KeyValuePair<Guid, HostTrackingInfo>>();
+                    return;
                 }
-                _nodeExecutionsCleared = true;
             }
             foreach (var kvp in executions)
             {
