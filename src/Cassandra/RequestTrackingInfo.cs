@@ -25,12 +25,17 @@ namespace Cassandra
     /// </summary>
     public sealed class RequestTrackingInfo
     {
-        internal RequestTrackingInfo(IStatement statement)
+        private RequestTrackingInfo(string sessionKeyspace)
+        {
+            SessionKeyspace = sessionKeyspace;
+        }
+
+        internal RequestTrackingInfo(IStatement statement, string sessionKeyspace) : this(sessionKeyspace)
         {
             Statement = statement;
         }
 
-        internal RequestTrackingInfo(InternalPrepareRequest prepareRequest)
+        internal RequestTrackingInfo(InternalPrepareRequest prepareRequest, string sessionKeyspace) : this(sessionKeyspace)
         {
             PrepareRequest = new PrepareRequest(prepareRequest.Query, prepareRequest.Keyspace);
         }
@@ -46,6 +51,11 @@ namespace Cassandra
         /// If this request is a PREPARE request, then this property is set.
         /// </summary>
         public PrepareRequest PrepareRequest { get; }
+
+        /// <summary>
+        /// Returns the session's current keyspace (if it was set).
+        /// </summary>
+        public string SessionKeyspace { get; }
         
     }
 }

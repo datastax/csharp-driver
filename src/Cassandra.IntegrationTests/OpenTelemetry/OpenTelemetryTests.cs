@@ -104,7 +104,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             var statement = new SimpleStatement("SELECT key FROM system.local");
             session.Execute(statement);
 
-            RetryUntilActivities(_testStartDateTime, SessionActivityName, 1);
+            RetryUntilActivities(_testStartDateTime, $"{SessionActivityName}({nameof(SimpleStatement)})", 1);
 
             var activity = GetActivities(_testStartDateTime).First(x => x.DisplayName.StartsWith(SessionActivityName));
 
@@ -124,7 +124,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             var statement = new SimpleStatement("SELECT key FROM system.local");
             session.Execute(statement);
 
-            RetryUntilActivities(_testStartDateTime, SessionActivityName, 1);
+            RetryUntilActivities(_testStartDateTime, $"{SessionActivityName}({nameof(SimpleStatement)})", 1);
 
             var activity = GetActivities(_testStartDateTime).First(x => x.DisplayName.StartsWith(SessionActivityName));
 
@@ -145,7 +145,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             var statement = new SimpleStatement("SELECT key FROM system.local");
             session.Execute(statement);
 
-            RetryUntilActivities(_testStartDateTime, SessionActivityName, 1);
+            RetryUntilActivities(_testStartDateTime, $"{SessionActivityName}({nameof(SimpleStatement)})", 1);
 
             var activity = GetActivities(_testStartDateTime).First(x => x.DisplayName.StartsWith(SessionActivityName));
 
@@ -165,8 +165,8 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             var statement = new SimpleStatement("SELECT key FROM system.local");
             await session.ExecuteAsync(statement).ContinueWith(t =>
             {
-                RetryUntilActivities(localDateTime, SessionActivityName, 1);
-                RetryUntilActivities(localDateTime, NodeActivityName, 1);
+                RetryUntilActivities(localDateTime, $"{SessionActivityName}({nameof(SimpleStatement)})", 1);
+                RetryUntilActivities(localDateTime, $"{NodeActivityName}({nameof(SimpleStatement)})", 1);
                 var activities = GetActivities(localDateTime);
                 var sessionActivity = activities.First(x => x.DisplayName.StartsWith(SessionActivityName));
                 var nodeActivity = activities.First(x => x.DisplayName.StartsWith(NodeActivityName));
@@ -184,8 +184,8 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
             session.Execute(statement);
 
-            RetryUntilActivities(localDateTime, SessionActivityName, 1);
-            RetryUntilActivities(localDateTime, NodeActivityName, 1);
+            RetryUntilActivities(localDateTime, $"{SessionActivityName}({nameof(SimpleStatement)})", 1);
+            RetryUntilActivities(localDateTime, $"{NodeActivityName}({nameof(SimpleStatement)})", 1);
 
             var syncActivities = GetActivities(localDateTime);
             var syncSessionActivity = syncActivities.First(x => x.DisplayName.StartsWith(SessionActivityName));
@@ -354,7 +354,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
             var prepareCount = 2 * this.AmountOfNodes; // 2 * because Mapper + LINQ, AmountOfNodes because PREPARE goes to every node by default
 
-            RetryUntilActivities(_testStartDateTime, SessionActivityName, 7 + prepareCount); // create + change keyspace + simple + 2xlinq(create+bound) + 2xmapper(create+bound) + PREPAREs
+            RetryUntilActivities(_testStartDateTime, SessionActivityName, 7 + prepareCount, displayNameStartsWith: true); // create + change keyspace + simple + 2xlinq(create+bound) + 2xmapper(create+bound) + PREPAREs
             RetryUntilActivities(_testStartDateTime, secondMethodName, 1);
             RetryUntilActivities(_testStartDateTime, firstMethodName, 1);
             var activities = GetActivities(_testStartDateTime).ToList();
@@ -400,7 +400,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
             var prepareCount = 2 * this.AmountOfNodes; // 2 * because Mapper + LINQ, AmountOfNodes because PREPARE goes to every node by default
 
-            RetryUntilActivities(_testStartDateTime, SessionActivityName, 7 + prepareCount); // create + change keyspace + simple + 2xlinq(create+bound) + 2xmapper(create+bound) + PREPAREs
+            RetryUntilActivities(_testStartDateTime, SessionActivityName, 7 + prepareCount, displayNameStartsWith: true); // create + change keyspace + simple + 2xlinq(create+bound) + 2xmapper(create+bound) + PREPAREs
             RetryUntilActivities(_testStartDateTime, secondMethodName, 1);
             RetryUntilActivities(_testStartDateTime, firstMethodName, 1);
             var activities = GetActivities(_testStartDateTime).ToList();
@@ -457,8 +457,8 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
                     session.Execute(new SimpleStatement(cql).SetConsistencyLevel(ConsistencyLevel.One));
 
-                    RetryUntilActivities(_testStartDateTime, SessionActivityName, 1);
-                    RetryUntilActivities(_testStartDateTime, NodeActivityName, 2);
+                    RetryUntilActivities(_testStartDateTime, $"{SessionActivityName}({nameof(SimpleStatement)})", 1);
+                    RetryUntilActivities(_testStartDateTime, $"{NodeActivityName}({nameof(SimpleStatement)})", 2);
                     var activities = GetActivities(_testStartDateTime);
                     var sessionActivity = activities.First(x => x.DisplayName.StartsWith(SessionActivityName));
                     var validNodeActivity = activities.First(x => x.DisplayName.StartsWith(NodeActivityName) && x.Status != ActivityStatusCode.Error);
@@ -511,8 +511,8 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
                     session.Execute(new SimpleStatement(cql).SetConsistencyLevel(ConsistencyLevel.One).SetIdempotence(true));
 
-                    RetryUntilActivities(_testStartDateTime, SessionActivityName, 1);
-                    RetryUntilActivities(_testStartDateTime, NodeActivityName, 3);
+                    RetryUntilActivities(_testStartDateTime, $"{SessionActivityName}({nameof(SimpleStatement)})", 1);
+                    RetryUntilActivities(_testStartDateTime, $"{NodeActivityName}({nameof(SimpleStatement)})", 3);
                     var activities = GetActivities(_testStartDateTime);
                     var sessionActivity = activities.First(x => x.DisplayName.StartsWith(SessionActivityName));
                     var validNodeActivity1 = activities.Where(x => x.DisplayName.StartsWith(NodeActivityName)).ElementAt(0);
@@ -563,7 +563,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
                 var rs = session.Execute(new SimpleStatement($"SELECT * FROM {KeyspaceName}.song").SetPageSize(1));
                 _ = rs.ToList();
 
-                RetryUntilActivities(_testStartDateTime, SessionActivityName, 2, true);
+                RetryUntilActivities(_testStartDateTime, $"{SessionActivityName}({nameof(SimpleStatement)}) {KeyspaceName}", 2, true);
                 var sessionActivities = GetActivities(localDateTime).Where(x => x.DisplayName.StartsWith(SessionActivityName)).ToList();
 
                 Assert.Greater(sessionActivities.Count, 1);
@@ -680,14 +680,14 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
             RetryUntilActivities(localDateTime, $"{SessionActivityName}({nameof(BoundStatement)}) {keyspace}", 1);
             RetryUntilActivities(localDateTime, $"{NodeActivityName}({nameof(BoundStatement)}) {keyspace}", 1);
-            RetryUntilActivities(localDateTime, $"{SessionActivityName}({nameof(PrepareRequest)})", prepareOnAllHosts ? AmountOfNodes : 1);
-            RetryUntilActivities(localDateTime, $"{NodeActivityName}({nameof(PrepareRequest)})", prepareOnAllHosts ? AmountOfNodes : 1);
+            RetryUntilActivities(localDateTime, $"{SessionActivityName}({nameof(PrepareRequest)}) {keyspace}", prepareOnAllHosts ? AmountOfNodes : 1);
+            RetryUntilActivities(localDateTime, $"{NodeActivityName}({nameof(PrepareRequest)}) {keyspace}", prepareOnAllHosts ? AmountOfNodes : 1);
 
             var allActivities = GetActivities(localDateTime).ToList();
             var boundStmtSessionActivity = allActivities.Single(x => x.DisplayName == $"{SessionActivityName}({nameof(BoundStatement)}) {keyspace}");
             var boundStmtNodeActivity = allActivities.Single(x => x.DisplayName == $"{NodeActivityName}({nameof(BoundStatement)}) {keyspace}");
-            var prepareStmtSessionActivities = allActivities.Where(x => x.DisplayName == $"{SessionActivityName}({nameof(PrepareRequest)})").ToList();
-            var prepareStmtNodeActivities = allActivities.Where(x => x.DisplayName == $"{NodeActivityName}({nameof(PrepareRequest)})").ToList();
+            var prepareStmtSessionActivities = allActivities.Where(x => x.DisplayName == $"{SessionActivityName}({nameof(PrepareRequest)}) {keyspace}").ToList();
+            var prepareStmtNodeActivities = allActivities.Where(x => x.DisplayName == $"{NodeActivityName}({nameof(PrepareRequest)}) {keyspace}").ToList();
 
             Assert.IsNull(boundStmtSessionActivity.ParentId);
             Assert.AreEqual(boundStmtSessionActivity.TraceId, boundStmtNodeActivity.TraceId);
@@ -863,7 +863,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             }
         }
 
-        private void RetryUntilActivities(DateTime dt, string displayName, int count, bool greaterOrEqual = false, bool displayNameStartsWith = true, int retries = 50, int delayPerRetryMs = 100)
+        private void RetryUntilActivities(DateTime dt, string displayName, int count, bool greaterOrEqual = false, bool displayNameStartsWith = false, int retries = 50, int delayPerRetryMs = 100)
         {
             var lastCount = 0;
             for (var i = 0; i < retries; i++)

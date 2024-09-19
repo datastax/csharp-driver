@@ -293,7 +293,8 @@ namespace Cassandra.OpenTelemetry
 
         private string GetKeyspace(RequestTrackingInfo request)
         {
-            return request.Statement == null ? request.PrepareRequest?.Keyspace : request.Statement?.Keyspace;
+            var ks = request.Statement == null ? request.PrepareRequest?.Keyspace : request.Statement?.Keyspace;
+            return ks ?? request.SessionKeyspace;
         }
 
         private string GetQueryText(RequestTrackingInfo request)

@@ -70,7 +70,7 @@ namespace Cassandra.Requests
 
         public static async Task<Tuple<RequestTrackingInfo, IRequestObserver>> CreateRequestObserverAsync(IInternalSession session, InternalPrepareRequest request)
         {
-            var requestTrackingInfo = new RequestTrackingInfo(request);
+            var requestTrackingInfo = new RequestTrackingInfo(request, session.Keyspace);
             var observer = session.ObserverFactory.CreateRequestObserver();
             await observer.OnRequestStartAsync(requestTrackingInfo).ConfigureAwait(false);
             return new Tuple<RequestTrackingInfo, IRequestObserver>(requestTrackingInfo, observer);

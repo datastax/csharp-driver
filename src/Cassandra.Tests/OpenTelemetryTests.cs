@@ -44,7 +44,7 @@ namespace Cassandra.Tests
                 var cassandraInstrumentationOptions = new CassandraInstrumentationOptions { IncludeDatabaseStatement = true };
                 var requestTracker = new OpenTelemetryRequestTracker(cassandraInstrumentationOptions);
                 IStatement statement = null;
-                var requestTrackingInfo = new RequestTrackingInfo(statement);
+                var requestTrackingInfo = new RequestTrackingInfo(statement, null);
 
                 await requestTracker.OnStartAsync(requestTrackingInfo).ConfigureAwait(false);
 
@@ -72,7 +72,7 @@ namespace Cassandra.Tests
                 var cassandraInstrumentationOptions = new CassandraInstrumentationOptions { IncludeDatabaseStatement = true };
                 var requestTracker = new OpenTelemetryRequestTracker(cassandraInstrumentationOptions);
                 IStatement statement = null;
-                var requestTrackingInfo = new RequestTrackingInfo(statement);
+                var requestTrackingInfo = new RequestTrackingInfo(statement, null);
 
                 await requestTracker.OnStartAsync(requestTrackingInfo).ConfigureAwait(false);
 
@@ -99,7 +99,7 @@ namespace Cassandra.Tests
                 var requestTracker = new OpenTelemetryRequestTracker(cassandraInstrumentationOptions);
                 
                 IStatement statement = null;
-                var requestTrackingInfo = new RequestTrackingInfo(statement);
+                var requestTrackingInfo = new RequestTrackingInfo(statement, null);
 
                 var host = new Host(new System.Net.IPEndPoint(1, 9042), new ConstantReconnectionPolicy(1));
                 var hostTrackingInfo = new HostTrackingInfo(host, Guid.NewGuid());
@@ -132,7 +132,7 @@ namespace Cassandra.Tests
                 var requestTracker = new OpenTelemetryRequestTracker(cassandraInstrumentationOptions);
                 
                 IStatement statement = null;
-                var requestTrackingInfo = new RequestTrackingInfo(statement);
+                var requestTrackingInfo = new RequestTrackingInfo(statement, null);
                 
                 var host = new Host(new System.Net.IPEndPoint(1, 9042), new ConstantReconnectionPolicy(1));
                 var hostTrackingInfo = new HostTrackingInfo(host, Guid.NewGuid());
