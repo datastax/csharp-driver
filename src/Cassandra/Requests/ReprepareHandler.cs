@@ -65,7 +65,7 @@ namespace Cassandra.Requests
                     }
 
                     await semaphore.WaitAsync().ConfigureAwait(false);
-                    tasks.Add(ReprepareOnSingleNodeAsync(poolKvp, prepareResult.PreparedStatement, request, semaphore, false));
+                    tasks.Add(ReprepareOnSingleNodeAsync(observer, requestTrackingInfo, poolKvp, prepareResult.PreparedStatement, request, semaphore, false));
                 }
 
                 await Task.WhenAll(tasks).ConfigureAwait(false);
