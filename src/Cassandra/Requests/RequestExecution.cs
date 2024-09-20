@@ -222,6 +222,11 @@ namespace Cassandra.Requests
             }
             catch (Exception handlerException)
             {
+                if (_parent.SetNodeExecutionCompleted(hostInfo.ExecutionId))
+                {
+                    await _requestObserver.OnNodeRequestErrorAsync(
+                        RequestError.CreateClientError(handlerException, false), _requestTrackingInfo, hostInfo).ConfigureAwait(false);
+                }
                 await _parent.SetCompletedAsync(handlerException).ConfigureAwait(false);
             }
         }
@@ -598,10 +603,10 @@ namespace Cassandra.Requests
                     if (!(output is OutputPrepared outputPrepared))
                     {
                         var ex = new DriverInternalError("Expected prepared response, obtained " + output.GetType().FullName);
-                        var newError = RequestError.CreateClientError(ex, false);
                         if (_parent.SetNodeExecutionCompleted(hostInfo.ExecutionId))
                         {
-                            await _requestObserver.OnNodeRequestErrorAsync(newError, _requestTrackingInfo, hostInfo).ConfigureAwait(false);
+                            await _requestObserver.OnNodeRequestErrorAsync(
+                                RequestError.CreateClientError(ex, false), _requestTrackingInfo, hostInfo).ConfigureAwait(false);
                         }
 
                         await _parent.SetCompletedAsync(ex).ConfigureAwait(false);
@@ -611,10 +616,10 @@ namespace Cassandra.Requests
                     if (!outputPrepared.QueryId.SequenceEqual(originalError.UnknownId))
                     {
                         var ex = new PreparedStatementIdMismatchException(originalError.UnknownId, outputPrepared.QueryId);
-                        var newError = RequestError.CreateClientError(ex, false);
                         if (_parent.SetNodeExecutionCompleted(hostInfo.ExecutionId))
                         {
-                            await _requestObserver.OnNodeRequestErrorAsync(newError, _requestTrackingInfo, hostInfo).ConfigureAwait(false);
+                            await _requestObserver.OnNodeRequestErrorAsync(
+                                RequestError.CreateClientError(ex, false), _requestTrackingInfo, hostInfo).ConfigureAwait(false);
                         }
 
                         await _parent.SetCompletedAsync(ex).ConfigureAwait(false);
@@ -628,15 +633,20 @@ namespace Cassandra.Requests
                             new ResultMetadata(outputPrepared.ResultMetadataId, outputPrepared.ResultRowsMetadata));
                     }
 
+                    if (_parent.SetNodeExecutionCompleted(hostInfo.ExecutionId))
+                    {
+                        await _requestObserver.OnNodeSuccessAsync( _requestTrackingInfo, hostInfo).ConfigureAwait(false);
+                    }
+
                     await SendAsync(_request, hostInfo.Host, HandleResponseAsync).ConfigureAwait(false);
                 }
                 catch (Exception exception)
                 {
                     //There was an issue while sending
-                    var newError = RequestError.CreateClientError(exception, true);
                     if (_parent.SetNodeExecutionCompleted(hostInfo.ExecutionId))
                     {
-                        await _requestObserver.OnNodeRequestErrorAsync(newError, _requestTrackingInfo, hostInfo).ConfigureAwait(false);
+                        await _requestObserver.OnNodeRequestErrorAsync(
+                            RequestError.CreateClientError(exception, false), _requestTrackingInfo, hostInfo).ConfigureAwait(false);
                     }
 
                     await _parent.SetCompletedAsync(exception).ConfigureAwait(false);

@@ -52,6 +52,11 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
         private TracerProvider _sdk;
 
+        public OpenTelemetryTests() : base(3)
+        {
+            //A 3 node cluster
+        }
+
         [SetUp]
         public void SetUp()
         {
