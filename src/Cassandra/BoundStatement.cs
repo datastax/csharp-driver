@@ -290,5 +290,10 @@ namespace Cassandra
                 SetRoutingKey(keys);
             }
         }
+
+        public override string ToString()
+        {
+            return _preparedStatement?.ToString();
+        }
     }
 }

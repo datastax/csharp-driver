@@ -64,6 +64,14 @@ namespace Cassandra
         Task OnNodeErrorAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo, Exception ex);
 
         /// <summary>
+        /// Triggered when the node request is aborted (e.g. pending speculative execution that was canceled due to another execution completing).
+        /// </summary>
+        /// <param name="request"><see cref="RequestTrackingInfo"/> object with contextual information.</param>
+        /// <param name="hostInfo">Struct with host contextual information.</param>
+        /// <returns>Contextual task.</returns>
+        Task OnNodeAborted(RequestTrackingInfo request, HostTrackingInfo hostInfo);
+
+        /// <summary>
         /// Triggered when the node request starts.
         /// </summary>
         /// <param name="request"><see cref="RequestTrackingInfo"/> object with contextual information.</param>

@@ -28,9 +28,9 @@ namespace Cassandra.OpenTelemetry
         /// </summary>
         /// <param name="builder">The <see cref="Builder"/>.</param>
         /// <returns></returns>
-        public static Builder AddOpenTelemetryInstrumentation(this Builder builder)
+        public static Builder WithOpenTelemetryInstrumentation(this Builder builder)
         {
-            return AddOpenTelemetryInstrumentation(builder, null);
+            return WithOpenTelemetryInstrumentation(builder, null);
         }
 
         /// <summary>
@@ -40,15 +40,13 @@ namespace Cassandra.OpenTelemetry
         /// <param name="options">An action with <see cref="CassandraInstrumentationOptions"/> to be 
         /// included in the instrumentation.</param>
         /// <returns></returns>
-        public static Builder AddOpenTelemetryInstrumentation(this Builder builder, Action<CassandraInstrumentationOptions> options)
+        public static Builder WithOpenTelemetryInstrumentation(this Builder builder, Action<CassandraInstrumentationOptions> options)
         {
             var instrumentationOptions = new CassandraInstrumentationOptions();
 
             options?.Invoke(instrumentationOptions);
 
-            builder.WithRequestTracker(new OpenTelemetryRequestTracker(instrumentationOptions));
-
-            return builder;
+            return builder.WithRequestTracker(new OpenTelemetryRequestTracker(instrumentationOptions));
         }
     }
 }

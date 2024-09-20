@@ -16,6 +16,7 @@
 
 using System;
 using System.Threading.Tasks;
+using Cassandra.Connections;
 using Cassandra.Observers.Abstractions;
 using Cassandra.Requests;
 using Cassandra.Tasks;
@@ -30,21 +31,27 @@ namespace Cassandra.Observers.Null
         {
         }
 
-        public void OnNodeRequestError(Host host, RequestErrorType errorType, RetryDecision.RetryDecisionType decision)
-        {
-        }
-
-        public Task OnNodeRequestErrorAsync(Host host, RequestErrorType errorType, RetryDecision.RetryDecisionType decision, RequestTrackingInfo r, Exception ex)
+        public Task OnNodeRequestErrorAsync(RequestErrorType errorType, RetryDecision.RetryDecisionType decision, RequestTrackingInfo r, HostTrackingInfo h, Exception ex)
         {
             return TaskHelper.Completed;
         }
 
-        public Task OnNodeStartAsync(Host host, RequestTrackingInfo requestTrackingInfo)
+        public Task OnNodeRequestErrorAsync(IRequestError error, RequestTrackingInfo r, HostTrackingInfo hostTrackingInfo)
         {
             return TaskHelper.Completed;
         }
 
-        public Task OnNodeSuccessAsync(Host host, RequestTrackingInfo requestTrackingInfo)
+        public Task OnNodeStartAsync(RequestTrackingInfo requestTrackingInfo, HostTrackingInfo h)
+        {
+            return TaskHelper.Completed;
+        }
+
+        public Task OnNodeSuccessAsync(RequestTrackingInfo requestTrackingInfo, HostTrackingInfo h)
+        {
+            return TaskHelper.Completed;
+        }
+
+        public Task OnNodeRequestAbortedAsync(RequestTrackingInfo requestTrackingInfo, HostTrackingInfo hostTrackingInfo)
         {
             return TaskHelper.Completed;
         }

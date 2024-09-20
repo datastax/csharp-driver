@@ -45,7 +45,7 @@ namespace ConsoleExporter
             var cluster = Cluster.Builder()
                 .AddContactPoint(Program.ContactPoint)
                 .WithSessionName(Program.SessionName)
-                .AddOpenTelemetryInstrumentation(options => options.IncludeDatabaseStatement = true)
+                .WithOpenTelemetryInstrumentation(options => options.IncludeDatabaseStatement = true)
                 .Build();
 
             var session = await cluster.ConnectAsync().ConfigureAwait(false);
@@ -66,16 +66,17 @@ namespace ConsoleExporter
                         Console.WriteLine($"ERROR: {ex}");
                     }
 
-                    Thread.Sleep(5000);
+                    await Task.Delay(5000).ConfigureAwait(false);
                 }
             });
 
             Console.WriteLine("Press enter to shutdown the session and exit.");
             Console.ReadLine();
 
-            cts.Cancel();
+            await cts.CancelAsync().ConfigureAwait(false);
 
             await task.ConfigureAwait(false);
+            await session.ShutdownAsync().ConfigureAwait(false);
             await cluster.ShutdownAsync().ConfigureAwait(false);
         }
     }

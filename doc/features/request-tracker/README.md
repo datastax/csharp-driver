@@ -1,7 +1,7 @@
 # Request Tracker
 
 The driver provides the `IRequestTracker` interface that tracks the requests at Session and Node levels. It contains *start*, *finish*, and *error* events that can be subscribed by implementing the interface, and should be used by passing the implementation as an argument of the method `WithRequestTracker` that is available in the `Builder`.\
-An example of an `IRequestTracker` implementation is the extension package `Cassandra.OpenTelemetry` that can be checked in the [documentation](/doc/features/opentelemetry/README.md).
+An example of an `IRequestTracker` implementation is the extension package `Cassandra.OpenTelemetry` that can be checked in the [documentation](../opentelemetry/README.md).
 
 ## Available events
 
@@ -13,3 +13,4 @@ The full API doc is available [here](https://docs.datastax.com/en/drivers/csharp
 - **OnNodeStartAsync** - that is triggered when the node request starts
 - **OnNodeSuccessAsync** - that is triggered when the node level request finishes successfully.
 - **OnNodeErrorAsync** - that is triggered when the node request finishes unsuccessfully.
+- **OnNodeAbortedAsync** - that is triggered when the node request is aborted (e.g. pending speculative execution).

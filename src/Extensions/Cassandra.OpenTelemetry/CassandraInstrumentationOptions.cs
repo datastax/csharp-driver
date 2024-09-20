@@ -24,9 +24,25 @@ namespace Cassandra.OpenTelemetry
     public class CassandraInstrumentationOptions
     {
         /// <summary>
+        /// Default value of <see cref="BatchChildStatementLimit"/>.
+        /// </summary>
+        public const int DefaultBatchChildStatementLimit = 5;
+
+        /// <summary>
         /// If true, includes the statement as a tag of the <see cref="Activity"/>.
         /// Default: false.
         /// </summary>
         public bool IncludeDatabaseStatement { get; set; } = false;
+
+        /// <summary>
+        /// <para>
+        /// The max number of statements from a <see cref="BatchStatement"/> that are added to the Database Statement tag.
+        /// The default is defined in <see cref="DefaultBatchChildStatementLimit"/>.
+        /// </para>
+        /// <para>
+        /// This only applies if <see cref="IncludeDatabaseStatement"/> is true.
+        /// </para>
+        /// </summary>
+        public int BatchChildStatementLimit { get; set; } = DefaultBatchChildStatementLimit;
     }
 }

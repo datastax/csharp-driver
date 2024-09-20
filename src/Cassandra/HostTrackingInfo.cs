@@ -18,22 +18,30 @@ using System;
 
 namespace Cassandra
 {
-    public struct HostTrackingInfo : IEquatable<HostTrackingInfo>
+    public class HostTrackingInfo : IEquatable<HostTrackingInfo>
     {
-        public Host Host { get; set; }
+        public Host Host { get; }
+
+        public Guid ExecutionId { get; }
+
+        public HostTrackingInfo(Host host, Guid executionId)
+        {
+            Host = host;
+            ExecutionId = executionId;
+        }
 
         public bool Equals(HostTrackingInfo other)
         {
-            if (other.Host == null)
-            {
-                return Host == null;
-            }
-
-            return other.Host.Equals(Host);
+            return other != null && other.ExecutionId.Equals(ExecutionId);
         }
 
         public static bool operator ==(HostTrackingInfo a, HostTrackingInfo b)
         {
+            if (a == null)
+            {
+                return b == null;
+            }
+
             return a.Equals(b);
         }
 
@@ -55,9 +63,7 @@ namespace Cassandra
         {
             unchecked
             {
-                var hash = 17;
-                hash = hash * 31 + Host.GetHashCode();
-                return hash;
+                return ((Host != null ? Host.GetHashCode() : 0) * 397) ^ ExecutionId.GetHashCode();
             }
         }
     }

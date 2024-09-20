@@ -14,8 +14,10 @@
 //   limitations under the License.
 //
 
+using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading.Tasks;
 using Cassandra.OpenTelemetry;
 using NUnit.Framework;
 
@@ -24,12 +26,12 @@ namespace Cassandra.Tests
     [TestFixture]
     public class OpenTelemetryTests
     {
-        private static readonly string otelActivityKey = "otel_activity";
-        private static readonly string dbNamespaceTag = "db.namespace";
-        private static readonly string dbQueryTextTag = "db.query.text";
+        private const string OtelActivityKey = "otel_activity";
+        private const string DbNamespaceTag = "db.namespace";
+        private const string DbQueryTextTag = "db.query.text";
 
         [Test]
-        public void OpenTelemetryRequestTrackerOnStartAsync_StatementIsNull_DbQueryTextAndDbNamespaceTagsAreNotIncluded()
+        public async Task OpenTelemetryRequestTrackerOnStartAsync_StatementIsNull_DbQueryTextAndDbNamespaceTagsAreNotIncluded()
         {
             using (var listener = new ActivityListener
             {
@@ -44,20 +46,20 @@ namespace Cassandra.Tests
                 IStatement statement = null;
                 var requestTrackingInfo = new RequestTrackingInfo(statement);
 
-                requestTracker.OnStartAsync(requestTrackingInfo);
+                await requestTracker.OnStartAsync(requestTrackingInfo).ConfigureAwait(false);
 
-                requestTrackingInfo.Items.TryGetValue(otelActivityKey, out object context);
+                requestTrackingInfo.Items.TryGetValue(OtelActivityKey, out object context);
 
                 var activity = context as Activity;
 
                 Assert.NotNull(activity);
-                Assert.Null(activity.Tags.FirstOrDefault(x => x.Key == dbNamespaceTag).Value);
-                Assert.Null(activity.Tags.FirstOrDefault(x => x.Key == dbQueryTextTag).Value);
+                Assert.Null(activity.Tags.FirstOrDefault(x => x.Key == DbNamespaceTag).Value);
+                Assert.Null(activity.Tags.FirstOrDefault(x => x.Key == DbQueryTextTag).Value);
             }
         }
 
         [Test]
-        public void OpenTelemetryRequestTrackerOnStartAsync_ListenerNotSampling_ActivityIsNull()
+        public async Task OpenTelemetryRequestTrackerOnStartAsync_ListenerNotSampling_ActivityIsNull()
         {
             using (var listener = new ActivityListener
             {
@@ -72,9 +74,9 @@ namespace Cassandra.Tests
                 IStatement statement = null;
                 var requestTrackingInfo = new RequestTrackingInfo(statement);
 
-                requestTracker.OnStartAsync(requestTrackingInfo);
+                await requestTracker.OnStartAsync(requestTrackingInfo).ConfigureAwait(false);
 
-                requestTrackingInfo.Items.TryGetValue(otelActivityKey, out object context);
+                requestTrackingInfo.Items.TryGetValue(OtelActivityKey, out object context);
 
                 var activity = context as Activity;
 
@@ -83,7 +85,7 @@ namespace Cassandra.Tests
         }
 
         [Test]
-        public void OpenTelemetryRequestTrackerOnNodeStartAsync_StatementIsNull_DbQueryTextAndDbNamespaceTagsAreNotIncluded()
+        public async Task OpenTelemetryRequestTrackerOnNodeStartAsync_StatementIsNull_DbQueryTextAndDbNamespaceTagsAreNotIncluded()
         {
             using (var listener = new ActivityListener
             {
@@ -100,23 +102,23 @@ namespace Cassandra.Tests
                 var requestTrackingInfo = new RequestTrackingInfo(statement);
 
                 var host = new Host(new System.Net.IPEndPoint(1, 9042), new ConstantReconnectionPolicy(1));
-                var hostTrackingInfo = new HostTrackingInfo() { Host = host };
+                var hostTrackingInfo = new HostTrackingInfo(host, Guid.NewGuid());
 
-                requestTracker.OnStartAsync(requestTrackingInfo);
-                requestTracker.OnNodeStartAsync(requestTrackingInfo, hostTrackingInfo);
+                await requestTracker.OnStartAsync(requestTrackingInfo).ConfigureAwait(false);
+                await requestTracker.OnNodeStartAsync(requestTrackingInfo, hostTrackingInfo).ConfigureAwait(false);
 
-                requestTrackingInfo.Items.TryGetValue($"{otelActivityKey}.{host.HostId}", out object context);
+                requestTrackingInfo.Items.TryGetValue($"{OtelActivityKey}.{hostTrackingInfo.ExecutionId}", out object context);
 
                 var activity = context as Activity;
 
                 Assert.NotNull(activity);
-                Assert.Null(activity.Tags.FirstOrDefault(x => x.Key == dbNamespaceTag).Value);
-                Assert.Null(activity.Tags.FirstOrDefault(x => x.Key == dbQueryTextTag).Value);
+                Assert.Null(activity.Tags.FirstOrDefault(x => x.Key == DbNamespaceTag).Value);
+                Assert.Null(activity.Tags.FirstOrDefault(x => x.Key == DbQueryTextTag).Value);
             }
         }
 
         [Test]
-        public void OpenTelemetryRequestTrackerOnNodeStartAsync_ListenerNotSampling_ActivityIsNull()
+        public async Task OpenTelemetryRequestTrackerOnNodeStartAsync_ListenerNotSampling_ActivityIsNull()
         {
             using (var listener = new ActivityListener
             {
@@ -133,12 +135,12 @@ namespace Cassandra.Tests
                 var requestTrackingInfo = new RequestTrackingInfo(statement);
                 
                 var host = new Host(new System.Net.IPEndPoint(1, 9042), new ConstantReconnectionPolicy(1));
-                var hostTrackingInfo = new HostTrackingInfo() { Host = host };
+                var hostTrackingInfo = new HostTrackingInfo(host, Guid.NewGuid());
 
-                requestTracker.OnStartAsync(requestTrackingInfo);
-                requestTracker.OnNodeStartAsync(requestTrackingInfo, hostTrackingInfo);
+                await requestTracker.OnStartAsync(requestTrackingInfo).ConfigureAwait(false);
+                await requestTracker.OnNodeStartAsync(requestTrackingInfo, hostTrackingInfo).ConfigureAwait(false);
 
-                requestTrackingInfo.Items.TryGetValue($"{otelActivityKey}.{host.HostId}", out object context);
+                requestTrackingInfo.Items.TryGetValue($"{OtelActivityKey}.{host.HostId}", out object context);
 
                 var activity = context as Activity;
 

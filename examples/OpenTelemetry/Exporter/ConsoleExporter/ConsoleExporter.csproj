@@ -12,7 +12,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Extensions\Cassandra.OpenTelemetry\Cassandra.OpenTelemetry.csproj" />
+    <ProjectReference Include="..\..\..\..\src\Cassandra\Cassandra.csproj" />
+    <ProjectReference Include="..\..\..\..\src\Extensions\Cassandra.OpenTelemetry\Cassandra.OpenTelemetry.csproj" />
   </ItemGroup>
 
 </Project>

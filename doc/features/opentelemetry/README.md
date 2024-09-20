@@ -4,13 +4,13 @@ The driver provides support for session and node level [traces](https://opentele
 
 ## Including OpenTelemetry instrumentation in your code
 
-Add the package `Cassandra.OpenTelemetry` to the project and add the extension method `AddOpenTelemetryInstrumentation()` when building your cluster:
+Add the package `Cassandra.OpenTelemetry` to the project and add the extension method `WithOpenTelemetryInstrumentation()` when building your cluster:
 
 ```csharp
 var cluster = Cluster.Builder()
     .AddContactPoint(Program.ContactPoint)
     .WithSessionName(Program.SessionName)
-    .AddOpenTelemetryInstrumentation()
+    .WithOpenTelemetryInstrumentation()
     .Build();
 ```
 
