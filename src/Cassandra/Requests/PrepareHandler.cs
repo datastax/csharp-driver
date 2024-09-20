@@ -68,16 +68,16 @@ namespace Cassandra.Requests
             }
         }
 
-        public static async Task<Tuple<RequestTrackingInfo, IRequestObserver>> CreateRequestObserverAsync(IInternalSession session, InternalPrepareRequest request)
+        public static async Task<Tuple<SessionRequestInfo, IRequestObserver>> CreateRequestObserverAsync(IInternalSession session, InternalPrepareRequest request)
         {
-            var requestTrackingInfo = new RequestTrackingInfo(request, session.Keyspace);
+            var requestTrackingInfo = new SessionRequestInfo(request, session.Keyspace);
             var observer = session.ObserverFactory.CreateRequestObserver();
             await observer.OnRequestStartAsync(requestTrackingInfo).ConfigureAwait(false);
-            return new Tuple<RequestTrackingInfo, IRequestObserver>(requestTrackingInfo, observer);
+            return new Tuple<SessionRequestInfo, IRequestObserver>(requestTrackingInfo, observer);
         }
 
         private async Task<PrepareResult> SendRequestToOneNode(
-            IInternalSession session, IEnumerator<Host> queryPlan, InternalPrepareRequest request, IRequestObserver observer, RequestTrackingInfo info)
+            IInternalSession session, IEnumerator<Host> queryPlan, InternalPrepareRequest request, IRequestObserver observer, SessionRequestInfo info)
         {
             var triedHosts = new Dictionary<IPEndPoint, Exception>();
 
@@ -87,11 +87,11 @@ namespace Cassandra.Requests
                 var hostConnectionTuple = await GetNextConnection(session, queryPlan, triedHosts).ConfigureAwait(false);
                 var connection = hostConnectionTuple.Item2;
                 var host = hostConnectionTuple.Item1;
-                var hostInfo = new HostTrackingInfo(host, Guid.NewGuid());
+                var nodeRequestInfo = new NodeRequestInfo(host, info.PrepareRequest ?? new PrepareRequest(request.Query, request.Keyspace));
                 var responseReceived = false;
                 try
                 {
-                    await observer.OnNodeStartAsync(info, hostInfo).ConfigureAwait(false);
+                    await observer.OnNodeStartAsync(info, nodeRequestInfo).ConfigureAwait(false);
                     var result = await connection.Send(request).ConfigureAwait(false);
                     responseReceived = true;
                     var prepareResult =  new PrepareResult
@@ -100,7 +100,7 @@ namespace Cassandra.Requests
                         TriedHosts = triedHosts,
                         HostAddress = host.Address
                     };
-                    await observer.OnNodeSuccessAsync(info, hostInfo).ConfigureAwait(false);
+                    await observer.OnNodeSuccessAsync(info, nodeRequestInfo).ConfigureAwait(false);
                     return prepareResult;
                 }
                 catch (Exception ex)
@@ -108,7 +108,7 @@ namespace Cassandra.Requests
                     await observer.OnNodeRequestErrorAsync(
                         responseReceived ? RequestError.CreateClientError(ex, false) : RequestError.CreateServerError(ex),
                         info, 
-                        hostInfo).ConfigureAwait(false);
+                        nodeRequestInfo).ConfigureAwait(false);
 
                     if (PrepareHandler.CanBeRetried(ex))
                     {

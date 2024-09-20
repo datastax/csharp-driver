@@ -30,7 +30,7 @@ namespace Cassandra.Requests
     {
         /// <inheritdoc />
         public async Task ReprepareOnAllNodesWithExistingConnections(
-            IInternalSession session, InternalPrepareRequest request, PrepareResult prepareResult, IRequestObserver observer, RequestTrackingInfo requestTrackingInfo)
+            IInternalSession session, InternalPrepareRequest request, PrepareResult prepareResult, IRequestObserver observer, SessionRequestInfo sessionRequestInfo)
         {
             var pools = session.GetPools();
             var hosts = session.InternalCluster.AllHosts();
@@ -65,7 +65,7 @@ namespace Cassandra.Requests
                     }
 
                     await semaphore.WaitAsync().ConfigureAwait(false);
-                    tasks.Add(ReprepareOnSingleNodeAsync(observer, requestTrackingInfo, poolKvp, prepareResult.PreparedStatement, request, semaphore, false));
+                    tasks.Add(ReprepareOnSingleNodeAsync(observer, sessionRequestInfo, poolKvp, prepareResult.PreparedStatement, request, semaphore, false));
                 }
 
                 await Task.WhenAll(tasks).ConfigureAwait(false);
@@ -106,18 +106,18 @@ namespace Cassandra.Requests
 
         public async Task ReprepareOnSingleNodeAsync(
             IRequestObserver observer,
-            RequestTrackingInfo requestTrackingInfo,
+            SessionRequestInfo sessionRequestInfo,
             KeyValuePair<Host, IHostConnectionPool> poolKvp,
             PreparedStatement ps,
             IRequest request,
             SemaphoreSlim sem,
             bool throwException)
         {
-            HostTrackingInfo hostInfo = null;
+            NodeRequestInfo nodeRequestInfo = null;
             if (observer != null)
             {
-                hostInfo = new HostTrackingInfo(poolKvp.Key, Guid.NewGuid());
-                await observer.OnNodeStartAsync(requestTrackingInfo, hostInfo).ConfigureAwait(false);
+                nodeRequestInfo = new NodeRequestInfo(poolKvp.Key, sessionRequestInfo.PrepareRequest ?? new PrepareRequest(ps.Cql, ps.Keyspace));
+                await observer.OnNodeStartAsync(sessionRequestInfo, nodeRequestInfo).ConfigureAwait(false);
             }
 
             try
@@ -130,7 +130,7 @@ namespace Cassandra.Requests
                     await connection.Send(request).ConfigureAwait(false);
                     if (observer != null)
                     {
-                        await observer.OnNodeSuccessAsync(requestTrackingInfo, hostInfo).ConfigureAwait(false);
+                        await observer.OnNodeSuccessAsync(sessionRequestInfo, nodeRequestInfo).ConfigureAwait(false);
                     }
                     return;
                 }
@@ -147,8 +147,8 @@ namespace Cassandra.Requests
                     {
                         await observer.OnNodeRequestErrorAsync(
                             RequestError.CreateServerError(ex),
-                            requestTrackingInfo,
-                            hostInfo).ConfigureAwait(false);
+                            sessionRequestInfo,
+                            nodeRequestInfo).ConfigureAwait(false);
                     }
                     return;
                 }
@@ -162,8 +162,8 @@ namespace Cassandra.Requests
                 {
                     await observer.OnNodeRequestErrorAsync(
                         RequestError.CreateClientError(new DriverInternalError($"Could not obtain an existing connection to prepare query on {poolKvp.Key}."), false),
-                        requestTrackingInfo,
-                        hostInfo).ConfigureAwait(false);
+                        sessionRequestInfo,
+                        nodeRequestInfo).ConfigureAwait(false);
                 }
             }
             catch (Exception ex)
@@ -172,8 +172,8 @@ namespace Cassandra.Requests
                 {
                     await observer.OnNodeRequestErrorAsync(
                         RequestError.CreateServerError(ex), 
-                        requestTrackingInfo, 
-                        hostInfo).ConfigureAwait(false);
+                        sessionRequestInfo, 
+                        nodeRequestInfo).ConfigureAwait(false);
                 }
                 LogOrThrow(
                     throwException,

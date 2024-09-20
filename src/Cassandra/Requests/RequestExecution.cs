@@ -41,21 +41,21 @@ namespace Cassandra.Requests
         private volatile int _retryCount;
         private volatile OperationState _operation;
         private readonly IRequestObserver _requestObserver;
-        private readonly RequestTrackingInfo _requestTrackingInfo;
+        private readonly SessionRequestInfo _sessionRequestInfo;
 
         /// <summary>
         /// Host that was queried last in this execution. It can be null in case there was no attempt to send the request yet.
         /// </summary>
         private volatile Host _host;
         
-        public RequestExecution(IRequestHandler parent, IInternalSession session, IRequest request, IRequestObserver requestObserver, RequestTrackingInfo requestTrackingInfo)
+        public RequestExecution(IRequestHandler parent, IInternalSession session, IRequest request, IRequestObserver requestObserver, SessionRequestInfo sessionRequestInfo)
         {
             _parent = parent;
             _session = session;
             _request = request;
             _host = null;
             _requestObserver = requestObserver;
-            _requestTrackingInfo = requestTrackingInfo;
+            _sessionRequestInfo = sessionRequestInfo;
         }
 
         public void Cancel()
@@ -78,11 +78,6 @@ namespace Cassandra.Requests
 
             SendToNextHostAsync(validHost).Forget();            
             return validHost.Host;
-        }
-
-        private HostTrackingInfo NewExecutionInfo(Host host)
-        {
-            return new HostTrackingInfo(host, Guid.NewGuid());
         }
 
         /// <summary>
@@ -139,7 +134,7 @@ namespace Cassandra.Requests
             catch (Exception ex)
             {
                 _host = validHost.Host;
-                await HandleResponseAsync(RequestError.CreateClientError(ex, true), null, NewExecutionInfo(validHost.Host)).ConfigureAwait(false);
+                await HandleResponseAsync(RequestError.CreateClientError(ex, true), null, new NodeRequestInfo(validHost.Host, _sessionRequestInfo.PrepareRequest)).ConfigureAwait(false);
             }
         }
 
@@ -158,14 +153,14 @@ namespace Cassandra.Requests
             {
                 //There was an Exception before sending (probably no host is available).
                 //This will mark the Task as faulted.
-                await HandleResponseAsync(RequestError.CreateClientError(ex, true), null, NewExecutionInfo(host)).ConfigureAwait(false);
+                await HandleResponseAsync(RequestError.CreateClientError(ex, true), null, new NodeRequestInfo(host, _sessionRequestInfo.PrepareRequest)).ConfigureAwait(false);
             }
         }
 
         /// <summary>
         /// Sends a new request using the active connection
         /// </summary>
-        private async Task SendAsync(IRequest request, Host host, Func<IRequestError, Response, HostTrackingInfo, Task> callback)
+        private async Task SendAsync(IRequest request, Host host, Func<IRequestError, Response, NodeRequestInfo, Task> callback)
         {
             var timeoutMillis = _parent.RequestOptions.ReadTimeoutMillis;
             if (_parent.Statement != null && _parent.Statement.ReadTimeoutMillis > 0)
@@ -173,40 +168,46 @@ namespace Cassandra.Requests
                 timeoutMillis = _parent.Statement.ReadTimeoutMillis;
             }
 
-            var hostInfo = NewExecutionInfo(host);
-            if (_parent.OnNewNodeExecution(hostInfo))
+            var prepare = _sessionRequestInfo.PrepareRequest;
+            if (prepare == null && request?.GetType() == typeof(InternalPrepareRequest))
             {
-                await _requestObserver.OnNodeStartAsync(_requestTrackingInfo, hostInfo).ConfigureAwait(false);
+                var p = (InternalPrepareRequest) request;
+                prepare = new PrepareRequest(p.Query, p.Keyspace);
+            }
+            var nodeRequestInfo = new NodeRequestInfo(host, prepare);
+            if (_parent.OnNewNodeExecution(nodeRequestInfo))
+            {
+                await _requestObserver.OnNodeStartAsync(_sessionRequestInfo, nodeRequestInfo).ConfigureAwait(false);
             }
             
             try
             {
-                _operation = _connection.Send(request, (error, response) => callback(error, response, hostInfo), timeoutMillis);
+                _operation = _connection.Send(request, (error, response) => callback(error, response, nodeRequestInfo), timeoutMillis);
             }
             catch (Exception ex)
             {
-                if (_parent.SetNodeExecutionCompleted(hostInfo.ExecutionId))
+                if (_parent.SetNodeExecutionCompleted(nodeRequestInfo.ExecutionId))
                 {
-                    await _requestObserver.OnNodeRequestErrorAsync(RequestError.CreateClientError(ex, true), _requestTrackingInfo, hostInfo).ConfigureAwait(false);
+                    await _requestObserver.OnNodeRequestErrorAsync(RequestError.CreateClientError(ex, true), _sessionRequestInfo, nodeRequestInfo).ConfigureAwait(false);
                 }
                 throw;
             }
         }
 
-        private async Task HandleResponseAsync(IRequestError error, Response response, HostTrackingInfo hostInfo)
+        private async Task HandleResponseAsync(IRequestError error, Response response, NodeRequestInfo nodeRequestInfo)
         {
             if (_parent.HasCompleted())
             {
                 //Do nothing else (except calling request observer), another execution finished already set the response
-                if (_parent.SetNodeExecutionCompleted(hostInfo.ExecutionId))
+                if (_parent.SetNodeExecutionCompleted(nodeRequestInfo.ExecutionId))
                 {
                     if (error?.Exception != null)
                     {
-                        await _requestObserver.OnNodeRequestErrorAsync(error, _requestTrackingInfo, hostInfo).ConfigureAwait(false);
+                        await _requestObserver.OnNodeRequestErrorAsync(error, _sessionRequestInfo, nodeRequestInfo).ConfigureAwait(false);
                     }
                     else
                     {
-                        await _requestObserver.OnNodeSuccessAsync(_requestTrackingInfo, hostInfo).ConfigureAwait(false);
+                        await _requestObserver.OnNodeSuccessAsync(_sessionRequestInfo, nodeRequestInfo).ConfigureAwait(false);
                     }
                 }
                 return;
@@ -215,17 +216,17 @@ namespace Cassandra.Requests
             {
                 if (error?.Exception != null)
                 {
-                    await HandleRequestErrorAsync(error, hostInfo).ConfigureAwait(false);
+                    await HandleRequestErrorAsync(error, nodeRequestInfo).ConfigureAwait(false);
                     return;
                 }
-                await HandleRowSetResultAsync(response, hostInfo).ConfigureAwait(false);
+                await HandleRowSetResultAsync(response, nodeRequestInfo).ConfigureAwait(false);
             }
             catch (Exception handlerException)
             {
-                if (_parent.SetNodeExecutionCompleted(hostInfo.ExecutionId))
+                if (_parent.SetNodeExecutionCompleted(nodeRequestInfo.ExecutionId))
                 {
                     await _requestObserver.OnNodeRequestErrorAsync(
-                        RequestError.CreateClientError(handlerException, false), _requestTrackingInfo, hostInfo).ConfigureAwait(false);
+                        RequestError.CreateClientError(handlerException, false), _sessionRequestInfo, nodeRequestInfo).ConfigureAwait(false);
                 }
                 await _parent.SetCompletedAsync(handlerException).ConfigureAwait(false);
             }
@@ -243,11 +244,11 @@ namespace Cassandra.Requests
             return RetryExecutionAsync(useCurrentHost, host);
         }
 
-        private async Task HandleRowSetResultAsync(Response response, HostTrackingInfo hostInfo)
+        private async Task HandleRowSetResultAsync(Response response, NodeRequestInfo nodeRequestInfo)
         {
-            if (_parent.SetNodeExecutionCompleted(hostInfo.ExecutionId))
+            if (_parent.SetNodeExecutionCompleted(nodeRequestInfo.ExecutionId))
             {
-                await _requestObserver.OnNodeSuccessAsync(_requestTrackingInfo, hostInfo).ConfigureAwait(false);
+                await _requestObserver.OnNodeSuccessAsync(_sessionRequestInfo, nodeRequestInfo).ConfigureAwait(false);
             }
 
             RequestExecution.ValidateResult(response);
@@ -376,7 +377,7 @@ namespace Cassandra.Requests
         /// <summary>
         /// Checks if the exception is either a Cassandra response error or a socket exception to retry or failover if necessary.
         /// </summary>
-        private async Task HandleRequestErrorAsync(IRequestError error, HostTrackingInfo hostInfo)
+        private async Task HandleRequestErrorAsync(IRequestError error, NodeRequestInfo nodeRequestInfo)
         {
             var ex = error.Exception;
             if (ex is PreparedQueryNotFoundException foundException &&
@@ -386,12 +387,12 @@ namespace Cassandra.Requests
                     "Query {0} is not prepared on {1}, preparing before retrying the request.",
                     BitConverter.ToString(foundException.UnknownId),
                     _connection.EndPoint.EndpointFriendlyName);
-                if (_parent.SetNodeExecutionCompleted(hostInfo.ExecutionId))
+                if (_parent.SetNodeExecutionCompleted(nodeRequestInfo.ExecutionId))
                 {
-                    await _requestObserver.OnNodeRequestErrorAsync(error, _requestTrackingInfo, hostInfo).ConfigureAwait(false);
+                    await _requestObserver.OnNodeRequestErrorAsync(error, _sessionRequestInfo, nodeRequestInfo).ConfigureAwait(false);
                 }
 
-                await PrepareAndRetryAsync(foundException, hostInfo).ConfigureAwait(false);
+                await PrepareAndRetryAsync(foundException, nodeRequestInfo).ConfigureAwait(false);
                 return;
             }
 
@@ -402,16 +403,16 @@ namespace Cassandra.Requests
                 //A NoHostAvailableException when trying to retrieve
                 if (!error.Unsent)
                 {
-                    if (_parent.SetNodeExecutionCompleted(hostInfo.ExecutionId))
+                    if (_parent.SetNodeExecutionCompleted(nodeRequestInfo.ExecutionId))
                     {
-                        await _requestObserver.OnNodeRequestErrorAsync(error, _requestTrackingInfo, hostInfo).ConfigureAwait(false);
+                        await _requestObserver.OnNodeRequestErrorAsync(error, _sessionRequestInfo, nodeRequestInfo).ConfigureAwait(false);
                     }
                 }
                 await _parent.SetNoMoreHostsAsync(exception, this).ConfigureAwait(false);
                 return;
             }
 
-            _triedHosts[hostInfo.Host.Address] = ex;
+            _triedHosts[nodeRequestInfo.Host.Address] = ex;
             if (ex is OperationTimedOutException)
             {
                 RequestExecution.Logger.Warning(ex.Message);
@@ -423,7 +424,7 @@ namespace Cassandra.Requests
                 else
                 {
                     // Checks how many timed out operations are in the connection
-                    _session.CheckHealth(hostInfo.Host, connection);
+                    _session.CheckHealth(nodeRequestInfo.Host, connection);
                 }
             }
 
@@ -433,31 +434,31 @@ namespace Cassandra.Requests
             switch (retryInformation.Decision.DecisionType)
             {
                 case RetryDecision.RetryDecisionType.Rethrow:
-                    await ObserveNodeRequestErrorAsync(error, retryInformation.Reason, RetryDecision.RetryDecisionType.Rethrow, _requestTrackingInfo, hostInfo, ex).ConfigureAwait(false);
+                    await ObserveNodeRequestErrorAsync(error, retryInformation.Reason, RetryDecision.RetryDecisionType.Rethrow, _sessionRequestInfo, nodeRequestInfo, ex).ConfigureAwait(false);
                     await _parent.SetCompletedAsync(ex).ConfigureAwait(false);
                     break;
                 case RetryDecision.RetryDecisionType.Ignore:
-                    await ObserveNodeRequestErrorAsync(error, retryInformation.Reason, RetryDecision.RetryDecisionType.Ignore, _requestTrackingInfo, hostInfo, ex).ConfigureAwait(false);
+                    await ObserveNodeRequestErrorAsync(error, retryInformation.Reason, RetryDecision.RetryDecisionType.Ignore, _sessionRequestInfo, nodeRequestInfo, ex).ConfigureAwait(false);
                     // The error was ignored by the RetryPolicy, return an empty rowset
                     await _parent.SetCompletedAsync(null, FillRowSet(RowSet.Empty(), null)).ConfigureAwait(false);
                     break;
                 case RetryDecision.RetryDecisionType.Retry:
-                    await ObserveNodeRequestErrorAsync(error, retryInformation.Reason, RetryDecision.RetryDecisionType.Retry, _requestTrackingInfo, hostInfo, ex).ConfigureAwait(false);
+                    await ObserveNodeRequestErrorAsync(error, retryInformation.Reason, RetryDecision.RetryDecisionType.Retry, _sessionRequestInfo, nodeRequestInfo, ex).ConfigureAwait(false);
                     //Retry the Request using the new consistency level
-                    await RetryAsync(retryInformation.Decision.RetryConsistencyLevel, retryInformation.Decision.UseCurrentHost, hostInfo.Host).ConfigureAwait(false);
+                    await RetryAsync(retryInformation.Decision.RetryConsistencyLevel, retryInformation.Decision.UseCurrentHost, nodeRequestInfo.Host).ConfigureAwait(false);
                     break;
                 default:
-                    await ObserveNodeRequestErrorAsync(error, retryInformation.Reason, retryInformation.Decision.DecisionType, _requestTrackingInfo, hostInfo, ex).ConfigureAwait(false);
+                    await ObserveNodeRequestErrorAsync(error, retryInformation.Reason, retryInformation.Decision.DecisionType, _sessionRequestInfo, nodeRequestInfo, ex).ConfigureAwait(false);
                     break;
             }
         }
 
         private Task ObserveNodeRequestErrorAsync(
-            IRequestError error, RequestErrorType errorType, RetryDecision.RetryDecisionType decision, RequestTrackingInfo r, HostTrackingInfo hostTrackingInfo, Exception ex)
+            IRequestError error, RequestErrorType errorType, RetryDecision.RetryDecisionType decision, SessionRequestInfo r, NodeRequestInfo nodeRequestInfo, Exception ex)
         {
-            if (!error.Unsent && _parent.SetNodeExecutionCompleted(hostTrackingInfo.ExecutionId))
+            if (!error.Unsent && _parent.SetNodeExecutionCompleted(nodeRequestInfo.ExecutionId))
             {
-                return _requestObserver.OnNodeRequestErrorAsync(errorType, decision, r, hostTrackingInfo, ex);
+                return _requestObserver.OnNodeRequestErrorAsync(errorType, decision, r, nodeRequestInfo, ex);
             }
 
             return TaskHelper.Completed;
@@ -543,7 +544,7 @@ namespace Cassandra.Requests
         /// <summary>
         /// Sends a prepare request before retrying the statement
         /// </summary>
-        private async Task PrepareAndRetryAsync(PreparedQueryNotFoundException ex, HostTrackingInfo hostInfo)
+        private async Task PrepareAndRetryAsync(PreparedQueryNotFoundException ex, NodeRequestInfo nodeRequestInfo)
         {
             BoundStatement boundStatement = null;
             if (_parent.Statement is BoundStatement statement1)
@@ -575,26 +576,26 @@ namespace Cassandra.Requests
                 Task.Run(async () =>
                 {
                     await c.SetKeyspace(preparedKeyspace).ConfigureAwait(false);
-                    await SendAsync(request, hostInfo.Host, NewReprepareResponseHandler(ex)).ConfigureAwait(false);
+                    await SendAsync(request, nodeRequestInfo.Host, NewReprepareResponseHandler(ex)).ConfigureAwait(false);
                 }).Forget();
                 return;
             }
-            await SendAsync(request, hostInfo.Host, NewReprepareResponseHandler(ex)).ConfigureAwait(false);
+            await SendAsync(request, nodeRequestInfo.Host, NewReprepareResponseHandler(ex)).ConfigureAwait(false);
         }
 
         /// <summary>
         /// Handles the response of a (re)prepare request and retries to execute on the same connection
         /// </summary>
-        private Func<IRequestError, Response, HostTrackingInfo, Task> NewReprepareResponseHandler(
+        private Func<IRequestError, Response, NodeRequestInfo, Task> NewReprepareResponseHandler(
             PreparedQueryNotFoundException originalError)
         {
-            async Task ResponseHandler(IRequestError error, Response response, HostTrackingInfo hostInfo)
+            async Task ResponseHandler(IRequestError error, Response response, NodeRequestInfo nodeRequestInfo)
             {
                 try
                 {
                     if (error?.Exception != null)
                     {
-                        await HandleRequestErrorAsync(error, hostInfo).ConfigureAwait(false);
+                        await HandleRequestErrorAsync(error, nodeRequestInfo).ConfigureAwait(false);
                         return;
                     }
 
@@ -603,10 +604,10 @@ namespace Cassandra.Requests
                     if (!(output is OutputPrepared outputPrepared))
                     {
                         var ex = new DriverInternalError("Expected prepared response, obtained " + output.GetType().FullName);
-                        if (_parent.SetNodeExecutionCompleted(hostInfo.ExecutionId))
+                        if (_parent.SetNodeExecutionCompleted(nodeRequestInfo.ExecutionId))
                         {
                             await _requestObserver.OnNodeRequestErrorAsync(
-                                RequestError.CreateClientError(ex, false), _requestTrackingInfo, hostInfo).ConfigureAwait(false);
+                                RequestError.CreateClientError(ex, false), _sessionRequestInfo, nodeRequestInfo).ConfigureAwait(false);
                         }
 
                         await _parent.SetCompletedAsync(ex).ConfigureAwait(false);
@@ -616,10 +617,10 @@ namespace Cassandra.Requests
                     if (!outputPrepared.QueryId.SequenceEqual(originalError.UnknownId))
                     {
                         var ex = new PreparedStatementIdMismatchException(originalError.UnknownId, outputPrepared.QueryId);
-                        if (_parent.SetNodeExecutionCompleted(hostInfo.ExecutionId))
+                        if (_parent.SetNodeExecutionCompleted(nodeRequestInfo.ExecutionId))
                         {
                             await _requestObserver.OnNodeRequestErrorAsync(
-                                RequestError.CreateClientError(ex, false), _requestTrackingInfo, hostInfo).ConfigureAwait(false);
+                                RequestError.CreateClientError(ex, false), _sessionRequestInfo, nodeRequestInfo).ConfigureAwait(false);
                         }
 
                         await _parent.SetCompletedAsync(ex).ConfigureAwait(false);
@@ -633,20 +634,20 @@ namespace Cassandra.Requests
                             new ResultMetadata(outputPrepared.ResultMetadataId, outputPrepared.ResultRowsMetadata));
                     }
 
-                    if (_parent.SetNodeExecutionCompleted(hostInfo.ExecutionId))
+                    if (_parent.SetNodeExecutionCompleted(nodeRequestInfo.ExecutionId))
                     {
-                        await _requestObserver.OnNodeSuccessAsync( _requestTrackingInfo, hostInfo).ConfigureAwait(false);
+                        await _requestObserver.OnNodeSuccessAsync( _sessionRequestInfo, nodeRequestInfo).ConfigureAwait(false);
                     }
 
-                    await SendAsync(_request, hostInfo.Host, HandleResponseAsync).ConfigureAwait(false);
+                    await SendAsync(_request, nodeRequestInfo.Host, HandleResponseAsync).ConfigureAwait(false);
                 }
                 catch (Exception exception)
                 {
                     //There was an issue while sending
-                    if (_parent.SetNodeExecutionCompleted(hostInfo.ExecutionId))
+                    if (_parent.SetNodeExecutionCompleted(nodeRequestInfo.ExecutionId))
                     {
                         await _requestObserver.OnNodeRequestErrorAsync(
-                            RequestError.CreateClientError(exception, false), _requestTrackingInfo, hostInfo).ConfigureAwait(false);
+                            RequestError.CreateClientError(exception, false), _sessionRequestInfo, nodeRequestInfo).ConfigureAwait(false);
                     }
 
                     await _parent.SetCompletedAsync(exception).ConfigureAwait(false);

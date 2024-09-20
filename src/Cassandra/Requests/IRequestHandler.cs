@@ -95,7 +95,7 @@ namespace Cassandra.Requests
         /// </summary>
         IRequest BuildRequest();
 
-        bool OnNewNodeExecution(HostTrackingInfo hostInfo);
+        bool OnNewNodeExecution(NodeRequestInfo nodeRequestInfo);
 
         bool SetNodeExecutionCompleted(Guid executionId);
     }

@@ -34,34 +34,34 @@ namespace Cassandra.Observers.RequestTracker
         public Task OnNodeRequestErrorAsync(
             RequestErrorType errorType,
             RetryDecision.RetryDecisionType decision,
-            RequestTrackingInfo r, 
-            HostTrackingInfo hostTrackingInfo,
+            SessionRequestInfo r, 
+            NodeRequestInfo nodeRequestInfo,
             Exception ex)
         {
-            return _requestTracker.OnNodeErrorAsync(r, hostTrackingInfo, ex);
+            return _requestTracker.OnNodeErrorAsync(r, nodeRequestInfo, ex);
         }
 
-        public Task OnNodeRequestErrorAsync(IRequestError error, RequestTrackingInfo r, HostTrackingInfo hostTrackingInfo)
+        public Task OnNodeRequestErrorAsync(IRequestError error, SessionRequestInfo r, NodeRequestInfo nodeRequestInfo)
         {
-            return _requestTracker.OnNodeErrorAsync(r, hostTrackingInfo, error.Exception);
+            return _requestTracker.OnNodeErrorAsync(r, nodeRequestInfo, error.Exception);
         }
 
-        public Task OnRequestSuccessAsync(RequestTrackingInfo r)
+        public Task OnRequestSuccessAsync(SessionRequestInfo r)
         {
             return _requestTracker.OnSuccessAsync(r);
         }
 
-        public Task OnRequestFailureAsync(Exception ex, RequestTrackingInfo r)
+        public Task OnRequestFailureAsync(Exception ex, SessionRequestInfo r)
         {
             return _requestTracker.OnErrorAsync(r, ex);
         }
 
-        public Task OnNodeRequestAbortedAsync(RequestTrackingInfo requestTrackingInfo, HostTrackingInfo hostTrackingInfo)
+        public Task OnNodeRequestAbortedAsync(SessionRequestInfo sessionRequestInfo, NodeRequestInfo nodeRequestInfo)
         {
-            return _requestTracker.OnNodeAborted(requestTrackingInfo, hostTrackingInfo);
+            return _requestTracker.OnNodeAborted(sessionRequestInfo, nodeRequestInfo);
         }
 
-        public Task OnRequestStartAsync(RequestTrackingInfo r)
+        public Task OnRequestStartAsync(SessionRequestInfo r)
         {
             return _requestTracker.OnStartAsync(r);
         }
@@ -70,14 +70,14 @@ namespace Cassandra.Observers.RequestTracker
         {
         }
 
-        public Task OnNodeStartAsync(RequestTrackingInfo requestTrackingInfo, HostTrackingInfo hostTrackingInfo)
+        public Task OnNodeStartAsync(SessionRequestInfo sessionRequestInfo, NodeRequestInfo nodeRequestInfo)
         {
-            return _requestTracker.OnNodeStartAsync(requestTrackingInfo, hostTrackingInfo);
+            return _requestTracker.OnNodeStartAsync(sessionRequestInfo, nodeRequestInfo);
         }
 
-        public Task OnNodeSuccessAsync(RequestTrackingInfo requestTrackingInfo, HostTrackingInfo hostTrackingInfo)
+        public Task OnNodeSuccessAsync(SessionRequestInfo sessionRequestInfo, NodeRequestInfo nodeRequestInfo)
         {
-            return _requestTracker.OnNodeSuccessAsync(requestTrackingInfo, hostTrackingInfo);
+            return _requestTracker.OnNodeSuccessAsync(sessionRequestInfo, nodeRequestInfo);
         }
     }
 }

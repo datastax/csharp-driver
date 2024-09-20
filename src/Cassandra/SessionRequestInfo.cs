@@ -23,19 +23,19 @@ namespace Cassandra
     /// Class used to hold data that is passed to implementations of <see cref="IRequestTracker"/>.
     /// Either <see cref="Statement"/> or <see cref="PrepareRequest"/> will be set, never both.
     /// </summary>
-    public sealed class RequestTrackingInfo
+    public sealed class SessionRequestInfo
     {
-        private RequestTrackingInfo(string sessionKeyspace)
+        private SessionRequestInfo(string sessionKeyspace)
         {
             SessionKeyspace = sessionKeyspace;
         }
 
-        internal RequestTrackingInfo(IStatement statement, string sessionKeyspace) : this(sessionKeyspace)
+        internal SessionRequestInfo(IStatement statement, string sessionKeyspace) : this(sessionKeyspace)
         {
             Statement = statement;
         }
 
-        internal RequestTrackingInfo(InternalPrepareRequest prepareRequest, string sessionKeyspace) : this(sessionKeyspace)
+        internal SessionRequestInfo(InternalPrepareRequest prepareRequest, string sessionKeyspace) : this(sessionKeyspace)
         {
             PrepareRequest = new PrepareRequest(prepareRequest.Query, prepareRequest.Keyspace);
         }

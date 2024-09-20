@@ -22,6 +22,6 @@ namespace Cassandra.Requests
     internal interface IRequestExecutionFactory
     {
         IRequestExecution Create(
-            IRequestHandler parent, IInternalSession session, IRequest request, IRequestObserver requestObserver, RequestTrackingInfo requestTrackingInfo);
+            IRequestHandler parent, IInternalSession session, IRequest request, IRequestObserver requestObserver, SessionRequestInfo sessionRequestInfo);
     }
 }

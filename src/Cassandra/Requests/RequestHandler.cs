@@ -50,13 +50,13 @@ namespace Cassandra.Requests
         private ISpeculativeExecutionPlan _executionPlan;
         private volatile HashedWheelTimer.ITimeout _nextExecutionTimeout;
         private readonly IRequestObserver _requestObserver;
-        private readonly RequestTrackingInfo _requestTrackingInfo;
+        private readonly SessionRequestInfo _sessionRequestInfo;
         public IExtendedRetryPolicy RetryPolicy { get; }
         public ISerializer Serializer { get; }
         public IStatement Statement { get; }
         public IRequestOptions RequestOptions { get; }
 
-        private readonly Dictionary<Guid, HostTrackingInfo> _nodeExecutions = new Dictionary<Guid, HostTrackingInfo>(1);
+        private readonly Dictionary<Guid, NodeRequestInfo> _nodeExecutions = new Dictionary<Guid, NodeRequestInfo>(1);
         private readonly object _nodeExecutionLock = new object();
         private bool _nodeExecutionsCleared = false;
 
@@ -64,41 +64,41 @@ namespace Cassandra.Requests
         /// Creates a new instance using a request, the statement and the execution profile.
         /// </summary>
         public RequestHandler(
-            IInternalSession session, ISerializer serializer, IRequest request, RequestTrackingInfo requestTrackingInfo, IRequestOptions requestOptions, IRequestObserver requestObserver)
+            IInternalSession session, ISerializer serializer, IRequest request, SessionRequestInfo sessionRequestInfo, IRequestOptions requestOptions, IRequestObserver requestObserver)
         {
             _session = session ?? throw new ArgumentNullException(nameof(session));
             _requestObserver = requestObserver;
-            _requestTrackingInfo = requestTrackingInfo;
+            _sessionRequestInfo = sessionRequestInfo;
             _requestResultHandler = new TcsMetricsRequestResultHandler(_requestObserver);
             _request = request;
             Serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
-            Statement = requestTrackingInfo.Statement;
+            Statement = sessionRequestInfo.Statement;
             RequestOptions = requestOptions ?? throw new ArgumentNullException(nameof(requestOptions));
 
             RetryPolicy = RequestOptions.RetryPolicy;
 
-            if (requestTrackingInfo.Statement?.RetryPolicy != null)
+            if (sessionRequestInfo.Statement?.RetryPolicy != null)
             {
-                RetryPolicy = requestTrackingInfo.Statement.RetryPolicy.Wrap(RetryPolicy);
+                RetryPolicy = sessionRequestInfo.Statement.RetryPolicy.Wrap(RetryPolicy);
             }
 
-            _queryPlan = RequestHandler.GetQueryPlan(session, requestTrackingInfo.Statement, RequestOptions.LoadBalancingPolicy).GetEnumerator();
+            _queryPlan = RequestHandler.GetQueryPlan(session, sessionRequestInfo.Statement, RequestOptions.LoadBalancingPolicy).GetEnumerator();
         }
 
         /// <summary>
         /// Creates a new instance using the statement to build the request.
         /// Statement can not be null.
         /// </summary>
-        public RequestHandler(IInternalSession session, ISerializer serializer, RequestTrackingInfo requestTrackingInfo, IRequestOptions requestOptions, IRequestObserver requestObserver)
-            : this(session, serializer, RequestHandler.GetRequest(requestTrackingInfo.Statement, serializer, requestOptions), requestTrackingInfo, requestOptions, requestObserver)
+        public RequestHandler(IInternalSession session, ISerializer serializer, SessionRequestInfo sessionRequestInfo, IRequestOptions requestOptions, IRequestObserver requestObserver)
+            : this(session, serializer, RequestHandler.GetRequest(sessionRequestInfo.Statement, serializer, requestOptions), sessionRequestInfo, requestOptions, requestObserver)
         {
         }
 
         /// <summary>
         /// Creates a new instance with no request, suitable for getting a connection.
         /// </summary>
-        public RequestHandler(IInternalSession session, ISerializer serializer, RequestTrackingInfo requestTrackingInfo, IRequestObserver requestObserver)
-            : this(session, serializer, null, requestTrackingInfo, session.Cluster.Configuration.DefaultRequestOptions, requestObserver)
+        public RequestHandler(IInternalSession session, ISerializer serializer, SessionRequestInfo sessionRequestInfo, IRequestObserver requestObserver)
+            : this(session, serializer, null, sessionRequestInfo, session.Cluster.Configuration.DefaultRequestOptions, requestObserver)
         {
         }
 
@@ -123,7 +123,7 @@ namespace Cassandra.Requests
             return RequestHandler.GetRequest(Statement, Serializer, RequestOptions);
         }
 
-        public bool OnNewNodeExecution(HostTrackingInfo hostInfo)
+        public bool OnNewNodeExecution(NodeRequestInfo nodeRequestInfo)
         {
             lock (_nodeExecutionLock)
             {
@@ -131,7 +131,7 @@ namespace Cassandra.Requests
                 {
                     try
                     {
-                        _nodeExecutions.Add(hostInfo.ExecutionId, hostInfo);
+                        _nodeExecutions.Add(nodeRequestInfo.ExecutionId, nodeRequestInfo);
                         return true;
                     }
                     catch
@@ -247,7 +247,7 @@ namespace Cassandra.Requests
             }
             if (ex != null)
             {
-                await _requestResultHandler.TrySetExceptionAsync(ex, _requestTrackingInfo).ConfigureAwait(false);
+                await _requestResultHandler.TrySetExceptionAsync(ex, _sessionRequestInfo).ConfigureAwait(false);
                 return true;
             }
             if (action != null)
@@ -262,24 +262,24 @@ namespace Cassandra.Requests
                     catch (Exception actionEx)
                     {
                         await ClearNodeExecutionsAsync().ConfigureAwait(false);
-                        await _requestResultHandler.TrySetExceptionAsync(actionEx, _requestTrackingInfo).ConfigureAwait(false);
+                        await _requestResultHandler.TrySetExceptionAsync(actionEx, _sessionRequestInfo).ConfigureAwait(false);
                         return;
                     }
 
                     await ClearNodeExecutionsAsync().ConfigureAwait(false);
-                    await _requestResultHandler.TrySetResultAsync(result, _requestTrackingInfo).ConfigureAwait(false);
+                    await _requestResultHandler.TrySetResultAsync(result, _sessionRequestInfo).ConfigureAwait(false);
                 }, CancellationToken.None).Forget();
                 return true;
             }
 
             await ClearNodeExecutionsAsync().ConfigureAwait(false);
-            await _requestResultHandler.TrySetResultAsync(result, _requestTrackingInfo).ConfigureAwait(false);
+            await _requestResultHandler.TrySetResultAsync(result, _sessionRequestInfo).ConfigureAwait(false);
             return true;
         }
 
         private async Task ClearNodeExecutionsAsync()
         {
-            IEnumerable<KeyValuePair<Guid, HostTrackingInfo>> executions;
+            IEnumerable<KeyValuePair<Guid, NodeRequestInfo>> executions;
             lock (_nodeExecutionLock)
             {
                 _nodeExecutionsCleared = true;
@@ -295,7 +295,7 @@ namespace Cassandra.Requests
             }
             foreach (var kvp in executions)
             {
-                await _requestObserver.OnNodeRequestAbortedAsync(_requestTrackingInfo, kvp.Value).ConfigureAwait(false);
+                await _requestObserver.OnNodeRequestAbortedAsync(_sessionRequestInfo, kvp.Value).ConfigureAwait(false);
             }
         }
 
@@ -446,7 +446,7 @@ namespace Cassandra.Requests
         {
             if (_request == null)
             {
-                await _requestResultHandler.TrySetExceptionAsync(new DriverException("request can not be null"), _requestTrackingInfo).ConfigureAwait(false);
+                await _requestResultHandler.TrySetExceptionAsync(new DriverException("request can not be null"), _sessionRequestInfo).ConfigureAwait(false);
                 return await _requestResultHandler.Task.ConfigureAwait(false);
             }
 
@@ -461,7 +461,7 @@ namespace Cassandra.Requests
         {
             try
             {
-                var execution = _session.Cluster.Configuration.RequestExecutionFactory.Create(this, _session, _request, _requestObserver, _requestTrackingInfo);
+                var execution = _session.Cluster.Configuration.RequestExecutionFactory.Create(this, _session, _request, _requestObserver, _sessionRequestInfo);
                 var lastHost = execution.Start(false);
                 _running.Add(execution);
                 ScheduleNext(lastHost);
@@ -520,12 +520,12 @@ namespace Cassandra.Requests
             }, null, delay);
         }
 
-        public static async Task<Tuple<RequestTrackingInfo, IRequestObserver>> CreateRequestObserver(IInternalSession session, IStatement statement)
+        public static async Task<Tuple<SessionRequestInfo, IRequestObserver>> CreateRequestObserver(IInternalSession session, IStatement statement)
         {
-            var requestTrackingInfo = new RequestTrackingInfo(statement, session.Keyspace);
+            var requestTrackingInfo = new SessionRequestInfo(statement, session.Keyspace);
             var observer = session.ObserverFactory.CreateRequestObserver();
             await observer.OnRequestStartAsync(requestTrackingInfo).ConfigureAwait(false);
-            return new Tuple<RequestTrackingInfo, IRequestObserver>(requestTrackingInfo, observer);
+            return new Tuple<SessionRequestInfo, IRequestObserver>(requestTrackingInfo, observer);
         }
     }
 }

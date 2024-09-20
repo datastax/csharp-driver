@@ -39,7 +39,7 @@ namespace Cassandra.Tests
             var mockSession = Mock.Of<IInternalSession>();
             var mockStatement = Mock.Of<IStatement>();
             var requestHandlerFactory = Mock.Of<IRequestHandlerFactory>();
-            var requestTrackingInfo = new RequestTrackingInfo(mockStatement, null);
+            var requestTrackingInfo = new SessionRequestInfo(mockStatement, null);
             Mock.Get(requestHandlerFactory)
                 .Setup(r => r.CreateAsync(
                     It.IsAny<IInternalSession>(), 
@@ -69,7 +69,7 @@ namespace Cassandra.Tests
             var mockSession = Mock.Of<IInternalSession>();
             var requestHandlerFactory = Mock.Of<IRequestHandlerFactory>();
             var mockStatement = Mock.Of<IStatement>();
-            var requestTrackingInfo = new RequestTrackingInfo(mockStatement, null);
+            var requestTrackingInfo = new SessionRequestInfo(mockStatement, null);
             Mock.Get(requestHandlerFactory)
                 .Setup(r => r.CreateAsync(
                     It.IsAny<IInternalSession>(), 
@@ -106,7 +106,7 @@ namespace Cassandra.Tests
             var mockSession = Mock.Of<IInternalSession>();
             var requestHandlerFactory = Mock.Of<IRequestHandlerFactory>();
             var mockStatement = Mock.Of<IStatement>();
-            var requestTrackingInfo = new RequestTrackingInfo(mockStatement, null);
+            var requestTrackingInfo = new SessionRequestInfo(mockStatement, null);
             Mock.Get(requestHandlerFactory)
                 .Setup(r => r.CreateAsync(
                     It.IsAny<IInternalSession>(), 
@@ -157,7 +157,7 @@ namespace Cassandra.Tests
             var mockSession = Mock.Of<IInternalSession>();
             var requestHandlerFactory = Mock.Of<IRequestHandlerFactory>();
             var mockStatement = Mock.Of<IStatement>();
-            var requestTrackingInfo = new RequestTrackingInfo(mockStatement, null);
+            var requestTrackingInfo = new SessionRequestInfo(mockStatement, null);
             Mock.Get(requestHandlerFactory)
                 .Setup(r => r.CreateAsync(
                     It.IsAny<IInternalSession>(), 

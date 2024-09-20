@@ -29,14 +29,14 @@ namespace Cassandra.Requests
         /// </summary>
         /// <returns></returns>
         Task ReprepareOnAllNodesWithExistingConnections(
-            IInternalSession session, InternalPrepareRequest request, PrepareResult prepareResult, IRequestObserver observer, RequestTrackingInfo requestTrackingInfo);
+            IInternalSession session, InternalPrepareRequest request, PrepareResult prepareResult, IRequestObserver observer, SessionRequestInfo sessionRequestInfo);
 
         Task ReprepareOnSingleNodeAsync(
             KeyValuePair<Host, IHostConnectionPool> poolKvp, PreparedStatement ps, IRequest request, SemaphoreSlim sem, bool throwException);
 
         Task ReprepareOnSingleNodeAsync(
             IRequestObserver observer, 
-            RequestTrackingInfo requestTrackingInfo, 
+            SessionRequestInfo sessionRequestInfo, 
             KeyValuePair<Host, IHostConnectionPool> poolKvp, 
             PreparedStatement ps, 
             IRequest request, 

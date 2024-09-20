@@ -54,7 +54,7 @@ namespace Cassandra.Tests
                     It.IsAny<IInternalSession>(),
                     It.IsAny<IRequest>(),
                     It.IsAny<IRequestObserver>(),
-                    It.IsAny<RequestTrackingInfo>()))
+                    It.IsAny<SessionRequestInfo>()))
                 .Returns(Mock.Of<IRequestExecution>());
 
             return new TestConfigurationBuilder

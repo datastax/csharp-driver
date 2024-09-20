@@ -28,20 +28,20 @@ namespace Cassandra.Observers.Abstractions
     {
         void OnSpeculativeExecution(Host host, long delay);
 
-        Task OnNodeStartAsync(RequestTrackingInfo requestTrackingInfo, HostTrackingInfo hostTrackingInfo);
+        Task OnNodeStartAsync(SessionRequestInfo sessionRequestInfo, NodeRequestInfo nodeRequestInfo);
 
-        Task OnNodeRequestErrorAsync(RequestErrorType errorType, RetryDecision.RetryDecisionType decision, RequestTrackingInfo r, HostTrackingInfo hostTrackingInfo, Exception ex);
+        Task OnNodeRequestErrorAsync(RequestErrorType errorType, RetryDecision.RetryDecisionType decision, SessionRequestInfo r, NodeRequestInfo nodeRequestInfo, Exception ex);
 
-        Task OnNodeRequestErrorAsync(IRequestError error, RequestTrackingInfo r, HostTrackingInfo hostTrackingInfo);
+        Task OnNodeRequestErrorAsync(IRequestError error, SessionRequestInfo r, NodeRequestInfo nodeRequestInfo);
 
-        Task OnNodeSuccessAsync(RequestTrackingInfo requestTrackingInfo, HostTrackingInfo hostTrackingInfo);
+        Task OnNodeSuccessAsync(SessionRequestInfo sessionRequestInfo, NodeRequestInfo nodeRequestInfo);
 
-        Task OnNodeRequestAbortedAsync(RequestTrackingInfo requestTrackingInfo, HostTrackingInfo hostTrackingInfo);
+        Task OnNodeRequestAbortedAsync(SessionRequestInfo sessionRequestInfo, NodeRequestInfo nodeRequestInfo);
 
-        Task OnRequestStartAsync(RequestTrackingInfo requestTrackingInfo);
+        Task OnRequestStartAsync(SessionRequestInfo sessionRequestInfo);
 
-        Task OnRequestFailureAsync(Exception ex, RequestTrackingInfo requestTrackingInfo);
+        Task OnRequestFailureAsync(Exception ex, SessionRequestInfo sessionRequestInfo);
 
-        Task OnRequestSuccessAsync(RequestTrackingInfo requestTrackingInfo);
+        Task OnRequestSuccessAsync(SessionRequestInfo sessionRequestInfo);
     }
 }

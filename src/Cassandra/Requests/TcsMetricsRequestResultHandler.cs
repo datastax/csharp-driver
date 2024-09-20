@@ -33,20 +33,20 @@ namespace Cassandra.Requests
             _taskCompletionSource = new TaskCompletionSource<RowSet>();
         }
 
-        public async Task TrySetResultAsync(RowSet result, RequestTrackingInfo requestTrackingInfo)
+        public async Task TrySetResultAsync(RowSet result, SessionRequestInfo sessionRequestInfo)
         {
             if (Interlocked.CompareExchange(ref _done, 1, 0) == 0)
             {
-                await _requestObserver.OnRequestSuccessAsync(requestTrackingInfo).ConfigureAwait(false);
+                await _requestObserver.OnRequestSuccessAsync(sessionRequestInfo).ConfigureAwait(false);
                 _taskCompletionSource.SetResult(result);
             }
         }
 
-        public async Task TrySetExceptionAsync(Exception exception, RequestTrackingInfo requestTrackingInfo)
+        public async Task TrySetExceptionAsync(Exception exception, SessionRequestInfo sessionRequestInfo)
         {
             if (Interlocked.CompareExchange(ref _done, 1, 0) == 0)
             {
-                await _requestObserver.OnRequestFailureAsync(exception, requestTrackingInfo).ConfigureAwait(false);
+                await _requestObserver.OnRequestFailureAsync(exception, sessionRequestInfo).ConfigureAwait(false);
                 _taskCompletionSource.SetException(exception);
             }
         }

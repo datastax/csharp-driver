@@ -48,9 +48,10 @@ namespace Cassandra.Observers.Metrics
             _manager.GetOrCreateNodeMetrics(host).SpeculativeExecutions.Increment(1);
         }
 
-        public Task OnNodeRequestErrorAsync(RequestErrorType errorType, RetryDecision.RetryDecisionType decision, RequestTrackingInfo r, HostTrackingInfo hostInfo, Exception ex)
+        public Task OnNodeRequestErrorAsync(
+            RequestErrorType errorType, RetryDecision.RetryDecisionType decision, SessionRequestInfo r, NodeRequestInfo nodeRequestInfo, Exception ex)
         {
-            var nodeMetrics = _manager.GetOrCreateNodeMetrics(hostInfo.Host);
+            var nodeMetrics = _manager.GetOrCreateNodeMetrics(nodeRequestInfo.Host);
             OnRequestError(nodeMetrics.Errors, errorType);
             switch (decision)
             {
@@ -66,9 +67,9 @@ namespace Cassandra.Observers.Metrics
             return TaskHelper.Completed;
         }
 
-        public Task OnNodeRequestErrorAsync(IRequestError error, RequestTrackingInfo r, HostTrackingInfo hostTrackingInfo)
+        public Task OnNodeRequestErrorAsync(IRequestError error, SessionRequestInfo r, NodeRequestInfo nodeRequestInfo)
         {
-            var nodeMetrics = _manager.GetOrCreateNodeMetrics(hostTrackingInfo.Host);
+            var nodeMetrics = _manager.GetOrCreateNodeMetrics(nodeRequestInfo.Host);
             var errorType = RequestExecution.GetErrorType(error);
             OnRequestError(nodeMetrics.Errors, errorType);
             return TaskHelper.Completed;
@@ -140,14 +141,14 @@ namespace Cassandra.Observers.Metrics
             }
         }
 
-        public Task OnNodeRequestAbortedAsync(RequestTrackingInfo requestTrackingInfo, HostTrackingInfo hostTrackingInfo)
+        public Task OnNodeRequestAbortedAsync(SessionRequestInfo sessionRequestInfo, NodeRequestInfo nodeRequestInfo)
         {
-            var nodeMetrics = _manager.GetOrCreateNodeMetrics(hostTrackingInfo.Host);
+            var nodeMetrics = _manager.GetOrCreateNodeMetrics(nodeRequestInfo.Host);
             OnRequestError(nodeMetrics.Errors, RequestErrorType.Aborted);
             return TaskHelper.Completed;
         }
 
-        public Task OnRequestStartAsync(RequestTrackingInfo r)
+        public Task OnRequestStartAsync(SessionRequestInfo r)
         {
             if (!_manager.AreSessionTimerMetricsEnabled)
             {
@@ -159,17 +160,17 @@ namespace Cassandra.Observers.Metrics
             return TaskHelper.Completed;
         }
 
-        public Task OnRequestFailureAsync(Exception ex, RequestTrackingInfo r)
+        public Task OnRequestFailureAsync(Exception ex, SessionRequestInfo r)
         {
             return OnRequestFinish(ex, r);
         }
 
-        public Task OnRequestSuccessAsync(RequestTrackingInfo r)
+        public Task OnRequestSuccessAsync(SessionRequestInfo r)
         {
             return OnRequestFinish(null, r);
         }
 
-        private Task OnRequestFinish(Exception ex, RequestTrackingInfo r)
+        private Task OnRequestFinish(Exception ex, SessionRequestInfo r)
         {
             if (!_manager.AreSessionTimerMetricsEnabled)
             {
@@ -200,12 +201,12 @@ namespace Cassandra.Observers.Metrics
             Logger.Warning("An error occured while recording metrics for a request. Exception = {0}", ex.ToString());
         }
 
-        public Task OnNodeStartAsync(RequestTrackingInfo requestTrackingInfo, HostTrackingInfo hostInfo)
+        public Task OnNodeStartAsync(SessionRequestInfo sessionRequestInfo, NodeRequestInfo nodeRequestInfo)
         {
             return TaskHelper.Completed;
         }
 
-        public Task OnNodeSuccessAsync(RequestTrackingInfo requestTrackingInfo, HostTrackingInfo hostInfo)
+        public Task OnNodeSuccessAsync(SessionRequestInfo sessionRequestInfo, NodeRequestInfo nodeRequestInfo)
         {
             return TaskHelper.Completed;
         }
