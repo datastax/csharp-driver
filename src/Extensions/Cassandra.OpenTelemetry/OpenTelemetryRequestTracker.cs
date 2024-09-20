@@ -67,7 +67,7 @@ namespace Cassandra.OpenTelemetry
         {
             var operationName = GetSessionOperationName(sessionRequest);
 
-            var keyspace = GetKeyspace(sessionRequest);
+            var keyspace = GetKeyspaceFromSessionRequest(sessionRequest);
             var activity = ActivitySource.StartActivity(GetActivityName(operationName, keyspace), ActivityKind.Client);
 
             if (activity == null)
@@ -247,7 +247,7 @@ namespace Cassandra.OpenTelemetry
             }
 
             var operationName = GetNodeOperationName(sessionRequest, nodeRequestInfo);
-            var keyspace = GetKeyspace(sessionRequest);
+            var keyspace = GetKeyspaceFromNodeRequest(nodeRequestInfo) ?? GetKeyspaceFromSessionRequest(sessionRequest);
             var activity = ActivitySource.StartActivity(GetActivityName(operationName, keyspace), ActivityKind.Client, parentActivity.Context);
 
             if (activity == null)
@@ -292,10 +292,15 @@ namespace Cassandra.OpenTelemetry
             return $"{NodeOperationName}({nodePrepareRequestName ?? sessionRequest.Statement?.GetType().Name ?? sessionRequest.PrepareRequest?.GetType().Name})";
         }
 
-        private string GetKeyspace(SessionRequestInfo sessionRequest)
+        private string GetKeyspaceFromSessionRequest(SessionRequestInfo sessionRequest)
         {
             var ks = sessionRequest.Statement == null ? sessionRequest.PrepareRequest?.Keyspace : sessionRequest.Statement?.Keyspace;
             return ks ?? sessionRequest.SessionKeyspace;
+        }
+
+        private string GetKeyspaceFromNodeRequest(NodeRequestInfo nodeRequestInfo)
+        {
+            return nodeRequestInfo.PrepareRequest?.Keyspace;
         }
 
         private string GetQueryText(SessionRequestInfo sessionRequest)
