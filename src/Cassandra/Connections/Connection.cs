@@ -761,7 +761,7 @@ namespace Cassandra.Connections
                 return false;
             }
             //Invoke all callbacks using the default TaskScheduler
-            Task.Run(async () =>
+            Task.Factory.StartNew(async () =>
             {
                 stream.Position = 0;
                 foreach (var cb in operationCallbacks)
@@ -769,7 +769,7 @@ namespace Cassandra.Connections
                     await cb(stream, timestamp).ConfigureAwait(false);
                 }
                 stream.Dispose();
-            }, CancellationToken.None);
+            }, CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
             return true;
         }
 
@@ -803,7 +803,9 @@ namespace Cassandra.Connections
             if (_isClosed)
             {
                 // Avoid calling back before returning
-                Task.Run(() => callback(RequestError.CreateClientError(new SocketException((int)SocketError.NotConnected), true), null), CancellationToken.None);
+                Task.Factory.StartNew(
+                    () => callback(RequestError.CreateClientError(new SocketException((int)SocketError.NotConnected), true), null), 
+                    CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
                 return null;
             }
 
@@ -827,7 +829,9 @@ namespace Cassandra.Connections
                 catch (Exception ex)
                 {
                     // Avoid calling back before returning
-                    Task.Run(() => callback(RequestError.CreateClientError(ex, true), null), CancellationToken.None);
+                    Task.Factory.StartNew(
+                        () => callback(RequestError.CreateClientError(ex, true), null),
+                        CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
                     return null;
                 }
             }

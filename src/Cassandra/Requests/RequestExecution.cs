@@ -21,6 +21,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Connections;
 using Cassandra.Observers.Abstractions;
@@ -573,11 +574,11 @@ namespace Cassandra.Requests
                     preparedKeyspace, _session.Keyspace));
 
                 var c = _connection;
-                Task.Run(async () =>
+                Task.Factory.StartNew(async () =>
                 {
                     await c.SetKeyspace(preparedKeyspace).ConfigureAwait(false);
                     await SendAsync(request, nodeRequestInfo.Host, NewReprepareResponseHandler(ex)).ConfigureAwait(false);
-                }).Forget();
+                }, CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default).Forget();
                 return;
             }
             await SendAsync(request, nodeRequestInfo.Host, NewReprepareResponseHandler(ex)).ConfigureAwait(false);

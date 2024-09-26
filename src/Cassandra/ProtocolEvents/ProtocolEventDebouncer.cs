@@ -16,6 +16,7 @@
 
 using System;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 
@@ -184,7 +185,7 @@ namespace Cassandra.ProtocolEvents
             _queue = null;
 
             // not necessary to enqueue within the exclusive scheduler
-            Task.Run(async () =>
+            Task.Factory.StartNew(async () =>
             {
                 var sent = false;
                 try
@@ -203,7 +204,7 @@ namespace Cassandra.ProtocolEvents
                         cb?.TrySetException(new DriverInternalError("Could not process events in the ProtocolEventDebouncer."));
                     }
                 }
-            }).Forget();
+            }, CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
         }
 
         private static async Task ProcessQueue(EventQueue queue)

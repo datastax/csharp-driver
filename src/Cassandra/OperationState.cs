@@ -155,7 +155,7 @@ namespace Cassandra
             }
             //Invoke the callback in a new thread in the thread pool
             //This way we don't let the user block on a thread used by the Connection
-            Task.Run(() => callback(error, null, timestamp), CancellationToken.None);
+            Task.Factory.StartNew(() => callback(error, null, timestamp), CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
         }
 
         /// <summary>
@@ -175,7 +175,7 @@ namespace Cassandra
             Thread.MemoryBarrier();
 
             _timeoutCallbackSet = true;
-            Task.Run(() => callback(RequestError.CreateClientError(ex, false), null, timestamp), CancellationToken.None);
+            Task.Factory.StartNew(() => callback(RequestError.CreateClientError(ex, false), null, timestamp), CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
             return true;
         }
 
@@ -204,14 +204,14 @@ namespace Cassandra
         /// </summary>
         internal static void CallbackMultiple(IEnumerable<OperationState> ops, IRequestError error, long timestamp)
         {
-            Task.Run(async () =>
+            Task.Factory.StartNew(async () =>
             {
                 foreach (var state in ops)
                 {
                     var callback = state.SetCompleted();
                     await callback(error, null, timestamp).ConfigureAwait(false);
                 }
-            }, CancellationToken.None);
+            }, CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
         }
     }
 }

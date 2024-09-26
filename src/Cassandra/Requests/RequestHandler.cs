@@ -253,7 +253,7 @@ namespace Cassandra.Requests
             if (action != null)
             {
                 //Create a new Task using the default scheduler, invoke the action and set the result
-                Task.Run(async () =>
+                Task.Factory.StartNew(async () =>
                 {
                     try
                     {
@@ -268,7 +268,7 @@ namespace Cassandra.Requests
 
                     await ClearNodeExecutionsAsync().ConfigureAwait(false);
                     await _requestResultHandler.TrySetResultAsync(result, _sessionRequestInfo).ConfigureAwait(false);
-                }, CancellationToken.None).Forget();
+                }, CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default).Forget();
                 return true;
             }
 
@@ -506,7 +506,7 @@ namespace Cassandra.Requests
             _nextExecutionTimeout = _session.Cluster.Configuration.Timer.NewTimeout(_ =>
             {
                 // Start the speculative execution outside the IO thread
-                Task.Run(() =>
+                Task.Factory.StartNew(() =>
                 {
                     if (HasCompleted())
                     {
@@ -516,7 +516,7 @@ namespace Cassandra.Requests
                     RequestHandler.Logger.Info("Starting new speculative execution after {0} ms. Last used host: {1}", delay, currentHost.Address);
                     _requestObserver.OnSpeculativeExecution(currentHost, delay);
                     return StartNewExecutionAsync();
-                }, CancellationToken.None);
+                }, CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
             }, null, delay);
         }
 

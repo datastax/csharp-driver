@@ -404,7 +404,7 @@ namespace Cassandra.Connections
                 return;
             }
             // We are using an IO thread
-            Task.Run(async () =>
+            Task.Factory.StartNew(async () =>
             {
                 // Use a lock for avoiding concurrent calls to SetNewConnectionTimeout()
                 await _allConnectionClosedEventLock.WaitAsync().ConfigureAwait(false);
@@ -427,7 +427,7 @@ namespace Cassandra.Connections
                 {
                     _allConnectionClosedEventLock.Release();
                 }
-            }).Forget();
+            }, CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
         }
 
         private void OnDistanceChanged(HostDistance previousDistance, HostDistance distance)
