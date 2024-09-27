@@ -622,10 +622,10 @@ namespace Cassandra
 
         /// <inheritdoc />
         async Task<PreparedStatement> IInternalCluster.Prepare(
-            IInternalSession session, ISerializerManager serializerManager, PrepareRequest request)
+            IInternalSession session, ISerializerManager serializerManager, InternalPrepareRequest request)
         {
             var lbp = session.Cluster.Configuration.DefaultRequestOptions.LoadBalancingPolicy;
-            var handler = InternalRef.Configuration.PrepareHandlerFactory.CreatePrepareHandler(serializerManager, this);
+            var handler = InternalRef.Configuration.PrepareHandlerFactory.CreatePrepareHandler(serializerManager, this, session, request);
             var ps = await handler.Prepare(request, session, lbp.NewQueryPlan(session.Keyspace, null).GetEnumerator()).ConfigureAwait(false);
             var psAdded = InternalRef.PreparedQueries.GetOrAdd(ps.Id, ps);
             if (ps != psAdded)
@@ -670,7 +670,7 @@ namespace Cassandra
             {
                 foreach (var ps in preparedQueries)
                 {
-                    var request = new PrepareRequest(serializer, ps.Cql, ps.Keyspace, null);
+                    var request = new InternalPrepareRequest(serializer, ps.Cql, ps.Keyspace, null);
                     await semaphore.WaitAsync().ConfigureAwait(false);
                     tasks.Add(Task.Run(() => handler.ReprepareOnSingleNodeAsync(
                         new KeyValuePair<Host, IHostConnectionPool>(host, pool), 

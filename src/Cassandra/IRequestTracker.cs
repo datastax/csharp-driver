@@ -27,56 +27,56 @@ namespace Cassandra
         /// <summary>
         /// Triggered when the request starts.
         /// </summary>
-        /// <param name="request"></param>
+        /// <param name="sessionRequestInfo"></param>
         /// <returns>Contextual task.</returns>
-        Task OnStartAsync(RequestTrackingInfo request);
+        Task OnStartAsync(SessionRequestInfo sessionRequestInfo);
 
         /// <summary>
         /// Triggered when the session level request finishes successfully.
         /// </summary>
-        /// <param name="request"></param>
+        /// <param name="sessionRequestInfo"></param>
         /// <returns>Contextual task.</returns>
-        Task OnSuccessAsync(RequestTrackingInfo request);
+        Task OnSuccessAsync(SessionRequestInfo sessionRequestInfo);
 
         /// <summary>
         /// Triggered when the session level request finishes unsuccessfully.
         /// </summary>
-        /// <param name="request">Request contextual information.</param>
+        /// <param name="sessionRequestInfo">Request contextual information.</param>
         /// <param name="ex">Request exception.</param>
         /// <returns>Contextual task.</returns>
-        Task OnErrorAsync(RequestTrackingInfo request, Exception ex);
+        Task OnErrorAsync(SessionRequestInfo sessionRequestInfo, Exception ex);
 
         /// <summary>
         /// Triggered when the node level request finishes successfully.
         /// </summary>
-        /// <param name="request">Request contextual information.</param>
-        /// <param name="hostInfo">Struct with host contextual information.</param>
+        /// <param name="sessionRequestInfo">Request contextual information.</param>
+        /// <param name="nodeRequestInfo">Struct with host contextual information.</param>
         /// <returns>Contextual task.</returns>
-        Task OnNodeSuccessAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo);
+        Task OnNodeSuccessAsync(SessionRequestInfo sessionRequestInfo, NodeRequestInfo nodeRequestInfo);
 
         /// <summary>
         /// Triggered when the node request finishes unsuccessfully.
         /// </summary>
-        /// <param name="request"><see cref="RequestTrackingInfo"/> object with contextual information.</param>
-        /// <param name="hostInfo">Struct with host contextual information.</param>
+        /// <param name="sessionRequestInfo"><see cref="SessionRequestInfo"/> object with contextual information.</param>
+        /// <param name="nodeRequestInfo">Struct with host contextual information.</param>
         /// <param name="ex">Exception information.</param>
         /// <returns>Contextual task.</returns>
-        Task OnNodeErrorAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo, Exception ex);
+        Task OnNodeErrorAsync(SessionRequestInfo sessionRequestInfo, NodeRequestInfo nodeRequestInfo, Exception ex);
 
         /// <summary>
         /// Triggered when the node request is aborted (e.g. pending speculative execution that was canceled due to another execution completing).
         /// </summary>
-        /// <param name="request"><see cref="RequestTrackingInfo"/> object with contextual information.</param>
-        /// <param name="hostInfo">Struct with host contextual information.</param>
+        /// <param name="sessionRequestInfo"><see cref="SessionRequestInfo"/> object with contextual information.</param>
+        /// <param name="nodeRequestInfo">Struct with host contextual information.</param>
         /// <returns>Contextual task.</returns>
-        Task OnNodeAborted(RequestTrackingInfo request, HostTrackingInfo hostInfo);
+        Task OnNodeAborted(SessionRequestInfo sessionRequestInfo, NodeRequestInfo nodeRequestInfo);
 
         /// <summary>
         /// Triggered when the node request starts.
         /// </summary>
-        /// <param name="request"><see cref="RequestTrackingInfo"/> object with contextual information.</param>
-        /// <param name="hostInfo">Struct with host contextual information.</param>
+        /// <param name="sessionRequestInfo"><see cref="SessionRequestInfo"/> object with contextual information.</param>
+        /// <param name="nodeRequestInfo">Struct with host contextual information.</param>
         /// <returns>Contextual task.</returns>
-        Task OnNodeStartAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo);
+        Task OnNodeStartAsync(SessionRequestInfo sessionRequestInfo, NodeRequestInfo nodeRequestInfo);
     }
 }

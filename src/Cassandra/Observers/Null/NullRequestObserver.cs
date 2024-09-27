@@ -31,42 +31,42 @@ namespace Cassandra.Observers.Null
         {
         }
 
-        public Task OnNodeRequestErrorAsync(RequestErrorType errorType, RetryDecision.RetryDecisionType decision, RequestTrackingInfo r, HostTrackingInfo h, Exception ex)
+        public Task OnNodeRequestErrorAsync(RequestErrorType errorType, RetryDecision.RetryDecisionType decision, SessionRequestInfo r, NodeRequestInfo h, Exception ex)
         {
             return TaskHelper.Completed;
         }
 
-        public Task OnNodeRequestErrorAsync(IRequestError error, RequestTrackingInfo r, HostTrackingInfo hostTrackingInfo)
+        public Task OnNodeRequestErrorAsync(IRequestError error, SessionRequestInfo r, NodeRequestInfo nodeRequestInfo)
         {
             return TaskHelper.Completed;
         }
 
-        public Task OnNodeStartAsync(RequestTrackingInfo requestTrackingInfo, HostTrackingInfo h)
+        public Task OnNodeStartAsync(SessionRequestInfo sessionRequestInfo, NodeRequestInfo h)
         {
             return TaskHelper.Completed;
         }
 
-        public Task OnNodeSuccessAsync(RequestTrackingInfo requestTrackingInfo, HostTrackingInfo h)
+        public Task OnNodeSuccessAsync(SessionRequestInfo sessionRequestInfo, NodeRequestInfo h)
         {
             return TaskHelper.Completed;
         }
 
-        public Task OnNodeRequestAbortedAsync(RequestTrackingInfo requestTrackingInfo, HostTrackingInfo hostTrackingInfo)
+        public Task OnNodeRequestAbortedAsync(SessionRequestInfo sessionRequestInfo, NodeRequestInfo nodeRequestInfo)
         {
             return TaskHelper.Completed;
         }
 
-        public Task OnRequestFailureAsync(Exception ex, RequestTrackingInfo r)
+        public Task OnRequestFailureAsync(Exception ex, SessionRequestInfo r)
         {
             return TaskHelper.Completed;
         }
 
-        public Task OnRequestStartAsync(RequestTrackingInfo r)
+        public Task OnRequestStartAsync(SessionRequestInfo r)
         {
             return TaskHelper.Completed;
         }
 
-        public Task OnRequestSuccessAsync(RequestTrackingInfo r)
+        public Task OnRequestSuccessAsync(SessionRequestInfo r)
         {
             return TaskHelper.Completed;
         }

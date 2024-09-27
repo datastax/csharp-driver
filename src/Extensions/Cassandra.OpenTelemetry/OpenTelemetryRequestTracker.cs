@@ -61,13 +61,14 @@ namespace Cassandra.OpenTelemetry
         /// </item>
         /// </list>
         /// </summary>
-        /// <param name="request">Request contextual information.</param>
+        /// <param name="sessionRequest">Request contextual information.</param>
         /// <returns>Activity task.</returns>
-        public virtual Task OnStartAsync(RequestTrackingInfo request)
+        public virtual Task OnStartAsync(SessionRequestInfo sessionRequest)
         {
-            var operationName = GetSessionOperationName(request);
+            var operationName = GetSessionOperationName(sessionRequest);
 
-            var activity = ActivitySource.StartActivity(GetActivityName(operationName, request), ActivityKind.Client);
+            var keyspace = GetKeyspaceFromSessionRequest(sessionRequest);
+            var activity = ActivitySource.StartActivity(GetActivityName(operationName, keyspace), ActivityKind.Client);
 
             if (activity == null)
             {
@@ -79,20 +80,20 @@ namespace Cassandra.OpenTelemetry
 
             if (activity.IsAllDataRequested)
             {
-                if (!string.IsNullOrEmpty(request.Statement?.Keyspace))
+                if (!string.IsNullOrEmpty(keyspace))
                 {
-                    activity.AddTag("db.namespace", request.Statement.Keyspace);
+                    activity.AddTag("db.namespace", keyspace);
                 }
 
-                if (_instrumentationOptions.IncludeDatabaseStatement && request.Statement != null)
+                var queryText = GetQueryText(sessionRequest);
+                if (_instrumentationOptions.IncludeDatabaseStatement && queryText != null)
                 {
-                    var stmt = GetStatementString(request.Statement);
-                    activity.AddTag("db.query.text", stmt);
-                    request.Items.TryAdd(OtelStmtKey, stmt);
+                    activity.AddTag("db.query.text", queryText);
+                    sessionRequest.Items.TryAdd(OtelStmtKey, queryText);
                 }
             }
 
-            request.Items.TryAdd(OtelActivityKey, activity);
+            sessionRequest.Items.TryAdd(OtelActivityKey, activity);
 
             return Task.CompletedTask;
         }
@@ -100,11 +101,11 @@ namespace Cassandra.OpenTelemetry
         /// <summary>
         /// Closes the <see cref="Activity"/> when the session request is successful.
         /// </summary>
-        /// <param name="request">Request contextual information.</param>
+        /// <param name="sessionRequest">Request contextual information.</param>
         /// <returns>Completed task.</returns>
-        public virtual Task OnSuccessAsync(RequestTrackingInfo request)
+        public virtual Task OnSuccessAsync(SessionRequestInfo sessionRequest)
         {
-            request.Items.TryRemove(OtelActivityKey, out var context);
+            sessionRequest.Items.TryRemove(OtelActivityKey, out var context);
 
             if (!(context is Activity activity))
             {
@@ -120,12 +121,12 @@ namespace Cassandra.OpenTelemetry
         /// Closes the <see cref="Activity"/> when the session request is unsuccessful.
         /// Includes an <see cref="ActivityEvent"/> containing information from the specified exception.
         /// </summary>
-        /// <param name="request">Request contextual information.</param>
+        /// <param name="sessionRequest">Request contextual information.</param>
         /// <param name="ex">Exception information.</param>
         /// <returns>Completed task.</returns>
-        public virtual Task OnErrorAsync(RequestTrackingInfo request, Exception ex)
+        public virtual Task OnErrorAsync(SessionRequestInfo sessionRequest, Exception ex)
         {
-            request.Items.TryRemove(OtelActivityKey, out var context);
+            sessionRequest.Items.TryRemove(OtelActivityKey, out var context);
 
             if (!(context is Activity activity))
             {
@@ -143,14 +144,14 @@ namespace Cassandra.OpenTelemetry
         /// <summary>
         /// Closes the <see cref="Activity"/> when the node request is successful.
         /// </summary>
-        /// <param name="request">Request contextual information.</param>
-        /// <param name="hostInfo">Struct with host contextual information.</param>
+        /// <param name="sessionRequest">Request contextual information.</param>
+        /// <param name="nodeRequestInfo">Struct with host contextual information.</param>
         /// <returns>Completed task.</returns>
-        public virtual Task OnNodeSuccessAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo)
+        public virtual Task OnNodeSuccessAsync(SessionRequestInfo sessionRequest, NodeRequestInfo nodeRequestInfo)
         {
-            var activityKey = $"{OtelActivityKey}.{hostInfo.ExecutionId}";
+            var activityKey = $"{OtelActivityKey}.{nodeRequestInfo.ExecutionId}";
 
-            request.Items.TryRemove(activityKey, out var context);
+            sessionRequest.Items.TryRemove(activityKey, out var context);
 
             if (!(context is Activity activity))
             {
@@ -166,15 +167,15 @@ namespace Cassandra.OpenTelemetry
         /// Closes the <see cref="Activity"/> when the node request level request is unsuccessful.
         /// Includes an <see cref="ActivityEvent"/> containing information from the specified exception.
         /// </summary>
-        /// <param name="request"><see cref="RequestTrackingInfo"/> object with contextual information.</param>
-        /// <param name="hostInfo">Struct with host contextual information.</param>
+        /// <param name="sessionRequest"><see cref="SessionRequestInfo"/> object with contextual information.</param>
+        /// <param name="nodeRequestInfo">Struct with host contextual information.</param>
         /// <param name="ex">Exception information.</param>
         /// <returns>Completed task.</returns>
-        public virtual Task OnNodeErrorAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo, Exception ex)
+        public virtual Task OnNodeErrorAsync(SessionRequestInfo sessionRequest, NodeRequestInfo nodeRequestInfo, Exception ex)
         {
-            var activityKey = $"{OtelActivityKey}.{hostInfo.ExecutionId}";
+            var activityKey = $"{OtelActivityKey}.{nodeRequestInfo.ExecutionId}";
             
-            request.Items.TryRemove(activityKey, out var context);
+            sessionRequest.Items.TryRemove(activityKey, out var context);
 
             if (!(context is Activity activity))
             {
@@ -192,14 +193,14 @@ namespace Cassandra.OpenTelemetry
         /// <summary>
         /// Closes the <see cref="Activity"/> when the node request is aborted (e.g. pending speculative execution).
         /// </summary>
-        /// <param name="request">Request contextual information.</param>
-        /// <param name="hostInfo">Struct with host contextual information.</param>
+        /// <param name="sessionRequest">Request contextual information.</param>
+        /// <param name="nodeRequestInfo">Struct with host contextual information.</param>
         /// <returns>Completed task.</returns>
-        public Task OnNodeAborted(RequestTrackingInfo request, HostTrackingInfo hostInfo)
+        public Task OnNodeAborted(SessionRequestInfo sessionRequest, NodeRequestInfo nodeRequestInfo)
         {
-            var activityKey = $"{OtelActivityKey}.{hostInfo.ExecutionId}";
+            var activityKey = $"{OtelActivityKey}.{nodeRequestInfo.ExecutionId}";
 
-            request.Items.TryRemove(activityKey, out var context);
+            sessionRequest.Items.TryRemove(activityKey, out var context);
 
             if (!(context is Activity activity))
             {
@@ -236,18 +237,18 @@ namespace Cassandra.OpenTelemetry
         /// </list>
         /// </summary>
         /// <returns>Activity task.</returns>
-        public virtual Task OnNodeStartAsync(RequestTrackingInfo request, HostTrackingInfo hostInfo)
+        public virtual Task OnNodeStartAsync(SessionRequestInfo sessionRequest, NodeRequestInfo nodeRequestInfo)
         {
-            request.Items.TryGetValue(OtelActivityKey, out var sessionContext);
+            sessionRequest.Items.TryGetValue(OtelActivityKey, out var sessionContext);
 
             if (!(sessionContext is Activity parentActivity))
             {
                 return Task.CompletedTask;
             }
 
-            var operationName = GetNodeOperationName(request);
-
-            var activity = ActivitySource.StartActivity(GetActivityName(operationName, request), ActivityKind.Client, parentActivity.Context);
+            var operationName = GetNodeOperationName(sessionRequest, nodeRequestInfo);
+            var keyspace = GetKeyspaceFromNodeRequest(nodeRequestInfo) ?? GetKeyspaceFromSessionRequest(sessionRequest);
+            var activity = ActivitySource.StartActivity(GetActivityName(operationName, keyspace), ActivityKind.Client, parentActivity.Context);
 
             if (activity == null)
             {
@@ -256,46 +257,63 @@ namespace Cassandra.OpenTelemetry
 
             activity.AddTag("db.system", "cassandra");
             activity.AddTag("db.operation.name", operationName);
-            activity.AddTag("server.address", hostInfo.Host?.Address?.Address.ToString());
-            activity.AddTag("server.port", hostInfo.Host?.Address?.Port.ToString());
+            activity.AddTag("server.address", nodeRequestInfo.Host?.Address?.Address.ToString());
+            activity.AddTag("server.port", nodeRequestInfo.Host?.Address?.Port.ToString());
 
             if (activity.IsAllDataRequested)
             {
-                if (!string.IsNullOrEmpty(request.Statement?.Keyspace))
+                if (!string.IsNullOrEmpty(keyspace))
                 {
-                    activity.AddTag("db.namespace", request.Statement.Keyspace);
+                    activity.AddTag("db.namespace", keyspace);
                 }
 
-                if (_instrumentationOptions.IncludeDatabaseStatement && request.Statement != null)
+                if (_instrumentationOptions.IncludeDatabaseStatement)
                 {
-                    if (request.Items.TryGetValue(OtelStmtKey, out var stmt))
+                    if (sessionRequest.Items.TryGetValue(OtelStmtKey, out var stmt))
                     {
                         activity.AddTag("db.query.text", stmt);
                     }
                 }
             }
 
-            request.Items.TryAdd($"{OtelActivityKey}.{hostInfo.ExecutionId}", activity);
+            sessionRequest.Items.TryAdd($"{OtelActivityKey}.{nodeRequestInfo.ExecutionId}", activity);
 
             return Task.CompletedTask;
         }
 
-        private string GetSessionOperationName(RequestTrackingInfo request)
+        private string GetSessionOperationName(SessionRequestInfo sessionRequest)
         {
-            return $"{SessionOperationName}({request.Statement?.GetType().Name})";
+            return $"{SessionOperationName}({sessionRequest.Statement?.GetType().Name ?? sessionRequest.PrepareRequest?.GetType().Name})";
         }
 
-        private string GetNodeOperationName(RequestTrackingInfo request)
+        private string GetNodeOperationName(SessionRequestInfo sessionRequest, NodeRequestInfo nodeRequest)
         {
-            return $"{NodeOperationName}({request.Statement?.GetType().Name})";
+            var nodePrepareRequestName = nodeRequest?.PrepareRequest?.GetType().Name;
+            return $"{NodeOperationName}({nodePrepareRequestName ?? sessionRequest.Statement?.GetType().Name ?? sessionRequest.PrepareRequest?.GetType().Name})";
         }
 
-        private string GetActivityName(string operationName, RequestTrackingInfo request)
+        private string GetKeyspaceFromSessionRequest(SessionRequestInfo sessionRequest)
         {
-            return string.IsNullOrEmpty(request.Statement?.Keyspace) ? $"{operationName}" : $"{operationName} {request.Statement.Keyspace}";
+            var ks = sessionRequest.Statement == null ? sessionRequest.PrepareRequest?.Keyspace : sessionRequest.Statement?.Keyspace;
+            return ks ?? sessionRequest.SessionKeyspace;
         }
 
-        private string GetStatementString(IStatement statement)
+        private string GetKeyspaceFromNodeRequest(NodeRequestInfo nodeRequestInfo)
+        {
+            return nodeRequestInfo.PrepareRequest?.Keyspace;
+        }
+
+        private string GetQueryText(SessionRequestInfo sessionRequest)
+        {
+            return sessionRequest.Statement == null ? sessionRequest.PrepareRequest?.Query : GetQueryTextFromStatement(sessionRequest.Statement);
+        }
+
+        private string GetActivityName(string operationName, string ks)
+        {
+            return string.IsNullOrEmpty(ks) ? $"{operationName}" : $"{operationName} {ks}";
+        }
+
+        private string GetQueryTextFromStatement(IStatement statement)
         {
             string str;
             switch (statement)

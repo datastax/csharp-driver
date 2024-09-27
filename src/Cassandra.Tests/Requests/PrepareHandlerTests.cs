@@ -84,7 +84,7 @@ namespace Cassandra.Tests.Requests
             var pools = mockResult.Session.GetPools().ToList();
             Assert.AreEqual(2, pools.Count);
             var distanceCount = Interlocked.Read(ref lbpCluster.DistanceCount);
-            var request = new PrepareRequest(_serializer, "TEST", null, null);
+            var request = new InternalPrepareRequest(_serializer, "TEST", null, null);
 
             await mockResult.PrepareHandler.Prepare(
                 request, 
@@ -156,7 +156,7 @@ namespace Cassandra.Tests.Requests
             var pools = mockResult.Session.GetPools().ToList();
             Assert.AreEqual(3, pools.Count);
             var distanceCount = Interlocked.Read(ref lbpCluster.DistanceCount);
-            var request = new PrepareRequest(_serializer, "TEST", null, null);
+            var request = new InternalPrepareRequest(_serializer, "TEST", null, null);
 
             await mockResult.PrepareHandler.Prepare(
                 request, 
@@ -229,7 +229,7 @@ namespace Cassandra.Tests.Requests
             Assert.AreEqual(3, pools.Count);
             
             var distanceCount = Interlocked.Read(ref lbpCluster.DistanceCount);
-            var request = new PrepareRequest(_serializer, "TEST", null, null);
+            var request = new InternalPrepareRequest(_serializer, "TEST", null, null);
 
             await mockResult.PrepareHandler.Prepare(
                 request, 
@@ -301,7 +301,7 @@ namespace Cassandra.Tests.Requests
             var pools = mockResult.Session.GetPools().ToList();
             Assert.AreEqual(2, pools.Count);
             var distanceCount = Interlocked.Read(ref lbpCluster.DistanceCount);
-            var request = new PrepareRequest(_serializer, "TEST", null, null);
+            var request = new InternalPrepareRequest(_serializer, "TEST", null, null);
 
             await mockResult.PrepareHandler.Prepare(
                 request, 
@@ -373,7 +373,7 @@ namespace Cassandra.Tests.Requests
             var pools = mockResult.Session.GetPools().ToList();
             Assert.AreEqual(2, pools.Count);
             var distanceCount = Interlocked.Read(ref lbpCluster.DistanceCount);
-            var request = new PrepareRequest(_serializer, "TEST", null, null);
+            var request = new InternalPrepareRequest(_serializer, "TEST", null, null);
 
             await mockResult.PrepareHandler.Prepare(
                 request, 
@@ -446,7 +446,7 @@ namespace Cassandra.Tests.Requests
             var pools = mockResult.Session.GetPools().ToList();
             Assert.AreEqual(2, pools.Count);
             var distanceCount = Interlocked.Read(ref lbpCluster.DistanceCount);
-            var request = new PrepareRequest(_serializer, "TEST", null, null);
+            var request = new InternalPrepareRequest(_serializer, "TEST", null, null);
 
             await mockResult.PrepareHandler.Prepare(
                 request, 

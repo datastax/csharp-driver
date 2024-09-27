@@ -1,4 +1,4 @@
-﻿//
+//
 //      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,22 +14,27 @@
 //   limitations under the License.
 //
 
-using System.Collections.Concurrent;
-
 namespace Cassandra
 {
-    public class RequestTrackingInfo
+    /// <summary>
+    /// A PREPARE request.
+    /// </summary>
+    public sealed class PrepareRequest
     {
-        private readonly IStatement _statement;
-
-        public RequestTrackingInfo(IStatement statement)
+        internal PrepareRequest(string cql, string keyspace)
         {
-            this._statement = statement;
-            this.Items = new ConcurrentDictionary<string, object>();
+            Query = cql;
+            Keyspace = keyspace;
         }
 
-        public ConcurrentDictionary<string, object> Items { get; }
+        /// <summary>
+        /// Returns the keyspace this PREPARE operates on. Can be null.
+        /// </summary>
+        public string Keyspace { get; }
 
-        public IStatement Statement => _statement;
+        /// <summary>
+        /// Returns the query string of this PREPARE request.
+        /// </summary>
+        public string Query { get; }
     }
 }

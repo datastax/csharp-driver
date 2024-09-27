@@ -36,42 +36,42 @@ namespace Cassandra.Observers.Composite
         public async Task OnNodeRequestErrorAsync(
             RequestErrorType errorType,
             RetryDecision.RetryDecisionType decision,
-            RequestTrackingInfo r, 
-            HostTrackingInfo hostTrackingInfo,
+            SessionRequestInfo r, 
+            NodeRequestInfo nodeRequestInfo,
             Exception ex)
         {
-            await _o1.OnNodeRequestErrorAsync(errorType, decision, r, hostTrackingInfo, ex).ConfigureAwait(false);
-            await _o2.OnNodeRequestErrorAsync(errorType, decision, r, hostTrackingInfo, ex).ConfigureAwait(false);
+            await _o1.OnNodeRequestErrorAsync(errorType, decision, r, nodeRequestInfo, ex).ConfigureAwait(false);
+            await _o2.OnNodeRequestErrorAsync(errorType, decision, r, nodeRequestInfo, ex).ConfigureAwait(false);
         }
 
-        public async Task OnNodeRequestErrorAsync(IRequestError error, RequestTrackingInfo r, HostTrackingInfo hostTrackingInfo)
+        public async Task OnNodeRequestErrorAsync(IRequestError error, SessionRequestInfo r, NodeRequestInfo nodeRequestInfo)
         {
-            await _o1.OnNodeRequestErrorAsync(error, r, hostTrackingInfo).ConfigureAwait(false);
-            await _o2.OnNodeRequestErrorAsync(error, r, hostTrackingInfo).ConfigureAwait(false);
+            await _o1.OnNodeRequestErrorAsync(error, r, nodeRequestInfo).ConfigureAwait(false);
+            await _o2.OnNodeRequestErrorAsync(error, r, nodeRequestInfo).ConfigureAwait(false);
         }
 
-        public async Task OnRequestFailureAsync(Exception ex, RequestTrackingInfo r)
+        public async Task OnRequestFailureAsync(Exception ex, SessionRequestInfo r)
         {
             await _o1.OnRequestFailureAsync(ex, r).ConfigureAwait(false);
             await _o2.OnRequestFailureAsync(ex, r).ConfigureAwait(false);
         }
 
-        public async Task OnRequestSuccessAsync(RequestTrackingInfo r)
+        public async Task OnRequestSuccessAsync(SessionRequestInfo r)
         {
             await _o1.OnRequestSuccessAsync(r).ConfigureAwait(false);
             await _o2.OnRequestSuccessAsync(r).ConfigureAwait(false);
         }
 
-        public async Task OnNodeRequestAbortedAsync(RequestTrackingInfo requestTrackingInfo, HostTrackingInfo hostTrackingInfo)
+        public async Task OnNodeRequestAbortedAsync(SessionRequestInfo sessionRequestInfo, NodeRequestInfo nodeRequestInfo)
         {
-            await _o1.OnNodeRequestAbortedAsync(requestTrackingInfo, hostTrackingInfo).ConfigureAwait(false);
-            await _o2.OnNodeRequestAbortedAsync(requestTrackingInfo, hostTrackingInfo).ConfigureAwait(false);
+            await _o1.OnNodeRequestAbortedAsync(sessionRequestInfo, nodeRequestInfo).ConfigureAwait(false);
+            await _o2.OnNodeRequestAbortedAsync(sessionRequestInfo, nodeRequestInfo).ConfigureAwait(false);
         }
 
-        public async Task OnRequestStartAsync(RequestTrackingInfo requestTrackingInfo)
+        public async Task OnRequestStartAsync(SessionRequestInfo sessionRequestInfo)
         {
-            await _o1.OnRequestStartAsync(requestTrackingInfo).ConfigureAwait(false);
-            await _o2.OnRequestStartAsync(requestTrackingInfo).ConfigureAwait(false);
+            await _o1.OnRequestStartAsync(sessionRequestInfo).ConfigureAwait(false);
+            await _o2.OnRequestStartAsync(sessionRequestInfo).ConfigureAwait(false);
         }
 
         public void OnSpeculativeExecution(Host host, long delay)
@@ -80,16 +80,16 @@ namespace Cassandra.Observers.Composite
             _o2.OnSpeculativeExecution(host, delay);
         }
 
-        public async Task OnNodeStartAsync(RequestTrackingInfo requestTrackingInfo, HostTrackingInfo hostTrackingInfo)
+        public async Task OnNodeStartAsync(SessionRequestInfo sessionRequestInfo, NodeRequestInfo nodeRequestInfo)
         {
-            await _o1.OnNodeStartAsync(requestTrackingInfo, hostTrackingInfo).ConfigureAwait(false);
-            await _o2.OnNodeStartAsync(requestTrackingInfo, hostTrackingInfo).ConfigureAwait(false);
+            await _o1.OnNodeStartAsync(sessionRequestInfo, nodeRequestInfo).ConfigureAwait(false);
+            await _o2.OnNodeStartAsync(sessionRequestInfo, nodeRequestInfo).ConfigureAwait(false);
         }
 
-        public async Task OnNodeSuccessAsync(RequestTrackingInfo requestTrackingInfo, HostTrackingInfo hostTrackingInfo)
+        public async Task OnNodeSuccessAsync(SessionRequestInfo sessionRequestInfo, NodeRequestInfo nodeRequestInfo)
         {
-            await _o1.OnNodeSuccessAsync(requestTrackingInfo, hostTrackingInfo).ConfigureAwait(false);
-            await _o2.OnNodeSuccessAsync(requestTrackingInfo, hostTrackingInfo).ConfigureAwait(false);
+            await _o1.OnNodeSuccessAsync(sessionRequestInfo, nodeRequestInfo).ConfigureAwait(false);
+            await _o2.OnNodeSuccessAsync(sessionRequestInfo, nodeRequestInfo).ConfigureAwait(false);
         }
     }
 }
