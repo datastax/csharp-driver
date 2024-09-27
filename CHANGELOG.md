@@ -1,5 +1,13 @@
 # ChangeLog - DataStax C# Driver
 
+## 3.22.0
+
+2024-09-30
+
+### New Features
+
+*   [[CSHARP-969](https://datastax-oss.atlassian.net/browse/CSHARP-969)] Support OpenTelemetry Tracing
+
 ## 3.21.0
 
 2024-09-09
