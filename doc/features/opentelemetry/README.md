@@ -21,6 +21,8 @@ using var tracerProvider = Sdk.CreateTracerProviderBuilder()
     ...
 ```
 
+__You can also find an [example in the driver's Github repository](https://github.com/datastax/csharp-driver/tree/3.22/examples/OpenTelemetry/DistributedTracing) of how to implement distributed tracing with OpenTelemetry and the DataStax C# driver in an ASP.NET Core project.__
+
 ### Attributes
 
 The table below displays the list of included attributes in this feature:
