@@ -439,7 +439,7 @@ pipeline {
                   '5.0', // Development Apache Cassandra�
                   'dse-5.1.35', // latest 5.1.x DataStax Enterprise
                   'dse-6.7.17', // latest 6.7.x DataStax Enterprise
-                  'dse-6.8.30' // 6.8 current DataStax Enterprise
+                  'dse-6.8.30', // 6.8 current DataStax Enterprise
                   'dse-6.9.3'
           }
           axis {
