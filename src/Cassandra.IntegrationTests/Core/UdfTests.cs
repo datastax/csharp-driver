@@ -51,12 +51,7 @@ namespace Cassandra.IntegrationTests.Core
                 return;
             }
             _testCluster = TestClusterManager.GetTestCluster(1, 0, false, DefaultMaxClusterCreateRetries, false, false);
-            var cassandraYaml = "enable_user_defined_functions: true";
-            if (TestClusterManager.CheckCassandraVersion(true, Version.Parse("5.0"), Comparison.GreaterThanOrEqualsTo))
-            {
-                cassandraYaml = "user_defined_functions_enabled: true";
-            }
-            _testCluster.UpdateConfig(cassandraYaml);
+            _testCluster.UpdateConfig("enable_user_defined_functions:true");
             _testCluster.Start(1);
             using (var cluster = ClusterBuilder().AddContactPoint(_testCluster.InitialContactPoint).Build())
             {

@@ -102,6 +102,35 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             get { return Environment.GetEnvironmentVariable("DSE_PATH"); }
         }
 
+        public enum BackendTypes
+        {
+            Hcd,
+            Dse,
+            Cassandra
+        }
+        
+        /// <summary>
+        /// "hcd", "dse", or "cassandra" (default)
+        /// </summary>
+        public static BackendTypes BackendType
+        {
+            get
+            {
+                string distribution = Environment.GetEnvironmentVariable("CCM_DISTRIBUTION") ?? "cassandra";
+                switch (distribution)
+                {
+                    case "hcd":
+                        return BackendTypes.Hcd;
+                    case "dse":
+                        return BackendTypes.Dse;
+                    case "cassandra":
+                        return BackendTypes.Cassandra;
+                    default:
+                        throw new TestInfrastructureException("Unknown CCM_DISTRIBUTION value: " + distribution);
+                }
+            }
+        }
+
         public static string InitialContactPoint
         {
             get { return IpPrefix + "1"; }
@@ -109,7 +138,14 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         public static string DseVersionString
         {
-            get { return Environment.GetEnvironmentVariable("DSE_VERSION") ?? "6.7.7"; }
+            get
+            {
+                if (BackendType != BackendTypes.Dse)
+                {
+                    throw new TestInfrastructureException("DSE_VERSION is only available when using DSE backend");
+                }
+                return Environment.GetEnvironmentVariable("CASSANDRA_VERSION") ?? "6.7.7";
+            }
         }
 
         public static string CassandraVersionString
@@ -119,7 +155,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         public static bool IsDse
         {
-            get { return Environment.GetEnvironmentVariable("DSE_VERSION") != null; }
+            get { return BackendType == BackendTypes.Dse; }
         }
         
         public static Version DseVersion

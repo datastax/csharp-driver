@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Sockets;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -320,6 +321,13 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             }
         }
 
+        public void UpdateConfig(int nodeId, params string[] yamlChanges)
+        {
+            if (yamlChanges == null) return;
+            FixYaml(yamlChanges);
+            var joinedChanges = string.Join(" ", yamlChanges.Select(s => $"\"{s}\""));
+            ExecuteCcm($"node{nodeId} updateconf {joinedChanges}");
+        }
         
         private static void FixYaml(string[] yamlToFix)
         {
