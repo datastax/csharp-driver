@@ -81,7 +81,10 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                     // C* 4.0
                     return Version4Dot0;
                 }
-
+                if (IsHcd)
+                {
+                    return Version4Dot0;
+                }
                 return new Version(TestClusterManager.CassandraVersionString.Split('-')[0]);
             }
         }
@@ -140,7 +143,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         {
             get
             {
-                if (BackendType != BackendTypes.Dse)
+                if (!IsDse)
                 {
                     throw new TestInfrastructureException("DSE_VERSION is only available when using DSE backend");
                 }
@@ -156,6 +159,11 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         public static bool IsDse
         {
             get { return BackendType == BackendTypes.Dse; }
+        }
+
+        public static bool IsHcd
+        {
+            get { return BackendType == BackendTypes.Hcd; }
         }
         
         public static Version DseVersion
@@ -200,15 +208,14 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         public static bool CheckCassandraVersion(bool requiresOss, Version version, Comparison comparison)
         {
-            if (requiresOss && TestClusterManager.IsDse)
+            if (requiresOss && TestClusterManager.BackendType != BackendTypes.Cassandra)
             {
                 return false;
             }
 
-            var runningVersion = TestClusterManager.IsDse ? TestClusterManager.DseVersion : TestClusterManager.CassandraVersion;
-            var expectedVersion = TestClusterManager.IsDse ? TestClusterManager.GetDseVersionFromCassandraVersion(version) : version;
-
-            return TestDseVersion.VersionMatch(expectedVersion, runningVersion, comparison);
+            var runningVersion = TestClusterManager.CassandraVersion;
+            var expectedVersion = version;
+            return TestCassandraVersion.VersionMatch(expectedVersion, runningVersion, comparison);
         }
 
         /// <summary>

@@ -73,6 +73,11 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                     ExecuteCcm(string.Format(
                         "create {0} --dse -v {1} {2}", Name, Version, sslParams));
                 }
+                else if(TestClusterManager.BackendType == TestClusterManager.BackendTypes.Hcd)
+                {
+                    ExecuteCcm(string.Format(
+                        "create {0} --hcd -v {1} {2}", Name, Version, sslParams));
+                }
                 else
                 {
                     ExecuteCcm(string.Format(
@@ -268,6 +273,9 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             if (TestClusterManager.IsDse)
             {
                 cmd += " --dse";
+            }else if (TestClusterManager.BackendType == TestClusterManager.BackendTypes.Hcd)
+            {
+                cmd += " --hcd";
             }
 
             var output = ExecuteCcm(string.Format(cmd, n, IpPrefix, n, 7000 + 100 * n, dc != null ? "-d " + dc : null));

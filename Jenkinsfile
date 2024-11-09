@@ -129,12 +129,24 @@ CCM_CASSANDRA_VERSION=${DSE_FIXED_VERSION} # maintain for backwards compatibilit
 CCM_VERSION=${DSE_FIXED_VERSION}
 CCM_SERVER_TYPE=dse
 DSE_VERSION=${DSE_FIXED_VERSION}
-CCM_IS_DSE=true
+CCM_DISTRIBUTION=dse
+CASSANDRA_VERSION=${DSE_FIXED_VERSION}
 CCM_BRANCH=${DSE_FIXED_VERSION}
 DSE_BRANCH=${DSE_FIXED_VERSION}
 JDK=1.8
 ENVIRONMENT_EOF
       '''
+    }
+    
+    if (env.SERVER_VERSION.split('-')[0] == 'hcd') {
+      env.HCD_FIXED_VERSION = env.SERVER_VERSION.split('-')[1]
+      sh label: 'Update environment for HCD', script: '''#!/bin/bash -le
+        cat >> ${HOME}/environment.txt << ENVIRONMENT_EOF
+CCM_PATH=${HOME}/ccm
+CCM_CASSANDRA_VERSION=${HCD_FIXED_VERSION} # maintain for backwards compatibility
+CASSANDRA_VERSION=${HCD_FIXED_VERSION}
+CCM_DISTRIBUTION=hcd
+ENVIRONMENT_EOF
     }
 
     if (env.SERVER_VERSION == env.SERVER_VERSION_SNI && env.DOTNET_VERSION != 'mono') {
@@ -440,7 +452,8 @@ pipeline {
                   'dse-5.1.35', // latest 5.1.x DataStax Enterprise
                   'dse-6.7.17', // latest 6.7.x DataStax Enterprise
                   'dse-6.8.30', // 6.8 current DataStax Enterprise
-                  'dse-6.9.3'
+                  'dse-6.9.3',
+                  'hcd-1.0.0'
           }
           axis {
             name 'DOTNET_VERSION'
