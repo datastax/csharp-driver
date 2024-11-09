@@ -29,6 +29,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         public const string DefaultKeyspaceName = "test_cluster_keyspace";
         private static ICcmProcessExecuter _executor;
 
+        private static readonly Version Version1Dot0 = new Version(1, 0);
         private static readonly Version Version2Dot0 = new Version(2, 0);
         private static readonly Version Version2Dot1 = new Version(2, 1);
         private static readonly Version Version2Dot2 = new Version(2, 2);
@@ -44,6 +45,8 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         private static readonly Version Version5Dot1 = new Version(5, 1);
         private static readonly Version Version6Dot0 = new Version(6, 0);
         private static readonly Version Version6Dot7 = new Version(6, 7);
+        private static readonly Version Version6Dot8 = new Version(6, 8);
+        private static readonly Version Version6Dot9 = new Version(6, 9);
 
         /// <summary>
         /// Gets the Cassandra version used for this test run
@@ -70,7 +73,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                         // C* 3.0
                         return Version3Dot0;
                     }
-                    if (dseVersion < Version6Dot0)
+                    if (dseVersion <= Version6Dot9)
                     {
                         // C* 3.11
                         return Version3Dot11;

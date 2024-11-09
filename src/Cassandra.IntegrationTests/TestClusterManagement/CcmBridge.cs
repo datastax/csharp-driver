@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net.Sockets;
+using System.Text.RegularExpressions;
 using System.Threading;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Tests;
@@ -294,6 +295,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             {
                 return;
             }
+            FixYaml(configs);
             foreach (var c in configs)
             {
                 ExecuteCcm(string.Format("updateconf \"{0}\"", c));
@@ -311,12 +313,50 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             {
                 return;
             }
+            FixYaml(configs);
             foreach (var c in configs)
             {
                 ExecuteCcm(string.Format("updatedseconf \"{0}\"", c));
             }
         }
 
+        
+        private static void FixYaml(string[] yamlToFix)
+        {
+            // in-place fix
+            if (TestClusterManager.CheckCassandraVersion(false, System.Version.Parse("4.1"), Comparison.GreaterThanOrEqualsTo))
+            {
+                // Fix the yaml options that turned obsolete since 4.1.0
+                for (int i = 0; i < yamlToFix.Length; i++)
+                {
+                    string line = yamlToFix[i];
+                    var keyValueParts = line.Split(':');
+
+                    var key = keyValueParts[0];
+                    var value = keyValueParts[1];
+
+                    var matchMs = Regex.Match(key, @"^(\w+)_in_ms$");
+                    if (matchMs.Success)
+                    {
+                        yamlToFix[i] = $"{matchMs.Groups[1].Value}:{value}ms";
+                    }
+
+                    var matchKb = Regex.Match(key, @"^(\w+)_in_kb$");
+                    if (matchKb.Success)
+                    {
+                        yamlToFix[i] = $"{matchKb.Groups[1].Value}:{value}KiB";
+                    }
+
+                    var matchEnable = Regex.Match(key, @"enable_(\w+)$");
+                    if (matchEnable.Success)
+                    {
+                        yamlToFix[i] = $"{matchEnable.Groups[1].Value}_enabled:{value}";
+                    }
+                }
+            }
+        }
+        
+        
         public void SetNodeWorkloads(int nodeId, string[] workloads)
         {
             if (!TestClusterManager.IsDse)
