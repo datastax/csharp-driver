@@ -147,6 +147,7 @@ CCM_CASSANDRA_VERSION=${HCD_FIXED_VERSION} # maintain for backwards compatibilit
 CASSANDRA_VERSION=${HCD_FIXED_VERSION}
 CCM_DISTRIBUTION=hcd
 ENVIRONMENT_EOF
+        '''
     }
 
     if (env.SERVER_VERSION == env.SERVER_VERSION_SNI && env.DOTNET_VERSION != 'mono') {
