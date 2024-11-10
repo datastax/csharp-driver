@@ -105,7 +105,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             get { return Environment.GetEnvironmentVariable("DSE_PATH"); }
         }
 
-        public enum BackendTypes
+        public enum BackendType
         {
             Hcd,
             Dse,
@@ -115,7 +115,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         /// <summary>
         /// "hcd", "dse", or "cassandra" (default)
         /// </summary>
-        public static BackendTypes BackendType
+        public static BackendType CurrentBackendType
         {
             get
             {
@@ -123,11 +123,11 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 switch (distribution)
                 {
                     case "hcd":
-                        return BackendTypes.Hcd;
+                        return BackendType.Hcd;
                     case "dse":
-                        return BackendTypes.Dse;
+                        return BackendType.Dse;
                     case "cassandra":
-                        return BackendTypes.Cassandra;
+                        return BackendType.Cassandra;
                     default:
                         throw new TestInfrastructureException("Unknown CCM_DISTRIBUTION value: " + distribution);
                 }
@@ -158,12 +158,12 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         public static bool IsDse
         {
-            get { return BackendType == BackendTypes.Dse; }
+            get { return CurrentBackendType == BackendType.Dse; }
         }
 
         public static bool IsHcd
         {
-            get { return BackendType == BackendTypes.Hcd; }
+            get { return CurrentBackendType == BackendType.Hcd; }
         }
         
         public static Version DseVersion
@@ -208,7 +208,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         public static bool CheckCassandraVersion(bool requiresOss, Version version, Comparison comparison)
         {
-            if (requiresOss && TestClusterManager.BackendType != BackendTypes.Cassandra)
+            if (requiresOss && TestClusterManager.CurrentBackendType != BackendType.Cassandra)
             {
                 return false;
             }
