@@ -840,7 +840,7 @@ namespace Cassandra
                             StateFunction = row.GetValue<string>("state_func"),
                             FinalFunction = row.GetValue<string>("final_func"),
                             InitialCondition = row.GetValue<string>("initcond"),
-                            Deterministic = row.GetValue<Nullable<Boolean>>("deterministic").GetValueOrDefault(false),
+                            Deterministic = row.GetColumn("deterministic") != null && row.GetValue<bool?>("deterministic").GetValueOrDefault(false),
                             Signature = argumentTypes,
                             StateType = tasks[0].Result,
                             ReturnType = tasks[1].Result,
@@ -893,8 +893,8 @@ namespace Cassandra
                         if (row.GetColumn("deterministic") != null)
                         {
                             // DSE 6.0+ or HCD
-                            result.Deterministic = row.GetValue<Nullable<Boolean>>("deterministic").GetValueOrDefault(false);
-                            result.Monotonic = row.GetValue<Nullable<Boolean>>("monotonic").GetValueOrDefault(false);
+                            result.Deterministic = row.GetValue<bool?>("deterministic").GetValueOrDefault(false);
+                            result.Monotonic = row.GetValue<bool?>("monotonic").GetValueOrDefault(false);
                             result.MonotonicOn = row.GetValue<string[]>("monotonic_on");
                             if (result.MonotonicOn is null)
                             {
