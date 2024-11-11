@@ -154,7 +154,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(false, func.CalledOnNullInput);
             Assert.False(func.Monotonic);
             Assert.False(func.Deterministic);
-            Assert.AreEqual(func.MonotonicOn, new string[0]);
+            Assert.AreEqual(new string[0], func.MonotonicOn);
         }
 
         [Test, TestCase(true), TestCase(false), TestCassandraVersion(2, 2)]
