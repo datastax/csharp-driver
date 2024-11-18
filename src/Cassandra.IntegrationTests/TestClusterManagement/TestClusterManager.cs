@@ -113,12 +113,17 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         }
         
         /// <summary>
-        /// "hcd", "dse", or "cassandra" (default)
+        /// "hcd", "dse", or "cassandra" (default), based on CCM_DISTRIBUTION
+        /// if there's env var DSE_VERSION, ignore CCM_DISTRIBUTION
         /// </summary>
         public static BackendType CurrentBackendType
         {
             get
             {
+                if ( Environment.GetEnvironmentVariable("DSE_VERSION") != null )
+                {
+                    return BackendType.Dse;
+                }
                 string distribution = Environment.GetEnvironmentVariable("CCM_DISTRIBUTION") ?? "cassandra";
                 switch (distribution)
                 {
@@ -147,13 +152,27 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 {
                     throw new TestInfrastructureException("DSE_VERSION is only available when using DSE backend");
                 }
+                if (Environment.GetEnvironmentVariable("DSE_VERSION") != null)
+                {
+                    return Environment.GetEnvironmentVariable("DSE_VERSION");
+                }
                 return Environment.GetEnvironmentVariable("CASSANDRA_VERSION") ?? "6.7.7";
             }
         }
 
+        /// <summary>
+        /// Use DSE_VERSION if it's set, otherwise use CASSANDRA_VERSION
+        /// </summary>
         public static string CassandraVersionString
         {
-            get { return Environment.GetEnvironmentVariable("CASSANDRA_VERSION") ?? "3.11.2"; }
+            get
+            {
+                if (Environment.GetEnvironmentVariable("DSE_VERSION") != null)
+                {
+                    return Environment.GetEnvironmentVariable("DSE_VERSION");
+                }
+                return Environment.GetEnvironmentVariable("CASSANDRA_VERSION") ?? "3.11.2";
+            }
         }
 
         public static bool IsDse
