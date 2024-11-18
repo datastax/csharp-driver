@@ -305,10 +305,8 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 return;
             }
             FixYaml(configs);
-            foreach (var c in configs)
-            {
-                ExecuteCcm(string.Format("updateconf \"{0}\"", c));
-            }
+            var joinedConfigs = string.Join(" ", configs.Select(s => $"\"{s}\""));
+            ExecuteCcm($"updateconf {joinedConfigs}");
         }
 
         public void UpdateDseConfig(params string[] configs)
@@ -323,10 +321,8 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 return;
             }
             FixYaml(configs);
-            foreach (var c in configs)
-            {
-                ExecuteCcm(string.Format("updatedseconf \"{0}\"", c));
-            }
+            var joinedConfigs = string.Join(" ", configs.Select(s => $"\"{s}\""));
+            ExecuteCcm($"updatedseconf {joinedConfigs}");
         }
 
         public void UpdateConfig(int nodeId, params string[] yamlChanges)
