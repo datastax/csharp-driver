@@ -31,18 +31,12 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         
         private static readonly Version Version2Dot0 = new Version(2, 0);
         private static readonly Version Version2Dot1 = new Version(2, 1);
-        private static readonly Version Version2Dot2 = new Version(2, 2);
         private static readonly Version Version3Dot0 = new Version(3, 0);
-        private static readonly Version Version3Dot1 = new Version(3, 1);
         private static readonly Version Version3Dot11 = new Version(3, 11);
-        private static readonly Version Version3Dot12 = new Version(3, 12);
         private static readonly Version Version4Dot0 = new Version(4, 0);
-        private static readonly Version Version4Dot6 = new Version(4, 6);
         private static readonly Version Version4Dot7 = new Version(4, 7);
-        private static readonly Version Version4Dot8 = new Version(4, 8);
         private static readonly Version Version5Dot0 = new Version(5, 0);
         private static readonly Version Version5Dot1 = new Version(5, 1);
-        private static readonly Version Version6Dot0 = new Version(6, 0);
         private static readonly Version Version6Dot9 = new Version(6, 9);
 
         /// <summary>

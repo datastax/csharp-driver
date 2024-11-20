@@ -104,7 +104,7 @@ namespace Cassandra.IntegrationTests.TestBase
             if (!TestClusterManager.IsDse && requiresDse)
             {
                 message = $"Test designed to run with DSE {TestCassandraVersion.GetComparisonText(comparison)} " +
-                          $"v{expectedVersion} (executing OSS {TestClusterManager.CassandraVersion})";
+                          $"v{expectedVersion} (executing {TestClusterManager.CassandraVersion})";
                 return false;
             }
 
