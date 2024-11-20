@@ -184,7 +184,14 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         
         public static Version DseVersion
         {
-            get { return IsDse ? new Version(DseVersionString.Split('-')[0]) : TestClusterManager.GetDseVersionFromCassandraVersion(new Version(CassandraVersionString.Split('-')[0])); }
+            get
+            {
+                if (!IsDse)
+                {
+                    throw new TestInfrastructureException("DseVersion is only available when using DSE backend");
+                }
+                return new Version(DseVersionString.Split('-')[0]);
+            }
         }
 
         public static bool CcmUseWsl => bool.Parse(Environment.GetEnvironmentVariable("CCM_USE_WSL") ?? "false");
@@ -270,33 +277,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 return TestClusterManager._executor;
             }
         }
-
-        public static Version GetDseVersionFromCassandraVersion(Version cassandraVersion)
-        {
-            if (cassandraVersion < Version2Dot1)
-            {
-                // C* 2.0 => DSE 4.6
-                return Version4Dot6;
-            }
-            if (cassandraVersion < Version2Dot2)
-            {
-                // C* 2.1 => DSE 4.8
-                return Version4Dot8;
-            }
-            if (cassandraVersion < Version3Dot1)
-            {
-                // C* 3.0 => DSE 5.0
-                return Version5Dot0;
-            }
-            if (cassandraVersion < Version3Dot12)
-            {
-                // C* 3.11 => DSE 5.1
-                return Version5Dot1;
-            }
-            // DSE 6.0
-            return Version6Dot0;
-        }
-
+        
         private static ITestCluster CreateNewNoRetry(int nodeLength, TestClusterOptions options, bool startCluster)
         {
             TryRemove();
