@@ -21,7 +21,7 @@ using System.Net;
 using Cassandra.Metrics;
 using Cassandra.Metrics.Internal;
 using Cassandra.Metrics.Providers.Null;
-using Cassandra.Observers;
+using Cassandra.Observers.Metrics;
 using Cassandra.Observers.Abstractions;
 using Cassandra.Requests;
 using Cassandra.Serialization;
@@ -53,7 +53,8 @@ namespace Cassandra.Tests
                     It.IsAny<IRequestHandler>(),
                     It.IsAny<IInternalSession>(),
                     It.IsAny<IRequest>(),
-                    It.IsAny<IRequestObserver>()))
+                    It.IsAny<IRequestObserver>(),
+                    It.IsAny<SessionRequestInfo>()))
                 .Returns(Mock.Of<IRequestExecution>());
 
             return new TestConfigurationBuilder
@@ -79,7 +80,10 @@ namespace Cassandra.Tests
                 .Returns(enumerable);
             var triedHosts = new Dictionary<IPEndPoint, Exception>();
 
-            var sut = new RequestHandler(sessionMock, new SerializerManager(ProtocolVersion.V4).GetCurrentSerializer());
+            var requestTrackingInfoAndObserver = RequestHandler.CreateRequestObserver(sessionMock, null).GetAwaiter().GetResult();
+            var sut = new RequestHandler(
+                sessionMock, 
+                new SerializerManager(ProtocolVersion.V4).GetCurrentSerializer(), requestTrackingInfoAndObserver.Item1, requestTrackingInfoAndObserver.Item2);
             Assert.Throws<NoHostAvailableException>(() => sut.GetNextValidHost(triedHosts));
         }
 
@@ -100,7 +104,10 @@ namespace Cassandra.Tests
                 .Returns(enumerable);
             var triedHosts = new Dictionary<IPEndPoint, Exception>();
 
-            var sut = new RequestHandler(sessionMock, new SerializerManager(ProtocolVersion.V4).GetCurrentSerializer());
+            var requestTrackingInfoAndObserver = RequestHandler.CreateRequestObserver(sessionMock, null).GetAwaiter().GetResult();
+            var sut = new RequestHandler(
+                sessionMock, 
+                new SerializerManager(ProtocolVersion.V4).GetCurrentSerializer(), requestTrackingInfoAndObserver.Item1, requestTrackingInfoAndObserver.Item2);
             Assert.Throws<NoHostAvailableException>(() => sut.GetNextValidHost(triedHosts));
         }
 
@@ -122,7 +129,8 @@ namespace Cassandra.Tests
             Mock.Get(lbpMock).Setup(m => m.Distance(host)).Returns(HostDistance.Local);
             var triedHosts = new Dictionary<IPEndPoint, Exception>();
 
-            var sut = new RequestHandler(sessionMock, new SerializerManager(ProtocolVersion.V4).GetCurrentSerializer());
+            var requestTrackingInfoAndObserver = RequestHandler.CreateRequestObserver(sessionMock, null).GetAwaiter().GetResult();
+            var sut = new RequestHandler(sessionMock, new SerializerManager(ProtocolVersion.V4).GetCurrentSerializer(), requestTrackingInfoAndObserver.Item1, requestTrackingInfoAndObserver.Item2);
             var validHost = sut.GetNextValidHost(triedHosts);
             Assert.NotNull(validHost);
             Assert.AreEqual(host, validHost.Host);

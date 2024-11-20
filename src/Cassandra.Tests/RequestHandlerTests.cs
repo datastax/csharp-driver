@@ -25,7 +25,7 @@ using Cassandra.Serialization;
 
 using NUnit.Framework;
 
-using PrepareFlags = Cassandra.Requests.PrepareRequest.PrepareFlags;
+using PrepareFlags = Cassandra.Requests.InternalPrepareRequest.PrepareFlags;
 using QueryFlags = Cassandra.QueryProtocolOptions.QueryFlags;
 
 namespace Cassandra.Tests
@@ -729,7 +729,7 @@ namespace Cassandra.Tests
         {
             const string query = "QUERY1";
             const string keyspace = "ks1";
-            var request = new PrepareRequest(RequestHandlerTests.Serializer, query, keyspace, null);
+            var request = new InternalPrepareRequest(RequestHandlerTests.Serializer, query, keyspace, null);
 
             // The request is composed by: <query><flags>[<keyspace>]
             var buffer = GetBodyBuffer(request);
@@ -751,7 +751,7 @@ namespace Cassandra.Tests
         {
             const string query = "SELECT col1, col2 FROM table1";
             var serializer = new SerializerManager(ProtocolVersion.V2).GetCurrentSerializer();
-            var request = new PrepareRequest(serializer, query, "my_keyspace", null);
+            var request = new InternalPrepareRequest(serializer, query, "my_keyspace", null);
 
             // The request only contains the query
             var buffer = GetBodyBuffer(request, serializer);

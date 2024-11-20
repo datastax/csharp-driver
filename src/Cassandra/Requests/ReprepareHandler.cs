@@ -21,6 +21,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Connections;
+using Cassandra.Observers.Abstractions;
 using Cassandra.SessionManagement;
 
 namespace Cassandra.Requests
@@ -29,7 +30,7 @@ namespace Cassandra.Requests
     {
         /// <inheritdoc />
         public async Task ReprepareOnAllNodesWithExistingConnections(
-            IInternalSession session, PrepareRequest request, PrepareResult prepareResult)
+            IInternalSession session, InternalPrepareRequest request, PrepareResult prepareResult, IRequestObserver observer, SessionRequestInfo sessionRequestInfo)
         {
             var pools = session.GetPools();
             var hosts = session.InternalCluster.AllHosts();
@@ -64,7 +65,7 @@ namespace Cassandra.Requests
                     }
 
                     await semaphore.WaitAsync().ConfigureAwait(false);
-                    tasks.Add(ReprepareOnSingleNodeAsync(poolKvp, prepareResult.PreparedStatement, request, semaphore, false));
+                    tasks.Add(ReprepareOnSingleNodeAsync(observer, sessionRequestInfo, poolKvp, prepareResult.PreparedStatement, request, semaphore, false));
                 }
 
                 await Task.WhenAll(tasks).ConfigureAwait(false);
@@ -97,10 +98,28 @@ namespace Cassandra.Requests
             }
         }
 
-        /// <inheritdoc />
-        public async Task ReprepareOnSingleNodeAsync(
+        public Task ReprepareOnSingleNodeAsync(
             KeyValuePair<Host, IHostConnectionPool> poolKvp, PreparedStatement ps, IRequest request, SemaphoreSlim sem, bool throwException)
         {
+            return ReprepareOnSingleNodeAsync(null, null, poolKvp, ps, request, sem, throwException);
+        }
+
+        public async Task ReprepareOnSingleNodeAsync(
+            IRequestObserver observer,
+            SessionRequestInfo sessionRequestInfo,
+            KeyValuePair<Host, IHostConnectionPool> poolKvp,
+            PreparedStatement ps,
+            IRequest request,
+            SemaphoreSlim sem,
+            bool throwException)
+        {
+            NodeRequestInfo nodeRequestInfo = null;
+            if (observer != null)
+            {
+                nodeRequestInfo = new NodeRequestInfo(poolKvp.Key, sessionRequestInfo.PrepareRequest ?? new PrepareRequest(ps.Cql, ps.Keyspace));
+                await observer.OnNodeStartAsync(sessionRequestInfo, nodeRequestInfo).ConfigureAwait(false);
+            }
+
             try
             {
                 var triedHosts = new Dictionary<IPEndPoint, Exception>();
@@ -109,33 +128,58 @@ namespace Cassandra.Requests
                 if (connection != null)
                 {
                     await connection.Send(request).ConfigureAwait(false);
+                    if (observer != null)
+                    {
+                        await observer.OnNodeSuccessAsync(sessionRequestInfo, nodeRequestInfo).ConfigureAwait(false);
+                    }
                     return;
                 }
 
                 if (triedHosts.TryGetValue(poolKvp.Key.Address, out var ex))
                 {
                     LogOrThrow(
-                        throwException, 
-                        ex, 
-                        $"An error occured while attempting to prepare query on {{0}}:{Environment.NewLine}{{1}}", 
-                        poolKvp.Key, 
+                        throwException,
+                        ex,
+                        $"An error occured while attempting to prepare query on {{0}}:{Environment.NewLine}{{1}}",
+                        poolKvp.Key,
                         ex);
+                    if (observer != null)
+                    {
+                        await observer.OnNodeRequestErrorAsync(
+                            RequestError.CreateServerError(ex),
+                            sessionRequestInfo,
+                            nodeRequestInfo).ConfigureAwait(false);
+                    }
                     return;
                 }
-                
+
                 LogOrThrow(
-                    throwException, 
-                    null, 
-                    "Could not obtain an existing connection to prepare query on {0}.", 
+                    throwException,
+                    null,
+                    "Could not obtain an existing connection to prepare query on {0}.",
                     poolKvp.Key);
+                if (observer != null)
+                {
+                    await observer.OnNodeRequestErrorAsync(
+                        RequestError.CreateClientError(new DriverInternalError($"Could not obtain an existing connection to prepare query on {poolKvp.Key}."), false),
+                        sessionRequestInfo,
+                        nodeRequestInfo).ConfigureAwait(false);
+                }
             }
             catch (Exception ex)
             {
+                if (observer != null)
+                {
+                    await observer.OnNodeRequestErrorAsync(
+                        RequestError.CreateServerError(ex), 
+                        sessionRequestInfo, 
+                        nodeRequestInfo).ConfigureAwait(false);
+                }
                 LogOrThrow(
-                    throwException, 
-                    ex, 
-                    $"An error occured while attempting to prepare query on {{0}}:{Environment.NewLine}{{1}}", 
-                    poolKvp.Key, 
+                    throwException,
+                    ex,
+                    $"An error occured while attempting to prepare query on {{0}}:{Environment.NewLine}{{1}}",
+                    poolKvp.Key,
                     ex);
             }
             finally

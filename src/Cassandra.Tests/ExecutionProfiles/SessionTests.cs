@@ -61,8 +61,8 @@ namespace Cassandra.Tests.ExecutionProfiles
             var session = new Session(clusterMock, config, null, serializer, null);
 
             Mock.Get(requestHandlerFactoryMock)
-                .Setup(m => m.Create(session, serializer.GetCurrentSerializer(), It.IsAny<IStatement>(), config.RequestOptions["testE"]))
-                .Returns(requestHandlerMock);
+                .Setup(m => m.CreateAsync(session, serializer.GetCurrentSerializer(), It.IsAny<IStatement>(), config.RequestOptions["testE"]))
+                .Returns(Task.FromResult(requestHandlerMock));
 
             if (async)
             {
@@ -73,7 +73,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                 session.Execute(new SimpleStatement("test query"), "testE");
             }
 
-            Mock.Get(requestHandlerFactoryMock).Verify(m => m.Create(session, serializer.GetCurrentSerializer(), It.IsAny<IStatement>(), config.RequestOptions["testE"]), Times.Once);
+            Mock.Get(requestHandlerFactoryMock).Verify(m => m.CreateAsync(session, serializer.GetCurrentSerializer(), It.IsAny<IStatement>(), config.RequestOptions["testE"]), Times.Once);
         }
 
         [Test]
@@ -107,8 +107,8 @@ namespace Cassandra.Tests.ExecutionProfiles
             var session = new Session(clusterMock, config, null, serializer, null);
 
             Mock.Get(requestHandlerFactoryMock)
-                .Setup(m => m.Create(session, serializer.GetCurrentSerializer(), It.IsAny<IStatement>(), config.DefaultRequestOptions))
-                .Returns(requestHandlerMock);
+                .Setup(m => m.CreateAsync(session, serializer.GetCurrentSerializer(), It.IsAny<IStatement>(), config.DefaultRequestOptions))
+                .Returns(Task.FromResult(requestHandlerMock));
 
             if (async)
             {
@@ -119,7 +119,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                 session.Execute(new SimpleStatement("test query"));
             }
 
-            Mock.Get(requestHandlerFactoryMock).Verify(m => m.Create(session, serializer.GetCurrentSerializer(), It.IsAny<IStatement>(), config.DefaultRequestOptions), Times.Once);
+            Mock.Get(requestHandlerFactoryMock).Verify(m => m.CreateAsync(session, serializer.GetCurrentSerializer(), It.IsAny<IStatement>(), config.DefaultRequestOptions), Times.Once);
         }
     }
 }

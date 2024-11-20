@@ -92,6 +92,7 @@
 
   <ItemGroup>
     <PackageReference Include="App.Metrics" Version="3.2.0" />
+    <PackageReference Include="OpenTelemetry.Exporter.InMemory" Version="1.5.1" />
     <PackageReference Include="SSH.NET" Version="2020.0.2" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Appveyor.TestLogger" Version="2.0.0" />
@@ -118,6 +119,9 @@
   <ItemGroup Condition=" '$(TargetFramework)' == 'net462' Or '$(TargetFramework)' == 'net472' Or '$(TargetFramework)' == 'net481' ">
     <PackageReference Include="JetBrains.DotMemoryUnit" Version="3.2.20220510" />
     <Reference Include="System" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Extensions\Cassandra.OpenTelemetry\Cassandra.OpenTelemetry.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Service Include="{82a7f48d-3b50-4b1e-b82e-3ada8210c358}" />

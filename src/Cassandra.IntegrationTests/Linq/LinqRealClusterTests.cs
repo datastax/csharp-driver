@@ -393,6 +393,59 @@ namespace Cassandra.IntegrationTests.Linq
             Assert.Null(recordsArr[0].wt2);
         }
 
+        [Test, TestBothServersVersion(5, 0, 6, 9)]
+        public void CreateTable_With_Vectors()
+        {
+            var config = new MappingConfiguration().Define(new Map<VectorPoco>()
+                                                           .PartitionKey(p => p.UuidValue)
+                                                           .Column(p => p.UuidValue, cm => cm.WithName("u"))
+                                                           .Column(p => p.VectorValue, cm => cm.WithName("v"))
+                                                           .Column(p => p.VectorOfVectorsValue, cm => cm.WithName("vv"))
+                                                           .TableName("tbl_vectors")
+                                                           .ExplicitColumns());
+            var table = new Table<VectorPoco>(Session, config);
+            Assert.Throws<NotSupportedException>(() => table.Create());
+        }
+
+        [Test, TestBothServersVersion(5, 0, 6, 9)]
+        [TestCase(true)]
+        [TestCase(false)]
+        public void LinqWhere_WithVectors(bool withMapConfig)
+        {
+            Table<VectorPoco> vectorTable;
+            if (withMapConfig)
+            {
+                Session.Execute("CREATE TABLE IF NOT EXISTS tbl_vectors_1 (u uuid, v vector<int,3>, vv vector<vector<int,3>,3>, PRIMARY KEY (u, v))");
+                var config = new MappingConfiguration().Define(new Map<VectorPoco>()
+                                                               .PartitionKey(p => p.UuidValue)
+                                                               .ClusteringKey(p => p.VectorValue)
+                                                               .Column(p => p.UuidValue, cm => cm.WithName("u"))
+                                                               .Column(p => p.VectorValue, cm => cm.WithName("v"))
+                                                               .Column(p => p.VectorOfVectorsValue, cm => cm.WithName("vv"))
+                                                               .TableName("tbl_vectors_1")
+                                                               .ExplicitColumns());
+                vectorTable = new Table<VectorPoco>(_session, config);
+            }
+            else
+            {
+                Session.Execute("CREATE TABLE IF NOT EXISTS vectors (uuid_VALUE uuid, vector_VALUE vector<int,3>, vector_of_vectors_VALUE vector<vector<int,3>,3>, PRIMARY KEY (uuid_VALUE, vector_VALUE))");
+                vectorTable = new Table<VectorPoco>(_session);
+            }
+
+            var r = new Random();
+            var expectedPoco = VectorPoco.Generate(r);
+            var anotherPoco = VectorPoco.Generate(r);
+            vectorTable.Insert(expectedPoco).Execute();
+            vectorTable.Insert(anotherPoco).Execute();
+            var all = vectorTable.Execute().ToList();
+            Assert.AreEqual(2, all.Count);
+            var linqWhere = vectorTable.Where(v => v.UuidValue == expectedPoco.UuidValue && v.VectorValue == expectedPoco.VectorValue);
+            var retrievedVectors = linqWhere.Execute().ToList();
+            Assert.AreEqual(1, retrievedVectors.Count);
+            var actualVector = retrievedVectors.First();
+            VectorPoco.AssertEquals(expectedPoco, actualVector);
+        }
+
         private Table<Album> GetAlbumTable()
         {
             return new Table<Album>(Session, new MappingConfiguration().Define(new Map<Album>().TableName(_tableNameAlbum)));

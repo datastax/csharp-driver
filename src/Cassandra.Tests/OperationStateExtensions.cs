@@ -18,8 +18,9 @@ using System;
 using Cassandra.Metrics;
 using Cassandra.Metrics.Providers.Null;
 using Cassandra.Metrics.Registries;
-using Cassandra.Observers;
+using Cassandra.Observers.Metrics;
 using Cassandra.Responses;
+using Cassandra.Tasks;
 
 namespace Cassandra.Tests
 {
@@ -28,7 +29,11 @@ namespace Cassandra.Tests
         public static OperationState CreateMock(Action<Exception, Response> action)
         {
             return new OperationState(
-                (error, response) => action(error?.Exception, response), 
+                (error, response) =>
+                {
+                    action(error?.Exception, response);
+                    return TaskHelper.Completed;
+                }, 
                 null, 
                 0, 
                 new MetricsOperationObserver(new NodeMetrics(new NullDriverMetricsProvider(), new DriverMetricsOptions(), false, "c"), false));

@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,13 +17,22 @@
 using Cassandra.Metrics.Internal;
 using Cassandra.Observers.Abstractions;
 
-namespace Cassandra.Observers
+namespace Cassandra.Observers.Composite
 {
-    internal class NullObserverFactoryBuilder : IObserverFactoryBuilder
+    internal class CompositeObserverFactoryBuilder : IObserverFactoryBuilder
     {
+        private readonly IObserverFactoryBuilder _b1;
+        private readonly IObserverFactoryBuilder _b2;
+
+        public CompositeObserverFactoryBuilder(IObserverFactoryBuilder b1, IObserverFactoryBuilder b2)
+        {
+            _b1 = b1;
+            _b2 = b2;
+        }
+
         public IObserverFactory Build(IMetricsManager manager)
         {
-            return new NullObserverFactory();
+            return new CompositeObserverFactory(_b1.Build(manager), _b2.Build(manager));
         }
     }
 }

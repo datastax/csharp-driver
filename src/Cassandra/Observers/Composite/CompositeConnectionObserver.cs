@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,31 +17,39 @@
 using System;
 using Cassandra.Observers.Abstractions;
 
-namespace Cassandra.Observers
+namespace Cassandra.Observers.Composite
 {
-    internal class NullConnectionObserver : IConnectionObserver
+    internal class CompositeConnectionObserver : IConnectionObserver
     {
-        public static readonly IConnectionObserver Instance = new NullConnectionObserver();
-
-        private NullConnectionObserver()
+        private readonly IConnectionObserver _o1;
+        private readonly IConnectionObserver _o2;
+        public CompositeConnectionObserver(IConnectionObserver o1, IConnectionObserver o2)
         {
+            _o1 = o1;
+            _o2 = o2;
         }
 
         public void OnBytesSent(long size)
         {
+            _o1.OnBytesSent(size);
+            _o2.OnBytesSent(size);
         }
 
         public void OnBytesReceived(long size)
         {
+            _o1.OnBytesReceived(size);
+            _o2.OnBytesReceived(size);
         }
 
         public void OnErrorOnOpen(Exception exception)
         {
+            _o1.OnErrorOnOpen(exception);
+            _o2.OnErrorOnOpen(exception);
         }
 
         public IOperationObserver CreateOperationObserver()
         {
-            return NullOperationObserver.Instance;
+            return new CompositeOperationObserver(_o1.CreateOperationObserver(), _o2.CreateOperationObserver());
         }
     }
 }

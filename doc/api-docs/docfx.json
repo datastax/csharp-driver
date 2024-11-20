@@ -5,7 +5,8 @@
         {
           "files": [
             "src/Cassandra/**.csproj",
-            "src/Extensions/Cassandra.AppMetrics/**.csproj"
+            "src/Extensions/Cassandra.AppMetrics/**.csproj",
+            "src/Extensions/Cassandra.OpenTelemetry/**.csproj"
           ],
 		  "src": "../../"
         }

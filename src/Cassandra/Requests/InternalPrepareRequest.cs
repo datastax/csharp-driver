@@ -21,7 +21,7 @@ using Cassandra.Serialization;
 
 namespace Cassandra.Requests
 {
-    internal class PrepareRequest : BaseRequest
+    internal class InternalPrepareRequest : BaseRequest
     {
         public const byte PrepareOpCode = 0x09;
 
@@ -47,7 +47,7 @@ namespace Cassandra.Requests
         /// <inheritdoc />
         public override ResultMetadata ResultMetadata => null;
 
-        public PrepareRequest(
+        public InternalPrepareRequest(
             ISerializer serializer, string cqlQuery, string keyspace, IDictionary<string, byte[]> payload)
             : base(serializer, false, payload)
         {
@@ -69,7 +69,7 @@ namespace Cassandra.Requests
             }
         }
 
-        protected override byte OpCode => PrepareRequest.PrepareOpCode;
+        protected override byte OpCode => InternalPrepareRequest.PrepareOpCode;
 
         protected override void WriteBody(FrameWriter wb)
         {

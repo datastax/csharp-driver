@@ -399,15 +399,16 @@ namespace Cassandra.Connections
             }
         }
 
-        private void EventHandler(IRequestError error, Response response, long timestamp)
+        private Task EventHandler(IRequestError error, Response response, long timestamp)
         {
             if (!(response is EventResponse))
             {
                 Connection.Logger.Error("Unexpected response type for event: " + response.GetType().Name);
-                return;
+                return TaskHelper.Completed;
             }
 
             CassandraEventResponse?.Invoke(this, ((EventResponse)response).CassandraEventArgs);
+            return TaskHelper.Completed;
         }
 
         /// <summary>
@@ -434,13 +435,14 @@ namespace Cassandra.Connections
                 {
                     //The send succeeded
                     //There is a valid response but we don't care about the response
-                    return;
+                    return TaskHelper.Completed;
                 }
                 Connection.Logger.Warning("Received heartbeat request exception " + error.Exception.ToString());
                 if (error.Exception is SocketException)
                 {
                     OnIdleRequestException?.Invoke(error.Exception);
                 }
+                return TaskHelper.Completed;
             });
         }
 
@@ -570,7 +572,7 @@ namespace Cassandra.Connections
                 return false;
             }
 
-            var operationCallbacks = new LinkedList<Action<MemoryStream, long>>();
+            var operationCallbacks = new LinkedList<Func<MemoryStream, long, Task>>();
             var offset = 0;
             while (offset < length)
             {
@@ -608,7 +610,7 @@ namespace Cassandra.Connections
                 stream = stream ?? Configuration.BufferPool.GetStream(Connection.StreamReadTag);
 
                 // Get callback and operation state
-                Action<IRequestError, Response, long> callback;
+                Func<IRequestError, Response, long, Task> callback;
                 ResultMetadata resultMetadata = null;
                 if (header.Opcode == EventResponse.OpCode)
                 {
@@ -710,12 +712,12 @@ namespace Cassandra.Connections
         /// <summary>
         /// Returns an action that capture the parameters closure
         /// </summary>
-        private Action<MemoryStream, long> CreateResponseAction(
-            ResultMetadata resultMetadata, ISerializer serializer, FrameHeader header, Action<IRequestError, Response, long> callback)
+        private Func<MemoryStream, long, Task> CreateResponseAction(
+            ResultMetadata resultMetadata, ISerializer serializer, FrameHeader header, Func<IRequestError, Response, long, Task> callback)
         {
             var compressor = Compressor;
 
-            void DeserializeResponseStream(MemoryStream stream, long timestamp)
+            Task DeserializeResponseStream(MemoryStream stream, long timestamp)
             {
                 Response response = null;
                 IRequestError error = null;
@@ -741,7 +743,7 @@ namespace Cassandra.Connections
                 }
                 //We must advance the position of the stream manually in case it was not correctly parsed
                 stream.Position = nextPosition;
-                callback(error, response, timestamp);
+                return callback(error, response, timestamp);
             }
 
             return DeserializeResponseStream;
@@ -751,7 +753,7 @@ namespace Cassandra.Connections
         /// Invokes the callbacks using the default TaskScheduler.
         /// </summary>
         /// <returns>Returns true if one or more callback has been invoked.</returns>
-        private static bool InvokeReadCallbacks(MemoryStream stream, ICollection<Action<MemoryStream, long>> operationCallbacks, long timestamp)
+        private static bool InvokeReadCallbacks(MemoryStream stream, ICollection<Func<MemoryStream, long, Task>> operationCallbacks, long timestamp)
         {
             if (operationCallbacks.Count == 0)
             {
@@ -759,15 +761,15 @@ namespace Cassandra.Connections
                 return false;
             }
             //Invoke all callbacks using the default TaskScheduler
-            Task.Factory.StartNew(() =>
+            Task.Run(async () =>
             {
                 stream.Position = 0;
                 foreach (var cb in operationCallbacks)
                 {
-                    cb(stream, timestamp);
+                    await cb(stream, timestamp).ConfigureAwait(false);
                 }
                 stream.Dispose();
-            }, CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
+            }, CancellationToken.None);
             return true;
         }
 
@@ -785,7 +787,7 @@ namespace Cassandra.Connections
         public Task<Response> Send(IRequest request, int timeoutMillis)
         {
             var tcs = new TaskCompletionSource<Response>();
-            Send(request, tcs.TrySetRequestError, timeoutMillis);
+            Send(request, tcs.TrySetRequestErrorAsync, timeoutMillis);
             return tcs.Task;
         }
 
@@ -796,13 +798,12 @@ namespace Cassandra.Connections
         }
 
         /// <inheritdoc />
-        public OperationState Send(IRequest request, Action<IRequestError, Response> callback, int timeoutMillis)
+        public OperationState Send(IRequest request, Func<IRequestError, Response, Task> callback, int timeoutMillis)
         {
             if (_isClosed)
             {
                 // Avoid calling back before returning
-                Task.Factory.StartNew(() => callback(RequestError.CreateClientError(new SocketException((int)SocketError.NotConnected), true), null),
-                    CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
+                Task.Run(() => callback(RequestError.CreateClientError(new SocketException((int)SocketError.NotConnected), true), null), CancellationToken.None);
                 return null;
             }
 
@@ -826,8 +827,7 @@ namespace Cassandra.Connections
                 catch (Exception ex)
                 {
                     // Avoid calling back before returning
-                    Task.Factory.StartNew(() => callback(RequestError.CreateClientError(ex, true), null),
-                        CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
+                    Task.Run(() => callback(RequestError.CreateClientError(ex, true), null), CancellationToken.None);
                     return null;
                 }
             }
@@ -838,7 +838,7 @@ namespace Cassandra.Connections
         }
 
         /// <inheritdoc />
-        public OperationState Send(IRequest request, Action<IRequestError, Response> callback)
+        public OperationState Send(IRequest request, Func<IRequestError, Response, Task> callback)
         {
             return Send(request, callback, Configuration.DefaultRequestOptions.ReadTimeoutMillis);
         }
@@ -1034,7 +1034,14 @@ namespace Cassandra.Connections
             var ex = new OperationTimedOutException(EndPoint, state.TimeoutMillis);
             //Invoke if it hasn't been invoked yet
             //Once the response is obtained, we decrement the timed out counter
-            var timedout = state.MarkAsTimedOut(ex, () => Interlocked.Decrement(ref _timedOutOperations), GetTimestamp());
+            var timedout = state.MarkAsTimedOut(
+                ex,
+                () =>
+                    {
+                        Interlocked.Decrement(ref _timedOutOperations);
+                        return TaskHelper.Completed;
+                    },
+                GetTimestamp());
             if (!timedout)
             {
                 //The response was obtained since the timer elapsed, move on

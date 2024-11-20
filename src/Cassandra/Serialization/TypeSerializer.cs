@@ -242,5 +242,10 @@ namespace Cassandra.Serialization
         {
             _serializer = serializer;
         }
+
+        internal IGenericSerializer GetChildSerializer()
+        {
+            return _serializer;
+        }
     }
 }

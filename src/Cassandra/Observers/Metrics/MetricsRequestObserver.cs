@@ -17,13 +17,16 @@
 using System;
 using System.Diagnostics;
 using System.Threading;
+using System.Threading.Tasks;
+using Cassandra.Connections;
 using Cassandra.Metrics.Abstractions;
 using Cassandra.Metrics.Internal;
 using Cassandra.Metrics.Registries;
 using Cassandra.Observers.Abstractions;
 using Cassandra.Requests;
+using Cassandra.Tasks;
 
-namespace Cassandra.Observers
+namespace Cassandra.Observers.Metrics
 {
     internal class MetricsRequestObserver : IRequestObserver
     {
@@ -45,9 +48,10 @@ namespace Cassandra.Observers
             _manager.GetOrCreateNodeMetrics(host).SpeculativeExecutions.Increment(1);
         }
 
-        public void OnRequestError(Host host, RequestErrorType errorType, RetryDecision.RetryDecisionType decision)
+        public Task OnNodeRequestErrorAsync(
+            RequestErrorType errorType, RetryDecision.RetryDecisionType decision, SessionRequestInfo r, NodeRequestInfo nodeRequestInfo, Exception ex)
         {
-            var nodeMetrics = _manager.GetOrCreateNodeMetrics(host);
+            var nodeMetrics = _manager.GetOrCreateNodeMetrics(nodeRequestInfo.Host);
             OnRequestError(nodeMetrics.Errors, errorType);
             switch (decision)
             {
@@ -59,6 +63,16 @@ namespace Cassandra.Observers
                     OnRetryPolicyDecision(nodeMetrics.Ignores, errorType);
                     break;
             }
+
+            return TaskHelper.Completed;
+        }
+
+        public Task OnNodeRequestErrorAsync(IRequestError error, SessionRequestInfo r, NodeRequestInfo nodeRequestInfo)
+        {
+            var nodeMetrics = _manager.GetOrCreateNodeMetrics(nodeRequestInfo.Host);
+            var errorType = RequestExecution.GetErrorType(error);
+            OnRequestError(nodeMetrics.Errors, errorType);
+            return TaskHelper.Completed;
         }
 
         private void OnRetryPolicyDecision(IRetryPolicyMetrics metricsRegistry, RequestErrorType reason)
@@ -127,43 +141,74 @@ namespace Cassandra.Observers
             }
         }
 
-        public void OnRequestStart()
+        public Task OnNodeRequestAbortedAsync(SessionRequestInfo sessionRequestInfo, NodeRequestInfo nodeRequestInfo)
         {
-            if (!_manager.AreSessionTimerMetricsEnabled)
-            {
-                return;
-            }
-
-            Volatile.Write(ref _startTimestamp, Stopwatch.GetTimestamp());
+            var nodeMetrics = _manager.GetOrCreateNodeMetrics(nodeRequestInfo.Host);
+            OnRequestError(nodeMetrics.Errors, RequestErrorType.Aborted);
+            return TaskHelper.Completed;
         }
 
-        public void OnRequestFinish(Exception exception)
+        public Task OnRequestStartAsync(SessionRequestInfo r)
         {
             if (!_manager.AreSessionTimerMetricsEnabled)
             {
-                return;
+                return TaskHelper.Completed;
+            }
+
+            Interlocked.Exchange(ref _startTimestamp, Stopwatch.GetTimestamp());
+
+            return TaskHelper.Completed;
+        }
+
+        public Task OnRequestFailureAsync(Exception ex, SessionRequestInfo r)
+        {
+            return OnRequestFinish(ex, r);
+        }
+
+        public Task OnRequestSuccessAsync(SessionRequestInfo r)
+        {
+            return OnRequestFinish(null, r);
+        }
+
+        private Task OnRequestFinish(Exception ex, SessionRequestInfo r)
+        {
+            if (!_manager.AreSessionTimerMetricsEnabled)
+            {
+                return TaskHelper.Completed;
             }
 
             try
             {
-                var startTimestamp = Volatile.Read(ref _startTimestamp);
+                var startTimestamp = Interlocked.Read(ref _startTimestamp);
                 if (startTimestamp == 0)
                 {
-                    MetricsRequestObserver.Logger.Warning("Start timestamp wasn't recorded, discarding this measurement.");
-                    return;
+                    Logger.Warning("Start timestamp wasn't recorded, discarding this measurement.");
+                    return TaskHelper.Completed;
                 }
 
-                _requestTimer.Record((Stopwatch.GetTimestamp() - startTimestamp) * MetricsRequestObserver.Factor);
+                _requestTimer.Record((Stopwatch.GetTimestamp() - startTimestamp) * Factor);
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                LogError(ex);
+                LogError(exception);
             }
+
+            return TaskHelper.Completed;
         }
 
         private static void LogError(Exception ex)
         {
             Logger.Warning("An error occured while recording metrics for a request. Exception = {0}", ex.ToString());
+        }
+
+        public Task OnNodeStartAsync(SessionRequestInfo sessionRequestInfo, NodeRequestInfo nodeRequestInfo)
+        {
+            return TaskHelper.Completed;
+        }
+
+        public Task OnNodeSuccessAsync(SessionRequestInfo sessionRequestInfo, NodeRequestInfo nodeRequestInfo)
+        {
+            return TaskHelper.Completed;
         }
     }
 }

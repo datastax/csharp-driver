@@ -15,6 +15,7 @@
 //
 
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Observers.Abstractions;
 
@@ -24,27 +25,29 @@ namespace Cassandra.Requests
     {
         private readonly IRequestObserver _requestObserver;
         private readonly TaskCompletionSource<RowSet> _taskCompletionSource;
+        private long _done = 0;
 
         public TcsMetricsRequestResultHandler(IRequestObserver requestObserver)
         {
             _requestObserver = requestObserver;
             _taskCompletionSource = new TaskCompletionSource<RowSet>();
-            _requestObserver.OnRequestStart();
         }
 
-        public void TrySetResult(RowSet result)
+        public async Task TrySetResultAsync(RowSet result, SessionRequestInfo sessionRequestInfo)
         {
-            if (_taskCompletionSource.TrySetResult(result))
+            if (Interlocked.CompareExchange(ref _done, 1, 0) == 0)
             {
-                _requestObserver.OnRequestFinish(null);
+                await _requestObserver.OnRequestSuccessAsync(sessionRequestInfo).ConfigureAwait(false);
+                _taskCompletionSource.SetResult(result);
             }
         }
 
-        public void TrySetException(Exception exception)
+        public async Task TrySetExceptionAsync(Exception exception, SessionRequestInfo sessionRequestInfo)
         {
-            if (_taskCompletionSource.TrySetException(exception))
+            if (Interlocked.CompareExchange(ref _done, 1, 0) == 0)
             {
-                _requestObserver.OnRequestFinish(exception);
+                await _requestObserver.OnRequestFailureAsync(exception, sessionRequestInfo).ConfigureAwait(false);
+                _taskCompletionSource.SetException(exception);
             }
         }
 

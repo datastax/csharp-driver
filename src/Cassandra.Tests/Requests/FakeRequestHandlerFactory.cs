@@ -37,17 +37,17 @@ namespace Cassandra.Tests.Requests
             _rs = rs ?? (stmt => new RowSet());
         }
 
-        public IRequestHandler Create(IInternalSession session, ISerializer serializer, IRequest request, IStatement statement, IRequestOptions options)
+        public Task<IRequestHandler> CreateAsync(IInternalSession session, ISerializer serializer, IRequest request, IStatement statement, IRequestOptions options)
         {
             return CreateMockHandler(statement);
         }
 
-        public IRequestHandler Create(IInternalSession session, ISerializer serializer, IStatement statement, IRequestOptions options)
+        public Task<IRequestHandler> CreateAsync(IInternalSession session, ISerializer serializer, IStatement statement, IRequestOptions options)
         {
             return CreateMockHandler(statement);
         }
 
-        public IRequestHandler Create(IInternalSession session, ISerializer serializer)
+        public Task<IRequestHandler> CreateAsync(IInternalSession session, ISerializer serializer)
         {
             return CreateMockHandler();
         }
@@ -57,7 +57,7 @@ namespace Cassandra.Tests.Requests
             return new GraphRequestHandler(session, resolver);
         }
 
-        private IRequestHandler CreateMockHandler(IStatement statement = null)
+        private Task<IRequestHandler> CreateMockHandler(IStatement statement = null)
         {
             var handler = Mock.Of<IRequestHandler>();
             var mock = Mock.Get(handler)
@@ -73,7 +73,7 @@ namespace Cassandra.Tests.Requests
                 mock.Verifiable();
             }
 
-            return handler;
+            return Task.FromResult(handler);
         }
 
         private static Task<T> TaskOf<T>(T value)

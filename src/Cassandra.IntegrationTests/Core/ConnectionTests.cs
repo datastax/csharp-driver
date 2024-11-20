@@ -30,7 +30,7 @@ using Cassandra.Connections;
 using Cassandra.IntegrationTests.SimulacronAPI.Models.Logs;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
-using Cassandra.Observers;
+using Cassandra.Observers.Null;
 using Cassandra.Tasks;
 using Cassandra.Tests;
 using Cassandra.Requests;
@@ -88,7 +88,7 @@ namespace Cassandra.IntegrationTests.Core
             using (var connection = CreateConnection())
             {
                 connection.Open().Wait();
-                var request = new PrepareRequest(GetSerializer(), BasicQuery, null, null);
+                var request = new InternalPrepareRequest(GetSerializer(), BasicQuery, null, null);
                 var task = connection.Send(request);
                 task.Wait();
                 Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
@@ -102,7 +102,7 @@ namespace Cassandra.IntegrationTests.Core
             using (var connection = CreateConnection())
             {
                 connection.Open().Wait();
-                var request = new PrepareRequest(GetSerializer(), "SELECT WILL FAIL", null, null);
+                var request = new InternalPrepareRequest(GetSerializer(), "SELECT WILL FAIL", null, null);
                 var task = connection.Send(request);
                 task.ContinueWith(t =>
                 {
@@ -121,7 +121,7 @@ namespace Cassandra.IntegrationTests.Core
                 connection.Open().Wait();
 
                 //Prepare a query
-                var prepareRequest = new PrepareRequest(GetSerializer(), BasicQuery, null, null);
+                var prepareRequest = new InternalPrepareRequest(GetSerializer(), BasicQuery, null, null);
                 var task = connection.Send(prepareRequest);
                 var prepareOutput = ValidateResult<OutputPrepared>(task.Result);
 
@@ -150,7 +150,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 connection.Open().Wait();
 
-                var prepareRequest = new PrepareRequest(GetSerializer(), "SELECT * FROM system.local WHERE key = ?", null, null);
+                var prepareRequest = new InternalPrepareRequest(GetSerializer(), "SELECT * FROM system.local WHERE key = ?", null, null);
                 var task = connection.Send(prepareRequest);
                 var prepareOutput = ValidateResult<OutputPrepared>(task.Result);
 

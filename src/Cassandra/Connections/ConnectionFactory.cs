@@ -14,8 +14,8 @@
 //   limitations under the License.
 //
 
-using Cassandra.Observers;
 using Cassandra.Observers.Abstractions;
+using Cassandra.Observers.Null;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 

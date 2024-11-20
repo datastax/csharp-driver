@@ -598,7 +598,7 @@ namespace Cassandra
         /// Waits until that the schema version in all nodes is the same or the waiting time passed.
         /// This method blocks the calling thread.
         /// </summary>
-        internal bool WaitForSchemaAgreement(IConnection connection)
+        internal async Task<bool> WaitForSchemaAgreementAsync(IConnection connection)
         {
             if (Hosts.Count == 1)
             {
@@ -630,7 +630,7 @@ namespace Cassandra
                             null);
                     var queries = new[] { connection.Send(schemaVersionLocalQuery), connection.Send(schemaVersionPeersQuery) };
                     // ReSharper disable once CoVariantArrayConversion
-                    Task.WaitAll(queries, Configuration.DefaultRequestOptions.QueryAbortTimeout);
+                    await Task.WhenAll(queries).WaitToCompleteAsync(Configuration.DefaultRequestOptions.QueryAbortTimeout).ConfigureAwait(false);
 
                     if (Metadata.CheckSchemaVersionResults(
                         Configuration.MetadataRequestHandler.GetRowSet(queries[0].Result),
@@ -639,7 +639,7 @@ namespace Cassandra
                         return true;
                     }
 
-                    Thread.Sleep(500);
+                    await Task.Delay(500).ConfigureAwait(false);
                 }
                 Metadata.Logger.Info($"Waited for schema agreement, still {totalVersions} schema versions in the cluster.");
             }

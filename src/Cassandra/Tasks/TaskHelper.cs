@@ -27,9 +27,7 @@ namespace Cassandra.Tasks
     {
         static TaskHelper()
         {
-            var tcs = new TaskCompletionSource<bool>();
-            tcs.SetResult(false);
-            Completed = tcs.Task;
+            Completed = Task.FromResult(false);
         }
 
         /// <summary>
@@ -223,7 +221,7 @@ namespace Cassandra.Tasks
         /// <summary>
         /// Attempts to transition the underlying Task to RanToCompletion or Faulted state.
         /// </summary>
-        public static void TrySetRequestError<T>(this TaskCompletionSource<T> tcs, IRequestError error, T result)
+        public static Task TrySetRequestErrorAsync<T>(this TaskCompletionSource<T> tcs, IRequestError error, T result)
         {
             if (error?.Exception != null)
             {
@@ -233,6 +231,8 @@ namespace Cassandra.Tasks
             {
                 tcs.TrySetResult(result);
             }
+
+            return TaskHelper.Completed;
         }
 
         /// <summary>

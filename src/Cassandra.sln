@@ -21,6 +21,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		stylecop.json = stylecop.json
 	EndProjectSection
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cassandra.OpenTelemetry", "Extensions\Cassandra.OpenTelemetry\Cassandra.OpenTelemetry.csproj", "{FF5E5BE8-9144-4917-A009-C4FC369084CF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -43,6 +45,10 @@ Global
 		{93FA7B24-7B58-42E5-89E6-7F8023B03BA3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{93FA7B24-7B58-42E5-89E6-7F8023B03BA3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{93FA7B24-7B58-42E5-89E6-7F8023B03BA3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FF5E5BE8-9144-4917-A009-C4FC369084CF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FF5E5BE8-9144-4917-A009-C4FC369084CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FF5E5BE8-9144-4917-A009-C4FC369084CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FF5E5BE8-9144-4917-A009-C4FC369084CF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -52,6 +58,7 @@ Global
 		{A68FC72B-569E-49EA-BE94-E2A594824A2E} = {343488BE-0304-44B0-B19C-5D6FA2B1186E}
 		{21DDE658-5BCB-4845-BC2F-47B102E3E522} = {343488BE-0304-44B0-B19C-5D6FA2B1186E}
 		{93FA7B24-7B58-42E5-89E6-7F8023B03BA3} = {33EA4AFB-736A-48FB-B6BB-0E8F1163ABF0}
+		{FF5E5BE8-9144-4917-A009-C4FC369084CF} = {33EA4AFB-736A-48FB-B6BB-0E8F1163ABF0}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {B8534DFA-1600-4E72-A2FB-AEC7DB33CD01}

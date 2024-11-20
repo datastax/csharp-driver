@@ -58,6 +58,8 @@ api_docs:
   '3.18': http://docs.datastax.com/en/drivers/csharp/3.18
   '3.19': http://docs.datastax.com/en/drivers/csharp/3.19
   '3.20': http://docs.datastax.com/en/drivers/csharp/3.20
+  '3.21': http://docs.datastax.com/en/drivers/csharp/3.21
+  '3.22': http://docs.datastax.com/en/drivers/csharp/3.22
 checks:
   external_links:
     exclude:
@@ -70,6 +72,10 @@ checks:
       - 'https://twitter.com/datastax'
       - 'https://academy.datastax.com/slack'
 versions:
+  - name: '3.22'
+    ref: '3.22'
+  - name: '3.21'
+    ref: '3.21'
   - name: '3.20'
     ref: '3.20'
   - name: '3.19'

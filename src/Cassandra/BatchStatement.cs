@@ -211,5 +211,10 @@ namespace Cassandra
             _keyspace = name;
             return this;
         }
+
+        /// <summary>
+        /// Gets the statements that were added to this batch.
+        /// </summary>
+        public IEnumerable<IStatement> Statements => _queries;
     }
 }

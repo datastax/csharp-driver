@@ -21,6 +21,9 @@ You should also visit the [Documentation][doc-index] and [FAQ][faq].
     - [Using certificates from the certificate store](Ssl/SslTwoWayAuth/WindowsCertificateStoreExample.cs)
 - Metrics
   - [Graphite and Grafana integration with App.Metrics](Metrics/AppMetricsGraphite/Program.cs)
+- OpenTelemetry
+  - [Using OpenTelemetry Console Exporter with the driver](OpenTelemetry/Exporter/ConsoleExporter/Program.cs)
+  - [Distributed Tracing using a Web API and a Client](OpenTelemetry/DistributedTracing)
 - Column Encryption
   - [Example usage of the Column Encryption feature](ColumnEncryption/ColumnEncryptionExample/Program.cs)
 
