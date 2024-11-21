@@ -445,16 +445,13 @@ pipeline {
         axes {
           axis {
             name 'SERVER_VERSION'
-            values '3.0',     // latest 3.0.x Apache Cassandra�
-                  '3.11',    // latest 3.11.x Apache Cassandra�
-                  '4.0',    // latest 4.0.x Apache Cassandra�
-                  '4.1',
+            values '3.11',    // latest 3.11.x Apache Cassandra�
+                  '4.1',  // latest 4.x Apache Cassandra�
                   '5.0', // Development Apache Cassandra�
                   'dse-5.1.35', // latest 5.1.x DataStax Enterprise
                   'dse-6.7.17', // latest 6.7.x DataStax Enterprise
-                  'dse-6.8.30', // 6.8 current DataStax Enterprise
-                  'dse-6.9.3',
-                  'hcd-1.0.0'
+                  'dse-6.9.3',  // latest DataStax Enterprise
+                  'hcd-1.0.0'  // Hyper-Converged Database
           }
           axis {
             name 'DOTNET_VERSION'
@@ -465,11 +462,11 @@ pipeline {
           exclude {
             axis {
               name 'DOTNET_VERSION'
-              values 'mono', 'net8'
+              values 'mono'
             }
             axis {
               name 'SERVER_VERSION'
-              values '3.0', '5.0', 'dse-5.1.35'
+              values '4.1', 'dse-5.1.35', 'dse-6.8.30'
             }
           }
           exclude {
@@ -479,7 +476,7 @@ pipeline {
             }
             axis {
               name 'SERVER_VERSION'
-              values '3.11'
+              values '5.0', 'dse-6.9.3', 'hcd-1.0.0'
             }
           }
         }
