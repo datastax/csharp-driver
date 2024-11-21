@@ -898,7 +898,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        [TestCassandraVersion(4, 0, Comparison.LessThan)]
+        [TestBothServersVersion(4, 0, 5,1, Comparison.LessThan)]
         public void Session_Prepare_With_Keyspace_Defined_On_Previuos_Cassandra_Versions()
         {
             TestKeyspaceInPrepareNotSupported(false);
@@ -1111,7 +1111,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        [TestCassandraVersion(4, 0, Comparison.LessThan)]
+        [TestBothServersVersion(4, 0, 5,1, Comparison.LessThan)]
         public void BatchStatement_With_Keyspace_Defined_On_Lower_Protocol_Versions()
         {
             using (var cluster = ClusterBuilder().AddContactPoint(TestClusterManager.InitialContactPoint).Build())

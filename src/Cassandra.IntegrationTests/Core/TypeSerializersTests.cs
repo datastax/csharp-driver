@@ -235,7 +235,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [Test, TestCassandraVersion(4, 0, Comparison.LessThan)]
+        [Test, TestBothServersVersion(4, 0, 5,1, Comparison.LessThan)]
         public void DynamicCompositeTypeTest()
         {
             string uniqueTableName = TestUtils.GetUniqueTableName();

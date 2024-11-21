@@ -519,7 +519,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        [TestCassandraVersion(4, 0)]
+        [TestBothServersVersion(4, 0, 6, 0)]
         public void SimpleStatement_With_Keyspace_Defined_On_Protocol_Greater_Than_4()
         {
             if (Session.Cluster.Metadata.ControlConnection.Serializer.CurrentProtocolVersion < ProtocolVersion.V5)
@@ -537,7 +537,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        [TestCassandraVersion(4, 0, Comparison.LessThan)]
+        [TestBothServersVersion(4, 0, 5,1, Comparison.LessThan)]
         public void SimpleStatement_With_Keyspace_Defined_On_Lower_Protocol_Versions()
         {
             // It should fail as the keyspace from the session will be used

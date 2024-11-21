@@ -81,13 +81,18 @@ namespace Cassandra.IntegrationTests.TestBase
 
         public void ApplyToTest(NUnit.Framework.Internal.Test test)
         {
-            var expectedVersion = new Version(Major, Minor, Build);
-            if (!TestCassandraVersion.VersionMatch(expectedVersion, IsDseRequired(), IsOssRequired, Comparison, out var msg))
+            if (!Applies(out string msg))
             {
                 test.RunState = RunState.Ignored;
                 var message = msg;
                 test.Properties.Set("_SKIPREASON", message);
             }
+        }
+        
+        public bool Applies(out string msg)
+        {
+            var expectedVersion = new Version(Major, Minor, Build);
+            return TestDseVersion.VersionMatch(expectedVersion, IsDseRequired(), IsOssRequired, Comparison, out msg);
         }
 
         public static bool VersionMatch(Version expectedVersion, bool requiresDse, bool requiresOss, Comparison comparison, out string message)
