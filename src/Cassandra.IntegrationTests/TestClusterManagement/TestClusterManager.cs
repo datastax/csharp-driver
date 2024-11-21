@@ -66,7 +66,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                         // C* 3.0
                         return Version3Dot0;
                     }
-                    if (dseVersion < Version6Dot0)
+                    if (dseVersion < Version6Dot10)
                     {
                         // C* 3.11
                         return Version3Dot11;

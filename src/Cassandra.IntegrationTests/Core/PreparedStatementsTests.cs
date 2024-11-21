@@ -825,7 +825,7 @@ namespace Cassandra.IntegrationTests.Core
 
         [TestCase(true)]
         [TestCase(false)]
-        [TestCassandraVersion(4, 0)]
+        [TestBothServersVersion(4,0,5,1)]
         public void Session_Prepare_With_Keyspace_Defined_On_Protocol_Greater_Than_4(bool usePayload)
         {
             if (Session.Cluster.Metadata.ControlConnection.Serializer.CurrentProtocolVersion < ProtocolVersion.V5)
@@ -858,7 +858,7 @@ namespace Cassandra.IntegrationTests.Core
 
         [TestCase(true)]
         [TestCase(false)]
-        [TestCassandraVersion(4, 0)]
+        [TestBothServersVersion(4,0,5,1)]
         public async Task Session_PrepareAsync_With_Keyspace_Defined_On_Protocol_Greater_Than_4(bool usePayload)
         {
             if (Session.Cluster.Metadata.ControlConnection.Serializer.CurrentProtocolVersion < ProtocolVersion.V5)
@@ -891,7 +891,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        [TestCassandraVersion(4, 0)]
+        [TestBothServersVersion(4,0,5,1)]
         public void Session_Prepare_With_Keyspace_Defined_On_Protocol_V4()
         {
             TestKeyspaceInPrepareNotSupported(true);
@@ -1085,7 +1085,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        [TestCassandraVersion(4, 0)]
+        [TestBothServersVersion(4,0,5,1)]
         public void BatchStatement_With_Keyspace_Defined_On_Protocol_Greater_Than_4()
         {
             using (var cluster = ClusterBuilder().AddContactPoint(TestClusterManager.InitialContactPoint).Build())

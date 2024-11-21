@@ -596,6 +596,21 @@ namespace Cassandra.IntegrationTests.Core
                 ));
         }
 
+        // [Test]
+        // [TestDseVersion(6, 9)]
+        // public void VectorFloatTest()
+        // {
+        //     var tableName = TestUtils.GetUniqueTableName();
+        //     Session.Execute($"CREATE TABLE {tableName} (i int PRIMARY KEY, j vector<float, 3>");
+        //
+        //     var vector = new CqlVector<float>(1.1f, 2.2f, 3.3f);
+        //
+        //     Session.Execute(new SimpleStatement($"INSERT INTO {tableName} (i, j, k) VALUES (1, ?, ?)", vector, new CqlVector<CqlVector<float>>(vectorList[0], vectorList[1], vectorList[2])));
+        //     var rs = Session.Execute($"SELECT * FROM {tableName} WHERE i = 1");
+        //     AssertSimpleVectorTest(vector, rs, Assert.AreEqual);
+        //     AssertComplexVectorTest(vectorList, rs, Assert.AreEqual);
+        // }
+        
         private void AssertSimpleVectorTest<T>(CqlVector<T> expected, RowSet rs, Action<object, object> assertFn)
         {
             var rowList = rs.ToList();
