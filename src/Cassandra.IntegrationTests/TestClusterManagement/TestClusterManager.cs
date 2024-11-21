@@ -37,6 +37,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         private static readonly Version Version4Dot7 = new Version(4, 7);
         private static readonly Version Version5Dot0 = new Version(5, 0);
         private static readonly Version Version5Dot1 = new Version(5, 1);
+        private static readonly Version Version6Dot0 = new Version(6, 0);
         private static readonly Version Version6Dot9 = new Version(6, 9);
         private static readonly Version Version6Dot10 = new Version(6, 10);
 
@@ -65,7 +66,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                         // C* 3.0
                         return Version3Dot0;
                     }
-                    if (dseVersion < Version6Dot10)
+                    if (dseVersion < Version6Dot0)
                     {
                         // C* 3.11
                         return Version3Dot11;
