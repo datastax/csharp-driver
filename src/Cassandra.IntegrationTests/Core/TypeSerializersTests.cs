@@ -596,20 +596,33 @@ namespace Cassandra.IntegrationTests.Core
                 ));
         }
 
-        // [Test]
-        // [TestDseVersion(6, 9)]
-        // public void VectorFloatTest()
-        // {
-        //     var tableName = TestUtils.GetUniqueTableName();
-        //     Session.Execute($"CREATE TABLE {tableName} (i int PRIMARY KEY, j vector<float, 3>");
-        //
-        //     var vector = new CqlVector<float>(1.1f, 2.2f, 3.3f);
-        //
-        //     Session.Execute(new SimpleStatement($"INSERT INTO {tableName} (i, j, k) VALUES (1, ?, ?)", vector, new CqlVector<CqlVector<float>>(vectorList[0], vectorList[1], vectorList[2])));
-        //     var rs = Session.Execute($"SELECT * FROM {tableName} WHERE i = 1");
-        //     AssertSimpleVectorTest(vector, rs, Assert.AreEqual);
-        //     AssertComplexVectorTest(vectorList, rs, Assert.AreEqual);
-        // }
+        [Test]
+        [TestDseVersion(6, 9)]
+        public void VectorFloatTest()
+        {
+            var tableName = TestUtils.GetUniqueTableName();
+            Session.Execute($"CREATE TABLE {tableName} (i int PRIMARY KEY, j vector<float, 3>)");
+        
+            var vector = new CqlVector<float>(1.1f, 2.2f, 3.3f);
+        
+            // Simple insert and select
+            Session.Execute(new SimpleStatement($"INSERT INTO {tableName} (i, j) VALUES (1, ?)", vector));
+            var rs = Session.Execute($"SELECT * FROM {tableName} WHERE i = 1");
+            AssertSimpleVectorTest(vector, rs, Assert.AreEqual);
+            
+            // Prepared insert and select
+            var ps = Session.Prepare($"INSERT INTO {tableName} (i, j) VALUES (?, ?)");
+            Session.Execute(ps.Bind(2, vector));
+            rs = Session.Execute($"SELECT * FROM {tableName} WHERE i = 2");
+            AssertSimpleVectorTest(vector, rs, Assert.AreEqual);
+            
+            // throw when length is not 3
+            Assert.Throws<InvalidQueryException>(() =>
+            {
+                var shortVector = new CqlVector<float>(1.1f, 2.2f);
+                Session.Execute(new SimpleStatement($"INSERT INTO {tableName} (i, j) VALUES (3, ?)", shortVector));
+            });
+        }
         
         private void AssertSimpleVectorTest<T>(CqlVector<T> expected, RowSet rs, Action<object, object> assertFn)
         {
