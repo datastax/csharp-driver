@@ -371,7 +371,7 @@ namespace Cassandra.IntegrationTests.Core
                 };
         }
 
-        [Test, TestBothServersVersion(5, 0, 6, 9), TestCaseSource(nameof(VectorTestCaseData))]
+        [Test, TestCassandraVersion(5, 0), TestCaseSource(nameof(VectorTestCaseData))]
         public void VectorSimpleStatementTest<T>(string cqlSubType, Func<T> elementGeneratorFn, Action<object, object> assertFn)
         {
             SetupVectorUdtSchema();
@@ -392,7 +392,7 @@ namespace Cassandra.IntegrationTests.Core
             vectorSimpleStmtTestFn((i, v) => new SimpleStatement(new Dictionary<string, object> { { "idx", i }, { "vec", v } }, $"INSERT INTO {tableName} (i, j) VALUES (:idx, :vec)"));
         }
 
-        [Test, TestBothServersVersion(5, 0, 6, 9), TestCaseSource(nameof(VectorTestCaseData))]
+        [Test, TestCassandraVersion(5, 0), TestCaseSource(nameof(VectorTestCaseData))]
         public void VectorSimpleStatementTestComplex<T>(string cqlSubType, Func<T> elementGeneratorFn, Action<object, object> assertFn)
         {
             SetupVectorUdtSchema();
@@ -429,7 +429,7 @@ namespace Cassandra.IntegrationTests.Core
                 $"INSERT INTO {tableNameComplex} (i, k, l) VALUES (:idx, :vec, :vecc)"));
         }
 
-        [Test, TestBothServersVersion(5, 0, 6, 9), TestCaseSource(nameof(VectorTestCaseData))]
+        [Test, TestCassandraVersion(5, 0), TestCaseSource(nameof(VectorTestCaseData))]
         public void VectorPreparedStatementTest<T>(string cqlSubType, Func<T> elementGeneratorFn, Action<object, object> assertFn)
         {
             SetupVectorUdtSchema();
@@ -453,7 +453,7 @@ namespace Cassandra.IntegrationTests.Core
             vectorPreparedStmtTestFn($"INSERT INTO {tableName} (i, j) VALUES (:idx, :vec)", (i, v, ps) => ps.Bind(new { idx = i, vec = v }));
         }
 
-        [Test, TestBothServersVersion(5, 0, 6, 9), TestCaseSource(nameof(VectorTestCaseData))]
+        [Test, TestCassandraVersion(5, 0), TestCaseSource(nameof(VectorTestCaseData))]
         public void VectorPreparedStatementTestComplex<T>(string cqlSubType, Func<T> elementGeneratorFn, Action<object, object> assertFn)
         {
             SetupVectorUdtSchema();
@@ -498,7 +498,7 @@ namespace Cassandra.IntegrationTests.Core
                 ));
         }
 
-        [Test, TestBothServersVersion(5, 0, 6, 9), TestCaseSource(nameof(VectorTestCaseData))]
+        [Test, TestCassandraVersion(5, 0), TestCaseSource(nameof(VectorTestCaseData))]
         public void VectorTestCollectionConversion<T>(string cqlSubType, Func<T> elementGeneratorFn, Action<object, object> assertFn)
         {
             SetupVectorUdtSchema();
@@ -534,7 +534,7 @@ namespace Cassandra.IntegrationTests.Core
             vectorPreparedStmtTestFn($"INSERT INTO {tableName} (i, j) VALUES (:idx, :vec)", (i, v, ps) => ps.Bind(new { idx = i, vec = v }));
         }
 
-        [Test, TestBothServersVersion(5, 0, 6, 9), TestCaseSource(nameof(VectorTestCaseData))]
+        [Test, TestCassandraVersion(5, 0), TestCaseSource(nameof(VectorTestCaseData))]
         public void VectorTestCollectionConversionComplex<T>(string cqlSubType, Func<T> elementGeneratorFn, Action<object, object> assertFn)
         {
             SetupVectorUdtSchema();
