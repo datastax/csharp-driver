@@ -28,22 +28,18 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
     {
         public const string DefaultKeyspaceName = "test_cluster_keyspace";
         private static ICcmProcessExecuter _executor;
-
+        
         private static readonly Version Version2Dot0 = new Version(2, 0);
         private static readonly Version Version2Dot1 = new Version(2, 1);
-        private static readonly Version Version2Dot2 = new Version(2, 2);
         private static readonly Version Version3Dot0 = new Version(3, 0);
-        private static readonly Version Version3Dot1 = new Version(3, 1);
         private static readonly Version Version3Dot11 = new Version(3, 11);
-        private static readonly Version Version3Dot12 = new Version(3, 12);
         private static readonly Version Version4Dot0 = new Version(4, 0);
-        private static readonly Version Version4Dot6 = new Version(4, 6);
         private static readonly Version Version4Dot7 = new Version(4, 7);
-        private static readonly Version Version4Dot8 = new Version(4, 8);
         private static readonly Version Version5Dot0 = new Version(5, 0);
         private static readonly Version Version5Dot1 = new Version(5, 1);
         private static readonly Version Version6Dot0 = new Version(6, 0);
-        private static readonly Version Version6Dot7 = new Version(6, 7);
+        private static readonly Version Version6Dot9 = new Version(6, 9);
+        private static readonly Version Version6Dot10 = new Version(6, 10);
 
         /// <summary>
         /// Gets the Cassandra version used for this test run
@@ -70,7 +66,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                         // C* 3.0
                         return Version3Dot0;
                     }
-                    if (dseVersion < Version6Dot0)
+                    if (dseVersion < Version6Dot10)
                     {
                         // C* 3.11
                         return Version3Dot11;
@@ -78,7 +74,10 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                     // C* 4.0
                     return Version4Dot0;
                 }
-
+                if (IsHcd)
+                {
+                    return Version4Dot0;
+                }
                 return new Version(TestClusterManager.CassandraVersionString.Split('-')[0]);
             }
         }
@@ -99,6 +98,40 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             get { return Environment.GetEnvironmentVariable("DSE_PATH"); }
         }
 
+        public enum BackendType
+        {
+            Hcd,
+            Dse,
+            Cassandra
+        }
+        
+        /// <summary>
+        /// "hcd", "dse", or "cassandra" (default), based on CCM_DISTRIBUTION
+        /// if there's env var DSE_VERSION, ignore CCM_DISTRIBUTION
+        /// </summary>
+        public static BackendType CurrentBackendType
+        {
+            get
+            {
+                if ( Environment.GetEnvironmentVariable("DSE_VERSION") != null )
+                {
+                    return BackendType.Dse;
+                }
+                string distribution = Environment.GetEnvironmentVariable("CCM_DISTRIBUTION") ?? "cassandra";
+                switch (distribution)
+                {
+                    case "hcd":
+                        return BackendType.Hcd;
+                    case "dse":
+                        return BackendType.Dse;
+                    case "cassandra":
+                        return BackendType.Cassandra;
+                    default:
+                        throw new TestInfrastructureException("Unknown CCM_DISTRIBUTION value: " + distribution);
+                }
+            }
+        }
+
         public static string InitialContactPoint
         {
             get { return IpPrefix + "1"; }
@@ -106,22 +139,55 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         public static string DseVersionString
         {
-            get { return Environment.GetEnvironmentVariable("DSE_VERSION") ?? "6.7.7"; }
+            get
+            {
+                if (!IsDse)
+                {
+                    throw new TestInfrastructureException("DSE_VERSION is only available when using DSE backend");
+                }
+                if (Environment.GetEnvironmentVariable("DSE_VERSION") != null)
+                {
+                    return Environment.GetEnvironmentVariable("DSE_VERSION");
+                }
+                return Environment.GetEnvironmentVariable("CASSANDRA_VERSION") ?? "6.7.7";
+            }
         }
 
+        /// <summary>
+        /// Use DSE_VERSION if it's set, otherwise use CASSANDRA_VERSION
+        /// </summary>
         public static string CassandraVersionString
         {
-            get { return Environment.GetEnvironmentVariable("CASSANDRA_VERSION") ?? "3.11.2"; }
+            get
+            {
+                if (Environment.GetEnvironmentVariable("DSE_VERSION") != null)
+                {
+                    return Environment.GetEnvironmentVariable("DSE_VERSION");
+                }
+                return Environment.GetEnvironmentVariable("CASSANDRA_VERSION") ?? "3.11.2";
+            }
         }
 
         public static bool IsDse
         {
-            get { return Environment.GetEnvironmentVariable("DSE_VERSION") != null; }
+            get { return CurrentBackendType == BackendType.Dse; }
+        }
+
+        public static bool IsHcd
+        {
+            get { return CurrentBackendType == BackendType.Hcd; }
         }
         
         public static Version DseVersion
         {
-            get { return IsDse ? new Version(DseVersionString.Split('-')[0]) : TestClusterManager.GetDseVersionFromCassandraVersion(new Version(CassandraVersionString.Split('-')[0])); }
+            get
+            {
+                if (!IsDse)
+                {
+                    throw new TestInfrastructureException("DseVersion is only available when using DSE backend");
+                }
+                return new Version(DseVersionString.Split('-')[0]);
+            }
         }
 
         public static bool CcmUseWsl => bool.Parse(Environment.GetEnvironmentVariable("CCM_USE_WSL") ?? "false");
@@ -161,15 +227,14 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         public static bool CheckCassandraVersion(bool requiresOss, Version version, Comparison comparison)
         {
-            if (requiresOss && TestClusterManager.IsDse)
+            if (requiresOss && TestClusterManager.CurrentBackendType != BackendType.Cassandra)
             {
                 return false;
             }
 
-            var runningVersion = TestClusterManager.IsDse ? TestClusterManager.DseVersion : TestClusterManager.CassandraVersion;
-            var expectedVersion = TestClusterManager.IsDse ? TestClusterManager.GetDseVersionFromCassandraVersion(version) : version;
-
-            return TestDseVersion.VersionMatch(expectedVersion, runningVersion, comparison);
+            var runningVersion = TestClusterManager.CassandraVersion;
+            var expectedVersion = version;
+            return TestCassandraVersion.VersionMatch(expectedVersion, runningVersion, comparison);
         }
 
         /// <summary>
@@ -208,33 +273,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 return TestClusterManager._executor;
             }
         }
-
-        public static Version GetDseVersionFromCassandraVersion(Version cassandraVersion)
-        {
-            if (cassandraVersion < Version2Dot1)
-            {
-                // C* 2.0 => DSE 4.6
-                return Version4Dot6;
-            }
-            if (cassandraVersion < Version2Dot2)
-            {
-                // C* 2.1 => DSE 4.8
-                return Version4Dot8;
-            }
-            if (cassandraVersion < Version3Dot1)
-            {
-                // C* 3.0 => DSE 5.0
-                return Version5Dot0;
-            }
-            if (cassandraVersion < Version3Dot12)
-            {
-                // C* 3.11 => DSE 5.1
-                return Version5Dot1;
-            }
-            // DSE 6.0
-            return Version6Dot0;
-        }
-
+        
         private static ITestCluster CreateNewNoRetry(int nodeLength, TestClusterOptions options, bool startCluster)
         {
             TryRemove();

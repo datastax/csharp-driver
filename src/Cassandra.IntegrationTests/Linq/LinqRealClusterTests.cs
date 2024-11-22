@@ -407,7 +407,7 @@ namespace Cassandra.IntegrationTests.Linq
             Assert.Throws<NotSupportedException>(() => table.Create());
         }
 
-        [Test, TestBothServersVersion(5, 0, 6, 9)]
+        [Test, TestCassandraVersion(5, 0)]
         [TestCase(true)]
         [TestCase(false)]
         public void LinqWhere_WithVectors(bool withMapConfig)

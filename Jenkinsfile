@@ -129,12 +129,25 @@ CCM_CASSANDRA_VERSION=${DSE_FIXED_VERSION} # maintain for backwards compatibilit
 CCM_VERSION=${DSE_FIXED_VERSION}
 CCM_SERVER_TYPE=dse
 DSE_VERSION=${DSE_FIXED_VERSION}
-CCM_IS_DSE=true
+CCM_DISTRIBUTION=dse
+CASSANDRA_VERSION=${DSE_FIXED_VERSION}
 CCM_BRANCH=${DSE_FIXED_VERSION}
 DSE_BRANCH=${DSE_FIXED_VERSION}
 JDK=1.8
 ENVIRONMENT_EOF
       '''
+    }
+    
+    if (env.SERVER_VERSION.split('-')[0] == 'hcd') {
+      env.HCD_FIXED_VERSION = env.SERVER_VERSION.split('-')[1]
+      sh label: 'Update environment for HCD', script: '''#!/bin/bash -le
+        cat >> ${HOME}/environment.txt << ENVIRONMENT_EOF
+CCM_PATH=${HOME}/ccm
+CCM_CASSANDRA_VERSION=${HCD_FIXED_VERSION} # maintain for backwards compatibility
+CASSANDRA_VERSION=${HCD_FIXED_VERSION}
+CCM_DISTRIBUTION=hcd
+ENVIRONMENT_EOF
+        '''
     }
 
     if (env.SERVER_VERSION == env.SERVER_VERSION_SNI && env.DOTNET_VERSION != 'mono') {
@@ -432,13 +445,13 @@ pipeline {
         axes {
           axis {
             name 'SERVER_VERSION'
-            values '3.0',     // latest 3.0.x Apache Cassandra�
-                  '3.11',    // latest 3.11.x Apache Cassandra�
-                  '4.0',    // latest 4.0.x Apache Cassandra�
-                  '5.0-beta1', // Development Apache Cassandra�
+            values '3.11',    // latest 3.11.x Apache Cassandra�
+                  '4.1',  // latest 4.x Apache Cassandra�
+                  '5.0', // Development Apache Cassandra�
                   'dse-5.1.35', // latest 5.1.x DataStax Enterprise
-                  'dse-6.7.17', // latest 6.7.x DataStax Enterprise
-                  'dse-6.8.30' // 6.8 current DataStax Enterprise
+                  'dse-6.8.30', // latest 6.7.x DataStax Enterprise
+                  'dse-6.9.3',  // latest DataStax Enterprise
+                  'hcd-1.0.0'  // Hyper-Converged Database
           }
           axis {
             name 'DOTNET_VERSION'
@@ -449,11 +462,11 @@ pipeline {
           exclude {
             axis {
               name 'DOTNET_VERSION'
-              values 'mono', 'net8'
+              values 'mono'
             }
             axis {
               name 'SERVER_VERSION'
-              values '3.0', '5.0-beta1', 'dse-5.1.35', 'dse-6.8.30'
+              values '3.11', '4.1', 'dse-5.1.35', 'dse-6.8.30'
             }
           }
           exclude {
@@ -463,7 +476,7 @@ pipeline {
             }
             axis {
               name 'SERVER_VERSION'
-              values 'dse-6.7.17', '3.11'
+              values '3.11', '5.0', 'dse-6.9.3', 'hcd-1.0.0'
             }
           }
         }
