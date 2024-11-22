@@ -466,7 +466,7 @@ pipeline {
             }
             axis {
               name 'SERVER_VERSION'
-              values '3.11', 4.1', 'dse-5.1.35', 'dse-6.8.30'
+              values '3.11', '4.1', 'dse-5.1.35', 'dse-6.8.30'
             }
           }
           exclude {
@@ -476,7 +476,7 @@ pipeline {
             }
             axis {
               name 'SERVER_VERSION'
-              values '3.11', 5.0', 'dse-6.9.3', 'hcd-1.0.0'
+              values '3.11', '5.0', 'dse-6.9.3', 'hcd-1.0.0'
             }
           }
         }
