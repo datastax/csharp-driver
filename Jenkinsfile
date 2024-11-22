@@ -449,7 +449,7 @@ pipeline {
                   '4.1',  // latest 4.x Apache Cassandra�
                   '5.0', // Development Apache Cassandra�
                   'dse-5.1.35', // latest 5.1.x DataStax Enterprise
-                  'dse-6.7.17', // latest 6.7.x DataStax Enterprise
+                  'dse-6.8.30', // latest 6.7.x DataStax Enterprise
                   'dse-6.9.3',  // latest DataStax Enterprise
                   'hcd-1.0.0'  // Hyper-Converged Database
           }
@@ -466,7 +466,7 @@ pipeline {
             }
             axis {
               name 'SERVER_VERSION'
-              values '4.1', 'dse-5.1.35', 'dse-6.8.30'
+              values '3.11', 4.1', 'dse-5.1.35', 'dse-6.8.30'
             }
           }
           exclude {
@@ -476,7 +476,7 @@ pipeline {
             }
             axis {
               name 'SERVER_VERSION'
-              values '5.0', 'dse-6.9.3', 'hcd-1.0.0'
+              values '3.11', 5.0', 'dse-6.9.3', 'hcd-1.0.0'
             }
           }
         }
