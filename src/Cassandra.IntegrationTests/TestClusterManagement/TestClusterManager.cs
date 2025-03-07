@@ -28,7 +28,12 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
     {
         public const string DefaultKeyspaceName = "test_cluster_keyspace";
         private static ICcmProcessExecuter _executor;
-        
+        private static int _idPrefixCounter = 0;
+        private static string GetUniqueIdPrefix()
+        {
+            return (_idPrefixCounter++).ToString();
+        }
+
         private static readonly Version Version2Dot0 = new Version(2, 0);
         private static readonly Version Version2Dot1 = new Version(2, 1);
         private static readonly Version Version3Dot0 = new Version(3, 0);
@@ -104,7 +109,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             Dse,
             Cassandra
         }
-        
+
         /// <summary>
         /// "hcd", "dse", or "cassandra" (default), based on CCM_DISTRIBUTION
         /// if there's env var DSE_VERSION, ignore CCM_DISTRIBUTION
@@ -168,6 +173,16 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             }
         }
 
+        public static string ScyllaVersionString
+        {
+            get { return Environment.GetEnvironmentVariable("SCYLLA_VERSION"); }
+        }
+
+        public static bool IsScylla
+        {
+            get { return !string.IsNullOrEmpty(ScyllaVersionString); }
+        }
+
         public static bool IsDse
         {
             get { return CurrentBackendType == BackendType.Dse; }
@@ -177,7 +192,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         {
             get { return CurrentBackendType == BackendType.Hcd; }
         }
-        
+
         public static Version DseVersion
         {
             get
@@ -201,7 +216,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         public static bool SupportsDecommissionForcefully()
         {
-            return TestClusterManager.CheckDseVersion(new Version(5, 1), Comparison.GreaterThanOrEqualsTo) 
+            return TestClusterManager.CheckDseVersion(new Version(5, 1), Comparison.GreaterThanOrEqualsTo)
                    || TestClusterManager.CheckCassandraVersion(true, new Version(4, 0), Comparison.GreaterThanOrEqualsTo);
         }
 
@@ -256,9 +271,9 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                     var remoteDseServerPassword = Environment.GetEnvironmentVariable("DSE_SERVER_PWD") ?? "vagrant";
                     var remoteDseServerPort = int.Parse(Environment.GetEnvironmentVariable("DSE_SERVER_PORT") ?? "2222");
                     var remoteDseServerUserPrivateKey = Environment.GetEnvironmentVariable("DSE_SERVER_PRIVATE_KEY");
-                    TestClusterManager._executor = 
+                    TestClusterManager._executor =
                         new RemoteCcmProcessExecuter(
-                            remoteDseServer, remoteDseServerUser, remoteDseServerPassword, 
+                            remoteDseServer, remoteDseServerUser, remoteDseServerPassword,
                             remoteDseServerPort, remoteDseServerUserPrivateKey);
                 }
                 else if (TestClusterManager.CcmUseWsl)
@@ -273,18 +288,19 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 return TestClusterManager._executor;
             }
         }
-        
+
         private static ITestCluster CreateNewNoRetry(int nodeLength, TestClusterOptions options, bool startCluster)
         {
             TryRemove();
             options = options ?? new TestClusterOptions();
             var testCluster = new CcmCluster(
                 TestUtils.GetTestClusterNameBasedOnRandomString(),
-                IpPrefix,
+                GetUniqueIdPrefix(),
                 DsePath,
                 Executor,
                 DefaultKeyspaceName,
-                IsDse ? DseVersionString : CassandraVersionString);
+                IsDse ? DseVersionString : CassandraVersionString,
+                ScyllaVersionString);
             testCluster.Create(nodeLength, options);
             if (startCluster)
             {
@@ -391,7 +407,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             {
                 if (Diagnostics.CassandraTraceSwitch.Level == TraceLevel.Verbose)
                 {
-                    Trace.TraceError("ccm test cluster could not be removed: {0}", ex);   
+                    Trace.TraceError("ccm test cluster could not be removed: {0}", ex);
                 }
             }
         }

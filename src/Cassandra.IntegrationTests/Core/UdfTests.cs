@@ -50,24 +50,27 @@ namespace Cassandra.IntegrationTests.Core
             {
                 return;
             }
-
-            if (TestClusterManager.IsHcd)
-            {
-                Assert.Ignore("Skipping UDF tests on HCD due to DSP-24606. See CSHARP-1020.");
-                return;
-            }
             _testCluster = TestClusterManager.GetTestCluster(1, 0, false, DefaultMaxClusterCreateRetries, false, false);
-            _testCluster.UpdateConfig("enable_user_defined_functions:true");
+            var userDefinedFunctionsConfig = "enable_user_defined_functions: true";
+            if (TestClusterManager.CheckCassandraVersion(true, Version.Parse("5.0"), Comparison.GreaterThanOrEqualsTo))
+            {
+                userDefinedFunctionsConfig = "user_defined_functions_enabled: true";
+            }
+            var experimentalFeaturesConfig = TestClusterManager.IsScylla
+                ? "experimental_features:[udf]"
+                : null;
+            _testCluster.UpdateConfig(userDefinedFunctionsConfig, experimentalFeaturesConfig);
             _testCluster.Start(1);
             using (var cluster = ClusterBuilder().AddContactPoint(_testCluster.InitialContactPoint).Build())
             {
+                var udfLanguage = TestClusterManager.IsScylla ? "lua" : "java";
                 var session = cluster.Connect();
                 var queries = new List<string>
                 {
                     "CREATE KEYSPACE  ks_udf WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1}",
-                    "CREATE FUNCTION  ks_udf.return_one() RETURNS NULL ON NULL INPUT RETURNS int LANGUAGE java AS 'return 1;'",
-                    "CREATE FUNCTION  ks_udf.plus(s int, v int) RETURNS NULL ON NULL INPUT RETURNS int LANGUAGE java AS 'return s+v;'",
-                    "CREATE FUNCTION  ks_udf.plus(s bigint, v bigint) RETURNS NULL ON NULL INPUT RETURNS bigint LANGUAGE java AS 'return s+v;'",
+                    $"CREATE FUNCTION  ks_udf.return_one() RETURNS NULL ON NULL INPUT RETURNS int LANGUAGE {udfLanguage} AS 'return 1;'",
+                    $"CREATE FUNCTION  ks_udf.plus(s int, v int) RETURNS NULL ON NULL INPUT RETURNS int LANGUAGE {udfLanguage} AS 'return s+v;'",
+                    $"CREATE FUNCTION  ks_udf.plus(s bigint, v bigint) RETURNS NULL ON NULL INPUT RETURNS bigint LANGUAGE {udfLanguage} AS 'return s+v;'",
                     "CREATE AGGREGATE ks_udf.sum(int) SFUNC plus STYPE int INITCOND 1",
                     "CREATE AGGREGATE ks_udf.sum(bigint) SFUNC plus STYPE bigint INITCOND 2"
                 };
@@ -75,16 +78,16 @@ namespace Cassandra.IntegrationTests.Core
                 if (TestClusterManager.CheckDseVersion(new Version(6, 0), Comparison.GreaterThanOrEqualsTo))
                 {
                     queries.Add("CREATE FUNCTION ks_udf.deterministic(dividend int, divisor int) " +
-                                "CALLED ON NULL INPUT RETURNS int DETERMINISTIC LANGUAGE java AS " +
+                                $"CALLED ON NULL INPUT RETURNS int DETERMINISTIC LANGUAGE {udfLanguage} AS " +
                                 "'return dividend / divisor;'");
                     queries.Add("CREATE FUNCTION ks_udf.monotonic(dividend int, divisor int) " +
-                                "CALLED ON NULL INPUT RETURNS int MONOTONIC LANGUAGE java AS " +
+                                $"CALLED ON NULL INPUT RETURNS int MONOTONIC LANGUAGE {udfLanguage} AS " +
                                 "'return dividend / divisor;'");
                     queries.Add("CREATE FUNCTION ks_udf.md(dividend int, divisor int) " +
-                                "CALLED ON NULL INPUT RETURNS int DETERMINISTIC MONOTONIC LANGUAGE java AS " +
+                                $"CALLED ON NULL INPUT RETURNS int DETERMINISTIC MONOTONIC LANGUAGE {udfLanguage} AS " +
                                 "'return dividend / divisor;'");
                     queries.Add("CREATE FUNCTION ks_udf.monotonic_on(dividend int, divisor int) " +
-                                "CALLED ON NULL INPUT RETURNS int MONOTONIC ON dividend LANGUAGE java AS " +
+                                $"CALLED ON NULL INPUT RETURNS int MONOTONIC ON dividend LANGUAGE {udfLanguage} AS " +
                                 "'return dividend / divisor;'");
                     queries.Add("CREATE AGGREGATE ks_udf.deta(int) SFUNC plus STYPE int INITCOND 0 DETERMINISTIC;");
                 }
@@ -137,7 +140,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(ColumnTypeCode.Int, func.ArgumentTypes[0].TypeCode);
             Assert.AreEqual(ColumnTypeCode.Int, func.ArgumentTypes[1].TypeCode);
             Assert.AreEqual("return s+v;", func.Body);
-            Assert.AreEqual("java", func.Language);
+            Assert.AreEqual(TestClusterManager.IsScylla ? "lua" : "java", func.Language);
             Assert.AreEqual(ColumnTypeCode.Int, func.ReturnType.TypeCode);
             Assert.AreEqual(false, func.CalledOnNullInput);
         }
@@ -155,7 +158,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(0, func.ArgumentTypes.Length);
             Assert.AreEqual(0, func.Signature.Length);
             Assert.AreEqual("return 1;", func.Body);
-            Assert.AreEqual("java", func.Language);
+            Assert.AreEqual(TestClusterManager.IsScylla ? "lua" : "java", func.Language);
             Assert.AreEqual(ColumnTypeCode.Int, func.ReturnType.TypeCode);
             Assert.AreEqual(false, func.CalledOnNullInput);
             Assert.False(func.Monotonic);
@@ -207,10 +210,11 @@ namespace Cassandra.IntegrationTests.Core
             var session = cluster.Connect("ks_udf");
             var cluster2 = GetCluster(metadataSync);
             var session2 = cluster.Connect("ks_udf");
-            session.Execute("CREATE OR REPLACE FUNCTION stringify(i int) RETURNS NULL ON NULL INPUT RETURNS text LANGUAGE java AS 'return Integer.toString(i);'");
+            var udfLanguage = TestClusterManager.IsScylla ? "lua" : "java";
+            session.Execute($"CREATE OR REPLACE FUNCTION stringify(i int) RETURNS NULL ON NULL INPUT RETURNS text LANGUAGE {udfLanguage} AS 'return Integer.toString(i);'");
             cluster2.RefreshSchema("ks_udf");
             Task.Delay(500).GetAwaiter().GetResult(); // wait for events to be processed
-            var _ = cluster2.Metadata.KeyspacesSnapshot // cache 
+            var _ = cluster2.Metadata.KeyspacesSnapshot // cache
                                 .Single(kvp => kvp.Key == "ks_udf")
                                 .Value
                                 .GetFunction("stringify", new[] { "int" });
@@ -219,7 +223,7 @@ namespace Cassandra.IntegrationTests.Core
             var func = cluster.Metadata.GetFunction("ks_udf", "stringify", new[] { "int" });
             Assert.NotNull(func);
             Assert.AreEqual("return Integer.toString(i);", func.Body);
-            session.Execute("CREATE OR REPLACE FUNCTION stringify(i int) RETURNS NULL ON NULL INPUT RETURNS text LANGUAGE java AS 'return Integer.toString(i) + \"hello\";'");
+            session.Execute($"CREATE OR REPLACE FUNCTION stringify(i int) RETURNS NULL ON NULL INPUT RETURNS text LANGUAGE {udfLanguage} AS 'return Integer.toString(i) + \"hello\";'");
             if (metadataSync)
             {
                 TestHelper.RetryAssert(() =>

@@ -34,6 +34,35 @@ namespace Cassandra.IntegrationTests.Core
     {
         private readonly string _tableName = "tbl" + Guid.NewGuid().ToString("N").ToLower();
         private const string AllTypesTableName = "all_types_table_prepared";
+        private readonly List<ICluster> _privateClusterInstances = new List<ICluster>();
+
+        protected override ICluster GetNewTemporaryCluster(Action<Builder> build = null)
+        {
+            var builder = ClusterBuilder()
+                          .AddContactPoint(TestCluster.InitialContactPoint)
+                          .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(30000).SetReadTimeoutMillis(22000));
+            build?.Invoke(builder);
+            var cluster = builder.Build();
+            _privateClusterInstances.Add(cluster);
+            return cluster;
+        }
+
+        public override void TearDown()
+        {
+            foreach (var c in _privateClusterInstances)
+            {
+                try
+                {
+                    c.Dispose();
+                }
+                catch
+                {
+                    // ignored
+                }
+            }
+            _privateClusterInstances.Clear();
+            base.TearDown();
+        }
 
         public PreparedStatementsTests() : base(3)
         {
@@ -163,8 +192,8 @@ namespace Cassandra.IntegrationTests.Core
         {
             byte[] originalResultMetadataId = null;
             // Use 2 different clusters as the prepared statement cache should be different
-            using (var cluster1 = ClusterBuilder().AddContactPoint(TestClusterManager.InitialContactPoint).Build())
-            using (var cluster2 = ClusterBuilder().AddContactPoint(TestClusterManager.InitialContactPoint).Build())
+            using (var cluster1 = GetNewTemporaryCluster())
+            using (var cluster2 = GetNewTemporaryCluster())
             {
                 var session1 = cluster1.Connect();
                 var session2 = cluster2.Connect();
@@ -906,13 +935,12 @@ namespace Cassandra.IntegrationTests.Core
 
         private void TestKeyspaceInPrepareNotSupported(bool specifyProtocol)
         {
-            var builder = ClusterBuilder().AddContactPoint(TestClusterManager.InitialContactPoint);
-            if (specifyProtocol)
-            {
-                builder.WithMaxProtocolVersion(ProtocolVersion.V4);
-            }
-
-            using (var cluster = builder.Build())
+            using (var cluster = GetNewTemporaryCluster(builder => {
+                       if (specifyProtocol)
+                       {
+                           builder.WithMaxProtocolVersion(ProtocolVersion.V4);
+                       }
+                   }))
             {
                 var session = cluster.Connect(KeyspaceName);
 
@@ -1114,7 +1142,7 @@ namespace Cassandra.IntegrationTests.Core
         [TestBothServersVersion(4, 0, 5,1, Comparison.LessThan)]
         public void BatchStatement_With_Keyspace_Defined_On_Lower_Protocol_Versions()
         {
-            using (var cluster = ClusterBuilder().AddContactPoint(TestClusterManager.InitialContactPoint).Build())
+            using (var cluster = GetNewTemporaryCluster())
             {
                 var session = cluster.Connect("system");
                 var query = new SimpleStatement(
@@ -1150,10 +1178,8 @@ namespace Cassandra.IntegrationTests.Core
             }
 
             var tableName = TestUtils.GetUniqueTableName();
-            using (var cluster = 
-                ClusterBuilder()
-                       .AddContactPoint(TestClusterManager.InitialContactPoint)
-                       .WithQueryTimeout(500000).Build())
+            using (var cluster =
+                   GetNewTemporaryCluster(builder => builder.WithQueryTimeout(500000)))
             {
                 var session = cluster.Connect();
                 session.Execute($"CREATE TABLE {KeyspaceName}.{tableName} (a int PRIMARY KEY, b int, c int)");

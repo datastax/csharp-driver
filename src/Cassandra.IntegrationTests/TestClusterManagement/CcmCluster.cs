@@ -25,33 +25,37 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
     {
         public string Name { get; set; }
         public string Version { get; set; }
+        public string ScyllaVersion { get; set; }
         public Builder Builder { get; set; }
         public Cluster Cluster { get; set; }
         public ISession Session { get; set; }
         public string InitialContactPoint { get; set; }
         public string ClusterIpPrefix { get; set; }
+        public string IdPrefix { get; private set; }
         public string DsePath { get; set; }
         public string DefaultKeyspace { get; set; }
         private readonly ICcmProcessExecuter _executor;
         private CcmBridge _ccm;
         private int _nodeLength;
 
-        public CcmCluster(string name, string clusterIpPrefix, string dsePath, ICcmProcessExecuter executor, string defaultKeyspace, string version)
+        public CcmCluster(string name, string idPrefix, string dsePath, ICcmProcessExecuter executor, string defaultKeyspace, string version, string scyllaVersion = null)
         {
             _executor = executor;
             Name = name;
             DefaultKeyspace = defaultKeyspace;
-            ClusterIpPrefix = clusterIpPrefix;
-            DsePath = dsePath;
+            IdPrefix = idPrefix;
+            ClusterIpPrefix = $"127.0.{IdPrefix}.";
             InitialContactPoint = ClusterIpPrefix + "1";
+            DsePath = dsePath;
             Version = version;
+            ScyllaVersion = scyllaVersion;
         }
 
         public void Create(int nodeLength, TestClusterOptions options = null)
         {
             _nodeLength = nodeLength;
             options = options ?? TestClusterOptions.Default;
-            _ccm = new CcmBridge(Name, ClusterIpPrefix, DsePath, Version, _executor);
+            _ccm = new CcmBridge(Name, IdPrefix, DsePath, Version, ScyllaVersion, _executor);
             _ccm.Create(options.UseSsl);
             _ccm.Populate(nodeLength, options.Dc2NodeLength, options.UseVNodes);
             _ccm.UpdateConfig(options.CassandraYaml);

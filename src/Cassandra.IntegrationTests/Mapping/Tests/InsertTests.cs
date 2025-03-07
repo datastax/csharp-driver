@@ -351,11 +351,13 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             // Attempt to select from Camel Case partition key
             string cqlCamelCasePartitionKey = "SELECT * from " + typeof (lowercaseclassnamepkcamelcase).Name + " where \"SomePartitionKey\" = 'doesntmatter'";
             var ex = Assert.Throws<InvalidQueryException>(() => _session.Execute(cqlCamelCasePartitionKey));
-            var expectedErrMsg = "Undefined name SomePartitionKey in where clause";
+            var expectedMessageCassandra = "Undefined name SomePartitionKey in where clause";
+            var expectedMessageScylla = "Unrecognized name SomePartitionKey";
             if (TestClusterManager.CheckCassandraVersion(false, Version.Parse("3.10"), Comparison.GreaterThanOrEqualsTo))
             {
-                expectedErrMsg = "Undefined column name \"SomePartitionKey\"";
+                expectedMessageCassandra = "Undefined column name \"SomePartitionKey\"";
             }
+            var expectedErrMsg = TestClusterManager.IsScylla ? expectedMessageScylla : expectedMessageCassandra;
             StringAssert.Contains(expectedErrMsg, ex.Message);
 
             // Validate that select on lower case key does not fail
@@ -379,11 +381,13 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
 
             // Validate expected exception
             var ex = Assert.Throws<InvalidQueryException>(() => cqlClient.Insert(pocoWithCustomAttributes));
-            var expectedMessage = "Unknown identifier someotherstring";
+            var expectedMessageCassandra = "Unknown identifier someotherstring";
+            var expectedMessageScylla = "Unknown identifier someotherstring";
             if (TestClusterManager.CheckCassandraVersion(false, Version.Parse("3.10"), Comparison.GreaterThanOrEqualsTo))
             {
-                expectedMessage = "Undefined column name someotherstring";
+                expectedMessageCassandra = "Undefined column name someotherstring";
             }
+            var expectedMessage = TestClusterManager.IsScylla ? expectedMessageScylla : expectedMessageCassandra;
             StringAssert.Contains(expectedMessage, ex.Message);
         }
 
