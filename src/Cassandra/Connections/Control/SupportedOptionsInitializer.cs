@@ -28,6 +28,16 @@ namespace Cassandra.Connections.Control
 
         private readonly Metadata _metadata;
 
+        private const string ScyllaShard = "SCYLLA_SHARD";
+        private const string ScyllaNrShards = "SCYLLA_NR_SHARDS";
+        private const string ScyllaPartitioner = "SCYLLA_PARTITIONER";
+        private const string ScyllaShardingAlgorithm = "SCYLLA_SHARDING_ALGORITHM";
+        private const string ScyllaShardingIgnoreMSB = "SCYLLA_SHARDING_IGNORE_MSB";
+        private const string ScyllaShardAwarePort = "SCYLLA_SHARD_AWARE_PORT";
+        private const string ScyllaShardAwarePortSSL = "SCYLLA_SHARD_AWARE_PORT_SSL";
+
+        private ShardingInfo _shardingInfo;
+
         public SupportedOptionsInitializer(Metadata metadata)
         {
             _metadata = metadata;
@@ -49,6 +59,7 @@ namespace Cassandra.Connections.Control
             }
 
             ApplyProductTypeOption(supportedResponse.Output.Options);
+            ApplyScyllaShardingOption(supportedResponse.Output.Options);
         }
 
         private void ApplyProductTypeOption(IDictionary<string, string[]> options)
@@ -67,6 +78,73 @@ namespace Cassandra.Connections.Control
             {
                 _metadata.SetProductTypeAsDbaas();
             }
+        }
+
+        private void ApplyScyllaShardingOption(IDictionary<string, string[]> options)
+        {
+            if (!options.TryGetValue(SupportedOptionsInitializer.ScyllaShard, out var scyllaShard))
+            {
+                return;
+            }
+            if (scyllaShard.Length <= 0)
+            {
+                return;
+            }
+
+            if (!options.TryGetValue(SupportedOptionsInitializer.ScyllaNrShards, out var scyllaNrShards))
+            {
+                return;
+            }
+            if (scyllaNrShards.Length <= 0)
+            {
+                return;
+            }
+
+            if (!options.TryGetValue(SupportedOptionsInitializer.ScyllaPartitioner, out var scyllaPartitioner))
+            {
+                return;
+            }
+            if (scyllaPartitioner.Length <= 0)
+            {
+                return;
+            }
+
+            if (!options.TryGetValue(SupportedOptionsInitializer.ScyllaShardingAlgorithm, out var scyllaShardingAlgorithm))
+            {
+                return;
+            }
+            if (scyllaShardingAlgorithm.Length <= 0)
+            {
+                return;
+            }
+
+            if (!options.TryGetValue(SupportedOptionsInitializer.ScyllaShardingIgnoreMSB, out var scyllaShardingIgnoreMSB))
+            {
+                return;
+            }
+            if (scyllaShardingIgnoreMSB.Length <= 0)
+            {
+                return;
+            }
+
+            if (!options.TryGetValue(SupportedOptionsInitializer.ScyllaShardAwarePort, out var scyllaShardAwarePort))
+            {
+                scyllaShardAwarePort = new string[] { "0" };
+            }
+
+            if (!options.TryGetValue(SupportedOptionsInitializer.ScyllaShardAwarePortSSL, out var scyllaShardAwarePortSSL))
+            {
+                scyllaShardAwarePortSSL = new string[] { "0" };
+            }
+
+            _shardingInfo = ShardingInfo.Create(
+                scyllaShard[0],
+                scyllaNrShards[0],
+                scyllaPartitioner[0],
+                scyllaShardingAlgorithm[0],
+                scyllaShardingIgnoreMSB[0],
+                scyllaShardAwarePort[0],
+                scyllaShardAwarePortSSL[0]);
         }
     }
 }
