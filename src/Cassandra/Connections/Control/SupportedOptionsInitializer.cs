@@ -62,6 +62,11 @@ namespace Cassandra.Connections.Control
             ApplyScyllaShardingOption(supportedResponse.Output.Options);
         }
 
+        public ShardingInfo GetShardingInfo()
+        {
+            return _shardingInfo;
+        }
+
         private void ApplyProductTypeOption(IDictionary<string, string[]> options)
         {
             if (!options.TryGetValue(SupportedOptionsInitializer.SupportedProductTypeKey, out var productTypeOptions))
