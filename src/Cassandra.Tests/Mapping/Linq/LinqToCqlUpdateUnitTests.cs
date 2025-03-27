@@ -81,8 +81,8 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Select(t => new AllTypesEntity { StringValue = "Billy the Vision" })
                 .Update()
                 .Execute();
-            TestHelper.VerifyUpdateCqlColumns("tbl1", query, new []{"string_val"},
-                new [] {"id", "val2"}, new object[] {"Billy the Vision", id, 20M},
+            TestHelper.VerifyUpdateCqlColumns("tbl1", query, new[] { "string_val" },
+                new[] { "id", "val2" }, new object[] { "Billy the Vision", id, 20M },
                 parameters);
         }
 
@@ -107,8 +107,8 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Select(t => new PlainUser { HairColor = HairColor.Red })
                 .Update()
                 .Execute();
-            TestHelper.VerifyUpdateCqlColumns("tbl1", query, new []{"HairColor"},
-                new [] {"UserId"}, new object[] { (int)HairColor.Red, id},
+            TestHelper.VerifyUpdateCqlColumns("tbl1", query, new[] { "HairColor" },
+                new[] { "UserId" }, new object[] { (int)HairColor.Red, id },
                 parameters);
         }
 
@@ -133,8 +133,8 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Select(t => new PlainUser { HairColor = HairColor.Red })
                 .Update()
                 .Execute();
-            TestHelper.VerifyUpdateCqlColumns("tbl1", query, new []{"HairColor"},
-                new [] {"UserId"}, new object[] { HairColor.Red.ToString(), id},
+            TestHelper.VerifyUpdateCqlColumns("tbl1", query, new[] { "HairColor" },
+                new[] { "UserId" }, new object[] { HairColor.Red.ToString(), id },
                 parameters);
         }
 
@@ -144,7 +144,7 @@ namespace Cassandra.Tests.Mapping.Linq
             TestQueryTrace(table =>
             {
                 var linqQuery = table.Where(x => x.IntValue == 1)
-                                     .Select(x => new AllTypesEntity { StringValue = "a"})
+                                     .Select(x => new AllTypesEntity { StringValue = "a" })
                                      .Update();
                 linqQuery.EnableTracing();
                 linqQuery.Execute();
@@ -178,8 +178,8 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Select(t => new AllTypesEntity { StringValue = "Aṣa" })
                 .Update()
                 .Execute();
-            TestHelper.VerifyUpdateCqlColumns("SomeKS.tbl1", query, new []{"string_val"},
-                new [] {"id"}, new object[] { "Aṣa", id },
+            TestHelper.VerifyUpdateCqlColumns("SomeKS.tbl1", query, new[] { "string_val" },
+                new[] { "id" }, new object[] { "Aṣa", id },
                 parameters);
         }
 
@@ -207,8 +207,8 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Select(t => new Song { Title = "When The Sun Goes Down" })
                 .UpdateIfExists()
                 .Execute();
-            TestHelper.VerifyUpdateCqlColumns("songs", query, new []{"title"},
-                new [] {"id"}, new object[] { "When The Sun Goes Down", id },
+            TestHelper.VerifyUpdateCqlColumns("songs", query, new[] { "title" },
+                new[] { "id" }, new object[] { "When The Sun Goes Down", id },
                 parameters, "IF EXISTS");
         }
 
@@ -229,8 +229,8 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Select(t => new AllTypesDecorated { StringValue = "updated value" })
                 .UpdateIf(t => t.IntValue == 100)
                 .Execute();
-            TestHelper.VerifyUpdateCqlColumns(@"""atd""", query, new []{@"""string_VALUE"""},
-                new [] {@"""boolean_VALUE""", @"""double_VALUE"""}, new object[] {"updated value", true, 1d, 100},
+            TestHelper.VerifyUpdateCqlColumns(@"""atd""", query, new[] { @"""string_VALUE""" },
+                new[] { @"""boolean_VALUE""", @"""double_VALUE""" }, new object[] { "updated value", true, 1d, 100 },
                 parameters, "IF \"int_VALUE\" = ?");
         }
 
@@ -251,8 +251,8 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Select(t => new AllTypesDecorated { DateTimeValue = dateTimeValue })
                 .UpdateIf(t => t.IntValue == 100)
                 .Execute();
-            TestHelper.VerifyUpdateCqlColumns(@"""atd""", query, new []{@"""datetime_VALUE"""},
-                new [] {@"""boolean_VALUE""", @"""double_VALUE"""}, new object[] {dateTimeValue, true, 1d, 100},
+            TestHelper.VerifyUpdateCqlColumns(@"""atd""", query, new[] { @"""datetime_VALUE""" },
+                new[] { @"""boolean_VALUE""", @"""double_VALUE""" }, new object[] { dateTimeValue, true, 1d, 100 },
                 parameters, "IF \"int_VALUE\" = ?");
         }
 
@@ -279,9 +279,9 @@ namespace Cassandra.Tests.Mapping.Linq
                 })
                 .Update()
                 .Execute();
-            TestHelper.VerifyUpdateCqlColumns(@"""atd""", query, new []{@"""datetime_VALUE""", @"""string_VALUE""", @"""int64_VALUE"""},
-                new [] {@"""int_VALUE""", @"""boolean_VALUE""", @"""double_VALUE"""},
-                new object[] {dateTimeValue, dateTimeValue.ToString(), anon.Prop1, 100, true, 1d},
+            TestHelper.VerifyUpdateCqlColumns(@"""atd""", query, new[] { @"""datetime_VALUE""", @"""string_VALUE""", @"""int64_VALUE""" },
+                new[] { @"""int_VALUE""", @"""boolean_VALUE""", @"""double_VALUE""" },
+                new object[] { dateTimeValue, dateTimeValue.ToString(), anon.Prop1, 100, true, 1d },
                 parameters);
         }
 
@@ -312,8 +312,8 @@ namespace Cassandra.Tests.Mapping.Linq
                 })
                 .Update()
                 .Execute();
-            TestHelper.VerifyUpdateCqlColumns("Song", query, new []{"Title", "Artist", "ReleaseDate"},
-                new [] {"Id"}, new object[] {other.Artist, other.Artist, DateTimeOffset.MinValue, Guid.Empty},
+            TestHelper.VerifyUpdateCqlColumns("Song", query, new[] { "Title", "Artist", "ReleaseDate" },
+                new[] { "Id" }, new object[] { other.Artist, other.Artist, DateTimeOffset.MinValue, Guid.Empty },
                 parameters);
         }
 
@@ -337,8 +337,8 @@ namespace Cassandra.Tests.Mapping.Linq
                 })
                 .Update()
                 .Execute();
-            TestHelper.VerifyUpdateCqlColumns("Song", query, new []{"Artist", "ReleaseDate"},
-                new [] {"Id"}, new object[] {"The Rolling Stones".ToUpperInvariant(), new DateTimeOffset(new DateTime(1999, 12, 31)), Guid.Empty},
+            TestHelper.VerifyUpdateCqlColumns("Song", query, new[] { "Artist", "ReleaseDate" },
+                new[] { "Id" }, new object[] { "The Rolling Stones".ToUpperInvariant(), new DateTimeOffset(new DateTime(1999, 12, 31)), Guid.Empty },
                 parameters);
         }
 
@@ -347,17 +347,18 @@ namespace Cassandra.Tests.Mapping.Linq
         {
             string query = null;
             object[] parameters = null;
-            var session = GetSession((q, v) => {
+            var session = GetSession((q, v) =>
+            {
                 query = q;
                 parameters = v;
             });
             var table = new Table<AttributeMappingClass>(session, new MappingConfiguration());
             table.Where(x => x.PartitionKey == 1 && x.ClusteringKey0 == 10L).Select(x => new AttributeMappingClass
             {
-                DecimalValue = 10M        
+                DecimalValue = 10M
             }).Update().Execute();
-            TestHelper.VerifyUpdateCqlColumns("attr_mapping_class_table", query, new []{"decimal_value_col"},
-                new [] {"partition_key", "clustering_key_0"}, new object[] {10M, 1, 10L}, parameters);
+            TestHelper.VerifyUpdateCqlColumns("attr_mapping_class_table", query, new[] { "decimal_value_col" },
+                new[] { "partition_key", "clustering_key_0" }, new object[] { 10M, 1, 10L }, parameters);
         }
 
         [Test]
@@ -379,10 +380,10 @@ namespace Cassandra.Tests.Mapping.Linq
             var table = GetTable<CollectionTypesEntity>(session, map);
             var id = 100L;
             table.Where(x => x.Id == id)
-                 .Select(x => new CollectionTypesEntity { Favs = x.Favs.SubstractAssign("a", "b", "c")})
+                 .Select(x => new CollectionTypesEntity { Favs = x.Favs.SubstractAssign("a", "b", "c") })
                  .Update().Execute();
             Assert.AreEqual("UPDATE tbl1 SET favs = favs - ? WHERE id = ?", query);
-            CollectionAssert.AreEquivalent(new object[]{ new [] { "a", "b", "c" }, id }, parameters);
+            CollectionAssert.AreEquivalent(new object[] { new[] { "a", "b", "c" }, id }, parameters);
         }
 
         [Test]
@@ -404,23 +405,23 @@ namespace Cassandra.Tests.Mapping.Linq
             const string expectedQuery = "UPDATE tbl1 SET val = ? WHERE id1 = ? AND (id2, id3) IN ?";
             var id = Guid.NewGuid();
             var value = 100L;
-            var list = new List<Tuple<string, int>> {Tuple.Create("z", 1)};
+            var list = new List<Tuple<string, int>> { Tuple.Create("z", 1) };
             // Using Tuple.Create()
             table.Where(t => t.UuidValue == id && list.Contains(Tuple.Create(t.StringValue, t.IntValue)))
                  .Select(t => new AllTypesEntity { Int64Value = value })
                  .Update().Execute();
             Assert.NotNull(statement);
-            CollectionAssert.AreEquivalent(new object[] {value, id, list }, statement.QueryValues);
+            CollectionAssert.AreEquivalent(new object[] { value, id, list }, statement.QueryValues);
             Assert.AreEqual(expectedQuery, statement.PreparedStatement.Cql);
             // Using constructor
             table.Where(t => t.UuidValue == id && list.Contains(new Tuple<string, int>(t.StringValue, t.IntValue)))
                  .Select(t => new AllTypesEntity { Int64Value = value })
                  .Update().Execute();
             Assert.NotNull(statement);
-            CollectionAssert.AreEquivalent(new object[] {value, id, list}, statement.QueryValues);
+            CollectionAssert.AreEquivalent(new object[] { value, id, list }, statement.QueryValues);
             Assert.AreEqual(expectedQuery, statement.PreparedStatement.Cql);
         }
-        
+
         private class TestObjectStaticProperty
         {
             public static string Property => "static";

@@ -50,7 +50,7 @@ namespace Cassandra.Metrics.Registries
 
         /// <inheritdoc />
         public IReadOnlyDictionary<TMetric, IDriverGauge> Gauges => _gauges;
-        
+
         /// <inheritdoc />
         public IReadOnlyDictionary<TMetric, IDriverMeter> Meters => _meters;
 
@@ -73,7 +73,7 @@ namespace Cassandra.Metrics.Registries
             _metrics.Add(metric, timer);
             return timer;
         }
-        
+
         public IDriverMeter Meter(string bucket, TMetric metric)
         {
             ThrowIfInitialized();

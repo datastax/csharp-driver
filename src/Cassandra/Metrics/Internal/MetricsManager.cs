@@ -56,10 +56,10 @@ namespace Cassandra.Metrics.Internal
 
         /// <inheritdoc/>
         public IMetricsRegistry<SessionMetric> SessionMetrics => _sessionMetrics.MetricsRegistry;
-        
+
         /// <inheritdoc/>
         public IReadOnlyDictionary<Host, IMetricsRegistry<NodeMetric>> NodeMetrics => _nodeMetricsRegistryCollection;
-        
+
         /// <inheritdoc/>
         public bool AreMetricsEnabled => _metricsEnabled;
 
@@ -124,10 +124,10 @@ namespace Cassandra.Metrics.Internal
 
         /// <inheritdoc />
         public bool AreSessionTimerMetricsEnabled => !_disabledSessionTimerMetrics;
-        
+
         /// <inheritdoc />
         public bool AreNodeTimerMetricsEnabled => !_disabledNodeTimerMetrics;
-        
+
         /// <inheritdoc />
         public ISessionMetrics GetSessionMetrics()
         {

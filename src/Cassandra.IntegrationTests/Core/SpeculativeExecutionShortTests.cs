@@ -70,7 +70,7 @@ namespace Cassandra.IntegrationTests.Core
         public SpeculativeExecutionShortTests() : base(false, new SimulacronOptions { Nodes = "2" }, false)
         {
         }
-        
+
         public override void SetUp()
         {
             base.SetUp();
@@ -114,7 +114,7 @@ namespace Cassandra.IntegrationTests.Core
 
             TestCluster.GetNode(1).PrimeFluent(
                 b => b.WhenQuery(QueryLocal)
-                      .ThenRowsSuccess(new[] {"key"}, r => r.WithRow("local")).WithDelayInMs(1000));
+                      .ThenRowsSuccess(new[] { "key" }, r => r.WithRow("local")).WithDelayInMs(1000));
 
             var rs = await session.ExecuteAsync(new SimpleStatement(QueryLocal).SetIdempotence(false)).ConfigureAwait(false);
 

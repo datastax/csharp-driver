@@ -79,12 +79,12 @@ namespace Cassandra.Serialization.Geometry
 
         public override byte[] Serialize(ushort protocolVersion, Polygon value)
         {
-            var totalRingsLength = value.Rings.Sum(r => 4 + r.Count*16);
+            var totalRingsLength = value.Rings.Sum(r => 4 + r.Count * 16);
             var buffer = new byte[9 + totalRingsLength];
             var isLittleEndian = UseLittleEndianSerialization();
             buffer[0] = isLittleEndian ? (byte)1 : (byte)0;
             var offset = 1;
-            EndianBitConverter.SetBytes(isLittleEndian, buffer, offset, (int)GeometryType.Polygon );
+            EndianBitConverter.SetBytes(isLittleEndian, buffer, offset, (int)GeometryType.Polygon);
             offset += 4;
             EndianBitConverter.SetBytes(isLittleEndian, buffer, offset, value.Rings.Count);
             offset += 4;
@@ -96,7 +96,7 @@ namespace Cassandra.Serialization.Geometry
                 {
                     EndianBitConverter.SetBytes(isLittleEndian, buffer, offset, point.X);
                     EndianBitConverter.SetBytes(isLittleEndian, buffer, offset + 8, point.Y);
-                    offset += 16;   
+                    offset += 16;
                 }
             }
             return buffer;

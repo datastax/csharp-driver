@@ -177,7 +177,7 @@ namespace Cassandra.Tests
             {
                 Assert.Fail("Library source folder could not be determined");
             }
-            var regex = new Regex("\\bawait\\b(?![^;]*ConfigureAwait\\(false\\))[^;]*;", 
+            var regex = new Regex("\\bawait\\b(?![^;]*ConfigureAwait\\(false\\))[^;]*;",
                                   RegexOptions.Multiline | RegexOptions.Compiled);
             foreach (var fileInfo in directory.GetFiles("*.cs", SearchOption.AllDirectories))
             {
@@ -185,7 +185,7 @@ namespace Cassandra.Tests
                 var match = regex.Match(source);
                 if (match.Success)
                 {
-                    Assert.Fail("Awaited Task without ConfigureAwait() call in file {0}: {1}", 
+                    Assert.Fail("Awaited Task without ConfigureAwait() call in file {0}: {1}",
                                 fileInfo.FullName, match.Value);
                 }
             }

@@ -27,7 +27,7 @@ namespace Cassandra.DataStax.Insights.Schema.StatusMessage
 
         [JsonProperty("sessionId")]
         public string SessionId { get; set; }
-        
+
         [JsonProperty("controlConnection")]
         public string ControlConnection { get; set; }
 

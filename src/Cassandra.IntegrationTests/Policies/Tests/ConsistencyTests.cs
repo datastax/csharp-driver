@@ -65,7 +65,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             testCluster.StopForce(awareCoord);
             TestUtils.WaitForDownWithWait(testCluster.ClusterIpPrefix + awareCoord + ":" + DefaultCassandraPort, testCluster.Cluster, 30);
 
-            var acceptedList = new List<ConsistencyLevel> 
+            var acceptedList = new List<ConsistencyLevel>
             {
                 ConsistencyLevel.Any
             };
@@ -467,7 +467,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             testCluster.StopForce(awareCoord);
             TestUtils.WaitForDownWithWait(testCluster.ClusterIpPrefix + awareCoord, testCluster.Cluster, 30);
 
-            var acceptedList = new List<ConsistencyLevel> {ConsistencyLevel.Any};
+            var acceptedList = new List<ConsistencyLevel> { ConsistencyLevel.Any };
 
             var failList = new List<ConsistencyLevel>
             {
@@ -737,7 +737,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
 
             Assert.IsTrue(_policyTestTools.Coordinators.Count() >= 4, "The minimum number of hosts queried was not met!");
             int totalQueriesForAllHosts = _policyTestTools.Coordinators.Sum(c => c.Value);
-            Assert.AreEqual(queriesCompleted, totalQueriesForAllHosts, 
+            Assert.AreEqual(queriesCompleted, totalQueriesForAllHosts,
                 "The sum of queries for all hosts should equal the number of queries recorded by the calling test!");
 
             _policyTestTools.ResetCoordinators();

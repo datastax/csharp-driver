@@ -113,7 +113,7 @@ namespace Cassandra.Tests.DataStax.Graph
             GraphNodeGraphSON1Tests.TestTo("{\"result\": 22}", BigInteger.Parse("22"));
             GraphNodeGraphSON1Tests.TestTo("{\"result\": 22}", "22");
             GraphNodeGraphSON1Tests.TestTo("{\"result\": \"92d4a960-1cf3-11e6-9417-bd9ef43c1c95\"}", Guid.Parse("92d4a960-1cf3-11e6-9417-bd9ef43c1c95"));
-            GraphNodeGraphSON1Tests.TestTo("{\"result\": \"92d4a960-1cf3-11e6-9417-bd9ef43c1c95\"}", (Guid?) Guid.Parse("92d4a960-1cf3-11e6-9417-bd9ef43c1c95"));
+            GraphNodeGraphSON1Tests.TestTo("{\"result\": \"92d4a960-1cf3-11e6-9417-bd9ef43c1c95\"}", (Guid?)Guid.Parse("92d4a960-1cf3-11e6-9417-bd9ef43c1c95"));
             GraphNodeGraphSON1Tests.TestTo("{\"result\": \"92d4a960-1cf3-11e6-9417-bd9ef43c1c95\"}", (TimeUuid)Guid.Parse("92d4a960-1cf3-11e6-9417-bd9ef43c1c95"));
         }
 
@@ -121,7 +121,7 @@ namespace Cassandra.Tests.DataStax.Graph
         public void To_Should_Throw_For_Not_Supported_Types()
         {
             const string json = "{\"result\": \"123\"}";
-            var types = new [] { typeof(UIntPtr), typeof(IntPtr), typeof(StringBuilder) };
+            var types = new[] { typeof(UIntPtr), typeof(IntPtr), typeof(StringBuilder) };
             foreach (var t in types)
             {
                 Assert.Throws<NotSupportedException>(() => new GraphNode(json).To(t));
@@ -184,7 +184,7 @@ namespace Cassandra.Tests.DataStax.Graph
                                              "}}");
             Assert.AreEqual(1, result.something.inTheAir);
             IEnumerable<GraphNode> values = result.everything.isAwesome;
-            CollectionAssert.AreEqual(new [] { "1", "2", "zeta" }, values.Select(x => x.ToString()));
+            CollectionAssert.AreEqual(new[] { "1", "2", "zeta" }, values.Select(x => x.ToString()));
             Assert.AreEqual(0.6D, result.a.b.c);
         }
 
@@ -290,10 +290,10 @@ namespace Cassandra.Tests.DataStax.Graph
             dynamic nameProp = vertex.Properties["name"].ToArray();
             Assert.NotNull(nameProp);
             Assert.NotNull(nameProp[0].id);
-            
+
             // Validate properties
             var properties = vertex.GetProperties();
-            CollectionAssert.AreEquivalent(new[] {"name", "age"}, properties.Select(p => p.Name));
+            CollectionAssert.AreEquivalent(new[] { "name", "age" }, properties.Select(p => p.Name));
             var nameProperty = vertex.GetProperty("name");
             Assert.NotNull(nameProperty);
             Assert.AreEqual("j", nameProperty.Value.ToString());
@@ -302,7 +302,7 @@ namespace Cassandra.Tests.DataStax.Graph
             Assert.NotNull(ageProperty);
             Assert.AreEqual(34, ageProperty.Value.To<int>());
             Assert.AreEqual(0, ageProperty.GetProperties().Count());
-            
+
             //Is convertible
             Assert.NotNull((Vertex)result);
             //Any enumeration of graph result can be casted to vertex
@@ -377,7 +377,7 @@ namespace Cassandra.Tests.DataStax.Graph
             var result = new GraphNode("{" +
               "\"result\":{" +
                 "\"id\":{" +
-                    "\"out_vertex\":{\"member_id\":0,\"community_id\":680148,\"~label\":\"vertex\",\"group_id\":3}," + 
+                    "\"out_vertex\":{\"member_id\":0,\"community_id\":680148,\"~label\":\"vertex\",\"group_id\":3}," +
                     "\"local_id\":\"4e78f871-c5c8-11e5-a449-130aecf8e504\",\"in_vertex\":{\"member_id\":0,\"community_id\":680148,\"~label\":\"vertex\",\"group_id\":5},\"~type\":\"knows\"}," +
                 "\"label\":\"knows\"," +
                 "\"type\":\"edge\"," +
@@ -401,9 +401,9 @@ namespace Cassandra.Tests.DataStax.Graph
             Assert.NotNull(property);
             Assert.AreEqual("weight", property.Name);
             Assert.AreEqual(1.5D, property.Value.To<double>());
-            
+
             Assert.Null(edge.GetProperty("nonExistentProperty"));
-            
+
             //Is convertible
             Assert.NotNull((Edge)result);
             //Any enumeration of graph result can be casted to edge
@@ -427,7 +427,7 @@ namespace Cassandra.Tests.DataStax.Graph
         {
             var edge = GraphNodeGraphSON1Tests.GetGraphNode("{" +
                 "\"id\":{" +
-                    "\"out_vertex\":{\"member_id\":0,\"community_id\":680148,\"~label\":\"vertex\",\"group_id\":3}," + 
+                    "\"out_vertex\":{\"member_id\":0,\"community_id\":680148,\"~label\":\"vertex\",\"group_id\":3}," +
                     "\"local_id\":\"4e78f871-c5c8-11e5-a449-130aecf8e504\",\"in_vertex\":{\"member_id\":0,\"community_id\":680148,\"~label\":\"vertex\",\"group_id\":5},\"~type\":\"knows\"}," +
                 "\"label\":\"knows\"," +
                 "\"type\":\"edge\"," +
@@ -448,11 +448,11 @@ namespace Cassandra.Tests.DataStax.Graph
                 "\"type\":\"edge\"," +
                 "\"inVLabel\":\"in-vertex\"" +
                 "}").ToEdge());
-            
+
             Assert.Throws<InvalidOperationException>(() => GraphNodeGraphSON1Tests.GetGraphNode(
                 "{" +
                 "\"id\":{" +
-                "\"out_vertex\":{\"member_id\":0,\"community_id\":680148,\"~label\":\"vertex\",\"group_id\":3}," + 
+                "\"out_vertex\":{\"member_id\":0,\"community_id\":680148,\"~label\":\"vertex\",\"group_id\":3}," +
                 "\"local_id\":\"4e78f871-c5c8-11e5-a449-130aecf8e504\",\"in_vertex\":{\"member_id\":0,\"community_id\":680148,\"~label\":\"vertex\",\"group_id\":5},\"~type\":\"knows\"}," +
                 "\"type\":\"edge\"," +
                 "\"inVLabel\":\"in-vertex\"" +
@@ -462,7 +462,7 @@ namespace Cassandra.Tests.DataStax.Graph
         [Test]
         public void ToPath_Should_Convert()
         {
-            const string pathJson = "{\"result\":" + 
+            const string pathJson = "{\"result\":" +
                 "{" +
                 "  \"labels\": [" +
                 "    [\"a\"]," +
@@ -564,15 +564,15 @@ namespace Cassandra.Tests.DataStax.Graph
             Assert.AreEqual("person", path.Objects.First().ToVertex().Label);
             Assert.AreEqual("knows", path.Objects.Skip(1).First().ToEdge().Label);
             //Verify implicit result
-            var path2 = (Path) result;
+            var path2 = (Path)result;
             CollectionAssert.AreEqual(path.Labels, path2.Labels);
             Assert.AreEqual(path.Objects.Count, path2.Objects.Count);
-            var path3 = (IPath) path;
+            var path3 = (IPath)path;
             Assert.AreEqual(path.Objects.Count, path3.Objects.Count);
             var path4 = result.To<IPath>();
             Assert.AreEqual(path.Objects.Count, path4.Objects.Count);
         }
-        
+
         [Test]
         public void Should_Be_Serializable()
         {

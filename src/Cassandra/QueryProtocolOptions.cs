@@ -38,12 +38,12 @@ namespace Cassandra
             WithKeyspace = 0x80
         }
 
-        public static readonly QueryProtocolOptions Default = 
+        public static readonly QueryProtocolOptions Default =
             new QueryProtocolOptions(ConsistencyLevel.One, null, false, QueryOptions.DefaultPageSize, null, ConsistencyLevel.Any, null, null, null);
 
         public readonly int PageSize;
         public readonly ConsistencyLevel SerialConsistency;
-        
+
         private readonly string _keyspace;
 
         public bool SkipMetadata { get; }
@@ -58,7 +58,7 @@ namespace Cassandra
         {
             get
             {
-                return RawTimestamp == null ? (DateTimeOffset?) null :
+                return RawTimestamp == null ? (DateTimeOffset?)null :
                     TypeSerializer.UnixStart.AddTicks(RawTimestamp.Value * 10);
             }
         }
@@ -81,7 +81,7 @@ namespace Cassandra
                                       byte[] pagingState,
                                       ConsistencyLevel serialConsistency,
                                       long? timestamp,
-                                      string keyspace, 
+                                      string keyspace,
                                       RowSetMetadata variablesMetadata)
         {
             Consistency = consistency;
@@ -137,7 +137,7 @@ namespace Cassandra
                 query.PagingState,
                 requestOptions.GetSerialConsistencyLevelOrDefault(query),
                 timestamp,
-                query.Keyspace, 
+                query.Keyspace,
                 variablesMetadata);
         }
 
@@ -205,11 +205,11 @@ namespace Cassandra
                 wb.WriteUInt16((ushort)Consistency);
                 if (protocolVersion.Uses4BytesQueryFlags())
                 {
-                    wb.WriteInt32((int) flags);
+                    wb.WriteInt32((int)flags);
                 }
                 else
                 {
-                    wb.WriteByte((byte) flags);
+                    wb.WriteByte((byte)flags);
                 }
             }
 

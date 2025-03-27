@@ -43,7 +43,7 @@ namespace Cassandra.IntegrationTests.TestBase
         {
             _baseAddress = baseAddress;
         }
-        
+
         public Task<string> SendAsync(string method, string url)
         {
 #if NETCOREAPP

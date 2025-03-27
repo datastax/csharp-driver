@@ -74,10 +74,10 @@ namespace Cassandra
 
         public AggregateMetadata()
         {
-            
+
         }
 
-        public AggregateMetadata(string name, string keyspaceName, string[] signature, ColumnDesc[] argumentTypes, 
+        public AggregateMetadata(string name, string keyspaceName, string[] signature, ColumnDesc[] argumentTypes,
                                  string stateFunction, ColumnDesc stateType, string finalFunction,
                                  string initialCondition, ColumnDesc returnType)
         {

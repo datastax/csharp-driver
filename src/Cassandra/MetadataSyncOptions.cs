@@ -33,13 +33,13 @@ namespace Cassandra
         /// Also check the api reference for <see cref="SetRefreshSchemaDelayIncrement"/> for a more thorough explanation.
         /// </summary>
         public long RefreshSchemaDelayIncrement { get; private set; } = 1000;
-        
+
         /// <summary>
         /// Use <see cref="SetMaxTotalRefreshSchemaDelay"/> to set this value. The default value is <code>10000</code>.
         /// Also check the api reference for <see cref="SetMaxTotalRefreshSchemaDelay"/> for a more thorough explanation.
         /// </summary>
         public long MaxTotalRefreshSchemaDelay { get; private set; } = 10000;
-        
+
         /// <summary>
         /// <para>
         /// The default value is <code>true</code>.
@@ -54,7 +54,7 @@ namespace Cassandra
             MetadataSyncEnabled = metadataSyncEnabled;
             return this;
         }
-        
+
         /// <summary>
         /// <para>
         /// The default value is <code>1000</code>.
@@ -72,7 +72,7 @@ namespace Cassandra
             RefreshSchemaDelayIncrement = refreshSchemaDelayIncrement;
             return this;
         }
-        
+
         /// <summary>
         /// <para>
         /// The default value is <code>10000</code>.

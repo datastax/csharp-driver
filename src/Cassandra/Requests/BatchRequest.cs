@@ -38,7 +38,7 @@ namespace Cassandra.Requests
         public ConsistencyLevel Consistency { get; set; }
 
         protected override byte OpCode => BatchRequest.BatchOpCode;
-        
+
         /// <inheritdoc />
         public override ResultMetadata ResultMetadata => null;
 
@@ -71,7 +71,7 @@ namespace Cassandra.Requests
                 // if flags are not supported, then the following additional parameters aren't either
                 return;
             }
-            
+
             SerialConsistency = requestOptions.GetSerialConsistencyLevelOrDefault(statement);
             _batchFlags |= QueryProtocolOptions.QueryFlags.WithSerialConsistency;
 
@@ -126,7 +126,7 @@ namespace Cassandra.Requests
                 // then it doesn't support the following optional parameters either
                 return;
             }
-            
+
             if (protocolVersion.Uses4BytesQueryFlags())
             {
                 wb.WriteInt32((int)_batchFlags);

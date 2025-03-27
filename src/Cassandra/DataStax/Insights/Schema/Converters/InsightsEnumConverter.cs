@@ -43,7 +43,7 @@ namespace Cassandra.DataStax.Insights.Schema.Converters
             if (!EnumToJsonValueMap.TryGetValue(value, out output))
             {
                 InsightsEnumConverter<TEnumType, TJsonType>.Logger.Error(
-                    $"Unrecognized value for type { InsightsEnumConverter<TEnumType, TJsonType>.TypeString }.");
+                    $"Unrecognized value for type {InsightsEnumConverter<TEnumType, TJsonType>.TypeString}.");
                 return false;
             }
 
@@ -65,11 +65,11 @@ namespace Cassandra.DataStax.Insights.Schema.Converters
             var enumValue = (TEnumType)value;
             if (!TryConvert(enumValue, out var enumValueJsonValue))
             {
-                InsightsEnumConverter<TEnumType, TJsonType>.Logger.Error($"Unrecognized value for type { InsightsEnumConverter<TEnumType, TJsonType>.TypeString }.");
+                InsightsEnumConverter<TEnumType, TJsonType>.Logger.Error($"Unrecognized value for type {InsightsEnumConverter<TEnumType, TJsonType>.TypeString}.");
                 writer.WriteNull();
                 return;
             }
-            
+
             writer.WriteValue(enumValueJsonValue);
         }
 

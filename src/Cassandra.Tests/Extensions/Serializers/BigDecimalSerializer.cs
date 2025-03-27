@@ -44,7 +44,7 @@ namespace Cassandra.Tests.Extensions.Serializers
         {
             var scaleBuffer = BeConverter.GetBytes(value.Scale);
             var valueBuffer = _bigIntegerSerializer.Serialize(protocolVersion, value.UnscaledValue);
-            return Utils.JoinBuffers(new[] {scaleBuffer, valueBuffer}, scaleBuffer.Length + valueBuffer.Length);
+            return Utils.JoinBuffers(new[] { scaleBuffer, valueBuffer }, scaleBuffer.Length + valueBuffer.Length);
         }
     }
 
@@ -65,7 +65,7 @@ namespace Cassandra.Tests.Extensions.Serializers
         public override string ToString()
         {
             var intString = UnscaledValue.ToString();
-            if (Scale == 0) 
+            if (Scale == 0)
             {
                 return intString;
             }

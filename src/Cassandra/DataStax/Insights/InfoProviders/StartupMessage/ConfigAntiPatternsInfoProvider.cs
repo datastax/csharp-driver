@@ -27,8 +27,8 @@ namespace Cassandra.DataStax.Insights.InfoProviders.StartupMessage
         {
             ConfigAntiPatternsInfoProvider.AntiPatternsProviders = new Dictionary<Type, Func<object, Dictionary<string, string>, Dictionary<string, string>>>
             {
-                { 
-                    typeof(DCAwareRoundRobinPolicy), 
+                {
+                    typeof(DCAwareRoundRobinPolicy),
                     (obj, antiPatterns) =>
                     {
                         var typedPolicy = (DCAwareRoundRobinPolicy) obj;
@@ -52,16 +52,16 @@ namespace Cassandra.DataStax.Insights.InfoProviders.StartupMessage
                         return antiPatterns;
                     }
                 },
-                { 
-                    typeof(DefaultLoadBalancingPolicy), 
+                {
+                    typeof(DefaultLoadBalancingPolicy),
                     (obj, antiPatterns) =>
                     {
                         var typedPolicy = (DefaultLoadBalancingPolicy) obj;
                         return ConfigAntiPatternsInfoProvider.AddAntiPatterns(typedPolicy.ChildPolicy, antiPatterns);
                     }
                 },
-                { 
-                    typeof(RetryLoadBalancingPolicy), 
+                {
+                    typeof(RetryLoadBalancingPolicy),
                     (obj, antiPatterns) =>
                     {
                         var typedPolicy = (RetryLoadBalancingPolicy) obj;
@@ -69,8 +69,8 @@ namespace Cassandra.DataStax.Insights.InfoProviders.StartupMessage
                         return ConfigAntiPatternsInfoProvider.AddAntiPatterns(typedPolicy.LoadBalancingPolicy, antiPatterns);
                     }
                 },
-                { 
-                    typeof(TokenAwarePolicy), 
+                {
+                    typeof(TokenAwarePolicy),
                     (obj, antiPatterns) =>
                     {
                         var typedPolicy = (TokenAwarePolicy) obj;
@@ -121,7 +121,7 @@ namespace Cassandra.DataStax.Insights.InfoProviders.StartupMessage
 
             var contactPointsHosts = cluster
                                      .AllHosts()
-                                     .Where(host => (host.ContactPoint != null && resolvedContactPoints.ContainsKey(host.ContactPoint)) 
+                                     .Where(host => (host.ContactPoint != null && resolvedContactPoints.ContainsKey(host.ContactPoint))
                                                     || contactPointsEndPoints.Contains(host.Address))
                                      .ToList();
 
@@ -141,8 +141,8 @@ namespace Cassandra.DataStax.Insights.InfoProviders.StartupMessage
 
         private static Dictionary<string, string> AddAntiPatterns(object obj, Dictionary<string, string> antiPatterns)
         {
-            return ConfigAntiPatternsInfoProvider.AntiPatternsProviders.TryGetValue(obj.GetType(), out var provider) 
-                ? provider.Invoke(obj, antiPatterns) 
+            return ConfigAntiPatternsInfoProvider.AntiPatternsProviders.TryGetValue(obj.GetType(), out var provider)
+                ? provider.Invoke(obj, antiPatterns)
                 : antiPatterns;
         }
     }

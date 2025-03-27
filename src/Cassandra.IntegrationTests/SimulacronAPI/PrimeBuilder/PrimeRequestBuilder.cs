@@ -47,7 +47,7 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder
             _then = new ThenRowsSuccess(rows);
             return this;
         }
-        
+
         public IThenFluent ThenRowsSuccess(string[] columnNames, Action<IRowsResult> rowsBuilder)
         {
             var rows = new RowsResult(columnNames);

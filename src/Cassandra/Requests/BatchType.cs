@@ -14,7 +14,7 @@
 //   limitations under the License.
 //
 
-﻿namespace Cassandra
+namespace Cassandra
 {
     /// <summary>
     /// The type of batch to use

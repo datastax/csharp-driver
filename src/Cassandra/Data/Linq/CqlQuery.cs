@@ -118,7 +118,7 @@ namespace Cassandra.Data.Linq
         {
             return ExecutePaged(Configuration.DefaultExecutionProfileName);
         }
-        
+
         /// <summary>
         /// Asynchronously executes the query with the provided execution profile and returns a task of a page of results
         /// </summary>
@@ -128,7 +128,7 @@ namespace Cassandra.Data.Linq
             {
                 throw new ArgumentNullException(nameof(executionProfile));
             }
-            
+
             SetAutoPage(false);
             var visitor = new CqlExpressionVisitor(PocoData, Table.Name, Table.KeyspaceName);
             var cql = visitor.GetSelect(Expression, out object[] values);
@@ -146,10 +146,10 @@ namespace Cassandra.Data.Linq
             {
                 throw new ArgumentNullException(nameof(executionProfile));
             }
-            
+
             return WaitToCompleteWithMetrics(ExecutePagedAsync(executionProfile), QueryAbortTimeout);
         }
-        
+
         /// <summary>
         /// Generates and returns cql query for this instance 
         /// </summary>

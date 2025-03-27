@@ -30,7 +30,7 @@ namespace Cassandra
         // these two are internal because users shouldn't use these
         internal const string EverywhereStrategy = "EverywhereStrategy";
         internal const string LocalStrategy = "LocalStrategy";
-        
+
         /// <summary>
         ///  Returns replication property for SimpleStrategy.
         /// </summary>        
@@ -38,7 +38,7 @@ namespace Cassandra
         /// <returns>a dictionary of replication property sub-options.</returns>         
         public static Dictionary<string, string> CreateSimpleStrategyReplicationProperty(int replicationFactor)
         {
-            return new Dictionary<string, string> {{"class", SimpleStrategy}, {"replication_factor", replicationFactor.ToString(CultureInfo.InvariantCulture)}};
+            return new Dictionary<string, string> { { "class", SimpleStrategy }, { "replication_factor", replicationFactor.ToString(CultureInfo.InvariantCulture) } };
         }
 
 
@@ -51,7 +51,7 @@ namespace Cassandra
         public static Dictionary<string, string> CreateNetworkTopologyStrategyReplicationProperty(
             Dictionary<string, int> datacentersReplicationFactors)
         {
-            var result = new Dictionary<string, string> {{"class", NetworkTopologyStrategy}};
+            var result = new Dictionary<string, string> { { "class", NetworkTopologyStrategy } };
             if (datacentersReplicationFactors.Count <= 0)
             {
                 return result;
@@ -74,7 +74,7 @@ namespace Cassandra
         /// <returns>a dictionary of replication property sub-options.</returns>         
         public static Dictionary<string, string> CreateReplicationProperty(string strategyClass, Dictionary<string, string> subOptions)
         {
-            var result = new Dictionary<string, string> {{"class", strategyClass}};
+            var result = new Dictionary<string, string> { { "class", strategyClass } };
             if (subOptions.Count <= 0)
             {
                 return result;

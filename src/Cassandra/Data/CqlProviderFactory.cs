@@ -51,7 +51,7 @@ namespace Cassandra.Data
         {
             throw new NotSupportedException();
         }
-        
+
         public override bool CanCreateDataSourceEnumerator
         {
             get { return false; }

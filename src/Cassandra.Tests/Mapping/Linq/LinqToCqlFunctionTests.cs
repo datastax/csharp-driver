@@ -100,12 +100,12 @@ namespace Cassandra.Tests.Mapping.Linq
             var table = GetTable<AllTypesEntity>(session, new Map<AllTypesEntity>().TableName("tbl1"));
             var token = CqlToken.Create("abc1", 200L);
 
-            table.Where(t => CqlToken.Create(t.StringValue, t.Int64Value) > token).Select(t => new {t.IntValue})
+            table.Where(t => CqlToken.Create(t.StringValue, t.Int64Value) > token).Select(t => new { t.IntValue })
                  .Execute();
             Assert.AreEqual("SELECT IntValue FROM tbl1 WHERE token(StringValue, Int64Value) > token(?, ?)", query);
             Assert.AreEqual(token.Values, parameters);
         }
-        
+
         [Test]
         public void WriteTime_Linq_Test()
         {
@@ -117,7 +117,7 @@ namespace Cassandra.Tests.Mapping.Linq
                 parameters = v;
             });
             var table = GetTable<AllTypesEntity>(session, new Map<AllTypesEntity>().TableName("tbl"));
-            table.Select(x => new {WriteTime = CqlFunction.WriteTime(x.StringValue), x.StringValue, x.IntValue}).Execute();
+            table.Select(x => new { WriteTime = CqlFunction.WriteTime(x.StringValue), x.StringValue, x.IntValue }).Execute();
             Assert.AreEqual("SELECT WRITETIME(StringValue), StringValue, IntValue FROM tbl", query);
         }
 
@@ -181,7 +181,7 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Update()
                 .Execute();
             Assert.AreEqual("UPDATE tbl SET Tags = Tags - ? WHERE Id = ?", query);
-            CollectionAssert.AreEqual(new object[] { new [] { "clock" }, 100L }, parameters);
+            CollectionAssert.AreEqual(new object[] { new[] { "clock" }, 100L }, parameters);
         }
     }
 }

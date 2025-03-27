@@ -38,7 +38,7 @@ namespace Cassandra.IntegrationTests.DataStax.Auth
                     "authenticator: com.datastax.bdp.cassandra.auth.DseAuthenticator",
                     "authorizer:com.datastax.bdp.cassandra.auth.DseAuthorizer"
                 },
-                DseYaml = new []
+                DseYaml = new[]
                 {
                     "authentication_options.default_scheme: internal",
                     "authorization_options.enabled:true",

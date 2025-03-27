@@ -42,7 +42,7 @@ namespace Cassandra.IntegrationTests
             "schema.propertyKey('title').Text().ifNotExists().create();\n" +
             "schema.propertyKey('tags').Text().multiple().ifNotExists().create();\n" +
             "schema.vertexLabel('movie').properties('title', 'tags').ifNotExists().create();\n";
-        
+
         protected const string CoreSchemaGremlinQuery =
             "schema.vertexLabel('person')" +
                 ".partitionBy('name', Text)" +
@@ -66,7 +66,7 @@ namespace Cassandra.IntegrationTests
                 ".create();\n" +
             "schema.type('address')" +
                 ".property('address1', Text)" +
-                ".property('address2', Text)" + 
+                ".property('address2', Text)" +
                 ".property('city_code', Text)" +
                 ".property('state_code', Text)" +
                 ".property('zip_code', Text)" +
@@ -86,12 +86,12 @@ namespace Cassandra.IntegrationTests
                 ".property('emails', setOf(Text))" +
                 ".property('nullable_long', Bigint)" +
                 ".create();\n" +
-            "schema.vertexLabel('users')" + 
-                ".partitionBy('id', Int)" + 
+            "schema.vertexLabel('users')" +
+                ".partitionBy('id', Int)" +
                 ".property('main_phone', frozen(typeOf('phone')))" +
                 ".create();\n" +
-            "schema.vertexLabel('users_contacts')" + 
-                ".partitionBy('id', Int)" + 
+            "schema.vertexLabel('users_contacts')" +
+                ".partitionBy('id', Int)" +
                 ".property('contacts', listOf(frozen(typeOf('contact'))))" +
                 ".create();\n" +
             "schema.type('user_feedback')" +
@@ -102,19 +102,19 @@ namespace Cassandra.IntegrationTests
                 ".from('users').to('software')" +
                 ".property('feedback', typeOf('user_feedback'))" +
                 ".create();\n" +
-            "schema.vertexLabel('tuple_test')" + 
-                ".partitionBy('id', Int)" + 
+            "schema.vertexLabel('tuple_test')" +
+                ".partitionBy('id', Int)" +
                 ".property('tuple_property', tupleOf(typeOf('phone'), Instant, UUID, listOf(Text), setOf(Int),mapOf(Text, Int)))" +
                 ".create();\n";
 
         /// <summary>
         /// Reference graph: http://www.tinkerpop.com/docs/3.0.0.M1/
         /// </summary>
-        protected const string CoreLoadGremlinQuery = 
+        protected const string CoreLoadGremlinQuery =
             "g.addV('person')" +
                 ".property('name', 'marko')" +
                 ".property('age', 29)" +
-                ".as('marko')" + 
+                ".as('marko')" +
             ".addV('person')" +
                 ".property('name', 'vadas')" +
                 ".property('age', 27)" +
@@ -122,7 +122,7 @@ namespace Cassandra.IntegrationTests
             ".addV('software')" +
                 ".property('name', 'lop')" +
                 ".property('lang', 'java')" +
-                ".as('lop')" + 
+                ".as('lop')" +
             ".addV('person')" +
                 ".property('name', 'josh')" +
                 ".property('age', 32)" +
@@ -155,7 +155,7 @@ namespace Cassandra.IntegrationTests
                 ".from('peter').to('lop')" +
             ".addV('users_contacts')" +
                 ".property('id', 1923)" +
-                ".property('contacts', " +                     
+                ".property('contacts', " +
                     "[ " +
                         "typeOf('contact').create(" +
                             "'Jimmy', " +
@@ -182,7 +182,7 @@ namespace Cassandra.IntegrationTests
         /// <summary>
         /// Reference graph: http://www.tinkerpop.com/docs/3.0.0.M1/
         /// </summary>
-        protected const string ClassicLoadGremlinQuery = 
+        protected const string ClassicLoadGremlinQuery =
             "Vertex marko = graph.addVertex(label, 'person', 'name', 'marko', 'age', 29);\n" +
             "Vertex vadas = graph.addVertex(label, 'person', 'name', 'vadas', 'age', 27);\n" +
             "Vertex lop = graph.addVertex(label, 'software', 'name', 'lop', 'lang', 'java');\n" +
@@ -198,7 +198,7 @@ namespace Cassandra.IntegrationTests
 
         protected const string MakeStrict = "schema.config().option(\"graph.schema_mode\").set(\"production\");";
         protected const string AllowScans = "schema.config().option(\"graph.allow_scan\").set(\"true\");";
-        
+
         /// <summary>
         /// Creates a graph using the current session
         /// </summary>
@@ -231,7 +231,7 @@ namespace Cassandra.IntegrationTests
                 CreateClassicGraph(cluster.Connect(), name);
             }
         }
-        
+
         /// <summary>
         /// Creates a core graph using the current session
         /// </summary>
@@ -279,7 +279,7 @@ namespace Cassandra.IntegrationTests
 
                 Task.Delay(500).GetAwaiter().GetResult();
             }
-            
+
             Assert.Fail("Keyspace metadata does not have the correct graph engine.");
         }
     }

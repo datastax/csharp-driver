@@ -29,7 +29,7 @@ namespace Cassandra
         /// <summary>
         /// A factory to get the response handlers 
         /// </summary>
-        private static readonly Dictionary<byte, Func<Frame, Response>> _responseHandlerFactory = 
+        private static readonly Dictionary<byte, Func<Frame, Response>> _responseHandlerFactory =
             new Dictionary<byte, Func<Frame, Response>>
         {
             {AuthenticateResponse.OpCode, AuthenticateResponse.Create},

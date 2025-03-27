@@ -118,7 +118,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         {
             get
             {
-                if ( Environment.GetEnvironmentVariable("DSE_VERSION") != null )
+                if (Environment.GetEnvironmentVariable("DSE_VERSION") != null)
                 {
                     return BackendType.Dse;
                 }

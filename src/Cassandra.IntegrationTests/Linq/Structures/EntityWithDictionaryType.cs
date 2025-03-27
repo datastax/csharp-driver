@@ -46,7 +46,7 @@ namespace Cassandra.IntegrationTests.Linq.Structures
 
             return new Tuple<Table<EntityWithDictionaryType>, List<EntityWithDictionaryType>>(table, entityList);
         }
-        
+
         public static Tuple<Table<EntityWithDictionaryType>, List<EntityWithDictionaryType>> GetDefaultTable(
             ISession session, string tableName)
         {
@@ -77,7 +77,7 @@ namespace Cassandra.IntegrationTests.Linq.Structures
             var entity = new EntityWithDictionaryType
             {
                 Id = Guid.NewGuid().ToString(),
-                DictionaryType = new Dictionary<string, string>() {{"key_" + seed, "val_" + seed}}
+                DictionaryType = new Dictionary<string, string>() { { "key_" + seed, "val_" + seed } }
             };
             return entity;
         }

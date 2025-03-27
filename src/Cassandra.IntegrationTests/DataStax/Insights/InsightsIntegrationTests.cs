@@ -112,7 +112,7 @@ namespace Cassandra.IntegrationTests.DataStax.Insights
                 }
             }
         }
-        
+
         [Test]
         [TestInsightsVersion]
         public void Should_InvokeInsightsRpcCallPeriodically_When_SessionIsCreatedAndEventDelayPasses()
@@ -123,7 +123,7 @@ namespace Cassandra.IntegrationTests.DataStax.Insights
                 using (var cluster = BuildCluster(simulacronCluster, 50))
                 {
                     Assert.AreEqual(0, simulacronCluster.GetQueries("CALL InsightsRpc.reportInsight(?)").Count);
-                    var session = (IInternalSession) cluster.Connect();
+                    var session = (IInternalSession)cluster.Connect();
                     IList<RequestLog> queries = null;
                     TestHelper.RetryAssert(
                         () =>
@@ -134,15 +134,15 @@ namespace Cassandra.IntegrationTests.DataStax.Insights
                         },
                         250,
                         40);
-                    
-                    
+
+
                     string json = string.Empty;
                     Insight<InsightsStatusData> message = null;
                     try
                     {
                         json = Encoding.UTF8.GetString(
                             Convert.FromBase64String(
-                                (string) queries[1].Frame.GetQueryMessage().Options.PositionalValues[0]));
+                                (string)queries[1].Frame.GetQueryMessage().Options.PositionalValues[0]));
                         message = JsonConvert.DeserializeObject<Insight<InsightsStatusData>>(json);
                     }
                     catch (JsonReaderException ex)

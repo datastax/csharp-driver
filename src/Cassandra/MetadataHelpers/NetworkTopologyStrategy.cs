@@ -85,9 +85,9 @@ namespace Cassandra.MetadataHelpers
         }
 
         private ISet<Host> ComputeReplicasForToken(
-            IReadOnlyList<IToken> ring, 
-            IReadOnlyDictionary<IToken, Host> primaryReplicas, 
-            IReadOnlyDictionary<string, DatacenterInfo> datacenters, 
+            IReadOnlyList<IToken> ring,
+            IReadOnlyDictionary<IToken, Host> primaryReplicas,
+            IReadOnlyDictionary<string, DatacenterInfo> datacenters,
             int i)
         {
             var context = new NetworkTopologyTokenMapContext(ring, primaryReplicas, datacenters);

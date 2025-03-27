@@ -40,7 +40,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         public override void SetUp()
         {
             base.SetUp();
-            
+
             MappingConfiguration movieMappingConfig = new MappingConfiguration();
             movieMappingConfig.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(Movie),
                  () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(Movie)));
@@ -72,7 +72,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             {
                 Assert.Fail(
                     string.Join(",", typeof(Movie).GetFields().Select(f => f.Name)
-                                 .Union(typeof(Movie).GetProperties().Select(p => p.Name))) + 
+                                 .Union(typeof(Movie).GetProperties().Select(p => p.Name))) +
                                    ex + Environment.NewLine + JsonConvert.SerializeObject(TestCluster.GetLogs()));
             }
         }
@@ -91,7 +91,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
 
             Movie foundMovie = _movieTable.First(m => m.Title == existingMovie.Title && m.MovieMaker == randomStr).Execute();
             Assert.Null(foundMovie);
-            
+
             VerifyBoundStatement(
                 "SELECT \"director\", \"list\", \"mainGuy\", \"movie_maker\", \"unique_movie_title\", \"yearMade\" " +
                 $"FROM \"{Movie.TableName}\" WHERE \"unique_movie_title\" = ? AND \"movie_maker\" = ? LIMIT ? ALLOW FILTERING",
@@ -123,7 +123,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
                       .ThenServerError(ServerError.Invalid, "msg"));
             var ex = Assert.Throws<InvalidQueryException>(() => _movieTable.First(m => m.Year == 100).Execute());
             Assert.AreEqual("msg", ex.Message);
-            
+
             TestCluster.PrimeFluent(
                 b => b.WhenQuery(
                           "SELECT \"director\", \"list\", \"mainGuy\", \"movie_maker\", \"unique_movie_title\", \"yearMade\" " +

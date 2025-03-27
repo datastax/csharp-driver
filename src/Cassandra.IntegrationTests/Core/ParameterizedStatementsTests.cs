@@ -295,7 +295,7 @@ namespace Cassandra.IntegrationTests.Core
             Session.Execute(
                 new SimpleStatement(
                     insertQuery,
-                    new { my_INt = 1, my_TEXT = "WAT1", my_id = id}));
+                    new { my_INt = 1, my_TEXT = "WAT1", my_id = id }));
 
             var row = Session.Execute(string.Format("SELECT * FROM {0} WHERE id = {1:D}", AllTypesTableName, id)).First();
             Assert.AreEqual(1, row.GetValue<int>("int_sample"));
@@ -310,7 +310,7 @@ namespace Cassandra.IntegrationTests.Core
 
             Assert.Throws<InvalidQueryException>(() => Session.Execute(
                 new SimpleStatement(insertQuery,
-                    new {id = Guid.NewGuid(), my_bigint = 1L })));
+                    new { id = Guid.NewGuid(), my_bigint = 1L })));
         }
 
         [Test]
@@ -341,7 +341,7 @@ namespace Cassandra.IntegrationTests.Core
             foreach (var v in values)
             {
                 var insert = new SimpleStatement("INSERT INTO tbl_tinyint_param (id, v, m) VALUES (?, ?, ?)",
-                    Convert.ToInt32(v), v, new SortedDictionary<sbyte, string> { { v, v.ToString()} });
+                    Convert.ToInt32(v), v, new SortedDictionary<sbyte, string> { { v, v.ToString() } });
                 var select = new SimpleStatement("SELECT * FROM tbl_tinyint_param WHERE id = ?", Convert.ToInt32(v));
                 Session.Execute(insert);
                 var rs = Session.Execute(select).ToList();
@@ -535,7 +535,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        [TestBothServersVersion(4, 0, 5,1, Comparison.LessThan)]
+        [TestBothServersVersion(4, 0, 5, 1, Comparison.LessThan)]
         public void SimpleStatement_With_Keyspace_Defined_On_Lower_Protocol_Versions()
         {
             // It should fail as the keyspace from the session will be used

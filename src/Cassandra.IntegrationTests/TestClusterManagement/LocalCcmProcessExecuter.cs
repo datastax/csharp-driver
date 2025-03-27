@@ -25,7 +25,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         private LocalCcmProcessExecuter()
         {
-            
+
         }
 
         protected override string GetExecutable(ref string args)

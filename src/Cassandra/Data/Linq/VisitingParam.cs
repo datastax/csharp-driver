@@ -34,7 +34,7 @@ namespace Cassandra.Data.Linq
 
         public VisitingParam() : this(default(T))
         {
-            
+
         }
 
         public IDisposable Set(T val)

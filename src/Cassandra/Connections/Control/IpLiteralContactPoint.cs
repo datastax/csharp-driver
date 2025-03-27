@@ -83,7 +83,7 @@ namespace Cassandra.Connections.Control
 
         public override int GetHashCode()
         {
-            return Utils.CombineHashCodeWithNulls(new object[] {_ipEndPoint, _ipAddress});
+            return Utils.CombineHashCodeWithNulls(new object[] { _ipEndPoint, _ipAddress });
         }
 
         public Task<IEnumerable<IConnectionEndPoint>> GetConnectionEndPointsAsync(bool refreshCache)

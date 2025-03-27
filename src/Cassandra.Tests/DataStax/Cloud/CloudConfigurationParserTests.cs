@@ -33,9 +33,9 @@ namespace Cassandra.Tests.DataStax.Cloud
             var randomString3 = Guid.NewGuid().ToString().Replace("-", "");
             var randomString4 = Guid.NewGuid().ToString().Replace("-", "");
             var randomString5 = Guid.NewGuid().ToString().Replace("-", "");
-            var a = 
+            var a =
 "{" +
-   $"\"username\": \"{randomString}\"," + 
+   $"\"username\": \"{randomString}\"," +
    $"\"password\": \"{randomString2}\"," +
    "\"host\": \"ea20d9d5-f69e-46ad-8eb1-f32f33a7472e.us-east-1.dse.datastax.com\"," +
    "\"port\": 30443," +
@@ -52,17 +52,17 @@ namespace Cassandra.Tests.DataStax.Cloud
 "}";
             var stream = new MemoryStream(Encoding.Default.GetBytes(a));
             var target = new CloudConfigurationParser();
-            
+
             var config = target.ParseConfig(stream);
-            
+
             Assert.AreEqual(30443, config.Port);
             Assert.AreEqual("ea20d9d5-f69e-46ad-8eb1-f32f33a7472e.us-east-1.dse.datastax.com", config.Host);
         }
-        
+
         [Test]
         public void Should_ParseCorrectly_When_OnlyRequiredPropertiesAreThere()
         {
-            var a = 
+            var a =
 @"{
    ""host"": ""ea20d9d5-f69e-46ad-8eb1-f32f33a7472e.us-east-1.dse.datastax.com"",
    ""port"": 30443,
@@ -70,20 +70,20 @@ namespace Cassandra.Tests.DataStax.Cloud
 }";
             var stream = new MemoryStream(Encoding.Default.GetBytes(a));
             var target = new CloudConfigurationParser();
-            
+
             var config = target.ParseConfig(stream);
-            
+
             Assert.AreEqual(30443, config.Port);
             Assert.AreEqual("ea20d9d5-f69e-46ad-8eb1-f32f33a7472e.us-east-1.dse.datastax.com", config.Host);
         }
-        
+
         [Test]
         public void Should_ParseCorrectly_When_AllPropertiesAreThere()
         {
             var randomString = Guid.NewGuid().ToString().Replace("-", "");
             var randomString2 = Guid.NewGuid().ToString().Replace("-", "");
             var randomString3 = Guid.NewGuid().ToString().Replace("-", "");
-            var a = 
+            var a =
 @"{" +
    $"\"username\": \"{randomString}\"," +
    $"\"password\": \"{randomString2}\"," +
@@ -94,20 +94,20 @@ namespace Cassandra.Tests.DataStax.Cloud
 "}";
             var stream = new MemoryStream(Encoding.Default.GetBytes(a));
             var target = new CloudConfigurationParser();
-            
+
             var config = target.ParseConfig(stream);
-            
+
             Assert.AreEqual(30443, config.Port);
             Assert.AreEqual("ea20d9d5-f69e-46ad-8eb1-f32f33a7472e.us-east-1.dse.datastax.com", config.Host);
         }
-        
+
         [Test]
         public void Should_ThrowException_When_HostIsNotThere()
         {
             var randomString = Guid.NewGuid().ToString().Replace("-", "");
             var randomString2 = Guid.NewGuid().ToString().Replace("-", "");
             var randomString3 = Guid.NewGuid().ToString().Replace("-", "");
-            var a = 
+            var a =
 "{" +
    $"\"username\": \"{randomString}\"," +
    $"\"password\": \"{randomString2}\"," +
@@ -117,19 +117,19 @@ namespace Cassandra.Tests.DataStax.Cloud
 "}";
             var stream = new MemoryStream(Encoding.Default.GetBytes(a));
             var target = new CloudConfigurationParser();
-            
+
             var ex = Assert.Throws<ArgumentException>(() => target.ParseConfig(stream));
-            
+
             Assert.IsTrue(ex.Message.Contains("Could not parse the \"host\""), ex.Message);
         }
-        
+
         [Test]
         public void Should_ThrowException_When_PortIsNotThere()
         {
             var randomString = Guid.NewGuid().ToString().Replace("-", "");
             var randomString2 = Guid.NewGuid().ToString().Replace("-", "");
             var randomString3 = Guid.NewGuid().ToString().Replace("-", "");
-            var a = 
+            var a =
 "{" +
    $"\"username\": \"{randomString}\"," +
    $"\"password\": \"{randomString2}\"," +
@@ -139,33 +139,33 @@ namespace Cassandra.Tests.DataStax.Cloud
 "}";
             var stream = new MemoryStream(Encoding.Default.GetBytes(a));
             var target = new CloudConfigurationParser();
-            
+
             var ex = Assert.Throws<ArgumentException>(() => target.ParseConfig(stream));
-            
+
             Assert.IsTrue(ex.Message.Contains("Could not parse the \"port\""), ex.Message);
         }
-        
+
         [Test]
         public void Should_ThrowException_When_ConfigIsEmpty()
         {
             var a = @"";
             var stream = new MemoryStream(Encoding.Default.GetBytes(a));
             var target = new CloudConfigurationParser();
-            
+
             var ex = Assert.Throws<ArgumentException>(() => target.ParseConfig(stream));
-            
+
             Assert.IsTrue(ex.Message.Contains("Config file is empty"), ex.Message);
         }
-        
+
         [Test]
         public void Should_ThrowException_When_ConfigDoesntHaveAnyRelevantProperty()
         {
             var a = @"{""keyStoreLocation"": ""./identity.jks""}";
             var stream = new MemoryStream(Encoding.Default.GetBytes(a));
             var target = new CloudConfigurationParser();
-            
+
             var ex = Assert.Throws<ArgumentException>(() => target.ParseConfig(stream));
-            
+
             Assert.IsTrue(ex.Message.Contains("Could not parse"), ex.Message);
         }
     }

@@ -25,11 +25,11 @@ namespace Cassandra.Metrics.Providers.Null
         private NullDriverCounter()
         {
         }
-        
+
         public void Increment(long value)
         {
         }
-        
+
         public void Increment()
         {
         }

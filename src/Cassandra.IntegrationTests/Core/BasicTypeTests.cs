@@ -174,11 +174,11 @@ namespace Cassandra.IntegrationTests.Core
 
             TestCluster.PrimeFluent(
                 b => b.WhenQuery("SELECT * FROM decimal_neg_scale")
-                      .ThenRowsSuccess(new[] {"id", "value"}, r => r.WithRow(firstRowValues.First(), (decimal) 50)));
+                      .ThenRowsSuccess(new[] { "id", "value" }, r => r.WithRow(firstRowValues.First(), (decimal)50)));
 
             var row = Session.Execute("SELECT * FROM decimal_neg_scale").First();
             var decValue = row.GetValue<decimal>("value");
-            
+
             Assert.AreEqual(50, decValue);
         }
 
@@ -245,7 +245,7 @@ namespace Cassandra.IntegrationTests.Core
             TestCluster.PrimeFluent(
                 b => b.WhenQuery($"SELECT * FROM {tableName};", when => when.WithConsistency(ConsistencyLevel.One))
                       .ThenRowsSuccess(
-                          new[] {"tweet_id", "label", "number"}, 
+                          new[] { "tweet_id", "label", "number" },
                           r => r.WithRow(toInsertAndCheck[0][0], toInsertAndCheck[0][1], toInsertAndCheck[0][2])
                                 .WithRow(toInsertAndCheck[1][0], toInsertAndCheck[1][1], toInsertAndCheck[1][2])));
 
@@ -282,7 +282,7 @@ namespace Cassandra.IntegrationTests.Core
 
             TestCluster.PrimeFluent(
                 b => b.WhenQuery($"SELECT * FROM {tableName};", when => when.WithConsistency(ConsistencyLevel.LocalOne))
-                      .ThenRowsSuccess(new[] {"tweet_id", "incdec"}, r => r.WithRow(tweet_id, (Int64) 50)));
+                      .ThenRowsSuccess(new[] { "tweet_id", "incdec" }, r => r.WithRow(tweet_id, (Int64)50)));
 
             QueryTools.ExecuteSyncQuery(Session, $"SELECT * FROM {tableName};",
                                         Session.Cluster.Configuration.QueryOptions.GetConsistencyLevel(),
@@ -310,7 +310,7 @@ namespace Cassandra.IntegrationTests.Core
                 var query =
                     $"INSERT INTO {tableName}(tweet_id,value) VALUES (" +
                         $"{toInsert[0][0]}, " +
-                        $"{(row1[1].GetType() == typeof(byte[]) ? "0x" + CqlQueryTools.ToHex((byte[]) toInsert[0][1]) : "'" + toInsert[0][1] + "'")}" +
+                        $"{(row1[1].GetType() == typeof(byte[]) ? "0x" + CqlQueryTools.ToHex((byte[])toInsert[0][1]) : "'" + toInsert[0][1] + "'")}" +
                         ");";
                 QueryTools.ExecuteSyncNonQuery(Session, query, null);
                 VerifyStatement(QueryType.Query, query, 1);
@@ -333,7 +333,7 @@ namespace Cassandra.IntegrationTests.Core
 
             TestCluster.PrimeFluent(
                 b => b.WhenQuery($"SELECT * FROM {tableName};", when => when.WithConsistency(ConsistencyLevel.LocalOne))
-                      .ThenRowsSuccess(new[] {"tweet_id", "value"}, r => r.WithRow(toInsert[0][0], toInsert[0][1])));
+                      .ThenRowsSuccess(new[] { "tweet_id", "value" }, r => r.WithRow(toInsert[0][0], toInsert[0][1])));
 
             QueryTools.ExecuteSyncQuery(
                 Session, $"SELECT * FROM {tableName};", Session.Cluster.Configuration.QueryOptions.GetConsistencyLevel(), toInsert);

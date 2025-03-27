@@ -109,7 +109,7 @@ namespace Cassandra.Tests
             {
                 actions.Add(action);
             }
-            
+
             var parallelOptions = new ParallelOptions();
             parallelOptions.TaskScheduler = new ThreadPerTaskScheduler();
             parallelOptions.MaxDegreeOfParallelism = 1000;
@@ -153,7 +153,7 @@ namespace Cassandra.Tests
                 followingRounds.AddRange(policy.NewQueryPlan(null, new SimpleStatement()).ToList());
             }
             Assert.AreEqual(10 * (hostLength - 2), followingRounds.Count);
-            
+
             //Check that there aren't remote nodes.
             Assert.AreEqual(0, followingRounds.Count(h => h.Datacenter != "local"));
         }
@@ -299,7 +299,7 @@ namespace Cassandra.Tests
             {
                 if (h.Datacenter == localDc)
                 {
-                    Assert.AreEqual(times/localHostsLength, firstHosts.Count(hc => hc == h));
+                    Assert.AreEqual(times / localHostsLength, firstHosts.Count(hc => hc == h));
                 }
                 else
                 {
@@ -396,7 +396,7 @@ namespace Cassandra.Tests
                 hostList.Add(host);
                 clusterMock.Raise(c => c.HostAdded += null, host);
             });
-            
+
             actionList.Insert(400, () =>
             {
                 var host = hostToRemove;
@@ -449,7 +449,7 @@ namespace Cassandra.Tests
         [Test]
         public void FixedReconnectionPolicyTests()
         {
-            var delays = new long[] {0, 2, 100, 200, 500, 1000};
+            var delays = new long[] { 0, 2, 100, 200, 500, 1000 };
             var policy = new FixedReconnectionPolicy(delays);
             var schedule = policy.NewSchedule();
             const int times = 30;
@@ -518,7 +518,7 @@ namespace Cassandra.Tests
             hosts = policy.NewQueryPlan(null, new SimpleStatement().SetRoutingKey(k)).ToList();
             Assert.AreEqual(7, hosts.Count);
             //local replicas first
-            CollectionAssert.AreEquivalent(new[] { 2, 5}, hosts.Take(2).Select(TestHelper.GetLastAddressByte));
+            CollectionAssert.AreEquivalent(new[] { 2, 5 }, hosts.Take(2).Select(TestHelper.GetLastAddressByte));
             //next should be local nodes
             Assert.AreEqual("dc1", hosts[2].Datacenter);
             Assert.AreEqual("dc1", hosts[3].Datacenter);

@@ -44,7 +44,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
         [Test]
         public void ExponentialReconnectionPolicyTest()
         {
-            var builder = ClusterBuilder().WithReconnectionPolicy(new ExponentialReconnectionPolicy(2*1000, 5*60*1000));
+            var builder = ClusterBuilder().WithReconnectionPolicy(new ExponentialReconnectionPolicy(2 * 1000, 5 * 60 * 1000));
 
             // Ensure that ExponentialReconnectionPolicy is what we should be testing
             if (!(builder.GetConfiguration().Policies.ReconnectionPolicy is ExponentialReconnectionPolicy))
@@ -53,9 +53,9 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             }
 
             // Test basic getters
-            ExponentialReconnectionPolicy reconnectionPolicy = (ExponentialReconnectionPolicy) builder.GetConfiguration().Policies.ReconnectionPolicy;
-            Assert.True(reconnectionPolicy.BaseDelayMs == 2*1000);
-            Assert.True(reconnectionPolicy.MaxDelayMs == 5*60*1000);
+            ExponentialReconnectionPolicy reconnectionPolicy = (ExponentialReconnectionPolicy)builder.GetConfiguration().Policies.ReconnectionPolicy;
+            Assert.True(reconnectionPolicy.BaseDelayMs == 2 * 1000);
+            Assert.True(reconnectionPolicy.MaxDelayMs == 5 * 60 * 1000);
 
             // Test erroneous instantiations
             try
@@ -63,32 +63,32 @@ namespace Cassandra.IntegrationTests.Policies.Tests
                 new ExponentialReconnectionPolicy(-1, 1);
                 Assert.Fail();
             }
-            catch (ArgumentException){}
+            catch (ArgumentException) { }
 
             try
             {
                 new ExponentialReconnectionPolicy(1, -1);
                 Assert.Fail();
             }
-            catch (ArgumentException){}
+            catch (ArgumentException) { }
 
             try
             {
                 new ExponentialReconnectionPolicy(-1, -1);
                 Assert.Fail();
             }
-            catch (ArgumentException){}
+            catch (ArgumentException) { }
 
             try
             {
                 new ExponentialReconnectionPolicy(2, 1);
                 Assert.Fail();
             }
-            catch (ArgumentException){}
+            catch (ArgumentException) { }
 
             // Test nextDelays()
 
-            var schedule = new ExponentialReconnectionPolicy(2*1000, 5*60*1000).NewSchedule();
+            var schedule = new ExponentialReconnectionPolicy(2 * 1000, 5 * 60 * 1000).NewSchedule();
             Assert.True(schedule.NextDelayMs() == 2000);
             Assert.True(schedule.NextDelayMs() == 4000);
             Assert.True(schedule.NextDelayMs() == 8000);
@@ -113,7 +113,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
         [Test]
         public void ConstantReconnectionPolicyTest()
         {
-            Builder builder = ClusterBuilder().WithReconnectionPolicy(new ConstantReconnectionPolicy(25*1000));
+            Builder builder = ClusterBuilder().WithReconnectionPolicy(new ConstantReconnectionPolicy(25 * 1000));
 
             // Ensure that ConstantReconnectionPolicy is what we should be testing
             if (!(builder.GetConfiguration().Policies.ReconnectionPolicy is ConstantReconnectionPolicy))
@@ -122,8 +122,8 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             }
 
             // Test basic getters
-            ConstantReconnectionPolicy reconnectionPolicy = (ConstantReconnectionPolicy) builder.GetConfiguration().Policies.ReconnectionPolicy;
-            Assert.True(reconnectionPolicy.ConstantDelayMs == 25*1000);
+            ConstantReconnectionPolicy reconnectionPolicy = (ConstantReconnectionPolicy)builder.GetConfiguration().Policies.ReconnectionPolicy;
+            Assert.True(reconnectionPolicy.ConstantDelayMs == 25 * 1000);
 
             // Test erroneous instantiations
             try
@@ -136,7 +136,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             }
 
             // Test nextDelays()
-            var schedule = new ConstantReconnectionPolicy(10*1000).NewSchedule();
+            var schedule = new ConstantReconnectionPolicy(10 * 1000).NewSchedule();
             Assert.True(schedule.NextDelayMs() == 10000);
             Assert.True(schedule.NextDelayMs() == 10000);
             Assert.True(schedule.NextDelayMs() == 10000);
@@ -173,14 +173,14 @@ namespace Cassandra.IntegrationTests.Policies.Tests
                 _policyTestTools.Query(testCluster, 12);
                 Assert.Fail("Test race condition where node has not shut off quickly enough.");
             }
-            catch (NoHostAvailableException){}
+            catch (NoHostAvailableException) { }
 
             long elapsedSeconds;
             bool restarted = false;
             while (true)
             {
                 //thisTime = System.nanoTime() / 1000000000;
-                elapsedSeconds = startTime.ElapsedMilliseconds/1000;
+                elapsedSeconds = startTime.ElapsedMilliseconds / 1000;
 
                 // Restart node at restartTime
                 if (!restarted && elapsedSeconds > restartTime)
@@ -205,7 +205,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
                     continue;
                 }
 
-                Thread.Sleep((int) (breakTime*1000));
+                Thread.Sleep((int)(breakTime * 1000));
 
                 // The same query once more, just to be sure
                 _policyTestTools.Query(testCluster, 12);
@@ -233,7 +233,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
                 while (true)
                 {
                     //elapsedSeconds = System.nanoTime() / 1000000000;
-                    elapsedSeconds = startTime.ElapsedMilliseconds/1000;
+                    elapsedSeconds = startTime.ElapsedMilliseconds / 1000;
 
                     // Restart node at restartTime
                     if (!restarted && elapsedSeconds > restartTime)

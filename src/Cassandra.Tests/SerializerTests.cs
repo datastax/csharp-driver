@@ -104,18 +104,18 @@ namespace Cassandra.Tests
         static IEnumerable<object[]> SingleValuesTestCases()
         {
             // 2-element array, type code
-            yield return new object[] { new [] {"just utf8 text olé!", "another"}, ColumnTypeCode.Text};
-            yield return new object[] { new []{123, -1}, ColumnTypeCode.Int };
-            yield return new object[] { new []{Int64.MinValue + 100, 1}, ColumnTypeCode.Bigint };
-            yield return new object[] { new[]{-144F, 1.25F}, ColumnTypeCode.Float };
-            yield return new object[] { new []{1120D, 1.3456D}, ColumnTypeCode.Double };
-            yield return new object[] { new []{-9999.89770M, 8.0923M}, ColumnTypeCode.Decimal };
-            yield return new object[] { new[]{new DateTimeOffset(new DateTime(2010, 4, 29)), new DateTimeOffset(new DateTime(1980, 1, 9))}, ColumnTypeCode.Timestamp };
-            yield return new object[] { new[]{new IPAddress(new byte[] { 10, 0, 5, 5 }), new IPAddress(new byte[]{127,0,0,1})}, ColumnTypeCode.Inet };
-            yield return new object[] { new[]{Guid.NewGuid(), Guid.NewGuid()}, ColumnTypeCode.Uuid };
-            yield return new object[] { new[]{true, false}, ColumnTypeCode.Boolean };
-            yield return new object[] { new[]{new byte[] { 255, 128, 64, 32, 16, 9, 9 }, new byte[]{0,1,128,9,1,2,3,4}}, ColumnTypeCode.Blob };
-            yield return new object[] { new[] { TimeUuid.NewId().ToGuid(), TimeUuid.NewId().ToGuid() }, ColumnTypeCode.Timeuuid }; 
+            yield return new object[] { new[] { "just utf8 text olé!", "another" }, ColumnTypeCode.Text };
+            yield return new object[] { new[] { 123, -1 }, ColumnTypeCode.Int };
+            yield return new object[] { new[] { Int64.MinValue + 100, 1 }, ColumnTypeCode.Bigint };
+            yield return new object[] { new[] { -144F, 1.25F }, ColumnTypeCode.Float };
+            yield return new object[] { new[] { 1120D, 1.3456D }, ColumnTypeCode.Double };
+            yield return new object[] { new[] { -9999.89770M, 8.0923M }, ColumnTypeCode.Decimal };
+            yield return new object[] { new[] { new DateTimeOffset(new DateTime(2010, 4, 29)), new DateTimeOffset(new DateTime(1980, 1, 9)) }, ColumnTypeCode.Timestamp };
+            yield return new object[] { new[] { new IPAddress(new byte[] { 10, 0, 5, 5 }), new IPAddress(new byte[] { 127, 0, 0, 1 }) }, ColumnTypeCode.Inet };
+            yield return new object[] { new[] { Guid.NewGuid(), Guid.NewGuid() }, ColumnTypeCode.Uuid };
+            yield return new object[] { new[] { true, false }, ColumnTypeCode.Boolean };
+            yield return new object[] { new[] { new byte[] { 255, 128, 64, 32, 16, 9, 9 }, new byte[] { 0, 1, 128, 9, 1, 2, 3, 4 } }, ColumnTypeCode.Blob };
+            yield return new object[] { new[] { TimeUuid.NewId().ToGuid(), TimeUuid.NewId().ToGuid() }, ColumnTypeCode.Timeuuid };
             yield return new object[] { new sbyte[] { 0, 1 }, ColumnTypeCode.TinyInt };
             yield return new object[] { new short[] { -1, 1 }, ColumnTypeCode.SmallInt };
             yield return new object[] { new[] { BigInteger.Parse("10000000"), BigInteger.One }, ColumnTypeCode.Varint };
@@ -133,13 +133,13 @@ namespace Cassandra.Tests
                 yield return new object[]
                     { row[0], ColumnTypeCode.List, new ListColumnInfo() { ValueTypeCode = (ColumnTypeCode)row[1] } };
                 IEnumerable<object> list = ((Array)row[0]).Cast<object>().ToList();
-                
+
                 yield return new object[]
                 {
                     new List<object>(list), ColumnTypeCode.List,
                     new ListColumnInfo() { ValueTypeCode = (ColumnTypeCode)row[1], ValueTypeInfo = new ListColumnInfo(){}}
                 };
-                
+
                 // Set
                 yield return new object[]
                 {
@@ -156,7 +156,7 @@ namespace Cassandra.Tests
                     row[0], ColumnTypeCode.Set,
                     new SetColumnInfo() { KeyTypeCode = (ColumnTypeCode)row[1] }
                 };
-                
+
                 // Vector
                 yield return new object[]
                 {
@@ -191,7 +191,7 @@ namespace Cassandra.Tests
                 };
             }
         }
-        
+
         static object CreateCqlVectorDynamicType(Array array)
         {
             Type elementType = array.GetType().GetElementType();
@@ -199,7 +199,7 @@ namespace Cassandra.Tests
             ConstructorInfo constructor = cqlVectorType.GetConstructor(new Type[] { array.GetType() });
             return constructor.Invoke(new object[] { array });
         }
-        
+
         [Test]
         [TestCaseSource(nameof(CollectionsTestCases))]
         public void EncodeDecodeListSetFactoryTest(object[] feed)
@@ -207,7 +207,7 @@ namespace Cassandra.Tests
             foreach (var version in _protocolVersions)
             {
                 var serializer = NewInstance(version);
-                var valueToEncode = (IEnumerable) feed [0];
+                var valueToEncode = (IEnumerable)feed[0];
                 var encoded = serializer.Serialize(valueToEncode);
                 var decoded = (IEnumerable)serializer.Deserialize(encoded, (ColumnTypeCode)feed[1], (IColumnInfo)feed[2]);
                 CollectionAssert.AreEqual(valueToEncode, decoded);
@@ -221,7 +221,7 @@ namespace Cassandra.Tests
             foreach (var version in _protocolVersions)
             {
                 var serializer = NewInstance(version);
-                var valueToEncode = (IEnumerable) feed [0];
+                var valueToEncode = (IEnumerable)feed[0];
                 var encoded = serializer.Serialize(valueToEncode);
                 var decoded = (IEnumerable)serializer.Deserialize(encoded, (ColumnTypeCode)feed[1], (IColumnInfo)feed[2]);
                 CollectionAssert.AreEqual(valueToEncode, decoded);
@@ -297,14 +297,14 @@ namespace Cassandra.Tests
             {
                 new object[]
                 {
-                    new List<Tuple<string>>{new Tuple<string>("val1")}, 
-                    ColumnTypeCode.List, 
+                    new List<Tuple<string>>{new Tuple<string>("val1")},
+                    ColumnTypeCode.List,
                     new ListColumnInfo { ValueTypeCode = ColumnTypeCode.Tuple, ValueTypeInfo = new TupleColumnInfo() { Elements = new List<ColumnDesc>() {new ColumnDesc(){TypeCode = ColumnTypeCode.Text}}}}
                 },
                 new object[]
                 {
-                    new List<Tuple<string, int>>{new Tuple<string, int>("val2ZZ", 0)}, 
-                    ColumnTypeCode.List, 
+                    new List<Tuple<string, int>>{new Tuple<string, int>("val2ZZ", 0)},
+                    ColumnTypeCode.List,
                     new ListColumnInfo { ValueTypeCode = ColumnTypeCode.Tuple, ValueTypeInfo = new TupleColumnInfo() { Elements = new List<ColumnDesc>() {new ColumnDesc(){TypeCode = ColumnTypeCode.Text}, new ColumnDesc(){TypeCode = ColumnTypeCode.Int}}}}
                 }
             };
@@ -369,17 +369,17 @@ namespace Cassandra.Tests
             var initialValues = new object[]
             {
                 new object[] {
-                    new SortedDictionary<string, IEnumerable<int>>{{"first", new List<int>(new [] {1, 2, 1000})}}, 
+                    new SortedDictionary<string, IEnumerable<int>>{{"first", new List<int>(new [] {1, 2, 1000})}},
                     ColumnTypeCode.Map,
                     new MapColumnInfo { KeyTypeCode = ColumnTypeCode.Text, ValueTypeCode = ColumnTypeCode.List, ValueTypeInfo = new ListColumnInfo { ValueTypeCode = ColumnTypeCode.Int}}
                 },
                 new object[] {
-                    new SortedDictionary<int, IEnumerable<string>>{{120, new SortedSet<string>(new [] {"a", "b", "c"})}}, 
+                    new SortedDictionary<int, IEnumerable<string>>{{120, new SortedSet<string>(new [] {"a", "b", "c"})}},
                     ColumnTypeCode.Map,
                     new MapColumnInfo { KeyTypeCode = ColumnTypeCode.Int, ValueTypeCode = ColumnTypeCode.Set, ValueTypeInfo = new SetColumnInfo { KeyTypeCode = ColumnTypeCode.Text}}
                 },
                 new object[] {
-                    new SortedDictionary<string, IDictionary<string, int>>{{"first-b", new SortedDictionary<string, int> {{"A", 1}, {"B", 2}}}}, 
+                    new SortedDictionary<string, IDictionary<string, int>>{{"first-b", new SortedDictionary<string, int> {{"A", 1}, {"B", 2}}}},
                     ColumnTypeCode.Map,
                     new MapColumnInfo { KeyTypeCode = ColumnTypeCode.Text, ValueTypeCode = ColumnTypeCode.Map, ValueTypeInfo = new MapColumnInfo{ KeyTypeCode = ColumnTypeCode.Text, ValueTypeCode = ColumnTypeCode.Int}}
                 }
@@ -446,7 +446,7 @@ namespace Cassandra.Tests
         public void Encode_Decode_SmallInt()
         {
             var serializer = NewInstance();
-            for (var i = Int16.MinValue; ; i++ )
+            for (var i = Int16.MinValue; ; i++)
             {
                 var encoded = serializer.Serialize(i);
                 var decoded = (short)serializer.Deserialize(encoded, ColumnTypeCode.SmallInt, null);
@@ -505,7 +505,7 @@ namespace Cassandra.Tests
             {
                 var encoded = serializer.Serialize(val.Item1);
                 CollectionAssert.AreEqual(val.Item2, encoded);
-                var padEncoded = new byte[] {0xFF, 0xFA}.Concat(encoded).ToArray();
+                var padEncoded = new byte[] { 0xFF, 0xFA }.Concat(encoded).ToArray();
                 Assert.AreEqual(val.Item1, serializer.Deserialize(padEncoded, 2, encoded.Length, serializer.GetCqlTypeForPrimitive(val.Item1.GetType()), null));
             }
         }
@@ -533,15 +533,15 @@ namespace Cassandra.Tests
         [Test]
         public void GetClrType_Should_Get_Clr_Type_For_Non_Primitive_Cql_Types()
         {
-            var notPrimitive = new []
+            var notPrimitive = new[]
             {
                 Tuple.Create<Type, ColumnTypeCode, IColumnInfo>(typeof(IEnumerable<string>), ColumnTypeCode.List, new ListColumnInfo { ValueTypeCode = ColumnTypeCode.Text}),
                 Tuple.Create<Type, ColumnTypeCode, IColumnInfo>(typeof(IEnumerable<int>), ColumnTypeCode.Set, new SetColumnInfo { KeyTypeCode = ColumnTypeCode.Int}),
-                Tuple.Create<Type, ColumnTypeCode, IColumnInfo>(typeof(IEnumerable<IEnumerable<DateTimeOffset>>), ColumnTypeCode.List, 
+                Tuple.Create<Type, ColumnTypeCode, IColumnInfo>(typeof(IEnumerable<IEnumerable<DateTimeOffset>>), ColumnTypeCode.List,
                     new ListColumnInfo { ValueTypeCode = ColumnTypeCode.Set, ValueTypeInfo = new SetColumnInfo { KeyTypeCode = ColumnTypeCode.Timestamp}}),
-                Tuple.Create<Type, ColumnTypeCode, IColumnInfo>(typeof(IDictionary<string, int>), ColumnTypeCode.Map, 
+                Tuple.Create<Type, ColumnTypeCode, IColumnInfo>(typeof(IDictionary<string, int>), ColumnTypeCode.Map,
                     new MapColumnInfo { KeyTypeCode = ColumnTypeCode.Text, ValueTypeCode = ColumnTypeCode.Int }),
-                Tuple.Create<Type, ColumnTypeCode, IColumnInfo>(typeof(Tuple<string, int, LocalDate>), ColumnTypeCode.Tuple, 
+                Tuple.Create<Type, ColumnTypeCode, IColumnInfo>(typeof(Tuple<string, int, LocalDate>), ColumnTypeCode.Tuple,
                     new TupleColumnInfo(new [] { ColumnTypeCode.Text, ColumnTypeCode.Int, ColumnTypeCode.Date}.Select(c => new ColumnDesc {TypeCode = c})))
             };
             var serializer = NewInstance();

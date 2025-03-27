@@ -25,7 +25,7 @@ namespace Cassandra
     {
         public Type GetDataType()
         {
-            return typeof (decimal);
+            return typeof(decimal);
         }
 
         public object ConvertFrom(byte[] decimalBuf)

@@ -70,7 +70,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
         public SimulacronCluster(string id, SimulacronManager simulacronManager) : base(id, simulacronManager)
         {
         }
-        
+
         public static Task<SimulacronCluster> CreateNewAsync(int nodeLength)
         {
             return SimulacronManager.DefaultInstance.CreateNewAsync(nodeLength);
@@ -83,7 +83,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
         {
             return SimulacronManager.DefaultInstance.CreateNew(nodeLength);
         }
-        
+
         public static Task<SimulacronCluster> CreateNewAsync(SimulacronOptions options)
         {
             return SimulacronManager.DefaultInstance.CreateNewAsync(options);
@@ -116,13 +116,13 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
         {
             var result = new List<IPEndPoint>();
             var response = await GetConnectionsAsync().ConfigureAwait(false);
-            var dcs = (JArray) response["data_centers"];
+            var dcs = (JArray)response["data_centers"];
             foreach (var dc in dcs)
             {
-                var nodes = (JArray) dc["nodes"];
+                var nodes = (JArray)dc["nodes"];
                 foreach (var nodeJObject in nodes)
                 {
-                    var connections = (JArray) nodeJObject["connections"];
+                    var connections = (JArray)nodeJObject["connections"];
                     foreach (var conn in connections)
                     {
                         result.Add(GetTupleFromContactPoint(conn.ToString()));

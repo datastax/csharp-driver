@@ -24,24 +24,24 @@ namespace Cassandra.Tests.DataStax.Search
     public class DateRangeTests : BaseUnitTest
     {
         internal static readonly Tuple<string, string, DateRange>[] Values = {
-            Tuple.Create("[2010 TO 2011-12]", (string)null, 
+            Tuple.Create("[2010 TO 2011-12]", (string)null,
                 DateRangeTests.GetRange(DateRangeTests.UtcDate(2010), Precision.Year, DateRangeTests.UtcDate(2011, 12, 31, 23, 59, 59, 999), Precision.Month)),
-            Tuple.Create("[* TO 2011-8]", "[* TO 2011-08]", 
+            Tuple.Create("[* TO 2011-8]", "[* TO 2011-08]",
                 DateRangeTests.GetRange(null, null, DateRangeTests.UtcDate(2011, 8, 31, 23, 59, 59, 999), Precision.Month)),
-            Tuple.Create("[2015-01 TO *]", (string)null, 
+            Tuple.Create("[2015-01 TO *]", (string)null,
                 new DateRange(new DateRangeBound(DateRangeTests.UtcDate(2015), Precision.Month), DateRangeBound.Unbounded)),
-            Tuple.Create("[2017-01 TO 2017-02]", "[2017-01 TO 2017-02]", 
+            Tuple.Create("[2017-01 TO 2017-02]", "[2017-01 TO 2017-02]",
                 DateRangeTests.GetRange(DateRangeTests.UtcDate(2017), Precision.Month, DateRangeTests.UtcDate(2017, 2, 28, 23, 59, 59, 999), Precision.Month)),
-            Tuple.Create("[2016-1 TO 2016-02]", "[2016-01 TO 2016-02]", 
+            Tuple.Create("[2016-1 TO 2016-02]", "[2016-01 TO 2016-02]",
                 DateRangeTests.GetRange(DateRangeTests.UtcDate(2016), Precision.Month, DateRangeTests.UtcDate(2016, 2, 29, 23, 59, 59, 999), Precision.Month)),
             Tuple.Create("2012-1-2", "2012-01-02", DateRangeTests.GetRange(DateRangeTests.UtcDate(2012, 1, 2), Precision.Day)),
             Tuple.Create("2012-1-2T", "2012-01-02", DateRangeTests.GetRange(DateRangeTests.UtcDate(2012, 1, 2), Precision.Day)),
-            Tuple.Create("1-2-3T23:5:7", "0001-02-03T23:05:07", 
+            Tuple.Create("1-2-3T23:5:7", "0001-02-03T23:05:07",
                 DateRangeTests.GetRange(DateRangeTests.UtcDate(1, 2, 3, 23, 5, 7), Precision.Second)),
             Tuple.Create("2015-01T03", "2015-01-01T03", DateRangeTests.GetRange(DateRangeTests.UtcDate(2015, 1, 1, 3), Precision.Hour)),
-            Tuple.Create("2015-04T03:02", "2015-04-01T03:02", 
+            Tuple.Create("2015-04T03:02", "2015-04-01T03:02",
                 DateRangeTests.GetRange(DateRangeTests.UtcDate(2015, 4, 1, 3, 2), Precision.Minute)),
-            Tuple.Create("2015-04T03:02:01.081", "2015-04-01T03:02:01.081Z", 
+            Tuple.Create("2015-04T03:02:01.081", "2015-04-01T03:02:01.081Z",
                 DateRangeTests.GetRange(DateRangeTests.UtcDate(2015, 4, 1, 3, 2, 1, 81), Precision.Millisecond)),
             Tuple.Create("*", (string)null, new DateRange(DateRangeBound.Unbounded)),
             Tuple.Create("[* TO *]", (string)null, new DateRange(DateRangeBound.Unbounded, DateRangeBound.Unbounded)),
@@ -116,7 +116,7 @@ namespace Cassandra.Tests.DataStax.Search
                 foreach (var other in valuesToCompare)
                 {
                     Assert.AreEqual(
-                        Math.Sign(value.Item2.CompareTo(other.Item2)), 
+                        Math.Sign(value.Item2.CompareTo(other.Item2)),
                         Math.Sign(DateRange.Parse(value.Item1).CompareTo(DateRange.Parse(other.Item1))),
                         "Comparison failed for {0} vs {1}", value.Item1, other.Item1);
                 }

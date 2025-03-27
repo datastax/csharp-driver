@@ -94,10 +94,10 @@ namespace Cassandra.Tasks
         /// <exception cref="AggregateException" />
         public static T WaitToComplete<T>(Task<T> task, int timeout = Timeout.Infinite)
         {
-            TaskHelper.WaitToComplete((Task) task, timeout);
+            TaskHelper.WaitToComplete((Task)task, timeout);
             return task.Result;
         }
-        
+
         /// <summary>
         /// Increments session client timeout counter in case of timeout.
         /// </summary>
@@ -125,7 +125,7 @@ namespace Cassandra.Tasks
         /// </summary>
         public static T WaitToCompleteWithMetrics<T>(IMetricsManager manager, Task<T> task, int timeout = Timeout.Infinite)
         {
-            TaskHelper.WaitToCompleteWithMetrics(manager, (Task) task, timeout);
+            TaskHelper.WaitToCompleteWithMetrics(manager, (Task)task, timeout);
             return task.Result;
         }
 
@@ -217,7 +217,7 @@ namespace Cassandra.Tasks
                 tcs.TrySetResult(result);
             }
         }
-        
+
         /// <summary>
         /// Attempts to transition the underlying Task to RanToCompletion or Faulted state.
         /// </summary>

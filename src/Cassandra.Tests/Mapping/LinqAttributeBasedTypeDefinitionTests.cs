@@ -31,7 +31,7 @@ namespace Cassandra.Tests.Mapping
         public void AttributeBased_Without_Name_For_Clustering_Key_Test()
         {
             var definition = new LinqAttributeBasedTypeDefinition(typeof(SamplePocoWithoutClusteringKeyName), "t", "k");
-            CollectionAssert.AreEqual(new [] {Tuple.Create("Id2", SortOrder.Ascending)}, definition.ClusteringKeys);
+            CollectionAssert.AreEqual(new[] { Tuple.Create("Id2", SortOrder.Ascending) }, definition.ClusteringKeys);
             CollectionAssert.AreEqual(new[] { "Id1" }, definition.PartitionKeys);
         }
 

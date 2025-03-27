@@ -185,7 +185,7 @@ namespace Cassandra
                 if (iv != null && iv.Length != IVLength)
                 {
                     throw new ArgumentException("invalid IV size: " + iv.Length + ". Has to be 16 bytes.");
-                } 
+                }
                 try
                 {
                     using (var aes = Aes.Create())

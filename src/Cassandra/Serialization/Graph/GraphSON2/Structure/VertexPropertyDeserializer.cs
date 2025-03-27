@@ -34,8 +34,8 @@ namespace Cassandra.Serialization.Graph.GraphSON2.Structure
     {
         private const string Prefix = "g";
         private const string TypeKey = "VertexProperty";
-        
-        public static string TypeName => 
+
+        public static string TypeName =>
             GraphSONUtil.FormatTypeName(VertexPropertyDeserializer.Prefix, VertexPropertyDeserializer.TypeKey);
 
         public dynamic Objectify(JToken token, Func<JToken, GraphNode> factory, IGraphSONReader reader)
@@ -43,7 +43,7 @@ namespace Cassandra.Serialization.Graph.GraphSON2.Structure
             var graphNode = ToGraphNode(factory, token);
 
             return new VertexProperty(
-                graphNode.Get<GraphNode>("id", true), 
+                graphNode.Get<GraphNode>("id", true),
                 graphNode.Get<string>("label"),
                 graphNode.Get<GraphNode>("value", true),
                 graphNode.Get<GraphNode>("vertex"),

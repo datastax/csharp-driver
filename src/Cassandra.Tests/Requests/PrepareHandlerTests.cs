@@ -53,10 +53,10 @@ namespace Cassandra.Tests.Requests
                     builder.SocketOptions =
                         new SocketOptions().SetReadTimeoutMillis(10);
                     builder.Policies = new Cassandra.Policies(
-                        lbpCluster, 
-                        new ConstantReconnectionPolicy(5), 
-                        new DefaultRetryPolicy(), 
-                        NoSpeculativeExecutionPolicy.Instance, 
+                        lbpCluster,
+                        new ConstantReconnectionPolicy(5),
+                        new DefaultRetryPolicy(),
+                        NoSpeculativeExecutionPolicy.Instance,
                         new AtomicMonotonicTimestampGenerator(),
                         null);
                 });
@@ -87,8 +87,8 @@ namespace Cassandra.Tests.Requests
             var request = new InternalPrepareRequest(_serializer, "TEST", null, null);
 
             await mockResult.PrepareHandler.Prepare(
-                request, 
-                mockResult.Session, 
+                request,
+                mockResult.Session,
                 queryPlan.GetEnumerator()).ConfigureAwait(false);
 
             var results = mockResult.SendResults.ToArray();
@@ -109,7 +109,7 @@ namespace Cassandra.Tests.Requests
                 Mock.Get(pool.Single()).Verify(c => c.Send(request), Times.Once);
             }
         }
-        
+
         [Test]
         public async Task Should_NotSendRequestToSecondHost_When_SecondHostPoolDoesNotHaveConnections()
         {
@@ -124,10 +124,10 @@ namespace Cassandra.Tests.Requests
                     builder.SocketOptions =
                         new SocketOptions().SetReadTimeoutMillis(10);
                     builder.Policies = new Cassandra.Policies(
-                        lbpCluster, 
-                        new ConstantReconnectionPolicy(5), 
-                        new DefaultRetryPolicy(), 
-                        NoSpeculativeExecutionPolicy.Instance, 
+                        lbpCluster,
+                        new ConstantReconnectionPolicy(5),
+                        new DefaultRetryPolicy(),
+                        NoSpeculativeExecutionPolicy.Instance,
                         new AtomicMonotonicTimestampGenerator(),
                         null);
                 });
@@ -159,12 +159,12 @@ namespace Cassandra.Tests.Requests
             var request = new InternalPrepareRequest(_serializer, "TEST", null, null);
 
             await mockResult.PrepareHandler.Prepare(
-                request, 
-                mockResult.Session, 
+                request,
+                mockResult.Session,
                 queryPlan.GetEnumerator()).ConfigureAwait(false);
 
             var results = mockResult.SendResults.ToArray();
-            
+
             pools = mockResult.Session.GetPools().ToList();
             Assert.AreEqual(3, pools.Count);
             Assert.AreEqual(2, results.Length);
@@ -181,7 +181,7 @@ namespace Cassandra.Tests.Requests
                 Mock.Get(pool.Single()).Verify(c => c.Send(request), Times.Once);
             }
         }
-        
+
         [Test]
         public async Task Should_SendRequestToAllHosts_When_AllHostsHaveConnections()
         {
@@ -196,10 +196,10 @@ namespace Cassandra.Tests.Requests
                     builder.SocketOptions =
                         new SocketOptions().SetReadTimeoutMillis(10);
                     builder.Policies = new Cassandra.Policies(
-                        lbpCluster, 
-                        new ConstantReconnectionPolicy(5), 
-                        new DefaultRetryPolicy(), 
-                        NoSpeculativeExecutionPolicy.Instance, 
+                        lbpCluster,
+                        new ConstantReconnectionPolicy(5),
+                        new DefaultRetryPolicy(),
+                        NoSpeculativeExecutionPolicy.Instance,
                         new AtomicMonotonicTimestampGenerator(),
                         null);
                 });
@@ -227,17 +227,17 @@ namespace Cassandra.Tests.Requests
             await mockResult.Session.GetOrCreateConnectionPool(queryPlan[2], HostDistance.Local).Warmup().ConfigureAwait(false);
             var pools = mockResult.Session.GetPools().ToList();
             Assert.AreEqual(3, pools.Count);
-            
+
             var distanceCount = Interlocked.Read(ref lbpCluster.DistanceCount);
             var request = new InternalPrepareRequest(_serializer, "TEST", null, null);
 
             await mockResult.PrepareHandler.Prepare(
-                request, 
-                mockResult.Session, 
+                request,
+                mockResult.Session,
                 queryPlan.GetEnumerator()).ConfigureAwait(false);
 
             var results = mockResult.SendResults.ToArray();
-            
+
             pools = mockResult.Session.GetPools().ToList();
             Assert.AreEqual(3, pools.Count);
             Assert.AreEqual(3, results.Length);
@@ -255,7 +255,7 @@ namespace Cassandra.Tests.Requests
                 Mock.Get(pool.Single()).Verify(c => c.Send(request), Times.Once);
             }
         }
-        
+
         [Test]
         public async Task Should_SendRequestToAllHosts_When_AllHostsHaveConnectionsButFirstHostDoesntHavePool()
         {
@@ -270,10 +270,10 @@ namespace Cassandra.Tests.Requests
                     builder.SocketOptions =
                         new SocketOptions().SetReadTimeoutMillis(10);
                     builder.Policies = new Cassandra.Policies(
-                        lbpCluster, 
-                        new ConstantReconnectionPolicy(5), 
-                        new DefaultRetryPolicy(), 
-                        NoSpeculativeExecutionPolicy.Instance, 
+                        lbpCluster,
+                        new ConstantReconnectionPolicy(5),
+                        new DefaultRetryPolicy(),
+                        NoSpeculativeExecutionPolicy.Instance,
                         new AtomicMonotonicTimestampGenerator(),
                         null);
                 });
@@ -304,12 +304,12 @@ namespace Cassandra.Tests.Requests
             var request = new InternalPrepareRequest(_serializer, "TEST", null, null);
 
             await mockResult.PrepareHandler.Prepare(
-                request, 
-                mockResult.Session, 
+                request,
+                mockResult.Session,
                 queryPlan.GetEnumerator()).ConfigureAwait(false);
 
             var results = mockResult.SendResults.ToArray();
-            
+
             pools = mockResult.Session.GetPools().ToList();
             Assert.AreEqual(3, pools.Count);
             Assert.AreEqual(3, results.Length);
@@ -327,7 +327,7 @@ namespace Cassandra.Tests.Requests
                 Mock.Get(pool.Single()).Verify(c => c.Send(request), Times.Once);
             }
         }
-        
+
         [Test]
         public async Task Should_SendRequestToAllHosts_When_AllHostsHaveConnectionsButFirstHostPoolDoesntHaveConnections()
         {
@@ -342,10 +342,10 @@ namespace Cassandra.Tests.Requests
                     builder.SocketOptions =
                         new SocketOptions().SetReadTimeoutMillis(10);
                     builder.Policies = new Cassandra.Policies(
-                        lbpCluster, 
-                        new ConstantReconnectionPolicy(5), 
-                        new DefaultRetryPolicy(), 
-                        NoSpeculativeExecutionPolicy.Instance, 
+                        lbpCluster,
+                        new ConstantReconnectionPolicy(5),
+                        new DefaultRetryPolicy(),
+                        NoSpeculativeExecutionPolicy.Instance,
                         new AtomicMonotonicTimestampGenerator(),
                         null);
                 });
@@ -376,12 +376,12 @@ namespace Cassandra.Tests.Requests
             var request = new InternalPrepareRequest(_serializer, "TEST", null, null);
 
             await mockResult.PrepareHandler.Prepare(
-                request, 
-                mockResult.Session, 
+                request,
+                mockResult.Session,
                 queryPlan.GetEnumerator()).ConfigureAwait(false);
 
             var results = mockResult.SendResults.ToArray();
-            
+
             pools = mockResult.Session.GetPools().ToList();
             Assert.AreEqual(3, pools.Count);
             Assert.AreEqual(3, results.Length);
@@ -399,7 +399,7 @@ namespace Cassandra.Tests.Requests
                 Mock.Get(pool.Single()).Verify(c => c.Send(request), Times.Once);
             }
         }
-        
+
         [Test]
         public async Task Should_SendRequestToFirstHostOnly_When_PrepareOnAllHostsIsFalseAndAllHostsHaveConnectionsButFirstHostPoolDoesntHaveConnections()
         {
@@ -415,10 +415,10 @@ namespace Cassandra.Tests.Requests
                     builder.SocketOptions =
                         new SocketOptions().SetReadTimeoutMillis(10);
                     builder.Policies = new Cassandra.Policies(
-                        lbpCluster, 
-                        new ConstantReconnectionPolicy(5), 
-                        new DefaultRetryPolicy(), 
-                        NoSpeculativeExecutionPolicy.Instance, 
+                        lbpCluster,
+                        new ConstantReconnectionPolicy(5),
+                        new DefaultRetryPolicy(),
+                        NoSpeculativeExecutionPolicy.Instance,
                         new AtomicMonotonicTimestampGenerator(),
                         null);
                 });
@@ -449,12 +449,12 @@ namespace Cassandra.Tests.Requests
             var request = new InternalPrepareRequest(_serializer, "TEST", null, null);
 
             await mockResult.PrepareHandler.Prepare(
-                request, 
-                mockResult.Session, 
+                request,
+                mockResult.Session,
                 queryPlan.GetEnumerator()).ConfigureAwait(false);
 
             var results = mockResult.SendResults.ToArray();
-            
+
             pools = mockResult.Session.GetPools().ToList();
             Assert.AreEqual(3, pools.Count);
             Assert.AreEqual(1, results.Length);
@@ -465,7 +465,7 @@ namespace Cassandra.Tests.Requests
             Assert.LessOrEqual(1, mockResult.ConnectionFactory.CreatedConnections[queryPlan[1].Address].Count);
             Assert.LessOrEqual(1, mockResult.ConnectionFactory.CreatedConnections[queryPlan[2].Address].Count);
             // Assert that pool of first host contains only one connection that was called send
-            var poolConnections = 
+            var poolConnections =
                 pools
                     .Select(p => p.Value.ConnectionsSnapshot.Intersect(results.Select(r => r.Connection)))
                     .Where(p => mockResult.ConnectionFactory.CreatedConnections[queryPlan[0].Address].Contains(p.SingleOrDefault()))
@@ -476,7 +476,7 @@ namespace Cassandra.Tests.Requests
                 Mock.Get(pool.Single()).Verify(c => c.Send(request), Times.Once);
             }
         }
-        
+
         private PrepareHandlerMockResult BuildPrepareHandler(Action<TestConfigurationBuilder> configBuilderAct)
         {
             var factory = new FakeConnectionFactory(MockConnection);
@@ -504,7 +504,7 @@ namespace Cassandra.Tests.Requests
             var cluster = Cluster.BuildFrom(initializerMock, new List<string>());
             cluster.Connect();
             factory.CreatedConnections.Clear();
-            
+
             // create session
             var session = new Session(cluster, config, null, SerializerManager.Default, null);
 
@@ -513,21 +513,21 @@ namespace Cassandra.Tests.Requests
 
             // create mock result object
             var mockResult = new PrepareHandlerMockResult(prepareHandler, session, factory);
-            
+
             return mockResult;
         }
 
         private IConnection MockConnection(IPEndPoint endpoint)
         {
             var connection = Mock.Of<IConnection>();
-            
+
             Mock.Get(connection)
                 .SetupGet(c => c.EndPoint)
                 .Returns(new ConnectionEndPoint(endpoint, new ServerNameResolver(new ProtocolOptions()), null));
 
             return connection;
         }
-        
+
         private class ConnectionSendResult
         {
             public IRequest Request { get; set; }

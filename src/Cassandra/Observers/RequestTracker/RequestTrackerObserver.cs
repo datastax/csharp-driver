@@ -34,7 +34,7 @@ namespace Cassandra.Observers.RequestTracker
         public Task OnNodeRequestErrorAsync(
             RequestErrorType errorType,
             RetryDecision.RetryDecisionType decision,
-            SessionRequestInfo r, 
+            SessionRequestInfo r,
             NodeRequestInfo nodeRequestInfo,
             Exception ex)
         {

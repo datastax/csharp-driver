@@ -47,7 +47,7 @@ namespace Cassandra.Tests.DataStax.Insights
 
             Assert.IsFalse(target.SupportsInsights(cluster));
         }
-        
+
         [Test]
         public void Should_ReturnTrue_When_OneNode_6_1_0_AndOneNode_6_0_5()
         {
@@ -58,7 +58,7 @@ namespace Cassandra.Tests.DataStax.Insights
 
             Assert.IsTrue(target.SupportsInsights(cluster));
         }
-        
+
         [Test]
         public void Should_ReturnTrue_When_TwoNodes_6_0_5()
         {
@@ -69,7 +69,7 @@ namespace Cassandra.Tests.DataStax.Insights
 
             Assert.IsTrue(target.SupportsInsights(cluster));
         }
-        
+
         [Test]
         public void Should_ReturnFalse_When_TwoNodes_6_0_4()
         {
@@ -91,7 +91,7 @@ namespace Cassandra.Tests.DataStax.Insights
 
             Assert.IsFalse(target.SupportsInsights(cluster));
         }
-        
+
         [Test]
         public void Should_ReturnTrue_When_OneNode5_1_13()
         {
@@ -102,7 +102,7 @@ namespace Cassandra.Tests.DataStax.Insights
 
             Assert.IsTrue(target.SupportsInsights(cluster));
         }
-        
+
         [Test]
         public void Should_ReturnTrue_When_OneNode5_2_0()
         {
@@ -124,7 +124,7 @@ namespace Cassandra.Tests.DataStax.Insights
 
             Assert.IsTrue(target.SupportsInsights(cluster));
         }
-        
+
         [Test]
         public void Should_ReturnTrue_When_OneNode6_0_5_alpha()
         {
@@ -135,7 +135,7 @@ namespace Cassandra.Tests.DataStax.Insights
 
             Assert.IsTrue(target.SupportsInsights(cluster));
         }
-        
+
         [Test]
         public void Should_ReturnFalse_When_OneNode6_0_4()
         {

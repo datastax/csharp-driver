@@ -22,7 +22,7 @@ namespace Cassandra.IntegrationTests.TestDataTypes
     {
         public const string CreateUdtCql =
             "CREATE TYPE phone (alias text, number text, country_code int, verified_at timestamp, phone_type text)";
-        
+
         public string Alias { get; set; }
 
         public string Number { get; set; }

@@ -30,12 +30,12 @@ namespace Cassandra
     /// </summary>
     public class PreparedStatementIdMismatchException : DriverException
     {
-        public PreparedStatementIdMismatchException(byte[] originalId, byte[] outputId) 
-            : base("ID mismatch while trying to reprepare (expected " 
-                   + $"{BitConverter.ToString(originalId).Replace("-", "")}, " 
-                   + $"got {BitConverter.ToString(outputId).Replace("-", "")}). " 
-                   + "This prepared statement won't work anymore. " 
-                   + "This usually happens when you run a 'USE...' query after " 
+        public PreparedStatementIdMismatchException(byte[] originalId, byte[] outputId)
+            : base("ID mismatch while trying to reprepare (expected "
+                   + $"{BitConverter.ToString(originalId).Replace("-", "")}, "
+                   + $"got {BitConverter.ToString(outputId).Replace("-", "")}). "
+                   + "This prepared statement won't work anymore. "
+                   + "This usually happens when you run a 'USE...' query after "
                    + "the statement was prepared.")
         {
             Id = originalId;

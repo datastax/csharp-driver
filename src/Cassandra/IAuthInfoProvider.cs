@@ -27,7 +27,7 @@ namespace Cassandra
     /// </summary>
     /// 
     internal interface IAuthInfoProvider
-        // only for protocol V1 Credentials support
+    // only for protocol V1 Credentials support
     {
         /// <summary>
         ///  The authentication informations to use to connect to <c>host</c>.

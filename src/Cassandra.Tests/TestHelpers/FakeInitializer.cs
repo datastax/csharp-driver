@@ -28,7 +28,7 @@ namespace Cassandra.Tests.TestHelpers
         {
             _config = config;
         }
-        
+
         public FakeInitializer(Configuration config, IEnumerable<IPEndPoint> endpts)
         {
             _config = config;

@@ -30,7 +30,7 @@ namespace Cassandra.Serialization.Graph.GraphSON2
             _typeKey = typeKey;
             _prefix = prefix;
         }
-        
+
         public Dictionary<string, dynamic> Dictify(dynamic objectData, IGraphSONWriter writer)
         {
             return GraphSONUtil.ToTypedValue(_typeKey, objectData == null ? null : ToString(objectData), _prefix);
@@ -51,7 +51,7 @@ namespace Cassandra.Serialization.Graph.GraphSON2
         {
             return token.ToObject<string>();
         }
-        
+
         protected abstract string ToString(dynamic obj);
 
         protected abstract dynamic FromString(string str);

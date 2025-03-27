@@ -19,7 +19,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Data;
 using System.Data.Common;
-﻿using System.Text.RegularExpressions;
+using System.Text.RegularExpressions;
 using System.Threading;
 
 namespace Cassandra.Data
@@ -67,7 +67,8 @@ namespace Cassandra.Data
         /// <summary>
         /// Gets whether this command has been prepared.
         /// </summary>
-        public bool IsPrepared {
+        public bool IsPrepared
+        {
             get { return Parameters.Count == 0 || _preparedStatement != null; }
         }
 
@@ -160,12 +161,12 @@ namespace Cassandra.Data
             }
             else //if _preparedStatement != null
             {
-                
+
                 var query = _preparedStatement.Bind(GetParameterValues());
                 query.SetConsistencyLevel(ConsistencyLevel);
                 rowSet = CqlConnection.ManagedConnection.Execute(query);
             }
-            
+
             return new CqlReader(rowSet);
         }
 

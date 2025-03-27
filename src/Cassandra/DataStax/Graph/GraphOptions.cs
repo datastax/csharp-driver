@@ -34,13 +34,13 @@ namespace Cassandra.DataStax.Graph
         /// Default value for graph language.
         /// </summary>
         public const string DefaultLanguage = GraphOptions.GremlinGroovy;
-        
+
         /// <summary>
         /// Default value for graph language.
         /// </summary>
         internal const string BytecodeJson = "bytecode-json";
 
-        
+
         internal const string GremlinGroovy = "gremlin-groovy";
 
         /// <summary>
@@ -115,7 +115,7 @@ namespace Cassandra.DataStax.Graph
                 {
                     return null;
                 }
-                return (ConsistencyLevel) value;
+                return (ConsistencyLevel)value;
             }
         }
 
@@ -156,7 +156,7 @@ namespace Cassandra.DataStax.Graph
         /// </item>
         /// </list>
         /// </summary>
-        public GraphProtocol? GraphProtocolVersion => (GraphProtocol?) _nullableGraphProtocol;
+        public GraphProtocol? GraphProtocolVersion => (GraphProtocol?)_nullableGraphProtocol;
 
         /// <summary>
         /// Gets the consistency level used for read queries
@@ -307,7 +307,7 @@ namespace Cassandra.DataStax.Graph
                 {
                     //The user has not used the graph settings at statement level
                     //Or is a system query but there isn't a name defined at GraphOptions level
-                    return _defaultPayload;   
+                    return _defaultPayload;
                 }
             }
             var payload = new Dictionary<string, byte[]>();
@@ -384,7 +384,7 @@ namespace Cassandra.DataStax.Graph
             if (GraphProtocolVersion != null)
             {
                 payload.Add(
-                    PayloadKey.Results, 
+                    PayloadKey.Results,
                     GraphOptions.ToUtf8Buffer(GraphProtocolVersion.Value.GetInternalRepresentation()));
             }
             _defaultPayload = payload;
@@ -408,7 +408,7 @@ namespace Cassandra.DataStax.Graph
         private static byte[] ToBuffer(long value)
         {
             var serializer = Serialization.TypeSerializer.PrimitiveLongSerializer;
-            return serializer.Serialize((ushort) Cluster.MaxProtocolVersion, value);
+            return serializer.Serialize((ushort)Cluster.MaxProtocolVersion, value);
         }
     }
 }

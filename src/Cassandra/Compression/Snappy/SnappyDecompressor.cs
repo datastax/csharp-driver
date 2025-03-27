@@ -160,11 +160,11 @@ namespace Snappy
             {
                 int opCode = SnappyInternalUtils.LoadByte(input, ipIndex++);
                 int entry = SnappyInternalUtils.LookupShort(_opLookupTable, opCode);
-                var trailerBytes = (int) ((uint) entry >> 11);
+                var trailerBytes = (int)((uint)entry >> 11);
                 int trailer = ReadTrailer(input, ipIndex, trailerBytes);
 
                 // advance the ipIndex past the op codes
-                ipIndex += (int) ((uint) entry >> 11);
+                ipIndex += (int)((uint)entry >> 11);
                 int length = entry & 0xff;
 
                 if ((opCode & 0x3) == Literal)
@@ -268,7 +268,7 @@ namespace Snappy
             // read the op code
             int opCode = SnappyInternalUtils.LoadByte(input, ipIndex++);
             int entry = SnappyInternalUtils.LookupShort(_opLookupTable, opCode);
-            var trailerBytes = (int) ((uint) entry >> 11);
+            var trailerBytes = (int)((uint)entry >> 11);
             //
             // Key difference here
             //
@@ -335,7 +335,7 @@ namespace Snappy
                 }
                 opIndex += length;
             }
-            return new[] {ipIndex, opIndex};
+            return new[] { ipIndex, opIndex };
         }
 
         private static int ReadTrailer(byte[] data, int index, int bytes)
@@ -360,7 +360,7 @@ namespace Snappy
             }
             else
             {
-                var fastLength = (int) (((uint) length) & 0xFFFFFFF8);
+                var fastLength = (int)(((uint)length) & 0xFFFFFFF8);
                 if (fastLength <= 64)
                 {
                     // copy long-by-long
@@ -454,7 +454,7 @@ namespace Snappy
                     }
                 }
             }
-            return new[] {result, bytesRead};
+            return new[] { result, bytesRead };
         }
     }
 }

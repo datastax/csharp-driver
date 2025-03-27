@@ -40,7 +40,7 @@ namespace Cassandra.Tests
             })
             {
                 ActivitySource.AddActivityListener(listener);
-                
+
                 var cassandraInstrumentationOptions = new CassandraInstrumentationOptions { IncludeDatabaseStatement = true };
                 var requestTracker = new OpenTelemetryRequestTracker(cassandraInstrumentationOptions);
                 IStatement statement = null;
@@ -97,7 +97,7 @@ namespace Cassandra.Tests
 
                 var cassandraInstrumentationOptions = new CassandraInstrumentationOptions { IncludeDatabaseStatement = true };
                 var requestTracker = new OpenTelemetryRequestTracker(cassandraInstrumentationOptions);
-                
+
                 IStatement statement = null;
                 var requestTrackingInfo = new SessionRequestInfo(statement, null);
 
@@ -130,10 +130,10 @@ namespace Cassandra.Tests
 
                 var cassandraInstrumentationOptions = new CassandraInstrumentationOptions { IncludeDatabaseStatement = true };
                 var requestTracker = new OpenTelemetryRequestTracker(cassandraInstrumentationOptions);
-                
+
                 IStatement statement = null;
                 var requestTrackingInfo = new SessionRequestInfo(statement, null);
-                
+
                 var host = new Host(new System.Net.IPEndPoint(1, 9042), new ConstantReconnectionPolicy(1));
                 var hostTrackingInfo = new NodeRequestInfo(host, null);
 

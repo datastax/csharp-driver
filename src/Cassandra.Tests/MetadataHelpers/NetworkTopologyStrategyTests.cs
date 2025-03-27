@@ -68,7 +68,7 @@ namespace Cassandra.Tests.MetadataHelpers
             };
             Assert.False(NetworkTopologyStrategy.AreReplicationFactorsSatisfied(ksReplicationFactor, replicasByDc, datacenters));
         }
-        
+
         [Test]
         public void AreReplicationFactorsSatisfied_Should_ReturnTrue_When_OnlyFullReplicas()
         {
@@ -93,7 +93,7 @@ namespace Cassandra.Tests.MetadataHelpers
             };
             Assert.True(NetworkTopologyStrategy.AreReplicationFactorsSatisfied(ksReplicationFactor, replicasByDc, datacenters));
         }
-        
+
         [Test]
         public void AreReplicationFactorsSatisfied_Should_ReturnFalse_When_LessReplicasThanRf()
         {
@@ -118,7 +118,7 @@ namespace Cassandra.Tests.MetadataHelpers
             };
             Assert.False(NetworkTopologyStrategy.AreReplicationFactorsSatisfied(ksReplicationFactor, replicasByDc, datacenters));
         }
-        
+
         [Test]
         public void Should_ReturnAppropriateReplicasPerDcPerToken()
         {
@@ -133,7 +133,7 @@ namespace Cassandra.Tests.MetadataHelpers
 
             var result = target.ComputeTokenToReplicaMap(
                 testData.Ring, testData.PrimaryReplicas, testData.NumberOfHostsWithTokens, testData.Datacenters);
-            
+
             // 3 dcs, 3 hosts per rack, 3 racks per dc, 10 tokens per host
             Assert.AreEqual(10 * 3 * 3 * 3, result.Count);
 
@@ -143,7 +143,7 @@ namespace Cassandra.Tests.MetadataHelpers
                 Assert.AreEqual(2 + 2 + 1, token.Value.Count);
             }
         }
-        
+
         [Test]
         public void Should_ReturnEqualsTrueAndSameHashCode_When_BothStrategiesHaveSameReplicationSettings()
         {
@@ -167,7 +167,7 @@ namespace Cassandra.Tests.MetadataHelpers
             Assert.IsTrue(target2.Equals(target1));
             Assert.AreEqual(target1, target2);
         }
-        
+
         [Test]
         public void Should_NotReturnEqualsTrue_When_StrategiesHaveDifferentReplicationFactors()
         {
@@ -185,13 +185,13 @@ namespace Cassandra.Tests.MetadataHelpers
                     { "dc1", ReplicationFactor.Parse("2") },
                     { "dc2", ReplicationFactor.Parse("3/2") }
                 });
-            
+
             Assert.AreNotEqual(target1.GetHashCode(), target2.GetHashCode());
             Assert.IsFalse(target1.Equals(target2));
             Assert.IsFalse(target2.Equals(target1));
             Assert.AreNotEqual(target1, target2);
         }
-        
+
         [Test]
         public void Should_NotReturnEqualsTrue_When_StrategiesHaveDifferentDatacenters()
         {
@@ -206,7 +206,7 @@ namespace Cassandra.Tests.MetadataHelpers
                 {
                     { "dc1", ReplicationFactor.Parse("2") },
                 });
-            
+
             Assert.AreNotEqual(target1.GetHashCode(), target2.GetHashCode());
             Assert.IsFalse(target1.Equals(target2));
             Assert.IsFalse(target2.Equals(target1));

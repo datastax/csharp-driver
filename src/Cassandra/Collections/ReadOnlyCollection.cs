@@ -31,7 +31,7 @@ namespace Cassandra.Collections
         {
             _items = items ?? throw new ArgumentNullException(nameof(items));
         }
-        
+
         public IEnumerator<T> GetEnumerator()
         {
             return _items.GetEnumerator();

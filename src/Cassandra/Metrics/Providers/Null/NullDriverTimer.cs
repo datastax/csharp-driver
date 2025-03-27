@@ -26,7 +26,7 @@ namespace Cassandra.Metrics.Providers.Null
         private NullDriverTimer()
         {
         }
-        
+
         public void Record(long elapsedNanoseconds)
         {
         }

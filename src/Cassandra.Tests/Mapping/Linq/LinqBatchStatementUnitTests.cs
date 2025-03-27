@@ -50,7 +50,7 @@ namespace Cassandra.Tests.Mapping.Linq
             batch.Append(deleteCqls);
 
             batch.Execute();
-            
+
             Assert.NotNull(statement);
             Assert.AreEqual(batchType ?? BatchType.Logged, statement.BatchType);
             Assert.AreEqual(deleteGuids.Count, statement.Queries.Count);

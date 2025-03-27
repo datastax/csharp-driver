@@ -60,7 +60,7 @@ namespace Cassandra.Mapping.Attributes
         /// </summary>
         public TableAttribute()
         {
-            
+
         }
 
         /// <summary>

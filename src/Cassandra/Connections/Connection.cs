@@ -147,7 +147,7 @@ namespace Cassandra.Connections
         {
             get { return Interlocked.Read(ref _disposed) > 0L; }
         }
-        
+
         /// <summary>
         /// Gets the current keyspace.
         /// </summary>
@@ -179,7 +179,7 @@ namespace Cassandra.Connections
             _connectionObserver = connectionObserver;
             _timerEnabled = configuration.MetricsEnabled
                             && configuration.MetricsOptions.EnabledNodeMetrics.Contains(NodeMetric.Timers.CqlMessages);
-            
+
             _freeOperations = new ConcurrentStack<short>(Enumerable.Range(0, GetMaxConcurrentRequests(Serializer)).Select(s => (short)s).Reverse());
             _pendingOperations = new ConcurrentDictionary<short, OperationState>();
             _writeQueue = new ConcurrentQueue<OperationState>();
@@ -326,8 +326,8 @@ namespace Cassandra.Connections
             {
                 if (ex == null || ex is ObjectDisposedException)
                 {
-                    ex = socketError != null 
-                        ? new SocketException((int)socketError.Value) 
+                    ex = socketError != null
+                        ? new SocketException((int)socketError.Value)
                         : new SocketException((int)SocketError.NotConnected);
                 }
 
@@ -363,7 +363,7 @@ namespace Cassandra.Connections
                 InternalDispose();
             }
         }
-        
+
         private void OnSocketError(Exception ex, SocketError? socketError)
         {
             CloseInternal(ex, socketError, false);
@@ -510,7 +510,7 @@ namespace Cassandra.Connections
             }
             throw new DriverInternalError("Expected READY or AUTHENTICATE, obtained " + response.GetType().Name);
         }
-        
+
         private void ReadHandler(byte[] buffer, int bytesReceived)
         {
             if (_isClosed)
@@ -831,7 +831,7 @@ namespace Cassandra.Connections
                     return null;
                 }
             }
-            
+
             _writeQueue.Enqueue(state);
             RunWriteQueue();
             return state;

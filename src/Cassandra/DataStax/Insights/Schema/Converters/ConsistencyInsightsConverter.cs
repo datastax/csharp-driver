@@ -36,7 +36,7 @@ namespace Cassandra.DataStax.Insights.Schema.Converters
                 { ConsistencyLevel.Two, "TWO" }
             };
 
-        protected override IReadOnlyDictionary<ConsistencyLevel, string> EnumToJsonValueMap => 
+        protected override IReadOnlyDictionary<ConsistencyLevel, string> EnumToJsonValueMap =>
             ConsistencyInsightsConverter.ConsistencyLevelStringMap;
     }
 }

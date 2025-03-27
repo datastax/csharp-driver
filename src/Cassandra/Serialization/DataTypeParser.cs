@@ -126,7 +126,7 @@ namespace Cassandra.Serialization
                 TypeCode = ColumnTypeCode.Custom
             };
             var trimmedTypeName = typeName.Trim();
-            length -= typeName.Length-trimmedTypeName.Length;
+            length -= typeName.Length - trimmedTypeName.Length;
             typeName = trimmedTypeName;
             if (length > ReversedTypeName.Length && typeName.IndexOf(ReversedTypeName, startIndex, comparison) == startIndex)
             {

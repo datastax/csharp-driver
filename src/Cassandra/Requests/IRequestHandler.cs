@@ -50,7 +50,7 @@ namespace Cassandra.Requests
         Task SetNoMoreHostsAsync(NoHostAvailableException ex, IRequestExecution execution);
 
         bool HasCompleted();
-        
+
         /// <summary>
         /// Gets the next valid host for the purpose of obtaining a connection.
         /// </summary>

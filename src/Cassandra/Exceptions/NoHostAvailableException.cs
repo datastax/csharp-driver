@@ -36,7 +36,7 @@ namespace Cassandra
     {
         private const string StartMessage = "All hosts tried for query failed (tried ";
         private const int MaxTriedInfo = 2;
-        
+
         /// <summary>
         ///  Gets the hosts tried along with descriptions of the error encountered while trying them. 
         /// </summary>
@@ -55,7 +55,7 @@ namespace Cassandra
         {
             Errors = new Dictionary<IPEndPoint, Exception>(0);
         }
-        
+
         /// <summary>
         /// Creates a new instance of NoHostAvailableException with a custom message, an empty error dictionary and an inner exception. 
         /// </summary>
@@ -63,11 +63,11 @@ namespace Cassandra
         {
             Errors = new Dictionary<IPEndPoint, Exception>(0);
         }
-        
+
         protected NoHostAvailableException(SerializationInfo info, StreamingContext context) :
             base(info, context)
         {
-            
+
         }
 
         private static string CreateMessage(Dictionary<IPEndPoint, Exception> errors)
@@ -82,7 +82,7 @@ namespace Cassandra
             {
                 if (!first)
                 {
-                    builder.Append("; ");   
+                    builder.Append("; ");
                 }
                 builder.Append(kv.Key);
                 if (kv.Value != null)
@@ -91,7 +91,7 @@ namespace Cassandra
                     builder.Append(kv.Value.GetType().Name);
                     builder.Append(" '");
                     builder.Append(kv.Value.Message);
-                    builder.Append("'");   
+                    builder.Append("'");
                 }
                 first = false;
             }

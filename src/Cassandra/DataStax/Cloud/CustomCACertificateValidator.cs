@@ -149,7 +149,7 @@ namespace Cassandra.DataStax.Cloud
                 // clone CA object because on Mono it gets reset for some reason after using it to build a new chain
                 var clonedCa = new X509Certificate2(_trustedRootCertificateAuthority);
                 chain.ChainPolicy.ExtraStore.Add(clonedCa);
-                
+
                 GetOrCreateCert2(ref cert2, cert);
                 if (!chain.Build(cert2))
                 {

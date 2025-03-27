@@ -75,7 +75,7 @@ namespace Cassandra.Tests.Requests
 
             Assert.AreEqual(expected, actual);
         }
-        
+
         [TestCase(GraphProtocol.GraphSON1, "ks2", null, null)]
         [TestCase(GraphProtocol.GraphSON3, "ks2", "ks2", null)]
         [TestCase(GraphProtocol.GraphSON3, "ks2", null, "ks2")]
@@ -117,7 +117,7 @@ namespace Cassandra.Tests.Requests
 
             Assert.AreEqual(expected, actual);
         }
-        
+
         [Test]
         public void Should_CacheSerializerInstances_When_SameParametersAreUsed()
         {
@@ -126,7 +126,7 @@ namespace Cassandra.Tests.Requests
 
             var deserializers1 = new Dictionary<string, IGraphSONDeserializer>
             { { "byte", new ByteBufferDeserializer() } };
-            
+
             var deserializers2 = new Dictionary<string, IGraphSONDeserializer>
             { { "duration", new Duration2Serializer() } };
 
@@ -213,29 +213,29 @@ namespace Cassandra.Tests.Requests
 
             // unique configurations
             keyspaces.AddOrUpdate(
-                keyspace, 
-                FakeSchemaParserFactory.CreateSimpleKeyspace(keyspace, 2, graphEngine: coreEngine ? "Core" : null), 
+                keyspace,
+                FakeSchemaParserFactory.CreateSimpleKeyspace(keyspace, 2, graphEngine: coreEngine ? "Core" : null),
                 (s, keyspaceMetadata) => keyspaceMetadata);
-            
+
             var schemaParser = new FakeSchemaParser(keyspaces);
             var config = new TestConfigurationBuilder
             {
                 ConnectionFactory = new FakeConnectionFactory()
             }.Build();
-            
-            var metadata = new Metadata(config, schemaParser) {Partitioner = "Murmur3Partitioner"};
+
+            var metadata = new Metadata(config, schemaParser) { Partitioner = "Murmur3Partitioner" };
 
             var cluster = Mock.Of<ICluster>();
             Mock.Get(cluster).SetupGet(c => c.Metadata).Returns(metadata);
 
             var session = Mock.Of<IInternalSession>();
             Mock.Get(session).SetupGet(s => s.Cluster).Returns(cluster);
-            
+
             metadata.ControlConnection = new ControlConnection(
                 Mock.Of<IInternalCluster>(),
-                new ProtocolEventDebouncer(new TaskBasedTimerFactory(), TimeSpan.FromMilliseconds(20), TimeSpan.FromSeconds(100)), 
-                ProtocolVersion.V3, 
-                config, 
+                new ProtocolEventDebouncer(new TaskBasedTimerFactory(), TimeSpan.FromMilliseconds(20), TimeSpan.FromSeconds(100)),
+                ProtocolVersion.V3,
+                config,
                 metadata,
                 new List<IContactPoint>
                 {

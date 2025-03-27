@@ -23,11 +23,11 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.Models.Logs
     {
         [JsonProperty("query")]
         public string Query { get; set; }
-        
+
         [JsonProperty("consistency_level")]
         [JsonConverter(typeof(ConsistencyLevelEnumConverter))]
         public ConsistencyLevel? ConsistencyLevel { get; set; }
-        
+
         [JsonProperty("serial_consistency_level")]
         [JsonConverter(typeof(ConsistencyLevelEnumConverter))]
         public ConsistencyLevel? SerialConsistencyLevel { get; set; }
@@ -37,17 +37,17 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.Models.Logs
 
         [JsonProperty("received_timestamp")]
         public long ReceivedTimestamp { get; set; }
-        
+
         [JsonProperty("client_timestamp")]
         public long ClientTimestamp { get; set; }
-        
+
         [JsonProperty("primed")]
         public bool Primed { get; set; }
-        
+
         [JsonProperty("type")]
         [JsonConverter(typeof(QueryTypeEnumConverter))]
         public QueryType? Type { get; set; }
-        
+
         [JsonProperty("frame")]
         public Frame Frame { get; set; }
     }

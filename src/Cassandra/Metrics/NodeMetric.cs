@@ -34,7 +34,7 @@ namespace Cassandra.Metrics
 
                 Gauges.OpenConnections,
                 Gauges.InFlight,
-            
+
                 Counters.SpeculativeExecutions,
                 Counters.AuthenticationErrors,
                 Counters.ConnectionInitErrors,
@@ -59,7 +59,7 @@ namespace Cassandra.Metrics
                 Counters.IgnoresOnWriteTimeout,
                 Counters.Ignores
             };
-            
+
             NodeMetric.AllNodeMetrics = NodeMetric.DefaultNodeMetrics.Union(new[] { NodeMetric.Timers.CqlMessages }).ToList();
         }
 
@@ -137,22 +137,22 @@ namespace Cassandra.Metrics
             /// Connection authentication errors.
             /// </summary>
             public static readonly NodeMetric AuthenticationErrors = new NodeMetric("errors.connection.auth");
-            
+
             /// <summary>
             /// Retried attempts on read timeouts due to the retry policy.
             /// </summary>
             public static readonly NodeMetric RetriesOnReadTimeout = new NodeMetric("retries.read-timeout");
-            
+
             /// <summary>
             /// Retried attempts on write timeouts due to the retry policy.
             /// </summary>
             public static readonly NodeMetric RetriesOnWriteTimeout = new NodeMetric("retries.write-timeout");
-            
+
             /// <summary>
             /// Retried attempts on unavailable errors due to the retry policy.
             /// </summary>
             public static readonly NodeMetric RetriesOnUnavailable = new NodeMetric("retries.unavailable");
-            
+
             /// <summary>
             /// Retried attempts on errors other than read timeouts, write timeouts and unavailable errors due to the retry policy.
             /// </summary>
@@ -162,62 +162,62 @@ namespace Cassandra.Metrics
             /// Total retry attempts due to the retry policy.
             /// </summary>
             public static readonly NodeMetric Retries = new NodeMetric("retries.total");
-            
+
             /// <summary>
             /// Ignored read timeouts due to the retry policy.
             /// </summary>
             public static readonly NodeMetric IgnoresOnReadTimeout = new NodeMetric("ignores.read-timeout");
-            
+
             /// <summary>
             /// Ignored write timeouts due to the retry policy.
             /// </summary>
             public static readonly NodeMetric IgnoresOnWriteTimeout = new NodeMetric("ignores.write-timeout");
-            
+
             /// <summary>
             /// Ignored unavailable errors due to the retry policy.
             /// </summary>
             public static readonly NodeMetric IgnoresOnUnavailable = new NodeMetric("ignores.unavailable");
-            
+
             /// <summary>
             /// Ignored errors other than read timeouts, write timeouts and unavailable errors due to the retry policy.
             /// </summary>
             public static readonly NodeMetric IgnoresOnOtherError = new NodeMetric("ignores.other");
-            
+
             /// <summary>
             /// Total ignored errors due to the retry policy.
             /// </summary>
             public static readonly NodeMetric Ignores = new NodeMetric("ignores.total");
-            
+
             /// <summary>
             /// Number of server side read timeout errors.
             /// </summary>
             public static readonly NodeMetric ReadTimeouts = new NodeMetric("errors.request.read-timeouts");
-            
+
             /// <summary>
             /// Number of server side write timeout errors.
             /// </summary>
             public static readonly NodeMetric WriteTimeouts = new NodeMetric("errors.request.write-timeouts");
-            
+
             /// <summary>
             /// Number of server side unavailable errors.
             /// </summary>
             public static readonly NodeMetric UnavailableErrors = new NodeMetric("errors.request.unavailables");
-            
+
             /// <summary>
             /// Number of server side errors other than Unavailable, ReadTimeout or WriteTimeout.
             /// </summary>
             public static readonly NodeMetric OtherErrors = new NodeMetric("errors.request.others");
-            
+
             /// <summary>
             /// Number of failed requests without a server response.
             /// </summary>
             public static readonly NodeMetric AbortedRequests = new NodeMetric("errors.request.aborted");
-            
+
             /// <summary>
             /// Number of requests that failed before being sent to the server.
             /// </summary>
             public static readonly NodeMetric UnsentRequests = new NodeMetric("errors.request.unsent");
-            
+
             /// <summary>
             /// Number of failed requests due to socket timeout.
             /// </summary>
@@ -251,7 +251,7 @@ namespace Cassandra.Metrics
             /// Meter that tracks the number/rate of bytes sent.
             /// </summary>
             public static readonly NodeMetric BytesSent = new NodeMetric("bytes-sent");
-            
+
             /// <summary>
             /// Meter that tracks the number/rate of bytes received.
             /// </summary>

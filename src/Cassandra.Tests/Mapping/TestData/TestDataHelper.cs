@@ -61,7 +61,7 @@ namespace Cassandra.Tests.Mapping.TestData
 
             foreach (var v in values)
             {
-                var row = new Row(new object[] { v}, rs.Columns, columnIndexes);
+                var row = new Row(new object[] { v }, rs.Columns, columnIndexes);
                 rs.AddRow(row);
             }
             return rs;
@@ -72,7 +72,7 @@ namespace Cassandra.Tests.Mapping.TestData
         /// </summary>
         public static RowSet GetSingleValueRowSet<T>(string columnName, T value)
         {
-            return GetSingleColumnRowSet(columnName, new [] { value });
+            return GetSingleColumnRowSet(columnName, new[] { value });
         }
 
         public static RowSet CreateMultipleValuesRowSet<T>(string[] columnNames, T[] genericValues, int rowLength = 1)
@@ -83,7 +83,7 @@ namespace Cassandra.Tests.Mapping.TestData
             for (var i = 0; i < columnNames.Length; i++)
             {
                 var type = typeof(T);
-                if (type == typeof (Object))
+                if (type == typeof(Object))
                 {
                     //Try to guess by value
                     if (genericValues[i] == null)
@@ -109,7 +109,7 @@ namespace Cassandra.Tests.Mapping.TestData
                     .Select(v => (object)v)
                     .ToArray();
                 var row = new Row(values, rs.Columns, columnIndexes);
-                rs.AddRow(row);   
+                rs.AddRow(row);
             }
             return rs;
         }

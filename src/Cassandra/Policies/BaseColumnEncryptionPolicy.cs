@@ -25,7 +25,7 @@ namespace Cassandra
     /// </summary>
     /// <typeparam name="TKey">The type of the "key" object that is used by the implementations of this class. See an example of this in <see cref="AesColumnEncryptionPolicy"/>.
     /// This is only meant to provide some compile time type safety since the base interface works with the basic "object" type.</typeparam>
-    public abstract class BaseColumnEncryptionPolicy<TKey>: IColumnEncryptionPolicy
+    public abstract class BaseColumnEncryptionPolicy<TKey> : IColumnEncryptionPolicy
     {
         private readonly ConcurrentDictionary<ColMetadataKey, ColumnEncryptionMetadata> _colData = new ConcurrentDictionary<ColMetadataKey, ColumnEncryptionMetadata>();
 

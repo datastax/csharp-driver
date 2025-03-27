@@ -137,7 +137,7 @@ namespace Cassandra.Tests
                 Assert.AreEqual(new LocalTime(v.Item5), time);
             }
         }
-        
+
         [Test]
         [TestCase("pt-PT")]
         [TestCase("es-ES")]

@@ -90,7 +90,7 @@ namespace Cassandra.IntegrationTests.Metrics
                 _metricsRoot = null;
             }
         }
-        
+
         [Category(TestCategory.RealClusterLong)]
         [Test]
         public void Should_RemoveNodeMetricsAndDisposeMetricsContext_When_HostIsRemoved()
@@ -163,7 +163,7 @@ namespace Cassandra.IntegrationTests.Metrics
             Assert.True(context.IsNotEmpty());
             Assert.AreEqual(2, context.Gauges.Count());
         }
-        
+
         [Category(TestCategory.RealCluster)]
         [Test]
         public void Should_AllMetricsHaveValidValues_When_AllNodesAreUp()
@@ -223,7 +223,7 @@ namespace Cassandra.IntegrationTests.Metrics
             Assert.Greater(metrics.GetSessionMeter(SessionMetric.Meters.BytesReceived).GetValue().Count, 0);
             Assert.AreEqual(3, metrics.GetSessionGauge(SessionMetric.Gauges.ConnectedNodes).GetValue());
         }
-        
+
         [Category(TestCategory.RealCluster)]
         [Test]
         public void Should_DefaultMetricsHaveValidValuesAndTimersDisabled()
@@ -270,7 +270,7 @@ namespace Cassandra.IntegrationTests.Metrics
             Assert.Greater(metrics.GetSessionMeter(SessionMetric.Meters.BytesReceived).GetValue().Count, 0);
             Assert.AreEqual(3, metrics.GetSessionGauge(SessionMetric.Gauges.ConnectedNodes).GetValue());
         }
-        
+
         [Category(TestCategory.RealCluster)]
         [Test]
         public void Should_AllMetricsHaveValidValues_When_NodeIsDown()

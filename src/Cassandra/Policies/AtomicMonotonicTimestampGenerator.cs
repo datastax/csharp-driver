@@ -65,10 +65,10 @@ namespace Cassandra
         /// milliseconds. Use 0 to disable. Default: <c>1000</c>.
         /// </param>
         public AtomicMonotonicTimestampGenerator(
-            int warningThreshold = DefaultWarningThreshold, 
+            int warningThreshold = DefaultWarningThreshold,
             int minLogInterval = DefaultMinLogInterval) : this(warningThreshold, minLogInterval, Logger)
         {
-            
+
         }
 
         /// <summary>
@@ -97,7 +97,7 @@ namespace Cassandra
         {
             return (DateTime.UtcNow.Ticks - UnixEpochTicks) / TicksPerMicrosecond;
         }
-        
+
         /// <inheritdoc />
         public long Next()
         {
@@ -137,7 +137,7 @@ namespace Cassandra
                 // It drifted but not enough to log a warning
                 return;
             }
-            var warningTimestamp = DateTime.UtcNow.Ticks/TimeSpan.TicksPerMillisecond;
+            var warningTimestamp = DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond;
             var lastWarning = Volatile.Read(ref _lastWarning);
             if (warningTimestamp - lastWarning <= _minLogInterval)
             {

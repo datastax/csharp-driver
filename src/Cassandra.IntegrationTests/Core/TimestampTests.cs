@@ -28,7 +28,7 @@ namespace Cassandra.IntegrationTests.Core
     {
         public TimestampTests() : base(1, false)
         {
-            
+
         }
 
         [Test]

@@ -141,7 +141,7 @@ namespace Cassandra.Mapping
         /// </summary>
         public ColumnMap WithDbType<T>()
         {
-            _columnType = typeof (T);
+            _columnType = typeof(T);
             return this;
         }
 

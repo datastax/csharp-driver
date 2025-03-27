@@ -88,7 +88,7 @@ namespace Cassandra
         /// Creates a new instance of <see cref="WriteFailureException"/>.
         /// </summary>
         public WriteFailureException(ConsistencyLevel consistency, int received, int required, string writeType,
-                                     int failures) : base(string.Format(FailureMessage, 
+                                     int failures) : base(string.Format(FailureMessage,
                                         consistency.ToString().ToUpperInvariant(), required, received, failures))
         {
             ConsistencyLevel = consistency;

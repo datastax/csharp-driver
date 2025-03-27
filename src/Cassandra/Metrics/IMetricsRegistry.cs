@@ -30,12 +30,12 @@ namespace Cassandra.Metrics
         /// Dictionary with counter metrics.
         /// </summary>
         IReadOnlyDictionary<TMetric, IDriverCounter> Counters { get; }
-        
+
         /// <summary>
         /// Dictionary with gauge metrics.
         /// </summary>
         IReadOnlyDictionary<TMetric, IDriverGauge> Gauges { get; }
-        
+
         /// <summary>
         /// Dictionary with meter metrics.
         /// </summary>

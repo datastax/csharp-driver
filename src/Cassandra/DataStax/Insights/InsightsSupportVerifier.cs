@@ -31,7 +31,7 @@ namespace Cassandra.DataStax.Insights
             var allHosts = cluster.AllHosts();
             return allHosts.Count != 0 && allHosts.All(h => DseVersionSupportsInsights(h.DseVersion));
         }
-        
+
         public bool DseVersionSupportsInsights(Version dseVersion)
         {
             if (dseVersion == null)

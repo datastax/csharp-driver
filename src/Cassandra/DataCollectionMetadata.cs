@@ -66,7 +66,7 @@ namespace Cassandra
 
         protected DataCollectionMetadata()
         {
-   
+
         }
 
         internal void SetValues(IDictionary<string, TableColumn> columns, TableColumn[] partitionKeys, Tuple<TableColumn, SortOrder>[] clusteringKeys, TableOptions options)

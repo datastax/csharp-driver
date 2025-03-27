@@ -31,7 +31,7 @@ namespace Cassandra.DataStax.Auth.Sspi
     /// <summary>
     /// Stores information about a particular security package.
     /// </summary>
-    [StructLayout( LayoutKind.Sequential )]
+    [StructLayout(LayoutKind.Sequential)]
     internal class SecPkgInfo
     {
         /// <summary>
@@ -57,13 +57,13 @@ namespace Cassandra.DataStax.Auth.Sspi
         /// <summary>
         /// The human-readable name of the package.
         /// </summary>
-        [MarshalAs( UnmanagedType.LPWStr )]
+        [MarshalAs(UnmanagedType.LPWStr)]
         public string Name;
 
         /// <summary>
         /// A short description of the package.
         /// </summary>
-        [MarshalAs( UnmanagedType.LPWStr )]
+        [MarshalAs(UnmanagedType.LPWStr)]
         public string Comment;
     }
 
@@ -71,52 +71,52 @@ namespace Cassandra.DataStax.Auth.Sspi
     /// Describes the capabilities of a security package. 
     /// </summary>
     [Flags]
-    internal enum SecPkgCapability : uint 
+    internal enum SecPkgCapability : uint
     {
         /// <summary>
         /// Whether the package supports generating messages with integrity information. Required for MakeSignature and VerifySignature.
         /// </summary>
-        Integrity       = 0x1,
+        Integrity = 0x1,
 
         /// <summary>
         /// Whether the package supports generating encrypted messages. Required for EncryptMessage and DecryptMessage.
         /// </summary>
-        Privacy         = 0x2,
+        Privacy = 0x2,
 
         /// <summary>
         /// Whether the package uses any other buffer information than token buffers.
         /// </summary>
-        TokenOnly       = 0x4,
+        TokenOnly = 0x4,
 
         /// <summary>
         /// Whether the package supports datagram-style authentication.
         /// </summary>
-        Datagram        = 0x8,
+        Datagram = 0x8,
 
         /// <summary>
         /// Whether the package supports creating contexts with connection semantics
         /// </summary>
-        Connection      = 0x10,
+        Connection = 0x10,
 
         /// <summary>
         /// Multiple legs are neccessary for authentication.
         /// </summary>
-        MultiLeg        = 0x20,
+        MultiLeg = 0x20,
 
         /// <summary>
         /// Server authentication is not supported.
         /// </summary>
-        ClientOnly      = 0x40,
+        ClientOnly = 0x40,
 
         /// <summary>
         /// Supports extended error handling facilities.
         /// </summary>
-        ExtendedError   = 0x80,
+        ExtendedError = 0x80,
 
         /// <summary>
         /// Supports client impersonation on the server.
         /// </summary>
-        Impersonation   = 0x100,
+        Impersonation = 0x100,
 
         /// <summary>
         /// Understands Windows princple and target names.
@@ -126,42 +126,42 @@ namespace Cassandra.DataStax.Auth.Sspi
         /// <summary>
         /// Supports stream semantics
         /// </summary>
-        Stream          = 0x400,
+        Stream = 0x400,
 
         /// <summary>
         /// Package may be used by the Negiotiate meta-package.
         /// </summary>
-        Negotiable      = 0x800,
+        Negotiable = 0x800,
 
         /// <summary>
         /// Compatible with GSS.
         /// </summary>
-        GssCompatible   = 0x1000,
+        GssCompatible = 0x1000,
 
         /// <summary>
         /// Supports LsaLogonUser
         /// </summary>
-        Logon           = 0x2000,
+        Logon = 0x2000,
 
         /// <summary>
         /// Token buffers are in Ascii format.
         /// </summary>
-        AsciiBuffers    = 0x4000,
+        AsciiBuffers = 0x4000,
 
         /// <summary>
         /// Supports separating large tokens into multiple buffers.
         /// </summary>
-        Fragment        = 0x8000,
+        Fragment = 0x8000,
 
         /// <summary>
         /// Supports mutual authentication between a client and server.
         /// </summary>
-        MutualAuth      = 0x10000,
+        MutualAuth = 0x10000,
 
         /// <summary>
         /// Supports credential delegation from the server to a third context.
         /// </summary>
-        Delegation      = 0x20000,
+        Delegation = 0x20000,
 
         /// <summary>
         /// Supports calling EncryptMessage with the read-only-checksum flag, which protects data only 
@@ -178,11 +178,11 @@ namespace Cassandra.DataStax.Auth.Sspi
         /// <summary>
         /// Extends the negotiate package; only one such package may be registered at any time.
         /// </summary>
-        ExtendsNego     = 0x00100000,
+        ExtendsNego = 0x00100000,
 
         /// <summary>
         /// This package is negotiated by the package of type ExtendsNego.
         /// </summary>
-        Negotiable2     = 0x00200000,
+        Negotiable2 = 0x00200000,
     }
 }

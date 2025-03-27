@@ -33,7 +33,7 @@ namespace Cassandra.IntegrationTests.Data
             base.SetUp();
             var cb = new CassandraConnectionStringBuilder
             {
-                ContactPoints = new[] { TestCluster.InitialContactPoint.Address.ToString() }, 
+                ContactPoints = new[] { TestCluster.InitialContactPoint.Address.ToString() },
                 Port = 9042
             };
             _connection = new CqlConnection(cb.ToString());
@@ -80,7 +80,7 @@ namespace Cassandra.IntegrationTests.Data
             int RowsNo = 300;
             for (int i = 0; i < RowsNo; i++)
             {
-                longQ.AppendFormat("INSERT INTO {0} (tweet_id, author, isok, body) VALUES ({1},'test{2}',{3},'body{2}');", tableName, guids[i], i, i%2 == 0 ? "false" : "true");
+                longQ.AppendFormat("INSERT INTO {0} (tweet_id, author, isok, body) VALUES ({1},'test{2}',{3},'body{2}');", tableName, guids[i], i, i % 2 == 0 ? "false" : "true");
             }
             longQ.AppendLine("APPLY BATCH;");
             cmd.CommandText = longQ.ToString();
@@ -94,7 +94,7 @@ namespace Cassandra.IntegrationTests.Data
             TestCluster.PrimeFluent(
                 b => b.WhenQuery($"SELECT * from {tableName} LIMIT 10000;")
                       .ThenRowsSuccess(
-                          new[] {"tweet_id", "author", "body", "isok"},
+                          new[] { "tweet_id", "author", "body", "isok" },
                           r => r.WithRows(guids.Select((guid, idx) => new object[] { guid, $"test{idx}", $"body{idx}", idx % 2 != 0 }).ToArray())));
 
             cmd.CommandText = string.Format(@"SELECT * from {0} LIMIT 10000;", tableName);
@@ -118,7 +118,7 @@ namespace Cassandra.IntegrationTests.Data
 
             TestCluster.PrimeFluent(
                 b => b.WhenQuery("SELECT key FROM system.local")
-                      .ThenRowsSuccess(new [] { "key" }, r => r.WithRow("local")));
+                      .ThenRowsSuccess(new[] { "key" }, r => r.WithRow("local")));
 
             TestCluster.PrimeFluent(
                 b => b.WhenQuery("SELECT * FROM system.local WHERE key = 'does not exist'")

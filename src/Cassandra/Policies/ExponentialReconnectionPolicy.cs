@@ -71,7 +71,7 @@ namespace Cassandra
             // Maximum number of attempts after which we overflow (which is kind of theoretical anyway, you'll'
             // die of old age before reaching that but hey ...)
             int ceil = (baseDelayMs & (baseDelayMs - 1)) == 0 ? 0 : 1;
-            _maxAttempts = 64 - LeadingZeros(long.MaxValue/baseDelayMs) - ceil;
+            _maxAttempts = 64 - LeadingZeros(long.MaxValue / baseDelayMs) - ceil;
         }
 
         /// <summary>
@@ -114,7 +114,7 @@ namespace Cassandra
                 if (_attempts >= _policy._maxAttempts)
                     return _policy._maxDelayMs;
 
-                return Math.Min(_policy._baseDelayMs*(1L << _attempts++), _policy._maxDelayMs);
+                return Math.Min(_policy._baseDelayMs * (1L << _attempts++), _policy._maxDelayMs);
             }
         }
     }

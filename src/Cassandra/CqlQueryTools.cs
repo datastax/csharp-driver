@@ -79,7 +79,7 @@ namespace Cassandra
             }
 
             return string.Format(
-                "CREATE KEYSPACE {3}{0} WITH replication = {1} AND durable_writes = {2}", 
+                "CREATE KEYSPACE {3}{0} WITH replication = {1} AND durable_writes = {2}",
                 QuoteIdentifier(keyspace),
                 Utils.ConvertToCqlMap(replication),
                 durableWrites ? "true" : "false",

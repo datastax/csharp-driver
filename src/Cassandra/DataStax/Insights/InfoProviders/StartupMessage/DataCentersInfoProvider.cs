@@ -30,7 +30,7 @@ namespace Cassandra.DataStax.Insights.InfoProviders.StartupMessage
                     .GetOrCreatePoolingOptions(cluster.Metadata.ControlConnection.ProtocolVersion)
                     .GetCoreConnectionsPerHost(HostDistance.Remote);
 
-            foreach (var h in cluster.AllHosts()) 
+            foreach (var h in cluster.AllHosts())
             {
                 if (h.Datacenter == null)
                 {

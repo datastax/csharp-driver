@@ -54,7 +54,7 @@ namespace Cassandra.Requests
         {
             get { return _queryOptions.SerialConsistency; }
         }
-        
+
         /// <inheritdoc />
         public override ResultMetadata ResultMetadata => null;
 

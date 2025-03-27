@@ -44,8 +44,8 @@ namespace Cassandra.Tests.Connections.Control
         private IProtocolEventDebouncer GetEventDebouncer(Configuration config)
         {
             return new ProtocolEventDebouncer(
-                new TaskBasedTimerFactory(), 
-                TimeSpan.FromMilliseconds(config.MetadataSyncOptions.RefreshSchemaDelayIncrement), 
+                new TaskBasedTimerFactory(),
+                TimeSpan.FromMilliseconds(config.MetadataSyncOptions.RefreshSchemaDelayIncrement),
                 TimeSpan.FromMilliseconds(config.MetadataSyncOptions.MaxTotalRefreshSchemaDelay));
         }
 
@@ -64,9 +64,9 @@ namespace Cassandra.Tests.Connections.Control
                         new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9042),
                         TestHelper.CreateRow(new Dictionary<string, object>
                         {
-                            { "cluster_name", "ut-cluster" }, 
-                            { "data_center", "ut-dc" }, 
-                            { "rack", "ut-rack" }, 
+                            { "cluster_name", "ut-cluster" },
+                            { "data_center", "ut-dc" },
+                            { "rack", "ut-rack" },
                             { "tokens", null },
                             { "release_version", "2.2.1-SNAPSHOT" }
                         })
@@ -95,7 +95,7 @@ namespace Cassandra.Tests.Connections.Control
                 configBuilderAct?.Invoke(builder);
                 config = builder.Build();
             }
-            
+
             if (metadata == null)
             {
                 metadata = new Metadata(config);
@@ -161,7 +161,7 @@ namespace Cassandra.Tests.Connections.Control
                     if (!connectionOpenEnabled)
                     {
                         Mock.Get(connection).Setup(c => c.Open())
-                            .ThrowsAsync(new SocketException((int) SocketError.ConnectionRefused));
+                            .ThrowsAsync(new SocketException((int)SocketError.ConnectionRefused));
                     }
 
                     return connection;
@@ -377,7 +377,7 @@ namespace Cassandra.Tests.Connections.Control
             public Configuration Config { get; set; }
 
             public FakeConnectionFactory ConnectionFactory { get; set; }
-            
+
             public IInternalCluster Cluster { get; set; }
         }
 
@@ -394,7 +394,7 @@ namespace Cassandra.Tests.Connections.Control
 
             public bool Equals(IContactPoint other)
             {
-                return Equals((object) other);
+                return Equals((object)other);
             }
 
             public override bool Equals(object obj)

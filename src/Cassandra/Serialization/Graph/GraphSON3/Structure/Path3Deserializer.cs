@@ -37,8 +37,8 @@ namespace Cassandra.Serialization.Graph.GraphSON3.Structure
     {
         private const string Prefix = "g";
         private const string TypeKey = "Path";
-        
-        public static string TypeName => 
+
+        public static string TypeName =>
             GraphSONUtil.FormatTypeName(Path3Deserializer.Prefix, Path3Deserializer.TypeKey);
 
         public dynamic Objectify(JToken graphsonObject, Func<JToken, GraphNode> factory, IGraphSONReader reader)
@@ -51,26 +51,26 @@ namespace Cassandra.Serialization.Graph.GraphSON3.Structure
                 labels = ParseLabels(jObj);
                 objects = ParseObjects(jObj, factory);
             }
-            
+
             return new Path(labels, objects);
         }
 
         private ICollection<ICollection<string>> ParseLabels(JObject tokenObj)
         {
-            if (tokenObj["labels"] is JObject labelsObj 
+            if (tokenObj["labels"] is JObject labelsObj
                 && labelsObj[GraphTypeSerializer.ValueKey] is JArray labelsArray)
             {
                 return labelsArray
                        .Select(node =>
                        {
-                          if (node is JObject nodeObj
-                              && nodeObj[GraphTypeSerializer.ValueKey] is JArray nodeArray)
-                          {
-                              return new HashSet<string>(nodeArray.Select(n => n.ToString()));
-                          }
+                           if (node is JObject nodeObj
+                               && nodeObj[GraphTypeSerializer.ValueKey] is JArray nodeArray)
+                           {
+                               return new HashSet<string>(nodeArray.Select(n => n.ToString()));
+                           }
 
-                          throw new InvalidOperationException($"Cannot create a Path from {tokenObj}");
-                      })
+                           throw new InvalidOperationException($"Cannot create a Path from {tokenObj}");
+                       })
                       .ToArray();
             }
 
@@ -79,7 +79,7 @@ namespace Cassandra.Serialization.Graph.GraphSON3.Structure
 
         private ICollection<GraphNode> ParseObjects(JObject tokenObj, Func<JToken, GraphNode> factory)
         {
-            if (tokenObj["objects"] is JObject objectsObj 
+            if (tokenObj["objects"] is JObject objectsObj
                 && objectsObj[GraphTypeSerializer.ValueKey] is JArray objectsArray)
             {
                 return objectsArray.Select(jt => ToGraphNode(factory, jt)).ToArray();

@@ -57,11 +57,11 @@ namespace Cassandra.Tests
             byte[] queryId = null, ISerializerManager serializerManager = null, RowSetMetadata rowSetMetadata = null)
         {
             return new PreparedStatement(
-                null, 
-                queryId, 
-                new ResultMetadata(new byte[16], rowSetMetadata), 
-                "DUMMY QUERY", 
-                null, 
+                null,
+                queryId,
+                new ResultMetadata(new byte[16], rowSetMetadata),
+                "DUMMY QUERY",
+                null,
                 serializerManager ?? RequestHandlerTests.SerializerManager);
         }
 
@@ -168,7 +168,7 @@ namespace Cassandra.Tests
             var request = (ExecuteRequest)RequestHandler.GetRequest(stmt, serializerManager.GetCurrentSerializer(), GetRequestOptions(queryOptions));
             Assert.AreEqual(isSet, request.SkipMetadata);
         }
-        
+
         [Test]
         [TestCase(ProtocolVersion.V5)]
         [TestCase(ProtocolVersion.DseV2)]
@@ -342,7 +342,7 @@ namespace Cassandra.Tests
                 Cassandra.Policies.DefaultRetryPolicy, Cassandra.Policies.DefaultSpeculativeExecutionPolicy,
                 new NoTimestampGenerator(), null);
             var config = RequestHandlerTests.GetConfig(new QueryOptions(), policies, PoolingOptions.Create());
-            
+
             var request = RequestHandler.GetRequest(statement, Serializer, config.DefaultRequestOptions);
             var bodyBuffer = GetBodyBuffer(request);
 
@@ -816,7 +816,7 @@ namespace Cassandra.Tests
         {
             return RequestExecution.GetRetryDecisionWithReason(RequestError.CreateServerError(ex), policy, statement, config, retryCount).Decision;
         }
-        
+
         internal static RetryDecision GetRetryDecisionFromClientError(Exception ex, IExtendedRetryPolicy policy, IStatement statement, Configuration config, int retryCount)
         {
             return RequestExecution.GetRetryDecisionWithReason(RequestError.CreateClientError(ex, false), policy, statement, config, retryCount).Decision;

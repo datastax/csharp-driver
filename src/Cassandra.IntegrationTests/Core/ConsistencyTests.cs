@@ -41,7 +41,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Should_UseCLLocalOne_When_NotSpecifiedXDefaultX()
         {
-            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" } ))
+            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" }))
             using (var cluster = ClusterBuilder()
                                         .AddContactPoint(simulacronCluster.InitialContactPoint).Build())
             {
@@ -63,7 +63,7 @@ namespace Cassandra.IntegrationTests.Core
         [TestCase(ConsistencyLevel.LocalQuorum)]
         public void Should_UseQueryOptionsCL_When_NotSetAtSimpleStatement(ConsistencyLevel consistencyLevel)
         {
-            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3,3" } ))
+            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3,3" }))
             using (var cluster = ClusterBuilder()
                                         .WithQueryOptions(new QueryOptions().SetConsistencyLevel(consistencyLevel))
                                         .AddContactPoint(simulacronCluster.InitialContactPoint).Build())
@@ -81,7 +81,7 @@ namespace Cassandra.IntegrationTests.Core
         [TestCase(ConsistencyLevel.LocalSerial)]
         public void Should_UseQueryOptionsSerialCL_When_NotSetAtSimpleStatement(ConsistencyLevel serialConsistency)
         {
-            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3,3" } ))
+            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3,3" }))
             using (var cluster = ClusterBuilder()
                                         .WithQueryOptions(new QueryOptions().SetSerialConsistencyLevel(serialConsistency))
                                         .AddContactPoint(simulacronCluster.InitialContactPoint).Build())
@@ -106,7 +106,7 @@ namespace Cassandra.IntegrationTests.Core
         [TestCase(ConsistencyLevel.LocalQuorum)]
         public void Should_UseSimpleStatementCL_When_Set(ConsistencyLevel consistencyLevel)
         {
-            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3,3" } ))
+            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3,3" }))
             using (var cluster = ClusterBuilder()
                                         .WithQueryOptions(new QueryOptions().SetConsistencyLevel(ConsistencyLevel.Any))
                                         .AddContactPoint(simulacronCluster.InitialContactPoint).Build())
@@ -125,7 +125,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Should_UseSerialConsistencyLevelSpecified_When_ConditionalQuery(
             ConsistencyLevel consistencyLevel, ConsistencyLevel serialConsistency)
         {
-            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3,3" } ))
+            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3,3" }))
             using (var cluster = ClusterBuilder()
                                         .AddContactPoint(simulacronCluster.InitialContactPoint).Build())
             {
@@ -146,7 +146,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Should_UseSerialConsistencyLevel_From_QueryOptions(
             ConsistencyLevel consistencyLevel, ConsistencyLevel serialConsistency)
         {
-            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3,3" } ))
+            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3,3" }))
             using (var cluster = ClusterBuilder()
                                         .AddContactPoint(simulacronCluster.InitialContactPoint)
                                         .WithQueryOptions(new QueryOptions()
@@ -175,7 +175,7 @@ namespace Cassandra.IntegrationTests.Core
         [TestCase(ConsistencyLevel.LocalQuorum)]
         public void Should_UseQueryOptionsCL_When_NotSetAtPreparedStatement(ConsistencyLevel consistencyLevel)
         {
-            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3,3" } ))
+            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3,3" }))
             using (var cluster = ClusterBuilder()
                                         .WithQueryOptions(new QueryOptions().SetConsistencyLevel(consistencyLevel))
                                         .AddContactPoint(simulacronCluster.InitialContactPoint).Build())
@@ -195,7 +195,7 @@ namespace Cassandra.IntegrationTests.Core
         [TestCase(ConsistencyLevel.LocalSerial)]
         public void Should_UseQueryOptionsSerialCL_When_NotSetAtPreparedStatement(ConsistencyLevel consistencyLevel)
         {
-            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3,3" } ))
+            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3,3" }))
             using (var cluster = ClusterBuilder()
                                         .WithQueryOptions(new QueryOptions().SetSerialConsistencyLevel(consistencyLevel))
                                         .AddContactPoint(simulacronCluster.InitialContactPoint).Build())
@@ -221,7 +221,7 @@ namespace Cassandra.IntegrationTests.Core
         [TestCase(ConsistencyLevel.LocalQuorum)]
         public void Should_UsePreparedStatementCL_When_Set(ConsistencyLevel consistencyLevel)
         {
-            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3,3" } ))
+            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3,3" }))
             using (var cluster = ClusterBuilder()
                                         .AddContactPoint(simulacronCluster.InitialContactPoint).Build())
             {
@@ -235,7 +235,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        private static void VerifyConsistency(SimulacronCluster simulacronCluster, string query, ConsistencyLevel consistency, 
+        private static void VerifyConsistency(SimulacronCluster simulacronCluster, string query, ConsistencyLevel consistency,
                                               ConsistencyLevel? serialConsistency = null, QueryType queryType = QueryType.Query)
         {
             var executedQueries = simulacronCluster.GetQueries(query, queryType);

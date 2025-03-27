@@ -28,7 +28,7 @@ namespace Cassandra.Mapping
         /// Gets a list of all T from Cassandra.
         /// </summary>
         Task<IEnumerable<T>> FetchAsync<T>(CqlQueryOptions queryOptions = null);
-        
+
         /// <summary>
         /// Gets a list of T from Cassandra using the CQL statement and parameter values specified.
         /// </summary>

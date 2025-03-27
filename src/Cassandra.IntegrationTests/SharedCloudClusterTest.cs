@@ -65,7 +65,7 @@ namespace Cassandra.IntegrationTests
                 }
                 catch (Exception ex)
                 {
-                    last = ex; 
+                    last = ex;
                     Task.Delay(1000).GetAwaiter().GetResult();
                     if (Cluster != null)
                     {
@@ -104,7 +104,7 @@ namespace Cassandra.IntegrationTests
             ClusterInstances.Add(cluster);
             return cluster;
         }
-        
+
         protected async Task<ISession> CreateSessionAsync(
             string creds = "creds-v1.zip", int retries = SharedCloudClusterTest.MaxRetries, Action<Builder> act = null)
         {

@@ -53,7 +53,7 @@ namespace Cassandra.Tests.Mapping
         {
             return GetMappingClientAndSession(getRowSetFunc, null, config);
         }
-        
+
         protected MapperAndSessionTuple GetMappingClientAndSession(Func<Task<RowSet>> getRowSetFunc, Action<string, object[]> queryCallback, MappingConfiguration config = null)
         {
             if (queryCallback == null)
@@ -122,7 +122,7 @@ namespace Cassandra.Tests.Mapping
                 .Setup(s => s.ExecuteAsync(It.IsAny<IStatement>(), It.IsAny<string>()))
                 .Returns(() => TaskHelper.ToTask(rs))
                 .Callback<IStatement, string>(
-                    (stmt, execProfile) => 
+                    (stmt, execProfile) =>
                         callback((TStatement)stmt))
                 .Verifiable();
             sessionMock
@@ -167,7 +167,7 @@ namespace Cassandra.Tests.Mapping
 
             var clusterMock = new Mock<ICluster>();
             clusterMock.Setup(c => c.Configuration).Returns(new Configuration());
-            
+
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock.Setup(s => s.Cluster).Returns(clusterMock.Object);

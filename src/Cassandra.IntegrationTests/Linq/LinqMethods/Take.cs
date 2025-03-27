@@ -59,8 +59,8 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
                       .ThenRowsSuccess(Movie.CreateRowsResult(_movieList)));
 
             // Without where clause
-            List<Movie> actualMovieList = async 
-                ? _movieTable.Take(0).ExecuteAsync().GetAwaiter().GetResult().ToList() 
+            List<Movie> actualMovieList = async
+                ? _movieTable.Take(0).ExecuteAsync().GetAwaiter().GetResult().ToList()
                 : _movieTable.Take(0).Execute().ToList();
             Assert.AreEqual(5, actualMovieList.Count());
         }
@@ -124,7 +124,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             var actualMovieQuery = _movieTable
                 .Where(m => m.Director == expectedMovie.Director && m.Title == expectedMovie.Title && m.MovieMaker == expectedMovie.MovieMaker)
                 .Take(1);
-                
+
             var actualMovie = async ? actualMovieQuery.ExecuteAsync().GetAwaiter().GetResult().ToList().First() : actualMovieQuery.Execute().ToList().First();
             Movie.AssertEquals(expectedMovie, actualMovie);
         }

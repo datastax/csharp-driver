@@ -188,7 +188,7 @@ namespace Cassandra.Tests
         [Test]
         public void ToTimeSpan_FromTimeSpan_Test()
         {
-            var values = Values.Select(t => t.Item1).Where(d => d.Months == 0L && d.Nanoseconds%100L == 0L);
+            var values = Values.Select(t => t.Item1).Where(d => d.Months == 0L && d.Nanoseconds % 100L == 0L);
             foreach (var value in values)
             {
                 var timespan = value.ToTimeSpan();

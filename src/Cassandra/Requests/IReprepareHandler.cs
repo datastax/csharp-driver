@@ -35,12 +35,12 @@ namespace Cassandra.Requests
             KeyValuePair<Host, IHostConnectionPool> poolKvp, PreparedStatement ps, IRequest request, SemaphoreSlim sem, bool throwException);
 
         Task ReprepareOnSingleNodeAsync(
-            IRequestObserver observer, 
-            SessionRequestInfo sessionRequestInfo, 
-            KeyValuePair<Host, IHostConnectionPool> poolKvp, 
-            PreparedStatement ps, 
-            IRequest request, 
-            SemaphoreSlim sem, 
+            IRequestObserver observer,
+            SessionRequestInfo sessionRequestInfo,
+            KeyValuePair<Host, IHostConnectionPool> poolKvp,
+            PreparedStatement ps,
+            IRequest request,
+            SemaphoreSlim sem,
             bool throwException);
     }
 }

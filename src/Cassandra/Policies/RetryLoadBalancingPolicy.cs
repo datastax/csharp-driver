@@ -61,7 +61,7 @@ namespace Cassandra
                         break;
                 }
                 else
-                    Thread.Sleep((int) schedule.NextDelayMs());
+                    Thread.Sleep((int)schedule.NextDelayMs());
             }
         }
     }

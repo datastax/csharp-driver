@@ -41,12 +41,12 @@ namespace Cassandra.Tests.Mapping.TestData
 
             // If not a nullable enum, use index with mod to pick an available value
             if (isNullableEnum == false)
-                return (TEnum) enumValues[index % enumValues.Length];
+                return (TEnum)enumValues[index % enumValues.Length];
 
             // If a nullable enum, we want to generate null also so treat an index of length + 1 as null
             int idx = index % (enumValues.Length + 1);
             if (idx < enumValues.Length)
-                return (TEnum) enumValues[idx];
+                return (TEnum)enumValues[idx];
 
             return default(TEnum);
         }

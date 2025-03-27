@@ -30,7 +30,7 @@ namespace Cassandra.Tests
         /// These tests run in all CI schedules (both Appveyor and Jenkins) except if they are marked with the categories below.
         /// </summary>
         public const string Short = "short";
-        
+
         /// <summary>
         /// These tests run once in Appveyor per commit (not for the entire matrix) and in all Jenkins schedules.
         /// </summary>
@@ -40,19 +40,19 @@ namespace Cassandra.Tests
         /// These tests run in Jenkins nightly builds only.
         /// </summary>
         public const string RealClusterLong = "realclusterlong";
-        
+
         /// <summary>
         /// These tests run once in Jenkins per commit (not for the entire matrix).
         /// </summary>
         public const string Cloud = "cloud";
-        
+
         /// <summary>
         /// These tests can also be marked with other categories.
         /// This category is used in the smoke tests against DSE or Apache C* release candidates.
         /// https://github.com/datastax/cassandra-drivers-smoke-test
         /// </summary>
         public const string ServerApi = "serverapi";
-        
+
         /// <summary>
         /// These tests can only run against a kerberos enabled cluster.
         /// At the moment, they are skipped in all CI schedules.

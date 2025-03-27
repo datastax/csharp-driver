@@ -80,7 +80,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             var table = new Table<AllDataTypesEntity>(Session, new MappingConfiguration());
             var entityToDelete = _entityList[0];
             var expectedErrMsg = "PRIMARY KEY column 'string_type' cannot have IF conditions";
-            
+
             TestCluster.PrimeFluent(
                 b => b.WhenQuery($"DELETE FROM \"{AllDataTypesEntity.TableName}\" WHERE \"string_type\" = ? IF \"string_type\" = ?",
                           when => when.WithParams(entityToDelete.StringType, entityToDelete.StringType))
@@ -105,7 +105,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             var random = ConstantReturningHelper.FromObj(Randomm.RandomAlphaNum(10));
             var table = new Table<AllDataTypesEntity>(Session, new MappingConfiguration());
             var entityToDelete = _entityList[0];
-            
+
             TestCluster.PrimeFluent(
                 b => b.WhenQuery($"DELETE FROM \"{AllDataTypesEntity.TableName}\" WHERE \"string_type\" = ? IF \"int_type\" = ?",
                           when => when.WithParams(entityToDelete.StringType + random.Get(), entityToDelete.IntType))
@@ -147,11 +147,11 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             TestCluster.PrimeFluent(
                 b => b.WhenQuery($"DELETE FROM \"{AllDataTypesEntity.TableName}\" WHERE \"string_type\" = ? AND \"guid_type\" = ? IF \"int_type\" = ?",
                           when => when.WithParams(entityToDelete.StringType + random.Get(), randomGuid.Get(), entityToDelete.IntType))
-                      .ThenRowsSuccess(new [] { "[applied]" }, rows => rows.WithRow(false)));
+                      .ThenRowsSuccess(new[] { "[applied]" }, rows => rows.WithRow(false)));
 
             // Test
             var selectQuery = table.Select(m => m)
-                                   .Where(m => m.StringType == entityToDelete.StringType + random.Get() 
+                                   .Where(m => m.StringType == entityToDelete.StringType + random.Get()
                                                && m.GuidType == randomGuid.Get());
             var deleteIfQuery = selectQuery.DeleteIf(m => m.IntType == entityToDelete.IntType);
 

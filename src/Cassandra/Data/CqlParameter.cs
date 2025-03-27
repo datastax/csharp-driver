@@ -122,7 +122,7 @@ namespace Cassandra.Data
         /// The default is an empty string.
         /// </returns>
         public override string SourceColumn { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the <see cref="T:System.Data.DataRowVersion" />
         /// to use when loading <see cref="P:System.Data.IDataParameter.Value" />.

@@ -847,7 +847,7 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                 CollectionAssert.AreEquivalent(expectedMap, node.To<Dictionary<int, int>>());
             }
         }
-        
+
         [Test]
         public void Should_Support_Udts()
         {
@@ -869,8 +869,8 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                 {
                     new Contact
                     {
-                        FirstName = "Walter", 
-                        LastName = "White", 
+                        FirstName = "Walter",
+                        LastName = "White",
                         Phones = new HashSet<Phone>
                         {
                             new Phone {Alias = "Wat2", Number = "2414817", PhoneType = PhoneType.Mobile},
@@ -883,7 +883,7 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                     "g.addV('users_contacts')" +
                     ".property('id', 305)" +
                     ".property('contacts', contacts)", new { contacts }));
-                
+
                 var rs = session.ExecuteGraph(new SimpleGraphStatement(
                     "g.with('allow-filtering').V().hasLabel('users_contacts').has('id', 305).properties('contacts')"));
                 var resultArray = rs.ToArray();
@@ -898,10 +898,10 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                 Assert.AreEqual(expectedContact.Emails, dbC["emails"].To<IEnumerable<string>>());
                 CollectionAssert.AreEquivalent(expectedContact.Phones, dbC["phones"].To<IEnumerable<Phone>>());
                 CollectionAssert.AreEquivalent(expectedContact.Phones, dbC["phones"].To<IEnumerable<GraphNode>>().Select(g => g.To<Phone>()));
-                CollectionAssert.AreEquivalent(expectedContact.Phones.Select(p => p.Alias), dbC["phones"].To<IEnumerable<IDictionary<string, object>>>().Select(dict => (string) dict["alias"]));
+                CollectionAssert.AreEquivalent(expectedContact.Phones.Select(p => p.Alias), dbC["phones"].To<IEnumerable<IDictionary<string, object>>>().Select(dict => (string)dict["alias"]));
             }
         }
-        
+
         [Test]
         public void Should_Support_InnerUdt()
         {
@@ -919,14 +919,14 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                           .Map(c => c.NullableInt, "nullable_int")
                           .Map(c => c.Phone, "phone"),
                     UdtMap.For<Phone>(keyspace: CoreGraphTests.GraphName));
-                var testudt = new TestUdt { NullableInt = 1, Name = "123", Phone = new Phone { Alias = "123" }};
+                var testudt = new TestUdt { NullableInt = 1, Name = "123", Phone = new Phone { Alias = "123" } };
                 session.ExecuteGraph(new SimpleGraphStatement(
                     "schema.vertexLabel('test_udts').partitionBy('id', Int).property('test_udt', typeOf('testudt')).create()"));
                 session.ExecuteGraph(new SimpleGraphStatement(
                     "g.addV('test_udts')" +
                     ".property('id', 305)" +
                     ".property('test_udt', testudtparam)", new { testudtparam = testudt }));
-                
+
                 var rs = session.ExecuteGraph(new SimpleGraphStatement(
                     "g.with('allow-filtering').V().hasLabel('test_udts').has('id', 305).properties('test_udt')"));
                 var resultArray = rs.ToArray();
@@ -937,7 +937,7 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                 Assert.AreEqual(dbTestUdt.Phone, testudt.Phone);
             }
         }
-        
+
         [Test]
         public void Should_Support_DeserializingUnmappedUdts()
         {
@@ -951,8 +951,8 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                 {
                     new Contact
                     {
-                        FirstName = "Jimmy", 
-                        LastName = "McGill", 
+                        FirstName = "Jimmy",
+                        LastName = "McGill",
                         Phones = new HashSet<Phone>
                         {
                             new Phone {Alias = "alias123123", Number = "21791274", PhoneType = PhoneType.Work},
@@ -971,33 +971,33 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                 var dbC = contactsDict.Single();
                 Assert.AreEqual(expectedContact.Emails, dbC["emails"].To<IEnumerable<string>>());
                 var phones = dbC["phones"].To<IEnumerable<IDictionary<string, object>>>().ToList();
-                CollectionAssert.AreEquivalent(expectedContact.Phones.Select(p => p.Alias), phones.Select(dict => (string) dict["alias"]));
+                CollectionAssert.AreEquivalent(expectedContact.Phones.Select(p => p.Alias), phones.Select(dict => (string)dict["alias"]));
                 CollectionAssert.AreEquivalent(
-                    expectedContact.Phones.Select(p => p.PhoneType), 
+                    expectedContact.Phones.Select(p => p.PhoneType),
                     phones.Select(dict => dict["phone_type"] == null ? default(PhoneType) : Enum.Parse(typeof(PhoneType), (string)dict["phone_type"])));
-                CollectionAssert.AreEquivalent(expectedContact.Phones.Select(p => p.Number), phones.Select(dict => (string) dict["number"]));
-                
+                CollectionAssert.AreEquivalent(expectedContact.Phones.Select(p => p.Number), phones.Select(dict => (string)dict["number"]));
+
                 var ex = Assert.Throws<InvalidQueryException>(() => session.ExecuteGraph(new SimpleGraphStatement(
                     "g.addV('users_contacts')" +
                     ".property('id', 1923)" +
                     ".property('contacts', contacts)", new { contacts })));
 
-                Assert.IsTrue(ex.Message.Contains("Wrong property type provided for property 'contacts'") 
+                Assert.IsTrue(ex.Message.Contains("Wrong property type provided for property 'contacts'")
                               && ex.Message.Contains("Provided type 'LinkedHashMap' is not compatible with expected type 'UDTValue'"),
                     ex.Message);
-                
+
                 ex = Assert.Throws<InvalidQueryException>(() => session.ExecuteGraph(new SimpleGraphStatement(
                     "g.addV('users_contacts')" +
                     ".property('id', 1923)" +
                     ".property('contacts', contactsDict)", new { contactsDict })));
 
-                Assert.IsTrue(ex.Message.Contains("Wrong property type provided for property 'contacts'") 
+                Assert.IsTrue(ex.Message.Contains("Wrong property type provided for property 'contacts'")
                               && ex.Message.Contains("Provided type 'LinkedHashMap' is not compatible with expected type 'UDTValue'"),
                     ex.Message);
 
             }
         }
-        
+
         [Test]
         public void Should_Support_Tuples()
         {
@@ -1013,7 +1013,7 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                 var phone = new Phone { Alias = "Wat2", Number = "2414817", PhoneType = PhoneType.Home };
                 var tuple = new Tuple<Phone, DateTimeOffset?, Guid, IEnumerable<string>, ISet<int>, IDictionary<string, int?>>(
                     phone,
-                    new DateTimeOffset(2020, 1, 29, 1, 1, 43, 953, TimeSpan.Zero), 
+                    new DateTimeOffset(2020, 1, 29, 1, 1, 43, 953, TimeSpan.Zero),
                     Guid.NewGuid(),
                     new[] { "123", "234" },
                     new HashSet<int> { 1, 2, 3 },

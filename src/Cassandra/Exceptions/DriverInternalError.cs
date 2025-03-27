@@ -23,8 +23,8 @@ namespace Cassandra
     ///  indicates an unexpected behavior (either in the driver or in Cassandra).
     /// </summary>
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "Naming", 
-        "CA1710:Identifiers should have correct suffix", 
+        "Naming",
+        "CA1710:Identifiers should have correct suffix",
         Justification = "Public API")]
     public class DriverInternalError : Exception
     {

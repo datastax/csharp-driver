@@ -33,10 +33,10 @@ namespace Cassandra.Connections
         private readonly bool _keepContactPointsUnresolved;
 
         public HostnameContactPoint(
-            IDnsResolver dnsResolver, 
-            ProtocolOptions protocolOptions, 
-            IServerNameResolver serverNameResolver, 
-            bool keepContactPointsUnresolved, 
+            IDnsResolver dnsResolver,
+            ProtocolOptions protocolOptions,
+            IServerNameResolver serverNameResolver,
+            bool keepContactPointsUnresolved,
             string hostname)
         {
             _dns = dnsResolver ?? throw new ArgumentNullException(nameof(dnsResolver));
@@ -49,7 +49,7 @@ namespace Cassandra.Connections
         public bool CanBeResolved => true;
 
         public string StringRepresentation => _hostname;
-        
+
         public override string ToString()
         {
             return StringRepresentation;

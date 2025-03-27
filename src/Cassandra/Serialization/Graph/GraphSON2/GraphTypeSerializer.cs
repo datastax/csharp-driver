@@ -291,7 +291,7 @@ namespace Cassandra.Serialization.Graph.GraphSON2
                 elementType = typeof(object);
             }
 
-            var dictionary = FromMapToDictionary((JArray) token[GraphSONTokens.ValueKey], keyType, elementType, deserializeGraphNodes);
+            var dictionary = FromMapToDictionary((JArray)token[GraphSONTokens.ValueKey], keyType, elementType, deserializeGraphNodes);
 
             if (convertToElementMap)
             {
@@ -447,7 +447,7 @@ namespace Cassandra.Serialization.Graph.GraphSON2
 
                 properties[key] = kvp.Value;
             }
-            
+
             result = new ElementMap(id, label, properties);
             return true;
         }

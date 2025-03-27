@@ -281,7 +281,7 @@ namespace Cassandra.IntegrationTests.Core
             Thread.Sleep(30000);
             //Should be down
             Assert.False(cluster.AllHosts().First(h => TestHelper.GetLastAddressByte(h) == 3).IsUp);
-            
+
             //Should have been translated
             Assert.AreEqual(3, invokedEndPoints.Count);
             //The recently translated should be the host #3

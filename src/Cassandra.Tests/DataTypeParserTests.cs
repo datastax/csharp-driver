@@ -88,23 +88,23 @@ namespace Cassandra.Tests
             var dataType = DataTypeParser.ParseFqTypeName("org.apache.cassandra.db.marshal.ListType(org.apache.cassandra.db.marshal.Int32Type)");
             Assert.AreEqual(ColumnTypeCode.List, dataType.TypeCode);
             Assert.IsInstanceOf<ListColumnInfo>(dataType.TypeInfo);
-            Assert.AreEqual(ColumnTypeCode.Int, ((ListColumnInfo) dataType.TypeInfo).ValueTypeCode);
+            Assert.AreEqual(ColumnTypeCode.Int, ((ListColumnInfo)dataType.TypeInfo).ValueTypeCode);
 
             dataType = DataTypeParser.ParseFqTypeName("org.apache.cassandra.db.marshal.SetType(org.apache.cassandra.db.marshal.UUIDType)");
             Assert.AreEqual(ColumnTypeCode.Set, dataType.TypeCode);
             Assert.IsInstanceOf<SetColumnInfo>(dataType.TypeInfo);
-            Assert.AreEqual(ColumnTypeCode.Uuid, ((SetColumnInfo) dataType.TypeInfo).KeyTypeCode);
+            Assert.AreEqual(ColumnTypeCode.Uuid, ((SetColumnInfo)dataType.TypeInfo).KeyTypeCode);
 
             dataType = DataTypeParser.ParseFqTypeName("org.apache.cassandra.db.marshal.SetType(org.apache.cassandra.db.marshal.TimeUUIDType)");
             Assert.AreEqual(ColumnTypeCode.Set, dataType.TypeCode);
             Assert.IsInstanceOf<SetColumnInfo>(dataType.TypeInfo);
-            Assert.AreEqual(ColumnTypeCode.Timeuuid, ((SetColumnInfo) dataType.TypeInfo).KeyTypeCode);
+            Assert.AreEqual(ColumnTypeCode.Timeuuid, ((SetColumnInfo)dataType.TypeInfo).KeyTypeCode);
 
             dataType = DataTypeParser.ParseFqTypeName("org.apache.cassandra.db.marshal.MapType(org.apache.cassandra.db.marshal.UTF8Type,org.apache.cassandra.db.marshal.LongType)");
             Assert.AreEqual(ColumnTypeCode.Map, dataType.TypeCode);
             Assert.IsInstanceOf<MapColumnInfo>(dataType.TypeInfo);
-            Assert.AreEqual(ColumnTypeCode.Varchar, ((MapColumnInfo) dataType.TypeInfo).KeyTypeCode);
-            Assert.AreEqual(ColumnTypeCode.Bigint, ((MapColumnInfo) dataType.TypeInfo).ValueTypeCode);
+            Assert.AreEqual(ColumnTypeCode.Varchar, ((MapColumnInfo)dataType.TypeInfo).KeyTypeCode);
+            Assert.AreEqual(ColumnTypeCode.Bigint, ((MapColumnInfo)dataType.TypeInfo).ValueTypeCode);
         }
 
         [Test]
@@ -129,7 +129,7 @@ namespace Cassandra.Tests
 
             void AssertComplexFn(string str)
             {
-                var dataType = DataTypeParser.ParseFqTypeName(str); 
+                var dataType = DataTypeParser.ParseFqTypeName(str);
                 Assert.AreEqual(ColumnTypeCode.Custom, dataType.TypeCode);
                 Assert.IsInstanceOf<VectorColumnInfo>(dataType.TypeInfo);
                 Assert.AreEqual(ColumnTypeCode.List, ((VectorColumnInfo)dataType.TypeInfo).ValueTypeCode);
@@ -154,14 +154,14 @@ namespace Cassandra.Tests
             var dataType = DataTypeParser.ParseFqTypeName("org.apache.cassandra.db.marshal.FrozenType(org.apache.cassandra.db.marshal.ListType(org.apache.cassandra.db.marshal.TimeUUIDType))");
             Assert.AreEqual(ColumnTypeCode.List, dataType.TypeCode);
             Assert.IsInstanceOf<ListColumnInfo>(dataType.TypeInfo);
-            Assert.AreEqual(ColumnTypeCode.Timeuuid, ((ListColumnInfo) dataType.TypeInfo).ValueTypeCode);
+            Assert.AreEqual(ColumnTypeCode.Timeuuid, ((ListColumnInfo)dataType.TypeInfo).ValueTypeCode);
 
             dataType = DataTypeParser.ParseFqTypeName("org.apache.cassandra.db.marshal.MapType(org.apache.cassandra.db.marshal.UTF8Type,org.apache.cassandra.db.marshal.FrozenType(org.apache.cassandra.db.marshal.ListType(org.apache.cassandra.db.marshal.Int32Type)))");
             Assert.AreEqual(ColumnTypeCode.Map, dataType.TypeCode);
             Assert.IsInstanceOf<MapColumnInfo>(dataType.TypeInfo);
-            Assert.AreEqual(ColumnTypeCode.Varchar, ((MapColumnInfo) dataType.TypeInfo).KeyTypeCode);
-            Assert.AreEqual(ColumnTypeCode.List, ((MapColumnInfo) dataType.TypeInfo).ValueTypeCode);
-            var subType = (ListColumnInfo)(((MapColumnInfo) dataType.TypeInfo).ValueTypeInfo);
+            Assert.AreEqual(ColumnTypeCode.Varchar, ((MapColumnInfo)dataType.TypeInfo).KeyTypeCode);
+            Assert.AreEqual(ColumnTypeCode.List, ((MapColumnInfo)dataType.TypeInfo).ValueTypeCode);
+            var subType = (ListColumnInfo)(((MapColumnInfo)dataType.TypeInfo).ValueTypeInfo);
             Assert.AreEqual(ColumnTypeCode.Int, subType.ValueTypeCode);
         }
 
@@ -177,7 +177,7 @@ namespace Cassandra.Tests
             //Udt name
             Assert.AreEqual("phone", dataType.Name);
             Assert.IsInstanceOf<UdtColumnInfo>(dataType.TypeInfo);
-            var subTypes = ((UdtColumnInfo) dataType.TypeInfo).Fields;
+            var subTypes = ((UdtColumnInfo)dataType.TypeInfo).Fields;
             Assert.AreEqual(2, subTypes.Count);
             Assert.AreEqual("alias", subTypes[0].Name);
             Assert.AreEqual(ColumnTypeCode.Varchar, subTypes[0].TypeCode);
@@ -205,8 +205,8 @@ namespace Cassandra.Tests
             Assert.AreEqual(ColumnTypeCode.Udt, dataType.TypeCode);
             Assert.IsInstanceOf<UdtColumnInfo>(dataType.TypeInfo);
             Assert.AreEqual("address", dataType.Name);
-            Assert.AreEqual("tester.address", ((UdtColumnInfo) dataType.TypeInfo).Name);
-            var subTypes = ((UdtColumnInfo) dataType.TypeInfo).Fields;
+            Assert.AreEqual("tester.address", ((UdtColumnInfo)dataType.TypeInfo).Name);
+            var subTypes = ((UdtColumnInfo)dataType.TypeInfo).Fields;
             Assert.AreEqual(3, subTypes.Count);
             Assert.AreEqual("street,ZIP,phones", String.Join(",", subTypes.Select(s => s.Name)));
             Assert.AreEqual(ColumnTypeCode.Varchar, subTypes[0].TypeCode);

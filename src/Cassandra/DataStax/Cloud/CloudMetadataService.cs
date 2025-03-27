@@ -69,10 +69,10 @@ namespace Cassandra.DataStax.Cloud
 
             try
             {
-                using (var response = (HttpWebResponse) await request.GetResponseAsync().ConfigureAwait(false))
+                using (var response = (HttpWebResponse)await request.GetResponseAsync().ConfigureAwait(false))
                 {
                     var responseString = await new StreamReader(response.GetResponseStream()).ReadToEndAsync().ConfigureAwait(false);
-                    if ((int) response.StatusCode < 200 || (int) response.StatusCode >= 300)
+                    if ((int)response.StatusCode < 200 || (int)response.StatusCode >= 300)
                     {
                         throw GetServiceRequestException(false, url, null, (int)response.StatusCode);
                     }
@@ -104,17 +104,17 @@ namespace Cassandra.DataStax.Cloud
             {
                 securityProtocolType |= SecurityProtocolType.Ssl3;
             }
-            
+
             if ((protocol & SslProtocols.Tls) != 0)
             {
                 securityProtocolType |= SecurityProtocolType.Tls;
             }
-            
+
             if ((protocol & SslProtocols.Tls11) != 0)
             {
                 securityProtocolType |= SecurityProtocolType.Tls11;
             }
-            
+
             if ((protocol & SslProtocols.Tls12) != 0)
             {
                 securityProtocolType |= SecurityProtocolType.Tls12;

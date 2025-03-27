@@ -61,7 +61,7 @@ namespace Cassandra.Serialization.Graph.GraphSON2.Structure
             {
                 return null;
             }
-            
+
             var serializedElement = writer.ToDict(graphNode);
             Dictionary<string, dynamic> elementDict = serializedElement;
             if (elementDict.ContainsKey(GraphSONTokens.ValueKey))

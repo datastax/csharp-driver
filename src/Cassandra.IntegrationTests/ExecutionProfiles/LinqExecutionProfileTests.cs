@@ -201,10 +201,10 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
             Assert.AreEqual(queries.Count + 1, newQueries.Count);
             Assert.IsTrue(newQueries.All(q => q.ConsistencyLevel == ConsistencyLevel.Two));
         }
-        
+
         private object[] CreatePrimeObject(AllDataTypesEntity allData)
         {
-            return new object [] { allData.StringType, allData.GuidType, allData.IntType };
+            return new object[] { allData.StringType, allData.GuidType, allData.IntType };
         }
 
         private IThenFluent CreateThenForPrimeSelect(IWhenFluent when, IEnumerable<AllDataTypesEntity> allData)
@@ -217,9 +217,9 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
 
         private void PrimeSelect(IEnumerable<AllDataTypesEntity> allData, ConsistencyLevel consistencyLevel, string query)
         {
-            var primeQuery = 
+            var primeQuery =
                 CreateThenForPrimeSelect(
-                        SimulacronBase.PrimeBuilder().WhenQuery(query, when => when.WithConsistency(consistencyLevel)), 
+                        SimulacronBase.PrimeBuilder().WhenQuery(query, when => when.WithConsistency(consistencyLevel)),
                         allData)
                     .BuildRequest();
             _simulacronCluster.Prime(primeQuery);
@@ -235,9 +235,9 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
             var queries = _simulacronCluster.GetQueries(cql, QueryType.Execute);
             var selectQuery = _table
                               .Select(m => new AllDataTypesEntity { IntType = m.IntType });
-            
-            var result = async 
-                ? (await selectQuery.ExecuteAsync("testProfile").ConfigureAwait(false)).ToList() 
+
+            var result = async
+                ? (await selectQuery.ExecuteAsync("testProfile").ConfigureAwait(false)).ToList()
                 : selectQuery.Execute("testProfile").ToList();
 
             var newQueries = _simulacronCluster.GetQueries(cql, QueryType.Execute);
@@ -261,8 +261,8 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
             var queries = _simulacronCluster.GetQueries(cql, QueryType.Execute);
             var selectQuery = _table.Select(m => new AllDataTypesEntity { IntType = m.IntType });
 
-            var result = async 
-                ? (await selectQuery.ExecutePagedAsync("testProfile").ConfigureAwait(false)).ToList() 
+            var result = async
+                ? (await selectQuery.ExecutePagedAsync("testProfile").ConfigureAwait(false)).ToList()
                 : selectQuery.ExecutePaged("testProfile").ToList();
 
             var newQueries = _simulacronCluster.GetQueries(cql, QueryType.Execute);
@@ -275,7 +275,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
                 Assert.AreEqual(_entityList[i].IntType, result[i].IntType);
             }
         }
-        
+
         [Test]
         [TestCase(true)]
         [TestCase(false)]
@@ -302,7 +302,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
             Assert.AreEqual(queries.Count + 1, newQueries.Count);
             Assert.IsTrue(newQueries.All(q => q.ConsistencyLevel == ConsistencyLevel.Two));
         }
-        
+
         [Test]
         [TestCase(true)]
         [TestCase(false)]

@@ -40,7 +40,7 @@ namespace Cassandra.Data.Linq
         {
             return Execute(Configuration.DefaultExecutionProfileName);
         }
-        
+
         public new TEntity Execute(string executionProfile)
         {
             return WaitToCompleteWithMetrics(ExecuteAsync(executionProfile), QueryAbortTimeout);
@@ -68,7 +68,7 @@ namespace Cassandra.Data.Linq
         {
             return ExecuteAsync(Configuration.DefaultExecutionProfileName);
         }
-        
+
         public new async Task<TEntity> ExecuteAsync(string executionProfile)
         {
             if (executionProfile == null)

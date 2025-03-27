@@ -22,7 +22,7 @@ namespace Cassandra.Serialization.Graph.GraphSON1
 {
     internal class GraphSON1TypeSerializer : IGraphTypeSerializer
     {
-        private static readonly Func<Row, GraphNode> RowParser = 
+        private static readonly Func<Row, GraphNode> RowParser =
             row => new GraphNode(new GraphSON1Node(row.GetValue<string>("gremlin"), false));
 
         public bool DefaultDeserializeGraphNodes => true;

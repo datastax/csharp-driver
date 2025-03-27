@@ -36,7 +36,7 @@ namespace Cassandra.Tests.Connections.TestHelpers
         public IContactPoint ContactPoint => null;
 
         public IPEndPoint SocketIpEndPoint { get; private set; }
-        
+
         public bool HasHostIpEndPoint { get; private set; }
 
         public string EndpointFriendlyName => SocketIpEndPoint.ToString();

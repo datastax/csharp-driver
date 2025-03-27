@@ -41,7 +41,7 @@ namespace Cassandra.Tests.MetadataHelpers
 
             foreach (var dc in Enumerable.Range(1, numberOfDcs))
             {
-                hosts.Add($"dc{dc}", new Tuple<Dictionary<string, List<Host>>, DatacenterInfo>(new Dictionary<string, List<Host>>(), new DatacenterInfo { HostLength = numberOfHostsPerRack * numberOfRacksPerDc}));
+                hosts.Add($"dc{dc}", new Tuple<Dictionary<string, List<Host>>, DatacenterInfo>(new Dictionary<string, List<Host>>(), new DatacenterInfo { HostLength = numberOfHostsPerRack * numberOfRacksPerDc }));
                 foreach (var rack in Enumerable.Range(1, numberOfRacksPerDc))
                 {
                     hosts[$"dc{dc}"].Item1.Add($"rack{rack}", new List<Host>());
@@ -52,7 +52,7 @@ namespace Cassandra.Tests.MetadataHelpers
                         var tokensStrList = new List<string>();
                         for (var i = 1; i <= numberOfTokensPerHost; i++)
                         {
-                            var token = new M3PToken(dc*1000000+rack*100000+host*10000 + 1000 * i);
+                            var token = new M3PToken(dc * 1000000 + rack * 100000 + host * 10000 + 1000 * i);
                             tokensList.Add(token);
                             tokensStrList.Add(i.ToString());
                         }

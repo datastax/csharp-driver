@@ -37,16 +37,16 @@ namespace Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON
         /// </summary>
         public GraphSON2Writer()
         {
-            
+
         }
-        
+
         /// <summary>
         /// Creates a new instance of <see cref="GraphSON2Writer"/>.
         /// </summary>
-        public GraphSON2Writer(IReadOnlyDictionary<Type, IGraphSONSerializer> customSerializerByType) : 
+        public GraphSON2Writer(IReadOnlyDictionary<Type, IGraphSONSerializer> customSerializerByType) :
             base(customSerializerByType)
         {
-            
+
         }
     }
 }

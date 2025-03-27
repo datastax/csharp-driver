@@ -51,7 +51,7 @@ namespace Cassandra.DataStax.Graph
         /// Returns true if the underlying value is a scalar value (string, double, boolean, ...).
         /// </summary>
         public bool IsScalar => _node.IsScalar;
-        
+
         /// <summary>
         /// Returns the GraphSON type (@type property). Returns null if there isn't one.
         /// </summary>
@@ -237,8 +237,8 @@ namespace Cassandra.DataStax.Graph
         public T To<T>()
         {
             var type = typeof(T);
-            if ((type == typeof(object) && _node.DeserializeGraphNodes) 
-                || type == typeof(GraphNode) 
+            if ((type == typeof(object) && _node.DeserializeGraphNodes)
+                || type == typeof(GraphNode)
                 || type == typeof(IGraphNode))
             {
                 return (T)(object)this;
@@ -258,8 +258,8 @@ namespace Cassandra.DataStax.Graph
             {
                 throw new ArgumentNullException(nameof(type));
             }
-            if ((type == typeof(object) && _node.DeserializeGraphNodes) 
-                || type == typeof(GraphNode) 
+            if ((type == typeof(object) && _node.DeserializeGraphNodes)
+                || type == typeof(GraphNode)
                 || type == typeof(IGraphNode))
             {
                 return this;

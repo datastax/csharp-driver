@@ -30,7 +30,7 @@ namespace Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON
     internal class ListSerializer : IGraphSONDeserializer, IGraphSONSerializer
     {
         private static readonly IReadOnlyList<object> EmptyList = new object[0];
-        
+
         public dynamic Objectify(JToken graphsonObject, IGraphSONReader reader)
         {
             var jArray = graphsonObject as JArray;

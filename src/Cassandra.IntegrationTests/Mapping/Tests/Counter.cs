@@ -63,13 +63,13 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
 
             TestCluster.PrimeFluent(
                 b => b.WhenQuery("SELECT Counter, KeyPart1, KeyPart2 FROM PocoWithCounterAttribute")
-                      .ThenRowsSuccess(new[] 
+                      .ThenRowsSuccess(new[]
                           {
                               ("Counter", DataType.Counter),
                               ("KeyPart1", DataType.Uuid),
                               ("KeyPart2", DataType.Decimal)
                           },
-                          r => r.WithRows(counterPocos.Select(c => new object [] { c.Counter, c.KeyPart1, c.KeyPart2 }).ToArray())));
+                          r => r.WithRows(counterPocos.Select(c => new object[] { c.Counter, c.KeyPart1, c.KeyPart2 }).ToArray())));
 
             var countersQueried = cqlClient.Fetch<PocoWithCounterAttribute>().ToList();
             foreach (var pocoWithCounterExpected in counterPocos)
@@ -113,8 +113,8 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
                 b => b.WhenQuery(
                           "INSERT INTO PocoWithCounterAttribute (Counter, KeyPart1, KeyPart2) VALUES (?, ?, ?)",
                           when => when.WithParams(
-                              pocoAndLinqAttributesPocos.Counter, 
-                              pocoAndLinqAttributesPocos.KeyPart1, 
+                              pocoAndLinqAttributesPocos.Counter,
+                              pocoAndLinqAttributesPocos.KeyPart1,
                               pocoAndLinqAttributesPocos.KeyPart2))
                       .ThenServerError(ServerError.Invalid, expectedErrMsg));
 

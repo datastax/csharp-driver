@@ -33,10 +33,10 @@ namespace Cassandra.Connections
         public IConnection CreateUnobserved(ISerializer serializer, IConnectionEndPoint endPoint, Configuration configuration)
         {
             return new Connection(
-                serializer, 
-                endPoint, 
-                configuration, 
-                new StartupRequestFactory(configuration.StartupOptionsFactory), 
+                serializer,
+                endPoint,
+                configuration,
+                new StartupRequestFactory(configuration.StartupOptionsFactory),
                 NullConnectionObserver.Instance);
         }
     }

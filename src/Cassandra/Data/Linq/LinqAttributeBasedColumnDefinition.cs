@@ -40,8 +40,8 @@ namespace Cassandra.Data.Linq
         /// <summary>
         /// Creates a new column definition for the field specified using any attributes on the field to determine mapping configuration.
         /// </summary>
-        public LinqAttributeBasedColumnDefinition(FieldInfo fieldInfo) 
-            : this((MemberInfo) fieldInfo)
+        public LinqAttributeBasedColumnDefinition(FieldInfo fieldInfo)
+            : this((MemberInfo)fieldInfo)
         {
             MemberInfoType = fieldInfo.FieldType;
         }
@@ -49,8 +49,8 @@ namespace Cassandra.Data.Linq
         /// <summary>
         /// Creates a new column definition for the property specified using any attributes on the property to determine mapping configuration.
         /// </summary>
-        public LinqAttributeBasedColumnDefinition(PropertyInfo propertyInfo) 
-            : this((MemberInfo) propertyInfo)
+        public LinqAttributeBasedColumnDefinition(PropertyInfo propertyInfo)
+            : this((MemberInfo)propertyInfo)
         {
             MemberInfoType = propertyInfo.PropertyType;
         }
@@ -59,7 +59,7 @@ namespace Cassandra.Data.Linq
         {
             MemberInfo = memberInfo;
 
-            var columnAttribute = (ColumnAttribute) memberInfo.GetCustomAttributes(typeof(ColumnAttribute), true).FirstOrDefault();
+            var columnAttribute = (ColumnAttribute)memberInfo.GetCustomAttributes(typeof(ColumnAttribute), true).FirstOrDefault();
             if (columnAttribute != null)
             {
                 IsExplicitlyDefined = true;
@@ -69,7 +69,7 @@ namespace Cassandra.Data.Linq
                     ColumnName = columnAttribute.Name;
                 }
             }
-            SecondaryIndex = HasAttribute(memberInfo, typeof (SecondaryIndexAttribute));
+            SecondaryIndex = HasAttribute(memberInfo, typeof(SecondaryIndexAttribute));
             IsCounter = HasAttribute(memberInfo, typeof(CounterAttribute));
             IsStatic = HasAttribute(memberInfo, typeof(StaticColumnAttribute));
             Ignore = HasAttribute(memberInfo, typeof(IgnoreAttribute));

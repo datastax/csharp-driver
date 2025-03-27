@@ -39,7 +39,7 @@ namespace Cassandra.Connections
         /// IpEndPoint to which the driver will connect to (via <see cref="ITcpSocket"/>). This can never be null.
         /// </summary>
         IPEndPoint SocketIpEndPoint { get; }
-        
+
         /// <summary>
         /// Useful for logging purposes.
         /// </summary>

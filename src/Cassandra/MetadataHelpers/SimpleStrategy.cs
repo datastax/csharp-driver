@@ -29,7 +29,7 @@ namespace Cassandra.MetadataHelpers
         }
 
         public Dictionary<IToken, ISet<Host>> ComputeTokenToReplicaMap(
-            IReadOnlyList<IToken> ring, 
+            IReadOnlyList<IToken> ring,
             IReadOnlyDictionary<IToken, Host> primaryReplicas,
             int numberOfHostsWithTokens,
             IReadOnlyDictionary<string, DatacenterInfo> datacenters)
@@ -49,7 +49,7 @@ namespace Cassandra.MetadataHelpers
 
         public bool Equals(SimpleStrategy other)
         {
-            return other != null 
+            return other != null
                    && _replicationFactor.Equals(other._replicationFactor);
         }
 
@@ -62,8 +62,8 @@ namespace Cassandra.MetadataHelpers
         /// Converts token-primary to token-replicas
         /// </summary>
         private Dictionary<IToken, ISet<Host>> ComputeTokenToReplicaSimple(
-            int numberOfHostsWithTokens, 
-            IReadOnlyList<IToken> ring, 
+            int numberOfHostsWithTokens,
+            IReadOnlyList<IToken> ring,
             IReadOnlyDictionary<IToken, Host> primaryReplicas)
         {
             var rf = Math.Min(_replicationFactor.FullReplicas, numberOfHostsWithTokens);
@@ -77,12 +77,12 @@ namespace Cassandra.MetadataHelpers
                     // circle back if necessary
                     var nextReplicaIndex = (i + j) % ring.Count;
                     var nextReplica = primaryReplicas[ring[nextReplicaIndex]];
-                    
+
                     // not necessary to check if already added this replica,
                     // because it's an HashSet and Equals + GetHashCode are overriden in Host class
                     replicas.Add(nextReplica);
                 }
-               
+
                 tokenToReplicas.Add(token, replicas);
             }
             return tokenToReplicas;

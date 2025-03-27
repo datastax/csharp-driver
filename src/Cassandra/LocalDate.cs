@@ -24,19 +24,19 @@ namespace Cassandra
     /// LocalDate is an immutable date-time object that represents a date, often viewed as year-month-day.
     /// This class is implemented to match the Date representation CQL string literals.
     /// </summary>
-    public class LocalDate: IComparable<LocalDate>, IEquatable<LocalDate>
+    public class LocalDate : IComparable<LocalDate>, IEquatable<LocalDate>
     {
         /// <summary>
         /// Day number relatively to the year based on the month index
         /// </summary>
-        private static readonly int[] DaysToMonth = { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365};
-        private static readonly int[] DaysToMonthLeap = {  0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366};
+        private static readonly int[] DaysToMonth = { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365 };
+        private static readonly int[] DaysToMonthLeap = { 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366 };
         // unix epoch is represented by the number  2 ^ 31
         private const long DateCenter = 2147483648L;
         private const long DaysFromYear0ToUnixEpoch = 719528L;
         // ReSharper disable once InconsistentNaming
         private const long DaysFromYear0March1stToUnixEpoch = LocalDate.DaysFromYear0ToUnixEpoch - 60L;
-        
+
         private static readonly Regex RegexInteger = new Regex("^-?\\d+$", RegexOptions.Compiled);
 
         private const string BadFormatMessage =
@@ -72,22 +72,22 @@ namespace Cassandra
         {
             var daysSinceShiftedEpoch = daysSinceEpoch + LocalDate.DaysFromYear0March1stToUnixEpoch;    // shift epoch from 1970-01-01 to 0000-03-01
             var era =                                                                                   // compute era (400 year period)
-                (daysSinceShiftedEpoch >= 0 ? daysSinceShiftedEpoch : daysSinceShiftedEpoch - 146096) 
-                / 146097;                                          
-            
+                (daysSinceShiftedEpoch >= 0 ? daysSinceShiftedEpoch : daysSinceShiftedEpoch - 146096)
+                / 146097;
+
             var dayOfEra = (daysSinceShiftedEpoch - era * 146097);                                      // [0, 146096]
-            var yearOfEra = (dayOfEra - dayOfEra/1460 + dayOfEra/36524 - dayOfEra/146096) / 365;        // [0, 399]
-            var dayOfYear = dayOfEra - (365*yearOfEra + yearOfEra/4 - yearOfEra/100);                   // [0, 365]
-            var monthInternal = (5*dayOfYear + 2)/153;                                                  // [0, 11]
+            var yearOfEra = (dayOfEra - dayOfEra / 1460 + dayOfEra / 36524 - dayOfEra / 146096) / 365;        // [0, 399]
+            var dayOfYear = dayOfEra - (365 * yearOfEra + yearOfEra / 4 - yearOfEra / 100);                   // [0, 365]
+            var monthInternal = (5 * dayOfYear + 2) / 153;                                                  // [0, 11]
             var yearInternal = yearOfEra + era * 400;                                                   // beginning in Mar 1st, NOT in Jan 1st
 
-            var day = dayOfYear - (153*monthInternal+2)/5 + 1;                                          // [1, 31]
+            var day = dayOfYear - (153 * monthInternal + 2) / 5 + 1;                                          // [1, 31]
             var monthCivil = monthInternal + (monthInternal < 10 ? 3 : -9);                             // [1, 12]
             var yearCivil = yearInternal + (monthCivil <= 2 ? 1 : 0);                                   // shift to beginning in Jan 1st
 
-            Year = (int) yearCivil;
-            Month = (int) monthCivil;
-            Day = (int) day;
+            Year = (int)yearCivil;
+            Month = (int)monthCivil;
+            Day = (int)day;
         }
 
         /// <summary>
@@ -135,7 +135,7 @@ namespace Cassandra
         {
             return (
                 //days per year
-                year * 365L + 
+                year * 365L +
                 //adjusted per leap years
                 LeapDays(year));
         }
@@ -160,7 +160,7 @@ namespace Cassandra
         /// <param name="year">0-based year number: 0 equals to 1 AD</param>
         private static long LeapDays(long year)
         {
-            var result = year/4 - year/100 + year/400;
+            var result = year / 4 - year / 100 + year / 400;
             if (year > 0 && IsLeapYear((int)year))
             {
                 result--;
@@ -180,7 +180,7 @@ namespace Cassandra
         /// <returns></returns>
         public int CompareTo(LocalDate other)
         {
-            if ((object) other == null)
+            if ((object)other == null)
             {
                 return 1;
             }
@@ -235,7 +235,7 @@ namespace Cassandra
         {
             if (Year < 1 || Year > 9999)
             {
-                throw new ArgumentOutOfRangeException("The LocalDate can not be converted to DateTimeOffset", (Exception) null);
+                throw new ArgumentOutOfRangeException("The LocalDate can not be converted to DateTimeOffset", (Exception)null);
             }
             return new DateTimeOffset(Year, Month, Day, 0, 0, 0, 0, TimeSpan.Zero);
         }

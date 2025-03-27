@@ -70,7 +70,7 @@ namespace Cassandra
         {
             get { return _variablesRowsMetadata; }
         }
-        
+
         /// <summary>
         ///  Gets metadata on the columns that will be returned for this prepared statement.
         /// </summary>

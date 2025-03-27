@@ -23,7 +23,7 @@ namespace Cassandra.Tests.Mapping.Pocos
         public int IntValue { get; set; }
 
         public short ShortValue { get; set; }
-        
+
         public long LongValue { get; set; }
 
         public sbyte SbyteValue { get; set; }

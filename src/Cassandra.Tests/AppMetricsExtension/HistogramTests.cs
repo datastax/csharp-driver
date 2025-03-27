@@ -122,7 +122,7 @@ namespace Cassandra.Tests.AppMetricsExtension
                 await Task.WhenAll(tasks).ConfigureAwait(false);
             }
         }
-        
+
         [Test]
         public void Should_EmptySnapshotBeThreadSafe()
         {

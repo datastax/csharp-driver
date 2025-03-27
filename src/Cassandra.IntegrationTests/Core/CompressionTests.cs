@@ -39,7 +39,7 @@ namespace Cassandra.IntegrationTests.Core
                 session.Execute(string.Format("CREATE TABLE {0} (id uuid PRIMARY KEY, value text)", table));
                 var psInsert = session.Prepare(string.Format("INSERT INTO {0} (id, value) VALUES (?, ?)", table));
                 var psSelect = session.Prepare(string.Format("SELECT * FROM {0}", table));
-                var values = new []
+                var values = new[]
                 {
                     //different values
                     string.Join("", Enumerable.Repeat("abc", 10)), // 3 * 10 + 16 + header + metadata = ~ 80 b on select

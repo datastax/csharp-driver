@@ -159,7 +159,7 @@ namespace Cassandra.IntegrationTests.Linq.Structures
             foreach (var expectedEntity in expectedEntities)
                 Assert.IsTrue(ListContains(actualEntities, expectedEntity));
         }
-        
+
         private static readonly IDictionary<string, Func<ManyDataTypesEntity, object>> ColumnMappings =
             new Dictionary<string, Func<ManyDataTypesEntity, object>>
             {
@@ -179,7 +179,7 @@ namespace Cassandra.IntegrationTests.Linq.Structures
                 { "NullableIntType", entity => entity.NullableIntType },
                 { "StringType", entity => entity.StringType }
             };
-        
+
         private static readonly IDictionary<string, DataType> ColumnsToTypes =
             new Dictionary<string, DataType>
             {

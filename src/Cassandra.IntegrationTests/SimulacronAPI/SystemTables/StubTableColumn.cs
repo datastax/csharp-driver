@@ -27,14 +27,14 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.SystemTables
         }
 
         public DataType Type { get; set; }
-        
+
         public string Name { get; set; }
-        
+
         public StubColumnKind Kind { get; set; }
 
         public StubClusteringOrder ClusteringOrder { get; set; }
     }
-    
+
     public class StubUdtField
     {
         public StubUdtField(string name, DataType type)
@@ -44,7 +44,7 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.SystemTables
         }
 
         public DataType Type { get; set; }
-        
+
         public string Name { get; set; }
     }
 

@@ -50,7 +50,7 @@ namespace Cassandra.Tests.Mapping.Pocos
     {
         public Song3()
         {
-            
+
         }
 
         public Song3(Guid id)

@@ -42,8 +42,8 @@ namespace Cassandra.Tests
             var requestTrackingInfo = new SessionRequestInfo(mockStatement, null);
             Mock.Get(requestHandlerFactory)
                 .Setup(r => r.CreateAsync(
-                    It.IsAny<IInternalSession>(), 
-                    It.IsAny<ISerializer>(), 
+                    It.IsAny<IInternalSession>(),
+                    It.IsAny<ISerializer>(),
                     It.IsAny<IRequest>(),
                     It.IsAny<IStatement>(),
                     It.IsAny<IRequestOptions>()))
@@ -72,8 +72,8 @@ namespace Cassandra.Tests
             var requestTrackingInfo = new SessionRequestInfo(mockStatement, null);
             Mock.Get(requestHandlerFactory)
                 .Setup(r => r.CreateAsync(
-                    It.IsAny<IInternalSession>(), 
-                    It.IsAny<ISerializer>(), 
+                    It.IsAny<IInternalSession>(),
+                    It.IsAny<ISerializer>(),
                     It.IsAny<IRequest>(),
                     It.IsAny<IStatement>(),
                     It.IsAny<IRequestOptions>()))
@@ -109,8 +109,8 @@ namespace Cassandra.Tests
             var requestTrackingInfo = new SessionRequestInfo(mockStatement, null);
             Mock.Get(requestHandlerFactory)
                 .Setup(r => r.CreateAsync(
-                    It.IsAny<IInternalSession>(), 
-                    It.IsAny<ISerializer>(), 
+                    It.IsAny<IInternalSession>(),
+                    It.IsAny<ISerializer>(),
                     It.IsAny<IRequest>(),
                     It.IsAny<IStatement>(),
                     It.IsAny<IRequestOptions>()))
@@ -160,8 +160,8 @@ namespace Cassandra.Tests
             var requestTrackingInfo = new SessionRequestInfo(mockStatement, null);
             Mock.Get(requestHandlerFactory)
                 .Setup(r => r.CreateAsync(
-                    It.IsAny<IInternalSession>(), 
-                    It.IsAny<ISerializer>(), 
+                    It.IsAny<IInternalSession>(),
+                    It.IsAny<ISerializer>(),
                     It.IsAny<IRequest>(),
                     It.IsAny<IStatement>(),
                     It.IsAny<IRequestOptions>()))
@@ -203,7 +203,7 @@ namespace Cassandra.Tests
                 .Returns(() =>
                     Mock.Of<IExtendedRetryPolicy>(a =>
                         a.OnRequestError(
-                            It.IsAny<IStatement>(), config, exception, 0) 
+                            It.IsAny<IStatement>(), config, exception, 0)
                         == RetryDecision.Retry(null, true)));
 
             // Setup connection failure

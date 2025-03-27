@@ -50,7 +50,7 @@ namespace Cassandra.IntegrationTests.Core
                 return "dateOf";
             }
         }
-        
+
         public override void OneTimeSetUp()
         {
             base.OneTimeSetUp();
@@ -87,7 +87,7 @@ namespace Cassandra.IntegrationTests.Core
                     // the timestamp retrieved by the cql function has lower precision than timeuuid
                     const long precision = 10000L;
                     Assert.AreEqual(
-                        timeUuid.GetDate().Ticks / precision, 
+                        timeUuid.GetDate().Ticks / precision,
                         row.GetValue<DateTimeOffset>("timeuuid_date_value").Ticks / precision);
                 }
                 //Still defaults to Guid
@@ -140,7 +140,7 @@ namespace Cassandra.IntegrationTests.Core
             var dt1 = new DateTime(2016, 1, 1, 4, 55, 00);
             var dt2 = new DateTime(2016, 1, 1, 5, 55, 00);
             var ctimes = dt1.CompareTo(dt2);
-            
+
             //base check
             Assert.That(ctimes < 0);
 

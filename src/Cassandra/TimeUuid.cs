@@ -27,10 +27,10 @@ namespace Cassandra
         //Reuse the random generator to avoid collisions
         private static readonly Random RandomGenerator = new Random();
         private static readonly object RandomLock = new object();
-        private static readonly byte[] MinNodeId = {0x80, 0x80, 0x80, 0x80, 0x80, 0x80};
-        private static readonly byte[] MinClockId = {0x80, 0x80};
-        private static readonly byte[] MaxNodeId = {0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f};
-        private static readonly byte[] MaxClockId = {0x7f, 0x7f};
+        private static readonly byte[] MinNodeId = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80 };
+        private static readonly byte[] MinClockId = { 0x80, 0x80 };
+        private static readonly byte[] MaxNodeId = { 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f };
+        private static readonly byte[] MaxClockId = { 0x7f, 0x7f };
 
         private readonly Guid _value;
 
@@ -163,7 +163,7 @@ namespace Cassandra
         {
             return _value.ToString();
         }
-        
+
         /// <summary>
         /// Returns a string representation
         /// </summary>

@@ -41,7 +41,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             TestCloudClusterManager.Created = true;
             TryRemove();
             var testCluster = new CloudCluster(
-                TestUtils.GetTestClusterNameBasedOnRandomString(), 
+                TestUtils.GetTestClusterNameBasedOnRandomString(),
                 VersionString,
                 enableCert);
             testCluster.Create(3, null);
@@ -63,7 +63,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             {
                 if (Diagnostics.CassandraTraceSwitch.Level == TraceLevel.Verbose)
                 {
-                    Trace.TraceError("cloud test cluster could not be removed: {0}", ex);   
+                    Trace.TraceError("cloud test cluster could not be removed: {0}", ex);
                 }
             }
         }

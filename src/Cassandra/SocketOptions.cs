@@ -44,7 +44,7 @@ namespace Cassandra
         private bool _useStreamMode;
         private int _readTimeoutMillis = DefaultReadTimeoutMillis;
         private int _defunctReadTimeoutThreshold = DefaultDefunctReadTimeoutThreshold;
-        private int _metadataAbortTimeout =  5 * 60000;
+        private int _metadataAbortTimeout = 5 * 60000;
 
         /// <summary>
         /// Gets the number of milliseconds to wait for the socket to connect

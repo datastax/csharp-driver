@@ -22,8 +22,8 @@ namespace Cassandra.MetadataHelpers
     internal struct NetworkTopologyTokenMapContext
     {
         public NetworkTopologyTokenMapContext(
-            IReadOnlyList<IToken> ring, 
-            IReadOnlyDictionary<IToken, Host> primaryReplicas, 
+            IReadOnlyList<IToken> ring,
+            IReadOnlyDictionary<IToken, Host> primaryReplicas,
             IReadOnlyDictionary<string, DatacenterInfo> datacenters)
         {
             Ring = ring;

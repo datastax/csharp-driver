@@ -45,19 +45,19 @@ namespace Cassandra.IntegrationTests.CqlFunctions.Tests
 
             // Create necessary tables
             MappingConfiguration config1 = new MappingConfiguration();
-            config1.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof (EntityWithTimeUuid),
-                () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof (EntityWithTimeUuid)));
+            config1.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(EntityWithTimeUuid),
+                () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(EntityWithTimeUuid)));
             _tableEntityWithTimeUuid = new Table<EntityWithTimeUuid>(_session, config1);
             _tableEntityWithTimeUuid.Create();
 
             MappingConfiguration config2 = new MappingConfiguration();
-            config2.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof (EntityWithNullableTimeUuid),
-                () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof (EntityWithNullableTimeUuid)));
+            config2.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(EntityWithNullableTimeUuid),
+                () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(EntityWithNullableTimeUuid)));
             _tableEntityWithNullableTimeUuid = new Table<EntityWithNullableTimeUuid>(_session, config2);
             _tableEntityWithNullableTimeUuid.Create();
 
             _expectedTimeUuidObjectList = EntityWithTimeUuid.GetDefaultObjectList();
-            for (int i=0; i<_expectedTimeUuidObjectList.Count; i++)
+            for (int i = 0; i < _expectedTimeUuidObjectList.Count; i++)
             {
                 _expectedTimeUuidObjectList[i].StringType = i.ToString();
             }
@@ -83,7 +83,7 @@ namespace Cassandra.IntegrationTests.CqlFunctions.Tests
             }
 
             // change to query that returns nothing 
-            var whereQueryReturnsNothing =_tableEntityWithTimeUuid.Where(s => CqlFunction.Token(s.StringType) == CqlFunction.Token(Guid.NewGuid().ToString()));
+            var whereQueryReturnsNothing = _tableEntityWithTimeUuid.Where(s => CqlFunction.Token(s.StringType) == CqlFunction.Token(Guid.NewGuid().ToString()));
             List<EntityWithTimeUuid> objectsReturned2 = whereQueryReturnsNothing.ExecuteAsync().Result.ToList();
             Assert.AreEqual(0, objectsReturned2.Count);
         }

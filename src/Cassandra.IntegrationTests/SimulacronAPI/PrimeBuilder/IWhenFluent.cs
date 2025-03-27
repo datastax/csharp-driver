@@ -31,7 +31,7 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder
         IThenFluent ThenRowsSuccess(params (string, DataType)[] columnNamesToTypes);
 
         IThenFluent ThenRowsSuccess(string[] columnNames, Action<IRowsResult> rowsBuilder);
-        
+
         IThenFluent ThenRowsSuccess(RowsResult result);
 
         IThenFluent ThenAlreadyExists(string keyspace, string table);
@@ -53,11 +53,11 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder
             string writeType);
 
         IThenFluent ThenReadFailure(
-            int consistencyLevel, 
-            int received, 
-            int blockFor, 
-            string message, 
-            IDictionary<string, int> failureReasons, 
+            int consistencyLevel,
+            int received,
+            int blockFor,
+            string message,
+            IDictionary<string, int> failureReasons,
             bool dataPresent);
 
         IThenFluent ThenFunctionFailure(string keyspace, string function, string[] argTypes, string detail);

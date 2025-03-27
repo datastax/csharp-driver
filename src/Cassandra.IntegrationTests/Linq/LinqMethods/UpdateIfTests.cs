@@ -46,7 +46,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
                 Director = "Peter Weir",
                 MovieMaker = "Touchstone"
             };
-            
+
             TestCluster.PrimeFluent(
                 b => b.WhenQuery(
                           $"UPDATE \"{Movie.TableName}\" " +
@@ -71,7 +71,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
                 Director = "Peter Weir",
                 MovieMaker = "Touchstone"
             };
-            
+
             TestCluster.PrimeFluent(
                 b => b.WhenQuery(
                           $"UPDATE \"{Movie.TableName}\" " +
@@ -79,7 +79,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
                           "WHERE \"unique_movie_title\" = ? AND \"movie_maker\" = ? AND \"director\" = ? IF \"yearMade\" = ?",
                           when => when.WithParams("WHOEVER", movie.Title, movie.MovieMaker, movie.Director, 1500))
                       .ThenRowsSuccess(existingMovie.CreateAppliedInfoRowsResult()));
-            
+
             //Should not update as the if clause is not satisfied
             var updateIf = movieTable
                 .Where(m => m.Title == "Dead Poets Society" && m.MovieMaker == "Touchstone" && m.Director == "Peter Weir")

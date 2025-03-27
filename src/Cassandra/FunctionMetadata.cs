@@ -99,13 +99,13 @@ namespace Cassandra
         /// </summary>
         public FunctionMetadata()
         {
-            
+
         }
 
         /// <summary>
         /// Creates a new instance of Function metadata.
         /// </summary>
-        public FunctionMetadata(string name, string keyspaceName, string[] signature, string[] argumentNames, ColumnDesc[] argumentTypes, 
+        public FunctionMetadata(string name, string keyspaceName, string[] signature, string[] argumentNames, ColumnDesc[] argumentTypes,
                                 string body, bool calledOnNullInput, string language, ColumnDesc returnType)
         {
             Name = name;

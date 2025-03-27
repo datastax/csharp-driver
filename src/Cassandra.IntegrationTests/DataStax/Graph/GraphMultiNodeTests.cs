@@ -64,7 +64,7 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                 Trace.TraceInformation("GraphMultiNodeTests: Bootstrapping node 2");
                 testCluster.BootstrapNode(2, false);
                 Trace.TraceInformation("GraphMultiNodeTests: Setting workload");
-                testCluster.SetNodeWorkloads(2, new[] {"graph", "spark"});
+                testCluster.SetNodeWorkloads(2, new[] { "graph", "spark" });
                 Trace.TraceInformation("GraphMultiNodeTests: Starting node 2");
                 testCluster.Start(2);
                 Trace.TraceInformation("Waiting additional time for new node to be ready");
@@ -73,13 +73,13 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
 
                 Trace.TraceInformation("GraphMultiNodeTests: Creating graph");
                 session.ExecuteGraph(new SimpleGraphStatement(
-                    "system.graph(name)" + 
+                    "system.graph(name)" +
                     ".option('graph.replication_config').set(replicationConfig)" +
                     ".option('graph.system_replication_config').set(replicationConfig)" +
-                    ".ifNotExists()" + 
+                    ".ifNotExists()" +
                     (!TestClusterManager.SupportsNextGenGraph() ? string.Empty : ".engine(Classic)") +
-                    ".create()", 
-                    new {name = GraphMultiNodeTests.GraphName, replicationConfig = replicationConfigStr}));
+                    ".create()",
+                    new { name = GraphMultiNodeTests.GraphName, replicationConfig = replicationConfigStr }));
                 Trace.TraceInformation("GraphMultiNodeTests: Created graph");
 
                 var graphStatements = new StringBuilder();
@@ -146,7 +146,7 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                 return sparkHost;
             }
         }
-        
+
         [Test, TestDseVersion(5, 0)]
         public void Should_Contact_Spark_Primary_Directly()
         {
@@ -173,8 +173,8 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
         public void Should_Parse_Dse_Workload()
         {
             TestUtils.VerifyCurrentClusterWorkloads(TestClusterManager.CheckDseVersion(Version.Parse("5.1"), Comparison.GreaterThanOrEqualsTo)
-                ? new[] {"Analytics", "Cassandra", "Graph"}
-                : new[] {"Analytics"});
+                ? new[] { "Analytics", "Cassandra", "Graph" }
+                : new[] { "Analytics" });
         }
     }
 }

@@ -58,7 +58,7 @@ namespace Cassandra.Tests.Mapping.Linq
         public void Deprecated_EntryPoint_Uses_Table_Provided()
         {
             MappingConfiguration.Global.Define(new Map<AllTypesEntity>().TableName("tbl1"));
-            var table = _session.GetTable<AllTypesEntity>( "linqTable");
+            var table = _session.GetTable<AllTypesEntity>("linqTable");
             Assert.AreEqual(
                 @"SELECT BooleanValue, DateTimeValue, DecimalValue, DoubleValue, Int64Value, IntValue, StringValue, UuidValue FROM linqTable",
                 table.ToString());
@@ -68,7 +68,7 @@ namespace Cassandra.Tests.Mapping.Linq
         public void Deprecated_EntryPoint_Uses_Keyspace_Provided()
         {
             MappingConfiguration.Global.Define(new Map<AllTypesEntity>().TableName("tbl1"));
-            var table = _session.GetTable<AllTypesEntity>( "linqTable", "linqKs");
+            var table = _session.GetTable<AllTypesEntity>("linqTable", "linqKs");
             Assert.AreEqual(
                 @"SELECT BooleanValue, DateTimeValue, DecimalValue, DoubleValue, Int64Value, IntValue, StringValue, UuidValue FROM linqKs.linqTable",
                 table.ToString());

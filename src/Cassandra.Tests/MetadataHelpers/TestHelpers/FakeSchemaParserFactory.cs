@@ -55,7 +55,7 @@ namespace Cassandra.Tests.MetadataHelpers.TestHelpers
                 true,
                 ReplicationStrategies.NetworkTopologyStrategy,
                 replicationFactors,
-                factory ?? new ReplicationStrategyFactory(), 
+                factory ?? new ReplicationStrategyFactory(),
                 null);
         }
     }

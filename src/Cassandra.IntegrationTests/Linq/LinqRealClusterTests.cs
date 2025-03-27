@@ -74,7 +74,7 @@ namespace Cassandra.IntegrationTests.Linq
             var movieMappingConfig = new MappingConfiguration();
             _movieTable = new Table<Movie>(_session, movieMappingConfig);
             _movieTable.Create();
-            
+
             //Insert some data
             foreach (var movie in _movieList)
                 _movieTable.Insert(movie).Execute();
@@ -261,7 +261,7 @@ namespace Cassandra.IntegrationTests.Linq
             Assert.AreEqual("Bob Marley", song.Artist);
         }
 
-        [Test, TestCassandraVersion(2,1,0)]
+        [Test, TestCassandraVersion(2, 1, 0)]
         public void LinqUdt_Insert()
         {
             // Avoid interfering with other tests
@@ -299,7 +299,7 @@ namespace Cassandra.IntegrationTests.Linq
             Assert.NotNull(songs.FirstOrDefault(s => s.Title == "Communication Breakdown"));
         }
 
-        [Test, TestCassandraVersion(2,1,0)]
+        [Test, TestCassandraVersion(2, 1, 0)]
         public void LinqUdt_Where_Contains()
         {
             var songRecordsName = "song_records";
@@ -312,7 +312,7 @@ namespace Cassandra.IntegrationTests.Linq
                 Artist = "Led Zeppelin",
                 Title = "Good Times Bad Times"
             };
-            var songs = new List<Song2> {song, new Song2 {Id = Guid.NewGuid(), Artist = "Led Zeppelin", Title = "Whola Lotta Love"}};
+            var songs = new List<Song2> { song, new Song2 { Id = Guid.NewGuid(), Artist = "Led Zeppelin", Title = "Whola Lotta Love" } };
             var id = Guid.NewGuid();
             var songRecord = new SongRecords()
             {

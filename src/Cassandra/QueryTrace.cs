@@ -223,7 +223,7 @@ namespace Cassandra
             }
             finally
             {
-                _isDisconnected = false;   
+                _isDisconnected = false;
             }
         }
 

@@ -22,20 +22,20 @@ namespace Cassandra.ExecutionProfiles
     internal class ExecutionProfile : IExecutionProfile
     {
         internal ExecutionProfile(
-            ConsistencyLevel? consistencyLevel, 
-            ConsistencyLevel? serialConsistencyLevel, 
-            int? readTimeoutMillis, 
-            ILoadBalancingPolicy loadBalancingPolicy, 
-            ISpeculativeExecutionPolicy speculativeExecutionPolicy, 
+            ConsistencyLevel? consistencyLevel,
+            ConsistencyLevel? serialConsistencyLevel,
+            int? readTimeoutMillis,
+            ILoadBalancingPolicy loadBalancingPolicy,
+            ISpeculativeExecutionPolicy speculativeExecutionPolicy,
             IExtendedRetryPolicy retryPolicy,
             GraphOptions graphOptions)
         {
             Initialize(
-                consistencyLevel, 
-                serialConsistencyLevel, 
-                readTimeoutMillis, 
-                loadBalancingPolicy, 
-                speculativeExecutionPolicy, 
+                consistencyLevel,
+                serialConsistencyLevel,
+                readTimeoutMillis,
+                loadBalancingPolicy,
+                speculativeExecutionPolicy,
                 retryPolicy,
                 graphOptions);
         }
@@ -46,18 +46,18 @@ namespace Cassandra.ExecutionProfiles
             {
                 throw new ArgumentNullException(nameof(baseProfile));
             }
-            
+
             if (profile == null)
             {
                 throw new ArgumentNullException(nameof(profile));
             }
-            
+
             Initialize(
-                profile.ConsistencyLevel ?? baseProfile.ConsistencyLevel, 
-                profile.SerialConsistencyLevel ?? baseProfile.SerialConsistencyLevel, 
-                profile.ReadTimeoutMillis ?? baseProfile.ReadTimeoutMillis, 
-                profile.LoadBalancingPolicy ?? baseProfile.LoadBalancingPolicy, 
-                profile.SpeculativeExecutionPolicy ?? baseProfile.SpeculativeExecutionPolicy, 
+                profile.ConsistencyLevel ?? baseProfile.ConsistencyLevel,
+                profile.SerialConsistencyLevel ?? baseProfile.SerialConsistencyLevel,
+                profile.ReadTimeoutMillis ?? baseProfile.ReadTimeoutMillis,
+                profile.LoadBalancingPolicy ?? baseProfile.LoadBalancingPolicy,
+                profile.SpeculativeExecutionPolicy ?? baseProfile.SpeculativeExecutionPolicy,
                 profile.RetryPolicy ?? baseProfile.RetryPolicy,
                 profile.GraphOptions ?? baseProfile.GraphOptions);
         }
@@ -70,11 +70,11 @@ namespace Cassandra.ExecutionProfiles
             }
 
             Initialize(
-                requestOptions.ConsistencyLevel, 
-                requestOptions.SerialConsistencyLevel, 
-                requestOptions.ReadTimeoutMillis, 
-                requestOptions.LoadBalancingPolicy, 
-                requestOptions.SpeculativeExecutionPolicy, 
+                requestOptions.ConsistencyLevel,
+                requestOptions.SerialConsistencyLevel,
+                requestOptions.ReadTimeoutMillis,
+                requestOptions.LoadBalancingPolicy,
+                requestOptions.SpeculativeExecutionPolicy,
                 requestOptions.RetryPolicy,
                 requestOptions.GraphOptions);
         }

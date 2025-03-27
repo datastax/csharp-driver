@@ -179,11 +179,11 @@ namespace Cassandra
             var parsedContactPoints = configuration.ContactPointParser.ParseContactPoints(contactPoints);
 
             _controlConnection = configuration.ControlConnectionFactory.Create(
-                this, 
-                _protocolEventDebouncer, 
-                protocolVersion, 
-                Configuration, 
-                _metadata, 
+                this,
+                _protocolEventDebouncer,
+                protocolVersion,
+                Configuration,
+                _metadata,
                 parsedContactPoints);
 
             _metadata.ControlConnection = _controlConnection;
@@ -223,7 +223,7 @@ namespace Cassandra
                         loadBalancingPolicies.Add(options.LoadBalancingPolicy);
                         speculativeExecutionPolicies.Add(options.SpeculativeExecutionPolicy);
                     }
-                    
+
                     _loadBalancingPolicies = loadBalancingPolicies.ToList();
 
                     // Only abort the async operations when at least twice the time for ConnectTimeout per host passed
@@ -252,7 +252,7 @@ namespace Cassandra
                         }, TaskContinuationOptions.ExecuteSynchronously).Forget();
                         throw newEx;
                     }
-                    
+
                     // Initialize policies
                     foreach (var lbp in loadBalancingPolicies)
                     {
@@ -653,7 +653,7 @@ namespace Cassandra
             {
                 return;
             }
-            
+
             // Get the first pool for that host that has open connections
             var pool = sessions.Select(s => s.GetExistingPool(host.Address)).Where(p => p != null).FirstOrDefault(p => p.HasConnections);
             if (pool == null)
@@ -673,10 +673,10 @@ namespace Cassandra
                     var request = new InternalPrepareRequest(serializer, ps.Cql, ps.Keyspace, null);
                     await semaphore.WaitAsync().ConfigureAwait(false);
                     tasks.Add(Task.Run(() => handler.ReprepareOnSingleNodeAsync(
-                        new KeyValuePair<Host, IHostConnectionPool>(host, pool), 
-                        ps, 
-                        request, 
-                        semaphore, 
+                        new KeyValuePair<Host, IHostConnectionPool>(host, pool),
+                        ps,
+                        request,
+                        semaphore,
                         true)));
                 }
 

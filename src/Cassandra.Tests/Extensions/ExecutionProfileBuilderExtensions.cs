@@ -22,7 +22,7 @@ namespace Cassandra.Tests
     {
         public static ExecutionProfileBuilder CastToClass(this IExecutionProfileBuilder builder)
         {
-            return (ExecutionProfileBuilder) builder;
+            return (ExecutionProfileBuilder)builder;
         }
     }
 }

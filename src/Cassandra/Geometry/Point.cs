@@ -47,7 +47,7 @@ namespace Cassandra.Geometry
         /// <inheritdoc />
         protected override IEnumerable GeoCoordinates
         {
-            get { return new[] {X, Y}; }
+            get { return new[] { X, Y }; }
         }
 
         /// <summary>
@@ -60,7 +60,7 @@ namespace Cassandra.Geometry
             X = x;
             Y = y;
         }
-        
+
         /// <summary>
         /// Creates a new instance of <see cref="Point"/>.
         /// </summary>
@@ -95,7 +95,7 @@ namespace Cassandra.Geometry
         public override int GetHashCode()
         {
             // ReSharper disable NonReadonlyMemberInGetHashCode
-            return CombineHashCode(new [] { X, Y});
+            return CombineHashCode(new[] { X, Y });
             // ReSharper enable NonReadonlyMemberInGetHashCode
         }
 

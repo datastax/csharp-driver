@@ -34,8 +34,8 @@ namespace Cassandra.DataStax.Auth.Sspi.Credentials
         /// Initializes a new instance of the ClientCredential class.
         /// </summary>
         /// <param name="package">The security package to acquire the credential handle from.</param>
-        public ClientCredential( string package )
-            : base( package, CredentialUse.Outbound )
+        public ClientCredential(string package)
+            : base(package, CredentialUse.Outbound)
         {
         }
     }

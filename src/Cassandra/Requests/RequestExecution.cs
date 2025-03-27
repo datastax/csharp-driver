@@ -47,7 +47,7 @@ namespace Cassandra.Requests
         /// Host that was queried last in this execution. It can be null in case there was no attempt to send the request yet.
         /// </summary>
         private volatile Host _host;
-        
+
         public RequestExecution(IRequestHandler parent, IInternalSession session, IRequest request, IRequestObserver requestObserver, SessionRequestInfo sessionRequestInfo)
         {
             _parent = parent;
@@ -76,7 +76,7 @@ namespace Cassandra.Requests
             // fail fast: try to choose a host before leaving this thread
             var validHost = _parent.GetNextValidHost(_triedHosts);
 
-            SendToNextHostAsync(validHost).Forget();            
+            SendToNextHostAsync(validHost).Forget();
             return validHost.Host;
         }
 
@@ -171,7 +171,7 @@ namespace Cassandra.Requests
             var prepare = _sessionRequestInfo.PrepareRequest;
             if (prepare == null && request?.GetType() == typeof(InternalPrepareRequest))
             {
-                var p = (InternalPrepareRequest) request;
+                var p = (InternalPrepareRequest)request;
                 prepare = new PrepareRequest(p.Query, p.Keyspace);
             }
             var nodeRequestInfo = new NodeRequestInfo(host, prepare);
@@ -179,7 +179,7 @@ namespace Cassandra.Requests
             {
                 await _requestObserver.OnNodeStartAsync(_sessionRequestInfo, nodeRequestInfo).ConfigureAwait(false);
             }
-            
+
             try
             {
                 _operation = _connection.Send(request, (error, response) => callback(error, response, nodeRequestInfo), timeoutMillis);
@@ -463,7 +463,7 @@ namespace Cassandra.Requests
 
             return TaskHelper.Completed;
         }
-        
+
         /// <summary>
         /// Gets the retry decision based on the request error
         /// </summary>
@@ -490,10 +490,10 @@ namespace Cassandra.Requests
             {
                 return new RetryDecisionWithReason(
                     policy.OnReadTimeout(
-                        statement, 
-                        e.ConsistencyLevel, 
-                        e.RequiredAcknowledgements, 
-                        e.ReceivedAcknowledgements, 
+                        statement,
+                        e.ConsistencyLevel,
+                        e.RequiredAcknowledgements,
+                        e.ReceivedAcknowledgements,
                         e.WasDataRetrieved,
                         retryCount),
                     RequestErrorType.ReadTimeOut
@@ -504,10 +504,10 @@ namespace Cassandra.Requests
             {
                 return new RetryDecisionWithReason(
                     policy.OnWriteTimeout(
-                        statement, 
-                        e1.ConsistencyLevel, 
-                        e1.WriteType, 
-                        e1.RequiredAcknowledgements, 
+                        statement,
+                        e1.ConsistencyLevel,
+                        e1.WriteType,
+                        e1.RequiredAcknowledgements,
                         e1.ReceivedAcknowledgements,
                         retryCount),
                     RequestErrorType.WriteTimeOut
@@ -600,7 +600,7 @@ namespace Cassandra.Requests
                     }
 
                     RequestExecution.ValidateResult(response);
-                    var output = ((ResultResponse) response).Output;
+                    var output = ((ResultResponse)response).Output;
                     if (!(output is OutputPrepared outputPrepared))
                     {
                         var ex = new DriverInternalError("Expected prepared response, obtained " + output.GetType().FullName);
@@ -636,7 +636,7 @@ namespace Cassandra.Requests
 
                     if (_parent.SetNodeExecutionCompleted(nodeRequestInfo.ExecutionId))
                     {
-                        await _requestObserver.OnNodeSuccessAsync( _sessionRequestInfo, nodeRequestInfo).ConfigureAwait(false);
+                        await _requestObserver.OnNodeSuccessAsync(_sessionRequestInfo, nodeRequestInfo).ConfigureAwait(false);
                     }
 
                     await SendAsync(_request, nodeRequestInfo.Host, HandleResponseAsync).ConfigureAwait(false);

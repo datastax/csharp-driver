@@ -73,7 +73,7 @@ namespace Cassandra.Tests
             Assert.AreEqual(id4, id4TimeId);
             Assert.AreEqual(id4.ToByteArray(), id4Id.ToByteArray());
         }
-        
+
         [Test]
         public void CheckCollisionsTest()
         {
@@ -139,7 +139,7 @@ namespace Cassandra.Tests
         public void Compare_Test2()
         {
             var dt0 = new DateTimeOffset(1582, 10, 15, 0, 0, 0, TimeSpan.Zero);
-            var arr = new []
+            var arr = new[]
             {
                 TimeUuid.NewId(dt0.AddTicks(0x00000000007fffL)),
                 TimeUuid.NewId(dt0.AddTicks(0x00ff0000000000L)),
@@ -167,8 +167,8 @@ namespace Cassandra.Tests
             var timestamp = DateTimeOffset.Now;
             var timeuuid = TimeUuid.Min(timestamp);
             Assert.AreEqual(timestamp, timeuuid.GetDate());
-            Assert.AreEqual(new byte[] {0x80, 0x80}, timeuuid.ToByteArray().Skip(8).Take(2));
-            Assert.AreEqual(new byte[] {0x80, 0x80, 0x80, 0x80, 0x80, 0x80}, timeuuid.ToByteArray().Skip(10).Take(6));
+            Assert.AreEqual(new byte[] { 0x80, 0x80 }, timeuuid.ToByteArray().Skip(8).Take(2));
+            Assert.AreEqual(new byte[] { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80 }, timeuuid.ToByteArray().Skip(10).Take(6));
         }
 
         [Test]
@@ -178,8 +178,8 @@ namespace Cassandra.Tests
             var timeuuid = TimeUuid.Max(timestamp);
             Assert.AreEqual(timestamp, timeuuid.GetDate());
             // Variant Byte at index 8: 0x7f is changed into 0xbf
-            Assert.AreEqual(new byte[] {0xbf, 0x7f}, timeuuid.ToByteArray().Skip(8).Take(2));
-            Assert.AreEqual(new byte[] {0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f}, timeuuid.ToByteArray().Skip(10).Take(6));
+            Assert.AreEqual(new byte[] { 0xbf, 0x7f }, timeuuid.ToByteArray().Skip(8).Take(2));
+            Assert.AreEqual(new byte[] { 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f }, timeuuid.ToByteArray().Skip(10).Take(6));
         }
     }
 }

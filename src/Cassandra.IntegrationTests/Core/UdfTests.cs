@@ -122,20 +122,20 @@ namespace Cassandra.IntegrationTests.Core
             var cluster = GetCluster(metadataSync);
             var ks = cluster.Metadata.GetKeyspace("ks_udf");
             Assert.NotNull(ks);
-            var func = ks.GetFunction("plus", new [] {"int", "int"});
+            var func = ks.GetFunction("plus", new[] { "int", "int" });
             if (metadataSync)
             {
                 //it is the same as retrieving from Metadata, it gets cached
-                Assert.AreEqual(func, cluster.Metadata.GetFunction("ks_udf", "plus", new [] {"int", "int"}));
+                Assert.AreEqual(func, cluster.Metadata.GetFunction("ks_udf", "plus", new[] { "int", "int" }));
             }
             else
             {
-                Assert.AreNotEqual(func, cluster.Metadata.GetFunction("ks_udf", "plus", new [] {"int", "int"}));
+                Assert.AreNotEqual(func, cluster.Metadata.GetFunction("ks_udf", "plus", new[] { "int", "int" }));
             }
             Assert.NotNull(func);
             Assert.AreEqual("plus", func.Name);
             Assert.AreEqual("ks_udf", func.KeyspaceName);
-            CollectionAssert.AreEqual(new [] {"s", "v"}, func.ArgumentNames);
+            CollectionAssert.AreEqual(new[] { "s", "v" }, func.ArgumentNames);
             Assert.AreEqual(2, func.ArgumentTypes.Length);
             Assert.AreEqual(ColumnTypeCode.Int, func.ArgumentTypes[0].TypeCode);
             Assert.AreEqual(ColumnTypeCode.Int, func.ArgumentTypes[1].TypeCode);
@@ -309,7 +309,7 @@ namespace Cassandra.IntegrationTests.Core
                             .GetAggregate("sum2", new[] { "int" });
             var ks = cluster.Metadata.GetKeyspace("ks_udf");
             Assert.NotNull(ks);
-            var aggregate = cluster.Metadata.GetAggregate("ks_udf", "sum2", new[] {"int"});
+            var aggregate = cluster.Metadata.GetAggregate("ks_udf", "sum2", new[] { "int" });
             Assert.AreEqual("0", aggregate.InitialCondition);
             session.Execute("CREATE OR REPLACE AGGREGATE ks_udf.sum2(int) SFUNC plus STYPE int INITCOND 200");
             TestUtils.WaitForSchemaAgreement(cluster);
@@ -339,7 +339,7 @@ namespace Cassandra.IntegrationTests.Core
         public void GetAggregate_Should_Retrieve_Metadata_Of_A_Determinitic_Cql_Aggregate(bool metadataSync)
         {
             var cluster = GetCluster(metadataSync);
-            var aggregate = cluster.Metadata.GetAggregate("ks_udf", "deta", new[] {"int"});
+            var aggregate = cluster.Metadata.GetAggregate("ks_udf", "deta", new[] { "int" });
             Assert.AreEqual("plus", aggregate.StateFunction);
             Assert.True(aggregate.Deterministic);
         }
@@ -349,10 +349,10 @@ namespace Cassandra.IntegrationTests.Core
         public void GetFunction_Should_Retrieve_Metadata_Of_A_Determinitic_And_Monotonic_Cql_Function(bool metadataSync)
         {
             var cluster = GetCluster(metadataSync);
-            var fn = cluster.Metadata.GetFunction("ks_udf", "md", new[] {"int", "int"});
+            var fn = cluster.Metadata.GetFunction("ks_udf", "md", new[] { "int", "int" });
             Assert.True(fn.Deterministic);
             Assert.True(fn.Monotonic);
-            Assert.AreEqual(new []{ "dividend", "divisor"}, fn.MonotonicOn);
+            Assert.AreEqual(new[] { "dividend", "divisor" }, fn.MonotonicOn);
         }
 
         [Test, TestCase(true), TestCase(false)]
@@ -360,10 +360,10 @@ namespace Cassandra.IntegrationTests.Core
         public void GetFunction_Should_Retrieve_Metadata_Of_Partially_Monotonic_Cql_Function(bool metadataSync)
         {
             var cluster = GetCluster(metadataSync);
-            var fn = cluster.Metadata.GetFunction("ks_udf", "monotonic_on", new[] {"int", "int"});
+            var fn = cluster.Metadata.GetFunction("ks_udf", "monotonic_on", new[] { "int", "int" });
             Assert.False(fn.Deterministic);
             Assert.False(fn.Monotonic);
-            Assert.AreEqual(new []{ "dividend"}, fn.MonotonicOn);
+            Assert.AreEqual(new[] { "dividend" }, fn.MonotonicOn);
         }
     }
 }

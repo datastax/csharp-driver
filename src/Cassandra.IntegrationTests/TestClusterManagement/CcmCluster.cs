@@ -68,7 +68,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
             if (TestClusterManager.Executor is WslCcmProcessExecuter)
             {
-                _ccm.UpdateConfig(new []
+                _ccm.UpdateConfig(new[]
                 {
                     "read_request_timeout_in_ms: 20000",
                     "counter_write_request_timeout_in_ms: 20000",
@@ -101,14 +101,14 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             Cluster?.Shutdown();
             if (Builder == null)
             {
-                Builder = TestUtils.NewBuilder();   
+                Builder = TestUtils.NewBuilder();
             }
             Cluster = Builder.AddContactPoint(InitialContactPoint).Build();
             Session = Cluster.Connect();
             if (DefaultKeyspace != null)
             {
                 Session.CreateKeyspaceIfNotExists(DefaultKeyspace);
-                Session.ChangeKeyspace(DefaultKeyspace);   
+                Session.ChangeKeyspace(DefaultKeyspace);
             }
         }
 
@@ -215,7 +215,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 _ccm.CheckNativePortOpen(output, TestClusterManager.IpPrefix + nodeIdToStart);
             }
         }
-        
+
         public void UpdateDseConfig(params string[] yamlChanges)
         {
             _ccm.UpdateDseConfig(yamlChanges);

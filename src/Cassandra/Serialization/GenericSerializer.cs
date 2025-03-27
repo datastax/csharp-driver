@@ -26,7 +26,7 @@ namespace Cassandra.Serialization
 {
     internal class GenericSerializer : IGenericSerializer
     {
-        private static readonly Logger Logger = new Logger(typeof (GenericSerializer));
+        private static readonly Logger Logger = new Logger(typeof(GenericSerializer));
 
         private readonly IDictionary<ColumnTypeCode, ITypeSerializer> _primitiveDeserializers = new Dictionary<ColumnTypeCode, ITypeSerializer>
         {
@@ -52,7 +52,7 @@ namespace Cassandra.Serialization
             { ColumnTypeCode.Varchar, TypeSerializer.PrimitiveStringSerializer },
             { ColumnTypeCode.Varint, TypeSerializer.PrimitiveBigIntegerSerializer }
         };
-        
+
         private readonly IEnumerable<ITypeSerializer> _defaultCustomTypeSerializers = new ITypeSerializer[]
         {
             new DateRangeSerializer(),
@@ -103,18 +103,18 @@ namespace Cassandra.Serialization
             switch (typeCode)
             {
                 case ColumnTypeCode.Custom:
-                {
-                    if (typeInfo is VectorColumnInfo)
                     {
-                        return _vectorSerializer.Deserialize((byte)version, buffer, offset, length, typeInfo);
+                        if (typeInfo is VectorColumnInfo)
+                        {
+                            return _vectorSerializer.Deserialize((byte)version, buffer, offset, length, typeInfo);
+                        }
+                        if (_customDeserializers.Count == 0 || !_customDeserializers.TryGetValue(typeInfo, out typeSerializer))
+                        {
+                            // Use byte[] by default
+                            typeSerializer = TypeSerializer.PrimitiveByteArraySerializer;
+                        }
+                        return typeSerializer.Deserialize((byte)version, buffer, offset, length, typeInfo);
                     }
-                    if (_customDeserializers.Count == 0 || !_customDeserializers.TryGetValue(typeInfo, out typeSerializer))
-                    {
-                        // Use byte[] by default
-                        typeSerializer = TypeSerializer.PrimitiveByteArraySerializer;
-                    }
-                    return typeSerializer.Deserialize((byte)version, buffer, offset, length, typeInfo);
-                }
                 case ColumnTypeCode.Udt:
                     return _udtSerializer.Deserialize((byte)version, buffer, offset, length, typeInfo);
                 case ColumnTypeCode.List:
@@ -137,7 +137,7 @@ namespace Cassandra.Serialization
             }
             return clrTypeHandler(typeInfo);
         }
-        
+
         public Type GetClrTypeForGraph(ColumnTypeCode typeCode, IColumnInfo typeInfo)
         {
             if (!_defaultGraphTypes.TryGetValue(typeCode, out Func<IColumnInfo, Type> clrTypeHandler))
@@ -217,7 +217,7 @@ namespace Cassandra.Serialization
                     IColumnInfo valueTypeInfo;
                     ColumnTypeCode valueTypeCode;
                     var interfaces = type.GetTypeInfo().GetInterfaces();
-                    if (typeof(IDictionary).GetTypeInfo().IsAssignableFrom(type) && 
+                    if (typeof(IDictionary).GetTypeInfo().IsAssignableFrom(type) &&
                         interfaces.Any(t => IntrospectionExtensions.GetTypeInfo(t).IsGenericType && t.GetGenericTypeDefinition() == typeof(IDictionary<,>)))
                     {
                         var keyTypeCode = GetCqlType(type.GetTypeInfo().GetGenericArguments()[0], out IColumnInfo keyTypeInfo);
@@ -454,7 +454,7 @@ namespace Cassandra.Serialization
             }
             if (Utils.IsTuple(type))
             {
-                return _tupleSerializer.Serialize((byte)version, (IStructuralEquatable) value);
+                return _tupleSerializer.Serialize((byte)version, (IStructuralEquatable)value);
             }
             var buffer = _udtSerializer.Serialize((byte)version, value);
             if (buffer != null)
@@ -473,7 +473,7 @@ namespace Cassandra.Serialization
             {
                 typeSerializers = new List<ITypeSerializer>(0);
             }
-            
+
             var defined = new HashSet<ColumnTypeCode>();
             foreach (var ts in typeSerializers)
             {
@@ -516,7 +516,7 @@ namespace Cassandra.Serialization
                 {
                     throw new DriverInternalError("Expected custom type serializers only.");
                 }
-                
+
                 if (_customDeserializers.ContainsKey(defaultCustomSerializer.TypeInfo)
                     || _customSerializers.ContainsKey(defaultCustomSerializer.Type))
                 {

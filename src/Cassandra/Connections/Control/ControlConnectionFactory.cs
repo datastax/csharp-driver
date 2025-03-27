@@ -24,17 +24,17 @@ namespace Cassandra.Connections.Control
     {
         public IControlConnection Create(
             IInternalCluster cluster,
-            IProtocolEventDebouncer protocolEventDebouncer, 
-            ProtocolVersion initialProtocolVersion, 
-            Configuration config, 
+            IProtocolEventDebouncer protocolEventDebouncer,
+            ProtocolVersion initialProtocolVersion,
+            Configuration config,
             Metadata metadata,
             IEnumerable<IContactPoint> contactPoints)
         {
             return new ControlConnection(
                 cluster,
-                protocolEventDebouncer, 
-                initialProtocolVersion, 
-                config, 
+                protocolEventDebouncer,
+                initialProtocolVersion,
+                config,
                 metadata,
                 contactPoints);
         }

@@ -96,7 +96,7 @@ namespace Cassandra
         public void WriteString(string str)
         {
             var bytes = Encoding.UTF8.GetBytes(str);
-            WriteUInt16((ushort) bytes.Length);
+            WriteUInt16((ushort)bytes.Length);
             Write(bytes);
         }
 
@@ -115,7 +115,7 @@ namespace Cassandra
         /// </summary>
         public void WriteStringList(ICollection<string> l)
         {
-            WriteUInt16((ushort) l.Count);
+            WriteUInt16((ushort)l.Count);
             foreach (var str in l)
             {
                 WriteString(str);
@@ -148,7 +148,7 @@ namespace Cassandra
         {
             WriteBytes(_serializer.Serialize(value));
         }
-        
+
         /// <summary>
         /// Serializes (and potentially encrypts) and writes as protocol <c>bytes</c> (length + bytes)
         /// </summary>
@@ -162,7 +162,7 @@ namespace Cassandra
         /// </summary>
         public void WriteShortBytes(byte[] buffer)
         {
-            WriteUInt16((ushort) buffer.Length);
+            WriteUInt16((ushort)buffer.Length);
             Write(buffer);
         }
 

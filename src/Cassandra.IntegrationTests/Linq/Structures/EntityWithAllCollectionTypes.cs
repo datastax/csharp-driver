@@ -38,7 +38,7 @@ namespace Cassandra.IntegrationTests.Linq.Structures
             cte.Id = Guid.NewGuid().ToString();
             cte.ListType = new List<int>() { seed };
             cte.ArrayType = new string[] { seed.ToString() };
-            cte.DictionaryType = new Dictionary<string, string>() { {"key_" + seed, "val_" + seed} };
+            cte.DictionaryType = new Dictionary<string, string>() { { "key_" + seed, "val_" + seed } };
             return cte;
         }
 

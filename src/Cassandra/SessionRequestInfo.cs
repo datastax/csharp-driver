@@ -56,6 +56,6 @@ namespace Cassandra
         /// Returns the session's current keyspace (if it was set).
         /// </summary>
         public string SessionKeyspace { get; }
-        
+
     }
 }

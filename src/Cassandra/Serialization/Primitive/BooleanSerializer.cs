@@ -30,7 +30,7 @@ namespace Cassandra.Serialization.Primitive
 
         public override byte[] Serialize(ushort protocolVersion, bool value)
         {
-            return new [] { (byte)(value ? 1 : 0) };
+            return new[] { (byte)(value ? 1 : 0) };
         }
     }
 }

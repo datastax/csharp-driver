@@ -31,7 +31,7 @@ namespace Cassandra.Tests
             StringAssert.Contains("Server timeout during batchlog write at consistency LOCALONE", ex.Message);
             StringAssert.Contains(" (0 peer(s) acknowledged the write over 1 required)", ex.Message);
         }
-        
+
         [Test]
         public void WriteTimeoutException_Query_Message_Test()
         {
@@ -39,7 +39,7 @@ namespace Cassandra.Tests
             StringAssert.Contains("Server timeout during write query at consistency QUORUM", ex.Message);
             StringAssert.Contains(" (8 peer(s) acknowledged the write over 10 required)", ex.Message);
         }
-        
+
         [Test]
         public void WriteFailureException_Message_Test()
         {
@@ -63,7 +63,7 @@ namespace Cassandra.Tests
                 { new IPEndPoint(IPAddress.Parse("10.10.0.1"), 9042), new AuthenticationException("Bad credentials") }
             });
             Assert.AreEqual(
-                "All hosts tried for query failed (tried 10.10.0.1:9042: AuthenticationException 'Bad credentials')", 
+                "All hosts tried for query failed (tried 10.10.0.1:9042: AuthenticationException 'Bad credentials')",
                 ex.Message);
         }
 
@@ -78,7 +78,7 @@ namespace Cassandra.Tests
             });
             Assert.AreEqual(
                 "All hosts tried for query failed (tried 10.10.0.1:9042: AuthenticationException 'Bad credentials';" +
-                " 10.10.0.2:9042: AuthenticationException 'No credentials'; ...), see Errors property for more info", 
+                " 10.10.0.2:9042: AuthenticationException 'No credentials'; ...), see Errors property for more info",
                 ex.Message);
         }
 
@@ -92,7 +92,7 @@ namespace Cassandra.Tests
             });
             Assert.AreEqual(
                 "All hosts tried for query failed (tried 10.10.0.1:9042; 10.10.0.2:9042: AuthenticationException " +
-                "'No credentials')", 
+                "'No credentials')",
                 ex.Message);
         }
 

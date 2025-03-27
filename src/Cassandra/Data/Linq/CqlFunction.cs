@@ -204,7 +204,7 @@ namespace Cassandra.Data.Linq
         {
             throw new InvalidOperationException();
         }
-        
+
         public static bool operator >(CqlFunction a, Guid b)
         {
             throw new InvalidOperationException();
@@ -224,12 +224,12 @@ namespace Cassandra.Data.Linq
         {
             throw new InvalidOperationException();
         }
-        
+
         public static bool operator <(Guid b, CqlFunction a)
         {
             throw new InvalidOperationException();
         }
-        
+
         public static bool operator >(Guid b, CqlFunction a)
         {
             throw new InvalidOperationException();
@@ -249,7 +249,7 @@ namespace Cassandra.Data.Linq
 
         public static object ToObject(CqlFunction value)
         {
-            return (object) value;
+            return (object)value;
         }
 
         public static implicit operator Guid(CqlFunction value)

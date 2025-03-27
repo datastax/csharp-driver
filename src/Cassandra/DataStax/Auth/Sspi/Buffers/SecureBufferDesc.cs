@@ -32,7 +32,7 @@ namespace Cassandra.DataStax.Auth.Sspi.Buffers
     /// Represents the native layout of the secure buffer descriptor that is provided directly
     /// to native API calls.
     /// </summary>
-    [StructLayout( LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Sequential)]
     internal struct SecureBufferDescInternal
     {
         /// <summary>

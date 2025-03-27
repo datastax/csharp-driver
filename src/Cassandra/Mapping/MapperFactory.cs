@@ -29,9 +29,9 @@ namespace Cassandra.Mapping
     /// </summary>
     internal class MapperFactory
     {
-        private static readonly Type CassandraRowType = typeof (Row);
-        private static readonly Type IntType = typeof (int);
-        private static readonly Type ObjectType = typeof (object);
+        private static readonly Type CassandraRowType = typeof(Row);
+        private static readonly Type IntType = typeof(int);
+        private static readonly Type ObjectType = typeof(object);
 
         private const BindingFlags PublicInstance = BindingFlags.Public | BindingFlags.Instance;
 
@@ -114,11 +114,11 @@ namespace Cassandra.Mapping
         /// </summary>
         public Func<T, object[]> GetValueCollector<T>(string cql, bool primaryKeyValuesOnly = false, bool primaryKeyValuesLast = false)
         {
-            Tuple<Type, string> key = Tuple.Create(typeof (T), cql);
+            Tuple<Type, string> key = Tuple.Create(typeof(T), cql);
             Delegate valueCollectorFunc = _valueCollectorFuncCache.GetOrAdd(key, _ => CreateValueCollector<T>(primaryKeyValuesOnly, primaryKeyValuesLast));
-            return (Func<T, object[]>) valueCollectorFunc;
+            return (Func<T, object[]>)valueCollectorFunc;
         }
-        
+
         /// <summary>
         /// Creates a mapper Func for going from a C* Row to a POCO, T.
         /// </summary>
@@ -127,14 +127,14 @@ namespace Cassandra.Mapping
             var pocoData = GetPocoData<T>();
 
             // See if we retrieved only one column and if that column does not exist in the PocoData
-            if (rows.Columns.Length == 1 && 
-                !Cassandra.Utils.IsAnonymousType(pocoData.PocoType) && 
+            if (rows.Columns.Length == 1 &&
+                !Cassandra.Utils.IsAnonymousType(pocoData.PocoType) &&
                 !pocoData.Columns.Contains(rows.Columns[0].Name))
             {
                 // Map the single column value directly to the POCO
                 return CreateMapperForSingleColumnToPoco<T>(rows, pocoData);
             }
-            
+
             // Create a default POCO mapper
             return CreateMapperForPoco<T>(rows, pocoData);
         }
@@ -198,17 +198,17 @@ namespace Cassandra.Mapping
             }
 
             // Create a variable to hold our return value, and initialize as an object[] of correct size
-            var values = Expression.Variable(typeof (object[]), "values");
+            var values = Expression.Variable(typeof(object[]), "values");
             methodBodyExpressions.Add(
                 // object[] values = new object[... number of columns on POCO ...];
                 Expression.Assign(values, Expression.NewArrayBounds(ObjectType, Expression.Constant(columns.Count, IntType))));
-            
+
             for (var idx = 0; idx < columns.Count; idx++)
             {
                 PocoColumn column = columns[idx];
 
                 Expression getValueFromPoco = GetExpressionToGetValueFromPoco(poco, column);
-                
+
                 // values[columnIndex] = (object) ... getValueFromPoco ...
                 methodBodyExpressions.Add(
                     Expression.Assign(Expression.ArrayAccess(values, Expression.Constant(idx, IntType)),
@@ -220,7 +220,7 @@ namespace Cassandra.Mapping
             methodBodyExpressions.Add(values);
 
             // Construct the method body, then create a compiled Func for the method
-            var methodBody = Expression.Block(new[] {values}, methodBodyExpressions);
+            var methodBody = Expression.Block(new[] { values }, methodBodyExpressions);
             return Expression.Lambda<Func<T, object[]>>(methodBody, poco).Compile();
         }
 
@@ -263,7 +263,7 @@ namespace Cassandra.Mapping
                 if (constructor == null)
                 {
                     throw new ArgumentException(
-                        string.Format("RowSet columns length is {0} but type {1} does not contain a constructor with the same amount of parameters", 
+                        string.Format("RowSet columns length is {0} but type {1} does not contain a constructor with the same amount of parameters",
                         rows.Columns.Length,
                         pocoData.PocoType));
                 }
@@ -358,7 +358,7 @@ namespace Cassandra.Mapping
                     parameterExpressions.Add(getValueT);
                 }
                 // T poco = new T(param1, param2, ...)
-                methodBodyExpressions.Add(Expression.Assign(poco, 
+                methodBodyExpressions.Add(Expression.Assign(poco,
                     Expression.New(projection.ConstructorInfo, parameterExpressions)));
             }
             // Fill the rest of members with the rest of the column values
@@ -387,15 +387,15 @@ namespace Cassandra.Mapping
                 // if (row.IsNull(columnIndex) == false) => getValueAndAssign ...
                 // else => ifRowIsNull ...
                 methodBodyExpressions.Add(Expression.IfThenElse(
-                    Expression.IsFalse(Expression.Call(row, IsNullMethod, columnIndexExpression)), 
-                    getValueAndAssign, 
+                    Expression.IsFalse(Expression.Call(row, IsNullMethod, columnIndexExpression)),
+                    getValueAndAssign,
                     ifRowValueIsNull));
                 columnIndex++;
             }
             // The last expression in the method body is the return value, so put our new POCO at the end
             methodBodyExpressions.Add(poco);
             // Create a block expression for the method body expressions
-            var methodBody = Expression.Block(new [] { poco }, methodBodyExpressions);
+            var methodBody = Expression.Block(new[] { poco }, methodBodyExpressions);
             // Return compiled expression
             return Expression.Lambda<Func<Row, T>>(methodBody, row).Compile();
         }
@@ -414,14 +414,14 @@ namespace Cassandra.Mapping
         }
 
         /// <summary>
-            /// Gets an Expression that gets the value of a POCO field or property.
-            /// </summary>
+        /// Gets an Expression that gets the value of a POCO field or property.
+        /// </summary>
         private Expression GetExpressionToGetValueFromPoco(ParameterExpression poco, PocoColumn column)
         {
             // Start by assuming the database wants the same type that the property is and that we'll just be getting the value from the property:
             // poco.SomeFieldOrProp
             Expression getValueFromPoco = Expression.MakeMemberAccess(poco, column.MemberInfo);
-            if (column.MemberInfoType == column.ColumnType) 
+            if (column.MemberInfoType == column.ColumnType)
                 return getValueFromPoco;
 
             // See if there is a converter available for between the two types
@@ -432,7 +432,7 @@ namespace Cassandra.Mapping
                 // (TColumn) poco.SomeFieldOrProp
                 return Expression.Convert(getValueFromPoco, column.ColumnType);
             }
-            
+
             // Invoke the converter:
             // converter(poco.SomeFieldOrProp)
             return Expression.Call(converter.Target == null ? null : Expression.Constant(converter.Target), GetMethod(converter), getValueFromPoco);
@@ -445,7 +445,7 @@ namespace Cassandra.Mapping
                 return value;
             }
             // See if there is a converter available for between the two types
-            var converter =  _typeConverter.GetToDbConverter(column.MemberInfoType, column.ColumnType);
+            var converter = _typeConverter.GetToDbConverter(column.MemberInfoType, column.ColumnType);
             if (converter == null)
             {
                 // No converter available, at least try a cast:
@@ -492,12 +492,12 @@ namespace Cassandra.Mapping
             {
                 // Invoke the converter function on getValueT (taking into account whether it's a static method):
                 //     converter(row.GetValue<T>(columnIndex));
-                convertedValue = 
+                convertedValue =
                     Expression.Convert(
                         Expression.Call(
-                            converter.Target == null ? null : Expression.Constant(converter.Target), 
-                            GetMethod(converter), 
-                            getValueT), 
+                            converter.Target == null ? null : Expression.Constant(converter.Target),
+                            GetMethod(converter),
+                            getValueT),
                         pocoDestType);
             }
             // Cassandra will return null for empty collections, so make an effort to populate collection properties on the POCO with
@@ -561,10 +561,10 @@ namespace Cassandra.Mapping
                 Type openGenericType = pocoDestType.GetGenericTypeDefinition();
 
                 // Handle IDictionary<T, U>
-                if (openGenericType == typeof (IDictionary<,>))
+                if (openGenericType == typeof(IDictionary<,>))
                 {
                     // The driver currently uses SortedDictionary so we will too
-                    Type dictionaryType = typeof (SortedDictionary<,>).MakeGenericType(pocoDestType.GetTypeInfo().GetGenericArguments());
+                    Type dictionaryType = typeof(SortedDictionary<,>).MakeGenericType(pocoDestType.GetTypeInfo().GetGenericArguments());
 
                     // (IDictionary<T, U>) new SortedDictionary<T, U>();
                     createEmptyCollection = Expression.Convert(Expression.New(dictionaryType), pocoDestType);
@@ -572,10 +572,10 @@ namespace Cassandra.Mapping
                 }
 
                 // Handle ISet<T>
-                if (openGenericType == typeof (ISet<>))
+                if (openGenericType == typeof(ISet<>))
                 {
                     // The driver uses List (?!) but we'll use a sorted set since that's the CQL semantics
-                    Type setType = typeof (SortedSet<>).MakeGenericType(pocoDestType.GetTypeInfo().GetGenericArguments());
+                    Type setType = typeof(SortedSet<>).MakeGenericType(pocoDestType.GetTypeInfo().GetGenericArguments());
 
                     // (ISet<T>) new SortedSet<T>();
                     createEmptyCollection = Expression.Convert(Expression.New(setType), pocoDestType);
@@ -586,7 +586,7 @@ namespace Cassandra.Mapping
                 if (TypeConverter.ListGenericInterfaces.Contains(openGenericType))
                 {
                     // The driver uses List so we'll use that as well
-                    Type listType = typeof (List<>).MakeGenericType(pocoDestType.GetTypeInfo().GetGenericArguments());
+                    Type listType = typeof(List<>).MakeGenericType(pocoDestType.GetTypeInfo().GetGenericArguments());
 
                     // (... IList<T> or ICollection<T> or IEnumerable<T> ...) new List<T>();
                     createEmptyCollection = Expression.Convert(Expression.New(listType), pocoDestType);
@@ -611,7 +611,7 @@ namespace Cassandra.Mapping
         /// </summary>
         private static bool ImplementsCollectionInterface(Type t)
         {
-            return t.GetTypeInfo().GetInterfaces().FirstOrDefault(i => i.GetTypeInfo().IsGenericType && i.GetGenericTypeDefinition() == typeof (ICollection<>)) != null;
+            return t.GetTypeInfo().GetInterfaces().FirstOrDefault(i => i.GetTypeInfo().IsGenericType && i.GetGenericTypeDefinition() == typeof(ICollection<>)) != null;
         }
 
         private static MethodInfo GetMethod(Delegate deleg)

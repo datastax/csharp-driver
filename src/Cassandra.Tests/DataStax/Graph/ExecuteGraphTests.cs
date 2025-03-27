@@ -151,7 +151,7 @@ namespace Cassandra.Tests.DataStax.Graph
             };
             var rsMock = new Mock<RowSet>();
             rsMock.Setup(r => r.GetEnumerator()).Returns(() => rows.GetEnumerator());
-            
+
             _cluster = ExecuteGraphTests.GetCluster(stmt => { }, null, rsMock.Object);
             var session = _cluster.Connect();
             var rsGraph = session.ExecuteGraph(new SimpleGraphStatement("g.V()"));
@@ -181,7 +181,7 @@ namespace Cassandra.Tests.DataStax.Graph
         {
             SimpleStatement coreStatement = null;
             _cluster = ExecuteGraphTests.GetCluster(
-                stmt => coreStatement = stmt, 
+                stmt => coreStatement = stmt,
                 new GraphOptions()
                     .SetName("name1")
                     .SetSource("My source!")
@@ -208,7 +208,7 @@ namespace Cassandra.Tests.DataStax.Graph
         {
             SimpleStatement coreStatement = null;
             _cluster = ExecuteGraphTests.GetCluster(
-                stmt => coreStatement = stmt, 
+                stmt => coreStatement = stmt,
                 new GraphOptions()
                     .SetName("name1")
                     .SetSource("My source!")
@@ -373,7 +373,7 @@ namespace Cassandra.Tests.DataStax.Graph
         {
             return ExecuteGraphTests.GetCluster(executeCallback, graphOptions, stmt => rs ?? new RowSet());
         }
-        
+
         private static ICluster GetCluster(
             Action<SimpleStatement> executeCallback, GraphOptions graphOptions, Func<IStatement, RowSet> rs)
         {
@@ -387,12 +387,12 @@ namespace Cassandra.Tests.DataStax.Graph
 
             return Cluster.BuildFrom(
                 new FakeInitializer(
-                    config, 
+                    config,
                     new List<IPEndPoint>
                     {
                         new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9042),
                         new IPEndPoint(IPAddress.Parse("1.2.3.4"), 9042)
-                    }), 
+                    }),
                 new List<string>());
         }
 

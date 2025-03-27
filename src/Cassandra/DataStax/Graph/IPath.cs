@@ -27,7 +27,7 @@ namespace Cassandra.DataStax.Graph
         /// Gets the sets of labels of the steps traversed by this path, or an empty list, if this path is empty.
         /// </summary>
         ICollection<ICollection<string>> Labels { get; }
-        
+
         /// <summary>
         /// Gets the objects traversed by this path, or an empty list, if this path is empty.
         /// </summary>

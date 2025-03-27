@@ -127,7 +127,7 @@ namespace Cassandra.IntegrationTests.SimulacronAPI
             InnerTypes = innerTypes;
             _dataTypeEnum = dataTypeEnum;
         }
-        
+
         public static readonly DataType Text = new DataType("text");
 
         public static readonly DataType Ascii = new DataType("ascii");
@@ -163,7 +163,7 @@ namespace Cassandra.IntegrationTests.SimulacronAPI
         public static readonly DataType Date = new DataType("date");
 
         public static readonly DataType Time = new DataType("time");
-        
+
         public static readonly DataType Empty = new DataType("empty");
 
         public static readonly DataType SmallInt = new DataType("smallint");
@@ -171,7 +171,7 @@ namespace Cassandra.IntegrationTests.SimulacronAPI
         public static readonly DataType TinyInt = new DataType("tinyint");
 
         public static readonly DataType Duration = new DataType("duration"); // v5+
-        
+
         public static DataType Udt(string name)
         {
             return new DataType(name);
@@ -201,12 +201,12 @@ namespace Cassandra.IntegrationTests.SimulacronAPI
         {
             return new DataType($"map<{dataTypeKey.Value}, {dataTypeValue.Value}>", DataTypeEnum.Map, dataTypeKey, dataTypeValue);
         }
-        
+
         public static DataType Tuple(params DataType[] dataTypes)
         {
             return new DataType($"tuple<{string.Join(", ", dataTypes.Select(d => d.Value))}>", DataTypeEnum.Tuple, dataTypes);
         }
-        
+
         private static readonly Dictionary<Type, DataType> CqlTypeNames = new Dictionary<Type, DataType>
         {
             {typeof (Int32), DataType.Int},
@@ -259,7 +259,7 @@ namespace Cassandra.IntegrationTests.SimulacronAPI
                 {
                     return DataType.GetDataType(type.GetGenericArguments()[0]);
                 }
-                
+
                 if (type.Name.StartsWith("Tuple"))
                 {
                     return DataType.Tuple(type.GetGenericArguments().Select(DataType.GetDataType).ToArray());
@@ -290,7 +290,7 @@ namespace Cassandra.IntegrationTests.SimulacronAPI
 
             throw new ArgumentException("no type found for dotnet type " + type.Name);
         }
-        
+
         internal static readonly DateTimeOffset UnixStart = new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero);
 
         public static string ByteArrayToString(byte[] ba)
@@ -337,7 +337,7 @@ namespace Cassandra.IntegrationTests.SimulacronAPI
         {
             return DataType.GetMicroSecondsTimestamp(dt) / 1000;
         }
-        
+
         public static long GetMicroSecondsTimestamp(DateTimeOffset dt)
         {
             var ticks = (dt - UnixStart).Ticks;
@@ -368,7 +368,7 @@ namespace Cassandra.IntegrationTests.SimulacronAPI
             hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(Value);
             return hashCode;
         }
-        
+
         public DataType AdaptForSimulacron()
         {
             if (Value == DataType.Text.Value)

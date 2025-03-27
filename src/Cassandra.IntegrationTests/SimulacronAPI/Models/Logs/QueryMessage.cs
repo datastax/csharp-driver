@@ -22,7 +22,7 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.Models.Logs
     {
         [JsonProperty("query")]
         public string Query { get; set; }
-        
+
         [JsonProperty("options")]
         public QueryMessageOptions Options { get; set; }
     }

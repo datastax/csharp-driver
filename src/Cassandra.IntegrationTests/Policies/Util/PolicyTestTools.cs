@@ -114,7 +114,7 @@ namespace Cassandra.IntegrationTests.Policies.Util
         public void AssertQueried(string host, int expectedHostQueryCount)
         {
             // if the host is not found, that's the same as it being queried zero times
-            int actualHostQueryCount = 0; 
+            int actualHostQueryCount = 0;
             if (Coordinators.ContainsKey(host))
                 actualHostQueryCount = Coordinators[host];
             Assert.AreEqual(expectedHostQueryCount, actualHostQueryCount, "For " + host);
@@ -129,7 +129,7 @@ namespace Cassandra.IntegrationTests.Policies.Util
             int queriedInSet = 0;
             foreach (var host in hosts)
             {
-                queriedInSet += Coordinators.ContainsKey(host) ? (int) Coordinators[host] : 0;
+                queriedInSet += Coordinators.ContainsKey(host) ? (int)Coordinators[host] : 0;
             }
             Assert.AreEqual(queriedInSet, n, string.Format("For [{0}]", String.Join(", ", hosts)));
         }
@@ -139,7 +139,7 @@ namespace Cassandra.IntegrationTests.Policies.Util
             var queried = 0;
             if (Coordinators.ContainsKey(host))
             {
-                queried = Coordinators[host];   
+                queried = Coordinators[host];
             }
             Assert.GreaterOrEqual(queried, n);
         }
@@ -176,7 +176,7 @@ namespace Cassandra.IntegrationTests.Policies.Util
             // Also note that we don't use tracing because this would trigger requests that screw up the test
             for (int i = 0; i < numberOfInsertsToMake; ++i)
                 if (batch)
-                    // BUG: WriteType == SIMPLE                    
+                // BUG: WriteType == SIMPLE                    
                 {
                     var bth = new StringBuilder();
                     bth.AppendLine("BEGIN BATCH");
@@ -233,7 +233,7 @@ namespace Cassandra.IntegrationTests.Policies.Util
             else
             {
                 var routingKey = new RoutingKey();
-                routingKey.RawRoutingKey = Enumerable.Repeat((byte) 0x00, 4).ToArray();
+                routingKey.RawRoutingKey = Enumerable.Repeat((byte)0x00, 4).ToArray();
                 for (int i = 0; i < numberOfQueriesToExecute; ++i)
                 {
                     string hostQueried;

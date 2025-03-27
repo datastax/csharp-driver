@@ -30,7 +30,7 @@ namespace Cassandra.Tests.Connections.Control
         private readonly IPEndPoint _localhostIpEndPoint2 = new IPEndPoint(IPAddress.Parse("127.0.0.2"), HostnameContactPointTests.Port);
         private IDnsResolver _dnsResolver;
         private const int Port = 100;
-        
+
         [Test]
         public async Task Should_EqualsReturnTrue_When_BothContactPointsReferToSameHostname()
         {
@@ -85,12 +85,12 @@ namespace Cassandra.Tests.Connections.Control
             Assert.AreEqual(target.GetHashCode(), target2.GetHashCode());
 
             Mock.Get(_dnsResolver).Setup(m => m.GetHostEntryAsync("cp1"))
-                .ReturnsAsync(new IPHostEntry { AddressList = new[] { IPAddress.Parse("127.0.0.2") }});
-            
+                .ReturnsAsync(new IPHostEntry { AddressList = new[] { IPAddress.Parse("127.0.0.2") } });
+
             await target.GetConnectionEndPointsAsync(false).ConfigureAwait(false);
             Assert.AreEqual(target, target2);
             Assert.AreEqual(target.GetHashCode(), target2.GetHashCode());
-            
+
             await target2.GetConnectionEndPointsAsync(false).ConfigureAwait(false);
             Assert.AreEqual(target, target2);
             Assert.AreEqual(target.GetHashCode(), target2.GetHashCode());
@@ -106,7 +106,7 @@ namespace Cassandra.Tests.Connections.Control
 
             Mock.Get(_dnsResolver).Verify(x => x.GetHostEntryAsync("cp1"), Times.Once);
         }
-        
+
         [Test]
         public async Task Should_DnsResolveAgain_When_RefreshCacheIsTrue()
         {
@@ -114,12 +114,12 @@ namespace Cassandra.Tests.Connections.Control
             await target.GetConnectionEndPointsAsync(false).ConfigureAwait(false);
 
             Mock.Get(_dnsResolver).Verify(x => x.GetHostEntryAsync("cp1"), Times.Once);
-            
+
             await target.GetConnectionEndPointsAsync(true).ConfigureAwait(false);
 
             Mock.Get(_dnsResolver).Verify(x => x.GetHostEntryAsync("cp1"), Times.Exactly(2));
         }
-        
+
         [Test]
         public async Task Should_NotDnsResolveAgain_When_RefreshCacheIsFalse()
         {
@@ -127,18 +127,18 @@ namespace Cassandra.Tests.Connections.Control
             await target.GetConnectionEndPointsAsync(false).ConfigureAwait(false);
 
             Mock.Get(_dnsResolver).Verify(x => x.GetHostEntryAsync("cp1"), Times.Once);
-            
+
             await target.GetConnectionEndPointsAsync(false).ConfigureAwait(false);
 
             Mock.Get(_dnsResolver).Verify(x => x.GetHostEntryAsync("cp1"), Times.Once);
         }
-        
+
         [Test]
         public async Task Should_BuildEndPointCorrectly_When_HostnameIsProvided()
         {
             var target = Create("cp1", "127.0.0.2");
             var resolved = (await target.GetConnectionEndPointsAsync(false).ConfigureAwait(false)).ToList();
-            
+
             Assert.AreEqual(1, resolved.Count);
             Assert.AreEqual(_localhostIpEndPoint2, resolved[0].GetHostIpEndPointWithFallback());
             Assert.AreEqual(_localhostIpEndPoint2, resolved[0].SocketIpEndPoint);
@@ -152,11 +152,11 @@ namespace Cassandra.Tests.Connections.Control
         {
             var target = Create("cp1", "127.0.0.2");
             var resolved = (await target.GetConnectionEndPointsAsync(false).ConfigureAwait(false)).ToList();
-            
+
             Assert.AreEqual(1, resolved.Count);
             Assert.AreEqual("127.0.0.2", await resolved[0].GetServerNameAsync().ConfigureAwait(false));
         }
-        
+
         [Test]
         public async Task Should_NotLogMultipleAddressesWarning_When_SingleAddressIsResolved()
         {
@@ -178,7 +178,7 @@ namespace Cassandra.Tests.Connections.Control
                 Trace.Listeners.Remove(testListener);
             }
         }
-        
+
         [Test]
         public async Task Should_LogMultipleAddressesWarning_When_TwoAddressesAreResolved()
         {

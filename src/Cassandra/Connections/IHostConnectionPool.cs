@@ -33,19 +33,19 @@ namespace Cassandra.Connections
         /// Gets the total of in-flight requests on all connections. 
         /// </summary>
         int InFlight { get; }
-        
+
         /// <summary>
         /// Determines whether the connection pool has opened connections using snapshot semantics.
         /// </summary>
         bool HasConnections { get; }
 
         event Action<Host, HostConnectionPool> AllConnectionClosed;
-        
+
         /// <summary>
         /// Gets a snapshot of the current state of the pool.
         /// </summary>
         IConnection[] ConnectionsSnapshot { get; }
-        
+
         /// <summary>
         /// Gets an open connection from the host pool (creating if necessary).
         /// It returns null if the load balancing policy didn't allow connections to this host.
@@ -93,7 +93,7 @@ namespace Cassandra.Connections
 
         Task<IConnection> GetConnectionFromHostAsync(
             IDictionary<IPEndPoint, Exception> triedHosts, Func<string> getKeyspaceFunc);
-        
+
         Task<IConnection> GetExistingConnectionFromHostAsync(
             IDictionary<IPEndPoint, Exception> triedHosts, Func<string> getKeyspaceFunc);
     }

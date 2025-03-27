@@ -40,9 +40,9 @@ namespace Cassandra.IntegrationTests.Core
                 simulacronCluster.PrimeSystemSchemaTablesV2(
                     "testks",
                     "testtable",
-                    new[] 
-                    { 
-                        new StubTableColumn("", StubColumnKind.PartitionKey, DataType.GetDataType(typeof(string))), 
+                    new[]
+                    {
+                        new StubTableColumn("", StubColumnKind.PartitionKey, DataType.GetDataType(typeof(string))),
                         new StubTableColumn(" ", StubColumnKind.ClusteringKey, DataType.GetDataType(typeof(string)))
                     });
 
@@ -104,9 +104,9 @@ namespace Cassandra.IntegrationTests.Core
                 simulacronCluster.PrimeSystemSchemaTablesV1(
                     "testks",
                     "testtable",
-                    new[] 
-                    { 
-                        new StubTableColumn("", StubColumnKind.PartitionKey, DataType.GetDataType(typeof(string))), 
+                    new[]
+                    {
+                        new StubTableColumn("", StubColumnKind.PartitionKey, DataType.GetDataType(typeof(string))),
                         new StubTableColumn(" ", StubColumnKind.ClusteringKey, DataType.GetDataType(typeof(string)))
                     });
 

@@ -21,7 +21,7 @@ namespace Cassandra.Tests.Extensions
     /// <summary>
     /// A NUnit constraint designed to enforce strict equality (no coersion) on numeric values.
     /// </summary>
-    public class NumericTypeConstraint<T> : Constraint where T: struct
+    public class NumericTypeConstraint<T> : Constraint where T : struct
     {
         private readonly T _expected;
 
@@ -31,7 +31,7 @@ namespace Cassandra.Tests.Extensions
         {
             _expected = expected;
         }
-        
+
         public override ConstraintResult ApplyTo<TActual>(TActual actual)
         {
             var areEqual = _expected.Equals(actual);

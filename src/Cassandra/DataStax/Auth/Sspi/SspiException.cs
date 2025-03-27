@@ -44,7 +44,7 @@ namespace Cassandra.DataStax.Auth.Sspi
         /// </summary>
         /// <param name="message">A message explaining what part of the system failed.</param>
         /// <param name="errorCode">The error code observed during the failure.</param>
-        internal SspiException( string message, SecurityStatus errorCode )
+        internal SspiException(string message, SecurityStatus errorCode)
         {
             this.message = message;
             this.errorCode = errorCode;
@@ -53,22 +53,22 @@ namespace Cassandra.DataStax.Auth.Sspi
         /// <summary>
         /// Creates a new instance of <see cref="SspiException"/>.
         /// </summary>
-        public SspiException(string message, int errorCode) : this(message, (SecurityStatus) errorCode)
+        public SspiException(string message, int errorCode) : this(message, (SecurityStatus)errorCode)
         {
-            
+
         }
-        
+
 #if NET452
         /// <summary>
         /// Initializes a new instance of the SSPIException class from serialization data.
         /// </summary>
         /// <param name="info"></param>
         /// <param name="context"></param>
-        protected SspiException( SerializationInfo info, StreamingContext context )
-            : base( info, context )
+        protected SspiException(SerializationInfo info, StreamingContext context)
+            : base(info, context)
         {
-            this.message = info.GetString( "messsage" );
-            this.errorCode = (SecurityStatus)info.GetUInt32( "errorCode" );
+            this.message = info.GetString("messsage");
+            this.errorCode = (SecurityStatus)info.GetUInt32("errorCode");
         }
 
         /// <summary>
@@ -76,12 +76,12 @@ namespace Cassandra.DataStax.Auth.Sspi
         /// </summary>
         /// <param name="info"></param>
         /// <param name="context"></param>
-        public override void GetObjectData( SerializationInfo info, StreamingContext context )
+        public override void GetObjectData(SerializationInfo info, StreamingContext context)
         {
-            base.GetObjectData( info, context );
+            base.GetObjectData(info, context);
 
-            info.AddValue( "message", this.message );
-            info.AddValue( "errorCode", this.errorCode );
+            info.AddValue("message", this.message);
+            info.AddValue("errorCode", this.errorCode);
         }
 #endif
 
@@ -92,7 +92,7 @@ namespace Cassandra.DataStax.Auth.Sspi
         {
             get
             {
-                return (int) this.errorCode;
+                return (int)this.errorCode;
             }
         }
 
@@ -103,11 +103,11 @@ namespace Cassandra.DataStax.Auth.Sspi
         {
             get
             {
-                return string.Format( 
-                    "{0}. Error Code = '0x{1:X}' - \"{2}\".", 
-                    this.message, 
-                    this.errorCode, 
-                    EnumMgr.ToText(this.errorCode) 
+                return string.Format(
+                    "{0}. Error Code = '0x{1:X}' - \"{2}\".",
+                    this.message,
+                    this.errorCode,
+                    EnumMgr.ToText(this.errorCode)
                 );
             }
         }

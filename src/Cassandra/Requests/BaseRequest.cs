@@ -24,7 +24,7 @@ namespace Cassandra.Requests
     internal abstract class BaseRequest : IRequest
     {
         private readonly HeaderFlags _headerFlags;
-        
+
         /// <summary>
         /// Constructor that forces a specific serializer, i.e., protocol version.
         /// </summary>
@@ -33,7 +33,7 @@ namespace Cassandra.Requests
         {
             Serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
         }
-        
+
         /// <summary>
         /// Constructor that doesn't specify the serializer, will use the connection one.
         /// </summary>

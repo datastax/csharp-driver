@@ -23,12 +23,12 @@ namespace Cassandra
     {
         private const string BatchLogMessage = "Server timeout during batchlog write at consistency {0}" +
             " ({1} peer(s) acknowledged the write over {2} required)";
-        
+
         private const string QueryMessage = "Server timeout during write query at consistency {0}" +
             " ({1} peer(s) acknowledged the write over {2} required)";
-        
+
         private const string BatchLogWriteType = "BATCH_LOG";
-        
+
         /// <summary>
         /// Gets the type of write operation that timed out.
         /// <para>Possible values: SIMPLE, BATCH, BATCH_LOG, UNLOGGED_BATCH and COUNTER.</para>

@@ -86,7 +86,7 @@ namespace Cassandra.Tests.DataStax.Cloud
                 "9Awg4x6WQmtMoredcpRSAOGn9hX+IMenRF4OEI8ltG17zVGaMThZ7/OHzFIvgX5ynql9sRBXG0AjNsBG2QiP+0Xia9BGvvj" +
                 "kqAfxwp44CWacVsbbWFrc+reYmOfmoy8b1Flm/gXVP2DbjMYwHX5RKvPt2SQ7L2iXgaa1a4+g9ZJx/U3RFHKeFbwpRLFH70" +
                 "3FA1W20139MimrSfinHiQSy+WEDs7P41w==";
-            
+
             var ca = new X509Certificate2(Convert.FromBase64String(rawDataCa));
             var cert = new X509Certificate2(Convert.FromBase64String(rawData));
             var chain = new X509Chain();

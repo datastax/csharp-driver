@@ -93,7 +93,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual("123", value.Number);
             Assert.AreEqual(34, value.CountryCode);
         }
-        
+
         [Test]
         public async Task MappingDifferentKeyspaceSingleExplicitAsync_AsParameter()
         {
@@ -156,7 +156,7 @@ namespace Cassandra.IntegrationTests.Core
             var session = cluster.Connect();
             session.CreateKeyspaceIfNotExists(newKeyspace);
             session.ChangeKeyspace(newKeyspace);
-            
+
             session.Execute(cqlType1);
             session.Execute(cqlTable1);
 
@@ -265,14 +265,14 @@ namespace Cassandra.IntegrationTests.Core
             {
                 new Contact
                 {
-                    FirstName = "Jules", LastName = "Winnfield", 
+                    FirstName = "Jules", LastName = "Winnfield",
                     Birth = new DateTimeOffset(1950, 2, 3, 4, 5, 0, 0, TimeSpan.Zero),
                     NullableLong = null,
                     Phones = new HashSet<Phone>{ new Phone { Alias = "home", Number = "123456" }}
                 },
                 new Contact
                 {
-                    FirstName = "Mia", LastName = "Wallace", 
+                    FirstName = "Mia", LastName = "Wallace",
                     Birth = null,
                     NullableLong = 2,
                     Phones = new HashSet<Phone>
@@ -350,7 +350,7 @@ namespace Cassandra.IntegrationTests.Core
             );
 
             const string insertQuery = "INSERT INTO users (id, main_phone) values (?, ?)";
-                
+
             //All of the fields null
             var id = 201;
             var phone = new Phone();
@@ -360,14 +360,14 @@ namespace Cassandra.IntegrationTests.Core
 
             //Some fields null and others with value
             id = 202;
-            phone = new Phone() {Alias = "Home phone"};
+            phone = new Phone() { Alias = "Home phone" };
             localSession.Execute(new SimpleStatement(insertQuery, id, phone));
             rs = localSession.Execute(new SimpleStatement("SELECT * FROM users WHERE id = ?", id));
             Assert.AreEqual(phone, rs.First().GetValue<Phone>("main_phone"));
 
             //All fields filled in
             id = 203;
-            phone = new Phone() { Alias = "Mobile phone", CountryCode = 54, Number = "1234567"};
+            phone = new Phone() { Alias = "Mobile phone", CountryCode = 54, Number = "1234567" };
             localSession.Execute(new SimpleStatement(insertQuery, id, phone));
             rs = localSession.Execute(new SimpleStatement("SELECT * FROM users WHERE id = ?", id));
             Assert.AreEqual(phone, rs.First().GetValue<Phone>("main_phone"));
@@ -392,8 +392,8 @@ namespace Cassandra.IntegrationTests.Core
             {
                 new Contact
                 {
-                    FirstName = "Vincent", 
-                    LastName = "Vega", 
+                    FirstName = "Vincent",
+                    LastName = "Vega",
                     Phones = new HashSet<Phone>
                     {
                         new Phone {Alias = "Wat", Number = "0000000000121220000"},
@@ -470,7 +470,7 @@ namespace Cassandra.IntegrationTests.Core
             var value = row.GetValue<Phone>("main_phone");
             Assert.NotNull(value);
             AssertAreEqualPhone(value);
-            
+
             var valueChild = row.GetValue<Phone2>("main_phone");
             Assert.NotNull(valueChild);
             AssertAreEqualPhone(valueChild);
@@ -479,7 +479,7 @@ namespace Cassandra.IntegrationTests.Core
             var valueInsideList = valueList.Single();
             Assert.NotNull(valueInsideList);
             AssertAreEqualPhone(valueInsideList);
-            
+
             var valueListChild = row.GetValue<IEnumerable<Phone2>>("phones");
             var valueInsideListChild = valueListChild.Single();
             Assert.NotNull(valueInsideListChild);
@@ -580,7 +580,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.Throws<InvalidCastException>(() => localSession.Execute(insert));
             insert = new SimpleStatement("INSERT INTO table_udt_collections (id, udt, udt_list) values (?, ?, ?)", 2222, udtList[0], null);
             Assert.Throws<InvalidCastException>(() => localSession.Execute(insert));
-            insert = new SimpleStatement("INSERT INTO table_udt_collections (id, udt, udt_list) values (?, ?, ?)", 3333, null, new List<UdtWithCollections> {null});
+            insert = new SimpleStatement("INSERT INTO table_udt_collections (id, udt, udt_list) values (?, ?, ?)", 3333, null, new List<UdtWithCollections> { null });
             Assert.Throws<ArgumentNullException>(() => localSession.Execute(insert));
         }
 
@@ -593,13 +593,13 @@ namespace Cassandra.IntegrationTests.Core
                 .Build())
             {
                 var localSession = cluster.Connect(KeyspaceName);
-                Assert.Throws<NotSupportedException>(() => localSession.UserDefinedTypes.Define(UdtMap.For<Phone>()));   
+                Assert.Throws<NotSupportedException>(() => localSession.UserDefinedTypes.Define(UdtMap.For<Phone>()));
             }
         }
 
         private class DummyClass
         {
-            
+
         }
     }
 }

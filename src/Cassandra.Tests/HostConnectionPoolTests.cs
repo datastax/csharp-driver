@@ -46,7 +46,7 @@ namespace Cassandra.Tests
         private static readonly Host Host1 = TestHelper.CreateHost("127.0.0.1");
         private static readonly HashedWheelTimer Timer = new HashedWheelTimer();
         private Mock<HostConnectionPool> _mock;
-        
+
         [TearDown]
         public void TearDown()
         {
@@ -72,10 +72,10 @@ namespace Cassandra.Tests
                 config = GetConfig();
             }
             return new Connection(
-                new SerializerManager(ProtocolVersion.MaxSupported).GetCurrentSerializer(), 
-                new ConnectionEndPoint(GetIpEndPoint(lastIpByte), config.ServerNameResolver, null), 
+                new SerializerManager(ProtocolVersion.MaxSupported).GetCurrentSerializer(),
+                new ConnectionEndPoint(GetIpEndPoint(lastIpByte), config.ServerNameResolver, null),
                 config,
-                new StartupRequestFactory(config.StartupOptionsFactory), 
+                new StartupRequestFactory(config.StartupOptionsFactory),
                 NullConnectionObserver.Instance);
         }
 
@@ -90,9 +90,9 @@ namespace Cassandra.Tests
                 config = GetConfig();
             }
             return new Mock<HostConnectionPool>(
-                host, 
-                config, 
-                new SerializerManager(ProtocolVersion.MaxSupported), 
+                host,
+                config,
+                new SerializerManager(ProtocolVersion.MaxSupported),
                 new MetricsObserverFactory(new MetricsManager(new NullDriverMetricsProvider(), new DriverMetricsOptions(), false, "s1")));
         }
 
@@ -524,7 +524,7 @@ namespace Cassandra.Tests
             {
                 pool.Dispose();
             }).ConfigureAwait(false);
-            
+
             TestHelper.RetryAssert(() =>
             {
                 Assert.AreEqual(0, pool.OpenConnections);

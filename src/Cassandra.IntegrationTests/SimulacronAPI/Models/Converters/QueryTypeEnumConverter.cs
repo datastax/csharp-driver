@@ -24,7 +24,7 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.Models.Converters
 {
     public class QueryTypeEnumConverter : JsonConverter
     {
-        private static readonly IDictionary<string, QueryType> Map = 
+        private static readonly IDictionary<string, QueryType> Map =
             new Dictionary<string, QueryType>(StringComparer.OrdinalIgnoreCase)
             {
                 { "EXECUTE", QueryType.Execute },

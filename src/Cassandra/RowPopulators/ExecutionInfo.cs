@@ -60,7 +60,7 @@ namespace Cassandra
         /// </para>
         /// </summary>
         public IDictionary<string, byte[]> IncomingPayload { get; internal set; }
-        
+
         /// <summary>
         /// Retrieves the coordinator that responded to the request
         /// </summary>
@@ -123,7 +123,7 @@ namespace Cassandra
             AchievedConsistency = achievedConsistency;
         }
 
-        internal void SetSchemaInAgreement(bool schemaAgreement) 
+        internal void SetSchemaInAgreement(bool schemaAgreement)
         {
             IsSchemaInAgreement = schemaAgreement;
         }

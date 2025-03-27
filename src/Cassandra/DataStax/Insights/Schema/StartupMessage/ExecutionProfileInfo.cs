@@ -25,7 +25,7 @@ namespace Cassandra.DataStax.Insights.Schema.StartupMessage
     {
         [JsonProperty("readTimeout")]
         public int? ReadTimeout { get; set; }
-        
+
         [JsonProperty("retry")]
         public PolicyInfo Retry { get; set; }
 

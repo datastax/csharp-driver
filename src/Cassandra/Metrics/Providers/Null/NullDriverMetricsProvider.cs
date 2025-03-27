@@ -26,7 +26,7 @@ namespace Cassandra.Metrics.Providers.Null
         {
             return NullDriverTimer.Instance;
         }
-        
+
         public IDriverMeter Meter(string bucket, IMetric metric)
         {
             return NullDriverMeter.Instance;

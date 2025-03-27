@@ -31,7 +31,7 @@ namespace Cassandra.Mapping.Utils
 
             return "\"" + identifier + "\"";
         }
-        
+
         public string EscapeTableNameIfNecessary(IPocoData pocoData, string keyspace, string table)
         {
             string name = null;
@@ -43,7 +43,7 @@ namespace Cassandra.Mapping.Utils
             name += EscapeIdentifierIfNecessary(pocoData, table);
             return name;
         }
-        
+
         private static readonly HashSet<string> ReservedKeywords = new HashSet<string>
         {
             // See https://github.com/apache/cassandra/blob/trunk/doc/cql3/CQL.textile#appendixA

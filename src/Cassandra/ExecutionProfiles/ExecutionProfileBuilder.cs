@@ -29,7 +29,7 @@ namespace Cassandra.ExecutionProfiles
         private IExtendedRetryPolicy _retryPolicy;
 
         private GraphOptions _graphOptions;
-        
+
         public IExecutionProfileBuilder WithLoadBalancingPolicy(ILoadBalancingPolicy loadBalancingPolicy)
         {
             _loadBalancingPolicy = loadBalancingPolicy ?? throw new ArgumentNullException(nameof(loadBalancingPolicy));
@@ -53,13 +53,13 @@ namespace Cassandra.ExecutionProfiles
             _consistencyLevel = consistencyLevel;
             return this;
         }
-        
+
         public IExecutionProfileBuilder WithSerialConsistencyLevel(ConsistencyLevel serialConsistencyLevel)
         {
             _serialConsistencyLevel = serialConsistencyLevel;
             return this;
         }
-        
+
         public IExecutionProfileBuilder WithReadTimeoutMillis(int readTimeoutMillis)
         {
             _readTimeoutMillis = readTimeoutMillis;

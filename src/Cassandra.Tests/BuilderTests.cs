@@ -95,22 +95,22 @@ namespace Cassandra.Tests
                 Cluster.Builder().AddContactPoints(contactPoints).WithCredentials(null, null));
             Assert.That(ex.Message, Contains.Substring("username"));
         }
-        
+
         [Test]
         public void Should_SetResolvedContactPoints_When_ClusterIsBuilt()
         {
             const string host1 = "127.0.0.1";
             const string host2 = "127.0.0.2";
             const string host3 = "localhost";
-            
+
             var builder = Cluster.Builder().AddContactPoints(host1, host2, host3);
             var cluster = builder.Build();
             Assert.AreEqual(3, cluster.InternalRef.GetResolvedEndpoints().Count);
             CollectionAssert.AreEqual(
-                new[] { new ConnectionEndPoint(new IPEndPoint(IPAddress.Parse(host1), ProtocolOptions.DefaultPort), cluster.Configuration.ServerNameResolver, null) }, 
+                new[] { new ConnectionEndPoint(new IPEndPoint(IPAddress.Parse(host1), ProtocolOptions.DefaultPort), cluster.Configuration.ServerNameResolver, null) },
                 cluster.InternalRef.GetResolvedEndpoints().Single(kvp => kvp.Key.StringRepresentation == host1).Value);
             CollectionAssert.AreEqual(
-                new[] { new ConnectionEndPoint(new IPEndPoint(IPAddress.Parse(host2), ProtocolOptions.DefaultPort), cluster.Configuration.ServerNameResolver, null) }, 
+                new[] { new ConnectionEndPoint(new IPEndPoint(IPAddress.Parse(host2), ProtocolOptions.DefaultPort), cluster.Configuration.ServerNameResolver, null) },
                 cluster.InternalRef.GetResolvedEndpoints().Single(kvp => kvp.Key.StringRepresentation == host2).Value);
 
             var localhostAddress = new ConnectionEndPoint(new IPEndPoint(IPAddress.Parse("127.0.0.1"), ProtocolOptions.DefaultPort), cluster.Configuration.ServerNameResolver, null);
@@ -279,21 +279,21 @@ namespace Cassandra.Tests
 
             var ex = Assert.Throws<ArgumentException>(() => builder.Build());
             Assert.AreEqual(exceptionMsg, ex.Message);
-            
+
             builder = Cluster.Builder()
                                  .AddContactPoint(IPAddress.Parse("192.168.1.10"))
                                  .WithCloudSecureConnectionBundle("bundle");
 
             ex = Assert.Throws<ArgumentException>(() => builder.Build());
             Assert.AreEqual(exceptionMsg, ex.Message);
-            
+
             builder = Cluster.Builder()
                              .AddContactPoint(new IPEndPoint(IPAddress.Parse("192.168.1.10"), 9042))
                              .WithCloudSecureConnectionBundle("bundle");
 
             ex = Assert.Throws<ArgumentException>(() => builder.Build());
             Assert.AreEqual(exceptionMsg, ex.Message);
-            
+
             builder = Cluster.Builder()
                              .AddContactPoints(new IPEndPoint(IPAddress.Parse("192.168.1.10"), 9042))
                              .WithCloudSecureConnectionBundle("bundle");
@@ -311,11 +311,11 @@ namespace Cassandra.Tests
             builder = Cluster.Builder()
                              .WithCloudSecureConnectionBundle("bundle")
                              .AddContactPoint(IPAddress.Parse("192.168.1.10"));
-            
+
             ex = Assert.Throws<ArgumentException>(() => builder.Build());
             Assert.AreEqual(exceptionMsg, ex.Message);
         }
-        
+
         [Test]
         public void Should_ThrowException_When_SslOptionsAndBundleAreProvided()
         {
@@ -326,21 +326,21 @@ namespace Cassandra.Tests
 
             var ex = Assert.Throws<ArgumentException>(() => builder.Build());
             Assert.AreEqual(exceptionMsg, ex.Message);
-            
+
             builder = Cluster.Builder()
                              .WithSSL()
                              .WithCloudSecureConnectionBundle("bundle");
 
             ex = Assert.Throws<ArgumentException>(() => builder.Build());
             Assert.AreEqual(exceptionMsg, ex.Message);
-            
+
             builder = Cluster.Builder()
                              .WithSSL()
                              .WithCloudSecureConnectionBundle("bundle");
 
             ex = Assert.Throws<ArgumentException>(() => builder.Build());
             Assert.AreEqual(exceptionMsg, ex.Message);
-            
+
             builder = Cluster.Builder()
                              .WithSSL()
                              .WithCloudSecureConnectionBundle("bundle");
@@ -358,11 +358,11 @@ namespace Cassandra.Tests
             builder = Cluster.Builder()
                              .WithCloudSecureConnectionBundle("bundle")
                              .WithSSL();
-            
+
             ex = Assert.Throws<ArgumentException>(() => builder.Build());
             Assert.AreEqual(exceptionMsg, ex.Message);
         }
-        
+
         [Test]
         public void Should_ThrowException_When_CredentialsAreNotProvidedWithBundle()
         {
@@ -385,7 +385,7 @@ namespace Cassandra.Tests
 
             var ex = Assert.Throws<ArgumentException>(() => builder.Build());
             Assert.AreEqual(exceptionMsg, ex.Message);
-            
+
             builder = Cluster.Builder()
                              .WithSSL()
                              .AddContactPoints("127.0.0.1")

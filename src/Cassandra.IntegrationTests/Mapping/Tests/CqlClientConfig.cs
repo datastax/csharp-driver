@@ -141,7 +141,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             var instancesQueried = mapper.Fetch<ManyDataTypesPoco>(cqlSelect).ToList();
             ManyDataTypesPoco.AssertListEqualsList(new List<ManyDataTypesPoco> { manyTypesInstance }, instancesQueried);
         }
-        
+
         /// <summary>
         /// Successfully insert a Poco instance
         /// </summary>

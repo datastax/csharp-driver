@@ -43,7 +43,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             _session = Session;
             _session.CreateKeyspace(_uniqueKsName);
             _session.ChangeKeyspace(_uniqueKsName);
-            
+
             Session.Execute(string.Format(PocoWithEnumCollections.DefaultCreateTableCql, "tbl_with_enum_collections"));
 
             // drop table if exists, re-create
@@ -99,7 +99,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [Test]
         public void First_With_Enum_Collections()
         {
-            var expectedCollection = new[]{ HairColor.Blonde, HairColor.Gray };
+            var expectedCollection = new[] { HairColor.Blonde, HairColor.Gray };
             var expectedMap = new SortedDictionary<HairColor, TimeUuid>
             {
                 { HairColor.Brown, TimeUuid.NewId() },
@@ -107,7 +107,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             };
             var collectionValues = expectedCollection.Select(x => (int)x).ToArray();
             var mapValues =
-                new SortedDictionary<int, Guid>(expectedMap.ToDictionary(kv => (int) kv.Key, kv => (Guid) kv.Value));
+                new SortedDictionary<int, Guid>(expectedMap.ToDictionary(kv => (int)kv.Key, kv => (Guid)kv.Value));
 
             const string insertQuery =
                 "INSERT INTO tbl_with_enum_collections (id, list1, list2, array1, set1, set2, set3, map1, map2, map3)" +
@@ -117,7 +117,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
                 mapValues));
             Session.Execute(new SimpleStatement(insertQuery, 2001L, null, null, null, null, null, null, null, null,
                 null));
-            
+
             var config =
                 new MappingConfiguration().Define(
                     PocoWithEnumCollections.DefaultMapping.TableName("tbl_with_enum_collections"));
@@ -135,7 +135,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             Assert.AreEqual(expectedMap, result.Dictionary1);
             Assert.AreEqual(expectedMap, result.Dictionary2);
             Assert.AreEqual(expectedMap, result.Dictionary3);
-            
+
             result = mapper
                 .First<PocoWithEnumCollections>("SELECT * FROM tbl_with_enum_collections WHERE id = ?", 2001L);
             Assert.NotNull(result);
@@ -159,7 +159,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         public void First_InvalidCql()
         {
             string cqlToFindNothing = _selectAllDefaultCql + " where this is invalid cql";
-            Assert.Throws<SyntaxError>(() =>_mapper.First<Movie>(cqlToFindNothing));
+            Assert.Throws<SyntaxError>(() => _mapper.First<Movie>(cqlToFindNothing));
         }
 
         [Test]

@@ -54,7 +54,7 @@ namespace Cassandra.IntegrationTests.Core
             // we just need to make sure that there is a query-able cluster
             _testCluster = TestClusterManager.GetTestCluster(1, DefaultMaxClusterCreateRetries, true, false);
         }
-        
+
         [Test]
         public void Basic_Startup_Test()
         {
@@ -127,8 +127,8 @@ namespace Cassandra.IntegrationTests.Core
 
                 //Execute the prepared query
                 var executeRequest = new ExecuteRequest(
-                    GetSerializer(), 
-                    prepareOutput.QueryId, 
+                    GetSerializer(),
+                    prepareOutput.QueryId,
                     new ResultMetadata(prepareOutput.ResultMetadataId, prepareOutput.ResultRowsMetadata),
                     QueryProtocolOptions.Default,
                     false,
@@ -157,8 +157,8 @@ namespace Cassandra.IntegrationTests.Core
                 var options = new QueryProtocolOptions(ConsistencyLevel.One, new object[] { "local" }, false, 100, null, ConsistencyLevel.Any, null, null, prepareOutput.VariablesRowsMetadata);
 
                 var executeRequest = new ExecuteRequest(
-                    GetSerializer(), 
-                    prepareOutput.QueryId, 
+                    GetSerializer(),
+                    prepareOutput.QueryId,
                     new ResultMetadata(prepareOutput.ResultMetadataId, prepareOutput.ResultRowsMetadata),
                     options,
                     false,
@@ -787,7 +787,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 await connection.Open().ConfigureAwait(false);
                 Assert.AreEqual(defaultHeartbeatInterval, connection.Configuration.PoolingOptions.GetHeartBeatInterval());
-                
+
                 //execute a dummy query
                 await Query(connection, "SELECT * FROM system.local", QueryProtocolOptions.Default).ConfigureAwait(false);
 
@@ -835,10 +835,10 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         private Connection CreateConnection(
-            ProtocolOptions protocolOptions = null, 
-            SocketOptions socketOptions = null, 
-            PoolingOptions poolingOptions = null, 
-            ProtocolVersion? version = null, 
+            ProtocolOptions protocolOptions = null,
+            SocketOptions socketOptions = null,
+            PoolingOptions poolingOptions = null,
+            ProtocolVersion? version = null,
             string contactPoint = null)
         {
             if (socketOptions == null)

@@ -39,7 +39,7 @@ namespace Cassandra.Connections
         private readonly Socket _socket;
         private readonly SocketAsyncEventArgs _receiveSocketEvent;
         private readonly SocketAsyncEventArgs _sendSocketEvent;
-        
+
         private byte[] _receiveBuffer;
         private Action _writeFlushCallback;
 
@@ -77,7 +77,7 @@ namespace Cassandra.Connections
             EndPoint = endPoint;
             Options = options;
             SSLOptions = sslOptions;
-            
+
             _socket = new Socket(EndPoint.SocketIpEndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp)
             {
                 SendTimeout = Options.ConnectTimeoutMillis
@@ -103,7 +103,7 @@ namespace Cassandra.Connections
                 _socket.NoDelay = Options.TcpNoDelay.Value;
             }
             _receiveBuffer = new byte[_socket.ReceiveBufferSize];
-            
+
             if (SSLOptions == null && !Options.UseStreamMode)
             {
                 _receiveSocketEvent = new SocketAsyncEventArgs();
@@ -113,7 +113,7 @@ namespace Cassandra.Connections
                 _sendSocketEvent.Completed += OnSendCompleted;
             }
         }
-        
+
         /// <summary>
         /// Get this socket's local address.
         /// </summary>
@@ -488,7 +488,7 @@ namespace Cassandra.Connections
             {
                 // ignore
             }
-            
+
             try
             {
                 //Try to close it.
@@ -507,7 +507,7 @@ namespace Cassandra.Connections
             {
                 //We should not mind if socket's Close method throws an exception
             }
-            
+
             //dereference to make the byte array GC-able as soon as possible
             _receiveBuffer = null;
         }

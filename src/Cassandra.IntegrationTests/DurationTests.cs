@@ -27,7 +27,7 @@ namespace Cassandra.IntegrationTests
     [TestBothServersVersion(4, 0, 5, 1)]
     public class DurationTests : SharedClusterTest
     {
-        public static readonly string[] Values = 
+        public static readonly string[] Values =
         {
             "1y2mo",
             "-1y2mo",
@@ -73,7 +73,7 @@ namespace Cassandra.IntegrationTests
         {
             get
             {
-                return new []
+                return new[]
                 {
                     "CREATE TABLE tbl_duration (pk uuid PRIMARY KEY, c1 duration)",
                     "CREATE TYPE IF NOT EXISTS test_duration_udt (i int, c1 duration)",
@@ -161,7 +161,7 @@ namespace Cassandra.IntegrationTests
                 Assert.AreEqual(id, row.GetValue<Guid>("k"));
                 Assert.AreEqual(list, row.GetValue<List<Duration>>("l"));
             }
-            
+
         }
 
         [Test]

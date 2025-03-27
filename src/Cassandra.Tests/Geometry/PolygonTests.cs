@@ -93,7 +93,7 @@ namespace Cassandra.Tests.Geometry
         {
             Assert.AreEqual("POLYGON EMPTY", new Polygon().ToString());
             Assert.AreEqual(
-                "POLYGON ((1 3.1, 3 1, 3 6, 1 3))", 
+                "POLYGON ((1 3.1, 3 1, 3 6, 1 3))",
                 new Polygon(new Point(1, 3.1), new Point(3, 1), new Point(3, 6), new Point(1, 3)).ToString());
         }
     }

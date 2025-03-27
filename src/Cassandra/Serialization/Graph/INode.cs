@@ -113,7 +113,7 @@ namespace Cassandra.Serialization.Graph
         bool TryGetMember(GetMemberBinder binder, out object result);
 
         void WriteJson(JsonWriter writer, JsonSerializer serializer);
-        
+
         void GetObjectData(System.Runtime.Serialization.SerializationInfo info,
                            System.Runtime.Serialization.StreamingContext context);
     }

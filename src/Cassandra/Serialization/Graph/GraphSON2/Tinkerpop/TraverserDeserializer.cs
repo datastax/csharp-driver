@@ -34,8 +34,8 @@ namespace Cassandra.Serialization.Graph.GraphSON2.Tinkerpop
     {
         private const string Prefix = "g";
         private const string TypeKey = "Traverser";
-        
-        public static string TypeName => 
+
+        public static string TypeName =>
             GraphSONUtil.FormatTypeName(TraverserDeserializer.Prefix, TraverserDeserializer.TypeKey);
 
         public dynamic Objectify(JToken graphsonObject, Func<JToken, GraphNode> factory, IGraphSONReader reader)

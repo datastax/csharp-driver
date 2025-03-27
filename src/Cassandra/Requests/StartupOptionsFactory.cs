@@ -27,7 +27,7 @@ namespace Cassandra.Requests
         public const string NoCompactOption = "NO_COMPACT";
         public const string DriverNameOption = "DRIVER_NAME";
         public const string DriverVersionOption = "DRIVER_VERSION";
-        
+
         public const string ApplicationNameOption = "APPLICATION_NAME";
         public const string ApplicationVersionOption = "APPLICATION_VERSION";
         public const string ClientIdOption = "CLIENT_ID";
@@ -46,7 +46,7 @@ namespace Cassandra.Requests
             _appVersion = appVersion;
             _clusterId = clusterId;
         }
-        
+
         public IReadOnlyDictionary<string, string> CreateStartupOptions(ProtocolOptions options)
         {
             var startupOptions = new Dictionary<string, string>
@@ -78,7 +78,7 @@ namespace Cassandra.Requests
             startupOptions.Add(StartupOptionsFactory.DriverNameOption, AssemblyHelpers.GetAssemblyTitle(typeof(StartupOptionsFactory)));
             startupOptions.Add(
                 StartupOptionsFactory.DriverVersionOption, AssemblyHelpers.GetAssemblyInformationalVersion(typeof(StartupOptionsFactory)));
-            
+
             if (_appName != null)
             {
                 startupOptions[StartupOptionsFactory.ApplicationNameOption] = _appName;
@@ -88,7 +88,7 @@ namespace Cassandra.Requests
             {
                 startupOptions[StartupOptionsFactory.ApplicationVersionOption] = _appVersion;
             }
-            
+
             startupOptions[StartupOptionsFactory.ClientIdOption] = _clusterId.ToString();
             return startupOptions;
         }

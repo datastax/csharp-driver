@@ -203,7 +203,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
             Assert.IsNotNull(movie);
             Assert.IsTrue(new MovieComparer().Compare(_movieList.Skip(2).First(), movie) == 0);
         }
-        
+
         [Test]
         [TestCase(true)]
         [TestCase(false)]
@@ -394,7 +394,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
             Assert.AreEqual(queries.Count + 1, newQueries.Count);
             Assert.IsTrue(newQueries.All(q => q.ConsistencyLevel == ConsistencyLevel.Two));
         }
-        
+
         [Test]
         [TestCase(true)]
         [TestCase(false)]
@@ -424,7 +424,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
             Assert.AreEqual(queries.Count + 1, newQueries.Count);
             Assert.AreEqual(ConsistencyLevel.Two, newQueries.Last().Frame.GetBatchMessage().ConsistencyLevel);
         }
-        
+
         [Test]
         [TestCase(true)]
         [TestCase(false)]

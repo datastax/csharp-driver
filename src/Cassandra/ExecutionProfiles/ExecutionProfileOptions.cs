@@ -29,7 +29,7 @@ namespace Cassandra.ExecutionProfiles
         {
             return WithProfile(name, BuildProfile(profileBuildAction));
         }
-        
+
         /// <inheritdoc />
         public IExecutionProfileOptions WithDerivedProfile(string name, string baseProfile, Action<IExecutionProfileBuilder> profileBuildAction)
         {
@@ -42,7 +42,7 @@ namespace Cassandra.ExecutionProfiles
             {
                 throw new ArgumentNullException(nameof(name));
             }
-            
+
             if (_profiles.ContainsKey(name))
             {
                 throw new ArgumentException("There is already an execution profile with that name.");
@@ -63,12 +63,12 @@ namespace Cassandra.ExecutionProfiles
             {
                 throw new ArgumentException("There is already an execution profile with that name.");
             }
-            
+
             if (profile == null)
             {
                 throw new ArgumentNullException(nameof(profile));
             }
-            
+
             if (baseProfile == null)
             {
                 throw new ArgumentNullException(nameof(baseProfile));
@@ -78,7 +78,7 @@ namespace Cassandra.ExecutionProfiles
             {
                 throw new ArgumentException("The base Execution Profile must be added before the derived Execution Profile.");
             }
-            
+
             _profiles[name] = new ExecutionProfile(baseProfileInstance, profile);
             return this;
         }

@@ -24,7 +24,7 @@ namespace Cassandra
 
         protected override void Load(FrameReader cb)
         {
-            _consistency = (ConsistencyLevel) cb.ReadInt16();
+            _consistency = (ConsistencyLevel)cb.ReadInt16();
             _required = cb.ReadInt32();
             _alive = cb.ReadInt32();
         }

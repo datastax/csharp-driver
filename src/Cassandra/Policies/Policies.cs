@@ -36,7 +36,7 @@ namespace Cassandra
         /// <see cref="TokenAwarePolicy"/> with <see cref="DCAwareRoundRobinPolicy"/> as child policy.
         /// </para>
         /// </summary>
-        public static ILoadBalancingPolicy DefaultLoadBalancingPolicy => 
+        public static ILoadBalancingPolicy DefaultLoadBalancingPolicy =>
             new DefaultLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy()));
 
         /// <summary>
@@ -65,7 +65,7 @@ namespace Cassandra
                 return new ExponentialReconnectionPolicy(1000, 10 * 60 * 1000);
             }
         }
-        
+
         /// <summary>
         ///  The default retry policy.The default retry policy is <see cref="Cassandra.DefaultRetryPolicy"/>
         /// </summary>
@@ -76,7 +76,7 @@ namespace Cassandra
                 return new DefaultRetryPolicy();
             }
         }
-        
+
         /// <summary>
         ///  The default extended retry policy.The default extended retry policy is <see cref="Cassandra.DefaultRetryPolicy"/>
         /// </summary>

@@ -20,7 +20,7 @@ namespace Cassandra.IntegrationTests.TestDataTypes
     internal class UserFeedback
     {
         public DateTimeOffset? SubmittedAt { get; set; }
-        
+
         public int? Rating { get; set; }
     }
 }

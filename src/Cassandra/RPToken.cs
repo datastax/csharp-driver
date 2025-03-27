@@ -44,7 +44,7 @@ namespace Cassandra
             if (obj == null || GetType() != obj.GetType())
                 return false;
 
-            return _value == ((RPToken) obj)._value;
+            return _value == ((RPToken)obj)._value;
         }
 
         public override int GetHashCode()
@@ -67,23 +67,23 @@ namespace Cassandra
             }
 
             [System.Diagnostics.CodeAnalysis.SuppressMessage(
-                "Security", 
-                "CA5351:Do Not Use Broken Cryptographic Algorithms", 
+                "Security",
+                "CA5351:Do Not Use Broken Cryptographic Algorithms",
                 Justification = "Support for Cassandra's RandomPartitioner")]
             public override IToken Hash(byte[] partitionKey)
             {
-                if (_md5 == null) 
+                if (_md5 == null)
                     _md5 = MD5.Create();
-                
+
                 var hash = _md5.ComputeHash(partitionKey);
-                
+
                 var reversedHash = new byte[hash.Length];
-                for(int x = hash.Length - 1, y = 0; x >= 0; --x, ++y)
+                for (int x = hash.Length - 1, y = 0; x >= 0; --x, ++y)
                 {
                     reversedHash[y] = hash[x];
                 }
                 var bigInteger = BigInteger.Abs(new BigInteger(reversedHash));
-                
+
                 return new RPToken(bigInteger);
             }
         }

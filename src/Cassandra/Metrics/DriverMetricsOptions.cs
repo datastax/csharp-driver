@@ -34,7 +34,7 @@ namespace Cassandra.Metrics
         /// See <see cref="SetEnabledSessionMetrics"/> for more information. Defaults to <see cref="SessionMetric.DefaultSessionMetrics"/>.
         /// </summary>
         public IEnumerable<SessionMetric> EnabledSessionMetrics { get; private set; } = SessionMetric.DefaultSessionMetrics;
-        
+
         /// <summary>
         /// See <see cref="SetBucketPrefix"/> for more information.
         /// </summary>
@@ -46,7 +46,7 @@ namespace Cassandra.Metrics
         public DriverMetricsOptions()
         {
         }
-        
+
         /// <summary>
         /// Enables specific node metrics. The available node metrics can be found as static readonly properties in
         /// the <see cref="NodeMetric"/> class, e.g., <see cref="NodeMetric.Meters.BytesSent"/>.
@@ -59,7 +59,7 @@ namespace Cassandra.Metrics
             EnabledNodeMetrics = enabledNodeMetrics;
             return this;
         }
-        
+
         /// <summary>
         /// Enables specific session metrics. The available session metrics can be found as static readonly properties in
         /// the <see cref="SessionMetric"/> class, e.g., <see cref="SessionMetric.Meters.BytesSent"/>.

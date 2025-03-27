@@ -74,7 +74,7 @@ namespace Cassandra.Tests.DataStax.Insights
                         cc => cc.UnsafeSendQueryRequestAsync(
                             "CALL InsightsRpc.reportInsight(?)",
                             It.IsAny<QueryProtocolOptions>());
-                    Mock.Get(cluster.Metadata.ControlConnection).Setup(mockExpression).ReturnsAsync((Response) null);
+                    Mock.Get(cluster.Metadata.ControlConnection).Setup(mockExpression).ReturnsAsync((Response)null);
 
                     target.Init();
 
@@ -113,12 +113,12 @@ namespace Cassandra.Tests.DataStax.Insights
                             It.IsAny<QueryProtocolOptions>());
                     Mock.Get(cluster.Metadata.ControlConnection)
                         .SetupSequence(mockExpression)
-                        .ReturnsAsync((Response) null)
+                        .ReturnsAsync((Response)null)
                         .ReturnsAsync(new FakeResultResponse(ResultResponse.ResultResponseKind.Void))
-                        .ReturnsAsync((Response) null)
-                        .ReturnsAsync((Response) null)
+                        .ReturnsAsync((Response)null)
+                        .ReturnsAsync((Response)null)
                         .ReturnsAsync(new FakeResultResponse(ResultResponse.ResultResponseKind.Void))
-                        .ReturnsAsync((Response) null);
+                        .ReturnsAsync((Response)null);
 
                     target.Init();
 
@@ -540,13 +540,13 @@ namespace Cassandra.Tests.DataStax.Insights
             var hostIp2 = new IPEndPoint(IPAddress.Parse("127.0.0.2"), 9042);
             metadata.SetResolvedContactPoints(new Dictionary<IContactPoint, IEnumerable<IConnectionEndPoint>>
             {
-                { 
+                {
                     new HostnameContactPoint(
-                        config.DnsResolver, 
-                        config.ProtocolOptions, 
-                        config.ServerNameResolver, 
-                        config.KeepContactPointsUnresolved, 
-                        "localhost"), 
+                        config.DnsResolver,
+                        config.ProtocolOptions,
+                        config.ServerNameResolver,
+                        config.KeepContactPointsUnresolved,
+                        "localhost"),
                     new[] { new ConnectionEndPoint(hostIp, config.ServerNameResolver, null) } }
             });
             metadata.AddHost(hostIp);
@@ -575,7 +575,7 @@ namespace Cassandra.Tests.DataStax.Insights
                     null,
                     null),
                 ProtocolOptions = new ProtocolOptions().SetCompression(CompressionType.Snappy),
-                PoolingOptions =  new PoolingOptions()
+                PoolingOptions = new PoolingOptions()
                                   .SetCoreConnectionsPerHost(HostDistance.Remote, 5)
                                   .SetCoreConnectionsPerHost(HostDistance.Local, 1)
                                   .SetHeartBeatInterval(10000),
@@ -583,7 +583,7 @@ namespace Cassandra.Tests.DataStax.Insights
                 QueryOptions = new QueryOptions()
                                .SetConsistencyLevel(ConsistencyLevel.All)
                                .SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial),
-                ExecutionProfiles = withProfiles 
+                ExecutionProfiles = withProfiles
                     ? new Dictionary<string, IExecutionProfile>
                     {
                         {

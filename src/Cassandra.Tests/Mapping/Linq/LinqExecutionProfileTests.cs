@@ -76,7 +76,7 @@ namespace Cassandra.Tests.Mapping.Linq
 
             if (!batchV1)
             {
-                var batchStatement = (BatchStatement) statement;
+                var batchStatement = (BatchStatement)statement;
                 foreach (var updateGuid in updateGuids)
                 {
                     var updateStatement = batchStatement.Queries.First(_ => _.QueryValues.Length == 2 && _.QueryValues[1] as Guid? == updateGuid) as SimpleStatement;
@@ -121,7 +121,7 @@ namespace Cassandra.Tests.Mapping.Linq
             Mock.Get(session).Verify(s => s.Execute(It.IsAny<IStatement>(), "testProfile"), Times.Never);
             Mock.Get(session).Verify(s => s.Execute(It.IsAny<IStatement>()), Times.Never);
         }
-        
+
         [Test]
         [TestCase(true)]
         [TestCase(false)]
@@ -154,7 +154,7 @@ namespace Cassandra.Tests.Mapping.Linq
             Mock.Get(session).Verify(s => s.Execute(It.IsAny<IStatement>(), "testProfile"), Times.Never);
             Mock.Get(session).Verify(s => s.Execute(It.IsAny<IStatement>()), Times.Never);
         }
-        
+
         [Test]
         [TestCase(true)]
         [TestCase(false)]
@@ -187,7 +187,7 @@ namespace Cassandra.Tests.Mapping.Linq
             Mock.Get(session).Verify(s => s.Execute(It.IsAny<IStatement>(), "testProfile"), Times.Never);
             Mock.Get(session).Verify(s => s.Execute(It.IsAny<IStatement>()), Times.Never);
         }
-        
+
         [Test]
         [TestCase(true)]
         [TestCase(false)]
@@ -220,7 +220,7 @@ namespace Cassandra.Tests.Mapping.Linq
             Mock.Get(session).Verify(s => s.Execute(It.IsAny<IStatement>(), "testProfile"), Times.Never);
             Mock.Get(session).Verify(s => s.Execute(It.IsAny<IStatement>()), Times.Never);
         }
-        
+
         [Test]
         [TestCase(true)]
         [TestCase(false)]
@@ -237,7 +237,7 @@ namespace Cassandra.Tests.Mapping.Linq
                       .TableName("tbl1");
             var table = GetTable<AllTypesEntity>(session, map);
             var cqlFirst = table.Where(t => t.IntValue == 100).Select(t => new AllTypesEntity { DoubleValue = t.DoubleValue }).First();
-            
+
             if (async)
             {
                 await cqlFirst.ExecuteAsync("testProfile").ConfigureAwait(false);
@@ -253,7 +253,7 @@ namespace Cassandra.Tests.Mapping.Linq
             Mock.Get(session).Verify(s => s.Execute(It.IsAny<IStatement>(), "testProfile"), Times.Never);
             Mock.Get(session).Verify(s => s.Execute(It.IsAny<IStatement>()), Times.Never);
         }
-        
+
         [Test]
         [TestCase(true)]
         [TestCase(false)]
@@ -270,7 +270,7 @@ namespace Cassandra.Tests.Mapping.Linq
                       .TableName("tbl1");
             var table = GetTable<AllTypesEntity>(session, map);
             var cqlCount = table.Where(t => t.IntValue == 100).Select(t => new AllTypesEntity { DoubleValue = t.DoubleValue }).Count();
-            
+
             if (async)
             {
                 await cqlCount.ExecuteAsync("testProfile").ConfigureAwait(false);

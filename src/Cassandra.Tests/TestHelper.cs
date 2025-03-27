@@ -504,7 +504,7 @@ namespace Cassandra.Tests
                     tcs.TrySetException(ex);
                     return;
                 }
-                
+
                 var received = counter.IncrementReceived();
                 if (received == maxLength)
                 {

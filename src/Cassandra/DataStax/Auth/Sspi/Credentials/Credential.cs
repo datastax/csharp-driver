@@ -58,16 +58,16 @@ namespace Cassandra.DataStax.Auth.Sspi.Credentials
         /// Initializes a new instance of the Credential class.
         /// </summary>
         /// <param name="package">The security package to acquire the credential from.</param>
-        public Credential( string package )
+        public Credential(string package)
         {
             this.disposed = false;
             this.securityPackage = package;
 
             this.expiry = DateTime.MinValue;
 
-            this.PackageInfo = PackageSupport.GetPackageCapabilities( this.SecurityPackage );
+            this.PackageInfo = PackageSupport.GetPackageCapabilities(this.SecurityPackage);
         }
-        
+
         /// <summary>
         /// Gets metadata for the security package associated with the credential.
         /// </summary>
@@ -108,11 +108,11 @@ namespace Cassandra.DataStax.Auth.Sspi.Credentials
                 RuntimeHelpers.PrepareConstrainedRegions();
                 try
                 {
-                    this.safeCredHandle.DangerousAddRef( ref gotRef );
+                    this.safeCredHandle.DangerousAddRef(ref gotRef);
                 }
-                catch( Exception )
+                catch (Exception)
                 {
-                    if( gotRef == true )
+                    if (gotRef == true)
                     {
                         this.safeCredHandle.DangerousRelease();
                         gotRef = false;
@@ -121,7 +121,7 @@ namespace Cassandra.DataStax.Auth.Sspi.Credentials
                 }
                 finally
                 {
-                    if( gotRef )
+                    if (gotRef)
                     {
                         status = CredentialNativeMethods.QueryCredentialsAttribute_Name(
                             ref this.safeCredHandle.rawHandle,
@@ -131,23 +131,23 @@ namespace Cassandra.DataStax.Auth.Sspi.Credentials
 
                         this.safeCredHandle.DangerousRelease();
 
-                        if( status == SecurityStatus.OK && carrier.Name != IntPtr.Zero )
+                        if (status == SecurityStatus.OK && carrier.Name != IntPtr.Zero)
                         {
                             try
                             {
-                                name = Marshal.PtrToStringUni( carrier.Name );
+                                name = Marshal.PtrToStringUni(carrier.Name);
                             }
                             finally
                             {
-                                NativeMethods.FreeContextBuffer( carrier.Name );
+                                NativeMethods.FreeContextBuffer(carrier.Name);
                             }
                         }
                     }
                 }
 
-                if( status.IsError() )
+                if (status.IsError())
                 {
-                    throw new SspiException( "Failed to query credential name", status );
+                    throw new SspiException("Failed to query credential name", status);
                 }
 
                 return name;
@@ -169,7 +169,7 @@ namespace Cassandra.DataStax.Auth.Sspi.Credentials
             protected set
             {
                 CheckLifecycle();
-                                
+
                 this.expiry = value;
             }
         }
@@ -199,15 +199,15 @@ namespace Cassandra.DataStax.Auth.Sspi.Credentials
         /// </summary>
         public void Dispose()
         {
-            Dispose( true );
-            GC.SuppressFinalize( this );
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
-        protected virtual void Dispose( bool disposing )
+        protected virtual void Dispose(bool disposing)
         {
-            if ( this.disposed == false )
+            if (this.disposed == false)
             {
-                if ( disposing )
+                if (disposing)
                 {
                     this.safeCredHandle.Dispose();
                 }
@@ -218,9 +218,9 @@ namespace Cassandra.DataStax.Auth.Sspi.Credentials
 
         private void CheckLifecycle()
         {
-            if( this.disposed )
+            if (this.disposed)
             {
-                throw new ObjectDisposedException( "Credential" );
+                throw new ObjectDisposedException("Credential");
             }
         }
     }

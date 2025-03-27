@@ -22,7 +22,7 @@ namespace Cassandra.Serialization.Search
     internal class DateRangeSerializer : TypeSerializer<DateRange>
     {
         private readonly IColumnInfo _typeInfo = new CustomColumnInfo("org.apache.cassandra.db.marshal.DateRangeType");
-        
+
         /// <summary>
         /// The byte length of the serialized DateRange with a single boundary: byte + long + byte
         /// </summary>
@@ -49,7 +49,7 @@ namespace Cassandra.Serialization.Search
             {
                 throw new ArgumentException("DateRange serialized value must have at least 1 byte");
             }
-            var type = (RangeType) buffer[offset++];
+            var type = (RangeType)buffer[offset++];
             switch (type)
             {
                 case RangeType.SingleValue:
@@ -71,7 +71,7 @@ namespace Cassandra.Serialization.Search
         private DateRangeBound ReadDateRangeBound(byte[] buffer, int offset)
         {
             var millis = EndianBitConverter.ToInt64(false, buffer, offset);
-            return new DateRangeBound(UnixStart.AddMilliseconds(millis), (DateRangePrecision) buffer[offset + 8]);
+            return new DateRangeBound(UnixStart.AddMilliseconds(millis), (DateRangePrecision)buffer[offset + 8]);
         }
 
         public override byte[] Serialize(ushort protocolVersion, DateRange value)
@@ -91,7 +91,7 @@ namespace Cassandra.Serialization.Search
                 }
                 // byte + long + byte
                 buffer = new byte[10];
-                buffer[0] = (byte) RangeType.OpenRangeLow;
+                buffer[0] = (byte)RangeType.OpenRangeLow;
                 WriteDateRangeBound(buffer, 1, value.UpperBound.Value);
                 return buffer;
             }
@@ -123,24 +123,24 @@ namespace Cassandra.Serialization.Search
             var millisecondsDiff = ticksDiff / (decimal)TimeSpan.TicksPerMillisecond;
             var millis = Convert.ToInt64(Math.Floor(millisecondsDiff));
             EndianBitConverter.SetBytes(false, buffer, offset, millis);
-            buffer[offset + 8] = (byte) value.Precision;
+            buffer[offset + 8] = (byte)value.Precision;
             return offset + 9;
         }
 
         private enum RangeType : byte
         {
-          // single value as in "2001-01-01"
-          SingleValue = 0,
-          // closed range as in "[2001-01-01 TO 2001-01-31]"
-          ClosedRange = 1,
-          // open range high as in "[2001-01-01 TO *]"
-          OpenRangeHigh = 2,
-          // - 0x03 - open range low as in "[* TO 2001-01-01]"
-          OpenRangeLow = 3,
-          // - 0x04 - both ranges open as in "[* TO *]"
-          OpenBoth = 4,
-          // - 0x05 - single open range as in "[*]"
-          OpenSingle = 5
+            // single value as in "2001-01-01"
+            SingleValue = 0,
+            // closed range as in "[2001-01-01 TO 2001-01-31]"
+            ClosedRange = 1,
+            // open range high as in "[2001-01-01 TO *]"
+            OpenRangeHigh = 2,
+            // - 0x03 - open range low as in "[* TO 2001-01-01]"
+            OpenRangeLow = 3,
+            // - 0x04 - both ranges open as in "[* TO *]"
+            OpenBoth = 4,
+            // - 0x05 - single open range as in "[*]"
+            OpenSingle = 5
         }
     }
 }

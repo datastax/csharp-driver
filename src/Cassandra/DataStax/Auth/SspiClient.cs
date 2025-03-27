@@ -113,7 +113,7 @@ namespace Cassandra.DataStax.Auth
             var credentials = _credentials;
             if (credentials != null)
             {
-                credentials.Dispose();   
+                credentials.Dispose();
             }
         }
     }

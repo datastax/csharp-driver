@@ -22,7 +22,7 @@ namespace Cassandra.Mapping.Utils
     internal interface ICqlIdentifierHelper
     {
         string EscapeIdentifierIfNecessary(IPocoData pocoData, string identifier);
-        
+
         string EscapeTableNameIfNecessary(IPocoData pocoData, string keyspace, string table);
     }
 }

@@ -30,7 +30,7 @@ namespace Cassandra
         /// </summary>
         /// <returns>This builder.</returns>
         IExecutionProfileBuilder WithLoadBalancingPolicy(ILoadBalancingPolicy loadBalancingPolicy);
-        
+
         /// <summary>
         /// Sets the retry policy.
         /// See <see cref="IRetryPolicy"/> and <see cref="IRetryPolicy"/> for additional context on this setting.
@@ -47,21 +47,21 @@ namespace Cassandra
         /// </summary>
         /// <returns>This builder.</returns>
         IExecutionProfileBuilder WithSpeculativeExecutionPolicy(ISpeculativeExecutionPolicy speculativeExecutionPolicy);
-        
+
         /// <summary>
         /// Sets the <code>SerialConsistencyLevel</code> setting.
         /// See <see cref="ConsistencyLevel"/> for additional context on this setting.
         /// </summary>
         /// <returns>This builder.</returns>
         IExecutionProfileBuilder WithConsistencyLevel(ConsistencyLevel consistencyLevel);
-        
+
         /// <summary>
         /// Sets the <code>SerialConsistencyLevel</code> setting.
         /// See <see cref="ConsistencyLevel"/> for additional context on this setting.
         /// </summary>
         /// <returns>This builder.</returns>
         IExecutionProfileBuilder WithSerialConsistencyLevel(ConsistencyLevel serialConsistencyLevel);
-        
+
         /// <summary>
         /// <para>Sets the <code>ReadTimeoutMillis</code> setting which is the per-host read timeout in milliseconds.</para>
         /// <para>When setting this value, keep in mind the following:</para>

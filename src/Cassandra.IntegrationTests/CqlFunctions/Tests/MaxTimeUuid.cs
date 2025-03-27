@@ -250,6 +250,6 @@ namespace Cassandra.IntegrationTests.CqlFunctions.Tests
     }
 
 
-    
+
 
 }

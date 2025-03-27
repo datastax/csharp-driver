@@ -41,11 +41,11 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
         private int _idGenerator;
         private ICluster _cluster;
         private ISession _session;
-        
+
         [OneTimeSetUp]
         public void OneTimeSetUp()
         {
-            TestClusterManager.CreateNew(1, new TestClusterOptions {Workloads = new[] {"graph"}});
+            TestClusterManager.CreateNew(1, new TestClusterOptions { Workloads = new[] { "graph" } });
             CreateClassicGraph(TestClusterManager.InitialContactPoint, GraphTests.GraphName);
             _cluster = ClusterBuilder()
                                     .AddContactPoint(TestClusterManager.InitialContactPoint)
@@ -66,7 +66,7 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
         {
             TestUtils.VerifyCurrentClusterWorkloads(TestClusterManager.CheckDseVersion(Version.Parse("5.1"), Comparison.GreaterThanOrEqualsTo)
                 ? new[] { "Cassandra", "Graph" }
-                : new[] { "Cassandra"});
+                : new[] { "Cassandra" });
         }
 
         [Test]
@@ -153,7 +153,7 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                 var starWarsVertex = resultArray[0].ToVertex();
                 Assert.AreEqual("Star Wars", starWarsVertex.GetProperty("title").Value.ToString());
                 var tags = starWarsVertex.GetProperties("tags").Select(p => p.Value.ToString());
-                var expectedTags = new List<string>() {"science-fiction", "adventure"};
+                var expectedTags = new List<string>() { "science-fiction", "adventure" };
                 CollectionAssert.AreEquivalent(expectedTags, tags);
             }
         }
@@ -258,18 +258,18 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                     "m.citizenship.each { c -> " +
                     "  Vertex country = graph.addVertex(label, 'country', 'country_name', c);" +
                     "  scientist.addEdge('had_citizenship', country);" +
-                    "};", new {m = new {name, year_born = year, citizenship, field}}));
+                    "};", new { m = new { name, year_born = year, citizenship, field } }));
 
 
                 var rs = session.ExecuteGraph(
-                    new SimpleGraphStatement("g.V().hasLabel('scientist').has('scientist_name', name)", new {name}));
+                    new SimpleGraphStatement("g.V().hasLabel('scientist').has('scientist_name', name)", new { name }));
                 Assert.AreEqual(protocol, rs.GraphProtocol);
                 Vertex einstein = rs.FirstOrDefault();
                 Assert.NotNull(einstein);
                 Assert.AreEqual("scientist", einstein.Label);
                 // Vertices contain an array of values per each property
-                Assert.AreEqual(new[] {true, true, true},
-                                new[] {"scientist_name", "year_born", "field"}.Select(propName => 
+                Assert.AreEqual(new[] { true, true, true },
+                                new[] { "scientist_name", "year_born", "field" }.Select(propName =>
                                     einstein.Properties[propName].IsArray));
                 Assert.AreEqual(name, einstein.GetProperty("scientist_name").Value.ToString());
                 Assert.AreEqual(year, einstein.GetProperty("year_born").Value.To<int>());
@@ -277,7 +277,7 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
 
                 var citizenships = session.ExecuteGraph(new SimpleGraphStatement(
                     "g.V().hasLabel('scientist').has('scientist_name', name)" +
-                    ".outE('had_citizenship').inV().values('country_name')", new {name}));
+                    ".outE('had_citizenship').inV().values('country_name')", new { name }));
                 var citizenshipArray = citizenships.ToArray();
                 Assert.AreEqual(citizenship.Length, citizenshipArray.Length);
 
@@ -651,7 +651,7 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                     new TestCaseData("Text()", "The quick brown fox jumps over the lazy dog", "The quick brown fox jumps over the lazy dog", null)
                 };
             }
-        }  
+        }
 
         [TestCaseSource(typeof(GraphTests), nameof(GraphTests.Should_Support_Types_TestCases))]
         [Test]
@@ -689,15 +689,15 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                 var schemaQuery = $"schema.propertyKey(propertyName).{type}.ifNotExists().create();\n" +
                                   "schema.vertexLabel(vertexLabel).properties(propertyName).ifNotExists().create();";
 
-                session.ExecuteGraph(new SimpleGraphStatement(schemaQuery, new {vertexLabel, propertyName }));
+                session.ExecuteGraph(new SimpleGraphStatement(schemaQuery, new { vertexLabel, propertyName }));
 
-                var parameters = new {vertexLabel, propertyName, val = value };
+                var parameters = new { vertexLabel, propertyName, val = value };
                 session.ExecuteGraph(new SimpleGraphStatement("g.addV(vertexLabel).property(propertyName, val)", parameters));
 
                 var rs =
                     session.ExecuteGraph(
                         new SimpleGraphStatement("g.V().hasLabel(vertexLabel).has(propertyName, val).next()", parameters));
-                
+
                 if (protocol != null)
                 {
                     Assert.AreEqual(protocol.Value, rs.GraphProtocol);
@@ -721,11 +721,11 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
             var propertyName1 = "prop" + id1;
             var vertexLabel2 = "vertex" + id2;
             var propertyName2 = "prop" + id2;
-            
+
             var vertex = IncludeAndQueryVertex(vertexLabel1, propertyName1, type, value, value.ToString(), verifyToString, GraphProtocol.GraphSON1);
             var propObject = vertex.GetProperty(propertyName1).Value.To<T>();
             Assert.AreEqual(value, propObject);
-            
+
             vertex = IncludeAndQueryVertex(vertexLabel2, propertyName2, type, value, value.ToString(), verifyToString, GraphProtocol.GraphSON2);
             propObject = vertex.GetProperty(propertyName2).Value.To<T>();
             Assert.AreEqual(value, propObject);
@@ -878,7 +878,7 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                 foreach (var value in values)
                 {
 
-                    var parameters = new {vertexLabel = "v1", propertyName = "prop1", val = value};
+                    var parameters = new { vertexLabel = "v1", propertyName = "prop1", val = value };
                     var stmt = new SimpleGraphStatement("g.addV(vertexLabel).property(propertyName, val)", parameters);
                     Assert.Throws<ArgumentOutOfRangeException>(() => session.ExecuteGraph(stmt));
                 }
@@ -985,7 +985,7 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
                                                      "     [\"has\", \"name\", \"marko\"], [\"outE\"], [\"label\"]]}}");
             statement.SetGraphLanguage(GraphTests.BytecodeJson);
             var rs = await _session.ExecuteGraphAsync(statement).ConfigureAwait(false);
-            Assert.That(rs.To<string>(), Is.EqualTo(new [] {"created", "knows", "knows"}));
+            Assert.That(rs.To<string>(), Is.EqualTo(new[] { "created", "knows", "knows" }));
             Assert.AreEqual(GraphProtocol.GraphSON2, rs.GraphProtocol);
         }
 
@@ -994,9 +994,9 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
         {
             var statement = new SimpleGraphStatement("g.V().hasLabel('person').has('name', 'marko').outE().label()");
             var rs = await _session.ExecuteGraphAsync(statement).ConfigureAwait(false);
-            Assert.That(rs.To<string>(), Is.EqualTo(new [] {"created", "knows", "knows"}));
+            Assert.That(rs.To<string>(), Is.EqualTo(new[] { "created", "knows", "knows" }));
         }
-        
+
         [Test]
         public async Task Should_UseGraphSON1_When_ClassicGraphEngineAndGremlinGroovy()
         {
@@ -1015,7 +1015,7 @@ namespace Cassandra.IntegrationTests.DataStax.Graph
             var rs = await _session.ExecuteGraphAsync(statement).ConfigureAwait(false);
             Assert.AreEqual(GraphProtocol.GraphSON2, rs.GraphProtocol);
         }
-        
+
         [TestCase(GraphProtocol.GraphSON1)]
         [TestCase(GraphProtocol.GraphSON2)]
         [Test]

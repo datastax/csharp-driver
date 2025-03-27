@@ -54,7 +54,7 @@ namespace Cassandra.Geometry
         /// </summary>
         /// <param name="points">The points of the single ring</param>
         public Polygon(params Point[] points)
-            : this((IList<IList<Point>>) new[] { (IList<Point>)points })
+            : this((IList<IList<Point>>)new[] { (IList<Point>)points })
         {
 
         }
@@ -64,7 +64,7 @@ namespace Cassandra.Geometry
         /// </summary>
         /// <param name="points">The points of the single ring</param>
         public Polygon(params IList<Point>[] points)
-            : this((IList<IList<Point>>) points)
+            : this((IList<IList<Point>>)points)
         {
 
         }
@@ -72,9 +72,9 @@ namespace Cassandra.Geometry
         /// <summary>
         /// Creates a new instance of <see cref="Polygon"/> with no rings (empty).
         /// </summary>
-        public Polygon() : this((IList<IList<Point>>) new IList<Point>[0])
+        public Polygon() : this((IList<IList<Point>>)new IList<Point>[0])
         {
-            
+
         }
 
         /// <summary>
@@ -88,9 +88,9 @@ namespace Cassandra.Geometry
                 throw new ArgumentNullException("rings");
             }
             Rings = AsReadOnlyCollection(rings, r => AsReadOnlyCollection(r));
-            _ringsWithOrderedPoints = Rings.Select(r => (IList<Point>) r.OrderBy(p => p).ToList()).ToList();
+            _ringsWithOrderedPoints = Rings.Select(r => (IList<Point>)r.OrderBy(p => p).ToList()).ToList();
         }
-        
+
         /// <summary>
         /// Creates a new instance of <see cref="Polygon"/> using serialization information.
         /// </summary>
@@ -100,16 +100,16 @@ namespace Cassandra.Geometry
             Rings = AsReadOnlyCollection(coordinates
                 .Select(r => (IList<Point>)r.Select(p => new Point(p[0], p[1])).ToList())
                 .ToList());
-            _ringsWithOrderedPoints = Rings.Select(r => (IList<Point>) r.OrderBy(p => p).ToList()).ToList();
+            _ringsWithOrderedPoints = Rings.Select(r => (IList<Point>)r.OrderBy(p => p).ToList()).ToList();
         }
-        
+
         internal Polygon(JObject obj)
         {
             var coordinates = obj.GetValue("coordinates").ToObject<double[][][]>();
             Rings = AsReadOnlyCollection(coordinates
                                          .Select(r => (IList<Point>)r.Select(p => new Point(p[0], p[1])).ToList())
                                          .ToList());
-            _ringsWithOrderedPoints = Rings.Select(r => (IList<Point>) r.OrderBy(p => p).ToList()).ToList();
+            _ringsWithOrderedPoints = Rings.Select(r => (IList<Point>)r.OrderBy(p => p).ToList()).ToList();
         }
 
         /// <summary>
@@ -156,10 +156,10 @@ namespace Cassandra.Geometry
             {
                 return "POLYGON EMPTY";
             }
-            return string.Format("POLYGON ({0})", string.Join(", ", 
-                Rings.Select(r => 
-                    "(" + 
-                    string.Join(", ", r.Select(p => p.X.ToString(CultureInfo.InvariantCulture) + " " + p.Y.ToString(CultureInfo.InvariantCulture))) + 
+            return string.Format("POLYGON ({0})", string.Join(", ",
+                Rings.Select(r =>
+                    "(" +
+                    string.Join(", ", r.Select(p => p.X.ToString(CultureInfo.InvariantCulture) + " " + p.Y.ToString(CultureInfo.InvariantCulture))) +
                     ")")));
         }
 

@@ -128,20 +128,20 @@ namespace Cassandra
         ///  used by it. <p> This method has no effect if the cluster was already shutdown.</p>
         /// </summary>
         void Shutdown(int timeoutMs = Timeout.Infinite);
-        
+
         /// <summary>
         ///  Shutdown this cluster instance asynchronously. This closes all connections from all the
         ///  sessions of this <c>* Cluster</c> instance and reclaim all resources
         ///  used by it. <p> This method has no effect if the cluster was already shutdown.</p>
         /// </summary>
         Task ShutdownAsync(int timeoutMs = Timeout.Infinite);
-        
+
         /// <summary>
         /// Updates keyspace metadata (including token metadata for token aware routing) for a given keyspace or a specific keyspace table.
         /// If no keyspace is provided then this method will update the metadata and token map for all the keyspaces of the cluster.
         /// </summary>
         Task<bool> RefreshSchemaAsync(string keyspace = null, string table = null);
-        
+
         /// <summary>
         /// Updates keyspace metadata (including token metadata for token aware routing) for a given keyspace or a specific keyspace table.
         /// If no keyspace is provided then this method will update the metadata and token map for all the keyspaces of the cluster.

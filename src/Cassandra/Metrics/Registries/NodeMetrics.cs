@@ -77,7 +77,7 @@ namespace Cassandra.Metrics.Registries
 
                 OpenConnections = MetricsRegistry.Gauge(
                     _bucketName, NodeMetric.Gauges.OpenConnections, () => _hostConnectionPool?.OpenConnections);
-                
+
                 InFlight = MetricsRegistry.Gauge(
                     _bucketName, NodeMetric.Gauges.InFlight, () => _hostConnectionPool?.InFlight);
 

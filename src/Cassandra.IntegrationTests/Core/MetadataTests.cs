@@ -47,7 +47,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.Greater(initialLength, 0);
 
             //GetReplicas should yield the primary replica when the Keyspace is not found
-            Assert.AreEqual(1, cluster.GetReplicas("ks2", new byte[] {0, 0, 0, 1}).Count);
+            Assert.AreEqual(1, cluster.GetReplicas("ks2", new byte[] { 0, 0, 0, 1 }).Count);
 
             const string createKeyspaceQuery = "CREATE KEYSPACE {0} WITH replication = {{ 'class' : '{1}', {2} }}";
             session.Execute(string.Format(createKeyspaceQuery, "ks1", "SimpleStrategy", "'replication_factor' : 1"));
@@ -64,7 +64,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.NotNull(ks2);
             Assert.AreEqual(ks2.Replication["replication_factor"], 3);
             //GetReplicas should yield the 2 replicas (rf=3 but cluster=2) when the Keyspace is found
-            Assert.AreEqual(2, cluster.GetReplicas("ks2", new byte[] {0, 0, 0, 1}).Count);
+            Assert.AreEqual(2, cluster.GetReplicas("ks2", new byte[] { 0, 0, 0, 1 }).Count);
             var ks3 = cluster.Metadata.GetKeyspace("ks3");
             Assert.NotNull(ks3);
             Assert.AreEqual(ks3.Replication["dc1"], 1);
@@ -291,7 +291,7 @@ namespace Cassandra.IntegrationTests.Core
 
             string strategyClass = ReplicationStrategies.NetworkTopologyStrategy;
             int dataCentersCount = Randomm.Instance.Next(1, 11);
-            datacentersReplicationFactors = new Dictionary<string, int>((int) dataCentersCount);
+            datacentersReplicationFactors = new Dictionary<string, int>((int)dataCentersCount);
             for (int i = 0; i < dataCentersCount; i++)
                 datacentersReplicationFactors.Add("dc" + i, Randomm.Instance.Next(1, 21));
             session.CreateKeyspace(keyspaceName,
@@ -481,7 +481,7 @@ namespace Cassandra.IntegrationTests.Core
                 CollectionAssert.AreEqual(new[] { "id1" }, table.PartitionKeys.Select(c => c.Name));
                 CollectionAssert.AreEqual(new[] { "id2" }, table.ClusteringKeys.Select(c => c.Item1.Name));
                 CollectionAssert.AreEqual(new[] { SortOrder.Ascending }, table.ClusteringKeys.Select(c => c.Item2));
-                
+
                 table = cluster.Metadata
                     .GetKeyspace("ks_meta_compac")
                     .GetTableMetadata("tbl6");
@@ -570,7 +570,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     session.Execute(q);
                 }
-                
+
                 var ks = cluster.Metadata.GetKeyspace("ks_view_meta");
                 Assert.NotNull(ks);
                 var view = ks.GetMaterializedViewMetadata("dailyhigh");
@@ -586,13 +586,13 @@ namespace Cassandra.IntegrationTests.Core
                     view.WhereClause);
                 Assert.AreEqual(6, view.TableColumns.Length);
 
-                Assert.AreEqual(new[] { "ks_view_meta", "ks_view_meta", "ks_view_meta", "ks_view_meta", "ks_view_meta", "ks_view_meta" }, 
+                Assert.AreEqual(new[] { "ks_view_meta", "ks_view_meta", "ks_view_meta", "ks_view_meta", "ks_view_meta", "ks_view_meta" },
                     view.TableColumns.Select(c => c.Keyspace));
                 Assert.AreEqual(new[] { "dailyhigh", "dailyhigh", "dailyhigh", "dailyhigh", "dailyhigh", "dailyhigh" },
                     view.TableColumns.Select(c => c.Table));
 
                 Assert.AreEqual(new[] { "day", "game", "month", "score", "user", "year" }, view.TableColumns.Select(c => c.Name));
-                Assert.AreEqual(new[] { ColumnTypeCode.Int, ColumnTypeCode.Varchar, ColumnTypeCode.Int, ColumnTypeCode.Int, ColumnTypeCode.Varchar, 
+                Assert.AreEqual(new[] { ColumnTypeCode.Int, ColumnTypeCode.Varchar, ColumnTypeCode.Int, ColumnTypeCode.Int, ColumnTypeCode.Varchar,
                     ColumnTypeCode.Int }, view.TableColumns.Select(c => c.TypeCode));
                 Assert.AreEqual(new[] { "game", "year", "month", "day" }, view.PartitionKeys.Select(c => c.Name));
                 Assert.AreEqual(new[] { "score", "user" }, view.ClusteringKeys.Select(c => c.Item1.Name));

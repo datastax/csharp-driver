@@ -30,11 +30,11 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
     {
         private readonly List<Movie> _movieList = Movie.GetDefaultMovieList();
         private Table<Movie> _movieTable;
-        
+
         public override void SetUp()
         {
             base.SetUp();
-            
+
             MappingConfiguration movieMappingConfig = new MappingConfiguration();
             movieMappingConfig.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(Movie),
                 () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(Movie)));
@@ -47,7 +47,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         public void LinqFirstOrDefault(bool async)
         {
             var expectedMovie = _movieList.First();
-            
+
             TestCluster.PrimeFluent(
                 b => b.WhenQuery(
                           "SELECT \"director\", \"list\", \"mainGuy\", \"movie_maker\", \"unique_movie_title\", \"yearMade\" " +
@@ -63,7 +63,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             Assert.IsNotNull(first);
             Assert.AreEqual(expectedMovie.MovieMaker, first.MovieMaker);
         }
-        
+
         [TestCase(true)]
         [TestCase(false)]
         [Test]

@@ -78,7 +78,7 @@ namespace Cassandra
         {
             _loggerHandler.Verbose(message, args);
         }
-        
+
         /// <summary>
         /// Represents the actual logger
         /// </summary>
@@ -252,5 +252,5 @@ namespace Cassandra
         }
     }
 
-    
+
 }

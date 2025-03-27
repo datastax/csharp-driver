@@ -126,7 +126,7 @@ namespace Cassandra.IntegrationTests.Linq.Structures
             movieList.Add(new Movie("title4", "actor2", "director4", "maker4", 1988));
             return movieList;
         }
-        
+
         private static readonly IDictionary<string, Func<Movie, object>> ColumnMappings =
             new Dictionary<string, Func<Movie, object>>
             {
@@ -154,7 +154,7 @@ namespace Cassandra.IntegrationTests.Linq.Structures
         {
             return new RowsResult(Movie.ColumnMappings.Keys.ToArray());
         }
-        
+
         public static RowsResult GetEmptyAppliedInfoRowsResult()
         {
             return new RowsResult(ColumnToDataTypes.Select(kvp => (kvp.Key, kvp.Value)).ToArray());
@@ -163,22 +163,22 @@ namespace Cassandra.IntegrationTests.Linq.Structures
         public static RowsResult CreateAppliedInfoRowsResultWithoutMovie(bool applied)
         {
             var result = new RowsResult("[applied]");
-            return (RowsResult) result.WithRow(applied);
+            return (RowsResult)result.WithRow(applied);
         }
 
         public RowsResult CreateAppliedInfoRowsResult()
         {
             return AddAppliedInfoRow(Movie.GetEmptyAppliedInfoRowsResult());
         }
-        
+
         public RowsResult CreateRowsResult()
         {
             return AddRow(Movie.GetEmptyRowsResult());
         }
-        
+
         public RowsResult AddRow(RowsResult result)
         {
-            return (RowsResult) result.WithRow(GetParameters());
+            return (RowsResult)result.WithRow(GetParameters());
         }
 
         public static (string, DataType)[] GetColumns()
@@ -212,11 +212,11 @@ namespace Cassandra.IntegrationTests.Linq.Structures
         {
             return data.Aggregate(Movie.GetEmptyRowsResult(), (current, c) => c.AddRow(current));
         }
-        
+
         public RowsResult AddAppliedInfoRow(RowsResult result)
         {
-            return (RowsResult) result.WithRow(
-                Movie.ColumnMappings.Values.Select(func => func(this)).Concat(new object [] { false }).ToArray());
+            return (RowsResult)result.WithRow(
+                Movie.ColumnMappings.Values.Select(func => func(this)).Concat(new object[] { false }).ToArray());
         }
     }
 }

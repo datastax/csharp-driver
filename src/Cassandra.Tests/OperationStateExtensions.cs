@@ -33,9 +33,9 @@ namespace Cassandra.Tests
                 {
                     action(error?.Exception, response);
                     return TaskHelper.Completed;
-                }, 
-                null, 
-                0, 
+                },
+                null,
+                0,
                 new MetricsOperationObserver(new NodeMetrics(new NullDriverMetricsProvider(), new DriverMetricsOptions(), false, "c"), false));
         }
     }

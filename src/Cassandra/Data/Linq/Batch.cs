@@ -68,7 +68,7 @@ namespace Cassandra.Data.Linq
             _timestamp = timestamp;
             return this;
         }
-        
+
         public Batch Append(IEnumerable<CqlCommand> cqlCommands)
         {
             foreach (var cmd in cqlCommands)
@@ -82,21 +82,21 @@ namespace Cassandra.Data.Linq
         {
             Execute(Configuration.DefaultExecutionProfileName);
         }
-        
+
         public void Execute(string executionProfile)
         {
             WaitToCompleteWithMetrics(InternalExecuteAsync(executionProfile), QueryAbortTimeout);
         }
 
         protected abstract Task<RowSet> InternalExecuteAsync();
-        
+
         protected abstract Task<RowSet> InternalExecuteAsync(string executionProfile);
-        
+
         public Task ExecuteAsync()
         {
             return InternalExecuteAsync();
         }
-        
+
         public Task ExecuteAsync(string executionProfile)
         {
             return InternalExecuteAsync(executionProfile);

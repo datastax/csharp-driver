@@ -25,7 +25,7 @@ namespace Cassandra.Connections
     internal class ConnectionEndPoint : IConnectionEndPoint
     {
         private readonly IServerNameResolver _serverNameResolver;
-        
+
         public ConnectionEndPoint(IPEndPoint hostIpEndPoint, IServerNameResolver serverNameResolver, IContactPoint contactPoint)
         {
             _serverNameResolver = serverNameResolver ?? throw new ArgumentNullException(nameof(serverNameResolver));

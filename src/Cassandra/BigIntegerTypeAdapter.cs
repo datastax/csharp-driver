@@ -24,7 +24,7 @@ namespace Cassandra
     {
         public Type GetDataType()
         {
-            return typeof (BigInteger);
+            return typeof(BigInteger);
         }
 
         public object ConvertFrom(byte[] decimalBuf)
@@ -35,7 +35,7 @@ namespace Cassandra
         public byte[] ConvertTo(object value)
         {
             TypeSerializer.CheckArgument<BigInteger>(value);
-            return ((BigInteger) value).ToByteArray();
+            return ((BigInteger)value).ToByteArray();
         }
     }
 }

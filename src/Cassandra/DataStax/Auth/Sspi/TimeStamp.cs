@@ -32,10 +32,10 @@ namespace Cassandra.DataStax.Auth.Sspi
     /// Represents a Windows API Timestamp structure, which stores time in units of 100 nanosecond 
     /// ticks, counting from January 1st, year 1601 at 00:00 UTC. Time is stored as a 64-bit value.
     /// </summary>
-    [StructLayout( LayoutKind.Sequential )]
+    [StructLayout(LayoutKind.Sequential)]
     internal struct TimeStamp
     {
-        public static readonly DateTime Epoch = new DateTime( 1601, 1, 1, 0, 0, 0, DateTimeKind.Utc );
+        public static readonly DateTime Epoch = new DateTime(1601, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
         /// <summary>
         /// Stores the time value. Infinite times are often represented as values near, but not exactly
@@ -56,13 +56,13 @@ namespace Cassandra.DataStax.Auth.Sspi
             // somewhere in the year 30848. This would overflow DateTime, since it peaks at 31-Dec-9999.
             // It turns out that this value corresponds to a TimeStamp's maximum value, reduced by my local timezone
             // http://stackoverflow.com/questions/24478056/
-            if ( test > (ulong)DateTime.MaxValue.Ticks )
+            if (test > (ulong)DateTime.MaxValue.Ticks)
             {
                 return DateTime.MaxValue;
             }
             else
             {
-                return DateTime.FromFileTimeUtc( this.time );
+                return DateTime.FromFileTimeUtc(this.time);
             }
         }
     }

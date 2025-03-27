@@ -14,7 +14,7 @@
 //   limitations under the License.
 //
 
-﻿namespace Cassandra
+namespace Cassandra
 {
     /// <summary>
     ///  Schedules reconnection attempts to a node.

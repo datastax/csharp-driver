@@ -110,14 +110,14 @@ namespace Cassandra.Tests
         public ISupportedOptionsInitializerFactory SupportedOptionsInitializerFactory { get; set; } = new SupportedOptionsInitializerFactory();
 
         public IServerEventsSubscriber ServerEventsSubscriber { get; set; } = new ServerEventsSubscriber();
-        
+
         public IProtocolVersionNegotiator ProtocolVersionNegotiator { get; set; } = new ProtocolVersionNegotiator();
-        
+
         public MonitorReportingOptions MonitorReportingOptions { get; set; } = new MonitorReportingOptions();
 
         public IInsightsSupportVerifier InsightsSupportVerifier { get; set; } = new InsightsSupportVerifier();
 
-        public IInsightsClientFactory InsightsClientFactory { get; set; } = 
+        public IInsightsClientFactory InsightsClientFactory { get; set; } =
             new InsightsClientFactory(
                 Configuration.DefaultInsightsStartupMessageFactory, Configuration.DefaultInsightsStatusMessageFactory);
 

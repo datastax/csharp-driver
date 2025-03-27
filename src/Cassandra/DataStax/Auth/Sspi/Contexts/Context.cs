@@ -52,7 +52,7 @@ namespace Cassandra.DataStax.Auth.Sspi.Contexts
         /// and the Initialize method has been called.
         /// </summary>
         /// <param name="cred"></param>
-        protected Context( Credential cred )
+        protected Context(Credential cred)
         {
             this.Credential = cred;
 
@@ -76,7 +76,7 @@ namespace Cassandra.DataStax.Auth.Sspi.Contexts
         /// A reference to the security context's handle.
         /// </summary>
         public SafeContextHandle ContextHandle { get; private set; }
-        
+
         /// <summary>
         /// The UTC time when the context expires.
         /// </summary>
@@ -91,7 +91,7 @@ namespace Cassandra.DataStax.Auth.Sspi.Contexts
         /// Marks the context as having completed the initialization process, ie, exchanging of authentication tokens.
         /// </summary>
         /// <param name="expiry">The date and time that the context will expire.</param>
-        protected void Initialize( DateTime expiry )
+        protected void Initialize(DateTime expiry)
         {
             this.Expiry = expiry;
             this.Initialized = true;
@@ -102,19 +102,19 @@ namespace Cassandra.DataStax.Auth.Sspi.Contexts
         /// </summary>
         public void Dispose()
         {
-            Dispose( true );
-            GC.SuppressFinalize( this );
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
         /// <summary>
         /// Releases resources associated with the context.
         /// </summary>
         /// <param name="disposing">If true, release managed resources, else release only unmanaged resources.</param>
-        protected virtual void Dispose( bool disposing )
+        protected virtual void Dispose(bool disposing)
         {
-            if( this.Disposed ) { return; }
+            if (this.Disposed) { return; }
 
-            if( disposing )
+            if (disposing)
             {
                 this.ContextHandle.Dispose();
             }
@@ -136,7 +136,7 @@ namespace Cassandra.DataStax.Auth.Sspi.Contexts
         /// </remarks>
         /// <param name="input">The raw message to encrypt.</param>
         /// <returns>The packed and encrypted message.</returns>
-        public byte[] Encrypt( byte[] input )
+        public byte[] Encrypt(byte[] input)
         {
             // The message is encrypted in place in the buffer we provide to Win32 EncryptMessage
             SecPkgContext_Sizes sizes;
@@ -151,13 +151,13 @@ namespace Cassandra.DataStax.Auth.Sspi.Contexts
 
             sizes = QueryBufferSizes();
 
-            trailerBuffer = new SecureBuffer( new byte[sizes.SecurityTrailer], BufferType.Token );
-            dataBuffer = new SecureBuffer( new byte[input.Length], BufferType.Data );
-            paddingBuffer = new SecureBuffer( new byte[sizes.BlockSize], BufferType.Padding );
+            trailerBuffer = new SecureBuffer(new byte[sizes.SecurityTrailer], BufferType.Token);
+            dataBuffer = new SecureBuffer(new byte[input.Length], BufferType.Data);
+            paddingBuffer = new SecureBuffer(new byte[sizes.BlockSize], BufferType.Padding);
 
-            Array.Copy( input, dataBuffer.Buffer, input.Length );
+            Array.Copy(input, dataBuffer.Buffer, input.Length);
 
-            using( adapter = new SecureBufferAdapter( new[] { trailerBuffer, dataBuffer, paddingBuffer } ) )
+            using (adapter = new SecureBufferAdapter(new[] { trailerBuffer, dataBuffer, paddingBuffer }))
             {
                 status = ContextNativeMethods.SafeEncryptMessage(
                     this.ContextHandle,
@@ -167,23 +167,23 @@ namespace Cassandra.DataStax.Auth.Sspi.Contexts
                 );
             }
 
-            if( status != SecurityStatus.OK )
+            if (status != SecurityStatus.OK)
             {
-                throw new SspiException( "Failed to encrypt message", status );
+                throw new SspiException("Failed to encrypt message", status);
             }
 
             int position = 0;
-            
+
             // Return 1 buffer with the 3 buffers joined
             var result = new byte[trailerBuffer.Length + dataBuffer.Length + paddingBuffer.Length];
 
-            Array.Copy( trailerBuffer.Buffer, 0, result, position, trailerBuffer.Length );
+            Array.Copy(trailerBuffer.Buffer, 0, result, position, trailerBuffer.Length);
             position += trailerBuffer.Length;
 
-            Array.Copy( dataBuffer.Buffer, 0, result, position, dataBuffer.Length );
+            Array.Copy(dataBuffer.Buffer, 0, result, position, dataBuffer.Length);
             position += dataBuffer.Length;
 
-            Array.Copy( paddingBuffer.Buffer, 0, result, position, paddingBuffer.Length );
+            Array.Copy(paddingBuffer.Buffer, 0, result, position, paddingBuffer.Length);
 
             return result;
         }
@@ -200,7 +200,7 @@ namespace Cassandra.DataStax.Auth.Sspi.Contexts
         /// <param name="input">The packed and encrypted data.</param>
         /// <returns>Null</returns>
         /// <exception cref="SspiException">Exception thrown when hash validation fails.</exception>
-        public byte[] Decrypt( byte[] input )
+        public byte[] Decrypt(byte[] input)
         {
             SecurityStatus status;
 
@@ -208,12 +208,12 @@ namespace Cassandra.DataStax.Auth.Sspi.Contexts
 
             var trailerLength = input.Length;
 
-            var dataBuffer = new SecureBuffer( new byte[0], BufferType.Data );
-            var trailerBuffer = new SecureBuffer( new byte[trailerLength], BufferType.Stream );
+            var dataBuffer = new SecureBuffer(new byte[0], BufferType.Data);
+            var trailerBuffer = new SecureBuffer(new byte[trailerLength], BufferType.Stream);
 
-            Array.Copy( input, 0, trailerBuffer.Buffer, 0, trailerBuffer.Length );
+            Array.Copy(input, 0, trailerBuffer.Buffer, 0, trailerBuffer.Length);
 
-            using (var adapter = new SecureBufferAdapter( new[] { dataBuffer, trailerBuffer } ) )
+            using (var adapter = new SecureBufferAdapter(new[] { dataBuffer, trailerBuffer }))
             {
                 status = ContextNativeMethods.SafeDecryptMessage(
                     this.ContextHandle,
@@ -223,9 +223,9 @@ namespace Cassandra.DataStax.Auth.Sspi.Contexts
                 );
             }
 
-            if( status != SecurityStatus.OK )
+            if (status != SecurityStatus.OK)
             {
-                throw new SspiException( "Failed to decrypt message", status );
+                throw new SspiException("Failed to decrypt message", status);
             }
 
             return null;
@@ -244,11 +244,11 @@ namespace Cassandra.DataStax.Auth.Sspi.Contexts
             RuntimeHelpers.PrepareConstrainedRegions();
             try
             {
-                this.ContextHandle.DangerousAddRef( ref gotRef );
+                this.ContextHandle.DangerousAddRef(ref gotRef);
             }
-            catch ( Exception )
+            catch (Exception)
             {
-                if ( gotRef )
+                if (gotRef)
                 {
                     this.ContextHandle.DangerousRelease();
                     gotRef = false;
@@ -258,7 +258,7 @@ namespace Cassandra.DataStax.Auth.Sspi.Contexts
             }
             finally
             {
-                if ( gotRef )
+                if (gotRef)
                 {
                     status = ContextNativeMethods.QueryContextAttributes_Sizes(
                         ref this.ContextHandle.rawHandle,
@@ -269,9 +269,9 @@ namespace Cassandra.DataStax.Auth.Sspi.Contexts
                 }
             }
 
-            if( status != SecurityStatus.OK )
+            if (status != SecurityStatus.OK)
             {
-                throw new SspiException( "Failed to query context buffer size attributes", status );
+                throw new SspiException("Failed to query context buffer size attributes", status);
             }
 
             return sizes;
@@ -283,13 +283,13 @@ namespace Cassandra.DataStax.Auth.Sspi.Contexts
         /// </summary>
         private void CheckLifecycle()
         {
-            if( this.Initialized == false )
+            if (this.Initialized == false)
             {
-                throw new InvalidOperationException( "The context is not yet fully formed." );
+                throw new InvalidOperationException("The context is not yet fully formed.");
             }
-            else if( this.Disposed )
+            else if (this.Disposed)
             {
-                throw new ObjectDisposedException( "Context" );
+                throw new ObjectDisposedException("Context");
             }
         }
     }

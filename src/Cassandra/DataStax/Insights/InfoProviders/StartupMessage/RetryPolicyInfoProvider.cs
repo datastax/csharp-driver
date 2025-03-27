@@ -64,7 +64,7 @@ namespace Cassandra.DataStax.Insights.InfoProviders.StartupMessage
 
             if (retryPolicyType == typeof(RetryPolicyExtensions.WrappedExtendedRetryPolicy))
             {
-                var typedPolicy = (RetryPolicyExtensions.WrappedExtendedRetryPolicy) policy;
+                var typedPolicy = (RetryPolicyExtensions.WrappedExtendedRetryPolicy)policy;
                 return RetryPolicyInfoProvider.GetRetryPolicyInfo(typedPolicy.Policy);
             }
 

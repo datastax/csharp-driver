@@ -27,7 +27,7 @@ namespace Cassandra.DataStax.Insights.Schema.Converters
                 { CompressionType.NoCompression, "NONE" },
                 { CompressionType.Snappy, "SNAPPY" }
             };
-        
+
         protected override IReadOnlyDictionary<CompressionType, string> EnumToJsonValueMap =>
             CompressionTypeInsightsConverter.CompressionTypeStringMap;
     }
