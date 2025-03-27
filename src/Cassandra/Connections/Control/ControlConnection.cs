@@ -897,5 +897,14 @@ namespace Cassandra.Connections.Control
                 ? _eventDebouncer.HandleEventAsync(@event, true)
                 : _eventDebouncer.ScheduleEventAsync(@event, false);
         }
+
+        public bool IsShardAware()
+        {
+            if (_supportedOptionsInitializer.GetShardingInfo() == null)
+            {
+                return false;
+            }
+            return _supportedOptionsInitializer.GetShardingInfo().ScyllaNrShards > 0;
+        }
     }
 }
