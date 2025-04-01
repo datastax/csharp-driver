@@ -642,7 +642,7 @@ namespace Cassandra.Connections
         }
 
         /// <summary>
-        /// Opens one connection. 
+        /// Opens one connection.
         /// If a connection is being opened it yields the same task, preventing creation in parallel.
         /// </summary>
         /// <param name="satisfyWithAnOpenConnection">
@@ -943,7 +943,29 @@ namespace Cassandra.Connections
         public async Task Warmup()
         {
             var length = _expectedConnectionLength;
-            for (var i = 0; i < length; i++)
+            // Open first connection
+            try
+            {
+                await CreateOpenConnection(false, false).ConfigureAwait(false);
+                var shardingInfo = _connections.GetSnapshot()[0].ShardingInfo();
+                if (shardingInfo != null)
+                {
+                    var nrShards = shardingInfo.ScyllaNrShards;
+                    if (nrShards > length)
+                    {
+                        // Create the rest of the connections
+                        length = nrShards;
+                        _expectedConnectionLength = nrShards;
+                    }
+                }
+            }
+            catch
+            {
+                OnConnectionClosing();
+                throw;
+            }
+
+            for (var i = 1; i < length; i++)
             {
                 try
                 {
@@ -951,14 +973,7 @@ namespace Cassandra.Connections
                 }
                 catch
                 {
-                    if (i > 0)
-                    {
-                        // There is an opened connection, don't mind
-                        break;
-                    }
-
-                    OnConnectionClosing();
-                    throw;
+                    break;
                 }
             }
         }

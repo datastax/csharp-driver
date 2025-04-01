@@ -211,8 +211,9 @@ namespace Cassandra.IntegrationTests.Core
                 Thread.Sleep(2000);
                 var pool21 = localSession2.GetOrCreateConnectionPool(hosts2[0], HostDistance.Local);
                 var pool22 = localSession2.GetOrCreateConnectionPool(hosts2[1], HostDistance.Local);
-                Assert.That(pool21.OpenConnections, Is.EqualTo(1));
-                Assert.That(pool22.OpenConnections, Is.EqualTo(1));
+                // Should be 2 due to number of shards
+                Assert.That(pool21.OpenConnections, Is.EqualTo(2));
+                Assert.That(pool22.OpenConnections, Is.EqualTo(2));
             }
         }
 
