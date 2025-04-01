@@ -31,5 +31,22 @@ namespace Cassandra.IntegrationTests
             var controlConnection = (ControlConnection)internalCluster.GetControlConnection();
             Assert.IsTrue(controlConnection.IsShardAware());
         }
+
+        [Test]
+        public void Should_Have_NrShards_Connections()
+        {
+            _realCluster = TestClusterManager.CreateNew();
+            var cluster = ClusterBuilder()
+                          .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(22000).SetConnectTimeoutMillis(60000))
+                          .AddContactPoint(_realCluster.InitialContactPoint)
+                          .Build();
+            var session = cluster.Connect();
+            IInternalSession internalSession = (IInternalSession)session;
+            var pools = internalSession.GetPools();
+            foreach (var kvp in pools)
+            {
+                Assert.AreEqual(2, kvp.Value.OpenConnections);
+            }
+        }
     }
 }
