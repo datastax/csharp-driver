@@ -137,5 +137,10 @@ namespace Cassandra.Connections
         /// Cancels current requests and invokes Closing event handlers. Doesn't guarantee disposal, the Closing event handlers should do that.
         /// </summary>
         void Close();
+
+        /// <summary>
+        /// Returns the current sharding information.
+        /// </summary>
+        ShardingInfo ShardingInfo();
     }
 }

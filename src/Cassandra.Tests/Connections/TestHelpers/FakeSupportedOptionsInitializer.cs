@@ -1,4 +1,4 @@
-﻿//
+//
 //       Copyright (C) DataStax Inc.
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,6 +16,7 @@
 using System.Threading.Tasks;
 using Cassandra.Connections;
 using Cassandra.Connections.Control;
+using Cassandra.Responses;
 using Cassandra.Tasks;
 
 namespace Cassandra.Tests.Connections.TestHelpers
@@ -32,6 +33,10 @@ namespace Cassandra.Tests.Connections.TestHelpers
         public Task ApplySupportedOptionsAsync(IConnection connection)
         {
             return TaskHelper.Completed;
+        }
+
+        public void ApplySupportedFromResponse(Response response)
+        {
         }
 
         public ShardingInfo GetShardingInfo()

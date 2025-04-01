@@ -24,6 +24,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Cassandra.Connections.Control;
 using Cassandra.Compression;
 using Cassandra.Metrics;
 using Cassandra.Observers.Abstractions;
@@ -163,6 +164,8 @@ namespace Cassandra.Connections
 
         public Configuration Configuration { get; set; }
 
+        private readonly ISupportedOptionsInitializer _supportedOptionsInitializer;
+
         internal Connection(
             ISerializer serializer,
             IConnectionEndPoint endPoint,
@@ -183,6 +186,7 @@ namespace Cassandra.Connections
             _freeOperations = new ConcurrentStack<short>(Enumerable.Range(0, GetMaxConcurrentRequests(Serializer)).Select(s => (short)s).Reverse());
             _pendingOperations = new ConcurrentDictionary<short, OperationState>();
             _writeQueue = new ConcurrentQueue<OperationState>();
+            _supportedOptionsInitializer = configuration.SupportedOptionsInitializerFactory.Create(null);
 
             if (Options.CustomCompressor != null)
             {
@@ -484,6 +488,25 @@ namespace Cassandra.Connections
             _tcpSocket.WriteCompleted += WriteCompletedHandler;
             var protocolVersion = Serializer.ProtocolVersion;
             await _tcpSocket.Connect().ConfigureAwait(false);
+
+            // Send the OPTIONS message
+            Response optionsResponse;
+            try
+            {
+                optionsResponse = await SendOptions().ConfigureAwait(false);
+            }
+            catch (ProtocolErrorException ex)
+            {
+                // As we are starting up, check for protocol version errors.
+                // There is no other way than checking the error message from Cassandra
+                if (ex.Message.Contains("Invalid or unsupported protocol version"))
+                {
+                    throw new UnsupportedProtocolVersionException(protocolVersion, Serializer.ProtocolVersion, ex);
+                }
+                throw;
+            }
+            _supportedOptionsInitializer.ApplySupportedFromResponse(optionsResponse);
+
             Response response;
             try
             {
@@ -509,6 +532,11 @@ namespace Cassandra.Connections
                 return response;
             }
             throw new DriverInternalError("Expected READY or AUTHENTICATE, obtained " + response.GetType().Name);
+        }
+
+        public ShardingInfo ShardingInfo()
+        {
+            return _supportedOptionsInitializer.GetShardingInfo();
         }
 
         private void ReadHandler(byte[] buffer, int bytesReceived)
@@ -771,6 +799,15 @@ namespace Cassandra.Connections
                 stream.Dispose();
             }, CancellationToken.None);
             return true;
+        }
+
+        /// <summary>
+        /// Sends a protocol OPTIONS message
+        /// </summary>
+        private Task<Response> SendOptions()
+        {
+            var request = new OptionsRequest();
+            return Send(request, Configuration.SocketOptions.ConnectTimeoutMillis);
         }
 
         /// <summary>
