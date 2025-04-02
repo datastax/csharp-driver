@@ -166,6 +166,8 @@ namespace Cassandra.Connections
 
         private readonly ISupportedOptionsInitializer _supportedOptionsInitializer;
 
+        public int ShardId { get; }
+
         internal Connection(
             ISerializer serializer,
             IConnectionEndPoint endPoint,

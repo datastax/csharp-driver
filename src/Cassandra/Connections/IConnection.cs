@@ -142,5 +142,7 @@ namespace Cassandra.Connections
         /// Returns the current sharding information.
         /// </summary>
         ShardingInfo ShardingInfo();
+
+        int ShardId { get; }
     }
 }

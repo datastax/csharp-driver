@@ -108,6 +108,9 @@ namespace Cassandra.Connections
         /// <inheritdoc />
         public IConnection[] ConnectionsSnapshot => _connections.GetSnapshot();
 
+        public ShardingInfo shardingInfo { get; private set; }
+
+        private int lastAttemptedShard = 0;
 
         public HostConnectionPool(Host host, Configuration config, ISerializerManager serializerManager, IObserverFactory observerFactory)
         {
@@ -649,10 +652,13 @@ namespace Cassandra.Connections
         /// Determines whether the Task should be marked as completed when there is a connection already opened.
         /// </param>
         /// <param name="isReconnection">Determines whether this is a reconnection</param>
+        /// <param name="addToConnections">
+        /// Determines whether the connection should be added to the pool.
+        /// </param>
         /// <exception cref="SocketException">Throws a SocketException when the connection could not be established with the host</exception>
         /// <exception cref="AuthenticationException" />
         /// <exception cref="UnsupportedProtocolVersionException" />
-        private async Task<IConnection> CreateOpenConnection(bool satisfyWithAnOpenConnection, bool isReconnection)
+        private async Task<IConnection> CreateOpenConnection(bool satisfyWithAnOpenConnection, bool isReconnection, bool addToConnections = true)
         {
             var concurrentOpenTcs = Volatile.Read(ref _connectionOpenTcs);
             // Try to exit early (cheap) as there could be another thread creating / finishing creating
@@ -705,6 +711,28 @@ namespace Cassandra.Connections
             IConnection c;
             try
             {
+                // Find out to which shard should we connect to
+                // Console.WriteLine("Decide which shard to connect to");
+                var shardID = 0;
+                // Console.WriteLine("ShardingInfo: {0}", shardingInfo);
+                if (shardingInfo != null)
+                {
+                    // Find the shard without a connection
+                    // It's important to start counting from 1 here because we want
+                    // to consider the next shard after the previously attempted one
+                    for (var i = 1; i <= shardingInfo.ScyllaNrShards; i++)
+                    {
+                        // Console.WriteLine("i: {0}", i);
+                        var _shardID = (lastAttemptedShard + i) % shardingInfo.ScyllaNrShards;
+                        if (connectionsSnapshot.Length <= shardID || connectionsSnapshot[shardID] == null)
+                        {
+                            lastAttemptedShard = _shardID;
+                            shardID = _shardID;
+                            break;
+                        }
+                    }
+                }
+                // Console.WriteLine("shardID: {0}", shardID);
                 c = await DoCreateAndOpen(isReconnection).ConfigureAwait(false);
             }
             catch (Exception ex)
@@ -721,9 +749,12 @@ namespace Cassandra.Connections
                 return await FinishOpen(tcs, false, HostConnectionPool.GetNotConnectedException()).ConfigureAwait(false);
             }
 
-            var newLength = _connections.AddNew(c);
-            HostConnectionPool.Logger.Info("Connection to {0} opened successfully, pool #{1} length: {2}",
-                _host.Address, GetHashCode(), newLength);
+            if (addToConnections)
+            {
+                var newLength = _connections.AddNew(c);
+                HostConnectionPool.Logger.Info("Connection to {0} opened successfully, pool #{1} length: {2}",
+                    _host.Address, GetHashCode(), newLength);
+            }
 
             if (IsClosing)
             {
@@ -946,11 +977,13 @@ namespace Cassandra.Connections
             // Open first connection
             try
             {
-                await CreateOpenConnection(false, false).ConfigureAwait(false);
-                var shardingInfo = _connections.GetSnapshot()[0].ShardingInfo();
-                if (shardingInfo != null)
+                var c = await CreateOpenConnection(false, false, false).ConfigureAwait(false);
+                var _shardingInfo = c.ShardingInfo();
+                if (_shardingInfo != null)
                 {
-                    var nrShards = shardingInfo.ScyllaNrShards;
+                    shardingInfo = _shardingInfo;
+                    Console.WriteLine("TEST CONN shardingInfo: {0}", shardingInfo);
+                    var nrShards = _shardingInfo.ScyllaNrShards;
                     if (nrShards > length)
                     {
                         // Create the rest of the connections
@@ -958,6 +991,7 @@ namespace Cassandra.Connections
                         _expectedConnectionLength = nrShards;
                     }
                 }
+                c.Dispose();
             }
             catch
             {
@@ -965,7 +999,7 @@ namespace Cassandra.Connections
                 throw;
             }
 
-            for (var i = 1; i < length; i++)
+            for (var i = 0; i < length; i++)
             {
                 try
                 {
@@ -973,7 +1007,14 @@ namespace Cassandra.Connections
                 }
                 catch
                 {
-                    break;
+                    if (i > 0)
+                    {
+                        // There is an opened connection, don't mind
+                        break;
+                    }
+
+                    OnConnectionClosing();
+                    throw;
                 }
             }
         }
