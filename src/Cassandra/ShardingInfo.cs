@@ -11,12 +11,12 @@ namespace Cassandra
         public string ScyllaPartitioner { get; }
         public string ScyllaShardingAlgorithm { get; }
         public ulong ScyllaShardingIgnoreMSB { get; }
-        public ulong ScyllaShardAwarePort { get; }
+        public int ScyllaShardAwarePort { get; }
         public ulong ScyllaShardAwarePortSSL { get; }
 
         private ShardingInfo(int scyllaShard, int scyllaNrShards, string scyllaPartitioner,
                          string scyllaShardingAlgorithm, ulong scyllaShardingIgnoreMSB,
-                         ulong scyllaShardAwarePort, ulong scyllaShardAwarePortSSL)
+                         int scyllaShardAwarePort, ulong scyllaShardAwarePortSSL)
         {
             ScyllaShard = scyllaShard;
             ScyllaNrShards = scyllaNrShards;
@@ -37,7 +37,7 @@ namespace Cassandra
                 scyllaPartitioner,
                 scyllaShardingAlgorithm,
                 ulong.Parse(scyllaShardingIgnoreMSB),
-                ulong.Parse(scyllaShardAwarePort),
+                int.Parse(scyllaShardAwarePort),
                 ulong.Parse(scyllaShardAwarePortSSL)
             );
         }

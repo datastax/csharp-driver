@@ -128,7 +128,7 @@ namespace Cassandra.Tests
             var lastByte = 1;
             //use different addresses for same hosts to differentiate connections: for test only
             //different connections to same hosts should use the same address
-            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() => TestHelper.DelayedTask(CreateConnection((byte)lastByte++), 200 - lastByte * 50));
+            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>(), -1, 0)).Returns(() => TestHelper.DelayedTask(CreateConnection((byte)lastByte++), 200 - lastByte * 50));
             var pool = _mock.Object;
             var creation = pool.EnsureCreate();
             creation.Wait();
@@ -144,7 +144,7 @@ namespace Cassandra.Tests
             var counter = 0;
             //use different addresses for same hosts to differentiate connections: for test only
             //different connections to same hosts should use the same address
-            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() =>
+            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>(), -1, 0)).Returns(() =>
             {
                 if (++counter == 2)
                 {
@@ -162,7 +162,7 @@ namespace Cassandra.Tests
         {
             _mock = GetPoolMock();
             var lastByte = 1;
-            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() =>
+            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>(), -1, 0)).Returns(() =>
             {
                 var c = CreateConnection((byte)lastByte++);
                 if (lastByte == 2)
@@ -191,7 +191,7 @@ namespace Cassandra.Tests
         {
             _mock = GetPoolMock();
             var lastByte = 0;
-            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() => TestHelper.DelayedTask(CreateConnection((byte)++lastByte), 100 + (lastByte > 1 ? 10000 : 0)));
+            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>(), -1, 0)).Returns(() => TestHelper.DelayedTask(CreateConnection((byte)++lastByte), 100 + (lastByte > 1 ? 10000 : 0)));
             var pool = _mock.Object;
             var creationTasks = new Task<IConnection[]>[10];
             var counter = -1;
@@ -217,7 +217,7 @@ namespace Cassandra.Tests
             // Use a reconnection policy that never attempts
             _mock = GetPoolMock(null, GetConfig(3, 3, new ConstantReconnectionPolicy(int.MaxValue)));
             var openConnectionAttempts = 0;
-            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() =>
+            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>(), -1, 0)).Returns(() =>
             {
                 Interlocked.Increment(ref openConnectionAttempts);
                 return TaskHelper.FromException<IConnection>(new Exception("Test Exception"));
@@ -254,7 +254,7 @@ namespace Cassandra.Tests
         {
             _mock = GetPoolMock();
             var testException = new Exception("Dummy exception");
-            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() => TestHelper.DelayedTask<IConnection>(() =>
+            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>(), -1, 0)).Returns(() => TestHelper.DelayedTask<IConnection>(() =>
             {
                 throw testException;
             }));
@@ -270,7 +270,7 @@ namespace Cassandra.Tests
             _mock = GetPoolMock(null, GetConfig(2, 2));
             var creationCounter = 0;
             var isCreating = 0;
-            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() =>
+            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>(), -1, 0)).Returns(() =>
             {
                 Interlocked.Increment(ref creationCounter);
                 Interlocked.Exchange(ref isCreating, 1);
@@ -293,7 +293,7 @@ namespace Cassandra.Tests
         {
             _mock = GetPoolMock(null, GetConfig(2, 2));
             var creationCounter = 0;
-            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() =>
+            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>(), -1, 0)).Returns(() =>
             {
                 Interlocked.Increment(ref creationCounter);
                 return TaskHelper.ToTask(CreateConnection());
@@ -314,7 +314,7 @@ namespace Cassandra.Tests
             _mock = GetPoolMock(null, GetConfig(2, 2));
             var creationCounter = 0;
             var isCreating = 0;
-            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() =>
+            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>(), -1, 0)).Returns(() =>
             {
                 Interlocked.Increment(ref creationCounter);
                 Interlocked.Exchange(ref isCreating, 1);
@@ -339,7 +339,7 @@ namespace Cassandra.Tests
             _mock = GetPoolMock(null, GetConfig(3, 3));
             var creationCounter = 0;
             var isCreating = 0;
-            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() =>
+            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>(), -1, 0)).Returns(() =>
             {
                 Interlocked.Increment(ref creationCounter);
                 Interlocked.Exchange(ref isCreating, 1);
@@ -432,7 +432,7 @@ namespace Cassandra.Tests
         {
             _mock = GetPoolMock(null, GetConfig(1, 1, new ConstantReconnectionPolicy(100)));
             var openConnectionsAttempts = 0;
-            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() =>
+            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>(), -1, 0)).Returns(() =>
             {
                 Interlocked.Increment(ref openConnectionsAttempts);
                 return TaskHelper.FromException<IConnection>(new Exception("Test Exception"));
@@ -455,7 +455,7 @@ namespace Cassandra.Tests
             host.SetDown();
             _mock = GetPoolMock(host, GetConfig(1, 1, new ConstantReconnectionPolicy(100)));
             var openConnectionsAttempts = 0;
-            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() =>
+            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>(), -1, 0)).Returns(() =>
             {
                 Interlocked.Increment(ref openConnectionsAttempts);
                 return TaskHelper.FromException<IConnection>(new Exception("Test Exception"));
@@ -476,7 +476,7 @@ namespace Cassandra.Tests
         public async Task CheckHealth_Removes_Connection()
         {
             _mock = GetPoolMock();
-            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(
+            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>(), -1, 0)).Returns(
                 () =>
                 {
                     var cc = HostConnectionPoolTests.GetConnectionMock(0, int.MaxValue);
@@ -499,7 +499,7 @@ namespace Cassandra.Tests
         public async Task Pool_Increasing_Size_And_Closing_Should_Not_Leave_Connections_Open([Range(0, 29)] int delay)
         {
             _mock = GetPoolMock(null, GetConfig(50, 50));
-            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(async () =>
+            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>(), -1, 0)).Returns(async () =>
             {
                 await Task.Yield();
                 var spinWait = new SpinWait();
@@ -537,7 +537,7 @@ namespace Cassandra.Tests
         public async Task Dispose_Should_Not_Raise_AllConnections_Closed()
         {
             _mock = GetPoolMock(null, GetConfig(4, 4));
-            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() => TaskHelper.ToTask(CreateConnection()));
+            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>(), -1, 0)).Returns(() => TaskHelper.ToTask(CreateConnection()));
             var pool = _mock.Object;
             Assert.AreEqual(0, pool.OpenConnections);
             pool.SetDistance(HostDistance.Local);
@@ -555,7 +555,7 @@ namespace Cassandra.Tests
         {
             _mock = GetPoolMock(null, GetConfig(4, 4, new ConstantReconnectionPolicy(200)));
             var openConnectionAttempts = 0;
-            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() =>
+            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>(), -1, 0)).Returns(() =>
             {
                 Interlocked.Increment(ref openConnectionAttempts);
                 return TaskHelper.ToTask(CreateConnection());
@@ -575,7 +575,7 @@ namespace Cassandra.Tests
         {
             _mock = GetPoolMock(null, GetConfig(4, 4, new ConstantReconnectionPolicy(200)));
             var openConnectionAttempts = 0;
-            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() =>
+            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>(), -1, 0)).Returns(() =>
             {
                 var index = Interlocked.Increment(ref openConnectionAttempts);
                 if (index == 1)
@@ -596,7 +596,7 @@ namespace Cassandra.Tests
         {
             _mock = GetPoolMock(null, GetConfig(4, 4, new ConstantReconnectionPolicy(200)));
             var openConnectionAttempts = 0;
-            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() =>
+            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>(), -1, 0)).Returns(() =>
             {
                 var index = Interlocked.Increment(ref openConnectionAttempts);
                 if (index == 2)
@@ -617,7 +617,7 @@ namespace Cassandra.Tests
         {
             _mock = GetPoolMock(null, GetConfig(4, 4, new ConstantReconnectionPolicy(200)));
             var openConnectionAttempts = 0;
-            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() =>
+            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>(), -1, 0)).Returns(() =>
             {
                 Interlocked.Increment(ref openConnectionAttempts);
                 return TaskHelper.ToTask(CreateConnection());
