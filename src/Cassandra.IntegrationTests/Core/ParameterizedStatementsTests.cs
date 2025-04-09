@@ -50,9 +50,7 @@ namespace Cassandra.IntegrationTests.Core
                     }
                 };
 
-                // COMPACT STORAGE is not supported by DSE 6.0 / C* 4.0.
-                if (TestClusterManager.CheckCassandraVersion(true, new Version(4, 0), Comparison.LessThan) || 
-                    (TestClusterManager.IsDse && TestClusterManager.CheckDseVersion(new Version(6, 0), Comparison.LessThan)))
+                if (!TestClusterManager.IsScylla && TestClusterManager.CheckCassandraVersion(false, new Version(4, 0), Comparison.LessThan))
                 {
                     setupQueries.Add($"CREATE TABLE {TableCompactStorage} (key blob PRIMARY KEY, bar int, baz uuid)" +
                                      $" WITH COMPACT STORAGE");
@@ -169,7 +167,7 @@ namespace Cassandra.IntegrationTests.Core
         public void DateTime_Insert_Select_Test()
         {
             InsertSelectTest(new DateTime(2010, 4, 29, 19, 01, 02, 300, DateTimeKind.Utc), "timestamp_sample");
-            InsertSelectTest<DateTime?>(new DateTime(2005, 8, 5, 21, 01, 02, 300, DateTimeKind.Utc), 
+            InsertSelectTest<DateTime?>(new DateTime(2005, 8, 5, 21, 01, 02, 300, DateTimeKind.Utc),
                 "timestamp_sample");
             InsertSelectTest<DateTime?>(null, "timestamp_sample");
         }
@@ -311,7 +309,7 @@ namespace Cassandra.IntegrationTests.Core
             var insertQuery = string.Format("INSERT INTO {0} (float_sample, text_sample, bigint_sample, id) VALUES (:MY_float, :my_TexT, :my_BIGint, :id)", AllTypesTableName);
 
             Assert.Throws<InvalidQueryException>(() => Session.Execute(
-                new SimpleStatement(insertQuery, 
+                new SimpleStatement(insertQuery,
                     new {id = Guid.NewGuid(), my_bigint = 1L })));
         }
 
@@ -342,7 +340,7 @@ namespace Cassandra.IntegrationTests.Core
             var values = new sbyte[] { sbyte.MinValue, -4, -3, 0, 1, 2, 126, sbyte.MaxValue };
             foreach (var v in values)
             {
-                var insert = new SimpleStatement("INSERT INTO tbl_tinyint_param (id, v, m) VALUES (?, ?, ?)", 
+                var insert = new SimpleStatement("INSERT INTO tbl_tinyint_param (id, v, m) VALUES (?, ?, ?)",
                     Convert.ToInt32(v), v, new SortedDictionary<sbyte, string> { { v, v.ToString()} });
                 var select = new SimpleStatement("SELECT * FROM tbl_tinyint_param WHERE id = ?", Convert.ToInt32(v));
                 Session.Execute(insert);
@@ -358,7 +356,7 @@ namespace Cassandra.IntegrationTests.Core
         public void SimpleStatementDateTests()
         {
             Session.Execute("CREATE TABLE tbl_date_param (id int PRIMARY KEY, v date, m map<date, text>)");
-            var values = new[] { 
+            var values = new[] {
                 new LocalDate(2010, 4, 29),
                 new LocalDate(0, 3, 12),
                 new LocalDate(-10, 2, 4),
@@ -413,7 +411,7 @@ namespace Cassandra.IntegrationTests.Core
 
         /// <summary>
         /// Testing the usage of dictionary for named parameters.
-        /// 
+        ///
         /// @since 2.1.0
         /// @jira_ticket CSHARP-406
         /// @expected_result Replace the named parameters according to keys in dictionary
@@ -440,7 +438,7 @@ namespace Cassandra.IntegrationTests.Core
 
         /// <summary>
         /// Testing the usage of dictionary for named parameters, in such a case that the dictionary has more than one equal key (with different capital letters).
-        /// 
+        ///
         /// @since 2.1.0
         /// @jira_ticket CSHARP-406
         /// @expected_result The statement will use the first key in dictionary that match unregarding the case sensitivity
@@ -469,7 +467,7 @@ namespace Cassandra.IntegrationTests.Core
 
         /// <summary>
         /// Testing missing parameter in dictionary for named parameters.
-        /// 
+        ///
         /// @throws InvalidQueryException
         ///
         /// @since 2.1.0
@@ -492,7 +490,7 @@ namespace Cassandra.IntegrationTests.Core
 
         /// <summary>
         /// Testing the usage of dictionary for named parameters, in such a case that the dictionary has more keys than named parameters in statement.
-        /// 
+        ///
         /// @since 2.1.0
         /// @jira_ticket CSHARP-406
         /// @expected_result The statement will ignore the excess of parameters
@@ -549,7 +547,7 @@ namespace Cassandra.IntegrationTests.Core
         [TestCassandraVersion(3, 11)]
         public void SimpleStatement_With_No_Compact_Enabled_Should_Reveal_Non_Schema_Columns()
         {
-            if (TestClusterManager.CheckCassandraVersion(true, new Version(4, 0), Comparison.GreaterThanOrEqualsTo) || 
+            if (TestClusterManager.CheckCassandraVersion(true, new Version(4, 0), Comparison.GreaterThanOrEqualsTo) ||
                 (TestClusterManager.IsDse && TestClusterManager.CheckDseVersion(new Version(6, 0), Comparison.GreaterThanOrEqualsTo)) ||
                 TestClusterManager.IsHcd)
             {
@@ -572,7 +570,7 @@ namespace Cassandra.IntegrationTests.Core
         [TestCassandraVersion(3, 11)]
         public void SimpleStatement_With_No_Compact_Disabled_Should_Not_Reveal_Non_Schema_Columns()
         {
-            if (TestClusterManager.CheckCassandraVersion(true, new Version(4, 0), Comparison.GreaterThanOrEqualsTo) || 
+            if (TestClusterManager.CheckCassandraVersion(true, new Version(4, 0), Comparison.GreaterThanOrEqualsTo) ||
                 (TestClusterManager.IsDse && TestClusterManager.CheckDseVersion(new Version(6, 0), Comparison.GreaterThanOrEqualsTo)) ||
                 TestClusterManager.IsHcd)
             {

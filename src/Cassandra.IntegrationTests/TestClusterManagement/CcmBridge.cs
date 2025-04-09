@@ -31,18 +31,21 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         public DirectoryInfo CcmDir { get; private set; }
         public string Name { get; private set; }
         public string Version { get; private set; }
-        public string IpPrefix { get; private set; }
+        public string ScyllaVersion { get; private set; }
+        public string IdPrefix { get; private set; }
+        public string IpPrefix => $"127.0.{IdPrefix}.";
         public ICcmProcessExecuter CcmProcessExecuter { get; set; }
         private readonly string _dseInstallPath;
 
-        public CcmBridge(string name, string ipPrefix, string dsePath, string version, ICcmProcessExecuter executor)
+        public CcmBridge(string name, string idPrefix, string dsePath, string version, string scyllaVersion, ICcmProcessExecuter executor)
         {
             Name = name;
-            IpPrefix = ipPrefix;
+            IdPrefix = idPrefix;
             CcmDir = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), Path.GetRandomFileName()));
             CcmProcessExecuter = executor;
             _dseInstallPath = dsePath;
             Version = version;
+            ScyllaVersion = scyllaVersion;
         }
 
         public void Dispose()
@@ -66,7 +69,11 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 sslParams = "--ssl " + sslPath;
             }
 
-            if (string.IsNullOrEmpty(_dseInstallPath))
+            if (!string.IsNullOrEmpty(ScyllaVersion))
+            {
+                ExecuteCcm($"create {Name} --scylla -v release:{ScyllaVersion} {sslParams}");
+            }
+            else if (string.IsNullOrEmpty(_dseInstallPath))
             {
                 if (TestClusterManager.IsDse)
                 {
@@ -153,7 +160,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             {
                 runAsRoot = "--root";
             }
-            
+
             var jvmArgsParameters = new List<string>
             {
                 "start",
@@ -273,9 +280,14 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             if (TestClusterManager.IsDse)
             {
                 cmd += " --dse";
-            }else if (TestClusterManager.CurrentBackendType == TestClusterManager.BackendType.Hcd)
+            }
+            else if (TestClusterManager.CurrentBackendType == TestClusterManager.BackendType.Hcd)
             {
                 cmd += " --hcd";
+            }
+            else if (TestClusterManager.IsScylla)
+            {
+               cmd += " --scylla";
             }
 
             var output = ExecuteCcm(string.Format(cmd, n, IpPrefix, n, 7000 + 100 * n, dc != null ? "-d " + dc : null));
@@ -332,7 +344,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             var joinedChanges = string.Join(" ", yamlChanges.Select(s => $"\"{s}\""));
             ExecuteCcm($"node{nodeId} updateconf {joinedChanges}");
         }
-        
+
         private static void FixYaml(string[] yamlToFix)
         {
             // in-place fix
@@ -367,8 +379,8 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 }
             }
         }
-        
-        
+
+
         public void SetNodeWorkloads(int nodeId, string[] workloads)
         {
             if (!TestClusterManager.IsDse)

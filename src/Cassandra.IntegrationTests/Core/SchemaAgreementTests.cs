@@ -29,7 +29,7 @@ namespace Cassandra.IntegrationTests.Core
     {
         private volatile bool _paused = false;
 
-        public SchemaAgreementTests() : base(2, false)
+        public SchemaAgreementTests() : base(3, false)
         {
         }
 
