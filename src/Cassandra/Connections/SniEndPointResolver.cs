@@ -56,7 +56,7 @@ namespace Cassandra.Connections
         {
         }
 
-        public async Task<IConnectionEndPoint> GetConnectionShardAwareEndPointAsync(Host host, bool refreshCache, int shardID, int shardAwarePort)
+        public async Task<IConnectionEndPoint> GetConnectionShardAwareEndPointAsync(Host host, bool refreshCache, int shardAwarePort)
         {
             return new SniConnectionEndPoint(
                 await GetNextEndPointAsync(refreshCache).ConfigureAwait(false),

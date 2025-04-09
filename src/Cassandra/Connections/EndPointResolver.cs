@@ -30,7 +30,7 @@ namespace Cassandra.Connections
         }
 
         /// <inheritdoc />
-        public Task<IConnectionEndPoint> GetConnectionShardAwareEndPointAsync(Host host, bool refreshCache, int shardID, int shardAwarePort)
+        public Task<IConnectionEndPoint> GetConnectionShardAwareEndPointAsync(Host host, bool refreshCache, int shardAwarePort)
         {
             return Task.FromResult((IConnectionEndPoint)new ConnectionEndPoint(new IPEndPoint(IPAddress.Parse(host.Address.ToString().Split(':')[0]), shardAwarePort), _serverNameResolver, host.ContactPoint));
         }

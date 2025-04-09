@@ -137,12 +137,18 @@ namespace Cassandra.Connections
         /// Connects asynchronously to the host and starts reading
         /// </summary>
         /// <exception cref="SocketException">Throws a SocketException when the connection could not be established with the host</exception>
-        public async Task<bool> Connect()
+        public async Task<bool> Connect(int localPort = -1)
         {
             var tcs = TaskHelper.TaskCompletionSourceWithTimeout<bool>(
                 Options.ConnectTimeoutMillis,
                 () => new SocketException((int)SocketError.TimedOut));
             var socketConnectTask = tcs.Task;
+
+            if (localPort != -1)
+            {
+                var localEndPoint = new IPEndPoint(IPAddress.Any, localPort);
+                _socket.Bind(localEndPoint);
+            }
 
             using (var eventArgs = new SocketAsyncEventArgs { RemoteEndPoint = EndPoint.SocketIpEndPoint })
             {

@@ -108,6 +108,16 @@ namespace Cassandra.Connections
         Task<Response> Open();
 
         /// <summary>
+        /// Initializes the connection.
+        /// </summary>
+        /// <param name="shardID">The shard ID</param>
+        /// <param name="shardCount">The shard count</param>
+        /// <exception cref="SocketException">Throws a SocketException when the connection could not be established with the host</exception>
+        /// <exception cref="AuthenticationException" />
+        /// <exception cref="UnsupportedProtocolVersionException"></exception>
+        Task<Response> Open(int shardID, int shardCount);
+
+        /// <summary>
         /// Sends a new request if possible. If it is not possible it queues it up.
         /// </summary>
         Task<Response> Send(IRequest request, int timeoutMillis);

@@ -460,10 +460,23 @@ namespace Cassandra.Connections
         /// <exception cref="UnsupportedProtocolVersionException"></exception>
         public async Task<Response> Open()
         {
+            return await Open(-1, 0);
+        }
+
+        /// <summary>
+        /// Initializes the connection.
+        /// </summary>
+        /// <param name="shardID">Shard ID</param>
+        /// <param name="shardCount">Shard count</param>
+        /// <exception cref="SocketException">Throws a SocketException when the connection could not be established with the host</exception>
+        /// <exception cref="AuthenticationException" />
+        /// <exception cref="UnsupportedProtocolVersionException"></exception>
+        public async Task<Response> Open(int shardID = -1, int shardCount = 0)
+        {
             try
             {
                 Connection.Logger.Verbose("Attempting to open Connection #{0} to {1}", GetHashCode(), EndPoint.EndpointFriendlyName);
-                var response = await DoOpen().ConfigureAwait(false);
+                var response = await DoOpen(shardID, shardCount).ConfigureAwait(false);
                 Connection.Logger.Verbose("Opened Connection #{0} to {1} with local endpoint {2}.", GetHashCode(), EndPoint.EndpointFriendlyName, _tcpSocket.GetLocalIpEndPoint()?.ToString());
                 return response;
             }
@@ -480,7 +493,7 @@ namespace Cassandra.Connections
         /// <exception cref="SocketException">Throws a SocketException when the connection could not be established with the host</exception>
         /// <exception cref="AuthenticationException" />
         /// <exception cref="UnsupportedProtocolVersionException"></exception>
-        public async Task<Response> DoOpen()
+        public async Task<Response> DoOpen(int shardID = -1, int shardCount = 0)
         {
             //Init TcpSocket
             _tcpSocket.Error += OnSocketError;
@@ -489,7 +502,20 @@ namespace Cassandra.Connections
             _tcpSocket.Read += ReadHandler;
             _tcpSocket.WriteCompleted += WriteCompletedHandler;
             var protocolVersion = Serializer.ProtocolVersion;
-            await _tcpSocket.Connect().ConfigureAwait(false);
+            if (shardID != -1)
+            {
+                var localPort = PortAllocator.GetNextAvailablePort(shardCount, shardID, Options.LocalPortLow, Options.LocalPortHigh);
+                if (localPort == -1)
+                {
+                    throw new SocketException((int)SocketError.NoData);
+                }
+                await _tcpSocket.Connect(localPort).ConfigureAwait(false);
+            }
+            else
+            {
+                await _tcpSocket.Connect().ConfigureAwait(false);
+            }
+
 
             // Send the OPTIONS message
             Response optionsResponse;

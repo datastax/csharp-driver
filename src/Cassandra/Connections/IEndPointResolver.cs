@@ -40,9 +40,8 @@ namespace Cassandra.Connections
         /// <param name="host">Host related to the new endpoint.</param>
         /// <param name="refreshCache">Whether to refresh the internal cache. If it is false and the cache is populated then
         /// no round trip will occur.</param>
-        /// <param name="shardID">Shard ID.</param>
         /// <param name="shardAwarePort">Shard aware port.</param>
         /// <returns>Endpoint.</returns>
-        Task<IConnectionEndPoint> GetConnectionShardAwareEndPointAsync(Host host, bool refreshCache, int shardID, int shardAwarePort);
+        Task<IConnectionEndPoint> GetConnectionShardAwareEndPointAsync(Host host, bool refreshCache, int shardAwarePort);
     }
 }

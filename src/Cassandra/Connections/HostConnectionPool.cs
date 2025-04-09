@@ -277,12 +277,12 @@ namespace Cassandra.Connections
             Interlocked.Exchange(ref _state, PoolState.Shutdown);
         }
 
-        public virtual async Task<IConnection> DoCreateAndOpen(bool isReconnection, int shardID = -1, int shardAwarePort = 0)
+        public virtual async Task<IConnection> DoCreateAndOpen(bool isReconnection, int shardID = -1, int shardAwarePort = 0, int shardCount = 0)
         {
             IConnectionEndPoint endPoint;
-            if (shardID != -1 && shardAwarePort != 0)
+            if (shardAwarePort != 0)
             {
-                endPoint = await _config.EndPointResolver.GetConnectionShardAwareEndPointAsync(_host, isReconnection, shardID, shardAwarePort).ConfigureAwait(false);
+                endPoint = await _config.EndPointResolver.GetConnectionShardAwareEndPointAsync(_host, isReconnection, shardAwarePort).ConfigureAwait(false);
             }
             else
             {
@@ -296,7 +296,15 @@ namespace Cassandra.Connections
             }
             try
             {
-                await c.Open().ConfigureAwait(false);
+                if (shardID != -1)
+                {
+                    await c.Open(shardID, shardCount).ConfigureAwait(false);
+                }
+                else
+                {
+                    await c.Open().ConfigureAwait(false);
+                }
+
             }
             catch
             {
@@ -722,15 +730,17 @@ namespace Cassandra.Connections
                 // Find out to which shard should we connect to
                 var shardID = -1;
                 var shardAwarePort = 0;
+                var shardCount = 0;
                 if (shardingInfo != null)
                 {
                     shardAwarePort = shardingInfo.ScyllaShardAwarePort;
+                    shardCount = shardingInfo.ScyllaNrShards;
                     // Find the shard without a connection
                     // It's important to start counting from 1 here because we want
                     // to consider the next shard after the previously attempted one
-                    for (var i = 1; i <= shardingInfo.ScyllaNrShards; i++)
+                    for (var i = 1; i <= shardCount; i++)
                     {
-                        var _shardID = (lastAttemptedShard + i) % shardingInfo.ScyllaNrShards;
+                        var _shardID = (lastAttemptedShard + i) % shardCount;
                         if (connectionsSnapshot.Length <= _shardID || connectionsSnapshot[_shardID] == null)
                         {
                             lastAttemptedShard = _shardID;
@@ -739,7 +749,7 @@ namespace Cassandra.Connections
                         }
                     }
                 }
-                c = await DoCreateAndOpen(isReconnection, shardID, shardAwarePort).ConfigureAwait(false);
+                c = await DoCreateAndOpen(isReconnection, shardID, shardAwarePort, shardCount).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
