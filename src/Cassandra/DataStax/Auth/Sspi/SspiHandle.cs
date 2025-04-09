@@ -44,7 +44,7 @@ namespace Cassandra.DataStax.Auth.Sspi
     /// to this handle for performing work (InitializeSecurityContext, eg) should be performed a CER
     /// that employs handle reference counting across the native API invocation.
     /// </remarks>
-    [StructLayout( LayoutKind.Sequential, Pack = 1 ) ]
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
     internal struct RawSspiHandle
     {
         private IntPtr lowPart;
@@ -65,7 +65,7 @@ namespace Cassandra.DataStax.Auth.Sspi
         /// <remarks>
         /// This method is executed in a CER during handle release.
         /// </remarks>
-        [ReliabilityContract( Consistency.WillNotCorruptState, Cer.Success)]
+        [ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
         public void SetInvalid()
         {
             this.lowPart = IntPtr.Zero;
@@ -81,17 +81,17 @@ namespace Cassandra.DataStax.Auth.Sspi
         internal RawSspiHandle rawHandle;
 
         protected SafeSspiHandle()
-            : base( IntPtr.Zero, true )
+            : base(IntPtr.Zero, true)
         {
             this.rawHandle = new RawSspiHandle();
         }
 
         public override bool IsInvalid
         {
-            get { return IsClosed || this.rawHandle.IsZero();  }
+            get { return IsClosed || this.rawHandle.IsZero(); }
         }
 
-        [ReliabilityContract( Consistency.WillNotCorruptState, Cer.Success )]
+        [ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
         protected override bool ReleaseHandle()
         {
             this.rawHandle.SetInvalid();

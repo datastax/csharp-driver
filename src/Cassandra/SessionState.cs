@@ -88,7 +88,7 @@ namespace Cassandra
             public int OpenConnections { get; }
 
             public int InFlightQueries { get; }
-            
+
             public HostStateInfo(IHostConnectionPool pool)
             {
                 OpenConnections = pool.OpenConnections;

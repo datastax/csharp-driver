@@ -51,8 +51,8 @@ namespace Cassandra.Tests
         {
             // Arrange
             var frame = new Frame(
-                new FrameHeader(), 
-                new MemoryStream(new byte[] { 1 }), 
+                new FrameHeader(),
+                new MemoryStream(new byte[] { 1 }),
                 new SerializerManager(ProtocolVersion.V4).GetCurrentSerializer(),
                 null);
 
@@ -67,7 +67,7 @@ namespace Cassandra.Tests
         public void Ctor_TraceFlagSet_TraceIdIsSet()
         {
             // Arrange
-            var header = new FrameHeader {Flags = HeaderFlags.Tracing};
+            var header = new FrameHeader { Flags = HeaderFlags.Tracing };
             var rnd = new Random();
             var buffer = new byte[16];
             rnd.NextBytes(buffer);

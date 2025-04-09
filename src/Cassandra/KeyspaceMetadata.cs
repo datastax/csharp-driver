@@ -70,18 +70,18 @@ namespace Cassandra
         /// Determines whether the keyspace is a virtual keyspace or not.
         /// </summary>
         public bool IsVirtual { get; }
-        
+
         /// <summary>
         /// Returns the graph engine associated with this keyspace. Returns null if there isn't one.
         /// </summary>
         public string GraphEngine { get; }
 
         internal IReplicationStrategy Strategy { get; }
-        
+
         internal KeyspaceMetadata(
-            Metadata parent, 
-            string name, 
-            bool durableWrites, 
+            Metadata parent,
+            string name,
+            bool durableWrites,
             string strategyClass,
             IDictionary<string, string> replicationOptions,
             IReplicationStrategyFactory replicationStrategyFactory,
@@ -101,18 +101,18 @@ namespace Cassandra
             StrategyClass = strategyClass;
 
             var parsedReplicationOptions = replicationOptions == null
-                ? null 
+                ? null
                 : ParseReplicationFactors(replicationOptions);
 
-            Replication = parsedReplicationOptions == null 
-                ? null 
+            Replication = parsedReplicationOptions == null
+                ? null
                 : ConvertReplicationOptionsToLegacy(parsedReplicationOptions);
-            
+
             ReplicationOptions = replicationOptions;
             IsVirtual = isVirtual;
-            Strategy = 
-                (strategyClass == null || parsedReplicationOptions == null) 
-                ? null 
+            Strategy =
+                (strategyClass == null || parsedReplicationOptions == null)
+                ? null
                 : replicationStrategyFactory.Create(StrategyClass, parsedReplicationOptions);
 
             GraphEngine = graphEngine;
@@ -139,7 +139,7 @@ namespace Cassandra
             }
 
             var table = await _parent.SchemaParser.GetTableAsync(Name, tableName).ConfigureAwait(false);
-            
+
             if (table == null)
             {
                 return null;
@@ -235,7 +235,7 @@ namespace Cassandra
         {
             return TaskHelper.WaitToComplete(_parent.SchemaParser.GetTableNamesAsync(Name));
         }
-        
+
         /// <summary>
         /// <para>
         ///  Deprecated. Please use <see cref="AsCqlQuery"/>.

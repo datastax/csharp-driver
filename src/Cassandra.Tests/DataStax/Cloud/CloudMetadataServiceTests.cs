@@ -28,7 +28,7 @@ namespace Cassandra.Tests.DataStax.Cloud
         [CloudSupported(Supported = false)]
         public void Should_ThrowNotSupported_When_NetCore20()
         {
-            Assert.Throws<NotSupportedException>(() => 
+            Assert.Throws<NotSupportedException>(() =>
                 new CloudMetadataService().GetClusterMetadataAsync(null, null, null).GetAwaiter().GetResult());
         }
     }

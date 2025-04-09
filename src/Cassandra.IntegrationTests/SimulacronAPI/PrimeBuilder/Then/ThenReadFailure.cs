@@ -27,11 +27,11 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.Then
         private readonly bool _dataPresent;
 
         public ThenReadFailure(
-            int consistencyLevel, 
-            int received, 
-            int blockFor, 
-            string message, 
-            IDictionary<string, int> failureReasons, 
+            int consistencyLevel,
+            int received,
+            int blockFor,
+            string message,
+            IDictionary<string, int> failureReasons,
             bool dataPresent)
         {
             _consistencyLevel = consistencyLevel;

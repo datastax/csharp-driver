@@ -27,7 +27,7 @@ namespace Cassandra.IntegrationTests
     {
         private readonly List<Cluster> _clusterInstances = new List<Cluster>();
         private readonly List<SimulacronCluster> _simulacronClusters = new List<SimulacronCluster>();
-        
+
         /// <summary>
         /// Gets the amount of nodes in the test cluster
         /// </summary>
@@ -57,7 +57,7 @@ namespace Cassandra.IntegrationTests
         /// Gets or sets the name of the default keyspace used for this instance
         /// </summary>
         protected string KeyspaceName { get; set; }
-        
+
         protected SimulacronOptions Options { get; set; }
 
         public SharedSimulacronTests() : this(1, true)
@@ -87,7 +87,7 @@ namespace Cassandra.IntegrationTests
             _simulacronClusters.Add(c);
             return c;
         }
-        
+
         protected virtual SimulacronCluster CreateNew(int nodeLength)
         {
             Options = new SimulacronOptions { Nodes = nodeLength.ToString() };
@@ -107,7 +107,7 @@ namespace Cassandra.IntegrationTests
                                  .WithQueryTimeout(60000)
                                  .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(30000))
                                  .Build();
-                Session = (Session) Cluster.Connect();
+                Session = (Session)Cluster.Connect();
                 Session.CreateKeyspace(KeyspaceName, null, false);
                 Session.ChangeKeyspace(KeyspaceName);
             }

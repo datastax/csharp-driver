@@ -24,10 +24,10 @@ namespace Cassandra.DataStax.Graph
     internal class VertexProperty : Element, IVertexProperty
     {
         internal VertexProperty(
-            GraphNode id, 
-            string name, 
-            IGraphNode value, 
-            IGraphNode vertex, 
+            GraphNode id,
+            string name,
+            IGraphNode value,
+            IGraphNode vertex,
             IDictionary<string, GraphNode> properties)
             : base(id, name, properties)
         {
@@ -44,20 +44,20 @@ namespace Cassandra.DataStax.Graph
 
         public bool Equals(IProperty other)
         {
-            return Equals((object) other);
+            return Equals((object)other);
         }
 
         protected bool Equals(VertexProperty other)
         {
-            return string.Equals(Name, other.Name) 
-                   && object.Equals(Value, other.Value) 
+            return string.Equals(Name, other.Name)
+                   && object.Equals(Value, other.Value)
                    && object.Equals(Vertex, other.Vertex)
                    && string.Equals(Label, other.Label);
         }
 
         public bool Equals(IVertexProperty other)
         {
-            return Equals((object) other);
+            return Equals((object)other);
         }
 
         public override bool Equals(object obj)
@@ -74,7 +74,7 @@ namespace Cassandra.DataStax.Graph
             {
                 return false;
             }
-            return Equals((VertexProperty) obj);
+            return Equals((VertexProperty)obj);
         }
 
         public override int GetHashCode()

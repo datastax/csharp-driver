@@ -59,7 +59,7 @@ namespace Cassandra.Mapping
         /// <param name="query">Cql query</param>
         /// <param name="args">Query parameters</param>
         IPage<T> FetchPage<T>(int pageSize, byte[] pagingState, string query, object[] args);
-        
+
         /// <summary>
         /// Gets a single T from Cassandra using the CQL statement and parameter values specified.  Will throw if
         /// no records or more than one record is returned.

@@ -48,7 +48,7 @@ namespace Cassandra.Responses
 
         internal ResultResponse(Frame frame) : base(frame)
         {
-            Kind = (ResultResponseKind) Reader.ReadInt32();
+            Kind = (ResultResponseKind)Reader.ReadInt32();
             switch (Kind)
             {
                 case ResultResponseKind.Void:

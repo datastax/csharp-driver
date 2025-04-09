@@ -35,8 +35,8 @@ namespace Cassandra.Serialization.Graph.GraphSON2.Structure
     {
         private const string Prefix = "g";
         private const string TypeKey = "Path";
-        
-        public static string TypeName => 
+
+        public static string TypeName =>
             GraphSONUtil.FormatTypeName(PathDeserializer.Prefix, PathDeserializer.TypeKey);
 
         public dynamic Objectify(JToken token, Func<JToken, GraphNode> factory, IGraphSONReader reader)

@@ -31,8 +31,8 @@ namespace Cassandra.Requests
         private readonly byte[] _id;
         private readonly QueryProtocolOptions _queryOptions;
 
-        public ConsistencyLevel Consistency 
-        { 
+        public ConsistencyLevel Consistency
+        {
             get => _queryOptions.Consistency;
             set => _queryOptions.Consistency = value;
         }
@@ -46,18 +46,18 @@ namespace Cassandra.Requests
         public int PageSize => _queryOptions.PageSize;
 
         public ConsistencyLevel SerialConsistency => _queryOptions.SerialConsistency;
-        
+
         public bool SkipMetadata => _queryOptions.SkipMetadata;
 
         /// <inheritdoc />
         public override ResultMetadata ResultMetadata { get; }
 
         public ExecuteRequest(
-            ISerializer serializer, 
+            ISerializer serializer,
             byte[] id,
-            ResultMetadata resultMetadata, 
+            ResultMetadata resultMetadata,
             QueryProtocolOptions queryOptions,
-            bool tracingEnabled, 
+            bool tracingEnabled,
             IDictionary<string, byte[]> payload,
             bool isBatchChild) : base(serializer, tracingEnabled, payload)
         {
@@ -85,7 +85,7 @@ namespace Cassandra.Requests
                 ResultMetadata = resultMetadata;
             }
 
-            if (queryOptions.SerialConsistency != ConsistencyLevel.Any 
+            if (queryOptions.SerialConsistency != ConsistencyLevel.Any
                 && queryOptions.SerialConsistency.IsSerialConsistencyLevel() == false)
             {
                 throw new RequestInvalidException("Non-serial consistency specified as a serial one.");
@@ -110,7 +110,7 @@ namespace Cassandra.Requests
 
             _queryOptions.Write(wb, true);
         }
-        
+
         public void WriteToBatch(FrameWriter wb)
         {
             wb.WriteByte(1); //prepared query

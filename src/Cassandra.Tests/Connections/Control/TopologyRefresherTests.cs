@@ -47,10 +47,10 @@ namespace Cassandra.Tests.Connections.Control
         {
             var row = localRow ?? TestHelper.CreateRow(new Dictionary<string, object>
             {
-                { "cluster_name", "ut-cluster" }, 
-                { "data_center", "ut-dc" }, 
-                { "rack", "ut-rack" }, 
-                {"tokens", null}, 
+                { "cluster_name", "ut-cluster" },
+                { "data_center", "ut-dc" },
+                { "rack", "ut-rack" },
+                {"tokens", null},
                 {"release_version", "2.2.1-SNAPSHOT"},
                 {"partitioner", "Murmur3Partitioner" }
             });
@@ -61,16 +61,16 @@ namespace Cassandra.Tests.Connections.Control
                 {
                     new Dictionary<string, object>
                     {
-                        {"rpc_address", IPAddress.Parse("127.0.0.2")}, 
-                        {"peer", null}, 
-                        { "data_center", "ut-dc3" }, 
-                        { "rack", "ut-rack3" }, 
-                        {"tokens", null}, 
+                        {"rpc_address", IPAddress.Parse("127.0.0.2")},
+                        {"peer", null},
+                        { "data_center", "ut-dc3" },
+                        { "rack", "ut-rack3" },
+                        {"tokens", null},
                         {"release_version", "2.1.5"}
                     }
                 });
             }
-            
+
             IEnumerable<IRow> peersV2Rows = null;
             if (withPeersV2)
             {
@@ -118,11 +118,11 @@ namespace Cassandra.Tests.Connections.Control
             _metadata = new Metadata(config);
             var topologyRefresher = new TopologyRefresher(_metadata, config);
             var connection = Mock.Of<IConnection>();
-            
+
             await topologyRefresher
                   .RefreshNodeListAsync(
-                      new FakeConnectionEndPoint("127.0.0.1", 9042), 
-                      connection, 
+                      new FakeConnectionEndPoint("127.0.0.1", 9042),
+                      connection,
                       _serializer).ConfigureAwait(false);
 
 
@@ -130,7 +130,7 @@ namespace Cassandra.Tests.Connections.Control
             Assert.AreEqual(TopologyRefresherTests.PeersV2Query, fakeRequestHandler.Requests.ElementAt(1).CqlQuery);
             Assert.AreEqual(TopologyRefresherTests.PeersQuery, fakeRequestHandler.Requests.Last().CqlQuery);
         }
-        
+
         [Test]
         public async Task Should_SendSystemLocalAndPeersV2Queries()
         {
@@ -145,14 +145,14 @@ namespace Cassandra.Tests.Connections.Control
 
             await topologyRefresher
                   .RefreshNodeListAsync(
-                      new FakeConnectionEndPoint("127.0.0.1", 9042), 
-                      connection, 
+                      new FakeConnectionEndPoint("127.0.0.1", 9042),
+                      connection,
                       _serializer).ConfigureAwait(false);
 
             Assert.AreEqual(TopologyRefresherTests.LocalQuery, fakeRequestHandler.Requests.First().CqlQuery);
             Assert.AreEqual(TopologyRefresherTests.PeersV2Query, fakeRequestHandler.Requests.Last().CqlQuery);
         }
-        
+
         [Test]
         public async Task Should_KeepSendingSystemPeersV2Queries_When_ItDoesNotFail()
         {
@@ -167,20 +167,20 @@ namespace Cassandra.Tests.Connections.Control
 
             await topologyRefresher
                   .RefreshNodeListAsync(
-                      new FakeConnectionEndPoint("127.0.0.1", 9042), 
-                      connection, 
+                      new FakeConnectionEndPoint("127.0.0.1", 9042),
+                      connection,
                       _serializer).ConfigureAwait(false);
 
             Assert.AreEqual(2, fakeRequestHandler.Requests.Count);
             Assert.AreEqual(TopologyRefresherTests.LocalQuery, fakeRequestHandler.Requests.First().CqlQuery);
             Assert.AreEqual(TopologyRefresherTests.PeersV2Query, fakeRequestHandler.Requests.ElementAt(1).CqlQuery);
-            
+
             await topologyRefresher
                   .RefreshNodeListAsync(
-                      new FakeConnectionEndPoint("127.0.0.1", 9042), 
-                      connection, 
+                      new FakeConnectionEndPoint("127.0.0.1", 9042),
+                      connection,
                       _serializer).ConfigureAwait(false);
-            
+
             Assert.AreEqual(4, fakeRequestHandler.Requests.Count);
             Assert.AreEqual(TopologyRefresherTests.LocalQuery, fakeRequestHandler.Requests.ElementAt(2).CqlQuery);
             Assert.AreEqual(TopologyRefresherTests.PeersV2Query, fakeRequestHandler.Requests.ElementAt(3).CqlQuery);
@@ -194,24 +194,24 @@ namespace Cassandra.Tests.Connections.Control
             _metadata = new Metadata(config);
             var topologyRefresher = new TopologyRefresher(_metadata, config);
             var connection = Mock.Of<IConnection>();
-            
+
             await topologyRefresher
                   .RefreshNodeListAsync(
-                      new FakeConnectionEndPoint("127.0.0.1", 9042), 
-                      connection, 
+                      new FakeConnectionEndPoint("127.0.0.1", 9042),
+                      connection,
                       _serializer).ConfigureAwait(false);
-            
+
             Assert.AreEqual(3, fakeRequestHandler.Requests.Count);
             Assert.AreEqual(TopologyRefresherTests.LocalQuery, fakeRequestHandler.Requests.First().CqlQuery);
             Assert.AreEqual(TopologyRefresherTests.PeersV2Query, fakeRequestHandler.Requests.ElementAt(1).CqlQuery);
             Assert.AreEqual(TopologyRefresherTests.PeersQuery, fakeRequestHandler.Requests.ElementAt(2).CqlQuery);
-            
+
             await topologyRefresher
                   .RefreshNodeListAsync(
-                      new FakeConnectionEndPoint("127.0.0.1", 9042), 
-                      connection, 
+                      new FakeConnectionEndPoint("127.0.0.1", 9042),
+                      connection,
                       _serializer).ConfigureAwait(false);
-            
+
             Assert.AreEqual(5, fakeRequestHandler.Requests.Count);
             Assert.AreEqual(TopologyRefresherTests.LocalQuery, fakeRequestHandler.Requests.ElementAt(3).CqlQuery);
             Assert.AreEqual(TopologyRefresherTests.PeersQuery, fakeRequestHandler.Requests.ElementAt(4).CqlQuery);
@@ -300,7 +300,7 @@ namespace Cassandra.Tests.Connections.Control
             Assert.AreEqual(2, _metadata.AllHosts().Count);
             Assert.AreEqual(1, _metadata.AllHosts().Count(h => h.Address.Address.ToString() == "127.0.0.9"));
         }
-        
+
         [Test]
         public async Task Should_UseListenAddressWhenSystemLocalAndRpcIsBindAllAndBroadcastIsNull()
         {

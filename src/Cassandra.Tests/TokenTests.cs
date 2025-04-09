@@ -414,7 +414,7 @@ namespace Cassandra.Tests
             AssertOnlyOneStrategyIsCalled(proxyStrategies, 4, 8);
             AssertOnlyOneStrategyIsCalled(proxyStrategies, 5, 7);
         }
-        
+
         /// <summary>
         /// If the replication strategy returns Equals true for different hashcodes then
         /// it is possible for Dictionary to accept a "duplicate" but the TokenMap constructor
@@ -425,14 +425,14 @@ namespace Cassandra.Tests
         public void Build_Should_CopyReplicationStrategiesFromDictionaryToConcurrentDictionary_When_DifferentStrategiesAreUsed()
         {
             foreach (var rf1 in Enumerable.Range(1, 32).Select(r => r.ToString()))
-            foreach (var rf2 in Enumerable.Range(1, 32).Select(r => r.ToString()))
-            {
-                if (rf1 == rf2)
+                foreach (var rf2 in Enumerable.Range(1, 32).Select(r => r.ToString()))
                 {
-                    continue;
-                }
+                    if (rf1 == rf2)
+                    {
+                        continue;
+                    }
 
-                var keyspaces = new List<KeyspaceMetadata>
+                    var keyspaces = new List<KeyspaceMetadata>
                 {
                     // unique configurations
                     FakeSchemaParserFactory.CreateSimpleKeyspace("ks1", 2),
@@ -449,34 +449,34 @@ namespace Cassandra.Tests
                     FakeSchemaParserFactory.CreateSimpleKeyspace("ks10", 10),
                     FakeSchemaParserFactory.CreateSimpleKeyspace("ks11", 2)
                 };
-                var strategies = keyspaces.Select(k => k.Strategy).ToList();
+                    var strategies = keyspaces.Select(k => k.Strategy).ToList();
 
-                var dictionary = new Dictionary<IReplicationStrategy, object>();
-                foreach (var strategy in strategies)
-                {
-                    if (!dictionary.ContainsKey(strategy))
+                    var dictionary = new Dictionary<IReplicationStrategy, object>();
+                    foreach (var strategy in strategies)
                     {
-                        dictionary.Add(strategy, "");
-                    }
-                }
-
-                // private const in ConcurrentDictionary
-                const int defaultCapacity = 31;
-
-                // would love to test every possible value but it would take too much time
-                foreach (var concurrencyLevel in Enumerable.Range(1, 512))
-                {
-                    var concurrentDictionary = new ConcurrentDictionary<IReplicationStrategy, object>(concurrencyLevel, defaultCapacity);
-                    foreach (var strategy in dictionary)
-                    {
-                        if (!concurrentDictionary.TryAdd(strategy.Key, strategy.Value))
+                        if (!dictionary.ContainsKey(strategy))
                         {
-                            Assert.Fail($"This would throw ArgumentException, duplicate values with processor count: {concurrencyLevel}, rf1: {rf1}, rf2: {rf2}");
-                            return;
+                            dictionary.Add(strategy, "");
+                        }
+                    }
+
+                    // private const in ConcurrentDictionary
+                    const int defaultCapacity = 31;
+
+                    // would love to test every possible value but it would take too much time
+                    foreach (var concurrencyLevel in Enumerable.Range(1, 512))
+                    {
+                        var concurrentDictionary = new ConcurrentDictionary<IReplicationStrategy, object>(concurrencyLevel, defaultCapacity);
+                        foreach (var strategy in dictionary)
+                        {
+                            if (!concurrentDictionary.TryAdd(strategy.Key, strategy.Value))
+                            {
+                                Assert.Fail($"This would throw ArgumentException, duplicate values with processor count: {concurrencyLevel}, rf1: {rf1}, rf2: {rf2}");
+                                return;
+                            }
                         }
                     }
                 }
-            }
         }
 
         [Test]
@@ -505,12 +505,12 @@ namespace Cassandra.Tests
             {
                 ConnectionFactory = new FakeConnectionFactory()
             }.Build();
-            var metadata = new Metadata(config, schemaParser) {Partitioner = "Murmur3Partitioner"};
+            var metadata = new Metadata(config, schemaParser) { Partitioner = "Murmur3Partitioner" };
             metadata.ControlConnection = new ControlConnection(
                 Mock.Of<IInternalCluster>(),
-                new ProtocolEventDebouncer(new TaskBasedTimerFactory(), TimeSpan.FromMilliseconds(20), TimeSpan.FromSeconds(100)), 
-                ProtocolVersion.V3, 
-                config, 
+                new ProtocolEventDebouncer(new TaskBasedTimerFactory(), TimeSpan.FromMilliseconds(20), TimeSpan.FromSeconds(100)),
+                ProtocolVersion.V3,
+                config,
                 metadata,
                 new List<IContactPoint>
                 {
@@ -570,7 +570,7 @@ namespace Cassandra.Tests
                                     }
                                 }
                             }
-                            else 
+                            else
                             if (j % 2 == 0)
                             {
                                 if (bag.TryTake(out var ksName))
@@ -632,21 +632,21 @@ namespace Cassandra.Tests
         }
 
         private KeyspaceMetadata CreateKeyspaceMetadata(
-            Metadata parent, 
-            string name, 
-            bool durableWrites, 
+            Metadata parent,
+            string name,
+            bool durableWrites,
             string strategyClass,
             IDictionary<string, string> replicationOptions,
             bool isVirtual = false)
         {
             return new KeyspaceMetadata(
-                parent, 
-                name, 
-                durableWrites, 
-                strategyClass, 
-                replicationOptions, 
-                new ReplicationStrategyFactory(), 
-                null, 
+                parent,
+                name,
+                durableWrites,
+                strategyClass,
+                replicationOptions,
+                new ReplicationStrategyFactory(),
+                null,
                 isVirtual);
         }
 

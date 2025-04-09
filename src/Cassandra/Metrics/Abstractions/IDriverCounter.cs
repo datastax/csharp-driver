@@ -22,7 +22,7 @@ namespace Cassandra.Metrics.Abstractions
     public interface IDriverCounter : IDriverMetric
     {
         void Increment();
-        
+
         void Increment(long value);
     }
 }

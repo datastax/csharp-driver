@@ -31,11 +31,11 @@ namespace Cassandra.Tests.Connections.TestHelpers
         public event Action<IConnection> OnCreate;
 
         public ConcurrentDictionary<IPEndPoint, ConcurrentQueue<IConnection>> CreatedConnections { get; } = new ConcurrentDictionary<IPEndPoint, ConcurrentQueue<IConnection>>();
-        
+
         public FakeConnectionFactory() : this((Func<IConnectionEndPoint, IConnection>)null)
         {
         }
-        
+
         public FakeConnectionFactory(Func<IConnection> func)
         {
             _func = endpoint => func();
@@ -56,7 +56,7 @@ namespace Cassandra.Tests.Connections.TestHelpers
 
             _func = func;
         }
-        
+
         public FakeConnectionFactory(Func<IPEndPoint, IConnection> func)
         {
             _func = endpoint => func(endpoint.SocketIpEndPoint);

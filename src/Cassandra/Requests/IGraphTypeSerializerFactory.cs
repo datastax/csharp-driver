@@ -33,7 +33,7 @@ namespace Cassandra.Requests
         /// See <see cref="GraphOptions.GraphProtocolVersion"/> for an explanation.
         /// </summary>
         GraphProtocol GetDefaultGraphProtocol(IInternalSession session, IGraphStatement statement, GraphOptions options);
-        
+
         /// <summary>
         /// Gets the serializer according to the protocol version.
         /// </summary>

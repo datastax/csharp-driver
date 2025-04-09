@@ -150,7 +150,7 @@ namespace Cassandra
         {
             get { return _contactPoints.Select(c => c as IPEndPoint).Where(c => c != null).ToList(); }
         }
-        
+
         /// <summary>
         ///  The configuration that will be used for the new cluster. <p> You <b>should
         ///  not</b> modify this object directly as change made to the returned object may
@@ -165,7 +165,7 @@ namespace Cassandra
             {
                 ConfigureCloudCluster(_bundlePath);
             }
-            
+
             var typeSerializerDefinitions = _typeSerializerDefinitions ?? new TypeSerializerDefinitions();
             var policies = GetPolicies();
             var graphOptions = GetGraphOptions();
@@ -225,12 +225,12 @@ namespace Cassandra
             {
                 _socketOptions.SetReadTimeoutMillis(profile.ReadTimeoutMillis.Value);
             }
-                
+
             if (profile.ConsistencyLevel.HasValue)
             {
                 _queryOptions.SetConsistencyLevel(profile.ConsistencyLevel.Value);
             }
-                
+
             if (profile.SerialConsistencyLevel.HasValue)
             {
                 _queryOptions.SetSerialConsistencyLevel(profile.SerialConsistencyLevel.Value);
@@ -273,7 +273,7 @@ namespace Cassandra
                     "and another through the default execution profile. Policies provided through the default execution profile " +
                     "take precedence over policies specified through the Builder methods.");
             }
-                
+
             if (profile.SpeculativeExecutionPolicy != null && _speculativeExecutionPolicy != null)
             {
                 Builder.Logger.Warning(
@@ -281,7 +281,7 @@ namespace Cassandra
                     "and another through the default execution profile. Policies provided through the default execution profile " +
                     "take precedence over policies specified through the Builder methods.");
             }
-            
+
             if (profile.RetryPolicy != null && _retryPolicy != null)
             {
                 Builder.Logger.Warning(
@@ -607,7 +607,7 @@ namespace Cassandra
             _loadBalancingPolicy = policy;
             return this;
         }
-        
+
         /// <summary>
         ///  Configure the reconnection policy to use for the new cluster. <p> If no
         ///  reconnection policy is set through this method,
@@ -923,7 +923,7 @@ namespace Cassandra
             _typeSerializerDefinitions = definitions ?? throw new ArgumentNullException(nameof(definitions));
             return this;
         }
-        
+
         internal Builder WithEndPointResolver(IEndPointResolver endPointResolver)
         {
             _endPointResolver = endPointResolver ?? throw new ArgumentNullException(nameof(endPointResolver));
@@ -971,7 +971,7 @@ namespace Cassandra
             _metricsOptions = null;
             return this;
         }
-        
+
         /// <summary>
         /// <para>
         /// Enables metrics. DataStax provides an implementation based on a third party library (App.Metrics)
@@ -1100,7 +1100,7 @@ namespace Cassandra
             _metadataSyncOptions = metadataSyncOptions;
             return this;
         }
-        
+
         /// <summary>
         /// <see cref="ISession"/> objects created through the <see cref="ICluster"/> built from this builder will have <see cref="ISession.SessionName"/>
         /// set to the value provided in this method.
@@ -1190,7 +1190,7 @@ namespace Cassandra
 
             return Cluster.BuildFrom(this, _contactPoints.Where(c => !(c is IPEndPoint)).ToList(), config);
         }
-        
+
         /// <summary>
         /// Clear and set contact points.
         /// </summary>
@@ -1199,19 +1199,19 @@ namespace Cassandra
             _contactPoints.Clear();
             return AddMultipleContactPointsInternal(contactPoints);
         }
-        
+
         private Builder ConfigureCloudCluster(string bundlePath)
         {
             if (_addedSsl)
             {
                 throw new ArgumentException("SSL options can not be set when a secure connection bundle is provided.");
             }
-            
+
             if (_addedContactPoints)
             {
                 throw new ArgumentException("Contact points can not be set when a secure connection bundle is provided.");
             }
-            
+
             if (!_addedAuth)
             {
                 throw new ArgumentException(
@@ -1255,7 +1255,7 @@ namespace Cassandra
             });
 
             builder = builder.WithEndPointResolver(sniEndPointResolver);
-            
+
             if (!_addedLbp)
             {
                 if (cloudMetadata.ContactInfo.LocalDc == null)

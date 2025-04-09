@@ -35,10 +35,10 @@ namespace Cassandra
                 buffer[offset + 3] = (byte)((value & 0xFF000000) >> 24);
                 return;
             }
-            buffer[offset] = (byte) ((value & 0xFF000000) >> 24);
-            buffer[offset + 1] = (byte) ((value & 0xFF0000) >> 16);
-            buffer[offset + 2] = (byte) ((value & 0xFF00) >> 8);
-            buffer[offset + 3] = (byte) (value & 0xFF);
+            buffer[offset] = (byte)((value & 0xFF000000) >> 24);
+            buffer[offset + 1] = (byte)((value & 0xFF0000) >> 16);
+            buffer[offset + 2] = (byte)((value & 0xFF00) >> 8);
+            buffer[offset + 3] = (byte)(value & 0xFF);
         }
 
         /// <summary>
@@ -66,14 +66,14 @@ namespace Cassandra
                 buffer[offset + 7] = (byte)(((ulong)value & 0xFF00000000000000) >> 56);
                 return;
             }
-            buffer[offset] = (byte) (((ulong) value & 0xFF00000000000000) >> 56);
-            buffer[offset + 1] = (byte) ((value & 0xFF000000000000) >> 48);
-            buffer[offset + 2] = (byte) ((value & 0xFF0000000000) >> 40);
-            buffer[offset + 3] = (byte) ((value & 0xFF00000000) >> 32);
-            buffer[offset + 4] = (byte) ((value & 0xFF000000) >> 24);
-            buffer[offset + 5] = (byte) ((value & 0xFF0000) >> 16);
-            buffer[offset + 6] = (byte) ((value & 0xFF00) >> 8);
-            buffer[offset + 7] = (byte) (value & 0xFF);
+            buffer[offset] = (byte)(((ulong)value & 0xFF00000000000000) >> 56);
+            buffer[offset + 1] = (byte)((value & 0xFF000000000000) >> 48);
+            buffer[offset + 2] = (byte)((value & 0xFF0000000000) >> 40);
+            buffer[offset + 3] = (byte)((value & 0xFF00000000) >> 32);
+            buffer[offset + 4] = (byte)((value & 0xFF000000) >> 24);
+            buffer[offset + 5] = (byte)((value & 0xFF0000) >> 16);
+            buffer[offset + 6] = (byte)((value & 0xFF00) >> 8);
+            buffer[offset + 7] = (byte)(value & 0xFF);
         }
 
         /// <summary>

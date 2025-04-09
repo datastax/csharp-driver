@@ -101,8 +101,8 @@ namespace Cassandra.Mapping.Attributes
         /// <summary>
         /// Creates a new column definition for the field specified using any attributes on the field to determine mapping configuration.
         /// </summary>
-        public AttributeBasedColumnDefinition(FieldInfo fieldInfo) 
-            : this((MemberInfo) fieldInfo)
+        public AttributeBasedColumnDefinition(FieldInfo fieldInfo)
+            : this((MemberInfo)fieldInfo)
         {
             _memberInfoType = fieldInfo.FieldType;
         }
@@ -110,8 +110,8 @@ namespace Cassandra.Mapping.Attributes
         /// <summary>
         /// Creates a new column definition for the property specified using any attributes on the property to determine mapping configuration.
         /// </summary>
-        public AttributeBasedColumnDefinition(PropertyInfo propertyInfo) 
-            : this((MemberInfo) propertyInfo)
+        public AttributeBasedColumnDefinition(PropertyInfo propertyInfo)
+            : this((MemberInfo)propertyInfo)
         {
             _memberInfoType = propertyInfo.PropertyType;
         }
@@ -120,7 +120,7 @@ namespace Cassandra.Mapping.Attributes
         {
             _memberInfo = memberInfo;
 
-            var columnAttribute = (ColumnAttribute) memberInfo.GetCustomAttributes(typeof(ColumnAttribute), true).FirstOrDefault();
+            var columnAttribute = (ColumnAttribute)memberInfo.GetCustomAttributes(typeof(ColumnAttribute), true).FirstOrDefault();
             if (columnAttribute != null)
             {
                 _isExplicitlyDefined = true;

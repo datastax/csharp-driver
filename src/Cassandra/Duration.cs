@@ -61,7 +61,7 @@ namespace Cassandra
         /// Gets the number of days.
         /// </summary>
         public int Days { get; private set; }
-        
+
         /// <summary>
         /// Gets the number of nanoseconds.
         /// </summary>
@@ -97,7 +97,7 @@ namespace Cassandra
             {
                 return false;
             }
-            return Equals((Duration) obj);
+            return Equals((Duration)obj);
         }
 
         /// <inheritdoc />
@@ -148,11 +148,11 @@ namespace Cassandra
             long nanos;
             if (days != 0L)
             {
-                nanos = (ticks%TicksPerDay)*NanosPerTick;
+                nanos = (ticks % TicksPerDay) * NanosPerTick;
             }
             else
             {
-                nanos = ticks*NanosPerTick;
+                nanos = ticks * NanosPerTick;
             }
             return new Duration(0, days, nanos);
         }
@@ -268,8 +268,8 @@ namespace Cassandra
             // No leap seconds considered
             const long hoursPerDay = 24L;
             var nanos = Math.Abs(Nanoseconds);
-            var remainder = nanos%NanosPerHour;
-            long hours = Math.Abs(Days)*hoursPerDay + nanos/NanosPerHour;
+            var remainder = nanos % NanosPerHour;
+            long hours = Math.Abs(Days) * hoursPerDay + nanos / NanosPerHour;
             if (hours > 0L)
             {
                 builder.Append(hours).Append("H");
@@ -289,7 +289,7 @@ namespace Cassandra
             {
                 return dividend;
             }
-            builder.Append(dividend/divisor).Append(unit);
+            builder.Append(dividend / divisor).Append(unit);
             return dividend % divisor;
         }
 
@@ -456,7 +456,7 @@ namespace Cassandra
                  null, "years", "months", "weeks", "days",
                 "hours", "minutes", "seconds", "milliseconds","microseconds", "nanoseconds"
             };
-            
+
             public Builder(bool isNegative)
             {
                 _isNegative = isNegative;
@@ -605,7 +605,7 @@ namespace Cassandra
                 if (order < _index)
                 {
                     throw new FormatException(
-                        string.Format("Invalid duration. The {0} should be after {1}", 
+                        string.Format("Invalid duration. The {0} should be after {1}",
                         GetUnitName(_index), GetUnitName(order)));
                 }
                 _index = order;
@@ -618,8 +618,8 @@ namespace Cassandra
 
             public Duration Build()
             {
-                return _isNegative ? 
-                    new Duration(-_months, -_days, -_nanoseconds) : 
+                return _isNegative ?
+                    new Duration(-_months, -_days, -_nanoseconds) :
                     new Duration(_months, _days, _nanoseconds);
             }
         }

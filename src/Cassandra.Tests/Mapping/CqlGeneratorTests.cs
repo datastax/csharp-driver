@@ -231,11 +231,11 @@ namespace Cassandra.Tests.Mapping
                 .Column(u => u.UserId, cm => cm.WithName("ID")));
             var pocoFactory = new PocoDataFactory(types);
             var cqlGenerator = new CqlGenerator(pocoFactory);
-            var values = new object[] {Guid.NewGuid(), null, 100};
+            var values = new object[] { Guid.NewGuid(), null, 100 };
             var cql = cqlGenerator.GenerateInsert<ExplicitColumnsUser>(false, values, out object[] queryParameters);
             Assert.AreEqual(@"INSERT INTO USERS (ID, UserAge) VALUES (?, ?)", cql);
             CollectionAssert.AreEqual(values.Where(v => v != null), queryParameters);
-            
+
             cql = cqlGenerator.GenerateInsert<ExplicitColumnsUser>(false, values, out queryParameters, true);
             Assert.AreEqual(@"INSERT INTO USERS (ID, UserAge) VALUES (?, ?) IF NOT EXISTS", cql);
             CollectionAssert.AreEqual(values.Where(v => v != null), queryParameters);

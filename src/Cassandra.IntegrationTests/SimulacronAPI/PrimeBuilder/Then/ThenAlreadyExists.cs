@@ -19,7 +19,7 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.Then
     {
         private readonly string _keyspace;
         private readonly string _table;
-        
+
         public ThenAlreadyExists(string keyspace, string table)
         {
             _keyspace = keyspace;

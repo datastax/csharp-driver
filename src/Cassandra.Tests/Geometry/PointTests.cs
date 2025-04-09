@@ -27,13 +27,13 @@ namespace Cassandra.Tests.Geometry
 {
     public class PointTests : BaseUnitTest
     {
-        private static readonly Point[] Values = 
+        private static readonly Point[] Values =
         {
             new Point(1.1, 2.2),
             new Point(5.666, 3.1),
             new Point(-1.789, -900.77888)
         };
-        
+
         [Test]
         public void Should_Be_Serialized_As_GeoJson()
         {
@@ -66,7 +66,7 @@ namespace Cassandra.Tests.Geometry
         {
             public SerializationException(string message) : base(message)
             {
-                
+
             }
         }
 
@@ -78,7 +78,7 @@ namespace Cassandra.Tests.Geometry
             {
                 var serialized = typeSerializer.Serialize(1, item);
                 //start from offset
-                serialized = new byte[] {1, 2, 3}.Concat(serialized).ToArray();
+                serialized = new byte[] { 1, 2, 3 }.Concat(serialized).ToArray();
                 var deserialized = typeSerializer.Deserialize(1, serialized, 3, serialized.Length - 3, null);
                 Assert.AreEqual(item, deserialized);
             }

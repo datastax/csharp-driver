@@ -83,7 +83,7 @@ namespace Cassandra
 
         public CustomColumnInfo()
         {
-            
+
         }
 
         public CustomColumnInfo(string name)
@@ -228,7 +228,7 @@ namespace Cassandra
                 var hash = 19;
                 foreach (var elem in Elements)
                 {
-                    hash = hash * 31 + 
+                    hash = hash * 31 +
                         (elem.TypeCode.GetHashCode() ^ (elem.TypeInfo != null ? elem.TypeInfo.GetHashCode() : 0));
                 }
                 return hash;
@@ -289,7 +289,7 @@ namespace Cassandra
         /// It returns null when partition keys were not parsed.
         /// </summary>
         internal int[] PartitionKeys { get; private set; }
-        
+
         /// <summary>
         /// Whether the new_metadata_id was set.
         /// </summary>
@@ -307,7 +307,7 @@ namespace Cassandra
                 //Allow to be created for unit tests
                 return;
             }
-            var flags = (RowSetMetadataFlags) reader.ReadInt32();
+            var flags = (RowSetMetadataFlags)reader.ReadInt32();
             var columnLength = reader.ReadInt32();
 
             if (parsePartitionKeys)
@@ -321,7 +321,7 @@ namespace Cassandra
 
             string gKsname = null;
             string gTablename = null;
-            
+
             if ((flags & RowSetMetadataFlags.HasMorePages) == RowSetMetadataFlags.HasMorePages)
             {
                 PagingState = reader.ReadBytes();
@@ -331,7 +331,7 @@ namespace Cassandra
             {
                 NewResultMetadataId = reader.ReadShortBytes();
             }
-            
+
             if ((flags & RowSetMetadataFlags.NoMetadata) == RowSetMetadataFlags.NoMetadata)
             {
                 return;
@@ -359,7 +359,7 @@ namespace Cassandra
                     col.Table = gTablename;
                 }
                 col.Name = reader.ReadString();
-                col.TypeCode = (ColumnTypeCode) reader.ReadUInt16();
+                col.TypeCode = (ColumnTypeCode)reader.ReadUInt16();
                 col.TypeInfo = GetColumnInfo(reader, col.TypeCode);
                 col.Type = reader.Serializer.GetClrType(col.TypeCode, col.TypeInfo);
                 Columns[i] = col;
@@ -374,16 +374,16 @@ namespace Cassandra
             switch (code)
             {
                 case ColumnTypeCode.List:
-                    innercode = (ColumnTypeCode) reader.ReadUInt16();
+                    innercode = (ColumnTypeCode)reader.ReadUInt16();
                     return new ListColumnInfo
                     {
                         ValueTypeCode = innercode,
                         ValueTypeInfo = GetColumnInfo(reader, innercode)
                     };
                 case ColumnTypeCode.Map:
-                    innercode = (ColumnTypeCode) reader.ReadUInt16();
+                    innercode = (ColumnTypeCode)reader.ReadUInt16();
                     IColumnInfo kci = GetColumnInfo(reader, innercode);
-                    var vinnercode = (ColumnTypeCode) reader.ReadUInt16();
+                    var vinnercode = (ColumnTypeCode)reader.ReadUInt16();
                     IColumnInfo vci = GetColumnInfo(reader, vinnercode);
                     return new MapColumnInfo
                     {
@@ -393,7 +393,7 @@ namespace Cassandra
                         ValueTypeInfo = vci
                     };
                 case ColumnTypeCode.Set:
-                    innercode = (ColumnTypeCode) reader.ReadUInt16();
+                    innercode = (ColumnTypeCode)reader.ReadUInt16();
                     return new SetColumnInfo
                     {
                         KeyTypeCode = innercode,
@@ -414,7 +414,7 @@ namespace Cassandra
                         var dataType = new ColumnDesc
                         {
                             Name = reader.ReadString(),
-                            TypeCode = (ColumnTypeCode) reader.ReadUInt16(),
+                            TypeCode = (ColumnTypeCode)reader.ReadUInt16(),
                         };
 
                         dataType.TypeInfo = GetColumnInfo(reader, dataType.TypeCode);
@@ -422,20 +422,20 @@ namespace Cassandra
                     }
                     return udtInfo;
                 case ColumnTypeCode.Tuple:
-                {
-                    var tupleInfo = new TupleColumnInfo();
-                    var elementLength = reader.ReadInt16();
-                    for (var i = 0; i < elementLength; i++)
                     {
-                        var dataType = new ColumnDesc
+                        var tupleInfo = new TupleColumnInfo();
+                        var elementLength = reader.ReadInt16();
+                        for (var i = 0; i < elementLength; i++)
                         {
-                            TypeCode = (ColumnTypeCode) reader.ReadUInt16(),
-                        };
-                        dataType.TypeInfo = GetColumnInfo(reader, dataType.TypeCode);
-                        tupleInfo.Elements.Add(dataType);
+                            var dataType = new ColumnDesc
+                            {
+                                TypeCode = (ColumnTypeCode)reader.ReadUInt16(),
+                            };
+                            dataType.TypeInfo = GetColumnInfo(reader, dataType.TypeCode);
+                            tupleInfo.Elements.Add(dataType);
+                        }
+                        return tupleInfo;
                     }
-                    return tupleInfo;
-                }
                 default:
                     return null;
             }

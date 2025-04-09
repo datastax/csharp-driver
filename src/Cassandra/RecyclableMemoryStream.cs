@@ -276,7 +276,7 @@ namespace Microsoft.IO
 
             base.Dispose(disposing);
         }
-        
+
         /// <summary>
         /// Equivalent to Dispose
         /// </summary>
@@ -840,7 +840,7 @@ namespace Microsoft.IO
             if (largeBuffer != null)
             {
                 return new ArrayBackedList<ArraySegment<byte>>(
-                    new[] { new ArraySegment<byte>(largeBuffer, 0, length)}
+                    new[] { new ArraySegment<byte>(largeBuffer, 0, length) }
                 );
             }
             if (blocks.Count == 1)

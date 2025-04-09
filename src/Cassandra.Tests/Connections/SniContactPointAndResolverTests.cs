@@ -47,7 +47,7 @@ namespace Cassandra.Tests.Connections
 
             Mock.Get(result.DnsResolver).Verify(x => x.GetHostEntryAsync(It.IsAny<string>()), Times.Never);
         }
-        
+
         [Test]
         public async Task Should_DnsResolveProxy_When_ProxyNameIsProvided()
         {
@@ -59,37 +59,37 @@ namespace Cassandra.Tests.Connections
 
             Mock.Get(result.DnsResolver).Verify(x => x.GetHostEntryAsync(It.IsAny<string>()), Times.Once);
         }
-        
+
         [Test]
         public async Task Should_BuildEndPointCorrectly_When_ProxyIpAddressIsProvided()
         {
-            var result = Create(_proxyEndPoint.Address, serverNames: new [] { "host1" });
+            var result = Create(_proxyEndPoint.Address, serverNames: new[] { "host1" });
             var target = result.SniContactPoint;
 
             var resolved = (await target.GetConnectionEndPointsAsync(false).ConfigureAwait(false)).ToList();
-            
+
             Assert.AreEqual(1, resolved.Count);
             Assert.AreEqual(_proxyEndPoint, resolved[0].GetHostIpEndPointWithFallback());
             Assert.AreEqual(_proxyEndPoint, resolved[0].SocketIpEndPoint);
             Assert.AreEqual($"{_proxyEndPoint} (host1)", resolved[0].EndpointFriendlyName);
             Assert.AreEqual(_proxyEndPoint, resolved[0].GetHostIpEndPointWithFallback());
         }
-        
+
         [Test]
         public async Task Should_BuildEndPointCorrectly_When_ProxyNameIsProvided()
         {
-            var result = Create(name: "proxy", serverNames: new [] { "host1" });
+            var result = Create(name: "proxy", serverNames: new[] { "host1" });
             var target = result.SniContactPoint;
 
             var resolved = (await target.GetConnectionEndPointsAsync(false).ConfigureAwait(false)).ToList();
-            
+
             Assert.AreEqual(1, resolved.Count);
             Assert.AreEqual(_proxyResolvedEndPoint, resolved[0].GetHostIpEndPointWithFallback());
             Assert.AreEqual(_proxyResolvedEndPoint, resolved[0].SocketIpEndPoint);
             Assert.AreEqual($"{_proxyResolvedEndPoint} (host1)", resolved[0].EndpointFriendlyName);
             Assert.AreEqual(_proxyResolvedEndPoint, resolved[0].GetHostIpEndPointWithFallback());
         }
-        
+
         [Test]
         public async Task Should_DnsResolveProxyTwice_When_RefreshIsTrue()
         {
@@ -100,12 +100,12 @@ namespace Cassandra.Tests.Connections
             await target.GetConnectionEndPointsAsync(false).ConfigureAwait(false);
 
             Mock.Get(result.DnsResolver).Verify(x => x.GetHostEntryAsync("proxy"), Times.Once);
-            
+
             await target.GetConnectionEndPointsAsync(true).ConfigureAwait(false);
 
             Mock.Get(result.DnsResolver).Verify(x => x.GetHostEntryAsync("proxy"), Times.Exactly(2));
         }
-        
+
         [Test]
         public async Task Should_NotDnsResolveProxyTwice_When_RefreshIsFalse()
         {
@@ -116,12 +116,12 @@ namespace Cassandra.Tests.Connections
             await target.GetConnectionEndPointsAsync(false).ConfigureAwait(false);
 
             Mock.Get(result.DnsResolver).Verify(x => x.GetHostEntryAsync("proxy"), Times.Once);
-            
+
             await target.GetConnectionEndPointsAsync(false).ConfigureAwait(false);
 
             Mock.Get(result.DnsResolver).Verify(x => x.GetHostEntryAsync("proxy"), Times.Once);
         }
-        
+
         [Test]
         public async Task Should_EndPointResolver_DnsResolveProxyTwice_When_RefreshIsTrue()
         {
@@ -133,12 +133,12 @@ namespace Cassandra.Tests.Connections
             await target.GetConnectionEndPointAsync(host, false).ConfigureAwait(false);
 
             Mock.Get(result.DnsResolver).Verify(x => x.GetHostEntryAsync("proxy"), Times.Once);
-            
+
             await target.GetConnectionEndPointAsync(host, true).ConfigureAwait(false);
 
             Mock.Get(result.DnsResolver).Verify(x => x.GetHostEntryAsync("proxy"), Times.Exactly(2));
         }
-        
+
         [Test]
         public async Task Should_EndPointResolver_NotDnsResolveProxyTwice_When_RefreshIsFalse()
         {
@@ -150,16 +150,16 @@ namespace Cassandra.Tests.Connections
             await target.GetConnectionEndPointAsync(host, false).ConfigureAwait(false);
 
             Mock.Get(result.DnsResolver).Verify(x => x.GetHostEntryAsync("proxy"), Times.Once);
-            
+
             await target.GetConnectionEndPointAsync(host, false).ConfigureAwait(false);
 
             Mock.Get(result.DnsResolver).Verify(x => x.GetHostEntryAsync("proxy"), Times.Once);
         }
-        
+
         [Test]
         public async Task Should_ReturnNewResolvedAddress_When_RefreshIsTrue()
         {
-            var result = Create(name: "proxy", serverNames: new [] { "cp1" });
+            var result = Create(name: "proxy", serverNames: new[] { "cp1" });
             var target = result.SniContactPoint;
             var oldResolvedResults = await target.GetConnectionEndPointsAsync(false).ConfigureAwait(false);
 
@@ -170,14 +170,14 @@ namespace Cassandra.Tests.Connections
             Assert.AreNotEqual(IPAddress.Parse("123.10.10.10"), oldResolvedResults.Single().SocketIpEndPoint.Address);
             Assert.AreEqual(IPAddress.Parse("123.10.10.10"), newResolvedResults.Single().SocketIpEndPoint.Address);
         }
-        
+
         [Test]
         public async Task Should_GetCorrectServerName()
         {
             var result = Create(_proxyEndPoint.Address);
             var target = result.SniContactPoint;
             var resolved = (await target.GetConnectionEndPointsAsync(false).ConfigureAwait(false)).ToList();
-            
+
             Assert.AreEqual(_serverNames.Count(), resolved.Count);
             var tasks = resolved.Select(r => r.GetServerNameAsync()).ToList();
             await Task.WhenAll(tasks).ConfigureAwait(false);
@@ -196,10 +196,10 @@ namespace Cassandra.Tests.Connections
             var host = CreateHost("163.10.10.10", SniContactPointAndResolverTests.Port);
 
             await target.GetConnectionEndPointAsync(host, false).ConfigureAwait(false);
-            
+
             Mock.Get(result.DnsResolver).Verify(x => x.GetHostEntryAsync(It.IsAny<string>()), Times.Never);
         }
-        
+
         [Test]
         public async Task Should_BuildEndPointCorrectly_When_ResolvingHostButProxyIsIpAddress()
         {
@@ -208,12 +208,12 @@ namespace Cassandra.Tests.Connections
             var host = CreateHost("163.10.10.10", SniContactPointAndResolverTests.Port);
 
             var resolved = await target.GetConnectionEndPointAsync(host, false).ConfigureAwait(false);
-            
+
             Assert.AreEqual(host.HostId.ToString("D"), await resolved.GetServerNameAsync().ConfigureAwait(false));
             Assert.AreEqual(host.Address, resolved.GetHostIpEndPointWithFallback());
             Assert.AreEqual(_proxyEndPoint, resolved.SocketIpEndPoint);
         }
-        
+
         [Test]
         public async Task Should_BuildEndPointCorrectly_When_ResolvingHostAndProxyIsHostname()
         {
@@ -222,12 +222,12 @@ namespace Cassandra.Tests.Connections
             var host = CreateHost("163.10.10.10", SniContactPointAndResolverTests.Port);
 
             var resolved = await target.GetConnectionEndPointAsync(host, false).ConfigureAwait(false);
-            
+
             Assert.AreEqual(host.HostId.ToString("D"), await resolved.GetServerNameAsync().ConfigureAwait(false));
             Assert.AreEqual(host.Address, resolved.GetHostIpEndPointWithFallback());
             Assert.AreEqual(_proxyResolvedEndPoint, resolved.SocketIpEndPoint);
         }
-        
+
         [Test]
         public async Task Should_CycleThroughResolvedAddresses_When_ResolvingHostAndProxyResolutionReturnsMultipleAddresses()
         {
@@ -261,7 +261,7 @@ namespace Cassandra.Tests.Connections
             await AssertResolved(resolvedSecond[0], "127.0.0.6").ConfigureAwait(false);
             await AssertResolved(resolvedSecond[1], "127.0.0.6").ConfigureAwait(false);
         }
-        
+
         [Test]
         public async Task Should_NotCallDnsResolve_When_CyclingThroughResolvedProxyAddresses()
         {
@@ -277,7 +277,7 @@ namespace Cassandra.Tests.Connections
             Mock.Get(result.DnsResolver).Verify(x => x.GetHostEntryAsync(It.IsAny<string>()), Times.Once);
             Mock.Get(result.DnsResolver).Verify(x => x.GetHostEntryAsync("proxyMultiple"), Times.Once);
         }
-        
+
         [Test]
         public async Task Should_UseNewResolution_When_ResolveSucceeds()
         {
@@ -387,7 +387,7 @@ namespace Cassandra.Tests.Connections
             Assert.AreEqual(500, resolvedFirst);
             Assert.AreEqual(500, resolvedSecond);
         }
-        
+
         [Test]
         public async Task Should_CycleThroughAddressesCorrectly_When_ConcurrentCallsWithRefresh()
         {
@@ -397,14 +397,14 @@ namespace Cassandra.Tests.Connections
 
             var resolvedCollection = new ConcurrentQueue<IConnectionEndPoint>();
 
-            var tasks = 
+            var tasks =
                 Enumerable.Range(0, 16)
                           .Select(i => Task.Run(async () =>
                           {
                               foreach (var j in Enumerable.Range(0, 10000))
                               {
                                   resolvedCollection.Enqueue(
-                                      await target.GetConnectionEndPointAsync(host, (i+j) % 2 == 0).ConfigureAwait(false));
+                                      await target.GetConnectionEndPointAsync(host, (i + j) % 2 == 0).ConfigureAwait(false));
                               }
                           })).ToList();
 
@@ -451,7 +451,7 @@ namespace Cassandra.Tests.Connections
             var sniResolver = new SniEndPointResolver(
                 sniOptionsProvider,
                 dnsResolver,
-                randValue == null ? (IRandom) new DefaultRandom() : new FixedRandom(randValue.Value));
+                randValue == null ? (IRandom)new DefaultRandom() : new FixedRandom(randValue.Value));
             return new CreateResult
             {
                 DnsResolver = dnsResolver,

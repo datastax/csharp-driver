@@ -35,8 +35,8 @@ namespace Cassandra.Requests
             var pools = session.GetPools();
             var hosts = session.InternalCluster.AllHosts();
             var poolsByHosts = pools.Join(
-                hosts, po => po.Key, 
-                h => h.Address, 
+                hosts, po => po.Key,
+                h => h.Address,
                 (pair, host) => new { host, pair.Value }).ToDictionary(k => k.host, k => k.Value);
 
             if (poolsByHosts.Count == 0)
@@ -58,8 +58,8 @@ namespace Cassandra.Requests
                     if (prepareResult.TriedHosts.ContainsKey(poolKvp.Key.Address))
                     {
                         PrepareHandler.Logger.Warning(
-                            $"An error occured while attempting to prepare query on {{0}}:{Environment.NewLine}{{1}}", 
-                            poolKvp.Key.Address, 
+                            $"An error occured while attempting to prepare query on {{0}}:{Environment.NewLine}{{1}}",
+                            poolKvp.Key.Address,
                             prepareResult.TriedHosts[poolKvp.Key.Address]);
                         continue;
                     }
@@ -71,13 +71,13 @@ namespace Cassandra.Requests
                 await Task.WhenAll(tasks).ConfigureAwait(false);
             }
         }
-        
+
         private static Task<IConnection> GetConnectionFromHostAsync(
             IHostConnectionPool pool, PreparedStatement ps, IDictionary<IPEndPoint, Exception> triedHosts)
         {
             return GetConnectionFromHostInternalAsync(pool, ps, triedHosts, true);
         }
-        
+
         private static async Task<IConnection> GetConnectionFromHostInternalAsync(
             IHostConnectionPool pool, PreparedStatement ps, IDictionary<IPEndPoint, Exception> triedHosts, bool retry)
         {
@@ -171,8 +171,8 @@ namespace Cassandra.Requests
                 if (observer != null)
                 {
                     await observer.OnNodeRequestErrorAsync(
-                        RequestError.CreateServerError(ex), 
-                        sessionRequestInfo, 
+                        RequestError.CreateServerError(ex),
+                        sessionRequestInfo,
                         nodeRequestInfo).ConfigureAwait(false);
                 }
                 LogOrThrow(

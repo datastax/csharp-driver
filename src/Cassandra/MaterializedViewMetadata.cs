@@ -28,7 +28,7 @@ namespace Cassandra
 
         protected MaterializedViewMetadata()
         {
-            
+
         }
 
         internal MaterializedViewMetadata(string name, string whereClause)

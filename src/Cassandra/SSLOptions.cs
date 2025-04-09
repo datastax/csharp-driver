@@ -14,7 +14,7 @@
 //   limitations under the License.
 //
 
-﻿using System;
+using System;
 using System.Net;
 using System.Net.Security;
 using System.Security.Authentication;
@@ -27,7 +27,7 @@ namespace Cassandra
     /// </summary>
     public class SSLOptions
     {
-        private readonly static Logger _logger = new Logger(typeof (SSLOptions));
+        private readonly static Logger _logger = new Logger(typeof(SSLOptions));
         private RemoteCertificateValidationCallback _remoteCertValidationCallback = ValidateServerCertificate;
         private SslProtocols _sslProtocol = SslProtocols.Tls;
         private bool _checkCertificateRevocation;

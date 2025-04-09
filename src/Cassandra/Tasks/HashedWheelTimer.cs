@@ -112,7 +112,7 @@ namespace Cassandra.Tasks
                 //the _timer might already have been disposed of
             }
         }
-        
+
         /// <summary>
         /// Starts the timer explicitly.
         /// <para>Calls to <see cref="NewTimeout"/> will internally call this method.</para>

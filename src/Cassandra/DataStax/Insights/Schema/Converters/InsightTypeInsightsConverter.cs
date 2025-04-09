@@ -26,7 +26,7 @@ namespace Cassandra.DataStax.Insights.Schema.Converters
                 { InsightType.Event, "EVENT" }
             };
 
-        protected override IReadOnlyDictionary<InsightType, string> EnumToJsonValueMap => 
+        protected override IReadOnlyDictionary<InsightType, string> EnumToJsonValueMap =>
             InsightTypeInsightsConverter.InsightTypeStringMap;
     }
 }

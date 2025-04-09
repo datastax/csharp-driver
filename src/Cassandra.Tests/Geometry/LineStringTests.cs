@@ -33,7 +33,7 @@ namespace Cassandra.Tests.Geometry
             new LineString(),
             new LineString(new Point(-1.101, -20.2121121221211), new Point(2.01, 4.02), new Point(10.010, 14.03))
         };
-        
+
         [Test]
         public void Should_Be_Serialized_As_GeoJson()
         {

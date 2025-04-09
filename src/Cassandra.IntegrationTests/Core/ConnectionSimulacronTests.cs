@@ -245,11 +245,11 @@ namespace Cassandra.IntegrationTests.Core
             var maxRequestsPerConnection = Session.Cluster.Configuration
                                                   .GetOrCreatePoolingOptions(Session.Cluster.Metadata.ControlConnection.ProtocolVersion)
                                                   .GetMaxRequestsPerConnection();
-            
+
             var tenKbBuffer = new byte[10240];
 
             await TestCluster.PauseReadsAsync().ConfigureAwait(false);
-            
+
             var pools = InternalSession.GetPools().ToList();
             var connections = pools.SelectMany(kvp => kvp.Value.ConnectionsSnapshot).ToList();
             var requests = new List<Task>();
@@ -295,9 +295,9 @@ namespace Cassandra.IntegrationTests.Core
                 var moreFailedRequests = moreRequests.Where(t => t.IsFaulted).ToList();
                 Assert.Greater(moreFailedRequests.Count, 1);
                 Assert.AreEqual(moreRequests.Count, moreFailedRequests.Count);
-                
+
                 Assert.GreaterOrEqual(connections.Sum(c => c.InFlight), maxRequestsPerConnection * Session.Cluster.AllHosts().Count);
-                
+
                 // ReSharper disable once PossibleNullReferenceException
                 Assert.IsTrue(moreFailedRequests.All(t => t.IsFaulted && ((NoHostAvailableException)t.Exception.InnerException).Errors.All(e => e.Value is BusyPoolException)));
                 var newWriteQueueSizes =
@@ -310,7 +310,7 @@ namespace Cassandra.IntegrationTests.Core
                     Assert.GreaterOrEqual(newWriteQueueSizes[kvp.Key], kvp.Value);
                     Assert.Greater(newWriteQueueSizes[kvp.Key], 1);
                 }
-                
+
                 foreach (var kvp in pendingOps)
                 {
                     Assert.AreEqual(newPendingsOps[kvp.Key], kvp.Value);
@@ -329,9 +329,9 @@ namespace Cassandra.IntegrationTests.Core
                 }
 
                 Assert.AreEqual(
-                    requests.Count, 
-                    requests.Count(t => t.IsCompleted && !t.IsFaulted && !t.IsCanceled) 
-                    + requests.Count(t => t.IsFaulted && 
+                    requests.Count,
+                    requests.Count(t => t.IsCompleted && !t.IsFaulted && !t.IsCanceled)
+                    + requests.Count(t => t.IsFaulted &&
                                           ((NoHostAvailableException)t.Exception.InnerException)
                                           .Errors.All(e => e.Value is BusyPoolException)));
             }

@@ -47,7 +47,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
         private readonly CopyOnReadList<Activity> _exportedActivities = new CopyOnReadList<Activity>();
 
         private readonly ActivitySource _internalActivitySource = new ActivitySource("testeActivitySource");
-        
+
         private DateTime _testStartDateTime;
 
         private TracerProvider _sdk;
@@ -91,7 +91,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
             RetryUntilActivities(_testStartDateTime, expectedActivityName, 1);
 
-           var activity = GetActivities(_testStartDateTime).First(x => x.DisplayName == expectedActivityName);
+            var activity = GetActivities(_testStartDateTime).First(x => x.DisplayName == expectedActivityName);
 
             ValidateSessionActivityAttributes(activity, typeof(SimpleStatement));
 
@@ -319,7 +319,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             table.Insert(song).Execute();
 
             RetryUntilActivities(_testStartDateTime, $"{SessionActivityName}({nameof(BoundStatement)}) {keyspace}", 1);
-            RetryUntilActivities(_testStartDateTime, $"{NodeActivityName}({nameof(BoundStatement)}) {keyspace}",  1);
+            RetryUntilActivities(_testStartDateTime, $"{NodeActivityName}({nameof(BoundStatement)}) {keyspace}", 1);
             var syncActivities = GetActivities(_testStartDateTime);
 
             var syncSessionActivity = syncActivities.First(x => x.DisplayName == $"{SessionActivityName}({nameof(BoundStatement)}) {keyspace}");
@@ -686,7 +686,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
                 ValidateNodeActivityAttributes(boundStmtNodeActivity, typeof(BoundStatement));
                 Assert.Contains(new KeyValuePair<string, string>("db.query.text", expectedStatement), boundStmtNodeActivity.Tags.ToArray());
             }
-            
+
             foreach (var prepareStmtSessionActivity in prepareStmtSessionActivities)
             {
                 ValidateSessionActivityAttributes(prepareStmtSessionActivity, typeof(PrepareRequest));
@@ -874,9 +874,9 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             };
 
             Assert.AreEqual(activity.Kind, expectedActivityKind);
-            
+
             var tags = activity.Tags;
-            
+
             foreach (var pair in expectedTags)
             {
                 Assert.AreEqual(tags.FirstOrDefault(x => x.Key == pair.Key).Value, expectedTags[pair.Key]);

@@ -100,7 +100,7 @@ namespace Cassandra.DataStax.Search
                 return new DateRange(DateRangeBound.Parse(value));
             }
             return new DateRange(
-                DateRangeBound.Parse(match.Groups[1].Value), 
+                DateRangeBound.Parse(match.Groups[1].Value),
                 DateRangeBound.ParseUpperBound(match.Groups[2].Value));
         }
 
@@ -126,7 +126,7 @@ namespace Cassandra.DataStax.Search
             {
                 return false;
             }
-            return Equals((DateRange) obj);
+            return Equals((DateRange)obj);
         }
 
         /// <summary>

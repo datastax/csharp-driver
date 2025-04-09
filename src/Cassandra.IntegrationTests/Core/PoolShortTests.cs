@@ -308,7 +308,7 @@ namespace Cassandra.IntegrationTests.Core
                 }
             }
         }
-        
+
         [Test]
         public async Task ControlConnection_Should_Reconnect_To_Up_Host()
         {
@@ -654,9 +654,9 @@ namespace Cassandra.IntegrationTests.Core
                     connections = await simulacronNode.GetConnectionsAsync().ConfigureAwait(false);
                     Assert.AreEqual(1, connections.Count);
                 }, 100, 200).ConfigureAwait(false);
-                
+
                 await testCluster.DropConnection(connections[0]).ConfigureAwait(false);
-                
+
                 await TestHelper.RetryAssertAsync(async () =>
                 {
                     connections = await simulacronNode.GetConnectionsAsync().ConfigureAwait(false);

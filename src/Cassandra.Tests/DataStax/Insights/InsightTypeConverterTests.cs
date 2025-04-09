@@ -34,7 +34,7 @@ namespace Cassandra.Tests.DataStax.Insights
             sut.WriteJson(mockWriter, null, new JsonSerializer());
             Mock.Get(mockWriter).Verify(mock => mock.WriteNull(), Times.Once);
         }
-        
+
         [Test]
         public void Should_WriteEvent_When_EventEnumIsProvided()
         {
@@ -43,7 +43,7 @@ namespace Cassandra.Tests.DataStax.Insights
             sut.WriteJson(mockWriter, InsightType.Event, new JsonSerializer());
             Mock.Get(mockWriter).Verify(mock => mock.WriteValue((object)"EVENT"), Times.Once);
         }
-        
+
         [Test]
         public void Should_ReturnTrue_When_InsightTypeEnumIsProvided()
         {

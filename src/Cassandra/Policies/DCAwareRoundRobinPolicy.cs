@@ -37,7 +37,7 @@ namespace Cassandra
             "The usedHostsPerRemoteDc parameter will be removed in the next major release of the driver. " +
             "DC failover should not be done in the driver, which does not have the necessary context to know " +
             "what makes sense considering application semantics. See https://datastax-oss.atlassian.net/browse/CSHARP-722";
-        
+
         private static readonly Logger Logger = new Logger(typeof(DCAwareRoundRobinPolicy));
 
         private string _localDc;

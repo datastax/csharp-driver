@@ -42,12 +42,12 @@ namespace Cassandra
             if (obj == null || GetType() != obj.GetType())
                 return false;
 
-            return _value == ((M3PToken) obj)._value;
+            return _value == ((M3PToken)obj)._value;
         }
 
         public override int GetHashCode()
         {
-            return (int) (_value ^ ((long) ((ulong) _value >> 32)));
+            return (int)(_value ^ ((long)((ulong)_value >> 32)));
         }
 
         public override string ToString()
@@ -102,20 +102,20 @@ namespace Cassandra
                     long k1 = GetBlock(data, offset, i * 2 + 0);
                     long k2 = GetBlock(data, offset, i * 2 + 1);
 
-                    k1 *= c1; 
-                    k1 = Rotl64(k1, 31); 
-                    k1 *= c2; 
-                    
+                    k1 *= c1;
+                    k1 = Rotl64(k1, 31);
+                    k1 *= c2;
+
                     h1 ^= k1;
-                    h1 = Rotl64(h1, 27); 
-                    h1 += h2; 
+                    h1 = Rotl64(h1, 27);
+                    h1 += h2;
                     h1 = h1 * 5 + 0x52dce729;
 
-                    k2 *= c2; 
-                    k2 = Rotl64(k2, 33); 
+                    k2 *= c2;
+                    k2 = Rotl64(k2, 33);
                     k2 *= c1; h2 ^= k2;
-                    h2 = Rotl64(h2, 31); 
-                    h2 += h1; 
+                    h2 = Rotl64(h2, 31);
+                    h2 += h1;
                     h2 = h2 * 5 + 0x38495ab5;
                 }
 
@@ -131,56 +131,56 @@ namespace Cassandra
 
                     switch (length & 15)
                     {
-                        case 15: 
+                        case 15:
                             k2 ^= ((long)data[offset + 14]) << 48;
                             goto case 14;
-                        case 14: 
+                        case 14:
                             k2 ^= ((long)data[offset + 13]) << 40;
                             goto case 13;
-                        case 13: 
+                        case 13:
                             k2 ^= ((long)data[offset + 12]) << 32;
                             goto case 12;
-                        case 12: 
+                        case 12:
                             k2 ^= ((long)data[offset + 11]) << 24;
                             goto case 11;
-                        case 11: 
+                        case 11:
                             k2 ^= ((long)data[offset + 10]) << 16;
                             goto case 10;
-                        case 10: 
-                            k2 ^= ((long)data[offset + 9 ]) << 8;
+                        case 10:
+                            k2 ^= ((long)data[offset + 9]) << 8;
                             goto case 9;
-                        case 9:  
-                            k2 ^= ((long)data[offset + 8 ]) << 0;
-                            k2 *= c2; 
-                            k2 = Rotl64(k2, 33); 
-                            k2 *= c1; 
+                        case 9:
+                            k2 ^= ((long)data[offset + 8]) << 0;
+                            k2 *= c2;
+                            k2 = Rotl64(k2, 33);
+                            k2 *= c1;
                             h2 ^= k2;
                             goto case 8;
-                        case 8: 
+                        case 8:
                             k1 ^= ((long)data[offset + 7]) << 56;
                             goto case 7;
-                        case 7: 
+                        case 7:
                             k1 ^= ((long)data[offset + 6]) << 48;
                             goto case 6;
-                        case 6: 
+                        case 6:
                             k1 ^= ((long)data[offset + 5]) << 40;
                             goto case 5;
-                        case 5: 
+                        case 5:
                             k1 ^= ((long)data[offset + 4]) << 32;
                             goto case 4;
-                        case 4: 
+                        case 4:
                             k1 ^= ((long)data[offset + 3]) << 24;
                             goto case 3;
-                        case 3: 
+                        case 3:
                             k1 ^= ((long)data[offset + 2]) << 16;
                             goto case 2;
-                        case 2: 
+                        case 2:
                             k1 ^= ((long)data[offset + 1]) << 8;
                             goto case 1;
-                        case 1: 
+                        case 1:
                             k1 ^= ((long)data[offset]);
-                            k1 *= c1; 
-                            k1 = Rotl64(k1, 31); 
+                            k1 *= c1;
+                            k1 = Rotl64(k1, 31);
                             k1 *= c2;
                             h1 ^= k1;
                             break;
@@ -189,7 +189,7 @@ namespace Cassandra
                     //----------
                     // finalization
 
-                    h1 ^= length; 
+                    h1 ^= length;
                     h2 ^= length;
 
                     h1 += h2;

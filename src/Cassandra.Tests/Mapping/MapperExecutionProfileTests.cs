@@ -49,7 +49,7 @@ namespace Cassandra.Tests.Mapping
             Mock.Get(mapperAndSession.Session).Verify(s => s.Execute(It.IsAny<IStatement>(), "testProfile"), Times.Never);
             Mock.Get(mapperAndSession.Session).Verify(s => s.Execute(It.IsAny<IStatement>()), Times.Never);
         }
-        
+
         [Test]
         [TestCase(true)]
         [TestCase(false)]
@@ -70,7 +70,7 @@ namespace Cassandra.Tests.Mapping
             Mock.Get(mapperAndSession.Session).Verify(s => s.Execute(It.IsAny<IStatement>(), "testProfile"), Times.Never);
             Mock.Get(mapperAndSession.Session).Verify(s => s.Execute(It.IsAny<IStatement>()), Times.Never);
         }
-        
+
         [Test]
         [TestCase(true)]
         [TestCase(false)]
@@ -91,7 +91,7 @@ namespace Cassandra.Tests.Mapping
             Mock.Get(mapperAndSession.Session).Verify(s => s.Execute(It.IsAny<IStatement>(), "testProfile"), Times.Never);
             Mock.Get(mapperAndSession.Session).Verify(s => s.Execute(It.IsAny<IStatement>()), Times.Never);
         }
-        
+
         [Test]
         [TestCase(true)]
         [TestCase(false)]
@@ -112,7 +112,7 @@ namespace Cassandra.Tests.Mapping
             Mock.Get(mapperAndSession.Session).Verify(s => s.Execute(It.IsAny<IStatement>(), "testProfile"), Times.Never);
             Mock.Get(mapperAndSession.Session).Verify(s => s.Execute(It.IsAny<IStatement>()), Times.Never);
         }
-        
+
         [Test]
         [TestCase(true)]
         [TestCase(false)]
@@ -133,7 +133,7 @@ namespace Cassandra.Tests.Mapping
             Mock.Get(mapperAndSession.Session).Verify(s => s.Execute(It.IsAny<IStatement>(), "testProfile"), Times.Never);
             Mock.Get(mapperAndSession.Session).Verify(s => s.Execute(It.IsAny<IStatement>()), Times.Never);
         }
-        
+
         [Test]
         [TestCase(true)]
         [TestCase(false)]
@@ -162,13 +162,13 @@ namespace Cassandra.Tests.Mapping
         {
             string query = null;
             object[] parameters = null;
-            var session = GetSession((q, args) => 
-            { 
+            var session = GetSession((q, args) =>
+            {
                 query = q;
                 parameters = args;
             }, new RowSet());
             var mapper = new Mapper(session, new MappingConfiguration().Define(new Map<Song>().PartitionKey(s => s.Id)));
-            var song = new Song {Id = Guid.NewGuid()};
+            var song = new Song { Id = Guid.NewGuid() };
 
             if (async)
             {
@@ -211,7 +211,7 @@ namespace Cassandra.Tests.Mapping
             Mock.Get(session).Verify(s => s.Execute(It.IsAny<IStatement>(), "testProfile"), Times.Never);
             Mock.Get(session).Verify(s => s.Execute(It.IsAny<IStatement>()), Times.Never);
         }
-        
+
         [Test]
         [TestCase(true)]
         [TestCase(false)]
@@ -226,7 +226,7 @@ namespace Cassandra.Tests.Mapping
             });
             var song = new Song { Id = Guid.NewGuid() };
             const int ttl = 600;
-            
+
             if (async)
             {
                 mapperAndSession.Mapper.InsertAsync(song, "testProfile", false, ttl).Wait();
@@ -259,7 +259,7 @@ namespace Cassandra.Tests.Mapping
             });
             var song = new Song { Id = Guid.NewGuid(), Title = "t2", ReleaseDate = DateTimeOffset.Now };
             const int ttl = 600;
-            
+
             if (async)
             {
                 mapperAndSession.Mapper.InsertIfNotExistsAsync(song, "testProfile", false, ttl).Wait();

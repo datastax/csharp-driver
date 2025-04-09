@@ -21,8 +21,8 @@ namespace Cassandra.Serialization
 {
     internal class DurationSerializer : TypeSerializer<Duration>
     {
-        private static readonly ThreadLocal<byte[][]> EncodingBuffers = 
-            new ThreadLocal<byte[][]>(() => new [] { new byte[9] , new byte[9], new byte[9]});
+        private static readonly ThreadLocal<byte[][]> EncodingBuffers =
+            new ThreadLocal<byte[][]>(() => new[] { new byte[9], new byte[9], new byte[9] });
 
         public DurationSerializer(bool asCustomType)
         {

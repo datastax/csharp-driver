@@ -76,7 +76,7 @@ namespace Cassandra.DataStax.Auth.Sspi.Buffers
         Stream = 0x0A,
         ChannelBindings = 0x0E,
         TargetHost = 0x10,
-        ReadOnlyFlag = unchecked( (int)0x80000000 ),
+        ReadOnlyFlag = unchecked((int)0x80000000),
         ReadOnlyWithChecksum = 0x10000000
     }
 }

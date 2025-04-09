@@ -31,7 +31,7 @@ namespace Cassandra.Serialization.Graph.GraphSON3.Tinkerpop
     {
         private const string Prefix = "gx";
         private const string TypeKey = "ByteBuffer";
-        
+
         public static string TypeName =>
             GraphSONUtil.FormatTypeName(ByteBufferDeserializer.Prefix, ByteBufferDeserializer.TypeKey);
 

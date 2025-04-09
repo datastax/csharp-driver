@@ -61,7 +61,7 @@ namespace Cassandra.Tests.Mapping
             Assert.False(definition.CompactStorage);
             Assert.False(definition.AllowFiltering);
             Assert.False(definition.ExplicitColumns);
-            CollectionAssert.AreEqual(new [] {Tuple.Create("Time", SortOrder.Unspecified)}, definition.ClusteringKeys);
+            CollectionAssert.AreEqual(new[] { Tuple.Create("Time", SortOrder.Unspecified) }, definition.ClusteringKeys);
             CollectionAssert.AreEqual(new[] { "name", "Slice" }, definition.PartitionKeys);
         }
 
@@ -73,7 +73,7 @@ namespace Cassandra.Tests.Mapping
             Assert.False(definition.CompactStorage);
             Assert.False(definition.AllowFiltering);
             Assert.False(definition.ExplicitColumns);
-            CollectionAssert.AreEqual(new [] {Tuple.Create("Id2", SortOrder.Unspecified)}, definition.ClusteringKeys);
+            CollectionAssert.AreEqual(new[] { Tuple.Create("Id2", SortOrder.Unspecified) }, definition.ClusteringKeys);
             CollectionAssert.AreEqual(new[] { "Id1" }, definition.PartitionKeys);
         }
 

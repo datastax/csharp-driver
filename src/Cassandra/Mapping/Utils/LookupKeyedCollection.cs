@@ -33,7 +33,7 @@ namespace Cassandra.Mapping.Utils
             _getKeyFunc = getKeyFunc;
         }
 
-        public LookupKeyedCollection(Func<TItem, TKey> getKeyFunc, IEqualityComparer<TKey> keyComparer) 
+        public LookupKeyedCollection(Func<TItem, TKey> getKeyFunc, IEqualityComparer<TKey> keyComparer)
             : base(keyComparer)
         {
             _getKeyFunc = getKeyFunc;

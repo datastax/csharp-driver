@@ -51,7 +51,7 @@ namespace Cassandra.Data
         {
             get { return _syncLock; }
         }
-        
+
         /// <summary>
         /// Specifies whether the collection is a fixed size.
         /// </summary>
@@ -343,9 +343,9 @@ namespace Cassandra.Data
             }
         }
 
-#endregion
+        #endregion
 
-#region Private Methods
+        #region Private Methods
 
         private void SetParameter(string parameterName, CqlParameter value)
         {
@@ -373,6 +373,6 @@ namespace Cassandra.Data
             return _parameters[index];
         }
 
-#endregion
+        #endregion
     }
 }

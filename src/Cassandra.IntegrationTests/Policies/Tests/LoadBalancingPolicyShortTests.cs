@@ -35,7 +35,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
         public LoadBalancingPolicyShortTests() : base(3, false, new TestClusterOptions { UseVNodes = true })
         {
         }
-        
+
         /// <summary>
         /// Validate that two sessions connected to the same DC use separate Policy instances
         /// </summary>
@@ -47,8 +47,8 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             using (var cluster1 = builder.WithConnectionString($"Contact Points={TestCluster.ClusterIpPrefix}1").Build())
             using (var cluster2 = builder.WithConnectionString($"Contact Points={TestCluster.ClusterIpPrefix}2").Build())
             {
-                var session1 = (Session) cluster1.Connect();
-                var session2 = (Session) cluster2.Connect();
+                var session1 = (Session)cluster1.Connect();
+                var session2 = (Session)cluster2.Connect();
                 Assert.AreNotSame(session1.Policies.LoadBalancingPolicy, session2.Policies.LoadBalancingPolicy, "Load balancing policy instances should be different");
                 Assert.AreNotSame(session1.Policies.ReconnectionPolicy, session2.Policies.ReconnectionPolicy, "Reconnection policy instances should be different");
                 Assert.AreNotSame(session1.Policies.RetryPolicy, session2.Policies.RetryPolicy, "Retry policy instances should be different");
@@ -337,7 +337,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
                     var rs = session.Execute(bound);
                     traces.Add(rs.Info.QueryTrace);
                 }
-                
+
                 //Check that there weren't any hops
                 foreach (var t in traces)
                 {

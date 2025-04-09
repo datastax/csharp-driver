@@ -31,7 +31,7 @@ namespace Cassandra.Tests.Connections.TestHelpers
 
         internal ConcurrentQueue<MetadataRequest> Requests { get; } =
             new ConcurrentQueue<MetadataRequest>();
-        
+
         public FakeMetadataRequestHandler(IDictionary<string, IEnumerable<IRow>> rows)
         {
             _rows = rows;
@@ -42,8 +42,8 @@ namespace Cassandra.Tests.Connections.TestHelpers
         {
             Requests.Enqueue(new MetadataRequest
             {
-                Serializer = serializer, 
-                CqlQuery = cqlQuery, 
+                Serializer = serializer,
+                CqlQuery = cqlQuery,
                 QueryProtocolOptions = queryProtocolOptions
             });
 
@@ -51,8 +51,8 @@ namespace Cassandra.Tests.Connections.TestHelpers
             ThrowErrorIfNullRows(cqlQuery);
 
             var response = new FakeResultResponse(ResultResponse.ResultResponseKind.Rows);
-            _responsesByCql.AddOrUpdate(response, _ => cqlQuery, (_,__) => cqlQuery);
-            return (Response) response;
+            _responsesByCql.AddOrUpdate(response, _ => cqlQuery, (_, __) => cqlQuery);
+            return (Response)response;
         }
 
         private void ThrowErrorIfNullRows(string cqlQuery)

@@ -43,10 +43,10 @@ namespace Cassandra.Tests.ExecutionProfiles
                 ControlConnectionFactory = new FakeControlConnectionFactory(),
                 ConnectionFactory = new FakeConnectionFactory(),
                 Policies = new Cassandra.Policies(
-                    lbps[0], 
-                    new ConstantReconnectionPolicy(50), 
-                    new DefaultRetryPolicy(), 
-                    seps[0], 
+                    lbps[0],
+                    new ConstantReconnectionPolicy(50),
+                    new DefaultRetryPolicy(),
+                    seps[0],
                     new AtomicMonotonicTimestampGenerator(),
                     null),
                 ExecutionProfiles = new Dictionary<string, IExecutionProfile>
@@ -75,7 +75,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                         "profile5",
                         new ExecutionProfile(profile1, new ExecutionProfileBuilder().Build())
                     },
-                    { 
+                    {
                         "graphProfile1",
                         new ExecutionProfileBuilder()
                             .WithLoadBalancingPolicy(lbps[4])
@@ -100,16 +100,16 @@ namespace Cassandra.Tests.ExecutionProfiles
             Mock.Get(initializerMock)
                 .Setup(i => i.GetConfiguration())
                 .Returns(testConfig);
-            
+
             var cluster = Cluster.BuildFrom(initializerMock, new List<string>(), testConfig);
             cluster.Connect();
-            
+
             Assert.IsTrue(lbps.Skip(1).All(lbp => lbp.InitializeCount == 1));
             Assert.IsTrue(seps.Skip(1).All(sep => sep.InitializeCount == 1));
             Assert.AreEqual(0, lbps[0].InitializeCount);
             Assert.AreEqual(0, seps[0].InitializeCount);
         }
-        
+
         [Test]
         public void Should_OnlyInitializePoliciesOnce_When_NoProfileIsProvided()
         {
@@ -120,10 +120,10 @@ namespace Cassandra.Tests.ExecutionProfiles
                 ControlConnectionFactory = new FakeControlConnectionFactory(),
                 ConnectionFactory = new FakeConnectionFactory(),
                 Policies = new Cassandra.Policies(
-                    lbp, 
-                    new ConstantReconnectionPolicy(50), 
-                    new DefaultRetryPolicy(), 
-                    sep, 
+                    lbp,
+                    new ConstantReconnectionPolicy(50),
+                    new DefaultRetryPolicy(),
+                    sep,
                     new AtomicMonotonicTimestampGenerator(),
                     null)
             }.Build();
@@ -134,14 +134,14 @@ namespace Cassandra.Tests.ExecutionProfiles
             Mock.Get(initializerMock)
                 .Setup(i => i.GetConfiguration())
                 .Returns(testConfig);
-            
+
             var cluster = Cluster.BuildFrom(initializerMock, new List<string>(), testConfig);
             cluster.Connect();
 
             Assert.AreEqual(1, lbp.InitializeCount);
             Assert.AreEqual(1, sep.InitializeCount);
         }
-        
+
         [Test]
         public void Should_OnlyDisposePoliciesOnce_When_MultiplePoliciesAreProvidedWithExecutionProfiles()
         {
@@ -158,10 +158,10 @@ namespace Cassandra.Tests.ExecutionProfiles
                 ControlConnectionFactory = new FakeControlConnectionFactory(),
                 ConnectionFactory = new FakeConnectionFactory(),
                 Policies = new Cassandra.Policies(
-                    lbps[0], 
-                    new ConstantReconnectionPolicy(50), 
-                    new DefaultRetryPolicy(), 
-                    seps[0], 
+                    lbps[0],
+                    new ConstantReconnectionPolicy(50),
+                    new DefaultRetryPolicy(),
+                    seps[0],
                     new AtomicMonotonicTimestampGenerator(),
                     null),
                 ExecutionProfiles = new Dictionary<string, IExecutionProfile>
@@ -183,8 +183,8 @@ namespace Cassandra.Tests.ExecutionProfiles
                         "profile5",
                         new ExecutionProfile(profile1, new ExecutionProfileBuilder().Build())
                     },
-                    { 
-                        "graphProfile1", 
+                    {
+                        "graphProfile1",
                         new ExecutionProfileBuilder()
                             .WithSpeculativeExecutionPolicy(seps[3])
                             .CastToClass()
@@ -205,7 +205,7 @@ namespace Cassandra.Tests.ExecutionProfiles
             Mock.Get(initializerMock)
                 .Setup(i => i.GetConfiguration())
                 .Returns(testConfig);
-            
+
             var cluster = Cluster.BuildFrom(initializerMock, new List<string>(), testConfig);
             cluster.Connect();
             cluster.Dispose();
@@ -213,7 +213,7 @@ namespace Cassandra.Tests.ExecutionProfiles
             Assert.IsTrue(seps.Skip(1).All(sep => sep.DisposeCount == 1));
             Assert.AreEqual(0, seps[0].DisposeCount);
         }
-        
+
         [Test]
         public void Should_OnlyDisposePoliciesOnce_When_NoProfileIsProvided()
         {
@@ -224,10 +224,10 @@ namespace Cassandra.Tests.ExecutionProfiles
                 ControlConnectionFactory = new FakeControlConnectionFactory(),
                 ConnectionFactory = new FakeConnectionFactory(),
                 Policies = new Cassandra.Policies(
-                    lbp, 
-                    new ConstantReconnectionPolicy(50), 
-                    new DefaultRetryPolicy(), 
-                    sep, 
+                    lbp,
+                    new ConstantReconnectionPolicy(50),
+                    new DefaultRetryPolicy(),
+                    sep,
                     new AtomicMonotonicTimestampGenerator(),
                     null)
             }.Build();
@@ -238,14 +238,14 @@ namespace Cassandra.Tests.ExecutionProfiles
             Mock.Get(initializerMock)
                 .Setup(i => i.GetConfiguration())
                 .Returns(testConfig);
-            
+
             var cluster = Cluster.BuildFrom(initializerMock, new List<string>(), testConfig);
             cluster.Connect();
             cluster.Dispose();
 
             Assert.AreEqual(1, sep.DisposeCount);
         }
-        
+
         [Test]
         public void Should_OnlyDisposeRelevantPolicies_When_PoliciesAreProvidedByDefaultProfile()
         {
@@ -258,10 +258,10 @@ namespace Cassandra.Tests.ExecutionProfiles
                 ControlConnectionFactory = new FakeControlConnectionFactory(),
                 ConnectionFactory = new FakeConnectionFactory(),
                 Policies = new Cassandra.Policies(
-                    lbp1, 
-                    new ConstantReconnectionPolicy(50), 
-                    new DefaultRetryPolicy(), 
-                    sep1, 
+                    lbp1,
+                    new ConstantReconnectionPolicy(50),
+                    new DefaultRetryPolicy(),
+                    sep1,
                     new AtomicMonotonicTimestampGenerator(),
                     null),
                 ExecutionProfiles = new Dictionary<string, IExecutionProfile>
@@ -276,7 +276,7 @@ namespace Cassandra.Tests.ExecutionProfiles
             Mock.Get(initializerMock)
                 .Setup(i => i.GetConfiguration())
                 .Returns(testConfig);
-            
+
             var cluster = Cluster.BuildFrom(initializerMock, new List<string>(), testConfig);
             cluster.Connect();
             cluster.Dispose();
@@ -284,7 +284,7 @@ namespace Cassandra.Tests.ExecutionProfiles
             Assert.AreEqual(0, sep1.DisposeCount);
             Assert.AreEqual(1, sep2.DisposeCount);
         }
-        
+
         [Test]
         public void Should_OnlyInitializeRelevantPolicies_When_PoliciesAreProvidedByDefaultProfile()
         {
@@ -297,10 +297,10 @@ namespace Cassandra.Tests.ExecutionProfiles
                 ControlConnectionFactory = new FakeControlConnectionFactory(),
                 ConnectionFactory = new FakeConnectionFactory(),
                 Policies = new Cassandra.Policies(
-                    lbp1, 
-                    new ConstantReconnectionPolicy(50), 
-                    new DefaultRetryPolicy(), 
-                    sep1, 
+                    lbp1,
+                    new ConstantReconnectionPolicy(50),
+                    new DefaultRetryPolicy(),
+                    sep1,
                     new AtomicMonotonicTimestampGenerator(),
                     null),
                 ExecutionProfiles = new Dictionary<string, IExecutionProfile>
@@ -315,16 +315,16 @@ namespace Cassandra.Tests.ExecutionProfiles
             Mock.Get(initializerMock)
                 .Setup(i => i.GetConfiguration())
                 .Returns(testConfig);
-            
+
             var cluster = Cluster.BuildFrom(initializerMock, new List<string>(), testConfig);
             cluster.Connect();
-            
+
             Assert.AreEqual(0, lbp1.InitializeCount);
             Assert.AreEqual(0, sep1.InitializeCount);
             Assert.AreEqual(1, lbp2.InitializeCount);
             Assert.AreEqual(1, sep2.InitializeCount);
         }
-        
+
         private class FakeSpeculativeExecutionPolicy : ISpeculativeExecutionPolicy
         {
             public volatile int InitializeCount;

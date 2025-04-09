@@ -94,7 +94,7 @@ namespace Cassandra.Requests
                     await observer.OnNodeStartAsync(info, nodeRequestInfo).ConfigureAwait(false);
                     var result = await connection.Send(request).ConfigureAwait(false);
                     responseReceived = true;
-                    var prepareResult =  new PrepareResult
+                    var prepareResult = new PrepareResult
                     {
                         PreparedStatement = await GetPreparedStatement(result, request, request.Keyspace ?? connection.Keyspace, session.Cluster).ConfigureAwait(false),
                         TriedHosts = triedHosts,
@@ -107,7 +107,7 @@ namespace Cassandra.Requests
                 {
                     await observer.OnNodeRequestErrorAsync(
                         responseReceived ? RequestError.CreateClientError(ex, false) : RequestError.CreateServerError(ex),
-                        info, 
+                        info,
                         nodeRequestInfo).ConfigureAwait(false);
 
                     if (PrepareHandler.CanBeRetried(ex))
@@ -185,11 +185,11 @@ namespace Cassandra.Requests
             }
             var prepared = (OutputPrepared)output;
             var ps = new PreparedStatement(
-                prepared.VariablesRowsMetadata, 
-                prepared.QueryId, 
+                prepared.VariablesRowsMetadata,
+                prepared.QueryId,
                 new ResultMetadata(prepared.ResultMetadataId, prepared.ResultRowsMetadata),
-                request.Query, 
-                keyspace, 
+                request.Query,
+                keyspace,
                 _serializerManager)
             {
                 IncomingPayload = resultResponse.CustomPayload

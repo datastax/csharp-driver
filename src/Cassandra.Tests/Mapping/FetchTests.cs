@@ -45,7 +45,7 @@ namespace Cassandra.Tests.Mapping
         public void FetchAsync_Pocos_WithCql_Single_Column_Maps()
         {
             //just the userid
-            var usersExpected = TestDataHelper.GetUserList().Select(u => new PlainUser { UserId = u.UserId} ).ToList();
+            var usersExpected = TestDataHelper.GetUserList().Select(u => new PlainUser { UserId = u.UserId }).ToList();
             var rowset = TestDataHelper.GetUsersRowSet(usersExpected);
             var mappingClient = GetMappingClient(rowset);
             var userTask = mappingClient.FetchAsync<PlainUser>("SELECT * FROM users");
@@ -188,13 +188,13 @@ namespace Cassandra.Tests.Mapping
         {
             const int pageSize = 10;
             const int totalPages = 4;
-            var rs = TestDataHelper.CreateMultipleValuesRowSet(new[] {"title", "artist"}, new[] {"Once in a Livetime", "Dream Theater"}, pageSize);
-            rs.PagingState = new byte[] {1};
+            var rs = TestDataHelper.CreateMultipleValuesRowSet(new[] { "title", "artist" }, new[] { "Once in a Livetime", "Dream Theater" }, pageSize);
+            rs.PagingState = new byte[] { 1 };
             SetFetchNextMethod(rs, state =>
             {
                 var pageNumber = state[0];
                 pageNumber++;
-                var nextRs = TestDataHelper.CreateMultipleValuesRowSet(new[] {"title", "artist"}, new[] {"Once in a Livetime " + pageNumber, "Dream Theater"}, pageSize);
+                var nextRs = TestDataHelper.CreateMultipleValuesRowSet(new[] { "title", "artist" }, new[] { "Once in a Livetime " + pageNumber, "Dream Theater" }, pageSize);
                 if (pageNumber < totalPages)
                 {
                     nextRs.PagingState = new[] { pageNumber };
@@ -243,7 +243,7 @@ namespace Cassandra.Tests.Mapping
             var usersExpected = TestDataHelper.GetUserList(pageSize);
             var rs = TestDataHelper.GetUsersRowSet(usersExpected);
             rs.AutoPage = false;
-            rs.PagingState = new byte[] {1, 2, 3};
+            rs.PagingState = new byte[] { 1, 2, 3 };
             BoundStatement stmt = null;
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
@@ -323,7 +323,7 @@ namespace Cassandra.Tests.Mapping
                     new CqlColumn {Name = "releasedate", TypeCode = ColumnTypeCode.Timestamp, Type = typeof (DateTimeOffset), Index = 2}
                 }
             };
-            var values = new object[] { Guid.NewGuid(), "Come Away with Me", DateTimeOffset.Parse("2002-01-01 +0")};
+            var values = new object[] { Guid.NewGuid(), "Come Away with Me", DateTimeOffset.Parse("2002-01-01 +0") };
             var row = new Row(values, rs.Columns, rs.Columns.ToDictionary(c => c.Name, c => c.Index));
             rs.AddRow(row);
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
@@ -363,7 +363,7 @@ namespace Cassandra.Tests.Mapping
                     new CqlColumn {Name = "releasedate", TypeCode = ColumnTypeCode.Timestamp, Type = typeof (DateTimeOffset), Index = 1}
                 }
             };
-            var values = new object[] {"Come Away with Me", DateTimeOffset.Parse("2002-01-01 +0")};
+            var values = new object[] { "Come Away with Me", DateTimeOffset.Parse("2002-01-01 +0") };
             var row = new Row(values, rs.Columns, rs.Columns.ToDictionary(c => c.Name, c => c.Index));
             rs.AddRow(row);
             values = new object[] { "Come Away with Me", null };
@@ -386,14 +386,14 @@ namespace Cassandra.Tests.Mapping
         [Test]
         public void Fetch_Poco_With_Enum()
         {
-            var columns = new []
+            var columns = new[]
             {
                 new CqlColumn { Name = "id", Index = 0, Type = typeof(long), TypeCode = ColumnTypeCode.Bigint },
                 new CqlColumn { Name = "enum1", Index = 1, Type = typeof(int), TypeCode = ColumnTypeCode.Int }
             };
             var rs = new RowSet { Columns = columns };
             rs.AddRow(
-                new Row(new object[] {1L, 3}, columns, columns.ToDictionary(c => c.Name, c => c.Index)));
+                new Row(new object[] { 1L, 3 }, columns, columns.ToDictionary(c => c.Name, c => c.Index)));
             var config = new MappingConfiguration().Define(new Map<PocoWithEnumCollections>()
                 .ExplicitColumns()
                 .Column(x => x.Id, cm => cm.WithName("id"))
@@ -411,7 +411,7 @@ namespace Cassandra.Tests.Mapping
         {
             var columns = PocoWithEnumCollections.DefaultColumns;
             var rs = new RowSet { Columns = columns };
-            var expectedCollection = new[]{ HairColor.Blonde, HairColor.Gray };
+            var expectedCollection = new[] { HairColor.Blonde, HairColor.Gray };
             var expectedMap = new SortedDictionary<HairColor, TimeUuid>
             {
                 { HairColor.Brown, TimeUuid.NewId() },
@@ -419,7 +419,7 @@ namespace Cassandra.Tests.Mapping
             };
             var collectionValues = expectedCollection.Select(x => (int)x).ToArray();
             var mapValues =
-                new SortedDictionary<int, Guid>(expectedMap.ToDictionary(kv => (int) kv.Key, kv => (Guid) kv.Value));
+                new SortedDictionary<int, Guid>(expectedMap.ToDictionary(kv => (int)kv.Key, kv => (Guid)kv.Value));
             rs.AddRow(
                 new Row(
                     new object[]

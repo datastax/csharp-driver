@@ -26,14 +26,14 @@ namespace Cassandra
         internal const long DefaultStatusEventDelayMilliseconds = 300000L;
 
         internal const bool DefaultMonitorReportingEnabled = true;
-        
+
         internal long StatusEventDelayMilliseconds { get; private set; } = MonitorReportingOptions.DefaultStatusEventDelayMilliseconds;
 
         /// <summary>
         /// This property is used to determine whether Monitor Reporting is enabled or not.
         /// </summary>
         public bool MonitorReportingEnabled { get; private set; } = MonitorReportingOptions.DefaultMonitorReportingEnabled;
-        
+
         /// <summary>
         /// Determines whether or not events are sent to the connected cluster for monitor reporting.
         /// </summary>
@@ -50,6 +50,6 @@ namespace Cassandra
         {
             StatusEventDelayMilliseconds = delay;
             return this;
-        } 
+        }
     }
 }

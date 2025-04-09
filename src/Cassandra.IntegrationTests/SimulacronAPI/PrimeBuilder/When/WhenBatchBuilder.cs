@@ -23,9 +23,9 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.When
     public class WhenBatchBuilder : IWhen, IWhenBatchBuilder
     {
         private readonly List<BatchQuery> _queriesOrIds = new List<BatchQuery>();
-        
+
         private readonly List<ConsistencyLevel> _allowedCls = new List<ConsistencyLevel>();
-        
+
         public object Render()
         {
             var dictionary = new Dictionary<string, object>

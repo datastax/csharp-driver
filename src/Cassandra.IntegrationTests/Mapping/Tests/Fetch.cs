@@ -83,7 +83,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             table.Create();
 
             var mapper = new Mapper(_session, new MappingConfiguration().Define(new FluentUserMapping()));
-            var ids = new[] {Guid.NewGuid().ToString(), Guid.NewGuid().ToString()};
+            var ids = new[] { Guid.NewGuid().ToString(), Guid.NewGuid().ToString() };
 
             mapper.Insert(new Author { AuthorId = ids[0] });
             mapper.Insert(new Author { AuthorId = ids[1] });
@@ -93,7 +93,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             {
                 authors = t.Result.ToList();
             }).Wait();
-            Assert.AreEqual(2, authors.Count);;
+            Assert.AreEqual(2, authors.Count); ;
             CollectionAssert.AreEquivalent(ids, authors.Select(a => a.AuthorId));
         }
 
@@ -513,7 +513,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         public void Fetch_Poco_With_Enum_Collections_Test()
         {
             _session.Execute(string.Format(PocoWithEnumCollections.DefaultCreateTableCql, "tbl_with_enum_collections"));
-            var expectedCollection = new[]{ HairColor.Blonde, HairColor.Gray };
+            var expectedCollection = new[] { HairColor.Blonde, HairColor.Gray };
             var expectedMap = new SortedDictionary<HairColor, TimeUuid>
             {
                 { HairColor.Brown, TimeUuid.NewId() },
@@ -521,7 +521,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             };
             var collectionValues = expectedCollection.Select(x => (int)x).ToArray();
             var mapValues =
-                new SortedDictionary<int, Guid>(expectedMap.ToDictionary(kv => (int) kv.Key, kv => (Guid) kv.Value));
+                new SortedDictionary<int, Guid>(expectedMap.ToDictionary(kv => (int)kv.Key, kv => (Guid)kv.Value));
 
             const string insertQuery =
                 "INSERT INTO tbl_with_enum_collections (id, list1, list2, array1, set1, set2, set3, map1, map2, map3)" +
@@ -536,7 +536,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
                 new MappingConfiguration().Define(
                     PocoWithEnumCollections.DefaultMapping.TableName("tbl_with_enum_collections"));
             var mapper = new Mapper(_session, config);
-            
+
             var result = mapper.Fetch<PocoWithEnumCollections>("WHERE id = ?", 2000L);
             Assert.NotNull(result);
             var rows = result.ToArray();

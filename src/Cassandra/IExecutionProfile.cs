@@ -40,13 +40,13 @@ namespace Cassandra
         /// <para>See <see cref="Cassandra.ConsistencyLevel"/> for additional context on this setting.</para>
         /// </summary>
         ConsistencyLevel? ConsistencyLevel { get; }
-        
+
         /// <summary>
         /// <para>Retrieves the LoadBalancingPolicy set on this profile. It's <code>null</code> if not set.</para>
         /// <para>See <see cref="ILoadBalancingPolicy"/> for additional context on this setting.</para>
         /// </summary>
         ILoadBalancingPolicy LoadBalancingPolicy { get; }
-        
+
         /// <summary>
         /// The per-host read timeout in milliseconds.
         /// <para>
@@ -56,19 +56,19 @@ namespace Cassandra
         /// Also note that for efficiency reasons, this read timeout is approximate, it may fire up to late. It is not meant to be used for precise timeout, but rather as a protection against misbehaving Cassandra nodes.
         /// </summary>
         int? ReadTimeoutMillis { get; }
-        
+
         /// <summary>
         /// <para>Retrieves the RetryPolicy set on this profile. It's <code>null</code> if not set.</para>
         /// <para>See <see cref="RetryPolicy"/> for additional context on this setting.</para>
         /// </summary>
         IExtendedRetryPolicy RetryPolicy { get; }
-        
+
         /// <summary>
         /// <para>Retrieves the SerialConsistencyLevel set on this profile. It's <code>null</code> if not set.</para>
         /// <para>See <see cref="Cassandra.ConsistencyLevel"/> for additional context on this setting.</para>
         /// </summary>
         ConsistencyLevel? SerialConsistencyLevel { get; }
-        
+
         /// <summary>
         /// <para>Retrieves the SpeculativeExecutionPolicy set on this profile. It's <code>null</code> if not set.</para>
         /// <para>See <see cref="ISpeculativeExecutionPolicy"/> for additional context on this setting.</para>

@@ -24,7 +24,7 @@ namespace Cassandra.Tests
     {
         private readonly Configuration _config = new TestConfigurationBuilder { AllowBetaProtocolVersions = false }.Build();
         private readonly Configuration _configBeta = new TestConfigurationBuilder { AllowBetaProtocolVersions = true }.Build();
-        
+
         [TestCase(ProtocolVersion.V4, ProtocolVersion.V5)]
         [TestCase(ProtocolVersion.V2, ProtocolVersion.V3)]
         [TestCase(ProtocolVersion.V3, ProtocolVersion.V4)]
@@ -38,7 +38,7 @@ namespace Cassandra.Tests
         {
             Assert.AreEqual(version, initialVersion.GetLowerSupported(_configBeta));
         }
-        
+
         [TestCase(ProtocolVersion.V4, ProtocolVersion.V5)]
         [TestCase(ProtocolVersion.V2, ProtocolVersion.V3)]
         [TestCase(ProtocolVersion.V3, ProtocolVersion.V4)]
@@ -67,7 +67,7 @@ namespace Cassandra.Tests
         {
             Assert.AreEqual(version, ProtocolVersion.MaxSupported.GetHighestCommon(_config, cassandraVersions.Select(GetHost)));
         }
-        
+
 
         [TestCase(ProtocolVersion.V5, "4.0.0", "1.2.19")]
         [TestCase(ProtocolVersion.V3, "4.0.0", "2.1.17")]
@@ -91,7 +91,7 @@ namespace Cassandra.Tests
         {
             Assert.AreEqual(version, ProtocolVersion.MaxSupported.GetHighestCommon(_config, cassandraVersions.Select(GetHost)));
         }
-        
+
         [TestCase(ProtocolVersion.V4, "4.0.0")]
         [TestCase(ProtocolVersion.V4, "4.0.0", "1.2.19")]
         [TestCase(ProtocolVersion.V4, "3.0.13", "3.0.11", "2.2.9")]
@@ -104,7 +104,7 @@ namespace Cassandra.Tests
         {
             Assert.AreEqual(version, version.GetHighestCommon(_config, cassandraVersions.Select(GetHost)));
         }
-        
+
         [TestCase(ProtocolVersion.V5, "4.0.0")]
         [TestCase(ProtocolVersion.V5, "4.0.0", "1.2.19")]
         [TestCase(ProtocolVersion.V4, "3.0.13", "3.0.11", "2.2.9")]

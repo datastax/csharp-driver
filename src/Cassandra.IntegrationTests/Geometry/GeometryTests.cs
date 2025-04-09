@@ -66,8 +66,8 @@ namespace Cassandra.IntegrationTests.Geometry
             foreach (var value in Values)
             {
                 var id = prefix + value;
-                var statement = prepared ? 
-                    (IStatement) insertPs.Bind(id, value) :
+                var statement = prepared ?
+                    (IStatement)insertPs.Bind(id, value) :
                     new SimpleStatement(InsertGeoQuery, id, value);
                 Session.Execute(statement);
 
@@ -129,7 +129,7 @@ namespace Cassandra.IntegrationTests.Geometry
         [TestCase(false)]
         public void Serialize_Deserialize_Map_Test(bool prepared)
         {
-            SerializeDeserializeCollectionsTest(prepared, "tbl_map", 
+            SerializeDeserializeCollectionsTest(prepared, "tbl_map",
                 new Dictionary<string, T>
                 {
                     {"a1", Values[0] }

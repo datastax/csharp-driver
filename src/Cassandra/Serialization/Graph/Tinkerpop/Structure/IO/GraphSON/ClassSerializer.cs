@@ -31,7 +31,7 @@ namespace Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON
     {
         public Dictionary<string, dynamic> Dictify(dynamic objectData, IGraphSONWriter writer)
         {
-            var type = (Type) objectData;
+            var type = (Type)objectData;
             return writer.ToDict(Activator.CreateInstance(type));
         }
     }

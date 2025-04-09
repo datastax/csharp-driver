@@ -34,7 +34,7 @@ namespace Cassandra.IntegrationTests.Core
     {
         private const string Keyspace = "ks1";
         private static readonly string Query = $"SELECT * FROM {PrepareSimulatorTests.Keyspace}.prepare_table1";
-        
+
         private static readonly string QueryWithoutKeyspace = $"SELECT * FROM prepare_table1";
 
         private static IPrimeRequest QueryPrime(int delay = 0)
@@ -46,7 +46,7 @@ namespace Cassandra.IntegrationTests.Core
                    .WithDelayInMs(delay)
                    .BuildRequest();
         }
-        
+
         private static IPrimeRequest QueryWithoutKeyspacePrime(int delay = 0)
         {
             return SimulacronBase
@@ -221,7 +221,7 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.AreEqual(2, node.GetQueries(Query, QueryType.Prepare).Count);
             }
         }
-        
+
         [Test]
         public async Task Should_ReprepareOnUpNodeAfterSetKeyspace_With_SessionKeyspace()
         {
@@ -250,7 +250,7 @@ namespace Cassandra.IntegrationTests.Core
                 await node.Stop().ConfigureAwait(false);
                 await TestHelper.WaitUntilAsync(() => cluster.AllHosts().Any(h => !h.IsUp)).ConfigureAwait(false);
                 Assert.AreEqual(1, cluster.AllHosts().Count(h => !h.IsUp));
-                
+
                 // still only 1 USE and Prepare requests
                 Assert.AreEqual(1, node.GetQueries($"USE \"{PrepareSimulatorTests.Keyspace}\"").Count);
                 Assert.AreEqual(1, node.GetQueries(PrepareSimulatorTests.QueryWithoutKeyspace, QueryType.Prepare).Count);
@@ -264,10 +264,10 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.AreEqual(0, cluster.AllHosts().Count(h => !h.IsUp));
 
                 // wait until driver reprepares the statement
-                TestHelper.WaitUntil(() => 
+                TestHelper.WaitUntil(() =>
                     node.GetQueries(PrepareSimulatorTests.QueryWithoutKeyspace, QueryType.Prepare).Count == 2
                     && node.GetQueries(PrepareSimulatorTests.Query, QueryType.Prepare).Count == 2);
-                
+
                 // It should be prepared 2 times
                 Assert.AreEqual(2, node.GetQueries(PrepareSimulatorTests.QueryWithoutKeyspace, QueryType.Prepare).Count);
                 Assert.AreEqual(2, node.GetQueries(PrepareSimulatorTests.Query, QueryType.Prepare).Count);
@@ -284,11 +284,11 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.AreEqual(PrepareSimulatorTests.Query, relevantQueries[2].Query);
                 Assert.AreEqual($"USE \"{PrepareSimulatorTests.Keyspace}\"", relevantQueries[3].Query);
                 CollectionAssert.AreEquivalent(
-                    new []
+                    new[]
                     {
                         PrepareSimulatorTests.QueryWithoutKeyspace,
                         PrepareSimulatorTests.Query
-                    }, 
+                    },
                     relevantQueries.Skip(4).Select(q => q.Query));
             }
         }

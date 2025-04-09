@@ -41,7 +41,7 @@ namespace Cassandra.Data.Linq
             }
             _batchScript.Add(cqlCommand);
         }
-        
+
         protected override Task<RowSet> InternalExecuteAsync()
         {
             return InternalExecuteAsync(Configuration.DefaultExecutionProfileName);

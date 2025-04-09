@@ -24,22 +24,22 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.Models.Logs
     {
         [JsonProperty("protocol_version")]
         public int ProtocolVersion { get; set; }
-        
+
         [JsonProperty("beta")]
         public bool Beta { get; set; }
 
         [JsonProperty("stream_id")]
         public int StreamId { get; set; }
-        
+
         [JsonProperty("tracing_id")]
         public Guid? TracingId { get; set; }
-        
+
         [JsonProperty("custom_payload")]
         public Dictionary<string, string> CustomPayload { get; set; }
-        
+
         [JsonProperty("warnings")]
         public List<string> Warnings { get; set; }
-        
+
         [JsonProperty("message")]
         public object Message
         {
@@ -64,7 +64,7 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.Models.Logs
         {
             return GetTypedMessage<QueryMessage>();
         }
-        
+
         public BatchMessage GetBatchMessage()
         {
             return GetTypedMessage<BatchMessage>();

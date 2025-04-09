@@ -46,7 +46,7 @@ namespace Cassandra.IntegrationTests.Core
                 // doesn't exist but doesn't matter
                 Session.Execute(query);
             }
-            
+
             Assert.AreEqual(3, Session.Cluster.AllHosts().Count);
             Assert.IsTrue(Session.Cluster.AllHosts().All(h => h.IsUp));
 

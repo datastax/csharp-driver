@@ -104,9 +104,9 @@ namespace Cassandra.IntegrationTests.Core
                 metadata.AddHost(new IPEndPoint(IPAddress.Parse(_testCluster.InitialContactPoint), ProtocolOptions.DefaultPort));
             }
             var cc = new ControlConnection(
-                Mock.Of<IInternalCluster>(), 
-                GetEventDebouncer(config), 
-                version, 
+                Mock.Of<IInternalCluster>(),
+                GetEventDebouncer(config),
+                version,
                 config,
                 metadata,
                 new List<IContactPoint>
@@ -120,8 +120,8 @@ namespace Cassandra.IntegrationTests.Core
         private IProtocolEventDebouncer GetEventDebouncer(Configuration config)
         {
             return new ProtocolEventDebouncer(
-                new TaskBasedTimerFactory(), 
-                TimeSpan.FromMilliseconds(config.MetadataSyncOptions.RefreshSchemaDelayIncrement), 
+                new TaskBasedTimerFactory(),
+                TimeSpan.FromMilliseconds(config.MetadataSyncOptions.RefreshSchemaDelayIncrement),
                 TimeSpan.FromMilliseconds(config.MetadataSyncOptions.MaxTotalRefreshSchemaDelay));
         }
     }

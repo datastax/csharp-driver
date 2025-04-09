@@ -70,7 +70,7 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Verify(s => s.ExecuteAsync(It.Is<BoundStatement>(statement => statement.ReadTimeoutMillis == 5000), It.IsAny<string>()),
                     Times.Once);
         }
-        
+
         [Test]
         [TestCaseSource(typeof(TestCasesClass))]
         public async Task Should_ExecuteWithOutgoingPayload_When_SetOutgoingPayloadIsCalled(TestCase<AllTypesEntity> testCase)
@@ -176,10 +176,10 @@ namespace Cassandra.Tests.Mapping.Linq
             {
                 var val = Func(table);
                 var output = val.GetType().InvokeMember(method, BindingFlags.Public | BindingFlags.InvokeMethod | BindingFlags.Instance, null, val, parameters);
-                var executeMethod = output.GetType().GetMethod("ExecuteAsync", new Type[]{});
+                var executeMethod = output.GetType().GetMethod("ExecuteAsync", new Type[] { });
                 if (executeMethod != null)
                 {
-                    return (Task) executeMethod.Invoke(output, new object[] { });
+                    return (Task)executeMethod.Invoke(output, new object[] { });
                 }
 
                 // this means the method that was executed is from the Statement class and returns an IStatement so call ExecuteAsync on the previous output from the call chain

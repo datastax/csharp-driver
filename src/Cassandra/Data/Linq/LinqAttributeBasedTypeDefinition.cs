@@ -53,14 +53,14 @@ namespace Cassandra.Data.Linq
                 .GetTypeInfo()
                 .GetFields(PublicInstanceBindingFlags)
                 .Where(field => field.IsInitOnly == false)
-                .Select(field => (MemberInfo) field)
+                .Select(field => (MemberInfo)field)
                 .Concat(type.GetTypeInfo().GetProperties(PublicInstanceBindingFlags).Where(p => p.CanWrite));
             var partitionKeys = new List<Tuple<string, int>>();
             var clusteringKeys = new List<Tuple<string, SortOrder, int>>();
             foreach (var member in mappable)
             {
                 var columnName = member.Name;
-                var columnAttribute = (ColumnAttribute) member.GetCustomAttributes(typeof (ColumnAttribute), true).FirstOrDefault();
+                var columnAttribute = (ColumnAttribute)member.GetCustomAttributes(typeof(ColumnAttribute), true).FirstOrDefault();
                 if (columnAttribute?.Name != null)
                 {
                     columnName = columnAttribute.Name;

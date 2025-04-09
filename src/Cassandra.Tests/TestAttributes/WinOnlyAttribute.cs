@@ -51,7 +51,7 @@ namespace Cassandra.Tests.TestAttributes
         /// </summary>
         public WinOnlyAttribute() : this(0, 0)
         {
-            
+
         }
 
         public void ApplyToTest(NUnit.Framework.Internal.Test test)

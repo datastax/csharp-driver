@@ -75,7 +75,7 @@ namespace Cassandra.IntegrationTests.Core
             Session.Execute(string.Format(TestUtils.CreateTableAllTypes, AllTypesTableName));
             CreateTable(_tableName);
         }
-        
+
         [Test]
         public void Bound_AllSingleTypesDifferentValues()
         {
@@ -86,21 +86,21 @@ namespace Cassandra.IntegrationTests.Core
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", AllTypesTableName);
 
             var preparedStatement = Session.Prepare(insertQuery);
-            CollectionAssert.AreEqual(new[] {0}, preparedStatement.RoutingIndexes);
-            
-            var firstRowValues = new object[] 
-            { 
-                Guid.NewGuid(), "first", 10, Int64.MaxValue - 1, 1.999F, 32.002D, 1.101010M, 
+            CollectionAssert.AreEqual(new[] { 0 }, preparedStatement.RoutingIndexes);
+
+            var firstRowValues = new object[]
+            {
+                Guid.NewGuid(), "first", 10, Int64.MaxValue - 1, 1.999F, 32.002D, 1.101010M,
                 new byte[] {255, 255}, true, new DateTimeOffset(new DateTime(2005, 8, 5)), new IPAddress(new byte[] {192, 168, 0, 100})
             };
-            var secondRowValues = new object[] 
-            { 
-                Guid.NewGuid(), "second", 0, 0L, 0F, 0D, 0M, 
+            var secondRowValues = new object[]
+            {
+                Guid.NewGuid(), "second", 0, 0L, 0F, 0D, 0M,
                 new byte[] {0, 0}, true, new DateTimeOffset(new DateTime(1970, 9, 18)), new IPAddress(new byte[] {0, 0, 0, 0})
             };
-            var thirdRowValues = new object[] 
-            { 
-                Guid.NewGuid(), "third", -100, Int64.MinValue + 1, -150.111F, -5.12342D, -8.101010M, 
+            var thirdRowValues = new object[]
+            {
+                Guid.NewGuid(), "third", -100, Int64.MinValue + 1, -150.111F, -5.12342D, -8.101010M,
                 new byte[] {1, 1}, true, new DateTimeOffset(new DateTime(1543, 5, 24)), new IPAddress(new byte[] {255, 128, 12, 1, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255})
             };
 
@@ -116,7 +116,7 @@ namespace Cassandra.IntegrationTests.Core
             var rowList = Session.Execute(selectQuery).ToList();
             //Check that they were inserted and retrieved
             Assert.AreEqual(3, rowList.Count);
-            
+
             //Create a dictionary with the inserted values to compare with the retrieved values
             var insertedValues = new Dictionary<Guid, object[]>()
             {
@@ -128,7 +128,7 @@ namespace Cassandra.IntegrationTests.Core
             foreach (var retrievedRow in rowList)
             {
                 var inserted = insertedValues[retrievedRow.GetValue<Guid>("id")];
-                for (var i = 0; i < inserted.Length; i++ )
+                for (var i = 0; i < inserted.Length; i++)
                 {
                     var insertedValue = inserted[i];
                     var retrievedValue = retrievedRow[i];
@@ -149,8 +149,8 @@ namespace Cassandra.IntegrationTests.Core
 
             var preparedStatement = Session.Prepare(insertQuery);
             Assert.AreEqual(columns, String.Join(", ", preparedStatement.Variables.Columns.Select(c => c.Name)));
-            var nullRowValues = new object[] 
-            { 
+            var nullRowValues = new object[]
+            {
                 Guid.NewGuid(), null, null, null, null, null, null, null, null, null, null
             };
 
@@ -174,8 +174,8 @@ namespace Cassandra.IntegrationTests.Core
 
             var preparedStatement = Session.Prepare(insertQuery);
             Assert.AreEqual(columns, String.Join(", ", preparedStatement.Variables.Columns.Select(c => c.Name)));
-            var nullRowValues = new object[] 
-            { 
+            var nullRowValues = new object[]
+            {
                 Guid.NewGuid(), ""
             };
 
@@ -335,22 +335,22 @@ namespace Cassandra.IntegrationTests.Core
 
             // initial condition
             Session.Execute(insert.Bind(0, 0, 0));
-            Check_Expected(select, new object[] {0, 0, 0});
+            Check_Expected(select, new object[] { 0, 0, 0 });
 
             // explicit unset
             Session.Execute(insert.Bind(0, 1, Unset.Value));
-            Check_Expected(select, new object[] {0, 1, 0});
+            Check_Expected(select, new object[] { 0, 1, 0 });
             Session.Execute(insert.Bind(0, Unset.Value, 2));
-            Check_Expected(select, new object[] {0, 1, 2});
-            
-            Session.Execute(insert.Bind(new {k = 0, v0 = 3, v1 = Unset.Value}));
-            Check_Expected(select, new object[] {0, 3, 2});
-            Session.Execute(insert.Bind(new {k = 0, v0 = Unset.Value,  v1 = 4}));
-            Check_Expected(select, new object[] {0, 3, 4});
+            Check_Expected(select, new object[] { 0, 1, 2 });
+
+            Session.Execute(insert.Bind(new { k = 0, v0 = 3, v1 = Unset.Value }));
+            Check_Expected(select, new object[] { 0, 3, 2 });
+            Session.Execute(insert.Bind(new { k = 0, v0 = Unset.Value, v1 = 4 }));
+            Check_Expected(select, new object[] { 0, 3, 4 });
 
             // nulls still work
             Session.Execute(insert.Bind(0, null, null));
-            Check_Expected(select, new object[] {0, null, null});
+            Check_Expected(select, new object[] { 0, null, null });
 
             // PKs cannot be UNSET
             Assert.Throws(Is.InstanceOf<InvalidQueryException>(), () => Session.Execute(insert.Bind(Unset.Value, 0, 0)));
@@ -369,23 +369,23 @@ namespace Cassandra.IntegrationTests.Core
             var preparedStatement = Session.Prepare(insertQuery);
             CollectionAssert.AreEqual(new[] { 0 }, preparedStatement.RoutingIndexes);
 
-            var firstRowValues = new object[] 
-            { 
-                Guid.NewGuid(), 
+            var firstRowValues = new object[]
+            {
+                Guid.NewGuid(),
                 new Dictionary<string, string> {{"key1", "value1"}, {"key2", "value2"}},
                 new List<string> (new [] {"one", "two", "three", "four", "five"}),
                 new List<string> (new [] {"set_1one", "set_2two", "set_3three", "set_4four", "set_5five"})
             };
-            var secondRowValues = new object[] 
-            { 
-                Guid.NewGuid(), 
+            var secondRowValues = new object[]
+            {
+                Guid.NewGuid(),
                 new Dictionary<string, string>(),
                 new List<string>(),
                 new List<string>()
             };
-            var thirdRowValues = new object[] 
-            { 
-                Guid.NewGuid(), 
+            var thirdRowValues = new object[]
+            {
+                Guid.NewGuid(),
                 null,
                 null,
                 null
@@ -426,7 +426,7 @@ namespace Cassandra.IntegrationTests.Core
                     }
                     if (insertedValue != null)
                     {
-                        Assert.AreEqual(((ICollection) insertedValue).Count, ((ICollection) retrievedValue).Count);
+                        Assert.AreEqual(((ICollection)insertedValue).Count, ((ICollection)retrievedValue).Count);
                     }
                     Assert.AreEqual(insertedValue, retrievedValue);
                 }
@@ -465,7 +465,7 @@ namespace Cassandra.IntegrationTests.Core
             if (TestClusterManager.CheckCassandraVersion(false, new Version(2, 2), Comparison.LessThan))
             {
                 //For older versions, there is no way to determine that my_id is actually id column
-                Assert.Null(preparedStatement.RoutingIndexes);   
+                Assert.Null(preparedStatement.RoutingIndexes);
             }
             Assert.AreEqual(preparedStatement.Variables.Columns.Length, 4);
             Assert.AreEqual("my_text, my_int, my_bigint, my_id", String.Join(", ", preparedStatement.Variables.Columns.Select(c => c.Name)));
@@ -477,7 +477,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             var insertQuery = string.Format("INSERT INTO {0} (text_sample, int_sample, bigint_sample, id) VALUES (:my_text, :my_int, :my_bigint, :id)", AllTypesTableName);
             var preparedStatement = Session.Prepare(insertQuery);
-            CollectionAssert.AreEqual(new [] {3}, preparedStatement.RoutingIndexes);
+            CollectionAssert.AreEqual(new[] { 3 }, preparedStatement.RoutingIndexes);
             Assert.AreEqual(preparedStatement.Variables.Columns.Length, 4);
             Assert.AreEqual("my_text, my_int, my_bigint, id", String.Join(", ", preparedStatement.Variables.Columns.Select(c => c.Name)));
 
@@ -503,7 +503,7 @@ namespace Cassandra.IntegrationTests.Core
             var id = Guid.NewGuid();
             Session.Execute(
                 preparedStatement.Bind(
-                    new {my_bigint = (long?)null,  my_int = 100, my_id = id}));
+                    new { my_bigint = (long?)null, my_int = 100, my_id = id }));
 
             var row = Session.Execute(string.Format("SELECT int_sample, bigint_sample, text_sample FROM {0} WHERE id = {1:D}", AllTypesTableName, id)).First();
 
@@ -755,10 +755,10 @@ namespace Cassandra.IntegrationTests.Core
             var ps = Session.Prepare("SELECT * FROM tbl_ps_multiple_pk_named WHERE a = :a AND b = :b AND c = :ce");
             //Parameters at position 1 and 0 are part of the routing key
             CollectionAssert.AreEqual(new[] { 0, 1 }, ps.RoutingIndexes);
-            var anon = new {ce = "hello ce2", a = "aValue1", b = "bValue1"};
+            var anon = new { ce = "hello ce2", a = "aValue1", b = "bValue1" };
             var statement = ps.Bind(anon);
             Assert.NotNull(statement.RoutingKey);
-            CollectionAssert.AreEqual(calculateKey(anon.a, anon.b), statement.RoutingKey.RawRoutingKey); 
+            CollectionAssert.AreEqual(calculateKey(anon.a, anon.b), statement.RoutingKey.RawRoutingKey);
             //Now with another parameters
             anon = new { ce = "hello ce2", a = "aValue2", b = "bValue2" };
             statement = ps.Bind(anon);
@@ -854,7 +854,7 @@ namespace Cassandra.IntegrationTests.Core
 
         [TestCase(true)]
         [TestCase(false)]
-        [TestBothServersVersion(4,0,5,1)]
+        [TestBothServersVersion(4, 0, 5, 1)]
         public void Session_Prepare_With_Keyspace_Defined_On_Protocol_Greater_Than_4(bool usePayload)
         {
             if (Session.Cluster.Metadata.ControlConnection.Serializer.CurrentProtocolVersion < ProtocolVersion.V5)
@@ -872,7 +872,7 @@ namespace Cassandra.IntegrationTests.Core
             else
             {
                 ps = Session.Prepare("SELECT key FROM local", "system",
-                    new Dictionary<string, byte[]> {{"a", new byte[] {0, 0, 0, 1}}});
+                    new Dictionary<string, byte[]> { { "a", new byte[] { 0, 0, 0, 1 } } });
             }
             Assert.AreEqual("system", ps.Keyspace);
 
@@ -887,7 +887,7 @@ namespace Cassandra.IntegrationTests.Core
 
         [TestCase(true)]
         [TestCase(false)]
-        [TestBothServersVersion(4,0,5,1)]
+        [TestBothServersVersion(4, 0, 5, 1)]
         public async Task Session_PrepareAsync_With_Keyspace_Defined_On_Protocol_Greater_Than_4(bool usePayload)
         {
             if (Session.Cluster.Metadata.ControlConnection.Serializer.CurrentProtocolVersion < ProtocolVersion.V5)
@@ -905,7 +905,7 @@ namespace Cassandra.IntegrationTests.Core
             else
             {
                 ps = await Session.PrepareAsync("SELECT key FROM local", "system",
-                    new Dictionary<string, byte[]> {{"a", new byte[] {0, 0, 0, 1}}}).ConfigureAwait(false);
+                    new Dictionary<string, byte[]> { { "a", new byte[] { 0, 0, 0, 1 } } }).ConfigureAwait(false);
             }
             Assert.AreEqual("system", ps.Keyspace);
 
@@ -920,14 +920,14 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        [TestBothServersVersion(4,0,5,1)]
+        [TestBothServersVersion(4, 0, 5, 1)]
         public void Session_Prepare_With_Keyspace_Defined_On_Protocol_V4()
         {
             TestKeyspaceInPrepareNotSupported(true);
         }
 
         [Test]
-        [TestBothServersVersion(4, 0, 5,1, Comparison.LessThan)]
+        [TestBothServersVersion(4, 0, 5, 1, Comparison.LessThan)]
         public void Session_Prepare_With_Keyspace_Defined_On_Previuos_Cassandra_Versions()
         {
             TestKeyspaceInPrepareNotSupported(false);
@@ -935,12 +935,13 @@ namespace Cassandra.IntegrationTests.Core
 
         private void TestKeyspaceInPrepareNotSupported(bool specifyProtocol)
         {
-            using (var cluster = GetNewTemporaryCluster(builder => {
-                       if (specifyProtocol)
-                       {
-                           builder.WithMaxProtocolVersion(ProtocolVersion.V4);
-                       }
-                   }))
+            using (var cluster = GetNewTemporaryCluster(builder =>
+            {
+                if (specifyProtocol)
+                {
+                    builder.WithMaxProtocolVersion(ProtocolVersion.V4);
+                }
+            }))
             {
                 var session = cluster.Connect(KeyspaceName);
 
@@ -1082,7 +1083,7 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.AreEqual(Enumerable.Range(1, 4).Select(i => new object[] { i, $"label{i}_u" }), result);
             }
         }
-        
+
         [Test]
         [TestCassandraVersion(2, 0, Comparison.Equal)]
         public void Batch_PreparedStatements_FlagsNotSupportedInC2_0()
@@ -1113,7 +1114,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        [TestBothServersVersion(4,0,5,1)]
+        [TestBothServersVersion(4, 0, 5, 1)]
         public void BatchStatement_With_Keyspace_Defined_On_Protocol_Greater_Than_4()
         {
             using (var cluster = ClusterBuilder().AddContactPoint(TestClusterManager.InitialContactPoint).Build())
@@ -1139,7 +1140,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        [TestBothServersVersion(4, 0, 5,1, Comparison.LessThan)]
+        [TestBothServersVersion(4, 0, 5, 1, Comparison.LessThan)]
         public void BatchStatement_With_Keyspace_Defined_On_Lower_Protocol_Versions()
         {
             using (var cluster = GetNewTemporaryCluster())
@@ -1162,10 +1163,11 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Should_FailFast_When_PreparedStatementIdChangesOnReprepare()
         {
-            if (TestClusterManager.CheckCassandraVersion(false, new Version(3, 0, 0), Comparison.GreaterThanOrEqualsTo) && 
+            if (TestClusterManager.CheckCassandraVersion(false, new Version(3, 0, 0), Comparison.GreaterThanOrEqualsTo) &&
                 TestClusterManager.CheckCassandraVersion(false, new Version(3, 11, 0), Comparison.LessThan))
             {
-                if (TestClusterManager.CheckCassandraVersion(false, new Version(3, 0, 26), Comparison.GreaterThanOrEqualsTo)) {
+                if (TestClusterManager.CheckCassandraVersion(false, new Version(3, 0, 26), Comparison.GreaterThanOrEqualsTo))
+                {
                     Assert.Ignore("This test relies on a bug that is fixed in this server version.");
                     return;
                 }
@@ -1209,10 +1211,10 @@ namespace Cassandra.IntegrationTests.Core
 
             var toInsert = new List<object[]>(1);
             object val = Randomm.RandomVal(tp);
-            if (tp == typeof (string))
+            if (tp == typeof(string))
                 val = "'" + val.ToString().Replace("'", "''") + "'";
 
-            var row1 = new [] {Guid.NewGuid(), val};
+            var row1 = new[] { Guid.NewGuid(), val };
 
             toInsert.Add(row1);
 
@@ -1221,11 +1223,11 @@ namespace Cassandra.IntegrationTests.Core
                                                                            toInsert[0][0]));
             if (value == null)
             {
-                QueryTools.ExecutePreparedQuery(Session, prep, new [] { toInsert[0][1] });
+                QueryTools.ExecutePreparedQuery(Session, prep, new[] { toInsert[0][1] });
             }
             else
             {
-                QueryTools.ExecutePreparedQuery(Session, prep, new [] {value});
+                QueryTools.ExecutePreparedQuery(Session, prep, new[] { value });
             }
 
             QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName), ConsistencyLevel.One, toInsert);

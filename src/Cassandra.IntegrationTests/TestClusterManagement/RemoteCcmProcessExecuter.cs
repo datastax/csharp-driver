@@ -103,7 +103,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         ~RemoteCcmProcessExecuter()
         {
-            if (_sshClient != null && _sshClient.IsConnected) 
+            if (_sshClient != null && _sshClient.IsConnected)
                 _sshClient.Disconnect();
         }
     }

@@ -46,11 +46,11 @@ namespace Cassandra.ExecutionProfiles
         /// <param name="queryOptions">Must not be null.</param>
         /// <param name="clientOptions">Must not be null.</param>
         public RequestOptions(
-            IExecutionProfile profile, 
-            IExecutionProfile defaultProfile, 
-            Policies policies, 
-            SocketOptions socketOptions, 
-            QueryOptions queryOptions, 
+            IExecutionProfile profile,
+            IExecutionProfile defaultProfile,
+            Policies policies,
+            SocketOptions socketOptions,
+            QueryOptions queryOptions,
             ClientOptions clientOptions)
         {
             _profile = profile;
@@ -59,7 +59,7 @@ namespace Cassandra.ExecutionProfiles
             _socketOptions = socketOptions ?? throw new ArgumentNullException(nameof(socketOptions));
             _queryOptions = queryOptions ?? throw new ArgumentNullException(nameof(queryOptions));
             _clientOptions = clientOptions ?? throw new ArgumentNullException(nameof(clientOptions));
-            
+
             if (profile?.LoadBalancingPolicy == null && policies.LoadBalancingPolicy == null)
             {
                 throw new ArgumentNullException(nameof(policies.LoadBalancingPolicy));
@@ -69,13 +69,13 @@ namespace Cassandra.ExecutionProfiles
             {
                 throw new ArgumentNullException(nameof(policies.SpeculativeExecutionPolicy));
             }
-            
+
             if (profile?.RetryPolicy == null && policies.RetryPolicy == null)
             {
                 throw new ArgumentNullException(nameof(policies.ExtendedRetryPolicy));
             }
         }
-        
+
         /// <summary>
         /// Builds a request options object without any null settings.
         /// </summary>
@@ -87,11 +87,11 @@ namespace Cassandra.ExecutionProfiles
         /// <param name="clientOptions">Must not be null.</param>
         /// <param name="graphOptions">Must not be null.</param>
         public RequestOptions(
-            IExecutionProfile profile, 
-            IExecutionProfile defaultProfile, 
-            Policies policies, 
-            SocketOptions socketOptions, 
-            QueryOptions queryOptions, 
+            IExecutionProfile profile,
+            IExecutionProfile defaultProfile,
+            Policies policies,
+            SocketOptions socketOptions,
+            QueryOptions queryOptions,
             ClientOptions clientOptions,
             GraphOptions graphOptions) : this(profile, defaultProfile, policies, socketOptions, queryOptions, clientOptions)
         {
@@ -138,7 +138,7 @@ namespace Cassandra.ExecutionProfiles
 
             return consistency;
         }
-        
+
         /// <summary>
         /// Returns the timeout in milliseconds based on the amount of queries.
         /// </summary>
@@ -154,7 +154,7 @@ namespace Cassandra.ExecutionProfiles
                 return QueryAbortTimeout;
             }
 
-            return QueryAbortTimeout*amountOfQueries;
+            return QueryAbortTimeout * amountOfQueries;
         }
     }
 }

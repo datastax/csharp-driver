@@ -29,7 +29,7 @@ namespace Cassandra
         /// <summary>
         /// Maximum length of a frame according to the protocol
         /// </summary>
-        internal const int MaximumFrameLength = 256*1024*1024;
+        internal const int MaximumFrameLength = 256 * 1024 * 1024;
 
         /// <summary>
         /// The default value for <see cref="get_MaxSchemaAgreementWaitSeconds"/>: 10.
@@ -84,7 +84,7 @@ namespace Cassandra
         /// <summary>
         /// Gets the maximum time to wait for schema agreement before returning from a DDL query.
         /// </summary>
-        public int MaxSchemaAgreementWaitSeconds 
+        public int MaxSchemaAgreementWaitSeconds
         {
             get { return _maxSchemaAgreementWaitSeconds; }
         }
@@ -110,7 +110,7 @@ namespace Cassandra
         /// </summary>
         public byte? MaxProtocolVersion
         {
-            get { return (byte?) _maxProtocolVersion; }
+            get { return (byte?)_maxProtocolVersion; }
         }
 
         internal ProtocolVersion? MaxProtocolVersionValue

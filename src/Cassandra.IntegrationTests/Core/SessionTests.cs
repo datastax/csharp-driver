@@ -94,7 +94,7 @@ namespace Cassandra.IntegrationTests.Core
             var ex = Assert.Throws<InvalidQueryException>(() => localSession.ChangeKeyspace("THIS_KEYSPACE_DOES_NOT_EXIST_EITHER"));
             Assert.True(ex.Message.ToLower().Contains("keyspace"));
         }
-        
+
         [Test]
         public void ChangeKeyspace_SetsKeyspace()
         {
@@ -267,7 +267,7 @@ namespace Cassandra.IntegrationTests.Core
                             stopWatch.Restart();
                         }
                     }
-                    var poolHasBeenReset = wasReset == 1 && 
+                    var poolHasBeenReset = wasReset == 1 &&
                                            pool1.OpenConnections == 3 &&
                                            pool2.OpenConnections == 3 &&
                                            stopWatch.ElapsedMilliseconds > 2000;

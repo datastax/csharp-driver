@@ -46,7 +46,7 @@ namespace Cassandra.Mapping
                 Definitions.Add(map);
             }
 
-            return (Map<TPoco>) map;
+            return (Map<TPoco>)map;
         }
     }
 }

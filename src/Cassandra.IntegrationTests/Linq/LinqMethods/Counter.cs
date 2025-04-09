@@ -51,8 +51,8 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         }
 
         private void PrimeLinqCounterRangeQuery(
-            IEnumerable<CounterEntityWithLinqAttributes> counters, 
-            string tableName = "CounterEntityWithLinqAttributes", 
+            IEnumerable<CounterEntityWithLinqAttributes> counters,
+            string tableName = "CounterEntityWithLinqAttributes",
             bool caseSensitive = true)
         {
             var cql = caseSensitive

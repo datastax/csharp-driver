@@ -39,7 +39,7 @@ namespace Cassandra.IntegrationTests.TestBase
         internal static object RandomVal(Type tp)
         {
             if (tp != null)
-                return Randomm.Instance.GetType().GetTypeInfo().GetMethod("Next" + tp.Name).Invoke(Randomm.Instance, new object[] {});
+                return Randomm.Instance.GetType().GetTypeInfo().GetMethod("Next" + tp.Name).Invoke(Randomm.Instance, new object[] { });
             return "";
         }
 
@@ -68,12 +68,12 @@ namespace Cassandra.IntegrationTests.TestBase
             double numb = _r.NextDouble();
             numb -= 0.5;
             numb *= 2;
-            return float.MaxValue*(float) numb;
+            return float.MaxValue * (float)numb;
         }
 
         public UInt16 NextUInt16()
         {
-            return (ushort) _r.Next(0, 65535);
+            return (ushort)_r.Next(0, 65535);
         }
 
         public static int NextInt32()
@@ -83,14 +83,14 @@ namespace Cassandra.IntegrationTests.TestBase
 
         public Int64 NextInt64()
         {
-            var buffer = new byte[sizeof (Int64)];
+            var buffer = new byte[sizeof(Int64)];
             _r.NextBytes(buffer);
             return BitConverter.ToInt64(buffer, 0);
         }
 
         public decimal NextDecimal()
         {
-            var scale = (byte) _r.Next(29);
+            var scale = (byte)_r.Next(29);
             bool sign = _r.Next(2) == 1;
 
             return new decimal(Randomm.NextInt32(),
@@ -102,7 +102,7 @@ namespace Cassandra.IntegrationTests.TestBase
 
         public BigInteger NextBigInteger()
         {
-            return new BigInteger(Int64.MaxValue)*10;
+            return new BigInteger(Int64.MaxValue) * 10;
         }
 
         public string NextString()
@@ -117,7 +117,7 @@ namespace Cassandra.IntegrationTests.TestBase
                 if (i == 34 || i == 39)
                     continue;
                 else
-                    asciiString += (char) i;
+                    asciiString += (char)i;
 
             return asciiString;
         }
@@ -142,7 +142,7 @@ namespace Cassandra.IntegrationTests.TestBase
 
         public System.Net.IPAddress NextIPAddress()
         {
-            byte[] btarr = new byte[]{(byte)this.Next(0, 128), (byte)this._r.Next(0, 128), (byte)this._r.Next(0, 128), (byte)this._r.Next(0, 128)};
+            byte[] btarr = new byte[] { (byte)this.Next(0, 128), (byte)this._r.Next(0, 128), (byte)this._r.Next(0, 128), (byte)this._r.Next(0, 128) };
             return new System.Net.IPAddress(btarr);
         }
 

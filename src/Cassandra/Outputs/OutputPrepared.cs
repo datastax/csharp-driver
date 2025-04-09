@@ -41,7 +41,7 @@ namespace Cassandra
             VariablesRowsMetadata = new RowSetMetadata(reader, protocolVersion.SupportsPreparedPartitionKey());
             ResultRowsMetadata = new RowSetMetadata(reader, false);
         }
-        
+
         // for testing
         internal OutputPrepared(byte[] queryId, RowSetMetadata rowSetVariablesRowsMetadata, RowSetMetadata resultRowsMetadata)
         {

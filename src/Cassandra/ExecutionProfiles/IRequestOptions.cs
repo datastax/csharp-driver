@@ -44,7 +44,7 @@ namespace Cassandra.ExecutionProfiles
         bool DefaultIdempotence { get; }
 
         int QueryAbortTimeout { get; }
-        
+
         /// <summary>
         /// Gets the serial consistency level of the statement or the default value from the query options.
         /// </summary>

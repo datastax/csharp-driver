@@ -39,12 +39,12 @@ namespace Cassandra
         private static readonly Logger Logger = new Logger(typeof(ControlConnection));
 
         internal TokenMap(
-            TokenFactory factory, 
-            IReadOnlyDictionary<string, IReadOnlyDictionary<IToken, ISet<Host>>> tokenToHostsByKeyspace, 
-            List<IToken> ring, 
-            IReadOnlyDictionary<IToken, Host> primaryReplicas, 
-            IReadOnlyDictionary<IReplicationStrategy, IReadOnlyDictionary<IToken, ISet<Host>>> keyspaceTokensCache, 
-            IReadOnlyDictionary<string, DatacenterInfo> datacenters, 
+            TokenFactory factory,
+            IReadOnlyDictionary<string, IReadOnlyDictionary<IToken, ISet<Host>>> tokenToHostsByKeyspace,
+            List<IToken> ring,
+            IReadOnlyDictionary<IToken, Host> primaryReplicas,
+            IReadOnlyDictionary<IReplicationStrategy, IReadOnlyDictionary<IToken, ISet<Host>>> keyspaceTokensCache,
+            IReadOnlyDictionary<string, DatacenterInfo> datacenters,
             int numberOfHostsWithTokens)
         {
             Factory = factory;
@@ -72,7 +72,7 @@ namespace Cassandra
 
             sw.Stop();
             TokenMap.Logger.Info(
-                "Finished updating TokenMap for the '{0}' keyspace. It took {1:0} milliseconds.", 
+                "Finished updating TokenMap for the '{0}' keyspace. It took {1:0} milliseconds.",
                 ks.Name,
                 sw.Elapsed.TotalMilliseconds);
         }
@@ -154,20 +154,20 @@ namespace Cassandra
 
             sw.Stop();
             TokenMap.Logger.Info(
-                "Finished building TokenMap for {0} keyspaces and {1} hosts. It took {2:0} milliseconds.", 
-                keyspaces.Count, 
-                hosts.Count, 
+                "Finished building TokenMap for {0} keyspaces and {1} hosts. It took {2:0} milliseconds.",
+                keyspaces.Count,
+                hosts.Count,
                 sw.Elapsed.TotalMilliseconds);
             return new TokenMap(factory, tokenToHosts, ring, primaryReplicas, ksTokensCache, datacenters, numberOfHostsWithTokens);
         }
 
         private static void UpdateKeyspace(
             KeyspaceMetadata ks,
-            IDictionary<string, IReadOnlyDictionary<IToken, ISet<Host>>> tokenToHostsByKeyspace, 
-            IReadOnlyList<IToken> ring, 
-            IReadOnlyDictionary<IToken, Host> primaryReplicas, 
-            IDictionary<IReplicationStrategy, IReadOnlyDictionary<IToken, ISet<Host>>> keyspaceTokensCache, 
-            IReadOnlyDictionary<string, DatacenterInfo> datacenters, 
+            IDictionary<string, IReadOnlyDictionary<IToken, ISet<Host>>> tokenToHostsByKeyspace,
+            IReadOnlyList<IToken> ring,
+            IReadOnlyDictionary<IToken, Host> primaryReplicas,
+            IDictionary<IReplicationStrategy, IReadOnlyDictionary<IToken, ISet<Host>>> keyspaceTokensCache,
+            IReadOnlyDictionary<string, DatacenterInfo> datacenters,
             int numberOfHostsWithTokens)
         {
             IReadOnlyDictionary<IToken, ISet<Host>> replicas;

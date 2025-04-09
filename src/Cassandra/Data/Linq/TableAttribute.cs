@@ -28,7 +28,7 @@ namespace Cassandra.Data.Linq
         /// <summary>
         /// Gets or sets the table name in Cassandra
         /// </summary>
-        public string Name {get; set; }
+        public string Name { get; set; }
 
         /// <summary>
         /// Determines if the table and column names are defined as case sensitive (default to true).

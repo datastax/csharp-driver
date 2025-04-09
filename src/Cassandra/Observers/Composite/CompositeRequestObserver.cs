@@ -36,7 +36,7 @@ namespace Cassandra.Observers.Composite
         public async Task OnNodeRequestErrorAsync(
             RequestErrorType errorType,
             RetryDecision.RetryDecisionType decision,
-            SessionRequestInfo r, 
+            SessionRequestInfo r,
             NodeRequestInfo nodeRequestInfo,
             Exception ex)
         {

@@ -37,7 +37,7 @@ namespace Cassandra.DataStax.Insights.InfoProviders.StartupMessage
             _speculativeExecutionPolicyInfoProvider = speculativeExecutionPolicyInfoProvider;
             _retryPolicyInfoProvider = retryPolicyInfoProvider;
         }
-        
+
         public Dictionary<string, ExecutionProfileInfo> GetInformation(IInternalCluster cluster, IInternalSession session)
         {
             // add default first so that it is on top

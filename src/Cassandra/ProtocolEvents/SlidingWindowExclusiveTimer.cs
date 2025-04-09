@@ -44,7 +44,7 @@ namespace Cassandra.ProtocolEvents
             {
                 throw new ArgumentException("delayIncrement can not be greater than maxDelay");
             }
-            
+
             var scheduler = new ConcurrentExclusiveSchedulerPair().ExclusiveScheduler;
             var taskFactory = new TaskFactory(
                 CancellationToken.None,
@@ -67,7 +67,7 @@ namespace Cassandra.ProtocolEvents
         {
             _timer?.Dispose();
         }
-        
+
         public void SlideDelay(bool processNow)
         {
             SlideDelayAsync(processNow).Forget();
@@ -137,12 +137,12 @@ namespace Cassandra.ProtocolEvents
         {
             _timer?.Cancel();
         }
-        
+
         private void Fire()
         {
             // this method can't be async otherwise exclusive scheduler is pointless
             // this is already running inside the exclusive scheduler
-            
+
             if (_isRunning)
             {
                 _act();

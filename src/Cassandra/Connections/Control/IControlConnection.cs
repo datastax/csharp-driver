@@ -25,7 +25,7 @@ namespace Cassandra.Connections.Control
         /// Host to which the control connection is currently connected.
         /// </summary>
         Host Host { get; }
-        
+
         /// <summary>
         /// Tries to create a connection to any of the contact points and retrieve cluster metadata for the first time.
         /// Not thread-safe.
@@ -34,7 +34,7 @@ namespace Cassandra.Connections.Control
         /// <exception cref="TimeoutException" />
         /// <exception cref="DriverInternalError" />
         Task InitAsync();
-        
+
         /// <summary>
         /// Updates keyspace metadata and token map if necessary.
         /// </summary>
@@ -52,7 +52,7 @@ namespace Cassandra.Connections.Control
         /// then the returned task will be complete when the refresh has been added to the queue (event debouncer).
         /// </summary>
         Task ScheduleKeyspaceRefreshAsync(string keyspace, bool processNow);
-        
+
         /// <summary>
         /// Schedule a refresh of all keyspaces. If <paramref name="processNow"/> is <code>true</code>,
         /// the returned task will be complete when the refresh is done. If it's <code>false</code>

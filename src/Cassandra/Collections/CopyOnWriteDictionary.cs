@@ -47,7 +47,7 @@ namespace Cassandra.Collections
         {
             _map = new Dictionary<TKey, TValue>(toCopy);
         }
-        
+
         public CopyOnWriteDictionary()
         {
             //Start with an instance without nodes
@@ -277,7 +277,7 @@ namespace Cassandra.Collections
             {
                 throw new ArgumentNullException(nameof(key));
             }
-            
+
             if (updateValueFactory == null)
             {
                 throw new ArgumentNullException(nameof(updateValueFactory));
@@ -320,7 +320,7 @@ namespace Cassandra.Collections
 
             _map = newMap;
         }
-        
+
         private bool CloneMapAndRemoveUnsafe(TKey key)
         {
             var newMap = new Dictionary<TKey, TValue>(_map);

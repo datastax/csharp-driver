@@ -22,7 +22,7 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.Models.Logs
     {
         [JsonProperty("opcode")]
         public int OpCode { get; set; }
-        
+
         [JsonProperty("is_response")]
         public bool IsResponse { get; set; }
 

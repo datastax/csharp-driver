@@ -73,7 +73,7 @@ namespace Cassandra
         {
             return Add(key, null);
         }
-        
+
         /// <summary>
         /// Adds the host if not exists
         /// </summary>

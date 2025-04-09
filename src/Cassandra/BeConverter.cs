@@ -30,7 +30,7 @@ namespace Cassandra
         /// </summary>
         public static byte[] GetBytes(short value)
         {
-            return new[] { (byte)((value & 0xFF00) >> 8), (byte) (value & 0xFF)};
+            return new[] { (byte)((value & 0xFF00) >> 8), (byte)(value & 0xFF) };
         }
 
         /// <summary>
@@ -38,7 +38,7 @@ namespace Cassandra
         /// </summary>
         public static byte[] GetBytes(ushort value)
         {
-            return GetBytes((short) value);
+            return GetBytes((short)value);
         }
 
         /// <summary>
@@ -60,7 +60,7 @@ namespace Cassandra
         /// </summary>
         public static byte[] GetBytes(long value)
         {
-            return new []
+            return new[]
             {
                 (byte) (((ulong) value & 0xFF00000000000000) >> 56),
                 (byte) ((value & 0xFF000000000000) >> 48),
@@ -129,7 +129,7 @@ namespace Cassandra
         public static long ToInt64(byte[] value, int offset = 0)
         {
             return (long)(
-                  ((ulong)value[offset]     << 56)
+                  ((ulong)value[offset] << 56)
                 | ((ulong)value[offset + 1] << 48)
                 | ((ulong)value[offset + 2] << 40)
                 | ((ulong)value[offset + 3] << 32)

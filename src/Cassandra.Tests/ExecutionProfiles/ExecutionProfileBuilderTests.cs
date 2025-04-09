@@ -25,7 +25,7 @@ namespace Cassandra.Tests.ExecutionProfiles
     {
         [Test]
         public void Should_GetAllSettingsFromBaseProfile_When_DerivedProfileHasNoSettings()
-        { 
+        {
             var go = new GraphOptions();
             var lbp = new RoundRobinPolicy();
             var sep = new ConstantSpeculativeExecutionPolicy(1000, 1);
@@ -52,10 +52,10 @@ namespace Cassandra.Tests.ExecutionProfiles
             Assert.AreEqual(ConsistencyLevel.Quorum, profile.ConsistencyLevel);
             Assert.AreEqual(go, profile.GraphOptions);
         }
-        
+
         [Test]
         public void Should_GetNoSettingFromBaseProfile_When_DerivedProfileHasAllSettings()
-        { 
+        {
             var go = new GraphOptions().SetName("ee");
             var goProfile = new GraphOptions().SetName("tt");
             var lbp = new RoundRobinPolicy();
@@ -75,7 +75,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                 .WithRetryPolicy(rp);
 
             var baseProfile = baseProfileBuilder.Build();
-            
+
             var derivedProfileBuilder = new ExecutionProfileBuilder();
             derivedProfileBuilder
                 .WithLoadBalancingPolicy(lbpProfile)
@@ -87,7 +87,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                 .WithRetryPolicy(rpProfile);
 
             var derivedProfile = derivedProfileBuilder.Build();
-            
+
             var profile = new ExecutionProfile(baseProfile, derivedProfile);
 
             Assert.AreSame(lbpProfile, profile.LoadBalancingPolicy);

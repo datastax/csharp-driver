@@ -27,7 +27,7 @@ namespace Cassandra.DataStax.Graph
         /// Gets the property name.
         /// </summary>
         string Name { get; }
-        
+
         /// <summary>
         /// Gets the property value.
         /// </summary>

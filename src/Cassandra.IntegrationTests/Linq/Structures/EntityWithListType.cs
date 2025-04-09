@@ -28,7 +28,7 @@ namespace Cassandra.IntegrationTests.Linq.Structures
         private const int DefaultListLength = 5;
         public string Id { get; set; }
         public List<int> ListType { get; set; }
-        
+
         public static Tuple<Table<EntityWithListType>, List<EntityWithListType>> GetDefaultTable(
             ISession session, string tableName)
         {

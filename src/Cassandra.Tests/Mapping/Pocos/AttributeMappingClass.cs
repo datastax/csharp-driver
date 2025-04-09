@@ -46,7 +46,7 @@ namespace Cassandra.Tests.Mapping.Pocos
 
         [Column("decimal_value_col")]
         public decimal DecimalValue { get; set; }
-        
+
         private static readonly IDictionary<string, Func<AttributeMappingClass, object>> ColumnMappings =
             new Dictionary<string, Func<AttributeMappingClass, object>>
             {
@@ -58,7 +58,7 @@ namespace Cassandra.Tests.Mapping.Pocos
                 { "float_value_col", entity => entity.FloatValue },
                 { "partition_key", entity => entity.PartitionKey }
             };
-        
+
         public object[] GetParameters()
         {
             return AttributeMappingClass.ColumnMappings.Values.Select(func => func(this)).ToArray();

@@ -162,16 +162,16 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreNotSame(previousResultMetadata, ps.ResultMetadata);
             Assert.AreNotEqual(previousResultMetadata.ResultMetadataId, ps.ResultMetadata.ResultMetadataId);
             Assert.AreEqual(3, ps.ResultMetadata.RowSetMetadata.Columns.Length);
-            
+
             rs = Session.Execute(boundStatementManualPaging.SetPagingState(rs.PagingState));
             var thirdPage = rs.ToList();
-            
+
             var allRowsAfterAlter = Session.Execute(ps.Bind()).ToList();
             Assert.AreEqual(totalRowLength, allRowsAfterAlter.Count);
 
             Assert.AreEqual(pageSize, firstPage.Count);
             Assert.AreEqual(pageSize, secondPage.Count);
-            Assert.AreEqual(totalRowLength-(pageSize*2), thirdPage.Count);
+            Assert.AreEqual(totalRowLength - (pageSize * 2), thirdPage.Count);
 
             Assert.IsTrue(firstPage.All(r => !r.ContainsColumn("new_column")));
             Assert.IsTrue(secondPage.All(r => r.ContainsColumn("new_column") && r.GetValue<string>("new_column") == null));

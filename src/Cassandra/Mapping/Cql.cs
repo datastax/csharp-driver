@@ -99,7 +99,7 @@ namespace Cassandra.Mapping
         {
             return new Cql(cql, args);
         }
-        
+
         /// <summary>
         /// Creates an empty CQL instance for cases where a cql string is not needed like fetch queries.
         /// </summary>

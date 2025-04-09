@@ -50,7 +50,7 @@ namespace Cassandra.DataStax.Graph
         /// <param name="query">The graph query string.</param>
         public SimpleGraphStatement(string query) : this(query, null)
         {
-            
+
         }
 
         /// <summary>

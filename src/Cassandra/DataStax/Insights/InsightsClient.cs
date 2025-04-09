@@ -69,7 +69,7 @@ namespace Cassandra.DataStax.Insights
             }
             catch (Exception ex)
             {
-                if (_cancellationTokenSource.IsCancellationRequested || 
+                if (_cancellationTokenSource.IsCancellationRequested ||
                     _errorCount >= InsightsClient.ErrorCountThresholdForLogging)
                 {
                     return false;
@@ -91,7 +91,7 @@ namespace Cassandra.DataStax.Insights
             }
             catch (Exception ex)
             {
-                if (_cancellationTokenSource.IsCancellationRequested || 
+                if (_cancellationTokenSource.IsCancellationRequested ||
                     _errorCount >= InsightsClient.ErrorCountThresholdForLogging)
                 {
                     return false;
@@ -146,9 +146,9 @@ namespace Cassandra.DataStax.Insights
                 // The initial delay should contain some random portion
                 // Initial delay should be statusEventDelay - (0 to 10%)
                 var percentageToSubtract = new Random(Guid.NewGuid().GetHashCode()).NextDouble() * 0.1;
-                var delay = _monitorReportingOptions.StatusEventDelayMilliseconds - 
+                var delay = _monitorReportingOptions.StatusEventDelayMilliseconds -
                             (_monitorReportingOptions.StatusEventDelayMilliseconds * percentageToSubtract);
-                
+
                 while (!_cancellationTokenSource.IsCancellationRequested)
                 {
                     if (!startupSent)
@@ -159,7 +159,7 @@ namespace Cassandra.DataStax.Insights
                     {
                         await SendStatusMessageAsync().ConfigureAwait(false);
                     }
-                    
+
                     await TaskHelper.DelayWithCancellation(
                         TimeSpan.FromMilliseconds(delay), _cancellationTokenSource.Token).ConfigureAwait(false);
 
@@ -191,9 +191,9 @@ namespace Cassandra.DataStax.Insights
                 null,
                 null);
 
-            var response = await RunWithTokenAsync(() => 
+            var response = await RunWithTokenAsync(() =>
                 _cluster.Metadata.ControlConnection.UnsafeSendQueryRequestAsync(
-                    InsightsClient.ReportInsightRpc, 
+                    InsightsClient.ReportInsightRpc,
                     queryProtocolOptions)).ConfigureAwait(false);
 
             if (response == null)

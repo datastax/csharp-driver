@@ -23,7 +23,7 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.Models.Converters
 {
     public class ConsistencyLevelEnumConverter : JsonConverter
     {
-        private static readonly IDictionary<string, ConsistencyLevel> Map = 
+        private static readonly IDictionary<string, ConsistencyLevel> Map =
             new Dictionary<string, ConsistencyLevel>(StringComparer.OrdinalIgnoreCase)
             {
                 { "ONE", ConsistencyLevel.One },

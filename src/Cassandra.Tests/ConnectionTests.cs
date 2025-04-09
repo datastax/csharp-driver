@@ -41,10 +41,10 @@ namespace Cassandra.Tests
         {
             config = config ?? new Configuration();
             return new Mock<Connection>(
-                MockBehavior.Loose, 
-                serializer?.GetCurrentSerializer() ?? new SerializerManager(ProtocolVersion.MaxSupported).GetCurrentSerializer(), 
-                new ConnectionEndPoint(ConnectionTests.Address, config.ServerNameResolver, null), 
-                config, 
+                MockBehavior.Loose,
+                serializer?.GetCurrentSerializer() ?? new SerializerManager(ProtocolVersion.MaxSupported).GetCurrentSerializer(),
+                new ConnectionEndPoint(ConnectionTests.Address, config.ServerNameResolver, null),
+                config,
                 new StartupRequestFactory(config.StartupOptionsFactory),
                 NullConnectionObserver.Instance);
         }
@@ -70,7 +70,7 @@ namespace Cassandra.Tests
             CollectionAssert.AreEqual(new short[] { 127, 126, 125 }, streamIds);
             TestHelper.WaitUntil(() => responses.Count == 3);
             Assert.AreEqual(3, responses.Count);
-            CollectionAssert.AreEqual(Enumerable.Repeat(ResultResponse.ResultResponseKind.Void, 3), responses.Select(r => ((ResultResponse) r).Kind));
+            CollectionAssert.AreEqual(Enumerable.Repeat(ResultResponse.ResultResponseKind.Void, 3), responses.Select(r => ((ResultResponse)r).Kind));
         }
 
         [Test]
@@ -200,7 +200,7 @@ namespace Cassandra.Tests
             //2 more bytes, but not enough
             var buffer = originalBuffer.Skip(firstSlice).Take(2).ToArray();
             connection.ReadParse(buffer, buffer.Length);
-            CollectionAssert.AreEqual(new short[] { 127, 126}, streamIds);
+            CollectionAssert.AreEqual(new short[] { 127, 126 }, streamIds);
             //the last byte
             buffer = originalBuffer.Skip(firstSlice + 2).ToArray();
             connection.ReadParse(buffer, buffer.Length);
@@ -283,7 +283,7 @@ namespace Cassandra.Tests
             var connectionMock = GetConnectionMock();
             var responses = new ConcurrentBag<object>();
             connectionMock.Setup(c => c.RemoveFromPending(It.IsAny<short>()))
-                          .Returns(() => OperationStateExtensions.CreateMock((ex, r) => responses.Add((object) ex ?? r)));
+                          .Returns(() => OperationStateExtensions.CreateMock((ex, r) => responses.Add((object)ex ?? r)));
             var connection = connectionMock.Object;
             var bufferBuilder = Enumerable.Empty<byte>();
             const int totalFrames = 63;
@@ -298,7 +298,7 @@ namespace Cassandra.Tests
             {
                 var index = i;
                 tasks.Add(
-                    Task.Factory.StartNew(() => connection.ReadParse(buffer.Skip(index).ToArray(), 1), 
+                    Task.Factory.StartNew(() => connection.ReadParse(buffer.Skip(index).ToArray(), 1),
                         CancellationToken.None, TaskCreationOptions.None, schedulerPair.ExclusiveScheduler));
             }
             var random = new Random();
@@ -310,7 +310,7 @@ namespace Cassandra.Tests
             await TestHelper.WaitUntilAsync(() => totalFrames == responses.Count, 100, 30).ConfigureAwait(false);
             Assert.AreEqual(totalFrames, responses.Count);
         }
-        
+
         [Test]
         public void Should_HandleDifferentProtocolVersionsInDifferentConnections_When_OneConnectionResponseVersionIsDifferentThanSerializer()
         {

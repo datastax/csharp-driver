@@ -41,8 +41,8 @@ namespace Cassandra.Tests
             var config = new TestConfigurationBuilder
             {
                 Policies = new Cassandra.Policies(
-                    new RoundRobinPolicy(), 
-                    new ConstantReconnectionPolicy(100), 
+                    new RoundRobinPolicy(),
+                    new ConstantReconnectionPolicy(100),
                     new DefaultRetryPolicy()),
                 SessionFactory = sessionFactoryMock,
                 ControlConnectionFactory = new FakeControlConnectionFactory(),

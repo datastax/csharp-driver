@@ -37,7 +37,7 @@ namespace Cassandra.Serialization
             get { return null; }
         }
 
-        public ColumnTypeCode CqlType 
+        public ColumnTypeCode CqlType
         {
             get { return _typeCode; }
         }
@@ -54,7 +54,7 @@ namespace Cassandra.Serialization
             buffer = Utils.SliceBuffer(buffer, offset, length);
             if (_reverse)
             {
-                Array.Reverse(buffer);   
+                Array.Reverse(buffer);
             }
             return _adapter.ConvertFrom(buffer);
         }

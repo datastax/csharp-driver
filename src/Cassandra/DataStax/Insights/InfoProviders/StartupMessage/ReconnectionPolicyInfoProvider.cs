@@ -27,24 +27,24 @@ namespace Cassandra.DataStax.Insights.InfoProviders.StartupMessage
         {
             ReconnectionPolicyInfoProvider.PolicyOptionsProviders = new Dictionary<Type, Func<IReconnectionPolicy, Dictionary<string, object>>>
             {
-                { 
-                    typeof(ConstantReconnectionPolicy), 
+                {
+                    typeof(ConstantReconnectionPolicy),
                     policy =>
                     {
                         var typedPolicy = (ConstantReconnectionPolicy) policy;
                         return new Dictionary<string, object> {{ "constantDelayMs", typedPolicy.ConstantDelayMs }};
                     }
                 },
-                { 
-                    typeof(ExponentialReconnectionPolicy), 
+                {
+                    typeof(ExponentialReconnectionPolicy),
                     policy =>
                     {
                         var typedPolicy = (ExponentialReconnectionPolicy) policy;
                         return new Dictionary<string, object> {{ "baseDelayMs", typedPolicy.BaseDelayMs }, { "maxDelayMs", typedPolicy.MaxDelayMs }};
                     }
                 },
-                { 
-                    typeof(FixedReconnectionPolicy), 
+                {
+                    typeof(FixedReconnectionPolicy),
                     policy =>
                     {
                         var typedPolicy = (FixedReconnectionPolicy) policy;

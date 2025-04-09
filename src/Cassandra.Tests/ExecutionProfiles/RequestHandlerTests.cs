@@ -84,7 +84,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                 profile);
 
             await mockResult.RequestHandler.SendAsync().ConfigureAwait(false);
-            
+
             var results = mockResult.SendResults.ToArray();
             Assert.GreaterOrEqual(results.Length, 1);
             var timeouts = results.Select(r => r.TimeoutMillis).ToList();
@@ -139,7 +139,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                 profile);
 
             await mockResult.RequestHandler.SendAsync().ConfigureAwait(false);
-            
+
             var results = mockResult.SendResults.ToArray();
             Assert.GreaterOrEqual(results.Length, 1);
             var timeouts = results.Select(r => r.TimeoutMillis).ToList();
@@ -155,7 +155,7 @@ namespace Cassandra.Tests.ExecutionProfiles
             Assert.AreEqual(0, Interlocked.Read(ref sepCluster.Count));
             Assert.AreEqual(0, Interlocked.Read(ref rpCluster.Count));
         }
-        
+
         [Test]
         [TestCase(RequestTypeTestCase.Batch)]
         [TestCase(RequestTypeTestCase.Simple)]
@@ -206,31 +206,31 @@ namespace Cassandra.Tests.ExecutionProfiles
             switch (testCase)
             {
                 case RequestTypeTestCase.Batch:
-                    return results.Select(r => ((BatchRequest) r.Request).Consistency);
+                    return results.Select(r => ((BatchRequest)r.Request).Consistency);
                 case RequestTypeTestCase.Bound:
-                    return results.Select(r => ((ExecuteRequest) r.Request).Consistency);
+                    return results.Select(r => ((ExecuteRequest)r.Request).Consistency);
                 case RequestTypeTestCase.Simple:
-                    return results.Select(r => ((QueryRequest) r.Request).Consistency);
+                    return results.Select(r => ((QueryRequest)r.Request).Consistency);
                 default:
                     throw new InvalidOperationException();
             }
         }
-        
+
         private IEnumerable<ConsistencyLevel> GetSerialConsistencyLevels(RequestTypeTestCase testCase, ConnectionSendResult[] results)
         {
             switch (testCase)
             {
                 case RequestTypeTestCase.Batch:
-                    return results.Select(r => ((BatchRequest) r.Request).SerialConsistency);
+                    return results.Select(r => ((BatchRequest)r.Request).SerialConsistency);
                 case RequestTypeTestCase.Bound:
-                    return results.Select(r => ((ExecuteRequest) r.Request).SerialConsistency);
+                    return results.Select(r => ((ExecuteRequest)r.Request).SerialConsistency);
                 case RequestTypeTestCase.Simple:
-                    return results.Select(r => ((QueryRequest) r.Request).SerialConsistency);
+                    return results.Select(r => ((QueryRequest)r.Request).SerialConsistency);
                 default:
                     throw new InvalidOperationException();
             }
         }
-        
+
         private IStatement BuildStatement(RequestTypeTestCase testCase)
         {
             switch (testCase)
@@ -304,8 +304,8 @@ namespace Cassandra.Tests.ExecutionProfiles
                     mockResult.SendResults.Enqueue(new ConnectionSendResult { Request = req, TimeoutMillis = timeout });
                     Task.Run(async () =>
                     {
-                        var rp = (FakeRetryPolicy) (statement.RetryPolicy ?? options.RetryPolicy);
-                        var sep = (FakeSpeculativeExecutionPolicy) options.SpeculativeExecutionPolicy;
+                        var rp = (FakeRetryPolicy)(statement.RetryPolicy ?? options.RetryPolicy);
+                        var sep = (FakeSpeculativeExecutionPolicy)options.SpeculativeExecutionPolicy;
                         if (Interlocked.Read(ref rp.Count) > 0 && Interlocked.Read(ref sep.Count) > 0)
                         {
                             await Task.Delay(1, cts.Token).ConfigureAwait(false);

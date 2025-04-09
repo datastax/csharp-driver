@@ -43,7 +43,7 @@ namespace Cassandra.Tests.Mapping.Utils
 
             Assert.AreEqual(expected, act);
         }
-        
+
         [TestCase("ks.\"select\"", "ks", "select", false)]
         [TestCase("\"ks\".\"select\"", "ks", "select", true)]
         [TestCase("\"select\".test", "select", "test", false)]

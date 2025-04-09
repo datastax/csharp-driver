@@ -53,8 +53,8 @@ namespace Cassandra.DataStax.Auth.Sspi.Contexts
         /// <param name="requestedAttribs">Requested attributes that describe the desired properties of the
         /// context once it is established. If a context cannot be established that satisfies the indicated
         /// properties, the context initialization is aborted.</param>
-        public ClientContext( ClientCredential cred, string serverPrinc, ContextAttrib requestedAttribs )
-            : base( cred )
+        public ClientContext(ClientCredential cred, string serverPrinc, ContextAttrib requestedAttribs)
+            : base(cred)
         {
             this.serverPrinc = serverPrinc;
             this.requestedAttribs = requestedAttribs;
@@ -82,7 +82,7 @@ namespace Cassandra.DataStax.Auth.Sspi.Contexts
         /// is not null, it must be sent to the server.
         /// A status of 'Continue' indicates that the output token should be sent to the server and 
         /// a response should be anticipated.</returns>
-        public SecurityStatus Init( byte[] serverToken, out byte[] outToken )
+        public SecurityStatus Init(byte[] serverToken, out byte[] outToken)
         {
             TimeStamp rawExpiry = new TimeStamp();
 
@@ -93,31 +93,31 @@ namespace Cassandra.DataStax.Auth.Sspi.Contexts
 
             SecureBuffer serverBuffer;
             SecureBufferAdapter serverAdapter;
-            
-            if( this.Disposed )
+
+            if (this.Disposed)
             {
-                throw new ObjectDisposedException( "ClientContext" );
+                throw new ObjectDisposedException("ClientContext");
             }
-            else if( ( serverToken != null ) && ( this.ContextHandle.IsInvalid ) )
+            else if ((serverToken != null) && (this.ContextHandle.IsInvalid))
             {
-                throw new InvalidOperationException( "Out-of-order usage detected - have a server token, but no previous client token had been created." );
+                throw new InvalidOperationException("Out-of-order usage detected - have a server token, but no previous client token had been created.");
             }
-            else if( ( serverToken == null ) && ( this.ContextHandle.IsInvalid == false ) )
+            else if ((serverToken == null) && (this.ContextHandle.IsInvalid == false))
             {
-                throw new InvalidOperationException( "Must provide the server's response when continuing the init process." );
+                throw new InvalidOperationException("Must provide the server's response when continuing the init process.");
             }
-            
+
             // The security package tells us how big its biggest token will be. We'll allocate a buffer
             // that size, and it'll tell us how much it used.
-            outTokenBuffer = new SecureBuffer( 
-                new byte[ this.Credential.PackageInfo.MaxTokenLength ], 
-                BufferType.Token 
+            outTokenBuffer = new SecureBuffer(
+                new byte[this.Credential.PackageInfo.MaxTokenLength],
+                BufferType.Token
             );
 
             serverBuffer = null;
-            if ( serverToken != null )
+            if (serverToken != null)
             {
-                serverBuffer = new SecureBuffer( serverToken, BufferType.Token );
+                serverBuffer = new SecureBuffer(serverToken, BufferType.Token);
             }
 
             // Some notes on handles and invoking InitializeSecurityContext
@@ -135,9 +135,9 @@ namespace Cassandra.DataStax.Auth.Sspi.Contexts
             //    Windows, 128 bits on 64-bit Windows.
             //  - So in the end, on a 64-bit machine, we're passing a 64-bit value (the pointer to the struct) that
             //    points to 128 bits of memory (the struct itself) for where to write the handle numbers.
-            using ( outAdapter = new SecureBufferAdapter( outTokenBuffer ) )
+            using (outAdapter = new SecureBufferAdapter(outTokenBuffer))
             {
-                if ( this.ContextHandle.IsInvalid )
+                if (this.ContextHandle.IsInvalid)
                 {
                     status = ContextNativeMethods.InitializeSecurityContext_1(
                         ref this.Credential.Handle.rawHandle,
@@ -156,7 +156,7 @@ namespace Cassandra.DataStax.Auth.Sspi.Contexts
                 }
                 else
                 {
-                    using ( serverAdapter = new SecureBufferAdapter( serverBuffer ) )
+                    using (serverAdapter = new SecureBufferAdapter(serverBuffer))
                     {
                         status = ContextNativeMethods.InitializeSecurityContext_2(
                             ref this.Credential.Handle.rawHandle,
@@ -176,24 +176,24 @@ namespace Cassandra.DataStax.Auth.Sspi.Contexts
                 }
             }
 
-            if( status.IsError() == false )
+            if (status.IsError() == false)
             {
-                if( status == SecurityStatus.OK )
+                if (status == SecurityStatus.OK)
                 {
-                    base.Initialize( rawExpiry.ToDateTime() );
+                    base.Initialize(rawExpiry.ToDateTime());
                 }
 
                 outToken = null;
 
-                if( outTokenBuffer.Length != 0 )
+                if (outTokenBuffer.Length != 0)
                 {
                     outToken = new byte[outTokenBuffer.Length];
-                    Array.Copy( outTokenBuffer.Buffer, outToken, outToken.Length );
+                    Array.Copy(outTokenBuffer.Buffer, outToken, outToken.Length);
                 }
             }
             else
             {
-                throw new SspiException( "Failed to invoke InitializeSecurityContext for a client", status );
+                throw new SspiException("Failed to invoke InitializeSecurityContext for a client", status);
             }
 
             return status;

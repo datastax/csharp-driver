@@ -177,7 +177,7 @@ namespace Cassandra.IntegrationTests.Mapping.Structures
             AssertListEqualsList(expectedInstanceList, instancesQueried);
         }
 
-        public static readonly IDictionary<string, Func<ManyDataTypesPoco, object>> Columns = 
+        public static readonly IDictionary<string, Func<ManyDataTypesPoco, object>> Columns =
             new Dictionary<string, Func<ManyDataTypesPoco, object>>
         {
             { "BooleanType", entity => entity.BooleanType },
@@ -220,7 +220,7 @@ namespace Cassandra.IntegrationTests.Mapping.Structures
                 { "StringType", DataType.Text },
                 { "TimeUuidType", DataType.GetDataType(typeof(TimeUuid)) }
             };
-        
+
         public object[] GetParameters()
         {
             return ManyDataTypesPoco.Columns.Values.Select(func => func(this)).ToArray();

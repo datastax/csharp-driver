@@ -25,29 +25,29 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.Models.Logs
         [JsonProperty("consistency")]
         [JsonConverter(typeof(ConsistencyLevelEnumConverter))]
         public ConsistencyLevel ConsistencyLevel { get; set; }
-        
+
         [JsonProperty("serial_consistency")]
         [JsonConverter(typeof(ConsistencyLevelEnumConverter))]
         public ConsistencyLevel? SerialConsistencyLevel { get; set; }
-        
+
         [JsonProperty("positional_values")]
         public List<object> PositionalValues { get; set; }
-        
+
         [JsonProperty("named_values")]
         public Dictionary<string, object> NamedValues { get; set; }
-        
+
         [JsonProperty("skip_metadata")]
         public bool? SkipMetadata { get; set; }
-        
+
         [JsonProperty("page_size")]
         public int? PageSize { get; set; }
-        
+
         [JsonProperty("paging_state")]
         public string PagingState { get; set; }
-        
+
         [JsonProperty("default_timestamp")]
         public long DefaultTimestamp { get; set; }
-        
+
         [JsonProperty("keyspace")]
         public string Keyspace { get; set; }
     }

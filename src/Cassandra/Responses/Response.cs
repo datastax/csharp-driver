@@ -62,12 +62,12 @@ namespace Cassandra.Responses
                 Reader.Read(buffer, 0, 16);
                 TraceId = new Guid(TypeSerializer.GuidShuffle(buffer));
             }
-            
+
             if (frame.Header.Flags.HasFlag(HeaderFlags.Warning))
             {
                 Warnings = Reader.ReadStringList();
             }
-            
+
             if (frame.Header.Flags.HasFlag(HeaderFlags.CustomPayload))
             {
                 CustomPayload = Reader.ReadBytesMap();

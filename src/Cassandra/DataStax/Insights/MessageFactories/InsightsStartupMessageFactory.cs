@@ -26,7 +26,7 @@ namespace Cassandra.DataStax.Insights.MessageFactories
     {
         private const string StartupMessageName = "driver.startup";
         private const string StartupV1MappingId = "v1";
-        
+
         private readonly IInsightsMetadataFactory _metadataFactory;
         private readonly InsightsInfoProvidersCollection _infoProviders;
 
@@ -51,7 +51,7 @@ namespace Cassandra.DataStax.Insights.MessageFactories
                 ApplicationName = cluster.Configuration.ApplicationName,
                 ApplicationVersion = cluster.Configuration.ApplicationVersion,
                 ApplicationNameWasGenerated = cluster.Configuration.ApplicationNameWasGenerated,
-                ContactPoints = 
+                ContactPoints =
                     cluster.Metadata.ResolvedContactPoints.ToDictionary(
                         kvp => kvp.Key.StringRepresentation, kvp => kvp.Value.Select(ipEndPoint => ipEndPoint.GetHostIpEndPointWithFallback().ToString()).ToList()),
                 DataCenters = _infoProviders.DataCentersInfoProvider.GetInformation(cluster, session),
@@ -61,7 +61,7 @@ namespace Cassandra.DataStax.Insights.MessageFactories
                 ProtocolVersion = (byte)cluster.Metadata.ControlConnection.ProtocolVersion,
                 ExecutionProfiles = _infoProviders.ExecutionProfileInfoProvider.GetInformation(cluster, session),
                 PoolSizeByHostDistance = _infoProviders.PoolSizeByHostDistanceInfoProvider.GetInformation(cluster, session),
-                HeartbeatInterval = 
+                HeartbeatInterval =
                     cluster
                         .Configuration
                         .GetOrCreatePoolingOptions(cluster.Metadata.ControlConnection.ProtocolVersion)

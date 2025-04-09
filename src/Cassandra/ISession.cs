@@ -37,7 +37,7 @@ namespace Cassandra
     /// at a time, so one instance per keyspace is necessary.
     /// </para>
     /// </summary>
-    public interface ISession: IDisposable
+    public interface ISession : IDisposable
     {
         /// <summary>
         /// Gets the Cassandra native binary protocol version
@@ -144,7 +144,7 @@ namespace Cassandra
         /// Ends asynchronous prepare operation
         /// </summary>
         PreparedStatement EndPrepare(IAsyncResult ar);
-        
+
         /// <summary>
         /// Executes the provided statement with the provided execution profile.
         /// The execution profile must have been added previously to the Cluster using <see cref="Builder.WithExecutionProfiles"/>.
@@ -162,7 +162,7 @@ namespace Cassandra
         /// Executes the provided query.
         /// </summary>
         RowSet Execute(string cqlQuery);
-        
+
         /// <summary>
         /// Executes the provided query with the provided execution profile.
         /// The execution profile must have been added previously to the Cluster using <see cref="Builder.WithExecutionProfiles"/>.
@@ -170,7 +170,7 @@ namespace Cassandra
         /// <param name="cqlQuery">Query to execute.</param>
         /// <param name="executionProfileName">ExecutionProfile name to be used while executing the statement.</param>
         RowSet Execute(string cqlQuery, string executionProfileName);
-        
+
         /// <summary>
         /// Executes the provided query.
         /// </summary>
@@ -202,14 +202,14 @@ namespace Cassandra
         /// </summary>
         /// <param name="cqlQuery">cql query to prepare</param>
         PreparedStatement Prepare(string cqlQuery);
-        
+
         /// <summary>
         /// Prepares the query string, sending the custom payload request.
         /// </summary>
         /// <param name="cqlQuery">cql query to prepare</param>
         /// <param name="customPayload">Custom outgoing payload to send with the prepare request</param>
         PreparedStatement Prepare(string cqlQuery, IDictionary<string, byte[]> customPayload);
-        
+
         /// <summary>
         /// Prepares the query on the provided keyspace.
         /// </summary>
@@ -233,7 +233,7 @@ namespace Cassandra
         /// </summary>
         /// <param name="cqlQuery">cql query to prepare</param>
         Task<PreparedStatement> PrepareAsync(string cqlQuery);
-        
+
         /// <summary>
         /// Prepares the provided query string asynchronously, and sending the custom payload request.
         /// </summary>
@@ -263,7 +263,7 @@ namespace Cassandra
         /// Retrieves the driver metrics for this session.
         /// </summary>
         IDriverMetrics GetMetrics();
-        
+
         /// <summary>
         /// Executes a graph statement.
         /// </summary>
@@ -299,7 +299,7 @@ namespace Cassandra
         /// </code>
         /// </example>
         GraphResultSet ExecuteGraph(IGraphStatement statement, string executionProfileName);
-        
+
         /// <summary>
         /// Executes a graph statement asynchronously with the provided graph execution profile.
         /// The graph execution profile must have been added previously to the Cluster

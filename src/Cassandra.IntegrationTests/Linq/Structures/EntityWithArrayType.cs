@@ -46,7 +46,7 @@ namespace Cassandra.IntegrationTests.Linq.Structures
 
             return new Tuple<Table<EntityWithArrayType>, List<EntityWithArrayType>>(table, entityList);
         }
-        
+
         public static Tuple<Table<EntityWithArrayType>, List<EntityWithArrayType>> GetDefaultTable(
             ISession session, string tableName)
         {

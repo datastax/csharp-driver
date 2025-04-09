@@ -88,7 +88,7 @@ namespace Cassandra
 
             public IExtendedRetryPolicy DefaultPolicy { get; }
 
-            public RetryDecision OnReadTimeout(IStatement query, ConsistencyLevel cl, int requiredResponses, 
+            public RetryDecision OnReadTimeout(IStatement query, ConsistencyLevel cl, int requiredResponses,
                                                int receivedResponses, bool dataRetrieved, int nbRetry)
             {
                 return Policy.OnReadTimeout(query, cl, requiredResponses, receivedResponses, dataRetrieved, nbRetry);

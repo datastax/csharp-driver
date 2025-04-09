@@ -88,7 +88,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.Greater(rs.Info.QueryTrace.Events.Count, 0);
             if (Session.BinaryProtocolVersion >= 4)
             {
-                Assert.NotNull(rs.Info.QueryTrace.ClientAddress);   
+                Assert.NotNull(rs.Info.QueryTrace.ClientAddress);
             }
             else
             {
@@ -114,7 +114,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test, TestCassandraVersion(2, 2)]
         public void Should_Warning_When_BatchExceedsLength()
         {
-            var rs = Session.Execute(GetBatchAsSimpleStatement(5*1025));
+            var rs = Session.Execute(GetBatchAsSimpleStatement(5 * 1025));
             Assert.NotNull(rs.Info.Warnings);
             Assert.AreEqual(1, rs.Info.Warnings.Length);
             StringAssert.Contains("batch", rs.Info.Warnings[0].ToLowerInvariant());
@@ -147,7 +147,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test, TestCassandraVersion(2, 2)]
         public void Should_WarningAndGetPayload_When_UsingMirrorPayload()
         {
-            var statement = GetBatchAsSimpleStatement(5*1025);
+            var statement = GetBatchAsSimpleStatement(5 * 1025);
             var outgoing = GetPayload();
             var rs = Session.Execute(statement.SetOutgoingPayload(GetPayload()));
             Assert.NotNull(rs.Info.Warnings);
@@ -161,7 +161,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test, TestCassandraVersion(2, 2)]
         public void Should_WarningAndTracingAndGetPayload_When_UsingMirrorPayloadAndEnableTracing()
         {
-            var statement = GetBatchAsSimpleStatement(5*1025);
+            var statement = GetBatchAsSimpleStatement(5 * 1025);
             var outgoing = new Dictionary<string, byte[]>
             {
                 {"k1", Encoding.UTF8.GetBytes("value1")},

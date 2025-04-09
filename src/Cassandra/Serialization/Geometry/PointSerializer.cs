@@ -37,13 +37,13 @@ namespace Cassandra.Serialization.Geometry
                 throw new ArgumentException("2D Point buffer should contain 21 bytes");
             }
             var isLe = IsLittleEndian(buffer, offset);
-            var type = (GeometryType) EndianBitConverter.ToInt32(isLe, buffer, offset + 1);
+            var type = (GeometryType)EndianBitConverter.ToInt32(isLe, buffer, offset + 1);
             if (type != GeometryType.Point2D)
             {
                 throw new ArgumentException("Binary representation was not a point");
             }
             return new Point(
-                EndianBitConverter.ToDouble(isLe, buffer, offset + 5), 
+                EndianBitConverter.ToDouble(isLe, buffer, offset + 5),
                 EndianBitConverter.ToDouble(isLe, buffer, offset + 13));
         }
 

@@ -179,17 +179,17 @@ namespace Cassandra.Requests
             if (statement is BoundStatement s2)
             {
                 // set skip metadata only when result metadata id is supported because of CASSANDRA-10786
-                var skipMetadata = 
-                    serializer.ProtocolVersion.SupportsResultMetadataId() 
+                var skipMetadata =
+                    serializer.ProtocolVersion.SupportsResultMetadataId()
                     && s2.PreparedStatement.ResultMetadata.ContainsColumnDefinitions();
 
                 var options = QueryProtocolOptions.CreateFromQuery(serializer.ProtocolVersion, s2, requestOptions, skipMetadata, s2.PreparedStatement.Variables);
                 request = new ExecuteRequest(
-                    serializer, 
+                    serializer,
                     s2.PreparedStatement.Id,
-                    s2.PreparedStatement.ResultMetadata, 
+                    s2.PreparedStatement.ResultMetadata,
                     options,
-                    s2.IsTracing, 
+                    s2.IsTracing,
                     s2.OutgoingPayload,
                     false);
             }
@@ -424,7 +424,7 @@ namespace Cassandra.Requests
             Host host, HostDistance distance, IInternalSession session, IDictionary<IPEndPoint, Exception> triedHosts, bool retry)
         {
             var hostPool = session.GetOrCreateConnectionPool(host, distance);
-            
+
             try
             {
                 return await hostPool.GetConnectionFromHostAsync(triedHosts, () => session.Keyspace).ConfigureAwait(false);

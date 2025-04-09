@@ -106,8 +106,8 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 sniPath = @"powershell";
                 args = "-executionpolicy unrestricted \"& '" + oldSniPath + "'" + args + "\"";
             }
-            
-            if (envVars.ContainsKey("REQUIRE_CLIENT_CERTIFICATE")) 
+
+            if (envVars.ContainsKey("REQUIRE_CLIENT_CERTIFICATE"))
             {
                 args = @"-c ""export REQUIRE_CLIENT_CERTIFICATE=true && " + sniPath + "\"";
                 sniPath = "bash";
@@ -222,7 +222,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             }
         }
 
-        private static ProcessOutput ExecCommand(bool throwOnProcessError, string executable, string args, int timeOut = 20*60*1000, IReadOnlyDictionary<string, string> envVars = null, string workDir = null, bool killOnTimeout = false)
+        private static ProcessOutput ExecCommand(bool throwOnProcessError, string executable, string args, int timeOut = 20 * 60 * 1000, IReadOnlyDictionary<string, string> envVars = null, string workDir = null, bool killOnTimeout = false)
         {
             Trace.TraceInformation($"{executable} {args}");
             var output = ExecuteProcess(executable, args, timeOut, envVariables: envVars, workDir: workDir, killOnTimeout: killOnTimeout);
@@ -251,15 +251,15 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 ExecCommand(true, "bash", @"-c ""docker kill $(docker ps -a -q --filter ancestor=single_endpoint)""");
             }
         }
-        
+
         /// <summary>
         /// Spawns a new process (platform independent)
         /// </summary>
         private static ProcessOutput ExecuteProcess(
-            string processName, 
-            string args, 
-            int timeout, 
-            IReadOnlyDictionary<string, string> envVariables = null, 
+            string processName,
+            string args,
+            int timeout,
+            IReadOnlyDictionary<string, string> envVariables = null,
             string workDir = null,
             bool killOnTimeout = false)
         {
@@ -327,7 +327,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                             output.OutputText.AppendLine(e.Data);
                         }
                     };
-                    
+
                     try
                     {
                         process.Start();

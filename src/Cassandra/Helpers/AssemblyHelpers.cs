@@ -74,7 +74,7 @@ namespace Cassandra.Helpers
             {
                 AssemblyHelpers.Logger.Info("Could not get entry assembly by the default method. Exception: {0}", ex.ToString());
             }
-            
+
             if (assembly == null)
             {
                 AssemblyHelpers.Logger.Verbose("Attempting to get entry assembly by main module.");
@@ -108,7 +108,7 @@ namespace Cassandra.Helpers
 
             return assembly;
         }
-        
+
         private static Assembly GetEntryAssemblyByStacktrace()
         {
             var methodFrames = new StackTrace().GetFrames()?.Select(t => t.GetMethod()).ToArray();
@@ -158,7 +158,7 @@ namespace Cassandra.Helpers
         private static Assembly GetEntryAssemblyByMainModule()
         {
             var mainModule = Process.GetCurrentProcess().MainModule;
-            var entryAssembly = 
+            var entryAssembly =
                 AppDomain
                     .CurrentDomain
                     .GetAssemblies()

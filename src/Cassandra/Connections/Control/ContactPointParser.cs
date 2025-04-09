@@ -28,8 +28,8 @@ namespace Cassandra.Connections.Control
         private readonly bool _keepContactPointsUnresolved;
 
         public ContactPointParser(
-            IDnsResolver dnsResolver, 
-            ProtocolOptions protocolOptions, 
+            IDnsResolver dnsResolver,
+            ProtocolOptions protocolOptions,
             IServerNameResolver serverNameResolver,
             bool keepContactPointsUnresolved)
         {
@@ -58,27 +58,27 @@ namespace Cassandra.Connections.Control
                         parsedContactPoint = new IpLiteralContactPoint(ipAddressContactPoint, _protocolOptions, _serverNameResolver);
                         break;
                     case string contactPointText:
-                    {
-                        if (IPAddress.TryParse(contactPointText, out var ipAddress))
                         {
-                            parsedContactPoint = new IpLiteralContactPoint(ipAddress, _protocolOptions, _serverNameResolver);
-                        }
-                        else
-                        {
-                            parsedContactPoint = new HostnameContactPoint(
-                                _dnsResolver, 
-                                _protocolOptions,
-                                _serverNameResolver, 
-                                _keepContactPointsUnresolved, 
-                                contactPointText);
-                        }
+                            if (IPAddress.TryParse(contactPointText, out var ipAddress))
+                            {
+                                parsedContactPoint = new IpLiteralContactPoint(ipAddress, _protocolOptions, _serverNameResolver);
+                            }
+                            else
+                            {
+                                parsedContactPoint = new HostnameContactPoint(
+                                    _dnsResolver,
+                                    _protocolOptions,
+                                    _serverNameResolver,
+                                    _keepContactPointsUnresolved,
+                                    contactPointText);
+                            }
 
-                        break;
-                    }
+                            break;
+                        }
                     default:
                         throw new InvalidOperationException("Contact points should be either string or IPEndPoint instances");
                 }
-                
+
                 if (result.Contains(parsedContactPoint))
                 {
                     Cluster.Logger.Warning("Found duplicate contact point: {0}. Ignoring it.", contactPoint.ToString());

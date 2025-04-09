@@ -20,7 +20,7 @@ using NUnit.Framework;
 namespace Cassandra.Tests
 {
     [AttributeUsage(AttributeTargets.Assembly | AttributeTargets.Class | AttributeTargets.Method, Inherited = false)]
-    public class TestTimeoutAttribute : 
+    public class TestTimeoutAttribute :
 #if NETFRAMEWORK
         TimeoutAttribute
 #else

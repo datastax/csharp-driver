@@ -32,7 +32,7 @@ namespace Cassandra.Tests.MetadataHelpers
 
             var result = target.ComputeTokenToReplicaMap(
                 testData.Ring, testData.PrimaryReplicas, testData.NumberOfHostsWithTokens, testData.Datacenters);
-            
+
             // 3 dcs, 3 hosts per rack, 2 racks per dc, 10 tokens per host
             Assert.AreEqual(10 * 3 * 2 * 3, result.Count);
 

@@ -106,9 +106,9 @@ namespace Cassandra.IntegrationTests.TestBase
                 session.DeleteKeyspaceIfExists(keyspaceName);
         }
 
-        public static bool TableExists(ISession session, string keyspaceName, string tableName, bool caseSensitive=false)
+        public static bool TableExists(ISession session, string keyspaceName, string tableName, bool caseSensitive = false)
         {
-            var cql = caseSensitive ? string.Format(@"SELECT * FROM ""{0}"".""{1}"" LIMIT 1", keyspaceName, tableName) 
+            var cql = caseSensitive ? string.Format(@"SELECT * FROM ""{0}"".""{1}"" LIMIT 1", keyspaceName, tableName)
                 : string.Format("SELECT * FROM {0}.{1} LIMIT 1", keyspaceName, tableName);
             //it will throw a InvalidQueryException if the table/keyspace does not exist
             session.Execute(cql);
@@ -128,10 +128,10 @@ namespace Cassandra.IntegrationTests.TestBase
             }
             return TestClusterManager.ShouldEnableBetaProtocolVersion() ? builder.WithBetaProtocolVersions() : builder;
         }
-        
+
         public static byte[] GetBytes(string str)
         {
-            byte[] bytes = new byte[str.Length*sizeof (char)];
+            byte[] bytes = new byte[str.Length * sizeof(char)];
             System.Buffer.BlockCopy(str.ToCharArray(), 0, bytes, 0, bytes.Length);
             return bytes;
         }
@@ -280,7 +280,7 @@ namespace Cassandra.IntegrationTests.TestBase
 
         private static void WaitFor(string node, Cluster cluster, int maxTry, bool waitForDead, bool waitForOut)
         {
-            TestUtils.WaitForMeta(node, cluster, maxTry, !waitForDead); 
+            TestUtils.WaitForMeta(node, cluster, maxTry, !waitForDead);
         }
 
         /// <summary>
@@ -617,7 +617,7 @@ namespace Cassandra.IntegrationTests.TestBase
                 }
             }
         }
-        
+
         public static void WaitForSchemaAgreement(
             ICluster cluster, bool ignoreDownNodes = true, bool throwOnMaxRetries = false, int maxRetries = 20)
         {

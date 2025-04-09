@@ -38,7 +38,7 @@ namespace Cassandra.IntegrationTests.Linq.Structures
         // ReSharper disable once InconsistentNaming
         // ReSharper disable once UnusedMember.Local
         public string cluster { get; set; }
-            
+
         [Mapping::Attributes.Column]
         // ReSharper disable once InconsistentNaming
         // ReSharper disable once UnusedMember.Local

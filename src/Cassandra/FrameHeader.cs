@@ -20,7 +20,7 @@ namespace Cassandra
 {
     internal class FrameHeader
     {
-        public const int MaxFrameSize = 256*1024*1024;
+        public const int MaxFrameSize = 256 * 1024 * 1024;
 
         /// <summary>
         /// Protocol version byte (in case of responses 0x81, 0x82, ... in case of requests 0x01, 0x02)
@@ -36,9 +36,9 @@ namespace Cassandra
         /// Flags applying to this frame..
         /// </summary>
         public HeaderFlags Flags { get; set; }
-        
+
         public byte Opcode { get; set; }
-        
+
         public short StreamId { get; set; }
 
         /// <summary>
@@ -73,7 +73,7 @@ namespace Cassandra
             if (!version.Uses2BytesStreamIds())
             {
                 //Stream id is a signed byte in v1 and v2 of the protocol
-                header.StreamId =  (sbyte)buffer[offset++];
+                header.StreamId = (sbyte)buffer[offset++];
             }
             else
             {

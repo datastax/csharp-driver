@@ -74,7 +74,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             lowercaseclassnamepklowercase defaultInstance = new lowercaseclassnamepklowercase();
             Assert.AreEqual(defaultInstance.somepartitionkey, instancesQueried[0].somepartitionkey);
         }
-        
+
         /// <summary>
         /// Successfully insert a new record into a table that was created with fluent mapping, inserting asynchronously
         /// </summary>
@@ -119,7 +119,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             var mapper = new Mapper(_session, mappingConfig);
 
             // Insert the data
-            var consistencyLevels = new []
+            var consistencyLevels = new[]
             {
                 ConsistencyLevel.All,
                 ConsistencyLevel.Any,
@@ -185,7 +185,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             table.Create();
 
             // Insert the data
-            var consistencyLevels = new []
+            var consistencyLevels = new[]
             {
                 ConsistencyLevel.Three,
                 ConsistencyLevel.Two
@@ -223,8 +223,8 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         {
             // Setup
             var mappingConfig = new MappingConfiguration().Define(new Map<ClassWithTwoPartitionKeys>()
-                .TableName(typeof (ClassWithTwoPartitionKeys).Name).CaseSensitive()
-                .PartitionKey(new string[] {"PartitionKey1", "PartitionKey2" }).CaseSensitive()
+                .TableName(typeof(ClassWithTwoPartitionKeys).Name).CaseSensitive()
+                .PartitionKey(new string[] { "PartitionKey1", "PartitionKey2" }).CaseSensitive()
                 );
             var table = new Table<ClassWithTwoPartitionKeys>(_session, mappingConfig);
             table.Create();
@@ -267,7 +267,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         /// Successfully insert a new record into a table that was created with fluent mapping, 
         /// using Session.Execute to insert an Insert object created with table.Insert()
         /// </summary>
-        [Test, TestCassandraVersion(2,0)]
+        [Test, TestCassandraVersion(2, 0)]
         public void Insert_WithSessionExecuteTableInsert()
         {
             // Setup
@@ -323,7 +323,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             lowercaseclassnamepklowercase defaultInstance = new lowercaseclassnamepklowercase();
             Assert.AreEqual(defaultInstance.somepartitionkey, instancesQueried[0].somepartitionkey);
 
-            Assert.Throws<InvalidQueryException>(() => TestUtils.TableExists(_session, _uniqueKsName, typeof (PrivateClassWithClassNameCamelCase).Name, true));
+            Assert.Throws<InvalidQueryException>(() => TestUtils.TableExists(_session, _uniqueKsName, typeof(PrivateClassWithClassNameCamelCase).Name, true));
             Assert.IsTrue(TestUtils.TableExists(_session, _uniqueKsName, typeof(PrivateClassWithClassNameCamelCase).Name.ToLower(), true));
         }
 
@@ -349,7 +349,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             Assert.AreEqual(defaultPocoInstance.SomePartitionKey, instancesQueried[0].SomePartitionKey);
 
             // Attempt to select from Camel Case partition key
-            string cqlCamelCasePartitionKey = "SELECT * from " + typeof (lowercaseclassnamepkcamelcase).Name + " where \"SomePartitionKey\" = 'doesntmatter'";
+            string cqlCamelCasePartitionKey = "SELECT * from " + typeof(lowercaseclassnamepkcamelcase).Name + " where \"SomePartitionKey\" = 'doesntmatter'";
             var ex = Assert.Throws<InvalidQueryException>(() => _session.Execute(cqlCamelCasePartitionKey));
             var expectedMessageCassandra = "Undefined name SomePartitionKey in where clause";
             var expectedMessageScylla = "Unrecognized name SomePartitionKey";
@@ -399,7 +399,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             //Use linq to create the table
             new Table<Song>(_session, config).Create();
             var mapper = new Mapper(_session, config);
-            var song = new Song {Id = Guid.NewGuid(), Artist = "Led Zeppelin", Title = "Good Times Bad Times"};
+            var song = new Song { Id = Guid.NewGuid(), Artist = "Led Zeppelin", Title = "Good Times Bad Times" };
             //It is the first song there, it should apply it
             var appliedInfo = mapper.InsertIfNotExists(song);
             Assert.True(appliedInfo.Applied);
@@ -420,18 +420,18 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             //Use linq to create the table
             new Table<Song>(_session, config).CreateIfNotExists();
             var mapper = new Mapper(_session, config);
-            var song = new Song 
-            { 
-                Id = Guid.NewGuid(), 
-                Artist = "The Who", 
-                Title = "Substitute", 
+            var song = new Song
+            {
+                Id = Guid.NewGuid(),
+                Artist = "The Who",
+                Title = "Substitute",
                 ReleaseDate = DateTimeOffset.UtcNow
             };
             mapper.Insert(song);
             var storedSong = mapper.First<Song>("WHERE id = ?", song.Id);
             Assert.AreEqual(song.Artist, storedSong.Artist);
             //do NOT insert nulls
-            mapper.Insert(new Song { Id = song.Id, Artist = null, Title = "Substitute 2", ReleaseDate = DateTimeOffset.UtcNow}, false);
+            mapper.Insert(new Song { Id = song.Id, Artist = null, Title = "Substitute 2", ReleaseDate = DateTimeOffset.UtcNow }, false);
             //it should have the new title but the artist should still be the same (not null)
             storedSong = mapper.First<Song>("WHERE id = ?", song.Id);
             Assert.NotNull(storedSong.Artist);
@@ -488,7 +488,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         {
             var config = new MappingConfiguration()
                 .Define(new Map<Song>().PartitionKey(s => s.Id).TableName("song_insert"));
-            
+
             //Use linq to create the table
             var table = new Table<Song>(_session, config);
             table.CreateIfNotExists();
@@ -613,14 +613,14 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             Session.Execute(string.Format(PocoWithEnumCollections.DefaultCreateTableCql, "tbl_with_enum_collections"));
             var mapper = new Mapper(Session, new MappingConfiguration().Define(
                 PocoWithEnumCollections.DefaultMapping.TableName("tbl_with_enum_collections")));
-            var collectionValues = new[]{ HairColor.Blonde, HairColor.Gray, HairColor.Red };
+            var collectionValues = new[] { HairColor.Blonde, HairColor.Gray, HairColor.Red };
             var mapValues = new SortedDictionary<HairColor, TimeUuid>
             {
                 { HairColor.Brown, TimeUuid.NewId() },
                 { HairColor.Red, TimeUuid.NewId() }
             };
-            var expectedCollection = collectionValues.Select(x => (int) x).ToArray();
-            var expectedMap = mapValues.ToDictionary(kv => (int) kv.Key, kv => (Guid) kv.Value);
+            var expectedCollection = collectionValues.Select(x => (int)x).ToArray();
+            var expectedMap = mapValues.ToDictionary(kv => (int)kv.Key, kv => (Guid)kv.Value);
             var poco = new PocoWithEnumCollections
             {
                 Id = 1000L,
@@ -649,7 +649,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             Assert.AreEqual(expectedMap, row.GetValue<IDictionary<int, Guid>>("map1"));
             Assert.AreEqual(expectedMap, row.GetValue<IDictionary<int, Guid>>("map2"));
             Assert.AreEqual(expectedMap, row.GetValue<IDictionary<int, Guid>>("map3"));
-            
+
             // BONUS: Attempt insert with null values
             Assert.DoesNotThrow(() => mapper.Insert(new PocoWithEnumCollections { Id = 1001L }));
         }

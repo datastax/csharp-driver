@@ -113,9 +113,9 @@ namespace Cassandra.Data.Linq
             {
                 query.Append(" ORDER BY ");
                 query.Append(string.Join(
-                    ", ", 
-                    _orderBy.Select(item => 
-                        CqlExpressionVisitor.CqlIdentifierHelper.EscapeIdentifierIfNecessary(_pocoData, item.Item1) 
+                    ", ",
+                    _orderBy.Select(item =>
+                        CqlExpressionVisitor.CqlIdentifierHelper.EscapeIdentifierIfNecessary(_pocoData, item.Item1)
                         + (item.Item2 ? "" : " DESC"))));
             }
 
@@ -205,7 +205,7 @@ namespace Cassandra.Data.Linq
         /// <summary>
         /// Gets a cql UPDATE statement based on the current state
         /// </summary>
-        public string GetUpdate(Expression expression, out object[] values, int? ttl, DateTimeOffset? timestamp, 
+        public string GetUpdate(Expression expression, out object[] values, int? ttl, DateTimeOffset? timestamp,
                                 MapperFactory mapperFactory)
         {
             Visit(expression);
@@ -317,7 +317,7 @@ namespace Cassandra.Data.Linq
             {
                 throw new CqlLinqNotSupportedException(node, _parsePhase.Get());
             }
-            
+
             // Visit new instance creation (constructor and parameters)
             VisitNew(node.NewExpression);
 
@@ -540,7 +540,7 @@ namespace Cassandra.Data.Linq
                 {
                     _selectFields.Add("COUNT(*)");
                     return node;
-                } 
+                }
                 else
                 {
                     Visit(node.Arguments[0]);
@@ -574,7 +574,7 @@ namespace Cassandra.Data.Linq
             object value;
             if (node is MemberExpression)
             {
-                value = CqlExpressionVisitor.GetClosureValue((MemberExpression) node);
+                value = CqlExpressionVisitor.GetClosureValue((MemberExpression)node);
             }
             else
             {
@@ -586,7 +586,7 @@ namespace Cassandra.Data.Linq
                 if (column == null)
                 {
                     throw new CqlLinqNotSupportedException(node, _parsePhase.Get());
-                } 
+                }
             }
             _projections.Add(Tuple.Create(column, value, ExpressionType.Assign));
             return node;
@@ -614,7 +614,7 @@ namespace Cassandra.Data.Linq
                     var column = condition.Column;
                     condition.SetOperator(ExpressionType.GreaterThanOrEqual)
                              .SetParameter(startString);
-                    
+
                     condition = new BinaryConditionItem();
                     condition.SetColumn(column)
                              .SetOperator(ExpressionType.LessThan)
@@ -678,7 +678,7 @@ namespace Cassandra.Data.Linq
             {
                 EvaluateCompositeColumn(columnExpression);
             }
-            
+
             var values = Expression.Lambda(parameterExpression).Compile().DynamicInvoke() as IEnumerable;
             if (values == null)
             {
@@ -703,10 +703,10 @@ namespace Cassandra.Data.Linq
             switch (expression.NodeType)
             {
                 case ExpressionType.Call:
-                    columnsExpression = ((MethodCallExpression) expression).Arguments;
+                    columnsExpression = ((MethodCallExpression)expression).Arguments;
                     break;
                 case ExpressionType.New:
-                    columnsExpression = ((NewExpression) expression).Arguments;
+                    columnsExpression = ((NewExpression)expression).Arguments;
                     break;
                 default:
                     throw new CqlLinqNotSupportedException(expression, _parsePhase.Get());
@@ -720,7 +720,7 @@ namespace Cassandra.Data.Linq
 
         private bool EvaluateOperatorMethod(MethodCallExpression node)
         {
-            if (node.Method.DeclaringType != typeof (CqlOperator))
+            if (node.Method.DeclaringType != typeof(CqlOperator))
             {
                 return false;
             }
@@ -775,7 +775,7 @@ namespace Cassandra.Data.Linq
                 if (node.NodeType == ExpressionType.Not && node.Operand.NodeType == ExpressionType.MemberAccess)
                 {
                     // We are evaluating a boolean expression parameter, the value we are trying to match is false
-                    FillBooleanCondition((MemberExpression) node.Operand, condition, false);
+                    FillBooleanCondition((MemberExpression)node.Operand, condition, false);
                     return node;
                 }
                 if (BinaryConditionItem.IsSupported(node.NodeType))
@@ -832,7 +832,7 @@ namespace Cassandra.Data.Linq
         private bool IsBoolMember(Expression node)
         {
             return node.NodeType == ExpressionType.MemberAccess && node.Type == typeof(bool) &&
-                   _pocoData.PocoType.GetTypeInfo().IsAssignableFrom(((MemberExpression) node).Member.DeclaringType);
+                   _pocoData.PocoType.GetTypeInfo().IsAssignableFrom(((MemberExpression)node).Member.DeclaringType);
         }
 
         protected override Expression VisitBinary(BinaryExpression node)
@@ -843,7 +843,7 @@ namespace Cassandra.Data.Linq
                 {
                     // It's the AND of the WHERE/IF clause
                     Visit(node.Left);
-                    
+
                     // Add the new condition for the right portion 
                     _conditions.Add(new BinaryConditionItem());
                     Visit(node.Right);
@@ -907,41 +907,41 @@ namespace Cassandra.Data.Linq
                     _conditions.Last().SetParameter(node.Value);
                     return node;
                 case ParsePhase.SelectBinding:
-                {
-                    var column = _pocoData.GetColumnByMemberName(_currentBindingName.Get());
-                    if (column == null)
                     {
-                        //selecting a field that is not part of PocoType
-                        break;
-                    }
-                    var expressionType = ExpressionType.Assign;
-                    if (column.IsCounter)
-                    {
-                        if (!(node.Value is long || node.Value is int))
+                        var column = _pocoData.GetColumnByMemberName(_currentBindingName.Get());
+                        if (column == null)
                         {
-                            throw new ArgumentException("Only Int64 and Int32 values are supported as counter increment of decrement values");
+                            //selecting a field that is not part of PocoType
+                            break;
                         }
-                        expressionType = ExpressionType.Increment;
+                        var expressionType = ExpressionType.Assign;
+                        if (column.IsCounter)
+                        {
+                            if (!(node.Value is long || node.Value is int))
+                            {
+                                throw new ArgumentException("Only Int64 and Int32 values are supported as counter increment of decrement values");
+                            }
+                            expressionType = ExpressionType.Increment;
+                        }
+                        _projections.Add(Tuple.Create(column, node.Value, expressionType));
+                        _selectFields.Add(column.ColumnName);
+                        return node;
                     }
-                    _projections.Add(Tuple.Create(column, node.Value, expressionType));
-                    _selectFields.Add(column.ColumnName);
-                    return node;
-                }
                 case ParsePhase.Take:
-                    _limit = (int) node.Value;
+                    _limit = (int)node.Value;
                     return node;
                 case ParsePhase.OrderBy:
                 case ParsePhase.OrderByDescending:
-                {
-                    var columnName = _pocoData.GetColumnNameByMemberName((string) node.Value);
-                    if (columnName == null)
                     {
-                        //order by a field that is not part of PocoType
-                        break;
+                        var columnName = _pocoData.GetColumnNameByMemberName((string)node.Value);
+                        if (columnName == null)
+                        {
+                            //order by a field that is not part of PocoType
+                            break;
+                        }
+                        _orderBy.Add(Tuple.Create(columnName, _parsePhase.Get() == ParsePhase.OrderBy));
+                        return node;
                     }
-                    _orderBy.Add(Tuple.Create(columnName, _parsePhase.Get() == ParsePhase.OrderBy));
-                    return node;
-                }
 
             }
             throw new CqlLinqNotSupportedException(node, _parsePhase.Get());

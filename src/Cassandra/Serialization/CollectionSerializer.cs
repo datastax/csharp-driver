@@ -50,7 +50,7 @@ namespace Cassandra.Serialization
             if (childTypeCode == null)
             {
                 throw new DriverInternalError(string.Format("CollectionSerializer can not deserialize CQL values of type {0}",
-                    typeInfo == null ? "null" : typeInfo.GetType().FullName));   
+                    typeInfo == null ? "null" : typeInfo.GetType().FullName));
             }
             var count = DecodeCollectionLength((ProtocolVersion)protocolVersion, buffer, ref offset);
             var childType = GetClrType(childTypeCode.Value, childTypeInfo);
@@ -78,7 +78,7 @@ namespace Cassandra.Serialization
                         childType = nullableType;
                         isNullable = true;
                     }
-                    
+
                     result.SetValue(null, i);
                 }
                 else
@@ -109,7 +109,7 @@ namespace Cassandra.Serialization
             var openType = typeof(IEnumerable<>);
             return openType.MakeGenericType(valueType);
         }
-        
+
         internal Type GetClrTypeForGraphSet(IColumnInfo typeInfo)
         {
             var valueType = GetClrTypeForGraph(((SetColumnInfo)typeInfo).KeyTypeCode, ((SetColumnInfo)typeInfo).KeyTypeInfo);

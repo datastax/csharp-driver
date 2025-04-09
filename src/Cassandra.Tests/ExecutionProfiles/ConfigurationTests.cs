@@ -32,7 +32,7 @@ namespace Cassandra.Tests.ExecutionProfiles
             var lbpGraph = new RoundRobinPolicy();
             var sepGraph = new ConstantSpeculativeExecutionPolicy(2000, 1);
             var rpGraph = new LoggingRetryPolicy(new DefaultRetryPolicy());
-            var cluster = 
+            var cluster =
                 Cluster
                     .Builder()
                     .AddContactPoint("127.0.0.1")
@@ -74,7 +74,7 @@ namespace Cassandra.Tests.ExecutionProfiles
             Assert.AreSame(rpGraph, graphOptions.RetryPolicy);
             Assert.AreSame(go, graphOptions.GraphOptions);
         }
-        
+
         [Test]
         public void Should_MapDefaultProfileToDefaultOptionsCorrectly_When_AllSettingsAreProvided()
         {
@@ -82,7 +82,7 @@ namespace Cassandra.Tests.ExecutionProfiles
             var lbp = new RoundRobinPolicy();
             var sep = new ConstantSpeculativeExecutionPolicy(1000, 1);
             var rp = new LoggingRetryPolicy(new DefaultRetryPolicy());
-            var cluster = 
+            var cluster =
                 Cluster
                     .Builder()
                     .AddContactPoint("127.0.0.1")
@@ -134,9 +134,9 @@ namespace Cassandra.Tests.ExecutionProfiles
                           .WithLoadBalancingPolicy(lbp)
                           .WithSpeculativeExecutionPolicy(sep)
                           .WithRetryPolicy(rp)
-                          .WithExecutionProfiles(opts => 
-                          { 
-                              opts.WithProfile("test1", profile => {});
+                          .WithExecutionProfiles(opts =>
+                          {
+                              opts.WithProfile("test1", profile => { });
                               opts.WithProfile("test1Graph", profile => { });
                           })
                           .WithQueryTimeout(30)
@@ -301,7 +301,7 @@ namespace Cassandra.Tests.ExecutionProfiles
             Assert.AreEqual(5, options.PageSize);
             Assert.AreEqual(30, options.QueryAbortTimeout);
             Assert.AreSame(tg, options.TimestampGenerator);
-            
+
             var graphOptions = cluster.Configuration.RequestOptions["test1Graph"];
             Assert.AreEqual(ConsistencyLevel.Two, graphOptions.ConsistencyLevel);
             Assert.AreEqual(ConsistencyLevel.Serial, graphOptions.SerialConsistencyLevel);
@@ -317,7 +317,7 @@ namespace Cassandra.Tests.ExecutionProfiles
             Assert.IsNotNull(cluster.Configuration.GraphOptions);
             Assert.AreNotSame(graphOptions.GraphOptions, cluster.Configuration.GraphOptions);
         }
-        
+
         [Test]
         public void Should_MapDefaultProfileToOptionsWithAllSettingsFromCluster_When_NoSettingIsProvided()
         {
@@ -403,7 +403,7 @@ namespace Cassandra.Tests.ExecutionProfiles
             Assert.AreEqual(30, options.QueryAbortTimeout);
             Assert.AreSame(tg, options.TimestampGenerator);
         }
-        
+
         [Test]
         public void Should_MapOptionsToProfileCorrectly_When_AllSettingsAreProvided()
         {
@@ -438,7 +438,7 @@ namespace Cassandra.Tests.ExecutionProfiles
             Assert.AreSame(sep, execProfile.SpeculativeExecutionPolicy);
             Assert.AreSame(rp, execProfile.RetryPolicy);
             Assert.IsNull(execProfile.GraphOptions);
-            
+
             var graphExecProfile = cluster.Configuration.ExecutionProfiles["test1Graph"];
             Assert.AreEqual(ConsistencyLevel.EachQuorum, graphExecProfile.ConsistencyLevel);
             Assert.AreEqual(ConsistencyLevel.LocalSerial, graphExecProfile.SerialConsistencyLevel);
@@ -516,7 +516,7 @@ namespace Cassandra.Tests.ExecutionProfiles
             Assert.AreSame(rp, profile.RetryPolicy);
             Assert.AreSame(go, profile.GraphOptions);
         }
-        
+
         [Test]
         public void Should_SetLegacyProperties_When_PoliciesAreProvidedByDefaultProfile()
         {
@@ -538,7 +538,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                                .SetConsistencyLevel(ConsistencyLevel.All)
                                .SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial))
                        .WithExecutionProfiles(opt => opt
-                           .WithProfile("default", profile => 
+                           .WithProfile("default", profile =>
                                profile
                                    .WithLoadBalancingPolicy(lbp2)
                                    .WithSpeculativeExecutionPolicy(sep2)

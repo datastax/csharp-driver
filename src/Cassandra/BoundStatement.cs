@@ -97,7 +97,7 @@ namespace Cassandra
                 SetIdempotence(statement.IsIdempotent.Value);
             }
         }
-        
+
         /// <summary>
         ///  Set the routing key for this query. This method allows to manually
         ///  provide a routing key for this BoundStatement. It is thus optional since the routing
@@ -127,7 +127,7 @@ namespace Cassandra
             {
                 throw new DriverInternalError("Serializer can not be null");
             }
-            
+
             if (values == null)
             {
                 return null;
@@ -182,21 +182,21 @@ namespace Cassandra
             // Use the default query options as the individual options of the query will be ignored
             var options = QueryProtocolOptions.CreateForBatchItem(this, PreparedStatement.Variables);
             return new ExecuteRequest(
-                serializer, 
+                serializer,
                 PreparedStatement.Id,
-                PreparedStatement.ResultMetadata, 
-                options, 
-                IsTracing, 
+                PreparedStatement.ResultMetadata,
+                options,
+                IsTracing,
                 null,
                 true);
         }
 
         internal void CalculateRoutingKey(
             ISerializer serializer,
-            bool useNamedParameters, 
-            int[] routingIndexes, 
-            string[] routingNames, 
-            object[] valuesByPosition, 
+            bool useNamedParameters,
+            int[] routingIndexes,
+            string[] routingNames,
+            object[] valuesByPosition,
             object[] rawValues)
         {
             if (_routingKey != null)

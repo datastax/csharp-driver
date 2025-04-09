@@ -29,12 +29,12 @@ namespace Cassandra
     {
         [DllImport("Kernel32.dll", CallingConvention = CallingConvention.Winapi)]
         private static extern void GetSystemTimePreciseAsFileTime(out long filetime);
-        
+
         protected sealed override long GetTimestamp()
         {
             GetSystemTimePreciseAsFileTime(out long preciseTime);
             var timestamp = DateTime.FromFileTimeUtc(preciseTime);
-            return (timestamp.Ticks - UnixEpochTicks)/TicksPerMicrosecond;
+            return (timestamp.Ticks - UnixEpochTicks) / TicksPerMicrosecond;
         }
 
         /// <summary>
@@ -53,7 +53,7 @@ namespace Cassandra
             int warningThreshold = DefaultWarningThreshold,
             int minLogInterval = DefaultMinLogInterval) : this(warningThreshold, minLogInterval, Logger)
         {
-            
+
         }
 
         internal AtomicMonotonicWinApiTimestampGenerator(int warningThreshold, int minLogInterval, Logger logger)

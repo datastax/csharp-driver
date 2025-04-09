@@ -33,7 +33,7 @@ namespace Cassandra
         private const int TraceAttemptDelay = 400;
         private const string SelectTraceSessions = "SELECT * FROM system_traces.sessions WHERE session_id = {0}";
         private const string SelectTraceEvents = "SELECT * FROM system_traces.events WHERE session_id = {0}";
-        
+
         protected readonly IMetadataQueryProvider Cc;
         protected readonly Metadata Parent;
         protected abstract string SelectAggregates { get; }
@@ -201,7 +201,7 @@ namespace Cassandra
                 .QueryAsync(SelectKeyspaces, retry)
                 .ContinueSync(rs => rs.Select(ParseKeyspaceRow));
         }
-        
+
         public override async Task<ICollection<string>> GetKeyspacesNamesAsync()
         {
             var rs = await Cc.QueryAsync(SelectKeyspacesNames, true).ConfigureAwait(false);
@@ -538,7 +538,7 @@ namespace Cassandra
         protected override string SelectTables => "SELECT table_name FROM system_schema.tables WHERE keyspace_name='{0}'";
 
         protected override string SelectUdts => "SELECT * FROM system_schema.types WHERE keyspace_name='{0}' AND type_name = '{1}'";
-        
+
         internal SchemaParserV2(Metadata parent, Func<string, string, Task<UdtColumnInfo>> udtResolver)
             : base(parent)
         {
@@ -579,7 +579,7 @@ namespace Cassandra
             var rs = await Cc.QueryAsync(SelectKeyspaces, retry).ConfigureAwait(false);
             return rs.Select(ParseKeyspaceRow);
         }
-        
+
         public override async Task<ICollection<string>> GetKeyspacesNamesAsync()
         {
             var rs = await Cc.QueryAsync(SelectKeyspacesNames, true).ConfigureAwait(false);
@@ -984,7 +984,7 @@ namespace Cassandra
             // Yield the keyspaces followed by the virtual keyspaces
             return keyspaces.Concat(virtualKeyspaces);
         }
-        
+
         public override async Task<ICollection<string>> GetKeyspacesNamesAsync()
         {
             // Start the task to get the keyspace names in parallel

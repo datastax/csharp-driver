@@ -46,7 +46,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 TestClusterManager.TryRemove();
                 _realCluster = new Lazy<ITestCluster>(
-                    () => TestClusterManagement.TestClusterManager.CreateNew(2, new TestClusterOptions { UseVNodes = true}));
+                    () => TestClusterManagement.TestClusterManager.CreateNew(2, new TestClusterOptions { UseVNodes = true }));
             }
         }
 
@@ -100,7 +100,7 @@ namespace Cassandra.IntegrationTests.Core
                 };
                 Assert.True(host.IsUp);
                 Trace.TraceInformation("Stopping node");
-                var node = _testCluster.GetNodes().First(); 
+                var node = _testCluster.GetNodes().First();
                 node.Stop().GetAwaiter().GetResult();
                 // Make sure the node is considered down
                 TestHelper.RetryAssert(() =>
@@ -185,7 +185,7 @@ namespace Cassandra.IntegrationTests.Core
                 }, 100, 100);
                 Trace.TraceInformation("Stopping node #2");
                 nodes[1].Stop().GetAwaiter().GetResult();
-                
+
                 TestHelper.RetryAssert(() =>
                 {
                     Assert.Throws<NoHostAvailableException>(() => TestHelper.Invoke(() => session.Execute("SELECT * FROM system.local"), 6));
@@ -293,7 +293,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Should_UseNewHostInQueryPlans_When_HostIsDecommissionedAndJoinsAgain()
         {
             var testCluster = _realCluster.Value;
-            using (var cluster = 
+            using (var cluster =
                  ClusterBuilder()
                         .AddContactPoint(testCluster.InitialContactPoint)
                         .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(22000).SetConnectTimeoutMillis(60000))
@@ -323,7 +323,7 @@ namespace Cassandra.IntegrationTests.Core
                     set.Add(rs.Info.QueriedHost);
                 }
                 Assert.AreEqual(2, set.Count);
-                
+
                 // Decommission node
                 if (!TestClusterManager.SupportsDecommissionForcefully())
                 {
@@ -334,7 +334,7 @@ namespace Cassandra.IntegrationTests.Core
                     testCluster.DecommissionNodeForcefully(1);
                 }
                 testCluster.Stop(1);
-                
+
                 // Assert that only one host is used in queries
                 set.Clear();
                 foreach (var i in Enumerable.Range(1, 100))
@@ -348,13 +348,13 @@ namespace Cassandra.IntegrationTests.Core
 
                 // Bring back the decommissioned node
                 testCluster.Start(1, "--jvm_arg=\"-Dcassandra.override_decommission=true\"");
-                
+
                 // Assert that there are 2 hosts
                 TestHelper.RetryAssert(() =>
                 {
                     Assert.AreEqual(2, cluster.AllHosts().Count);
                 }, 1000, 180);
-                
+
                 // Assert that queries use both hosts again
                 set.Clear();
                 var idx = 1;
@@ -364,7 +364,7 @@ namespace Cassandra.IntegrationTests.Core
                     set.Add(rs.Info.QueriedHost);
                     Assert.AreEqual(2, set.Count);
                 }, 500, 240);
-                
+
                 TestHelper.RetryAssert(() =>
                 {
                     pool2 = session.GetExistingPool(removedHost.Address);
@@ -388,7 +388,7 @@ namespace Cassandra.IntegrationTests.Core
                 $"{_realCluster.Value.ClusterIpPrefix}2",
                 oldIp
             };
-            
+
             var newAddresses = new[]
             {
                 $"{_realCluster.Value.ClusterIpPrefix}1",
@@ -414,8 +414,8 @@ namespace Cassandra.IntegrationTests.Core
 
                 _realCluster.Value.Stop(3);
                 _realCluster.Value.UpdateConfig(
-                    3, 
-                    $"listen_address: {_realCluster.Value.ClusterIpPrefix}4", 
+                    3,
+                    $"listen_address: {_realCluster.Value.ClusterIpPrefix}4",
                     $"rpc_address: {_realCluster.Value.ClusterIpPrefix}4");
 
                 _realCluster.Value.Start(3, "--skip-wait-other-notice", "127.0.0.4");
@@ -431,7 +431,7 @@ namespace Cassandra.IntegrationTests.Core
                     },
                     500,
                     100);
-                
+
                 var newTokenMap = session.Cluster.Metadata.TokenToReplicasMap;
                 var newHostTokens = newTokenMap.GetByKeyspace("ks1")
                                             .Where(kvp =>

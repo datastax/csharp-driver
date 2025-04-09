@@ -63,16 +63,16 @@ namespace Cassandra.IntegrationTests.Core
         public void AlreadyExistsException()
         {
             var cql = string.Format(TestUtils.CreateKeyspaceSimpleFormat, _keyspace, 1);
-            
+
             _simulacronCluster.PrimeFluent(b => b.WhenQuery(cql).ThenAlreadyExists(_keyspace, ""));
 
             var ex = Assert.Throws<AlreadyExistsException>(() => _session.Execute(cql));
             Assert.AreEqual(ex.Keyspace, _keyspace);
             Assert.AreEqual(ex.Table, null);
             Assert.AreEqual(ex.WasTableCreation, false);
-            
+
             var cqlTable = string.Format(TestUtils.CreateTableSimpleFormat, _table);
-            
+
             _simulacronCluster.PrimeFluent(b => b.WhenQuery(cqlTable).ThenAlreadyExists(_keyspace, _table));
             var e = Assert.Throws<AlreadyExistsException>(() => _session.Execute(cqlTable));
             Assert.AreEqual(e.Keyspace, _keyspace);
@@ -88,7 +88,7 @@ namespace Cassandra.IntegrationTests.Core
         public void NoHostAvailableException()
         {
             const string ipAddress = "255.255.255.255";
-            var errorsHashMap = new Dictionary<IPAddress, Exception> {{IPAddress.Parse(ipAddress), null}};
+            var errorsHashMap = new Dictionary<IPAddress, Exception> { { IPAddress.Parse(ipAddress), null } };
 
             try
             {
@@ -322,7 +322,7 @@ namespace Cassandra.IntegrationTests.Core
 
             _simulacronCluster
                 .PrimeFluent(b => b.WhenQuery(cql).ThenReadFailure(
-                    (int) consistencyLevel,
+                    (int)consistencyLevel,
                     received,
                     required,
                     "read_failure",

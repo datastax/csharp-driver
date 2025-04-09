@@ -62,7 +62,7 @@ namespace Cassandra.Serialization
         {
             return _genericSerializer.Serialize(version, value);
         }
-        
+
         public void SetUdtMap(string name, UdtMap map)
         {
             _genericSerializer.SetUdtMap(name, map);

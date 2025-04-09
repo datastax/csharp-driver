@@ -39,7 +39,7 @@ namespace Cassandra.Tests.Metrics
             Assert.IsTrue(metric.Equals(metric2));
             Assert.IsTrue(nodeMetric.Equals(NodeMetric.Counters.AuthenticationErrors));
         }
-        
+
         [Test]
         public void Should_BeEqual_When_SessionMetricEqualsSessionMetric()
         {
@@ -63,7 +63,7 @@ namespace Cassandra.Tests.Metrics
             var nodeMetric = NodeMetric.Counters.AuthenticationErrors;
             IMetric nodeMetricBase = nodeMetric;
             IMetric nodeMetricBase2 = nodeMetric;
-            
+
             Assert.IsFalse(nodeMetric.Equals(sessionMetric));
             Assert.IsFalse(sessionMetric.Equals(nodeMetric));
 
@@ -72,7 +72,7 @@ namespace Cassandra.Tests.Metrics
 
             Assert.IsFalse(nodeMetric.Equals(sessionMetricBase2));
             Assert.IsFalse(sessionMetricBase2.Equals(nodeMetric));
-            
+
             Assert.IsFalse(nodeMetricBase.Equals(sessionMetric));
             Assert.IsFalse(sessionMetric.Equals(nodeMetricBase));
 
@@ -81,7 +81,7 @@ namespace Cassandra.Tests.Metrics
 
             Assert.IsFalse(nodeMetricBase.Equals(sessionMetricBase2));
             Assert.IsFalse(sessionMetricBase2.Equals(nodeMetricBase));
-            
+
             Assert.IsFalse(nodeMetricBase2.Equals(sessionMetric));
             Assert.IsFalse(sessionMetric.Equals(nodeMetricBase2));
 
@@ -91,7 +91,7 @@ namespace Cassandra.Tests.Metrics
             Assert.IsFalse(nodeMetricBase2.Equals(sessionMetricBase2));
             Assert.IsFalse(sessionMetricBase2.Equals(nodeMetricBase2));
         }
-        
+
         [Test]
         public void Should_NotBeEqual_WhenCustomMetricEqualsSessionMetric()
         {
@@ -102,7 +102,7 @@ namespace Cassandra.Tests.Metrics
             var testMetric = new TestMetric { Name = NodeMetric.Counters.AuthenticationErrors.Name };
             IMetric testMetricBase = testMetric;
             IMetric testMetricBase2 = testMetric;
-            
+
             Assert.IsFalse(testMetric.Equals(sessionMetric));
             Assert.IsFalse(sessionMetric.Equals(testMetric));
 
@@ -111,7 +111,7 @@ namespace Cassandra.Tests.Metrics
 
             Assert.IsFalse(testMetric.Equals(sessionMetricBase2));
             Assert.IsFalse(sessionMetricBase2.Equals(testMetric));
-            
+
             Assert.IsFalse(testMetricBase.Equals(sessionMetric));
             Assert.IsFalse(sessionMetric.Equals(testMetricBase));
 
@@ -120,7 +120,7 @@ namespace Cassandra.Tests.Metrics
 
             Assert.IsFalse(testMetricBase.Equals(sessionMetricBase2));
             Assert.IsFalse(sessionMetricBase2.Equals(testMetricBase));
-            
+
             Assert.IsFalse(testMetricBase2.Equals(sessionMetric));
             Assert.IsFalse(sessionMetric.Equals(testMetricBase2));
 
@@ -130,7 +130,7 @@ namespace Cassandra.Tests.Metrics
             Assert.IsFalse(testMetricBase2.Equals(sessionMetricBase2));
             Assert.IsFalse(sessionMetricBase2.Equals(testMetricBase2));
         }
-        
+
         [Test]
         public void Should_NotBeEqual_WhenCustomMetricEqualsNodeMetric()
         {
@@ -141,7 +141,7 @@ namespace Cassandra.Tests.Metrics
             var testMetric = new TestMetric { Name = NodeMetric.Counters.AuthenticationErrors.Name };
             IMetric testMetricBase = testMetric;
             IMetric testMetricBase2 = testMetric;
-            
+
             Assert.IsFalse(testMetric.Equals(nodeMetric));
             Assert.IsFalse(nodeMetric.Equals(testMetric));
 
@@ -150,7 +150,7 @@ namespace Cassandra.Tests.Metrics
 
             Assert.IsFalse(testMetric.Equals(nodeMetricBase2));
             Assert.IsFalse(nodeMetricBase2.Equals(testMetric));
-            
+
             Assert.IsFalse(testMetricBase.Equals(nodeMetric));
             Assert.IsFalse(nodeMetric.Equals(testMetricBase));
 
@@ -159,7 +159,7 @@ namespace Cassandra.Tests.Metrics
 
             Assert.IsFalse(testMetricBase.Equals(nodeMetricBase2));
             Assert.IsFalse(nodeMetricBase2.Equals(testMetricBase));
-            
+
             Assert.IsFalse(testMetricBase2.Equals(nodeMetric));
             Assert.IsFalse(nodeMetric.Equals(testMetricBase2));
 

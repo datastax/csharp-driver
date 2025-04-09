@@ -77,7 +77,7 @@ namespace Cassandra.Tests.Connections.Control
             Assert.AreEqual(1, resolved.Count);
             Assert.AreEqual("127.0.0.1", await resolved[0].GetServerNameAsync().ConfigureAwait(false));
         }
-        
+
         [Test]
         public async Task Should_EqualsReturnTrue_When_BothContactPointsReferToSameIPAddress()
         {
@@ -86,11 +86,11 @@ namespace Cassandra.Tests.Connections.Control
 
             Assert.AreEqual(target, target2);
             Assert.AreEqual(target.GetHashCode(), target2.GetHashCode());
-            
+
             await target.GetConnectionEndPointsAsync(false).ConfigureAwait(false);
             Assert.AreEqual(target, target2);
             Assert.AreEqual(target.GetHashCode(), target2.GetHashCode());
-            
+
             await target2.GetConnectionEndPointsAsync(false).ConfigureAwait(false);
             Assert.AreEqual(target, target2);
             Assert.AreEqual(target.GetHashCode(), target2.GetHashCode());
@@ -104,16 +104,16 @@ namespace Cassandra.Tests.Connections.Control
 
             Assert.AreNotEqual(target, target2);
             Assert.AreNotEqual(target.GetHashCode(), target2.GetHashCode());
-            
+
             await target.GetConnectionEndPointsAsync(false).ConfigureAwait(false);
             Assert.AreNotEqual(target, target2);
             Assert.AreNotEqual(target.GetHashCode(), target2.GetHashCode());
-            
+
             await target2.GetConnectionEndPointsAsync(false).ConfigureAwait(false);
             Assert.AreNotEqual(target, target2);
             Assert.AreNotEqual(target.GetHashCode(), target2.GetHashCode());
         }
-        
+
         [Test]
         public async Task Should_EqualsReturnTrue_When_BothContactPointsReferToSameIPEndPoint()
         {
@@ -122,11 +122,11 @@ namespace Cassandra.Tests.Connections.Control
 
             Assert.AreEqual(target, target2);
             Assert.AreEqual(target.GetHashCode(), target2.GetHashCode());
-            
+
             await target.GetConnectionEndPointsAsync(false).ConfigureAwait(false);
             Assert.AreEqual(target, target2);
             Assert.AreEqual(target.GetHashCode(), target2.GetHashCode());
-            
+
             await target2.GetConnectionEndPointsAsync(false).ConfigureAwait(false);
             Assert.AreEqual(target, target2);
             Assert.AreEqual(target.GetHashCode(), target2.GetHashCode());
@@ -149,7 +149,7 @@ namespace Cassandra.Tests.Connections.Control
             Assert.AreNotEqual(target, target2);
             Assert.AreNotEqual(target.GetHashCode(), target2.GetHashCode());
         }
-        
+
         [Test]
         public async Task Should_EqualsReturnFalse_When_BothContactPointsReferToSamePortButDifferentIPAddresses()
         {
@@ -158,11 +158,11 @@ namespace Cassandra.Tests.Connections.Control
 
             Assert.AreNotEqual(target, target2);
             Assert.AreNotEqual(target.GetHashCode(), target2.GetHashCode());
-            
+
             await target.GetConnectionEndPointsAsync(false).ConfigureAwait(false);
             Assert.AreNotEqual(target, target2);
             Assert.AreNotEqual(target.GetHashCode(), target2.GetHashCode());
-            
+
             await target2.GetConnectionEndPointsAsync(false).ConfigureAwait(false);
             Assert.AreNotEqual(target, target2);
             Assert.AreNotEqual(target.GetHashCode(), target2.GetHashCode());

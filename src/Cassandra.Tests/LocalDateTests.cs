@@ -23,7 +23,7 @@ namespace Cassandra.Tests
     [TestFixture]
     public class LocalDateTests
     {
-        private static readonly Tuple<LocalDate, uint>[] Values = 
+        private static readonly Tuple<LocalDate, uint>[] Values =
         {
             Tuple.Create(new LocalDate(1970, 1, 1),          2147483648U),
             Tuple.Create(new LocalDate(2010, 8, 5),          2147498474U),
@@ -124,7 +124,7 @@ namespace Cassandra.Tests
         [Test]
         public void ToString_Should_Return_String_Representation()
         {
-            var values = new []
+            var values = new[]
             {
                 Tuple.Create(2010, 4, 29, "2010-04-29"),
                 Tuple.Create(2005, 8, 5,  "2005-08-05"),

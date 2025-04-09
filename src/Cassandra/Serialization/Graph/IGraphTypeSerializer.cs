@@ -61,7 +61,7 @@ namespace Cassandra.Serialization.Graph
         /// <see cref="DefaultDeserializeGraphNodes"/>.
         /// </summary>
         object FromDb(JToken token, Type type, bool deserializeGraphNodes);
-        
+
         /// <summary>
         /// Generic version of <see cref="FromDb(JToken,Type)"/>
         /// </summary>

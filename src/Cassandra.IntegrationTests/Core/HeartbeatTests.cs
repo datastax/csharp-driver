@@ -34,7 +34,7 @@ namespace Cassandra.IntegrationTests.Core
         [OneTimeSetUp]
         public void OneTimeSetup()
         {
-            _testCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "1"});
+            _testCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "1" });
             _testCluster.PrimeFluent(b => b.WhenQuery(HeartbeatTests.Query).ThenVoidSuccess());
         }
 
@@ -71,7 +71,7 @@ namespace Cassandra.IntegrationTests.Core
                         logs = await _testCluster.GetNodes().First()
                                                  .GetQueriesAsync(null, OptionsQueryType).ConfigureAwait(false);
                         Assert.That(logs.Count, Is.GreaterThan(initialCount));
-                    }, 
+                    },
                     500,
                     20).ConfigureAwait(false);
             }

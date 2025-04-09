@@ -32,7 +32,7 @@ namespace Cassandra.MetadataHelpers
         public string Datacenter { get; }
 
         public ReplicationFactor ReplicationFactor { get; }
-        
+
         public override bool Equals(object obj)
         {
             if (obj == null)
@@ -40,7 +40,7 @@ namespace Cassandra.MetadataHelpers
                 return false;
             }
 
-            return obj.GetType() == GetType() 
+            return obj.GetType() == GetType()
                    && Equals((DatacenterReplicationFactor)obj);
         }
 
@@ -63,7 +63,7 @@ namespace Cassandra.MetadataHelpers
         public int CompareTo(DatacenterReplicationFactor other)
         {
             var dcComparison = string.Compare(Datacenter, other.Datacenter, StringComparison.Ordinal);
-            return dcComparison != 0 
+            return dcComparison != 0
                 ? dcComparison
                 : ReplicationFactor.CompareTo(other.ReplicationFactor);
         }

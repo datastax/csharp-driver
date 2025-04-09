@@ -33,7 +33,7 @@ namespace Cassandra.Serialization.Graph.GraphSON3.Dse
         {
             var keyspace = serializer.FromDb<string>(graphsonObject["keyspace"]);
             var name = serializer.FromDb<string>(graphsonObject["name"]);
-            var values = (JArray) graphsonObject["value"];
+            var values = (JArray)graphsonObject["value"];
 
             var targetTypeIsDictionary = false;
             Type elementType = null;
@@ -72,10 +72,10 @@ namespace Cassandra.Serialization.Graph.GraphSON3.Dse
                 }
             }
 
-            var obj = readToDictionary 
-                ? ToDictionary(serializer, elementType, (JArray) graphsonObject["definition"], values) 
+            var obj = readToDictionary
+                ? ToDictionary(serializer, elementType, (JArray)graphsonObject["definition"], values)
                 : ToObject(serializer, udtMap, values);
-            
+
             if (!serializer.ConvertFromDb(obj, type, out var result))
             {
                 throw new InvalidOperationException($"Could not convert UDT from type {obj.GetType().FullName} to {type.FullName}");
@@ -83,7 +83,7 @@ namespace Cassandra.Serialization.Graph.GraphSON3.Dse
 
             return result;
         }
-        
+
         internal object ToObject(IGraphTypeSerializer serializer, UdtMap map, IEnumerable<JToken> valuesArr)
         {
             var obj = Activator.CreateInstance(map.NetType);
@@ -94,7 +94,7 @@ namespace Cassandra.Serialization.Graph.GraphSON3.Dse
                 {
                     break;
                 }
-                
+
                 var field = map.Definition.Fields[i];
                 i++;
 
@@ -104,18 +104,18 @@ namespace Cassandra.Serialization.Graph.GraphSON3.Dse
                 {
                     continue;
                 }
-                
+
                 var convertedValue = serializer.FromDb(value, prop.PropertyType, false);
                 prop.SetValue(obj, convertedValue, null);
             }
 
             return obj;
         }
-        
+
         internal object ToDictionary(
             IGraphTypeSerializer serializer, Type elementType, IEnumerable<JToken> definitions, IEnumerable<JToken> valuesArr)
         {
-            var fieldNames = definitions.Select(def => (string) def["fieldName"]).ToArray();
+            var fieldNames = definitions.Select(def => (string)def["fieldName"]).ToArray();
             var newDictionary = (IDictionary)Activator.CreateInstance(typeof(Dictionary<,>).MakeGenericType(typeof(string), elementType));
             var elementIsGraphNode = elementType == typeof(GraphNode) || elementType == typeof(IGraphNode);
 

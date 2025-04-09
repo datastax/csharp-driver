@@ -82,7 +82,7 @@ namespace Cassandra.Tests
 
             var requestTrackingInfoAndObserver = RequestHandler.CreateRequestObserver(sessionMock, null).GetAwaiter().GetResult();
             var sut = new RequestHandler(
-                sessionMock, 
+                sessionMock,
                 new SerializerManager(ProtocolVersion.V4).GetCurrentSerializer(), requestTrackingInfoAndObserver.Item1, requestTrackingInfoAndObserver.Item2);
             Assert.Throws<NoHostAvailableException>(() => sut.GetNextValidHost(triedHosts));
         }
@@ -106,7 +106,7 @@ namespace Cassandra.Tests
 
             var requestTrackingInfoAndObserver = RequestHandler.CreateRequestObserver(sessionMock, null).GetAwaiter().GetResult();
             var sut = new RequestHandler(
-                sessionMock, 
+                sessionMock,
                 new SerializerManager(ProtocolVersion.V4).GetCurrentSerializer(), requestTrackingInfoAndObserver.Item1, requestTrackingInfoAndObserver.Item2);
             Assert.Throws<NoHostAvailableException>(() => sut.GetNextValidHost(triedHosts));
         }

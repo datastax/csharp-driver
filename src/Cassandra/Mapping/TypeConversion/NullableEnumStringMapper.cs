@@ -29,7 +29,7 @@ namespace Cassandra.Mapping.TypeConversion
 
         static NullableEnumStringMapper()
         {
-            StringToEnumCache = Enum.GetValues(Nullable.GetUnderlyingType(typeof (T))).Cast<T>().ToDictionary(val => val.ToString());
+            StringToEnumCache = Enum.GetValues(Nullable.GetUnderlyingType(typeof(T))).Cast<T>().ToDictionary(val => val.ToString());
         }
 
         /// <summary>

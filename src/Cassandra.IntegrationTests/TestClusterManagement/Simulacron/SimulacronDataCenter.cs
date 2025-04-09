@@ -22,7 +22,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
     {
         public List<SimulacronNode> Nodes { get; set; }
 
-        public SimulacronDataCenter(string id, SimulacronManager simulacronManager): base(id, simulacronManager)
+        public SimulacronDataCenter(string id, SimulacronManager simulacronManager) : base(id, simulacronManager)
         {
         }
     }

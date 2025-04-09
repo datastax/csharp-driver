@@ -168,8 +168,8 @@ namespace Cassandra.IntegrationTests.Core
                 TestHelper.RetryAssert(() =>
                     {
                         Assert.True(TestUtils.IsNodeReachable(newNodeIpAddress));
-                            //New node should be part of the metadata
-                            Assert.AreEqual(2, cluster.AllHosts().Count);
+                        //New node should be part of the metadata
+                        Assert.AreEqual(2, cluster.AllHosts().Count);
                         var host = cluster.AllHosts().FirstOrDefault(h => h.Address.Address.Equals(newNodeIpAddress));
                         Assert.IsNotNull(host);
                     },
@@ -212,8 +212,8 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     decommisionedNode = _realCluster.ClusterIpPrefix + 3;
                     Assert.False(TestUtils.IsNodeReachable(IPAddress.Parse(decommisionedNode)));
-                        //New node should be part of the metadata
-                        Assert.AreEqual(2, cluster.AllHosts().Count);
+                    //New node should be part of the metadata
+                    Assert.AreEqual(2, cluster.AllHosts().Count);
                 }, 100, 100);
                 var queried = false;
                 for (var i = 0; i < 10; i++)

@@ -31,7 +31,7 @@ namespace Cassandra.IntegrationTests.TestBase
 
         internal static void ExecuteSyncQuery(ISession session, string query, ConsistencyLevel consistency, List<object[]> expectedValues = null,
                                               string messageInstead = null)
-        {   
+        {
             var ret = session.Execute(query, consistency);
             if (expectedValues != null)
             {
@@ -49,7 +49,7 @@ namespace Cassandra.IntegrationTests.TestBase
             int i = 0;
             foreach (Row row in rowset)
             {
-                if (row.Any(col => col.GetType() == typeof (byte[])))
+                if (row.Any(col => col.GetType() == typeof(byte[])))
                     for (int j = 0; j < row.Length; j++)
                     {
                         Assert.AreEqual(insertedRows[i][j], row[j]);

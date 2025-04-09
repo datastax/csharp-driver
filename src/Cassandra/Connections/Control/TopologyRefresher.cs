@@ -58,14 +58,14 @@ namespace Cassandra.Connections.Control
 
             var localTask = SendSystemLocalRequestAsync(connection, serializer);
             var peersTask = SendSystemPeersRequestAsync(localIsPeersV2, connection, serializer);
-            
+
             await Task.WhenAll(localTask, peersTask).ConfigureAwait(false);
 
             var peersResponse = peersTask.Result;
             localIsPeersV2 = peersResponse.IsPeersV2;
 
             var rsPeers = _config.MetadataRequestHandler.GetRowSet(peersResponse.Response);
-            
+
             var localRow = _config.MetadataRequestHandler.GetRowSet(localTask.Result).FirstOrDefault();
             if (localRow == null)
             {
@@ -79,7 +79,7 @@ namespace Cassandra.Connections.Control
             ControlConnection.Logger.Info("Node list retrieved successfully");
             return host;
         }
-        
+
         private Task<Response> SendSystemLocalRequestAsync(IConnection connection, ISerializer serializer)
         {
             return _config.MetadataRequestHandler.SendMetadataRequestAsync(
@@ -89,9 +89,9 @@ namespace Cassandra.Connections.Control
         private Task<PeersResponse> SendSystemPeersRequestAsync(bool isPeersV2, IConnection connection, ISerializer serializer)
         {
             var peersTask = _config.MetadataRequestHandler.SendMetadataRequestAsync(
-                connection, 
-                serializer, 
-                isPeersV2 ? TopologyRefresher.SelectPeersV2 : TopologyRefresher.SelectPeers, 
+                connection,
+                serializer,
+                isPeersV2 ? TopologyRefresher.SelectPeersV2 : TopologyRefresher.SelectPeers,
                 QueryProtocolOptions.Default);
 
             return GetPeersResponseAsync(isPeersV2, peersTask, connection, serializer);
@@ -134,8 +134,8 @@ namespace Cassandra.Connections.Control
         /// </summary>
         private Host GetAndUpdateLocalHost(IConnectionEndPoint endPoint, IRow row)
         {
-            var hostIpEndPoint = 
-                endPoint.GetHostIpEndPoint() 
+            var hostIpEndPoint =
+                endPoint.GetHostIpEndPoint()
                 ?? GetRpcEndPoint(false, row, _config.AddressTranslator, _config.ProtocolOptions.Port);
 
             if (hostIpEndPoint == null)
@@ -186,7 +186,7 @@ namespace Cassandra.Connections.Control
                 }
             }
         }
-        
+
         /// <summary>
         /// Parses address from system table query response and translates it using the provided <paramref name="translator"/>.
         /// </summary>
@@ -229,7 +229,7 @@ namespace Cassandra.Connections.Control
                     "Found host with 0.0.0.0 as rpc_address, using listen_address ({0}) to contact it instead. " +
                     "If this is incorrect you should avoid the use of 0.0.0.0 server side.", address.ToString());
             }
-            
+
             var rpcPort = defaultPort;
             if (isPeersV2)
             {
@@ -247,17 +247,17 @@ namespace Cassandra.Connections.Control
 
             return translator.Translate(new IPEndPoint(address, rpcPort));
         }
-        
+
         private IPAddress GetRpcAddressFromPeersV2(IRow row)
         {
             return row.GetValue<IPAddress>("native_address");
         }
-        
+
         private IPAddress GetRpcAddressFromLocalPeersV1(IRow row)
         {
             return row.GetValue<IPAddress>("rpc_address");
         }
-        
+
         private int? GetRpcPortFromPeersV2(IRow row)
         {
             return row.GetValue<int?>("native_port");
@@ -265,9 +265,9 @@ namespace Cassandra.Connections.Control
 
         private class PeersResponse
         {
-            public bool IsPeersV2 { get; set;  }
+            public bool IsPeersV2 { get; set; }
 
-            public Response Response { get; set;  }
+            public Response Response { get; set; }
         }
     }
 }

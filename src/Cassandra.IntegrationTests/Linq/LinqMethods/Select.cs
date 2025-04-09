@@ -53,9 +53,9 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             var table = _table;
             AllDataTypesEntity.PrimeRangeSelect(TestCluster, _entityList);
 
-            List<AllDataTypesEntity> allEntities = 
-                async 
-                    ? table.Select(m => m).ExecuteAsync().GetAwaiter().GetResult().ToList() 
+            List<AllDataTypesEntity> allEntities =
+                async
+                    ? table.Select(m => m).ExecuteAsync().GetAwaiter().GetResult().ToList()
                     : table.Select(m => m).Execute().ToList();
             Assert.AreEqual(_entityList.Count, allEntities.Count);
             foreach (var entity in allEntities)
@@ -74,8 +74,8 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             TestCluster.PrimeFluent(
                 b => b.WhenQuery("SELECT \"boolean_type\" FROM \"allDataTypes\" ALLOW FILTERING")
                       .ThenRowsSuccess(
-                          new [] { "boolean_type" }, 
-                          rows => rows.WithRows(_entityList.Select(e => new object [] { e.BooleanType }).ToArray())));
+                          new[] { "boolean_type" },
+                          rows => rows.WithRows(_entityList.Select(e => new object[] { e.BooleanType }).ToArray())));
             List<AllDataTypesEntity> actualEntities = _table.Select(e => new AllDataTypesEntity { BooleanType = e.BooleanType }).Execute().ToList();
             Assert.AreEqual(_entityList.Count, actualEntities.Count);
             foreach (var entity in _entityList)
@@ -307,7 +307,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
                 AllDataTypesEntityUtil.AssertListContains(actualEntities, expectedEntity);
             }
         }
-        
+
         [Test]
         public void LinqSelect_ListOfGuidsType_Sync()
         {
@@ -495,7 +495,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
                       .ThenRowsSuccess(
                           new[] { "Col1", "Col2" },
                           rows => rows.WithRow(value1, value2)));
-            
+
             var a = (from row in table where row.Id == pk select new TestClassDefaultCtor { S1 = row.Col1, S2 = row.Col2 }).Execute().First();
 
             Assert.AreEqual(value1, a.S1);

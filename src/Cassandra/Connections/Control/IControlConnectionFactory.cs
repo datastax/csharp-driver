@@ -25,8 +25,8 @@ namespace Cassandra.Connections.Control
         IControlConnection Create(
             IInternalCluster cluster,
             IProtocolEventDebouncer protocolEventDebouncer,
-            ProtocolVersion initialProtocolVersion, 
-            Configuration config, 
+            ProtocolVersion initialProtocolVersion,
+            Configuration config,
             Metadata metadata,
             IEnumerable<IContactPoint> contactPoints);
     }

@@ -96,7 +96,7 @@ namespace Cassandra.DataStax.Auth
             private readonly string _service;
             private readonly IGssapiClient _client;
 
-            public GssapiDseAuthenticator(string authenticatorName, string hostName, string service) : 
+            public GssapiDseAuthenticator(string authenticatorName, string hostName, string service) :
                 base(authenticatorName)
             {
                 _hostName = hostName;

@@ -23,7 +23,7 @@ namespace Cassandra
     {
         public Type GetDataType()
         {
-            return typeof (byte[]);
+            return typeof(byte[]);
         }
 
         public object ConvertFrom(byte[] decimalBuf)
@@ -34,7 +34,7 @@ namespace Cassandra
         public byte[] ConvertTo(object value)
         {
             TypeSerializer.CheckArgument<byte[]>(value);
-            return (byte[]) value;
+            return (byte[])value;
         }
     }
 }

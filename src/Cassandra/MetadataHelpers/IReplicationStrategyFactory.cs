@@ -21,7 +21,7 @@ namespace Cassandra.MetadataHelpers
     internal interface IReplicationStrategyFactory
     {
         IReplicationStrategy Create(
-            string strategyClass, 
+            string strategyClass,
             IReadOnlyDictionary<string, ReplicationFactor> replicationOptions);
     }
 }

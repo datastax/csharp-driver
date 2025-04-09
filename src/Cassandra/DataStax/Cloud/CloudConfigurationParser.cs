@@ -39,7 +39,7 @@ namespace Cassandra.DataStax.Cloud
 
             return cloudConfiguration;
         }
-        
+
         private void ValidateConfiguration(CloudConfiguration config)
         {
             if (config == null)
@@ -56,7 +56,7 @@ namespace Cassandra.DataStax.Cloud
             {
                 throw new ArgumentException("Could not parse the \"host\" property from the config file.");
             }
-            
+
             if (string.IsNullOrEmpty(config.CertificatePassword))
             {
                 CloudConfigurationParser.Logger.Warning("Could not parse the \"pfxCertPassword\" property from the config file.");

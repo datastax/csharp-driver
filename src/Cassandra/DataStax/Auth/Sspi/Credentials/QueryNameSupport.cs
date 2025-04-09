@@ -31,7 +31,7 @@ namespace Cassandra.DataStax.Auth.Sspi.Credentials
     /// <summary>
     /// Stores the result from a query of a credential's principle name.
     /// </summary>
-    [StructLayout( LayoutKind.Sequential )]
+    [StructLayout(LayoutKind.Sequential)]
     internal struct QueryNameAttribCarrier
     {
         /// <summary>

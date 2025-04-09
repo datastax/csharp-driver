@@ -55,7 +55,7 @@ namespace Cassandra.Tests.Requests
             // Assert.AreEqual("3.8.0", versionPrefix);
             // Assert.AreEqual("3.8.0", assemblyVersion);
         }
-        
+
         [Test]
         public void Should_ReturnCorrectDseSpecificStartupOptions_When_OptionsAreSet()
         {

@@ -63,7 +63,7 @@ namespace Cassandra.Tests
                         state.InvokeCallback(null, 0);
                     }
                 };
-                if ((counter++)%2 == 0)
+                if ((counter++) % 2 == 0)
                 {
                     //invert order
                     actions = actions.Reverse().ToArray();
@@ -146,7 +146,7 @@ namespace Cassandra.Tests
                     var buffer = new byte[frameLength];
                     stream.Position = i * frameLength;
                     stream.Read(buffer, 0, frameLength);
-                    CollectionAssert.AreEqual(new byte[] { 2, 0, 127, 8, 0, 0, 0, 2, 9, i}, buffer);
+                    CollectionAssert.AreEqual(new byte[] { 2, 0, 127, 8, 0, 0, 0, 2, 9, i }, buffer);
                 }
             }
         }
@@ -158,7 +158,7 @@ namespace Cassandra.Tests
             var buffer = new byte[256];
             for (var i = 0; i < buffer.Length; i++)
             {
-                buffer[i] = (byte) i;
+                buffer[i] = (byte)i;
             }
             var bufferPool = new RecyclableMemoryStreamManager(blockSize, 1024, 1024 * 1024 * 10);
             using (var stream = (RecyclableMemoryStream)bufferPool.GetStream())

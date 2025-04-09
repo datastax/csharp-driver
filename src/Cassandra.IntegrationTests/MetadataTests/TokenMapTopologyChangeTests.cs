@@ -86,7 +86,7 @@ namespace Cassandra.IntegrationTests.MetadataTests
 
                 var oldTokenMapNotSync = ClusterObjNotSync.Metadata.TokenToReplicasMap;
                 var oldTokenMapSync = ClusterObjSync.Metadata.TokenToReplicasMap;
-                
+
                 if (TestClusterManager.SupportsDecommissionForcefully())
                 {
                     this.TestCluster.DecommissionNodeForcefully(1);

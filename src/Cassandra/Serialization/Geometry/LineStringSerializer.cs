@@ -38,7 +38,7 @@ namespace Cassandra.Serialization.Geometry
             }
             var isLe = IsLittleEndian(buffer, offset);
             offset++;
-            var type = (GeometryType) EndianBitConverter.ToInt32(isLe, buffer, offset);
+            var type = (GeometryType)EndianBitConverter.ToInt32(isLe, buffer, offset);
             if (type != GeometryType.LineString)
             {
                 throw new ArgumentException("Binary representation was not a LineString");
@@ -51,7 +51,7 @@ namespace Cassandra.Serialization.Geometry
                 throw new ArgumentException(string.Format("Buffer length does not match: {0} < {1}", buffer.Length, offset + pointsLength * 16));
             }
             var points = new Point[pointsLength];
-            for (var i = 0; i < pointsLength; i++) 
+            for (var i = 0; i < pointsLength; i++)
             {
                 points[i] = new Point(
                     EndianBitConverter.ToDouble(isLe, buffer, offset),

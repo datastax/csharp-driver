@@ -31,7 +31,7 @@ namespace Cassandra.DataStax.Auth.Sspi.Contexts
     /// <summary>
     /// Stores the result of a context query for the context's buffer sizes.
     /// </summary>
-    [StructLayout( LayoutKind.Sequential )]
+    [StructLayout(LayoutKind.Sequential)]
     internal struct SecPkgContext_Sizes
     {
         public int MaxToken;
@@ -43,7 +43,7 @@ namespace Cassandra.DataStax.Auth.Sspi.Contexts
     /// <summary>
     /// Stores the result of a context query for a string-valued context attribute.
     /// </summary>
-    [StructLayout( LayoutKind.Sequential )]
+    [StructLayout(LayoutKind.Sequential)]
     internal struct SecPkgContext_String
     {
         public IntPtr StringResult;

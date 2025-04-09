@@ -35,7 +35,7 @@ namespace Cassandra.Metrics.Registries
         IDriverMeter BytesReceived { get; }
 
         IDriverGauge ConnectedNodes { get; }
-        
+
         /// <summary>
         /// Internal MetricsRegistry used to create metrics internally.
         /// </summary>

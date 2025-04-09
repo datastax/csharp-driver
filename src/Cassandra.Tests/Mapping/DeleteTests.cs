@@ -42,13 +42,13 @@ namespace Cassandra.Tests.Mapping
         {
             string query = null;
             object[] parameters = null;
-            var session = GetSession((q, args) => 
-            { 
+            var session = GetSession((q, args) =>
+            {
                 query = q;
                 parameters = args;
             }, new RowSet());
             var mapper = new Mapper(session, new MappingConfiguration().Define(new Map<Song>().PartitionKey(s => s.Id)));
-            var song = new Song {Id = Guid.NewGuid()};
+            var song = new Song { Id = Guid.NewGuid() };
             mapper.Delete(song);
             Assert.AreEqual("DELETE FROM Song WHERE Id = ?", query);
             CollectionAssert.AreEqual(new object[] { song.Id }, parameters);

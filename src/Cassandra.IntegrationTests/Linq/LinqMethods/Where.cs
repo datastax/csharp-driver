@@ -65,7 +65,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         public void LinqWhere_Execute(bool async)
         {
             var expectedMovie = _movieList.First();
-            
+
             TestCluster.PrimeFluent(
                 b => b.WhenQuery(
                           "SELECT \"director\", \"list\", \"mainGuy\", \"movie_maker\", \"unique_movie_title\", \"yearMade\" " +
@@ -81,13 +81,13 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             var actualMovie = movies.First();
             Movie.AssertEquals(expectedMovie, actualMovie);
         }
-        
+
         [Test]
         public void LinqWhere_NoSuchRecord()
         {
             var existingMovie = _movieList.Last();
             var randomStr = "somethingrandom_" + Randomm.RandomAlphaNum(10);
-            
+
             TestCluster.PrimeFluent(
                 b => b.WhenQuery(
                           "SELECT \"director\", \"list\", \"mainGuy\", \"movie_maker\", \"unique_movie_title\", \"yearMade\" " +
@@ -132,7 +132,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
                           "ALLOW FILTERING",
                           rows => rows.WithParams(100))
                       .ThenServerError(ServerError.Invalid, "msg"));
-            
+
             TestCluster.PrimeFluent(
                 b => b.WhenQuery(
                           "SELECT \"director\", \"list\", \"mainGuy\", \"movie_maker\", " +
@@ -142,7 +142,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
                           "ALLOW FILTERING",
                           rows => rows.WithParams("13"))
                       .ThenServerError(ServerError.Invalid, "msg"));
-            
+
             TestCluster.PrimeFluent(
                 b => b.WhenQuery(
                           "SELECT \"director\", \"list\", \"mainGuy\", \"movie_maker\", " +
@@ -178,7 +178,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
                           "ALLOW FILTERING",
                           rows => rows.WithParams(100))
                       .ThenServerError(ServerError.Invalid, "msg"));
-            
+
             TestCluster.PrimeFluent(
                 b => b.WhenQuery(
                           "SELECT \"director\", \"list\", \"mainGuy\", \"movie_maker\", " +
@@ -244,36 +244,36 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
                 new TestTable { UserId = 1, Date = 2, TimeColumn = 4 },
                 new TestTable { UserId = 1, Date = 2, TimeColumn = 5 }
             };
-            
+
             TestCluster.PrimeFluent(
                 b => b.WhenQuery(
                           $"SELECT \"date\", \"time\", \"user\" FROM \"{TestTable.TableName}\" " +
                           "WHERE \"user\" = ? AND \"date\" = ? ALLOW FILTERING",
                           rows => rows.WithParams(userId, date))
                       .ThenRowsSuccess(
-                          new [] { "date", "time", "user" },
+                          new[] { "date", "time", "user" },
                           rows => rows.WithRows(data.Select(
-                              t => new object [] { t.Date, t.TimeColumn, t.UserId }).ToArray())));
-            
+                              t => new object[] { t.Date, t.TimeColumn, t.UserId }).ToArray())));
+
             TestCluster.PrimeFluent(
                 b => b.WhenQuery(
                           $"SELECT \"date\", \"time\", \"user\" FROM \"{TestTable.TableName}\" " +
                           "WHERE \"user\" = ? AND \"date\" = ? AND \"time\" >= ? ORDER BY \"time\" ALLOW FILTERING",
                           rows => rows.WithParams(userId, date, time))
                       .ThenRowsSuccess(
-                          new [] { "date", "time", "user" },
+                          new[] { "date", "time", "user" },
                           rows => rows.WithRows(data.Where(t => t.TimeColumn >= time).OrderBy(t => t.TimeColumn).Select(
-                              t => new object [] { t.Date, t.TimeColumn, t.UserId }).ToArray())));
-            
+                              t => new object[] { t.Date, t.TimeColumn, t.UserId }).ToArray())));
+
             TestCluster.PrimeFluent(
                 b => b.WhenQuery(
                           $"SELECT \"date\", \"time\", \"user\" FROM \"{TestTable.TableName}\" " +
                           "WHERE \"user\" = ? AND \"date\" = ? AND \"time\" <= ? ORDER BY \"time\" DESC ALLOW FILTERING",
                           rows => rows.WithParams(userId, date, time))
                       .ThenRowsSuccess(
-                          new [] { "date", "time", "user" },
+                          new[] { "date", "time", "user" },
                           rows => rows.WithRows(data.Where(t => t.TimeColumn <= time).OrderByDescending(t => t.TimeColumn).Select(
-                              t => new object [] { t.Date, t.TimeColumn, t.UserId }).ToArray())));
+                              t => new object[] { t.Date, t.TimeColumn, t.UserId }).ToArray())));
 
             var query1Actual = table.Where(i => i.UserId == userId && i.Date == date);
 
@@ -321,16 +321,16 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
                 TimeColumn = 1
             };
             var localList = new List<int> { 0, 2 };
-            
+
             TestCluster.PrimeFluent(
                 b => b.WhenQuery(
                           $"SELECT date, id, time FROM {tableName} " +
                           "WHERE id = ? AND date IN ?",
                           rows => rows.WithParams(1, localList))
                       .ThenRowsSuccess(
-                          ("date", DataType.GetDataType(typeof(int))), 
-                          ("id",DataType.GetDataType(typeof(int))), 
-                          ("time",DataType.GetDataType(typeof(long)))));
+                          ("date", DataType.GetDataType(typeof(int))),
+                          ("id", DataType.GetDataType(typeof(int))),
+                          ("time", DataType.GetDataType(typeof(long)))));
 
             var emptyResults = table.Where(t => t.UserId == 1 && localList.Contains(t.Date)).Execute();
             Assert.NotNull(emptyResults);
@@ -345,7 +345,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
                           "WHERE id = ? AND date IN ?",
                           rows => rows.WithParams(1, localList))
                       .ThenRowsSuccess(
-                          new [] { "date", "id", "time" },
+                          new[] { "date", "id", "time" },
                           rows => rows.WithRow(data.Date, data.UserId, data.TimeColumn)));
 
             var tCreateResults = table.Where(t => t.UserId == 1 && localList.Contains(t.Date)).Execute();
@@ -378,21 +378,21 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
 
             var table = new Table<TestTable>(Session, new MappingConfiguration().Define(map));
             var localList = new List<Tuple<int, long>> { Tuple.Create(0, 0L), Tuple.Create(0, 2L) };
-            
+
             TestCluster.PrimeFluent(
                 b => b.WhenQuery(
                           $"SELECT date, id, time FROM {tableName} " +
                           "WHERE id = ? AND (date, time) IN ?",
                           rows => rows.WithParams(1, localList))
                       .ThenRowsSuccess(
-                          ("date", DataType.GetDataType(typeof(int))), 
-                          ("id",DataType.GetDataType(typeof(int))), 
-                          ("time",DataType.GetDataType(typeof(long)))));
+                          ("date", DataType.GetDataType(typeof(int))),
+                          ("id", DataType.GetDataType(typeof(int))),
+                          ("time", DataType.GetDataType(typeof(long)))));
 
             var emptyResults = table.Where(t => t.UserId == 1 && localList.Contains(Tuple.Create(t.Date, t.TimeColumn))).Execute();
             Assert.NotNull(emptyResults);
             Assert.AreEqual(0, emptyResults.ToArray().Length);
-            
+
             TestCluster.PrimeDelete();
             TestCluster.PrimeFluent(
                 b => b.WhenQuery(
@@ -400,16 +400,16 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
                           "WHERE id = ? AND (date, time) IN ?",
                           rows => rows.WithParams(1, new List<Tuple<int, long>>()))
                       .ThenRowsSuccess(
-                          ("date", DataType.GetDataType(typeof(int))), 
-                          ("id",DataType.GetDataType(typeof(int))), 
-                          ("time",DataType.GetDataType(typeof(long)))));
+                          ("date", DataType.GetDataType(typeof(int))),
+                          ("id", DataType.GetDataType(typeof(int))),
+                          ("time", DataType.GetDataType(typeof(long)))));
 
             emptyResults = table.Where(t => t.UserId == 1 && new List<Tuple<int, long>>().Contains(Tuple.Create(t.Date, t.TimeColumn))).Execute();
             Assert.NotNull(emptyResults);
             Assert.AreEqual(0, emptyResults.ToArray().Length);
 
             localList.Add(Tuple.Create(1, 1L)); //adding to list existent tuple
-            
+
             TestCluster.PrimeDelete();
             TestCluster.PrimeFluent(
                 b => b.WhenQuery(
@@ -458,7 +458,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             var listInsideObjResults = table.Where(t => t.UserId == 1 && anomObj.list.Contains(Tuple.Create(t.Date, t.TimeColumn))).Execute();
             Assert.NotNull(listInsideObjResults);
             Assert.AreEqual(1, listInsideObjResults.Count());
-            
+
             TestCluster.PrimeDelete();
             TestCluster.PrimeFluent(
                 b => b.WhenQuery(
@@ -470,7 +470,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             var listOuterScopeResults = table.Where(t => t.UserId == 1 && _tupleList.Contains(Tuple.Create(t.Date, t.TimeColumn))).Execute();
             Assert.NotNull(listOuterScopeResults);
             Assert.AreEqual(1, listOuterScopeResults.Count());
-            
+
             TestCluster.PrimeDelete();
             TestCluster.PrimeFluent(
                 b => b.WhenQuery(
@@ -531,7 +531,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
                           "ALLOW FILTERING",
                           p => p.WithParams(true))
                       .ThenRowsSuccess(
-                          ManyDataTypesEntity.GetColumnsWithTypes(), 
+                          ManyDataTypesEntity.GetColumnsWithTypes(),
                           r => r.WithRow(data.GetColumnValues())));
 
             rs = _manyDataTypesEntitiesTable.Where(m => m.BooleanType).Execute();
@@ -563,7 +563,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             var rs = _manyDataTypesEntitiesTable.Where(m => m.BooleanType == all).Execute();
             Assert.NotNull(rs);
             Assert.AreEqual(0, rs.Count());
-            
+
             //get all records
             TestCluster.PrimeDelete();
             TestCluster.PrimeFluent(
@@ -612,7 +612,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
 
             //Get poco using constant short
             const short expectedShortValue = 11;
-            
+
             TestCluster.PrimeFluent(
                 b => b.WhenQuery(
                           cqlSelect +
@@ -620,14 +620,14 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
                           "ALLOW FILTERING",
                           p => p.WithParams(pk, (int)expectedShortValue))
                       .ThenRowsSuccess(
-                          ManyDataTypesEntity.GetColumnsWithTypes(), 
+                          ManyDataTypesEntity.GetColumnsWithTypes(),
                           r => r.WithRow(data.GetColumnValues())));
 
             var rs = _manyDataTypesEntitiesTable
                      .Where(m => m.StringType == pk && m.IntType == expectedShortValue).AllowFiltering().Execute();
             Assert.NotNull(rs);
             Assert.AreEqual(1, rs.Count());
-            
+
             TestCluster.PrimeDelete();
             TestCluster.PrimeFluent(
                 b => b.WhenQuery(
@@ -636,14 +636,14 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
                           "ALLOW FILTERING",
                           p => p.WithParams(pk, (int)expectedShortValue))
                       .ThenRowsSuccess(
-                          ManyDataTypesEntity.GetColumnsWithTypes(), 
+                          ManyDataTypesEntity.GetColumnsWithTypes(),
                           r => r.WithRow(data.GetColumnValues())));
 
             rs = _manyDataTypesEntitiesTable.Where(m => m.StringType == pk && m.IntType == ExpectedShortValue)
                                             .AllowFiltering().Execute();
             Assert.NotNull(rs);
             Assert.AreEqual(1, rs.Count());
-            
+
             TestCluster.PrimeDelete();
             TestCluster.PrimeFluent(
                 b => b.WhenQuery(
@@ -652,13 +652,13 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
                           "ALLOW FILTERING",
                           p => p.WithParams(pk, (int)expectedShortValue))
                       .ThenRowsSuccess(
-                          ManyDataTypesEntity.GetColumnsWithTypes(), 
+                          ManyDataTypesEntity.GetColumnsWithTypes(),
                           r => r.WithRow(data.GetColumnValues())));
             rs = _manyDataTypesEntitiesTable.Where(m => m.StringType == pk && ExpectedShortValue == m.IntType)
                                             .AllowFiltering().Execute();
             Assert.NotNull(rs);
             Assert.AreEqual(1, rs.Count());
-            
+
             TestCluster.PrimeDelete();
             TestCluster.PrimeFluent(
                 b => b.WhenQuery(
@@ -667,7 +667,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
                           "ALLOW FILTERING",
                           p => p.WithParams(pk, (int)expectedShortValue))
                       .ThenRowsSuccess(
-                          ManyDataTypesEntity.GetColumnsWithTypes(), 
+                          ManyDataTypesEntity.GetColumnsWithTypes(),
                           r => r.WithRow(data.GetColumnValues())));
             rs = _manyDataTypesEntitiesTable.Where(m => m.StringType == pk && expectedShortValue == m.IntType)
                                             .AllowFiltering().Execute();
@@ -682,13 +682,13 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
                           "ALLOW FILTERING",
                           p => p.WithParams(pk, (long)expectedShortValue))
                       .ThenRowsSuccess(
-                          ManyDataTypesEntity.GetColumnsWithTypes(), 
+                          ManyDataTypesEntity.GetColumnsWithTypes(),
                           r => r.WithRow(data.GetColumnValues())));
             rs = _manyDataTypesEntitiesTable.Where(m => m.StringType == pk && m.Int64Type == expectedShortValue)
                                             .AllowFiltering().Execute();
             Assert.NotNull(rs);
             Assert.AreEqual(1, rs.Count());
-            
+
             TestCluster.PrimeDelete();
             TestCluster.PrimeFluent(
                 b => b.WhenQuery(
@@ -697,13 +697,13 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
                           "ALLOW FILTERING",
                           p => p.WithParams(pk, (long)expectedShortValue))
                       .ThenRowsSuccess(
-                          ManyDataTypesEntity.GetColumnsWithTypes(), 
+                          ManyDataTypesEntity.GetColumnsWithTypes(),
                           r => r.WithRow(data.GetColumnValues())));
             rs = _manyDataTypesEntitiesTable.Where(m => m.StringType == pk && expectedShortValue == m.Int64Type)
                                             .AllowFiltering().Execute();
             Assert.NotNull(rs);
             Assert.AreEqual(1, rs.Count());
-            
+
             TestCluster.PrimeDelete();
             TestCluster.PrimeFluent(
                 b => b.WhenQuery(
@@ -712,7 +712,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
                           "ALLOW FILTERING",
                           p => p.WithParams(pk, (long)expectedShortValue))
                       .ThenRowsSuccess(
-                          ManyDataTypesEntity.GetColumnsWithTypes(), 
+                          ManyDataTypesEntity.GetColumnsWithTypes(),
                           r => r.WithRow(data.GetColumnValues())));
             rs = _manyDataTypesEntitiesTable.Where(m => m.StringType == pk && m.Int64Type == ExpectedShortValue)
                                             .AllowFiltering().Execute();
@@ -727,7 +727,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
                           "ALLOW FILTERING",
                           p => p.WithParams(pk, (long)expectedShortValue))
                       .ThenRowsSuccess(
-                          ManyDataTypesEntity.GetColumnsWithTypes(), 
+                          ManyDataTypesEntity.GetColumnsWithTypes(),
                           r => r.WithRow(data.GetColumnValues())));
             rs = _manyDataTypesEntitiesTable.Where(m => m.StringType == pk && ExpectedShortValue == m.Int64Type)
                                             .AllowFiltering().Execute();
@@ -740,7 +740,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         {
             var table = new Table<Song>(Session, new MappingConfiguration().Define(
                 new Map<Song>().TableName("tbl_recovers_invalid_test").PartitionKey(x => x.Title)));
-            
+
             TestCluster.PrimeFluent(
                 b => b.WhenQuery(
                           "SELECT Artist, Id, ReleaseDate, Title FROM tbl_recovers_invalid_test" +
@@ -757,9 +757,9 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
                           " WHERE Title = ?",
                           p => p.WithParams("Do I Wanna Know"))
                       .ThenRowsSuccess(
-                          ("Artist", DataType.GetDataType(typeof(string))), 
-                          ("Id", DataType.GetDataType(typeof(Guid))), 
-                          ("ReleaseDate", DataType.GetDataType(typeof(DateTimeOffset))), 
+                          ("Artist", DataType.GetDataType(typeof(string))),
+                          ("Id", DataType.GetDataType(typeof(Guid))),
+                          ("ReleaseDate", DataType.GetDataType(typeof(DateTimeOffset))),
                           ("Title", DataType.GetDataType(typeof(string)))));
 
             Assert.AreEqual(0, table.Where(x => x.Title == "Do I Wanna Know").Execute().Count());

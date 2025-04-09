@@ -42,9 +42,9 @@ namespace Cassandra.IntegrationTests
         }
 
         protected SimulacronTest(
-            bool shared = false, 
-            SimulacronOptions options = null, 
-            bool connect = true, 
+            bool shared = false,
+            SimulacronOptions options = null,
+            bool connect = true,
             string keyspace = null,
             SimulacronManager simulacronManager = null)
         {
@@ -54,10 +54,10 @@ namespace Cassandra.IntegrationTests
             _keyspace = keyspace;
             _simulacronManager = simulacronManager;
         }
-        
+
         protected ISession Session { get; private set; }
 
-        internal IInternalSession InternalSession => (IInternalSession) Session;
+        internal IInternalSession InternalSession => (IInternalSession)Session;
 
         protected ICluster SessionCluster => Session?.Cluster;
 
@@ -74,7 +74,7 @@ namespace Cassandra.IntegrationTests
             var serializer = Session.Cluster.Metadata.ControlConnection.Serializer.GetCurrentSerializer();
             return Convert.ToBase64String(serializer.Serialize(parameter));
         }
-        
+
         protected void VerifyBoundStatement(string cql, int count, params object[] positionalParameters)
         {
             VerifyStatement(QueryType.Execute, cql, count, positionalParameters);
@@ -123,9 +123,9 @@ namespace Cassandra.IntegrationTests
             var logs = TestCluster.GetQueries(null, QueryType.Batch);
 
             var paramBytes = parameters.SelectMany(obj => obj.Select(o => o == null ? null : Convert.ToBase64String(serializer.Serialize(o)))).ToArray();
-            var filteredQueries = logs.Where(q => 
+            var filteredQueries = logs.Where(q =>
                 q.Frame.GetBatchMessage().Values.SelectMany(l => l).SequenceEqual(paramBytes)
-                && q.Frame.GetBatchMessage().QueriesOrIds.SequenceEqual(queries) 
+                && q.Frame.GetBatchMessage().QueriesOrIds.SequenceEqual(queries)
                 && func(q.Frame.GetBatchMessage()));
             Assert.AreEqual(count, filteredQueries.Count());
         }
@@ -230,7 +230,7 @@ namespace Cassandra.IntegrationTests
             TestCluster = null;
             Init();
         }
-        
+
         protected void SetupNewSession(Func<Builder, Builder> builderConfig = null)
         {
             var builder = ClusterBuilder();

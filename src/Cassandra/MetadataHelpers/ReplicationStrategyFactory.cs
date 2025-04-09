@@ -43,17 +43,17 @@ namespace Cassandra.MetadataHelpers
                     : null;
             }
 
-            if (strategyClass.Equals(ReplicationStrategies.NetworkTopologyStrategy, StringComparison.OrdinalIgnoreCase)) 
+            if (strategyClass.Equals(ReplicationStrategies.NetworkTopologyStrategy, StringComparison.OrdinalIgnoreCase))
             {
                 return new NetworkTopologyStrategy(replicationOptions);
             }
 
-            if (strategyClass.Equals(ReplicationStrategies.LocalStrategy, StringComparison.OrdinalIgnoreCase)) 
+            if (strategyClass.Equals(ReplicationStrategies.LocalStrategy, StringComparison.OrdinalIgnoreCase))
             {
                 return LocalStrategy.Instance;
             }
 
-            if (strategyClass.Equals(ReplicationStrategies.EverywhereStrategy, StringComparison.OrdinalIgnoreCase)) 
+            if (strategyClass.Equals(ReplicationStrategies.EverywhereStrategy, StringComparison.OrdinalIgnoreCase))
             {
                 return EverywhereStrategy.Instance;
             }

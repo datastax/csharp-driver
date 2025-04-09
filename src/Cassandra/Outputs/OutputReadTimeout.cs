@@ -40,7 +40,7 @@ namespace Cassandra
 
         protected override void Load(FrameReader reader)
         {
-            _consistency = (ConsistencyLevel) reader.ReadInt16();
+            _consistency = (ConsistencyLevel)reader.ReadInt16();
             _received = reader.ReadInt32();
             _blockFor = reader.ReadInt32();
 

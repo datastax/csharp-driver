@@ -61,14 +61,14 @@ namespace Cassandra.Tests
         public void Linq_Attributes_Obsolete()
         {
 
-            var linqAttributes = typeof (Cassandra.Data.Linq.TableAttribute).GetTypeInfo().Assembly.GetTypes()
+            var linqAttributes = typeof(Cassandra.Data.Linq.TableAttribute).GetTypeInfo().Assembly.GetTypes()
                 .Select(t => t.GetTypeInfo())
                 .Where(t => t.IsPublic && t.IsSubclassOf(typeof(Attribute)) && t.Namespace == "Cassandra.Data.Linq")
                 .ToArray();
             Assert.Greater(linqAttributes.Length, 5);
             foreach (var attr in linqAttributes)
             {
-                Assert.AreEqual(1, attr.GetCustomAttributes(typeof (ObsoleteAttribute), true).Count(), "Type not obsolete " + attr.FullName);
+                Assert.AreEqual(1, attr.GetCustomAttributes(typeof(ObsoleteAttribute), true).Count(), "Type not obsolete " + attr.FullName);
             }
         }
     }

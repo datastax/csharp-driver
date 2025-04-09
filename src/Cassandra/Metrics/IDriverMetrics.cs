@@ -29,7 +29,7 @@ namespace Cassandra.Metrics
         /// Exposes session metrics for the session from which this instance was retrieved. See <see cref="ISession.GetMetrics"/>.
         /// </summary>
         IMetricsRegistry<SessionMetric> SessionMetrics { get; }
-        
+
         /// <summary>
         /// Exposes node metrics for the hosts used in requests executed by the session
         /// from which this instance was retrieved. See <see cref="ISession.GetMetrics"/>.
@@ -42,7 +42,7 @@ namespace Cassandra.Metrics
         /// </summary>
         /// <exception cref="ArgumentException">This exception is thrown if the metric object can not be cast to <typeparamref name="TMetricType"/>.</exception>
         TMetricType GetNodeMetric<TMetricType>(Host host, NodeMetric nodeMetric) where TMetricType : class, IDriverMetric;
-        
+
         /// <summary>
         /// Gets a specific session metric. <typeparamref name="TMetricType"/> can be any type in the
         /// inheritance tree of the metric object returned by the <see cref="IDriverMetricsProvider"/>.

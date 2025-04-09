@@ -73,7 +73,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             "NullableTimeUuidType timeuuid, " +
             "StringType text, " +
             "TimeUuidType timeuuid";
-        
+
         private const string CreateCqlDefaultColumnsCaseSensitive =
             "\"BooleanType\" boolean, " +
             "\"DateTimeOffsetType\" timestamp, " +
@@ -98,14 +98,14 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             $"CREATE TABLE \"{AllDataTypesEntity.TableName}\" (" +
                 CreateTable.CreateCqlColumns + ", " +
                 "PRIMARY KEY (\"string_type\", \"guid_type\"))";
-        
+
         private static readonly string CreateCqlFormatStr =
             "CREATE TABLE {0} (" +
             CreateTable.CreateCqlColumns + ", " +
             "PRIMARY KEY (\"string_type\", \"guid_type\"))";
 
         private readonly string _uniqueKsName = TestUtils.GetUniqueKeyspaceName().ToLowerInvariant();
-        
+
         /// <summary>
         /// Create a table using the method CreateIfNotExists
         /// 
@@ -138,7 +138,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             table.Create();
             VerifyStatement(QueryType.Query, CreateTable.CreateCql, 1);
         }
-        
+
         [Test, TestCassandraVersion(4, 0, Comparison.LessThan)]
         public void Should_CreateTable_WhenClusteringOrderAndCompactOptionsAreSet()
         {
@@ -150,9 +150,9 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             var table = new Table<Tweet>(Session, config);
             table.Create();
             VerifyStatement(
-                QueryType.Query, 
+                QueryType.Query,
                 "CREATE TABLE Tweet (AuthorId text, Body text, TweetId uuid, PRIMARY KEY (TweetId, AuthorId)) " +
-                "WITH CLUSTERING ORDER BY (AuthorId DESC) AND COMPACT STORAGE", 
+                "WITH CLUSTERING ORDER BY (AuthorId DESC) AND COMPACT STORAGE",
                 1);
         }
 
@@ -163,7 +163,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             table.CreateAsync().GetAwaiter().GetResult();
             VerifyStatement(QueryType.Query, CreateTable.CreateCql, 1);
         }
-        
+
         [Test, TestCassandraVersion(4, 0, Comparison.LessThan)]
         public void Should_CreateTableAsync_WhenClusteringOrderAndCompactOptionsAreSet()
         {
@@ -175,9 +175,9 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             var table = new Table<Tweet>(Session, config);
             table.CreateAsync().GetAwaiter().GetResult();
             VerifyStatement(
-                QueryType.Query, 
+                QueryType.Query,
                 "CREATE TABLE Tweet (AuthorId text, Body text, TweetId uuid, PRIMARY KEY (TweetId, AuthorId)) " +
-                "WITH CLUSTERING ORDER BY (AuthorId DESC) AND COMPACT STORAGE", 
+                "WITH CLUSTERING ORDER BY (AuthorId DESC) AND COMPACT STORAGE",
                 1);
         }
 
@@ -193,8 +193,8 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             Assert.AreEqual(uniqueTableName, table.Name);
             table.Create();
             VerifyStatement(
-                QueryType.Query, 
-                CreateTable.CreateCql.Replace($"\"{AllDataTypesEntity.TableName}\"", $"\"{uniqueTableName}\""), 
+                QueryType.Query,
+                CreateTable.CreateCql.Replace($"\"{AllDataTypesEntity.TableName}\"", $"\"{uniqueTableName}\""),
                 1);
         }
 
@@ -206,8 +206,8 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             Assert.AreEqual(uniqueTableName, table.Name);
             table.CreateAsync().GetAwaiter().GetResult();
             VerifyStatement(
-                QueryType.Query, 
-                CreateTable.CreateCql.Replace($"\"{AllDataTypesEntity.TableName}\"", $"\"{uniqueTableName}\""), 
+                QueryType.Query,
+                CreateTable.CreateCql.Replace($"\"{AllDataTypesEntity.TableName}\"", $"\"{uniqueTableName}\""),
                 1);
         }
 
@@ -224,8 +224,8 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
 
             table.Create();
             VerifyStatement(
-                QueryType.Query, 
-                $"CREATE TABLE {tableName} ({CreateTable.CreateCqlDefaultColumns}, PRIMARY KEY (TimeUuidType))", 
+                QueryType.Query,
+                $"CREATE TABLE {tableName} ({CreateTable.CreateCqlDefaultColumns}, PRIMARY KEY (TimeUuidType))",
                 1);
 
             TestCluster.PrimeFluent(
@@ -249,8 +249,8 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
 
             table.CreateAsync().GetAwaiter().GetResult();
             VerifyStatement(
-                QueryType.Query, 
-                $"CREATE TABLE {tableName} ({CreateTable.CreateCqlDefaultColumns}, PRIMARY KEY (TimeUuidType))", 
+                QueryType.Query,
+                $"CREATE TABLE {tableName} ({CreateTable.CreateCqlDefaultColumns}, PRIMARY KEY (TimeUuidType))",
                 1);
 
             TestCluster.PrimeFluent(
@@ -309,7 +309,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             var mappingConfig = new MappingConfiguration().Define(new Map<AllDataTypesEntity>().TableName(staticTableName).CaseSensitive().PartitionKey(c => c.StringType));
             var allDataTypesTable = new Table<AllDataTypesEntity>(Session, mappingConfig);
             allDataTypesTable.Create();
-            
+
             VerifyStatement(
                 QueryType.Query,
                 $"CREATE TABLE \"{staticTableName}\" ({CreateTable.CreateCqlDefaultColumnsCaseSensitive}, PRIMARY KEY (\"StringType\"))",
@@ -351,7 +351,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             }
 
             var table = new Table<AllDataTypesEntity>(Session, new MappingConfiguration(), uniqueTableName, uniqueKsName);
-            if(!TestClusterManager.SchemaManipulatingQueriesThrowInvalidQueryException())
+            if (!TestClusterManager.SchemaManipulatingQueriesThrowInvalidQueryException())
             {
                 Assert.Throws<InvalidConfigurationInQueryException>(() => table.Create());
             }
@@ -380,7 +380,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             }
 
             var table = new Table<AllDataTypesEntity>(Session, new MappingConfiguration(), uniqueTableName, uniqueKsName);
-            if(!TestClusterManager.SchemaManipulatingQueriesThrowInvalidQueryException())
+            if (!TestClusterManager.SchemaManipulatingQueriesThrowInvalidQueryException())
             {
                 Assert.ThrowsAsync<InvalidConfigurationInQueryException>(() => table.CreateAsync());
             }
@@ -399,7 +399,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         {
             var uniqueTableName = TestUtils.GetUniqueTableName();
             var uniqueKsName = TestUtils.GetUniqueKeyspaceName();
-            
+
             TestCluster.PrimeFluent(
                 b => b.WhenQuery(string.Format(CreateTable.CreateCqlFormatStr, $"\"{uniqueKsName}\".\"{uniqueTableName}\""))
                       .ThenServerError(ServerError.ConfigError, "msg"));
@@ -413,7 +413,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         {
             var uniqueTableName = TestUtils.GetUniqueTableName();
             var uniqueKsName = TestUtils.GetUniqueKeyspaceName();
-            
+
             TestCluster.PrimeFluent(
                 b => b.WhenQuery(string.Format(CreateTable.CreateCqlFormatStr, $"\"{uniqueKsName}\".\"{uniqueTableName}\""))
                       .ThenServerError(ServerError.ConfigError, "msg"));
@@ -531,16 +531,16 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
                 .ExplicitColumns());
             var table = new Table<UdtAndTuplePoco>(Session, config);
             table.Create();
-            
+
             VerifyStatement(
                 QueryType.Query,
                 "CREATE TABLE tbl_frozen_tuple (Id1 uuid, t frozen<tuple<bigint, bigint, text>>, PRIMARY KEY (Id1))",
                 1);
-            
+
             PrimeSystemSchemaTables(
-                _uniqueKsName, 
+                _uniqueKsName,
                 "tbl_frozen_tuple",
-                new []
+                new[]
                 {
                     new StubTableColumn("Id1", StubColumnKind.PartitionKey, DataType.Uuid),
                     new StubTableColumn("t", StubColumnKind.Regular, DataType.Frozen(DataType.Tuple(DataType.BigInt, DataType.BigInt, DataType.Text)))
@@ -571,7 +571,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
                                                                                   .AsCounter()));
             var table = new Table<AllTypesEntity>(Session, config);
             table.Create();
-            
+
             VerifyStatement(
                 QueryType.Query,
                 "CREATE TABLE tbl_with_counter_static (" +
@@ -580,13 +580,13 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
                 1);
 
             PrimeSystemSchemaTables(
-                _uniqueKsName, 
+                _uniqueKsName,
                 "tbl_with_counter_static",
-                new []
+                new[]
                 {
                     new StubTableColumn("counter_col1", StubColumnKind.Regular, DataType.Counter),
-                    new StubTableColumn("counter_col2", StubColumnKind.Regular, DataType.Counter), 
-                    new StubTableColumn("id1", StubColumnKind.PartitionKey, DataType.Uuid), 
+                    new StubTableColumn("counter_col2", StubColumnKind.Regular, DataType.Counter),
+                    new StubTableColumn("id1", StubColumnKind.PartitionKey, DataType.Uuid),
                     new StubTableColumn("id2", StubColumnKind.ClusteringKey, DataType.Text)
                 });
 
@@ -604,7 +604,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         {
             var table = new Table<TestEmptyClusteringColumnName>(Session, MappingConfiguration.Global);
             table.CreateIfNotExists();
-            
+
             VerifyStatement(
                 QueryType.Query,
                 "CREATE TABLE \"test_empty_clustering_column_name\" (" +
@@ -636,13 +636,13 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             VerifyStatement(
                 QueryType.Query,
                 string.Format(
-                    AllDataTypesEntity.InsertCqlDefaultColumnsFormatStr, 
+                    AllDataTypesEntity.InsertCqlDefaultColumnsFormatStr,
                     ksAndTable),
                 1,
                 expectedDataTypesEntityRow.GetColumnValuesForDefaultColumns());
 
             // select record
-            
+
             TestCluster.PrimeFluent(
                 b => b.WhenQuery(
                           string.Format(AllDataTypesEntity.SelectCqlDefaultColumnsFormatStr, ksAndTable),
@@ -652,7 +652,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
                           r => r.WithRow(expectedDataTypesEntityRow.GetColumnValuesForDefaultColumns())));
 
 
-            var listOfAllDataTypesObjects = 
+            var listOfAllDataTypesObjects =
                 (from x in table where x.StringType.Equals(uniqueKey) select x)
                 .Execute().ToList();
             Assert.NotNull(listOfAllDataTypesObjects);
@@ -676,10 +676,10 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
 
             VerifyBatchStatement(
                 1,
-                new [] { string.Format(
-                    AllDataTypesEntity.InsertCqlDefaultColumnsFormatStr, 
+                new[] { string.Format(
+                    AllDataTypesEntity.InsertCqlDefaultColumnsFormatStr,
                     ksAndTable) },
-                new [] { expectedDataTypesEntityRow.GetColumnValuesForDefaultColumns() });
+                new[] { expectedDataTypesEntityRow.GetColumnValuesForDefaultColumns() });
 
             TestCluster.PrimeFluent(
                 b => b.WhenQuery(
@@ -689,9 +689,9 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
                           AllDataTypesEntity.GetDefaultColumns(),
                           r => r.WithRow(expectedDataTypesEntityRow.GetColumnValuesForDefaultColumns())));
 
-            var listOfAllDataTypesObjects = 
-                (from x in table 
-                 where x.StringType.Equals(uniqueKey) 
+            var listOfAllDataTypesObjects =
+                (from x in table
+                 where x.StringType.Equals(uniqueKey)
                  select x)
                 .Execute().ToList();
             Assert.NotNull(listOfAllDataTypesObjects);
@@ -710,10 +710,10 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         private class PrivateClassMissingPartitionKey
         {
             //Is never used, but don't mind
-            #pragma warning disable 414, 169
+#pragma warning disable 414, 169
             // ReSharper disable once InconsistentNaming
             private string StringValue = "someStringValue";
-            #pragma warning restore 414, 169
+#pragma warning restore 414, 169
         }
 
         private class PrivateEmptyClass
@@ -734,7 +734,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             // ReSharper disable once InconsistentNaming
             // ReSharper disable once UnusedMember.Local
             public string cluster { get; set; }
-            
+
             [Column]
             // ReSharper disable once InconsistentNaming
             // ReSharper disable once UnusedMember.Local

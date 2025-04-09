@@ -35,19 +35,19 @@ namespace Cassandra.DataStax.Graph
 
         protected bool Equals(Property other)
         {
-            return string.Equals(Name, other.Name) 
-                   && object.Equals(Value, other.Value) 
+            return string.Equals(Name, other.Name)
+                   && object.Equals(Value, other.Value)
                    && object.Equals(Element, other.Element);
         }
 
         public bool Equals(IProperty other)
         {
-            return Equals((object) other);
+            return Equals((object)other);
         }
-        
+
         public bool Equals(IPropertyWithElement other)
         {
-            return Equals((object) other);
+            return Equals((object)other);
         }
 
         public override bool Equals(object obj)
@@ -64,7 +64,7 @@ namespace Cassandra.DataStax.Graph
             {
                 return false;
             }
-            return Equals((Property) obj);
+            return Equals((Property)obj);
         }
 
         public override int GetHashCode()

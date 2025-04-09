@@ -66,7 +66,7 @@ namespace Cassandra.Serialization
             return genericTupleType.MakeGenericType(
                 tupleInfo.Elements.Select(s => GetClrType(s.TypeCode, s.TypeInfo)).ToArray());
         }
-        
+
         internal Type GetClrTypeForGraph(IColumnInfo typeInfo)
         {
             var tupleInfo = (TupleColumnInfo)typeInfo;

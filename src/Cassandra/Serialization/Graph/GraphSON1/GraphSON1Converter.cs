@@ -42,7 +42,7 @@ namespace Cassandra.Serialization.Graph.GraphSON1
         };
 
         internal static readonly GraphSON1Converter Instance = new GraphSON1Converter();
-        
+
         private readonly Dictionary<Type, ReadDelegate> _readers;
 
         private GraphSON1Converter()

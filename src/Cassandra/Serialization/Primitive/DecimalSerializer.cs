@@ -52,13 +52,13 @@ namespace Cassandra.Serialization.Primitive
             {
                 try
                 {
-                    return (decimal) (unscaledValue*BigInteger.Pow(new BigInteger(10), Math.Abs(scale)));
+                    return (decimal)(unscaledValue * BigInteger.Pow(new BigInteger(10), Math.Abs(scale)));
                 }
                 catch (OverflowException)
                 {
                     throw new ArgumentOutOfRangeException(
                         "unscaledValue",
-                        unscaledValue*BigInteger.Pow(new BigInteger(10), Math.Abs(scale)),
+                        unscaledValue * BigInteger.Pow(new BigInteger(10), Math.Abs(scale)),
                         "Value can not be represented as a CLR Decimal");
                 }
             }

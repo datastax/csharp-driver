@@ -41,7 +41,7 @@ namespace Cassandra.ExecutionProfiles
                         kvp => new RequestOptions(kvp.Value, defaultProfile, policies, socketOptions, queryOptions, clientOptions, graphOptions));
 
             requestOptions.Add(
-                Configuration.DefaultExecutionProfileName, 
+                Configuration.DefaultExecutionProfileName,
                 new RequestOptions(null, defaultProfile, policies, socketOptions, queryOptions, clientOptions, graphOptions));
             return requestOptions;
         }

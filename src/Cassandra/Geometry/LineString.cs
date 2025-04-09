@@ -53,7 +53,7 @@ namespace Cassandra.Geometry
         {
 
         }
-        
+
         /// <summary>
         /// Creates a new instance of <see cref="LineString"/> using a serialization information.
         /// </summary>

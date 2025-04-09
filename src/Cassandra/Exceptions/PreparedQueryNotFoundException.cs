@@ -20,7 +20,7 @@ namespace Cassandra
     {
         public byte[] UnknownId { get; private set; }
 
-        public PreparedQueryNotFoundException(string message, byte[] unknownId) 
+        public PreparedQueryNotFoundException(string message, byte[] unknownId)
             : base(message)
         {
             UnknownId = unknownId;

@@ -23,9 +23,9 @@ namespace Cassandra.IntegrationTests.TestDataTypes
 {
     internal class Contact : IEquatable<Contact>
     {
-        public const string CreateUdtCql = 
+        public const string CreateUdtCql =
             "CREATE TYPE contact (first_name text, last_name text, birth_date timestamp, phones set<frozen<phone>>, emails set<text>, nullable_long bigint)";
-        
+
         public string FirstName { get; set; }
 
         public string LastName { get; set; }

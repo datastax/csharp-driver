@@ -38,7 +38,7 @@ namespace Cassandra.Tests
                 .Verifiable();
             connection.ManagedConnection = sessionMock.Object;
 
-            var cmd = (CqlCommand) connection.CreateCommand();
+            var cmd = (CqlCommand)connection.CreateCommand();
             cmd.CommandText = "INSERT INTO dummy_cf (a,b) VALUES (1,2)";
             var reader = cmd.ExecuteReader();
             reader.Dispose();

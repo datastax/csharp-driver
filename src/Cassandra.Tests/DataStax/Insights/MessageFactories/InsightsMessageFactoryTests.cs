@@ -232,10 +232,10 @@ namespace Cassandra.Tests.DataStax.Insights.MessageFactories
                 ControlConnection = Mock.Of<IControlConnection>()
             };
             var contactPoint = new HostnameContactPoint(
-                config.DnsResolver, 
-                config.ProtocolOptions, 
-                config.ServerNameResolver, 
-                config.KeepContactPointsUnresolved, 
+                config.DnsResolver,
+                config.ProtocolOptions,
+                config.ServerNameResolver,
+                config.KeepContactPointsUnresolved,
                 "localhost");
             var connectionEndPoint = new ConnectionEndPoint(
                 new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9011), config.ServerNameResolver, contactPoint);

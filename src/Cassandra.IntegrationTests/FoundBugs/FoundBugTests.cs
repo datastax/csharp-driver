@@ -84,7 +84,7 @@ namespace Cassandra.IntegrationTests.FoundBugs
                 }
                 catch (Exception e)
                 {
-                    if (e.GetType() == typeof (NoHostAvailableException))
+                    if (e.GetType() == typeof(NoHostAvailableException))
                     {
                         noHostAvailableExceptionWasCaught = true;
                     }
@@ -109,7 +109,7 @@ namespace Cassandra.IntegrationTests.FoundBugs
                 }
                 catch (Exception e)
                 {
-                    if (e.GetType() == typeof (NoHostAvailableException))
+                    if (e.GetType() == typeof(NoHostAvailableException))
                     {
                         Trace.TraceInformation("Host still not up yet, waiting another one second ... ");
                         Thread.Sleep(1000);

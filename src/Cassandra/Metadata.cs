@@ -43,7 +43,7 @@ namespace Cassandra
         private volatile ConcurrentDictionary<string, KeyspaceMetadata> _keyspaces = new ConcurrentDictionary<string, KeyspaceMetadata>();
         private volatile ISchemaParser _schemaParser;
         private readonly int _queryAbortTimeout;
-        private volatile CopyOnWriteDictionary<IContactPoint, IEnumerable<IConnectionEndPoint>> _resolvedContactPoints = 
+        private volatile CopyOnWriteDictionary<IContactPoint, IEnumerable<IConnectionEndPoint>> _resolvedContactPoints =
             new CopyOnWriteDictionary<IContactPoint, IEnumerable<IConnectionEndPoint>>();
 
         public event HostsEventHandler HostsEvent;
@@ -614,19 +614,19 @@ namespace Cassandra
                 while (DateTime.Now.Subtract(start).TotalSeconds < waitSeconds)
                 {
                     var serializer = ControlConnection.Serializer.GetCurrentSerializer();
-                    var schemaVersionLocalQuery = 
+                    var schemaVersionLocalQuery =
                         new QueryRequest(
-                            serializer, 
-                            Metadata.SelectSchemaVersionLocal, 
+                            serializer,
+                            Metadata.SelectSchemaVersionLocal,
                             QueryProtocolOptions.Default,
-                            false, 
+                            false,
                             null);
-                    var schemaVersionPeersQuery = 
+                    var schemaVersionPeersQuery =
                         new QueryRequest(
-                            serializer, 
-                            Metadata.SelectSchemaVersionPeers, 
+                            serializer,
+                            Metadata.SelectSchemaVersionPeers,
                             QueryProtocolOptions.Default,
-                            false, 
+                            false,
                             null);
                     var queries = new[] { connection.Send(schemaVersionLocalQuery), connection.Send(schemaVersionPeersQuery) };
                     // ReSharper disable once CoVariantArrayConversion

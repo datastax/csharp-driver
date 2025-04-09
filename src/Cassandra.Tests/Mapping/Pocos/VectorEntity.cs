@@ -39,7 +39,7 @@ namespace Cassandra.Tests.Mapping.Pocos
             Func<CqlVector<int>> generator = () => new CqlVector<int>(r.Next(), r.Next(), r.Next());
             var vector = generator();
             var vectorOfVectors = new CqlVector<CqlVector<int>>(generator(), generator(), generator());
-            return new VectorPoco { UuidValue = Guid.NewGuid(), VectorValue = vector, VectorOfVectorsValue = vectorOfVectors};
+            return new VectorPoco { UuidValue = Guid.NewGuid(), VectorValue = vector, VectorOfVectorsValue = vectorOfVectors };
         }
 
         public static void AssertEquals(VectorPoco one, VectorPoco two)

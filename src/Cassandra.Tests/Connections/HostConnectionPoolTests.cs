@@ -113,8 +113,8 @@ namespace Cassandra.Tests.Connections
             }.Build();
 
             var pool = new HostConnectionPool(
-                _host, 
-                config, 
+                _host,
+                config,
                 SerializerManager.Default,
                 new MetricsObserverFactory(new MetricsManager(new NullDriverMetricsProvider(), new DriverMetricsOptions(), false, "s1"))
                 );

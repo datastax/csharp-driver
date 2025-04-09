@@ -259,7 +259,7 @@ namespace Cassandra
         {
             throw new InvalidOperationException("Cannot insert this query into the batch");
         }
-        
+
         /// <inheritdoc />
         public IStatement SetIdempotence(bool value)
         {

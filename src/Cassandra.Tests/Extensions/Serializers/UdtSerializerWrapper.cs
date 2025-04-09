@@ -36,7 +36,7 @@ namespace Cassandra.Tests.Extensions.Serializers
             SerializationCounter++;
             if (_fixedValue)
             {
-                return Encoding.UTF8.GetBytes("DUMMY UDT SERIALIZED");   
+                return Encoding.UTF8.GetBytes("DUMMY UDT SERIALIZED");
             }
             return base.Serialize(protocolVersion, value);
         }
@@ -46,7 +46,7 @@ namespace Cassandra.Tests.Extensions.Serializers
             DeserializationCounter++;
             if (_fixedValue)
             {
-                return Utils.SliceBuffer(buffer, offset, length);   
+                return Utils.SliceBuffer(buffer, offset, length);
             }
             return base.Deserialize(protocolVersion, buffer, offset, length, typeInfo);
         }

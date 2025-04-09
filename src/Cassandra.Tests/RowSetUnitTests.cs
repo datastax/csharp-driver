@@ -424,7 +424,7 @@ namespace Cassandra.Tests
                 100
             };
             rs.AddRow(new Row(rowValues, columns.ToArray(), columnIndexes));
-            rs.AddRow(new Row(new object[] { null, null}, columns.ToArray(), columnIndexes));
+            rs.AddRow(new Row(new object[] { null, null }, columns.ToArray(), columnIndexes));
             return rs;
         }
 
@@ -453,7 +453,7 @@ namespace Cassandra.Tests
         [Test]
         public void Row_TryConvertToType_Should_Convert_Timestamps()
         {
-            var timestampTypeInfo = new CqlColumn {TypeCode = ColumnTypeCode.Timestamp};
+            var timestampTypeInfo = new CqlColumn { TypeCode = ColumnTypeCode.Timestamp };
             var values = new[]
             {
                 //column desc, value, type and expected type
@@ -474,7 +474,7 @@ namespace Cassandra.Tests
         {
             var listIntTypeInfo = new CqlColumn
             {
-                TypeCode = ColumnTypeCode.List, 
+                TypeCode = ColumnTypeCode.List,
                 TypeInfo = new ListColumnInfo { ValueTypeCode = ColumnTypeCode.Int },
                 Type = typeof(IEnumerable<int>)
             };
@@ -499,7 +499,7 @@ namespace Cassandra.Tests
         {
             var setIntTypeInfo = new CqlColumn
             {
-                TypeCode = ColumnTypeCode.Set, 
+                TypeCode = ColumnTypeCode.Set,
                 TypeInfo = new SetColumnInfo { KeyTypeCode = ColumnTypeCode.Int },
                 Type = typeof(IEnumerable<int>)
             };
@@ -516,7 +516,7 @@ namespace Cassandra.Tests
             {
                 var value = Row.TryConvertToType(item[0], (CqlColumn)item[1], (Type)item[2]);
                 Assert.AreEqual(item.Length > 3 ? item[3] : item[2], value.GetType());
-                CollectionAssert.AreEqual((int[]) item[0], (IEnumerable<int>) value);
+                CollectionAssert.AreEqual((int[])item[0], (IEnumerable<int>)value);
             }
         }
 
@@ -565,7 +565,7 @@ namespace Cassandra.Tests
                 TypeInfo = new SetColumnInfo
                 {
                     KeyTypeCode = ColumnTypeCode.Set,
-                    KeyTypeInfo = new SetColumnInfo {  KeyTypeCode = ColumnTypeCode.Int }
+                    KeyTypeInfo = new SetColumnInfo { KeyTypeCode = ColumnTypeCode.Int }
                 }
             };
             var listTypeInfo = new CqlColumn
@@ -592,7 +592,7 @@ namespace Cassandra.Tests
                 var value = Row.TryConvertToType(item.Item1, item.Item2, item.Item3);
                 Assert.True(item.Item3.GetTypeInfo().IsInstanceOfType(value), "{0} is not assignable from {1}",
                     item.Item3, value.GetType());
-                Assert.AreEqual(TestHelper.FirstString(item.Item1), TestHelper.FirstString((IEnumerable) value));
+                Assert.AreEqual(TestHelper.FirstString(item.Item1), TestHelper.FirstString((IEnumerable)value));
             }
         }
 

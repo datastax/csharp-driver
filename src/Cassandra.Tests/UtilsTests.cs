@@ -56,13 +56,13 @@ namespace Cassandra.Tests
                 Tuple.Create(new byte[]{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}, new byte[]{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }, true),
                 Tuple.Create(new byte[]{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}, new byte[]{ 1, 2, 3, 4, 5, 6, 7, 9, 9, 10 }, false),
                 Tuple.Create(new byte[]{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}, new byte[]{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 11 }, false),
-                Tuple.Create(new byte[]{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}, 
+                Tuple.Create(new byte[]{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16},
                     new byte[]{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 }, true),
-                Tuple.Create(new byte[]{ 10, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 160}, 
+                Tuple.Create(new byte[]{ 10, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 160},
                     new byte[]{ 10, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 160}, true),
-                Tuple.Create(new byte[]{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}, 
+                Tuple.Create(new byte[]{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16},
                              new byte[]{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17 }, false),
-                Tuple.Create(new byte[]{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}, 
+                Tuple.Create(new byte[]{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16},
                              new byte[]{ 2, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 }, false),
                 Tuple.Create(new byte[]{ 1, 2, 3, 4, 5, 10 }, new byte[]{ 1, 2, 3, 4, 5, 10 }, true),
                 Tuple.Create(new byte[]{ 1, 2, 3, 4, 5, 10 }, new byte[]{ 2, 2, 3, 4, 5, 11 }, false)
@@ -76,7 +76,7 @@ namespace Cassandra.Tests
                 }
                 else
                 {
-                    Assert.AreNotEqual(comparer.GetHashCode(item.Item1), comparer.GetHashCode(item.Item2), 
+                    Assert.AreNotEqual(comparer.GetHashCode(item.Item1), comparer.GetHashCode(item.Item2),
                         "For value: " + string.Join(", ", item.Item1));
                 }
             }

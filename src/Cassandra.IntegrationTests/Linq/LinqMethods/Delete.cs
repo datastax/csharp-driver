@@ -40,7 +40,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             _entityList = AllDataTypesEntity.GetDefaultAllDataTypesList();
             _table = new Table<AllDataTypesEntity>(Session, new MappingConfiguration());
         }
-        
+
         [TestCase(true)]
         [TestCase(false)]
         [Test]
@@ -68,7 +68,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
 
             VerifyBoundStatement(
                 $"DELETE FROM \"{AllDataTypesEntity.TableName}\" WHERE \"string_type\" = ?", 1, entityToDelete.StringType);
-            
+
             TestCluster.PrimeDelete();
             AllDataTypesEntity.PrimeCountQuery(TestCluster, _entityList.Count - 1);
 
@@ -77,7 +77,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             TestCluster.PrimeFluent(b => entityToDelete.When(TestCluster, b).ThenVoidSuccess());
             Assert.AreEqual(0, selectQuery.Execute().ToList().Count);
         }
-        
+
         [TestCase(true)]
         [TestCase(false)]
         [Test]
@@ -104,7 +104,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         public void Delete_MissingKey_Sync()
         {
             var table = new Table<AllDataTypesEntity>(Session, new MappingConfiguration());
-            
+
             TestCluster.PrimeFluent(
                 b => b.WhenQuery($"DELETE FROM \"{AllDataTypesEntity.TableName}\" WHERE \"boolean_type\" = ?",
                           when => when.WithParam(true))
@@ -132,7 +132,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
 
             Assert.AreEqual(1, listOfExecutionParameters.Count);
             var parameter = Convert.FromBase64String((string)listOfExecutionParameters.Single().Single());
-            var actualParameter = (string) Session.Cluster.Metadata.ControlConnection.Serializer.GetCurrentSerializer().Deserialize(parameter, 0, parameter.Length, ColumnTypeCode.Text, null);
+            var actualParameter = (string)Session.Cluster.Metadata.ControlConnection.Serializer.GetCurrentSerializer().Deserialize(parameter, 0, parameter.Length, ColumnTypeCode.Text, null);
             Assert.AreNotEqual(entityToDelete.StringType, actualParameter);
             Assert.IsTrue(actualParameter.StartsWith(entityToDelete.StringType));
             Assert.IsTrue(actualParameter.Length > entityToDelete.StringType.Length);
@@ -181,9 +181,9 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             deleteQuery.Execute();
 
             VerifyBoundStatement(
-                $"DELETE FROM \"{AllDataTypesEntity.TableName}\" WHERE \"string_type\" = ? AND \"guid_type\" = ? IF EXISTS", 
-                1, 
-                entityToDelete.StringType, 
+                $"DELETE FROM \"{AllDataTypesEntity.TableName}\" WHERE \"string_type\" = ? AND \"guid_type\" = ? IF EXISTS",
+                1,
+                entityToDelete.StringType,
                 entityToDelete.GuidType);
         }
 
@@ -200,20 +200,20 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             var deleteQuery = selectQuery.Delete().IfExists();
 
             deleteQuery.Execute();
-            
+
             VerifyBoundStatement(
-                $"DELETE FROM \"{AllDataTypesEntity.TableName}\" WHERE \"string_type\" = ? AND \"guid_type\" = ? IF EXISTS", 
-                1, 
-                entityToDelete.StringType, 
+                $"DELETE FROM \"{AllDataTypesEntity.TableName}\" WHERE \"string_type\" = ? AND \"guid_type\" = ? IF EXISTS",
+                1,
+                entityToDelete.StringType,
                 entityToDelete.GuidType);
 
             // Executing again should not fail, should just be a no-op
             deleteQuery.Execute();
-            
+
             VerifyBoundStatement(
-                $"DELETE FROM \"{AllDataTypesEntity.TableName}\" WHERE \"string_type\" = ? AND \"guid_type\" = ? IF EXISTS", 
-                2, 
-                entityToDelete.StringType, 
+                $"DELETE FROM \"{AllDataTypesEntity.TableName}\" WHERE \"string_type\" = ? AND \"guid_type\" = ? IF EXISTS",
+                2,
+                entityToDelete.StringType,
                 entityToDelete.GuidType);
         }
 
@@ -225,7 +225,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         {
             var table = new Table<AllDataTypesEntity>(Session, new MappingConfiguration());
             AllDataTypesEntity entityToDelete = _entityList[0];
-            
+
             TestCluster.PrimeFluent(
                 b => b.WhenQuery($"DELETE FROM \"{AllDataTypesEntity.TableName}\" WHERE \"string_type\" = ? IF EXISTS",
                           when => when.WithParam(entityToDelete.StringType))
@@ -258,13 +258,13 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             batch.Execute();
 
             VerifyBatchStatement(
-                1, 
-                new [] 
+                1,
+                new[]
                 {
                     $"DELETE FROM \"{AllDataTypesEntity.TableName}\" WHERE \"string_type\" = ?",
                     $"DELETE FROM \"{AllDataTypesEntity.TableName}\" WHERE \"string_type\" = ?"
                 },
-                new[] { new object [] { entityToDelete.StringType }, new object [] { entityToDelete2.StringType }});
+                new[] { new object[] { entityToDelete.StringType }, new object[] { entityToDelete2.StringType } });
         }
     }
 }

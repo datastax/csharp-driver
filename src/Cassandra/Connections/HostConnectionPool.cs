@@ -96,7 +96,7 @@ namespace Cassandra.Connections
 
         /// <inheritdoc />
         public int OpenConnections => _connections.Count;
-        
+
         /// <inheritdoc />
         public int InFlight => _connections.Sum(c => c.InFlight);
 
@@ -133,10 +133,10 @@ namespace Cassandra.Connections
             {
                 throw new DriverInternalError("No connection could be borrowed");
             }
-            
+
             return BorrowLeastBusyConnection(connections);
         }
-        
+
         /// <inheritdoc />
         public IConnection BorrowExistingConnection()
         {
@@ -184,7 +184,7 @@ namespace Cassandra.Connections
             {
                 return;
             }
-            HostConnectionPool.Logger.Warning("Connection to {0} considered as unhealthy after {1} timed out operations", 
+            HostConnectionPool.Logger.Warning("Connection to {0} considered as unhealthy after {1} timed out operations",
                 _host.Address, timedOutOps);
             Remove(c);
         }
@@ -235,10 +235,10 @@ namespace Cassandra.Connections
                 return;
             }
             _expectedConnectionLength++;
-            HostConnectionPool.Logger.Info("Increasing pool #{0} size to {1}, as in-flight requests are above threshold ({2})", 
+            HostConnectionPool.Logger.Info("Increasing pool #{0} size to {1}, as in-flight requests are above threshold ({2})",
                 GetHashCode(), _expectedConnectionLength, _maxInflightThresholdToConsiderResizing);
             StartCreatingConnection(null);
-            _resizingEndTimeout = _timer.NewTimeout(_ => Interlocked.Exchange(ref _poolResizing, 0), null, 
+            _resizingEndTimeout = _timer.NewTimeout(_ => Interlocked.Exchange(ref _poolResizing, 0), null,
                 HostConnectionPool.BetweenResizeDelay);
         }
 
@@ -247,7 +247,7 @@ namespace Cassandra.Connections
         /// </summary>
         public void Dispose()
         {
-            var markShuttingDown = 
+            var markShuttingDown =
                 (Interlocked.CompareExchange(ref _state, PoolState.ShuttingDown, PoolState.Init) == PoolState.Init) ||
                 (Interlocked.CompareExchange(ref _state, PoolState.ShuttingDown, PoolState.Closing) ==
                     PoolState.Closing);
@@ -294,7 +294,7 @@ namespace Cassandra.Connections
             }
             return c;
         }
-        
+
         public void OnHostRemoved()
         {
             var previousState = Interlocked.Exchange(ref _state, PoolState.ShuttingDown);
@@ -445,7 +445,7 @@ namespace Cassandra.Connections
                 return;
             }
             // Host is now ignored
-            var isClosing = Interlocked.CompareExchange(ref _state, PoolState.Closing, PoolState.Init) == 
+            var isClosing = Interlocked.CompareExchange(ref _state, PoolState.Closing, PoolState.Init) ==
                 PoolState.Init;
             if (!isClosing)
             {
@@ -460,7 +460,7 @@ namespace Cassandra.Connections
             });
             CancelNewConnectionTimeout();
         }
-        
+
         /// <summary>
         /// Removes the connections from the pool and defers the closing of the connections until twice the
         /// readTimeout. The connection might be already selected and sending requests.
@@ -475,14 +475,14 @@ namespace Cassandra.Connections
             }
             // The request handler might execute up to 2 queries with a single connection:
             // Changing the keyspace + the actual query
-            var delay = _config.SocketOptions.ReadTimeoutMillis*2;
+            var delay = _config.SocketOptions.ReadTimeoutMillis * 2;
             // Use a sane maximum of 5 mins
-            const int maxDelay = 5*60*1000;
+            const int maxDelay = 5 * 60 * 1000;
             if (delay <= 0 || delay > maxDelay)
             {
                 delay = maxDelay;
             }
-            DrainConnectionsTimer(connections, afterDrainHandler, delay/1000);
+            DrainConnectionsTimer(connections, afterDrainHandler, delay / 1000);
         }
 
         private void DrainConnectionsTimer(IConnection[] connections, Action afterDrainHandler, int steps)
@@ -715,7 +715,7 @@ namespace Cassandra.Connections
 
             if (IsClosing)
             {
-                HostConnectionPool.Logger.Info("Connection to {0} opened successfully but pool #{1} was being closed", 
+                HostConnectionPool.Logger.Info("Connection to {0} opened successfully but pool #{1} was being closed",
                     _host.Address, GetHashCode());
                 c.Dispose();
                 return await FinishOpen(tcs, false, HostConnectionPool.GetNotConnectedException()).ConfigureAwait(false);
@@ -751,8 +751,8 @@ namespace Cassandra.Connections
 
         private Task<IConnection> FinishOpen(
             TaskCompletionSource<IConnection> tcs,
-            bool preventForeground, 
-            Exception ex, 
+            bool preventForeground,
+            Exception ex,
             IConnection c = null)
         {
             // Instruction ordering: canCreateForeground flag must be set before resetting of the tcs
@@ -839,7 +839,7 @@ namespace Cassandra.Connections
         public void SetDistance(HostDistance distance)
         {
             _expectedConnectionLength = _poolingOptions.GetCoreConnectionsPerHost(distance);
-            _maxInflightThresholdToConsiderResizing =  _poolingOptions.GetMaxSimultaneousRequestsPerConnectionTreshold(distance);
+            _maxInflightThresholdToConsiderResizing = _poolingOptions.GetMaxSimultaneousRequestsPerConnectionTreshold(distance);
             _maxConnectionLength = _poolingOptions.GetMaxConnectionPerHost(distance);
         }
 
@@ -853,21 +853,21 @@ namespace Cassandra.Connections
                 ScheduleReconnection();
             }
         }
-        
+
         /// <inheritdoc />
         public Task<IConnection> GetConnectionFromHostAsync(
             IDictionary<IPEndPoint, Exception> triedHosts, Func<string> getKeyspaceFunc)
         {
             return GetConnectionFromHostAsync(triedHosts, getKeyspaceFunc, true);
         }
-        
+
         /// <inheritdoc />
         public Task<IConnection> GetExistingConnectionFromHostAsync(
             IDictionary<IPEndPoint, Exception> triedHosts, Func<string> getKeyspaceFunc)
         {
             return GetConnectionFromHostAsync(triedHosts, getKeyspaceFunc, false);
         }
-        
+
         private async Task<IConnection> GetConnectionFromHostAsync(
             IDictionary<IPEndPoint, Exception> triedHosts, Func<string> getKeyspaceFunc, bool createIfNeeded)
         {

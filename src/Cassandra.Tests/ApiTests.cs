@@ -83,7 +83,7 @@ namespace Cassandra.Tests
             {
                 isMatch = n => n == nameSpace;
             }
-            var assembly = typeof (ISession).GetTypeInfo().Assembly;
+            var assembly = typeof(ISession).GetTypeInfo().Assembly;
             return assembly.GetTypes().Where(t => t.GetTypeInfo().IsPublic && isMatch(t.Namespace));
         }
     }

@@ -51,12 +51,12 @@ namespace Cassandra
 
         public void Dispose()
         {
-            
+
         }
 
         public void Initialize(ICluster cluster)
         {
-            
+
         }
 
         public ISpeculativeExecutionPlan NewPlan(string keyspace, IStatement statement)

@@ -44,7 +44,7 @@ namespace Cassandra.Tests
             var ex = IsErrorResponse<SyntaxError>(response);
             Assert.AreEqual("Test syntax error", ex.Message);
         }
-        
+
         [Test]
         public void Should_Parse_ErrorResponse_With_Warnings()
         {
@@ -61,11 +61,11 @@ namespace Cassandra.Tests
         public void Should_Parse_ErrorResponse_For_Read_Failure_Under_Protocol_V4()
         {
             // <cl><received><blockfor><numfailures><data_present>
-            var additional = new byte[] {0, (byte) ConsistencyLevel.LocalQuorum} // Consistency level
-                            .Concat(new byte[] {0, 0, 0, 1}) // Received
-                            .Concat(new byte[] {0, 0, 0, 3}) // Required
-                            .Concat(new byte[] {0, 0, 0, 2}) // Failures (int)
-                            .Concat(new byte[] {1}); // Data present
+            var additional = new byte[] { 0, (byte)ConsistencyLevel.LocalQuorum } // Consistency level
+                            .Concat(new byte[] { 0, 0, 0, 1 }) // Received
+                            .Concat(new byte[] { 0, 0, 0, 3 }) // Required
+                            .Concat(new byte[] { 0, 0, 0, 2 }) // Failures (int)
+                            .Concat(new byte[] { 1 }); // Data present
             var body = GetErrorBody(ReadFailureErrorCode, "Test error message", additional);
             var response = GetResponse(body, ProtocolVersion.V4);
             var ex = IsErrorResponse<ReadFailureException>(response);
@@ -81,13 +81,13 @@ namespace Cassandra.Tests
         public void Should_Parse_ErrorResponse_For_Read_Failure_Under_Latest_Protocol()
         {
             // <cl><received><blockfor><reasons><data_present>
-            var additional = new byte[] {0, (byte) ConsistencyLevel.LocalQuorum} // Consistency level
-                             .Concat(new byte[] {0, 0, 0, 2}) // Received
-                             .Concat(new byte[] {0, 0, 0, 3}) // Required
-                             .Concat(new byte[] {0, 0, 0, 1}) // Reasons length (int)
-                             .Concat(new byte[] {4, 10, 10, 0, 1}) // Reasons first item IP
-                             .Concat(new byte[] {0, 5}) // Reasons first item code
-                             .Concat(new byte[] {0}); // Data present
+            var additional = new byte[] { 0, (byte)ConsistencyLevel.LocalQuorum } // Consistency level
+                             .Concat(new byte[] { 0, 0, 0, 2 }) // Received
+                             .Concat(new byte[] { 0, 0, 0, 3 }) // Required
+                             .Concat(new byte[] { 0, 0, 0, 1 }) // Reasons length (int)
+                             .Concat(new byte[] { 4, 10, 10, 0, 1 }) // Reasons first item IP
+                             .Concat(new byte[] { 0, 5 }) // Reasons first item code
+                             .Concat(new byte[] { 0 }); // Data present
             var body = GetErrorBody(ReadFailureErrorCode, "Test error message", additional);
             var response = GetResponse(body);
             var ex = IsErrorResponse<ReadFailureException>(response);
@@ -106,11 +106,11 @@ namespace Cassandra.Tests
         public void Should_Parse_ErrorResponse_For_Write_Failure_Under_Protocol_V4()
         {
             // <cl><received><blockfor><reasonmap><write_type>
-            var additional = new byte[] {0, (byte) ConsistencyLevel.All} // Consistency level
-                             .Concat(new byte[] {0, 0, 0, 1}) // Received
-                             .Concat(new byte[] {0, 0, 0, 3}) // Required
-                             .Concat(new byte[] {0, 0, 0, 2}) // Failures (int)
-                             .Concat(new byte[] {0, (byte) "SIMPLE".Length}) // WriteType length
+            var additional = new byte[] { 0, (byte)ConsistencyLevel.All } // Consistency level
+                             .Concat(new byte[] { 0, 0, 0, 1 }) // Received
+                             .Concat(new byte[] { 0, 0, 0, 3 }) // Required
+                             .Concat(new byte[] { 0, 0, 0, 2 }) // Failures (int)
+                             .Concat(new byte[] { 0, (byte)"SIMPLE".Length }) // WriteType length
                              .Concat(Encoding.UTF8.GetBytes("SIMPLE")); // WriteType text
 
             var body = GetErrorBody(WriteFailureErrorCode, "Test error message", additional);
@@ -128,13 +128,13 @@ namespace Cassandra.Tests
         public void Should_Parse_ErrorResponse_For_Write_Failure_Under_Latest_Protocol()
         {
             // <cl><received><blockfor><numfailures><write_type>
-            var additional = new byte[] {0, (byte) ConsistencyLevel.Quorum} // Consistency level
-                             .Concat(new byte[] {0, 0, 0, 2}) // Received
-                             .Concat(new byte[] {0, 0, 0, 3}) // Required
-                             .Concat(new byte[] {0, 0, 0, 1}) // Reasons length (int)
-                             .Concat(new byte[] {4, 12, 10, 0, 1}) // Reasons first item IP
-                             .Concat(new byte[] {0, 4}) // Reasons first item code
-                             .Concat(new byte[] {0, (byte) "COUNTER".Length}) // WriteType length
+            var additional = new byte[] { 0, (byte)ConsistencyLevel.Quorum } // Consistency level
+                             .Concat(new byte[] { 0, 0, 0, 2 }) // Received
+                             .Concat(new byte[] { 0, 0, 0, 3 }) // Required
+                             .Concat(new byte[] { 0, 0, 0, 1 }) // Reasons length (int)
+                             .Concat(new byte[] { 4, 12, 10, 0, 1 }) // Reasons first item IP
+                             .Concat(new byte[] { 0, 4 }) // Reasons first item code
+                             .Concat(new byte[] { 0, (byte)"COUNTER".Length }) // WriteType length
                              .Concat(Encoding.UTF8.GetBytes("COUNTER")); // WriteType text
 
             var body = GetErrorBody(WriteFailureErrorCode, "Test error message", additional);
@@ -153,7 +153,7 @@ namespace Cassandra.Tests
 
         private static byte[] GetHeaderBuffer(int length, HeaderFlags flags = 0)
         {
-            var headerBuffer = new byte[] {0x80 | (int) Version, (byte) flags, 0, 0, ErrorResponse.OpCode}
+            var headerBuffer = new byte[] { 0x80 | (int)Version, (byte)flags, 0, 0, ErrorResponse.OpCode }
                 .Concat(BeConverter.GetBytes(length));
             return headerBuffer.ToArray();
         }
@@ -177,15 +177,15 @@ namespace Cassandra.Tests
         private static byte[] GetProtocolString(string value)
         {
             var textBuffer = Encoding.UTF8.GetBytes(value);
-            return BeConverter.GetBytes((ushort) textBuffer.Length).Concat(textBuffer).ToArray();
+            return BeConverter.GetBytes((ushort)textBuffer.Length).Concat(textBuffer).ToArray();
         }
 
         private static TException IsErrorResponse<TException>(Response response) where TException : DriverException
         {
             Assert.IsInstanceOf<ErrorResponse>(response);
-            var ex = ((ErrorResponse) response).Output.CreateException();
+            var ex = ((ErrorResponse)response).Output.CreateException();
             Assert.IsInstanceOf<TException>(ex);
-            return (TException) ex;
+            return (TException)ex;
         }
     }
 }

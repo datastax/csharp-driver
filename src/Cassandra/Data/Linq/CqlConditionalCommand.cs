@@ -23,7 +23,7 @@ namespace Cassandra.Data.Linq
     /// <summary>
     /// Represents an INSERT/UPDATE/DELETE command with support for Lightweight transactions.
     /// </summary>
-    public class CqlConditionalCommand<TEntity>: CqlCommand
+    public class CqlConditionalCommand<TEntity> : CqlCommand
     {
         private readonly MapperFactory _mapperFactory;
         private readonly CqlCommand _origin;
@@ -72,7 +72,7 @@ namespace Cassandra.Data.Linq
             var cql = GetCql(out object[] values);
             var session = GetTable().GetSession();
             var stmt = await InternalRef.StatementFactory.GetStatementAsync(
-                session, 
+                session,
                 Cql.New(cql, values).WithExecutionProfile(executionProfile)).ConfigureAwait(false);
             this.CopyQueryPropertiesTo(stmt);
             var rs = await session.ExecuteAsync(stmt, executionProfile).ConfigureAwait(false);
@@ -89,11 +89,11 @@ namespace Cassandra.Data.Linq
             {
                 throw new ArgumentNullException(nameof(executionProfile));
             }
-            
+
             var queryAbortTimeout = GetTable().GetSession().Cluster.Configuration.ClientOptions.QueryAbortTimeout;
             return WaitToCompleteWithMetrics(ExecuteAsync(executionProfile), queryAbortTimeout);
         }
-        
+
         public new CqlConditionalCommand<TEntity> SetConsistencyLevel(ConsistencyLevel? consistencyLevel)
         {
             base.SetConsistencyLevel(consistencyLevel);

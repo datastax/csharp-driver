@@ -24,10 +24,10 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.Models.Logs
     {
         [JsonProperty("queries_or_ids")]
         public List<string> QueriesOrIds { get; set; }
-        
+
         [JsonProperty("values")]
         public List<List<string>> Values { get; set; }
-        
+
         [JsonProperty("consistency")]
         [JsonConverter(typeof(ConsistencyLevelEnumConverter))]
         public ConsistencyLevel ConsistencyLevel { get; set; }

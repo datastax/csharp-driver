@@ -74,7 +74,7 @@ namespace Cassandra.Geometry
                 var hash = 17;
                 foreach (var item in items)
                 {
-                    hash = hash * 23 + item.GetHashCode();   
+                    hash = hash * 23 + item.GetHashCode();
                 }
                 return hash;
             }
@@ -90,7 +90,7 @@ namespace Cassandra.Geometry
             WriteJson(writer, DefaultJsonSerializer);
             return stringWriter.ToString();
         }
-        
+
         /// <inheritdoc />
         public virtual void GetObjectData(SerializationInfo info, StreamingContext context)
         {

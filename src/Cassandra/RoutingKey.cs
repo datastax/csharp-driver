@@ -62,13 +62,13 @@ namespace Cassandra
                 res[idx] = 0;
                 idx++;
             }
-            return new RoutingKey {RawRoutingKey = res};
+            return new RoutingKey { RawRoutingKey = res };
         }
 
         private static void PutShortLength(byte[] bb, int idx, int length)
         {
-            bb[idx] = ((byte) ((length >> 8) & 0xFF));
-            bb[idx + 1] = ((byte) (length & 0xFF));
+            bb[idx] = ((byte)((length >> 8) & 0xFF));
+            bb[idx + 1] = ((byte)(length & 0xFF));
         }
     }
 }

@@ -99,7 +99,7 @@ namespace Cassandra.ProtocolEvents
         {
             var callback = new TaskCompletionSource<bool>();
             var sent = await _enqueueBlock.SendAsync(new Tuple<TaskCompletionSource<bool>, ProtocolEvent, bool>(callback, ev, processNow)).ConfigureAwait(false);
-            
+
             if (!sent)
             {
                 throw new DriverInternalError("Could not schedule event in the ProtocolEventDebouncer.");

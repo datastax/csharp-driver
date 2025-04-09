@@ -48,9 +48,9 @@ namespace Cassandra.IntegrationTests.DataStax.Cloud
         {
             var ex = Assert.ThrowsAsync<NoHostAvailableException>(
                 () => CreateSessionAsync(
-                    "creds-v1-unreachable.zip", 
-                    retries: 1, 
-                    act: 
+                    "creds-v1-unreachable.zip",
+                    retries: 1,
+                    act:
                     b => b
                          .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(5000).SetConnectTimeoutMillis(10000))
                          .WithQueryTimeout(5000)));
@@ -122,7 +122,7 @@ namespace Cassandra.IntegrationTests.DataStax.Cloud
                                 {
                                     await session.ExecuteAsync(new SimpleStatement("SELECT key FROM system.local")).ConfigureAwait(false);
                                 }
-                                catch (QueryTimeoutException){}
+                                catch (QueryTimeoutException) { }
                             }
                         }));
                     }
@@ -141,13 +141,13 @@ namespace Cassandra.IntegrationTests.DataStax.Cloud
                       .WithCloudSecureConnectionBundle("does-not-exist.zip")
                       .WithCredentials("user1", "user1").Build());
         }
-        
+
         [Test]
         public void Should_FailFast_When_ConfigJsonDoesNotHaveCredentialsAndUserDoesNotProvideCredentials()
         {
             var ex = Assert.Throws<ArgumentException>(() => CreateTemporaryCluster("creds-v1-wo-creds.zip", withCredentials: false));
             Assert.AreEqual(
-                ex.Message, 
+                ex.Message,
                 "No credentials were provided. When using the secure connection bundle, " +
                 "your cluster's credentials must be provided via the Builder.WithCredentials() method.");
         }
@@ -348,7 +348,7 @@ namespace Cassandra.IntegrationTests.DataStax.Cloud
                     Assert.AreEqual(ConsistencyLevel.LocalQuorum, rs.Info.AchievedConsistency);
                     Assert.AreEqual("auth", row["authorid"].ToString());
                 }
-                catch (QueryTimeoutException) {}
+                catch (QueryTimeoutException) { }
             }, 1000, 10);
         }
 

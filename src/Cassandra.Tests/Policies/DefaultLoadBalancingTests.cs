@@ -31,7 +31,7 @@ namespace Cassandra.Tests.Policies
             statement.PreferredHost = new Host(new IPEndPoint(201, 9042), ReconnectionPolicy);
             var hosts = lbp.NewQueryPlan(null, statement);
             CollectionAssert.AreEqual(
-                new[] { "201.0.0.0:9042", "101.0.0.0:9042", "102.0.0.0:9042" }, 
+                new[] { "201.0.0.0:9042", "101.0.0.0:9042", "102.0.0.0:9042" },
                 hosts.Select(h => h.Address.ToString()));
         }
 

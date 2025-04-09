@@ -18,11 +18,11 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.When
     public interface IWhenQueryBuilder
     {
         IWhenQueryBuilder WithNamedParam(string name, DataType type, object value);
-        
+
         IWhenQueryBuilder WithParam(DataType type, object value);
-        
+
         IWhenQueryBuilder WithParam(object value);
-        
+
         IWhenQueryBuilder WithParams(params object[] values);
 
         IWhenQueryBuilder WithParams(params (DataType, object)[] values);

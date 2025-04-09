@@ -35,8 +35,8 @@ namespace Cassandra.Serialization.Graph.GraphSON2.Structure
     {
         private const string Prefix = "g";
         private const string TypeKey = "Edge";
-        
-        public static string TypeName => 
+
+        public static string TypeName =>
             GraphSONUtil.FormatTypeName(EdgeDeserializer.Prefix, EdgeDeserializer.TypeKey);
 
         public dynamic Objectify(JToken token, Func<JToken, GraphNode> factory, IGraphSONReader reader)

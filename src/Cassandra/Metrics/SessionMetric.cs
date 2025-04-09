@@ -36,7 +36,7 @@ namespace Cassandra.Metrics
 
                 Gauges.ConnectedNodes
             };
-            
+
             SessionMetric.AllSessionMetrics =
                 SessionMetric.DefaultSessionMetrics.Union(new[] { SessionMetric.Timers.CqlRequests }).ToList();
         }
@@ -88,7 +88,7 @@ namespace Cassandra.Metrics
         {
             return string.Equals(Name, other.Name);
         }
-        
+
         /// <summary>
         /// A collection with all session metrics including Timers.
         /// </summary>
@@ -113,7 +113,7 @@ namespace Cassandra.Metrics
             /// Tracks the number/rate of bytes sent.
             /// </summary>
             public static readonly SessionMetric BytesSent = new SessionMetric("bytes-sent");
-            
+
             /// <summary>
             /// Tracks the number/rate of bytes received.
             /// </summary>

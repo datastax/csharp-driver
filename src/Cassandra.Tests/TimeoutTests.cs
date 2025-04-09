@@ -87,31 +87,31 @@ namespace Cassandra.Tests
                 var t4 = new TimeoutItem(timer, EmptyAction, null);
 
                 bucket.Add(t1);
-                CollectionAssert.AreEqual(bucket.ToArray(), new[] {t1});
+                CollectionAssert.AreEqual(bucket.ToArray(), new[] { t1 });
                 Assert.AreEqual(bucket.GetTail(), t1);
 
                 bucket.Add(t2);
-                CollectionAssert.AreEqual(bucket.ToArray(), new[] {t1, t2});
+                CollectionAssert.AreEqual(bucket.ToArray(), new[] { t1, t2 });
                 Assert.AreEqual(bucket.GetTail(), t2);
 
                 bucket.Add(t3);
-                CollectionAssert.AreEqual(bucket.ToArray(), new[] {t1, t2, t3});
+                CollectionAssert.AreEqual(bucket.ToArray(), new[] { t1, t2, t3 });
                 Assert.AreEqual(bucket.GetTail(), t3);
 
                 bucket.Add(t4);
-                CollectionAssert.AreEqual(bucket.ToArray(), new[] {t1, t2, t3, t4});
+                CollectionAssert.AreEqual(bucket.ToArray(), new[] { t1, t2, t3, t4 });
                 Assert.AreEqual(bucket.GetTail(), t4);
 
                 bucket.Remove(t1);
-                CollectionAssert.AreEqual(bucket.ToArray(), new[] {t2, t3, t4});
+                CollectionAssert.AreEqual(bucket.ToArray(), new[] { t2, t3, t4 });
                 Assert.AreEqual(bucket.GetTail(), t4);
 
                 bucket.Remove(t3);
-                CollectionAssert.AreEqual(bucket.ToArray(), new[] {t2, t4});
+                CollectionAssert.AreEqual(bucket.ToArray(), new[] { t2, t4 });
                 Assert.AreEqual(bucket.GetTail(), t4);
 
                 bucket.Remove(t4);
-                CollectionAssert.AreEqual(bucket.ToArray(), new[] {t2});
+                CollectionAssert.AreEqual(bucket.ToArray(), new[] { t2 });
                 Assert.AreEqual(bucket.GetTail(), t2);
 
                 bucket.Remove(t2);

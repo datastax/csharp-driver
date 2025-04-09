@@ -56,7 +56,7 @@ namespace Cassandra.MetadataHelpers
             var transientPart = rf.Substring(slashIndex + 1);
             var parsedAllPart = ReplicationFactor.ParseNumberOfReplicas(allPart);
             var parsedTransientPart = ReplicationFactor.ParseNumberOfReplicas(transientPart);
-            
+
             return new ReplicationFactor(parsedAllPart, parsedTransientPart);
         }
 
@@ -82,7 +82,7 @@ namespace Cassandra.MetadataHelpers
                 return true;
             }
 
-            return AllReplicas == other.AllReplicas 
+            return AllReplicas == other.AllReplicas
                    && TransientReplicas == other.TransientReplicas;
         }
 
@@ -109,8 +109,8 @@ namespace Cassandra.MetadataHelpers
             }
 
             var allReplicasComparison = AllReplicas.CompareTo(other.AllReplicas);
-            return allReplicasComparison != 0 
-                ? allReplicasComparison 
+            return allReplicasComparison != 0
+                ? allReplicasComparison
                 : TransientReplicas.CompareTo(other.TransientReplicas);
         }
     }

@@ -21,18 +21,18 @@ namespace Cassandra.Tests
     [TestFixture]
     public class PreparedStatementTests
     {
-        [Test] 
-        public void Should_Allow_Bind_With_Empty_Query() 
-        { 
+        [Test]
+        public void Should_Allow_Bind_With_Empty_Query()
+        {
             var ps = new PreparedStatement();
             Assert.NotNull(ps.Bind());
         }
 
-        [Test] 
-        public void Bind_Should_Create_BoundStatement_With_Provided_Values() 
+        [Test]
+        public void Bind_Should_Create_BoundStatement_With_Provided_Values()
         {
             var ps = new PreparedStatement();
-            ps.SetRoutingKey(new RoutingKey(new byte[] {0x01}));
+            ps.SetRoutingKey(new RoutingKey(new byte[] { 0x01 }));
             ps.SetConsistencyLevel(ConsistencyLevel.LocalQuorum);
             ps.SetIdempotence(true);
             var statement = ps.Bind();
@@ -41,8 +41,8 @@ namespace Cassandra.Tests
             Assert.True(statement.IsIdempotent);
         }
 
-        [Test] 
-        public void Bind_Should_Create_BoundStatement_With_Default_Values() 
+        [Test]
+        public void Bind_Should_Create_BoundStatement_With_Default_Values()
         {
             var statement = new PreparedStatement().Bind();
             Assert.Null(statement.ConsistencyLevel);

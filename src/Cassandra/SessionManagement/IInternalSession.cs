@@ -68,7 +68,7 @@ namespace Cassandra.SessionManagement
         new string Keyspace { get; set; }
 
         IInternalCluster InternalCluster { get; }
-        
+
         /// <summary>
         /// Fetches the request options that were mapped from the provided execution profile's name.
         /// </summary>

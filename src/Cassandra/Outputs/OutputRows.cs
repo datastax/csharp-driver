@@ -33,7 +33,7 @@ namespace Cassandra
         public RowSet RowSet { get; set; }
 
         public Guid? TraceId { get; private set; }
-        
+
         public RowSetMetadata ResultRowsMetadata { get; }
 
         internal OutputRows(FrameReader reader, ResultMetadata resultMetadata, Guid? traceId)

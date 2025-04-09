@@ -27,7 +27,7 @@ namespace Cassandra.Data.Linq
         internal CqlQuerySingleElement(Expression expression, CqlQuery<TEntity> source)
             : base(expression, source.Table, source.MapperFactory, source.StatementFactory, source.PocoData)
         {
-            
+
         }
 
         protected override string GetCql(out object[] values)
@@ -84,7 +84,7 @@ namespace Cassandra.Data.Linq
         {
             return Execute(Configuration.DefaultExecutionProfileName);
         }
-        
+
         /// <summary>
         /// Evaluates the Linq query, executes the cql statement with the provided execution profile and returns the first result.
         /// </summary>

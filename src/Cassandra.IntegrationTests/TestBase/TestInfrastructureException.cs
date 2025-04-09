@@ -21,7 +21,7 @@ namespace Cassandra.IntegrationTests.TestBase
     /// <summary>
     /// Represents an error on the infrastructure setup
     /// </summary>
-    public class TestInfrastructureException: Exception
+    public class TestInfrastructureException : Exception
     {
         public TestInfrastructureException()
         {

@@ -41,7 +41,7 @@ namespace Cassandra.Data.Linq
 
         public Type ElementType
         {
-            get { return typeof (TEntity); }
+            get { return typeof(TEntity); }
         }
 
         /// <summary>
@@ -103,14 +103,14 @@ namespace Cassandra.Data.Linq
         }
 
         protected abstract string GetCql(out object[] values);
-        
+
         protected async Task<RowSet> InternalExecuteWithProfileAsync(string executionProfile, string cqlQuery, object[] values)
         {
             var session = GetTable().GetSession();
             var statement = await StatementFactory.GetStatementAsync(
                 session,
                 Cql.New(cqlQuery, values).WithExecutionProfile(executionProfile)).ConfigureAwait(false);
-            
+
             this.CopyQueryPropertiesTo(statement);
             var rs = await session.ExecuteAsync(statement, executionProfile).ConfigureAwait(false);
             QueryTrace = rs.Info.QueryTrace;
@@ -141,7 +141,7 @@ namespace Cassandra.Data.Linq
         {
             return ExecuteCqlQuery(Configuration.DefaultExecutionProfileName);
         }
-        
+
         /// <summary>
         /// Evaluates the Linq query, executes asynchronously the cql statement with the provided execution profile
         /// and adapts the results.
@@ -179,12 +179,12 @@ namespace Cassandra.Data.Linq
             var task = (Task<IEnumerable<TEntity>>)ar;
             return task.Result;
         }
-        
+
         private IEnumerable<TEntity> ExecuteCqlQuery(string executionProfile)
         {
             return WaitToCompleteWithMetrics(ExecuteCqlQueryAsync(executionProfile), QueryAbortTimeout);
         }
-        
+
         private async Task<IEnumerable<TEntity>> ExecuteCqlQueryAsync(string executionProfile)
         {
             var visitor = new CqlExpressionVisitor(PocoData, Table.Name, Table.KeyspaceName);

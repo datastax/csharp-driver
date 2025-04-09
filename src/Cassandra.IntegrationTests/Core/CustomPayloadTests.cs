@@ -43,7 +43,7 @@ namespace Cassandra.IntegrationTests.Core
             }
 
             //Using a mirroring handler, the server will reply providing the same payload that was sent
-            var jvmArgs = new [] { "-Dcassandra.custom_query_handler_class=org.apache.cassandra.cql3.CustomPayloadMirroringQueryHandler" };
+            var jvmArgs = new[] { "-Dcassandra.custom_query_handler_class=org.apache.cassandra.cql3.CustomPayloadMirroringQueryHandler" };
             var testCluster = TestClusterManager.GetTestCluster(1, 0, false, DefaultMaxClusterCreateRetries, true, true, 0, jvmArgs);
             Session = testCluster.Session;
             Session.Execute(string.Format(TestUtils.CreateKeyspaceSimpleFormat, Keyspace, 1));
@@ -96,7 +96,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             var outgoing = new Dictionary<string, byte[]>
             {
-                { "k1-prep", Encoding.UTF8.GetBytes("value1-prep") }, 
+                { "k1-prep", Encoding.UTF8.GetBytes("value1-prep") },
                 { "k2-prep", Encoding.UTF8.GetBytes("value2-prep") }
             };
             var prepared = Session.Prepare("SELECT key as k FROM system.local WHERE key = ?", outgoing);

@@ -60,8 +60,8 @@ namespace Cassandra.Serialization.Graph.GraphSON3.Dse
             var dict = new Dictionary<string, dynamic>
             {
                 { "cqlType", "tuple" },
-                { 
-                    "definition", 
+                {
+                    "definition",
                     data.Select(elem => ComplexTypeDefinitionHelper.GetDefinitionByValue(genericSerializer, elem)) },
                 { "value", data.Select(d => serializer.ToDict(d)) }
             };

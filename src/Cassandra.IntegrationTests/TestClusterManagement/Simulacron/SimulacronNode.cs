@@ -61,7 +61,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
         {
             return PutAsync($"/listener/{Id}", null);
         }
-        
+
         /// <summary>
         /// Gets the list of established connections to a node.
         /// </summary>

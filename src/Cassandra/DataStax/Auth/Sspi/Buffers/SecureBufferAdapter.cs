@@ -124,8 +124,8 @@ namespace Cassandra.DataStax.Auth.Sspi.Buffers
         /// Initializes a SecureBufferAdapter to carry a single buffer to the native api.
         /// </summary>
         /// <param name="buffer"></param>
-        public SecureBufferAdapter( SecureBuffer buffer )
-            : this( new[] { buffer } )
+        public SecureBufferAdapter(SecureBuffer buffer)
+            : this(new[] { buffer })
         {
         }
 
@@ -133,7 +133,7 @@ namespace Cassandra.DataStax.Auth.Sspi.Buffers
         /// Initializes the SecureBufferAdapter to carry a list of buffers to the native api.
         /// </summary>
         /// <param name="buffers"></param>
-        public SecureBufferAdapter( IList<SecureBuffer> buffers ) : base()
+        public SecureBufferAdapter(IList<SecureBuffer> buffers) : base()
         {
             this.buffers = buffers;
 
@@ -142,9 +142,9 @@ namespace Cassandra.DataStax.Auth.Sspi.Buffers
             this.bufferHandles = new GCHandle[this.buffers.Count];
             this.bufferCarrier = new SecureBufferInternal[this.buffers.Count];
 
-            for ( int i = 0; i < this.buffers.Count; i++ )
+            for (int i = 0; i < this.buffers.Count; i++)
             {
-                this.bufferHandles[i] = GCHandle.Alloc( this.buffers[i].Buffer, GCHandleType.Pinned );
+                this.bufferHandles[i] = GCHandle.Alloc(this.buffers[i].Buffer, GCHandleType.Pinned);
 
                 this.bufferCarrier[i] = new SecureBufferInternal();
                 this.bufferCarrier[i].Type = this.buffers[i].Type;
@@ -152,23 +152,23 @@ namespace Cassandra.DataStax.Auth.Sspi.Buffers
                 this.bufferCarrier[i].Buffer = bufferHandles[i].AddrOfPinnedObject();
             }
 
-            this.bufferCarrierHandle = GCHandle.Alloc( bufferCarrier, GCHandleType.Pinned );
+            this.bufferCarrierHandle = GCHandle.Alloc(bufferCarrier, GCHandleType.Pinned);
 
             this.descriptor = new SecureBufferDescInternal();
             this.descriptor.Version = SecureBufferDescInternal.ApiVersion;
             this.descriptor.NumBuffers = this.buffers.Count;
             this.descriptor.Buffers = bufferCarrierHandle.AddrOfPinnedObject();
 
-            this.descriptorHandle = GCHandle.Alloc( descriptor, GCHandleType.Pinned );
+            this.descriptorHandle = GCHandle.Alloc(descriptor, GCHandleType.Pinned);
         }
 
-        [ReliabilityContract( Consistency.WillNotCorruptState, Cer.Success )]
+        [ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
         ~SecureBufferAdapter()
         {
             // We bend the typical Dispose pattern here. This finalizer runs in a Constrained Execution Region,
             // and so we shouldn't call virtual methods. There's no need to extend this class, so we prevent it
             // and mark the protected Dispose method as non-virtual.
-            Dispose( false );
+            Dispose(false);
         }
 
         /// <summary>
@@ -178,9 +178,9 @@ namespace Cassandra.DataStax.Auth.Sspi.Buffers
         {
             get
             {
-                if ( this.disposed )
+                if (this.disposed)
                 {
-                    throw new ObjectDisposedException( "Cannot use SecureBufferListHandle after it has been disposed" );
+                    throw new ObjectDisposedException("Cannot use SecureBufferListHandle after it has been disposed");
                 }
 
                 return this.descriptorHandle.AddrOfPinnedObject();
@@ -192,8 +192,8 @@ namespace Cassandra.DataStax.Auth.Sspi.Buffers
         /// </summary>
         public void Dispose()
         {
-            this.Dispose( true );
-            GC.SuppressFinalize( this );
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
         /// <summary>
@@ -203,36 +203,36 @@ namespace Cassandra.DataStax.Auth.Sspi.Buffers
         /// nor should we anyway since they may be gone.
         /// </summary>
         /// <param name="disposing">Whether Dispose is being called.</param>
-        [ReliabilityContract( Consistency.WillNotCorruptState, Cer.Success )]
-        private void Dispose( bool disposing )
+        [ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
+        private void Dispose(bool disposing)
         {
-            if ( this.disposed == true ) { return; }
+            if (this.disposed == true) { return; }
 
-            if ( disposing )
+            if (disposing)
             {
                 // When this class is actually being used for its original purpose - to convey buffers 
                 // back and forth to SSPI calls - we need to copy the potentially modified structure members
                 // back to our caller's buffer.
-                for( int i = 0; i < this.buffers.Count; i++ )
+                for (int i = 0; i < this.buffers.Count; i++)
                 {
                     this.buffers[i].Length = this.bufferCarrier[i].Count;
                 }
             }
 
-            for( int i = 0; i < this.bufferHandles.Length; i++ )
+            for (int i = 0; i < this.bufferHandles.Length; i++)
             {
-                if( this.bufferHandles[i].IsAllocated )
+                if (this.bufferHandles[i].IsAllocated)
                 {
                     this.bufferHandles[i].Free();
                 }
             }
 
-            if( this.bufferCarrierHandle.IsAllocated )
+            if (this.bufferCarrierHandle.IsAllocated)
             {
                 this.bufferCarrierHandle.Free();
             }
 
-            if( this.descriptorHandle.IsAllocated )
+            if (this.descriptorHandle.IsAllocated)
             {
                 this.descriptorHandle.Free();
             }

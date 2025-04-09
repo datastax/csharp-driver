@@ -71,17 +71,17 @@ namespace Cassandra.Mapping.Statements
                                    $"{CqlGenerator.CqlIdentifierHelper.EscapeTableNameIfNecessary(pocoData, pocoData.KeyspaceName, pocoData.TableName)}" +
                                    $"{suffix}");
         }
-        
+
         private static Func<PocoColumn, string> EscapeFunc(PocoData pocoData)
         {
-            Func<PocoColumn, string> f = 
+            Func<PocoColumn, string> f =
                 c => CqlGenerator.CqlIdentifierHelper.EscapeIdentifierIfNecessary(pocoData, c.ColumnName);
             return f;
         }
 
         private static Func<PocoColumn, string> EscapeFunc(PocoData pocoData, string format)
         {
-            Func<PocoColumn, string> f = 
+            Func<PocoColumn, string> f =
                 c => string.Format(format, CqlGenerator.CqlIdentifierHelper.EscapeIdentifierIfNecessary(pocoData, c.ColumnName));
             return f;
         }
@@ -329,7 +329,7 @@ namespace Cassandra.Mapping.Statements
             {
                 createTable.Append(", ");
                 createTable.Append(string.Join(
-                    ", ", 
+                    ", ",
                     pocoData.ClusteringKeys.Select(
                         k => CqlGenerator.CqlIdentifierHelper.EscapeIdentifierIfNecessary(pocoData, k.Item1.ColumnName))));
             }
@@ -339,9 +339,9 @@ namespace Cassandra.Mapping.Statements
             createTable.Append(")");
             var clusteringOrder = string.Join(", ", pocoData.ClusteringKeys
                 .Where(k => k.Item2 != SortOrder.Unspecified)
-                .Select(k => 
-                    CqlGenerator.CqlIdentifierHelper.EscapeIdentifierIfNecessary(pocoData, k.Item1.ColumnName) 
-                    + " " 
+                .Select(k =>
+                    CqlGenerator.CqlIdentifierHelper.EscapeIdentifierIfNecessary(pocoData, k.Item1.ColumnName)
+                    + " "
                     + (k.Item2 == SortOrder.Ascending ? "ASC" : "DESC")));
 
             var clusteringOrderIsDefined = !string.IsNullOrEmpty(clusteringOrder);

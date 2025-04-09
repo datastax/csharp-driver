@@ -194,7 +194,7 @@ namespace Cassandra.IntegrationTests.Linq.Structures
             return columns.Aggregate(when, (current, c) => current.WithParam(AllDataTypesEntity.ColumnMappings[c](this)));
         }
 
-        public const string SelectCql = 
+        public const string SelectCql =
             "SELECT \"boolean_type\", \"date_time_offset_type\", \"date_time_type\", " +
                 "\"decimal_type\", \"double_type\", \"float_type\", \"guid_type\", \"int64_type\", " +
                 "\"int_type\", \"list_of_guids_type\", \"list_of_strings_type\", \"map_type_string_long_type\"," +
@@ -202,8 +202,8 @@ namespace Cassandra.IntegrationTests.Linq.Structures
                 "\"nullable_time_uuid_type\", \"string_type\", \"time_uuid_type\" FROM \"allDataTypes\" " +
             "WHERE \"string_type\" = ? " +
             "ALLOW FILTERING";
-        
-        public const string SelectCqlDefaultColumnsFormatStr = 
+
+        public const string SelectCqlDefaultColumnsFormatStr =
             "SELECT \"BooleanType\", \"DateTimeOffsetType\", \"DateTimeType\", \"DecimalType\", " +
             "\"DictionaryStringLongType\", \"DictionaryStringStringType\", \"DoubleType\", " +
             "\"FloatType\", \"GuidType\", \"Int64Type\", \"IntType\", \"ListOfGuidsType\", " +
@@ -225,14 +225,14 @@ namespace Cassandra.IntegrationTests.Linq.Structures
         {
             testCluster.PrimeFluent(b => When(testCluster, b).ThenRowsSuccess(CreateRowsResult()));
         }
-        
+
         public IWhenFluent When(SimulacronCluster testCluster, IPrimeRequestBuilder builder)
         {
             return builder.WhenQuery(
                           AllDataTypesEntity.SelectCql,
                           when => WithParams(when, "string_type"));
         }
-        
+
         public const string InsertCqlDefaultColumnsFormatStr =
             "INSERT INTO {0} (" +
                 "\"BooleanType\", \"DateTimeOffsetType\", \"DateTimeType\", \"DecimalType\", " +
@@ -260,17 +260,17 @@ namespace Cassandra.IntegrationTests.Linq.Structures
             " \"nullable_int_type\", \"nullable_time_uuid_type\", \"string_type\", \"time_uuid_type\") " +
             "VALUES " +
                 "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        
+
         public void PrimeQuery(SimulacronCluster testCluster, string cql, params string[] paramNames)
         {
             testCluster.PrimeFluent(
                 b => b.WhenQuery(cql, when => WithParams(when, paramNames))
                       .ThenRowsSuccess(CreateRowsResult()));
         }
-        
+
         public RowsResult AddRow(RowsResult result)
         {
-            return (RowsResult) result.WithRow(GetColumnValues());
+            return (RowsResult)result.WithRow(GetColumnValues());
         }
 
         public object[] GetColumnValues()
@@ -280,7 +280,7 @@ namespace Cassandra.IntegrationTests.Linq.Structures
 
         public static (string, DataType)[] GetDefaultColumns()
         {
-            return new []
+            return new[]
             {
                 (nameof(AllDataTypesEntity.BooleanType), DataType.GetDataType(typeof(bool))),
                 (nameof(AllDataTypesEntity.DateTimeOffsetType), DataType.GetDataType(typeof(DateTimeOffset))),
@@ -302,7 +302,7 @@ namespace Cassandra.IntegrationTests.Linq.Structures
                 (nameof(AllDataTypesEntity.TimeUuidType), DataType.GetDataType(typeof(TimeUuid)))
             };
         }
-        
+
         public object[] GetColumnValuesForDefaultColumns()
         {
             return new object[]
@@ -337,7 +337,7 @@ namespace Cassandra.IntegrationTests.Linq.Structures
         {
             testCluster.PrimeFluent(
                 b => b.WhenQuery("SELECT count(*) FROM \"allDataTypes\" ALLOW FILTERING")
-                      .ThenRowsSuccess(new [] { "count" }, rows => rows.WithRow(count)));
+                      .ThenRowsSuccess(new[] { "count" }, rows => rows.WithRow(count)));
         }
 
         public static void PrimeRangeSelect(SimulacronCluster testCluster, IEnumerable<AllDataTypesEntity> data)

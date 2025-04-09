@@ -73,7 +73,8 @@ namespace Cassandra.Collections
             get { return _items.Length; }
         }
 
-        public bool IsReadOnly {
+        public bool IsReadOnly
+        {
             get { return true; }
         }
 

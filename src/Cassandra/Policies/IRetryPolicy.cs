@@ -14,7 +14,7 @@
 //   limitations under the License.
 //
 
-﻿namespace Cassandra
+namespace Cassandra
 {
     /// <summary>
     ///  A policy that defines a default behavior to adopt when a request returns a

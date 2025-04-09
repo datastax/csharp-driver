@@ -36,16 +36,16 @@ namespace Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON
         /// </summary>
         public GraphSON2Reader()
         {
-            
+
         }
 
         /// <summary>
         /// Creates a new instance of <see cref="GraphSON2Reader"/>.
         /// </summary>
-        public GraphSON2Reader(IReadOnlyDictionary<string, IGraphSONDeserializer> deserializerByGraphSONType) : 
+        public GraphSON2Reader(IReadOnlyDictionary<string, IGraphSONDeserializer> deserializerByGraphSONType) :
             base(deserializerByGraphSONType)
         {
-            
+
         }
     }
 }

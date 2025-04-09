@@ -25,11 +25,11 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.Then
         public string Value { get; }
 
         public static ServerError IsBootstrapping { get; } = new ServerError("is_bootstrapping");
-        
+
         public static ServerError Overloaded { get; } = new ServerError("overloaded");
-        
+
         public static ServerError Invalid { get; } = new ServerError("invalid");
-        
+
         public static ServerError ConfigError { get; } = new ServerError("config_error");
     }
 }

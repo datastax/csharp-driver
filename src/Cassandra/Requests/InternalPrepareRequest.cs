@@ -43,7 +43,7 @@ namespace Cassandra.Requests
         /// The CQL string to be prepared
         /// </summary>
         public string Query { get; set; }
-        
+
         /// <inheritdoc />
         public override ResultMetadata ResultMetadata => null;
 
@@ -58,11 +58,11 @@ namespace Cassandra.Requests
             {
                 // if the keyspace parameter is not supported then prepare flags aren't either
                 _prepareFlags = null;
-                
+
                 // and also no other optional parameter is supported
                 return;
             }
-            
+
             if (keyspace != null)
             {
                 _prepareFlags |= PrepareFlags.WithKeyspace;

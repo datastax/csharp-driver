@@ -105,7 +105,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             //Use linq to create the table
             new Table<Song>(_session, config).Create();
             var mapper = new Mapper(_session, config);
-            var song = new Song { Id = Guid.NewGuid(), Artist = "Cream", Title = "Crossroad", ReleaseDate = DateTimeOffset.Parse("1970/1/1")};
+            var song = new Song { Id = Guid.NewGuid(), Artist = "Cream", Title = "Crossroad", ReleaseDate = DateTimeOffset.Parse("1970/1/1") };
             //It is the first song there, it should apply it
             mapper.Insert(song);
             const string query = "SET artist = ?, title = ? WHERE id = ? IF releasedate = ?";
@@ -141,7 +141,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [Test]
         public void Update_Poco_With_Enum_Collections_Test()
         {
-            var expectedCollection = new[]{ HairColor.Blonde, HairColor.Gray };
+            var expectedCollection = new[] { HairColor.Blonde, HairColor.Gray };
             var expectedMap = new SortedDictionary<HairColor, TimeUuid>
             {
                 { HairColor.Brown, TimeUuid.NewId() },
@@ -149,13 +149,13 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             };
             var collectionValues = expectedCollection.Select(x => (int)x).ToArray();
             var mapValues =
-                new SortedDictionary<int, Guid>(expectedMap.ToDictionary(kv => (int) kv.Key, kv => (Guid) kv.Value));
+                new SortedDictionary<int, Guid>(expectedMap.ToDictionary(kv => (int)kv.Key, kv => (Guid)kv.Value));
 
             var pocoToUpdate = new PocoWithEnumCollections
             {
                 Id = 3000L,
-                Dictionary1 = expectedMap.ToDictionary(x => x.Key, x=> x.Value),
-                Dictionary2 = expectedMap.ToDictionary(x => x.Key, x=> x.Value),
+                Dictionary1 = expectedMap.ToDictionary(x => x.Key, x => x.Value),
+                Dictionary2 = expectedMap.ToDictionary(x => x.Key, x => x.Value),
                 Dictionary3 = expectedMap,
                 List1 = expectedCollection.ToList(),
                 List2 = expectedCollection.ToList(),
@@ -163,7 +163,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
                 Set2 = new SortedSet<HairColor>(expectedCollection),
                 Set3 = new HashSet<HairColor>(expectedCollection)
             };
-            pocoToUpdate.Array1 = new[]{ HairColor.Blonde, HairColor.Red, HairColor.Black };
+            pocoToUpdate.Array1 = new[] { HairColor.Blonde, HairColor.Red, HairColor.Black };
             pocoToUpdate.Dictionary1.Add(HairColor.Black, Guid.NewGuid());
             pocoToUpdate.Dictionary2.Add(HairColor.Black, Guid.NewGuid());
             pocoToUpdate.List1.Add(HairColor.Black);
@@ -176,14 +176,14 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             _session.Execute(new SimpleStatement(insertQuery, pocoToUpdate.Id, collectionValues, collectionValues,
                 collectionValues, collectionValues, collectionValues, collectionValues, mapValues, mapValues,
                 mapValues));
-            
+
             var config =
                 new MappingConfiguration().Define(
                     PocoWithEnumCollections.DefaultMapping.TableName("tbl_with_enum_collections"));
             var mapper = new Mapper(_session, config);
             mapper.Update(pocoToUpdate);
             var statement = new SimpleStatement("SELECT * FROM tbl_with_enum_collections WHERE id = ?", pocoToUpdate.Id);
-            
+
             var row = _session.Execute(statement).First();
             Assert.AreEqual(pocoToUpdate.Id, row.GetValue<long>("id"));
             CollectionAssert.AreEquivalent(pocoToUpdate.List1.Select(x => (int)x).ToList(), row.GetValue<IEnumerable<int>>("list1"));
@@ -192,11 +192,11 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             CollectionAssert.AreEquivalent(pocoToUpdate.Set1.Select(x => (int)x), row.GetValue<IEnumerable<int>>("set1"));
             CollectionAssert.AreEquivalent(pocoToUpdate.Set2.Select(x => (int)x), row.GetValue<IEnumerable<int>>("set2"));
             CollectionAssert.AreEquivalent(pocoToUpdate.Set3.Select(x => (int)x), row.GetValue<IEnumerable<int>>("set3"));
-            CollectionAssert.AreEquivalent(pocoToUpdate.Dictionary1.ToDictionary(x => (int) x.Key, x=> (Guid)x.Value), 
+            CollectionAssert.AreEquivalent(pocoToUpdate.Dictionary1.ToDictionary(x => (int)x.Key, x => (Guid)x.Value),
                 row.GetValue<IDictionary<int, Guid>>("map1"));
-            CollectionAssert.AreEquivalent(pocoToUpdate.Dictionary2.ToDictionary(x => (int) x.Key, x=> (Guid)x.Value), 
+            CollectionAssert.AreEquivalent(pocoToUpdate.Dictionary2.ToDictionary(x => (int)x.Key, x => (Guid)x.Value),
                 row.GetValue<IDictionary<int, Guid>>("map2"));
-            CollectionAssert.AreEquivalent(pocoToUpdate.Dictionary3.ToDictionary(x => (int) x.Key, x=> (Guid)x.Value), 
+            CollectionAssert.AreEquivalent(pocoToUpdate.Dictionary3.ToDictionary(x => (int)x.Key, x => (Guid)x.Value),
                 row.GetValue<IDictionary<int, Guid>>("map3"));
         }
 

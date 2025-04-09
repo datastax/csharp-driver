@@ -288,7 +288,7 @@ namespace Cassandra.Data.Linq.ExpressionParsing
         public IConditionItem SetAsCompareTo()
         {
             _isCompareTo = true;
-            if (_parameters.Count == 1&& _operator != null)
+            if (_parameters.Count == 1 && _operator != null)
             {
                 if (!Equals(_parameters[0], 0))
                 {

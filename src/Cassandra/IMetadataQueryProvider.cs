@@ -34,7 +34,7 @@ namespace Cassandra
         /// The address of the endpoint used by the ControlConnection
         /// </summary>
         IConnectionEndPoint EndPoint { get; }
-        
+
         /// <summary>
         /// The local address of the socket used by the ControlConnection
         /// </summary>

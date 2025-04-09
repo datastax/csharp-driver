@@ -68,7 +68,7 @@ namespace Cassandra.IntegrationTests.Core
                 }
             }
         }
-        
+
         [TestCase(ProtocolVersion.V5, "4.0.0")]
         [TestCase(ProtocolVersion.V4, "3.11.6", "3.0.11", "2.2.9")]
         [TestCase(ProtocolVersion.V4, "3.0.13", "3.0.11", "2.2.9")]

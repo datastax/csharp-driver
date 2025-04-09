@@ -40,7 +40,7 @@ namespace Cassandra.Requests
                 // We should not use an ignored host
                 return null;
             }
-            
+
             if (!host.IsUp)
             {
                 // The host is not considered UP by the driver.

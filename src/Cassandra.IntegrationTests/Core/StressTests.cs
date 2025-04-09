@@ -75,9 +75,9 @@ namespace Cassandra.IntegrationTests.Core
                 for (var i = 0; i < 10; i++)
                 {
                     //Add 10 actions to execute
-                    actions.AddRange(new[] {actionInsert, actionSelect, actionInsertPrepared});
-                    actions.AddRange(new[] {actionSelect, actionInsert, actionInsertPrepared, actionInsert});
-                    actions.AddRange(new[] {actionInsertPrepared, actionInsertPrepared, actionSelect});
+                    actions.AddRange(new[] { actionInsert, actionSelect, actionInsertPrepared });
+                    actions.AddRange(new[] { actionSelect, actionInsert, actionInsertPrepared, actionInsert });
+                    actions.AddRange(new[] { actionInsertPrepared, actionInsertPrepared, actionSelect });
                 }
                 //Execute in parallel the 100 actions
                 TestHelper.ParallelInvoke(actions.ToArray());

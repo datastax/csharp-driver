@@ -30,22 +30,22 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.When
         {
             this._query = query;
         }
-        
+
         public IWhenQueryBuilder WithNamedParam(string name, DataType type, object value)
         {
             _namesToTypes.Add((name, type.Value));
             _values.Add(value);
             return this;
         }
-        
-        
+
+
         public IWhenQueryBuilder WithParam(DataType type, object value)
         {
             _namesToTypes.Add(($"column{_namesToTypes.Count}", type.Value));
             _values.Add(value);
             return this;
         }
-        
+
         public IWhenQueryBuilder WithParam(object value)
         {
             return WithParam(DataType.GetDataType(value), value);
@@ -89,7 +89,7 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.When
 
             if (_namesToTypes != null && _values != null)
             {
-                var parameters = 
+                var parameters =
                     _namesToTypes
                         .Zip(_values, (tuple, value) => (tuple.Item1, value))
                         .ToDictionary(kvp => kvp.Item1, kvp => kvp.value);
@@ -102,7 +102,7 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.When
             {
                 dictionary.Add("consistency_level", _consistency);
             }
-            
+
             return dictionary;
         }
     }

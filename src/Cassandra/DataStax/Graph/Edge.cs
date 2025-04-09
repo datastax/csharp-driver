@@ -50,7 +50,7 @@ namespace Cassandra.DataStax.Graph
         /// <summary>
         /// Creates a new instance of <see cref="Edge"/>.
         /// </summary>
-        public Edge(GraphNode id, string label, IDictionary<string, GraphNode> properties, 
+        public Edge(GraphNode id, string label, IDictionary<string, GraphNode> properties,
             GraphNode inV, string inVLabel, GraphNode outV, string outVLabel)
             : base(id, label, properties)
         {

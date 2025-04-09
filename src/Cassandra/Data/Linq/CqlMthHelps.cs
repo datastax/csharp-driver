@@ -20,7 +20,7 @@ namespace Cassandra.Data.Linq
 {
     internal class CqlMthHelps
     {
-        internal static MethodInfo SelectMi = typeof (CqlMthHelps).GetTypeInfo().GetMethod("Select", BindingFlags.NonPublic | BindingFlags.Static);
+        internal static MethodInfo SelectMi = typeof(CqlMthHelps).GetTypeInfo().GetMethod("Select", BindingFlags.NonPublic | BindingFlags.Static);
         internal static MethodInfo WhereMi = typeof(CqlMthHelps).GetTypeInfo().GetMethod("Where", BindingFlags.NonPublic | BindingFlags.Static);
         internal static MethodInfo GroupByMi = typeof(CqlMthHelps).GetTypeInfo().GetMethod("GroupBy", BindingFlags.NonPublic | BindingFlags.Static);
         internal static MethodInfo UpdateIfMi = typeof(CqlMthHelps).GetTypeInfo().GetMethod("UpdateIf", BindingFlags.NonPublic | BindingFlags.Static);
@@ -30,30 +30,30 @@ namespace Cassandra.Data.Linq
 
         internal static MethodInfo UpdateIfNotExistsMi = typeof(CqlMthHelps)
             .GetTypeInfo().GetMethod(nameof(UpdateIfNotExists), BindingFlags.NonPublic | BindingFlags.Static);
-        
+
         internal static MethodInfo DeleteIfMi = typeof(CqlMthHelps).GetTypeInfo().GetMethod("DeleteIf", BindingFlags.NonPublic | BindingFlags.Static);
-        internal static MethodInfo FirstMi = typeof (CqlMthHelps).GetTypeInfo().GetMethod("First", BindingFlags.NonPublic | BindingFlags.Static);
+        internal static MethodInfo FirstMi = typeof(CqlMthHelps).GetTypeInfo().GetMethod("First", BindingFlags.NonPublic | BindingFlags.Static);
 
-        internal static MethodInfo First_ForCQLTableMi = typeof (CqlMthHelps).GetTypeInfo().GetMethod("First",
-                                                                                        new[] {typeof (ITable), typeof (int), typeof (object)});
+        internal static MethodInfo First_ForCQLTableMi = typeof(CqlMthHelps).GetTypeInfo().GetMethod("First",
+                                                                                        new[] { typeof(ITable), typeof(int), typeof(object) });
 
-        internal static MethodInfo FirstOrDefaultMi = typeof (CqlMthHelps).GetTypeInfo().GetMethod("FirstOrDefault", BindingFlags.NonPublic | BindingFlags.Static);
+        internal static MethodInfo FirstOrDefaultMi = typeof(CqlMthHelps).GetTypeInfo().GetMethod("FirstOrDefault", BindingFlags.NonPublic | BindingFlags.Static);
 
-        internal static MethodInfo FirstOrDefault_ForCQLTableMi = typeof (CqlMthHelps).GetTypeInfo().GetMethod("FirstOrDefault",
+        internal static MethodInfo FirstOrDefault_ForCQLTableMi = typeof(CqlMthHelps).GetTypeInfo().GetMethod("FirstOrDefault",
                                                                                                  new[]
                                                                                                  {typeof (ITable), typeof (int), typeof (object)});
 
-        internal static MethodInfo TakeMi = typeof (CqlMthHelps).GetTypeInfo().GetMethod("Take", BindingFlags.NonPublic | BindingFlags.Static);
-        internal static MethodInfo AllowFilteringMi = typeof (CqlMthHelps).GetTypeInfo().GetMethod("AllowFiltering", BindingFlags.NonPublic | BindingFlags.Static);
-        internal static MethodInfo CountMi = typeof (CqlMthHelps).GetTypeInfo().GetMethod("Count", BindingFlags.NonPublic | BindingFlags.Static);
-        internal static MethodInfo OrderByMi = typeof (CqlMthHelps).GetTypeInfo().GetMethod("OrderBy", BindingFlags.NonPublic | BindingFlags.Static);
+        internal static MethodInfo TakeMi = typeof(CqlMthHelps).GetTypeInfo().GetMethod("Take", BindingFlags.NonPublic | BindingFlags.Static);
+        internal static MethodInfo AllowFilteringMi = typeof(CqlMthHelps).GetTypeInfo().GetMethod("AllowFiltering", BindingFlags.NonPublic | BindingFlags.Static);
+        internal static MethodInfo CountMi = typeof(CqlMthHelps).GetTypeInfo().GetMethod("Count", BindingFlags.NonPublic | BindingFlags.Static);
+        internal static MethodInfo OrderByMi = typeof(CqlMthHelps).GetTypeInfo().GetMethod("OrderBy", BindingFlags.NonPublic | BindingFlags.Static);
 
-        internal static MethodInfo OrderByDescendingMi = typeof (CqlMthHelps).GetTypeInfo().GetMethod("OrderByDescending",
+        internal static MethodInfo OrderByDescendingMi = typeof(CqlMthHelps).GetTypeInfo().GetMethod("OrderByDescending",
                                                                                         BindingFlags.NonPublic | BindingFlags.Static);
 
-        internal static MethodInfo ThenByMi = typeof (CqlMthHelps).GetTypeInfo().GetMethod("ThenBy", BindingFlags.NonPublic | BindingFlags.Static);
+        internal static MethodInfo ThenByMi = typeof(CqlMthHelps).GetTypeInfo().GetMethod("ThenBy", BindingFlags.NonPublic | BindingFlags.Static);
 
-        internal static MethodInfo ThenByDescendingMi = typeof (CqlMthHelps).GetTypeInfo().GetMethod("ThenByDescending",
+        internal static MethodInfo ThenByDescendingMi = typeof(CqlMthHelps).GetTypeInfo().GetMethod("ThenByDescending",
                                                                                        BindingFlags.NonPublic | BindingFlags.Static);
 
         internal static object Select(object a, object b)

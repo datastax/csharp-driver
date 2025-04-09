@@ -30,7 +30,7 @@ namespace Cassandra.Tests.MetadataHelpers
             Assert.AreEqual(2, target.FullReplicas);
             Assert.IsTrue(target.HasTransientReplicas());
         }
-        
+
         [Test]
         public void Should_Parse_When_TransientReplicationIsDisabled()
         {

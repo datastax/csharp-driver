@@ -35,8 +35,8 @@ namespace Cassandra.DataStax.Auth.Sspi.Credentials
         /// the current thread's security context.
         /// </summary>
         /// <param name="package">The name of the security package to obtain credentials from.</param>
-        public ServerCredential( string package )
-            : base( package, CredentialUse.Inbound )
+        public ServerCredential(string package)
+            : base(package, CredentialUse.Inbound)
         {
         }
     }

@@ -39,7 +39,7 @@ namespace Cassandra.Data.Linq
         /// <param name="source">The source <see cref="CqlQuery{TSource}"/></param>
         /// <param name="projectionExpression">The projection expression</param>
         /// <param name="canCompile">Determines if the projection can be compiled and the delegate called.</param>
-        internal ClientProjectionCqlQuery(Expression expression, CqlQuery<TSource> source, 
+        internal ClientProjectionCqlQuery(Expression expression, CqlQuery<TSource> source,
             Expression<Func<TSource, TResult>> projectionExpression, bool canCompile) :
             base(expression, source.Table, source.MapperFactory, source.StatementFactory, source.PocoData)
         {

@@ -41,7 +41,7 @@ namespace Cassandra.Tests
             //Should fire event only once
             Assert.AreEqual(1, counter);
         }
-        
+
         [Test]
         public void Should_UseHostIdEmpty_When_HostIdIsNull()
         {
@@ -51,7 +51,7 @@ namespace Cassandra.Tests
             host.SetInfo(row);
             Assert.AreEqual(Guid.Empty, host.HostId);
         }
-        
+
         private IRow BuildRow(Guid? hostId)
         {
             return new TestHelper.DictionaryBasedRow(new Dictionary<string, object>

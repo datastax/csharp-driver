@@ -31,7 +31,7 @@ namespace Cassandra.Helpers
 
             collection.Add(elementToAdd);
         }
-        
+
         internal static void CreateIfDoesNotExist<TKey, TElement>(
             this IDictionary<TKey, ICollection<TElement>> dictionary, TKey key)
         {

@@ -41,7 +41,7 @@ namespace Cassandra
         {
             ChildPolicy = childPolicy ?? throw new ArgumentNullException(nameof(childPolicy));
         }
-        
+
         /// <summary>
         ///  Creates a new datacenter aware round robin policy given the name of the local
         ///  datacenter. <p> The name of the local datacenter provided must be the local
@@ -55,7 +55,7 @@ namespace Cassandra
         }
 
         internal ILoadBalancingPolicy ChildPolicy { get; }
-        
+
         /// <summary>
         ///  Return the HostDistance for the provided host. This policy consider nodes
         ///  in the local datacenter as <c>Local</c> and the rest

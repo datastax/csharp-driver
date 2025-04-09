@@ -101,7 +101,7 @@ namespace Cassandra.Mapping
         /// Inserts the specified POCO in Cassandra using the provided execution profile.
         /// </summary>
         void Insert<T>(T poco, string executionProfile, CqlQueryOptions queryOptions = null);
-        
+
         /// <summary>
         /// Inserts the specified POCO in Cassandra using the provided execution profile.
         /// </summary>
@@ -122,7 +122,7 @@ namespace Cassandra.Mapping
         /// <param name="queryOptions">Optional query options</param>
         /// <returns></returns>
         void Insert<T>(T poco, string executionProfile, bool insertNulls, CqlQueryOptions queryOptions = null);
-        
+
         /// <summary>
         /// Inserts the specified POCO in Cassandra using the provided execution profile.
         /// </summary>
@@ -145,7 +145,7 @@ namespace Cassandra.Mapping
         /// from the database after the specified time.</param>
         /// <returns></returns>
         void Insert<T>(T poco, string executionProfile, bool insertNulls, int? ttl, CqlQueryOptions queryOptions = null);
-        
+
         /// <summary>
         /// Inserts the specified POCO in Cassandra using the provided execution profile.
         /// </summary>
@@ -194,12 +194,12 @@ namespace Cassandra.Mapping
         /// <param name="queryOptions">Optional query options</param>
         /// <returns></returns>
         Task InsertAsync<T>(T poco, string executionProfile, bool insertNulls, CqlQueryOptions queryOptions = null);
-        
+
         /// <summary>
         /// Updates the POCO specified in Cassandra using the provided execution profile.
         /// </summary>
         void Update<T>(T poco, string executionProfile, CqlQueryOptions queryOptions = null);
-        
+
         /// <summary>
         /// Updates the POCO specified in Cassandra using the provided execution profile.
         /// </summary>
@@ -209,7 +209,7 @@ namespace Cassandra.Mapping
         /// Deletes the specified POCO from Cassandra using the provided execution profile.
         /// </summary>
         void Delete<T>(T poco, string executionProfile, CqlQueryOptions queryOptions = null);
-        
+
         /// <summary>
         /// Deletes the specified POCO from Cassandra using the provided execution profile.
         /// </summary>
@@ -260,7 +260,7 @@ namespace Cassandra.Mapping
         /// </para>
         /// </summary>
         Task<AppliedInfo<T>> InsertIfNotExistsAsync<T>(T poco, CqlQueryOptions queryOptions = null);
-        
+
         /// <summary>
         /// Inserts the specified POCO in Cassandra, if not exists, with the provided execution profile.
         /// <para>
@@ -288,7 +288,7 @@ namespace Cassandra.Mapping
         /// <param name="queryOptions">Optional query options</param>
         /// <returns></returns>
         Task<AppliedInfo<T>> InsertIfNotExistsAsync<T>(T poco, bool insertNulls, CqlQueryOptions queryOptions = null);
-        
+
         /// <summary>
         /// Inserts the specified POCO in Cassandra, if not exists, with the provided execution profile.
         /// </summary>
@@ -362,7 +362,7 @@ namespace Cassandra.Mapping
         /// </para>
         /// </summary>
         AppliedInfo<T> InsertIfNotExists<T>(T poco, CqlQueryOptions queryOptions = null);
-        
+
         /// <summary>
         /// Inserts the specified POCO in Cassandra, if not exists, with the provided execution profile.
         /// <para>
@@ -390,7 +390,7 @@ namespace Cassandra.Mapping
         /// <param name="queryOptions">Optional query options</param>
         /// <returns></returns>
         AppliedInfo<T> InsertIfNotExists<T>(T poco, bool insertNulls, CqlQueryOptions queryOptions = null);
-        
+
         /// <summary>
         /// Inserts the specified POCO in Cassandra, if not exists, with the provided execution profile.
         /// </summary>
@@ -433,7 +433,7 @@ namespace Cassandra.Mapping
         /// <param name="queryOptions">Optional query options</param>
         /// <returns></returns>
         AppliedInfo<T> InsertIfNotExists<T>(T poco, bool insertNulls, int? ttl, CqlQueryOptions queryOptions = null);
-        
+
         /// <summary>
         /// Inserts the specified POCO in Cassandra, if not exists, with the provided execution profile.
         /// </summary>
@@ -531,7 +531,7 @@ namespace Cassandra.Mapping
         /// query within the batch will be ignored.
         /// </remarks>
         AppliedInfo<T> ExecuteConditional<T>(ICqlBatch batch);
-        
+
         /// <summary>
         /// Executes a batch that contains a Lightweight transaction. 
         /// </summary>

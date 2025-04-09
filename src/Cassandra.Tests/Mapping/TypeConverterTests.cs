@@ -121,7 +121,7 @@ namespace Cassandra.Tests.Mapping
             };
 
         [Test]
-        [TestCaseSourceGeneric(nameof(ListSourceData), TypeArguments = new[] {typeof(IEnumerable<int>), typeof(List<int>)})]
+        [TestCaseSourceGeneric(nameof(ListSourceData), TypeArguments = new[] { typeof(IEnumerable<int>), typeof(List<int>) })]
         [TestCaseSourceGeneric(nameof(ListSourceData), TypeArguments = new[] { typeof(IEnumerable<int>), typeof(IReadOnlyList<int>) })]
         [TestCaseSourceGeneric(nameof(ListSourceData), TypeArguments = new[] { typeof(IEnumerable<int>), typeof(IList<int>) })]
         [TestCaseSourceGeneric(nameof(ListSourceData), TypeArguments = new[] { typeof(IEnumerable<int>), typeof(ICollection<int>) })]
@@ -131,7 +131,7 @@ namespace Cassandra.Tests.Mapping
         [TestCaseSourceGeneric(nameof(ListSourceDataNullable), TypeArguments = new[] { typeof(IEnumerable<int?>), typeof(IList<int?>) })]
         [TestCaseSourceGeneric(nameof(ListSourceDataNullable), TypeArguments = new[] { typeof(IEnumerable<int?>), typeof(ICollection<int?>) })]
         [TestCaseSourceGeneric(nameof(ListSourceDataNullable), TypeArguments = new[] { typeof(IEnumerable<int?>), typeof(IEnumerable<int?>) })]
-        public void GetFromDbConverter_Should_Convert_Collections<TSource, TResult>(TSource src, TResult expected) 
+        public void GetFromDbConverter_Should_Convert_Collections<TSource, TResult>(TSource src, TResult expected)
             where TSource : IEnumerable where TResult : IEnumerable
         {
             var result = TestGetFromDbConverter<TSource, TResult>(src, false);
@@ -165,7 +165,7 @@ namespace Cassandra.Tests.Mapping
         private static TResult TestGetFromDbConverter<TSource, TResult>(TSource value, bool compare = true)
         {
             var converter = new DefaultTypeConverter();
-            var result = (Func<TSource, TResult>) converter.TryGetFromDbConverter(typeof(TSource), typeof(TResult));
+            var result = (Func<TSource, TResult>)converter.TryGetFromDbConverter(typeof(TSource), typeof(TResult));
             Assert.NotNull(result);
             var convertedValue = result(value);
             if (compare)

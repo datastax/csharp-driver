@@ -39,11 +39,11 @@ namespace Cassandra.Serialization.Graph.GraphSON3.Dse
         public static Dictionary<string, dynamic> GetDefinitionByValue(
             IGenericSerializer genericSerializer, dynamic obj)
         {
-            var objType = (Type) obj.GetType();
+            var objType = (Type)obj.GetType();
             var typeCode = genericSerializer.GetCqlType(objType, out var typeInfo);
             return GetDefinitionByType(new Dictionary<string, dynamic>(), genericSerializer, typeCode, typeInfo);
         }
-        
+
         private static Dictionary<string, dynamic> GetDefinitionByType(
             IGenericSerializer genericSerializer, ColumnTypeCode typeCode, IColumnInfo typeInfo)
         {

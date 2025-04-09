@@ -59,12 +59,12 @@ namespace Cassandra.Connections
         IConnectionEndPoint EndPoint { get; }
 
         IPEndPoint LocalAddress { get; }
-        
+
         /// <summary>
         /// Length of the internal write queue (expensive operation!)
         /// </summary>
         int WriteQueueLength { get; }
-        
+
         /// <summary>
         /// Length of the internal write queue (expensive operation!)
         /// </summary>
@@ -74,7 +74,7 @@ namespace Cassandra.Connections
         /// Determines the amount of operations that are not finished.
         /// </summary>
         int InFlight { get; }
-        
+
         /// <summary>
         /// Determines if there isn't any operations pending to be written or inflight.
         /// </summary>
@@ -84,7 +84,7 @@ namespace Cassandra.Connections
         /// Gets the amount of operations that timed out and didn't get a response
         /// </summary>
         int TimedOutOperations { get; }
-        
+
         bool IsDisposed { get; }
 
         /// <summary>
@@ -98,7 +98,7 @@ namespace Cassandra.Connections
         int GetMaxConcurrentRequests(ISerializer serializer);
 
         ProtocolOptions Options { get; }
-        
+
         /// <summary>
         /// Initializes the connection.
         /// </summary>
@@ -111,7 +111,7 @@ namespace Cassandra.Connections
         /// Sends a new request if possible. If it is not possible it queues it up.
         /// </summary>
         Task<Response> Send(IRequest request, int timeoutMillis);
-        
+
         /// <summary>
         /// Sends a new request if possible and executes the callback when the response is parsed. If it is not possible it queues it up.
         /// </summary>

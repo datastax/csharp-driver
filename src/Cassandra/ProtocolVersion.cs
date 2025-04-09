@@ -151,8 +151,8 @@ namespace Cassandra
                 {
                     // Anything 4.0.0+ has a max protocol version of V5 and requires at least V3.
                     v3Requirement = true;
-                    maxVersion = config.AllowBetaProtocolVersions 
-                        ? Math.Min((byte)ProtocolVersion.V5, maxVersion) 
+                    maxVersion = config.AllowBetaProtocolVersions
+                        ? Math.Min((byte)ProtocolVersion.V5, maxVersion)
                         : Math.Min((byte)ProtocolVersion.V4, maxVersion);
                     maxVersionWith3OrMore = maxVersion;
                 }
@@ -194,7 +194,7 @@ namespace Cassandra
                 maxVersion = maxVersionWith3OrMore;
             }
 
-            return (ProtocolVersion) maxVersion;
+            return (ProtocolVersion)maxVersion;
         }
 
         /// <summary>
@@ -223,7 +223,7 @@ namespace Cassandra
         {
             return version >= ProtocolVersion.V3;
         }
-        
+
         /// <summary>
         /// Determines whether the protocol supports flags in BATCH requests.
         /// </summary>

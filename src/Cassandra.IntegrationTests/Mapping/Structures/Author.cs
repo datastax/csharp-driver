@@ -81,7 +81,7 @@ namespace Cassandra.IntegrationTests.Mapping.Structures
         public static List<Author> GetRandomList(int count)
         {
             List<Author> authors = new List<Author>();
-            for(int i=0; i< count; i++)
+            for (int i = 0; i < count; i++)
             {
                 Author author = Author.GetRandom(i + "_");
                 authors.Add(author);

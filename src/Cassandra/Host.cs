@@ -132,7 +132,7 @@ namespace Cassandra
         /// This property might be null when using Apache Cassandra or legacy DSE server versions.
         /// </summary>
         public Version DseVersion { get; private set; }
-        
+
         /// <summary>
         /// ContactPoint from which this endpoint was resolved. It is null if it was parsed from system tables.
         /// </summary>

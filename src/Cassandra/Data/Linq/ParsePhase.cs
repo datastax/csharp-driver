@@ -42,7 +42,7 @@ namespace Cassandra.Data.Linq
         /// Take() method calls.
         /// </summary>
         Take,
-        
+
         /// <summary>
         /// OrderBy() method calls.
         /// </summary>
@@ -52,7 +52,7 @@ namespace Cassandra.Data.Linq
         /// OrderByDescending() method calls.
         /// </summary>
         OrderByDescending,
-        
+
         /// <summary>
         /// GroupBy() method calls.
         /// </summary>

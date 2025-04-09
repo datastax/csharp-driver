@@ -46,7 +46,7 @@ namespace Cassandra.Serialization.Graph.Tinkerpop.Structure.IO.GraphSON
             // IDictionary<object, object>
             return result;
         }
-        
+
         public Dictionary<string, dynamic> Dictify(dynamic objectData, IGraphSONWriter writer)
         {
             var map = objectData as IDictionary;

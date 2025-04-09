@@ -108,9 +108,9 @@ namespace Cassandra
                 throw new ArgumentOutOfRangeException("nanosecond", "Nanosecond must be a number between 0 and 999,999,999");
             }
             TotalNanoseconds =
-                hour*NanosInHour +
-                minute*NanosInMinutes +
-                second*NanosInSeconds +
+                hour * NanosInHour +
+                minute * NanosInMinutes +
+                second * NanosInSeconds +
                 nanosecond;
         }
 
@@ -134,7 +134,7 @@ namespace Cassandra
             {
                 var decimalSeconds = Convert.ToDecimal(parts[2], CultureInfo.InvariantCulture);
                 var integralPart = Math.Truncate(decimalSeconds);
-                seconds = (int) integralPart;
+                seconds = (int)integralPart;
                 nanos = (int)(NanosInSeconds * (decimalSeconds - integralPart));
             }
             return new LocalTime(Convert.ToInt32(parts[0]), Convert.ToInt32(parts[1]), seconds, nanos);
@@ -147,17 +147,17 @@ namespace Cassandra
             if (nanos > 0)
             {
                 nanosPart = Utils.FillZeros(nanos, 9);
-                
+
                 var lastPosition = 0;
-                for (var i = nanosPart.Length - 1; i > 0; i--) 
+                for (var i = nanosPart.Length - 1; i > 0; i--)
                 {
-                    if (nanosPart[i] != '0') 
+                    if (nanosPart[i] != '0')
                     {
                         break;
                     }
                     lastPosition = i;
                 }
-                if (lastPosition > 0) 
+                if (lastPosition > 0)
                 {
                     nanosPart = nanosPart.Substring(0, lastPosition);
                 }

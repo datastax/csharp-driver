@@ -90,8 +90,8 @@ namespace Cassandra.Tests
         {
             var valuesDictionary = new Dictionary<string, object>
             {
-                {"Name", "Futurama"}, 
-                {"Description", "In Stereo where available"}, 
+                {"Name", "Futurama"},
+                {"Description", "In Stereo where available"},
                 {"Time", DateTimeOffset.Parse("1963-08-28")}
             };
             var stmt = new SimpleStatement(valuesDictionary, Query);
@@ -155,7 +155,7 @@ namespace Cassandra.Tests
             {
                 Columns = new[]
                 {
-                    new CqlColumn { Name = "name" }, 
+                    new CqlColumn { Name = "name" },
                     new CqlColumn { Name = "id" }
                 }
             };
@@ -201,12 +201,12 @@ namespace Cassandra.Tests
             Assert.NotNull(bound.RoutingKey);
             var serializer = new SerializerManager(ProtocolVersion.MaxSupported).GetCurrentSerializer();
             var expectedRoutingKey = new byte[0]
-                .Concat(new byte[] {0, 4})
+                .Concat(new byte[] { 0, 4 })
                 .Concat(serializer.Serialize(1001))
-                .Concat(new byte[] {0})
-                .Concat(new byte[] {0, 4})
+                .Concat(new byte[] { 0 })
+                .Concat(new byte[] { 0, 4 })
                 .Concat(serializer.Serialize(2001))
-                .Concat(new byte[] {0});
+                .Concat(new byte[] { 0 });
             CollectionAssert.AreEqual(expectedRoutingKey, bound.RoutingKey.RawRoutingKey);
         }
 
@@ -289,7 +289,7 @@ namespace Cassandra.Tests
         [Test]
         public void BatchStatement_Should_Use_Routing_Key_Of_First_Statement_With_SimpleStatement_Instances()
         {
-            var rawRoutingKey = new byte[] {1, 2, 3, 4};
+            var rawRoutingKey = new byte[] { 1, 2, 3, 4 };
             var s1 = new SimpleStatement("Q1").SetRoutingKey(new RoutingKey(rawRoutingKey));
             var s2 = new SimpleStatement("Q2").SetRoutingKey(new RoutingKey(new byte[] { 100, 101, 102 }));
             var batch = new BatchStatement().Add(s1).Add(s2);
@@ -300,7 +300,7 @@ namespace Cassandra.Tests
         [Test]
         public void BatchStatement_Should_Use_Routing_Key_Of_First_Statement_With_Statement_Instances()
         {
-            var rawRoutingKey = new byte[] {1, 2, 3, 4};
+            var rawRoutingKey = new byte[] { 1, 2, 3, 4 };
             var s1MockCalled = 0;
             var s1MockCalledKeyspace = 0;
             var s2MockCalled = 0;
@@ -327,7 +327,7 @@ namespace Cassandra.Tests
         [Test]
         public void BatchStatement_Should_UseRoutingKeyAndKeyspaceOfFirstStatement_When_TokenAwareLbpIsUsed()
         {
-            var rawRoutingKey = new byte[] {1, 2, 3, 4};
+            var rawRoutingKey = new byte[] { 1, 2, 3, 4 };
             var lbp = new TokenAwarePolicy(new ClusterTests.FakeLoadBalancingPolicy());
             var clusterMock = Mock.Of<IInternalCluster>();
             Mock.Get(clusterMock).Setup(c => c.GetReplicas(It.IsAny<string>(), It.IsAny<byte[]>()))
@@ -335,7 +335,7 @@ namespace Cassandra.Tests
             Mock.Get(clusterMock).Setup(c => c.AllHosts())
                 .Returns(new List<Host>());
             lbp.Initialize(clusterMock);
-            
+
             var s1Mock = new Mock<Statement>(MockBehavior.Loose);
             s1Mock.Setup(s => s.RoutingKey).Returns(new RoutingKey(rawRoutingKey));
             s1Mock.Setup(s => s.Keyspace).Returns("ks1");

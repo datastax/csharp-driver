@@ -28,76 +28,76 @@ namespace Cassandra.Tests
         public void Ctor_Should_ParseNetworkTopologyStrategyClass_When_LongClassName()
         {
             var ks = new KeyspaceMetadata(
-                null, 
-                "ks2", 
-                true, 
-                "org.apache.cassandra.locator.NetworkTopologyStrategy", 
+                null,
+                "ks2",
+                true,
+                "org.apache.cassandra.locator.NetworkTopologyStrategy",
                 new Dictionary<string, string> { { "dc1", "2" }, { "dc2", "1" } },
-                new ReplicationStrategyFactory(), 
+                new ReplicationStrategyFactory(),
                 null);
 
             Assert.IsNotNull(ks.Strategy);
             Assert.AreEqual(ReplicationStrategies.NetworkTopologyStrategy, ks.StrategyClass);
         }
-        
+
         [Test]
         public void Ctor_Should_ParseSimpleStrategyClass_When_LongClassName()
         {
             var ks = new KeyspaceMetadata(
-                null, 
-                "ks2", 
-                true, 
-                "org.apache.cassandra.locator.SimpleStrategy", 
+                null,
+                "ks2",
+                true,
+                "org.apache.cassandra.locator.SimpleStrategy",
                 new Dictionary<string, string> { { "replication_factor", "2" } },
-                new ReplicationStrategyFactory(), 
+                new ReplicationStrategyFactory(),
                 null);
 
             Assert.IsNotNull(ks.Strategy);
             Assert.AreEqual(ReplicationStrategies.SimpleStrategy, ks.StrategyClass);
         }
-        
+
         [Test]
         public void Ctor_Should_ParseNetworkTopologyStrategyClass_When_ShortClassName()
         {
             var ks = new KeyspaceMetadata(
-                null, 
-                "ks2", 
-                true, 
-                "NetworkTopologyStrategy", 
+                null,
+                "ks2",
+                true,
+                "NetworkTopologyStrategy",
                 new Dictionary<string, string> { { "dc1", "2" }, { "dc2", "1" } },
-                new ReplicationStrategyFactory(), 
+                new ReplicationStrategyFactory(),
                 null);
 
             Assert.IsNotNull(ks.Strategy);
             Assert.AreEqual(ReplicationStrategies.NetworkTopologyStrategy, ks.StrategyClass);
         }
-        
+
         [Test]
         public void Ctor_Should_ParseSimpleStrategyClass_When_ShortClassName()
         {
             var ks = new KeyspaceMetadata(
-                null, 
-                "ks2", 
-                true, 
-                "SimpleStrategy", 
+                null,
+                "ks2",
+                true,
+                "SimpleStrategy",
                 new Dictionary<string, string> { { "replication_factor", "2" } },
-                new ReplicationStrategyFactory(), 
+                new ReplicationStrategyFactory(),
                 null);
 
             Assert.IsNotNull(ks.Strategy);
             Assert.AreEqual(ReplicationStrategies.SimpleStrategy, ks.StrategyClass);
         }
-        
+
         [Test]
         public void Ctor_Should_StrategyBeNull_When_UnrecognizedStrategyClass()
         {
             var ks = new KeyspaceMetadata(
-                null, 
-                "ks2", 
-                true, 
-                "random", 
+                null,
+                "ks2",
+                true,
+                "random",
                 new Dictionary<string, string> { { "replication_factor", "2" } },
-                new ReplicationStrategyFactory(), 
+                new ReplicationStrategyFactory(),
                 null);
 
             Assert.IsNull(ks.Strategy);
@@ -110,12 +110,12 @@ namespace Cassandra.Tests
         public void Ctor_Should_InitializeStrategyWithNull_When_NullReplicationOptionsAndStrategyClassArePassed()
         {
             var sut = new KeyspaceMetadata(
-                null, 
-                "name", 
-                false, 
-                null, 
                 null,
-                new ReplicationStrategyFactory(), 
+                "name",
+                false,
+                null,
+                null,
+                new ReplicationStrategyFactory(),
                 null,
                 true);
             Assert.IsNull(sut.Strategy);
@@ -166,7 +166,7 @@ namespace Cassandra.Tests
                 null, "name", true, "SimpleStrategy", null, new ReplicationStrategyFactory(), null, true);
             Assert.IsNotNull(sut.StrategyClass);
         }
-        
+
         [Test]
         public void Ctor_Should_InitializeStrategyWithNull_When_NonNullReplicationOptionsArePassedButNullStrategyClassIsPassed()
         {

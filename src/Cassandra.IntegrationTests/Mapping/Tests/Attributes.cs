@@ -754,7 +754,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             var defaultInstance = new SimplePocoWithColumnAttribute();
             var mapper = new Mapper(Session, new MappingConfiguration().Define(definition));
             mapper.Insert(defaultInstance);
-            
+
             VerifyBoundStatement(
                 "INSERT INTO SimplePocoWithColumnAttribute (SomeColumn, SomePartitionKey) VALUES (?, ?)",
                 1,

@@ -22,7 +22,7 @@ namespace Cassandra
     /// <summary>
     /// Describes a Cassandra table
     /// </summary>
-    public class TableMetadata: DataCollectionMetadata
+    public class TableMetadata : DataCollectionMetadata
     {
         private static readonly IDictionary<string, IndexMetadata> EmptyIndexes =
             new ReadOnlyDictionary<string, IndexMetadata>(new Dictionary<string, IndexMetadata>());
@@ -39,7 +39,7 @@ namespace Cassandra
 
         protected TableMetadata()
         {
-            
+
         }
 
         internal TableMetadata(string name, IDictionary<string, IndexMetadata> indexes, bool isVirtual = false)

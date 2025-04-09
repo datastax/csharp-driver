@@ -209,7 +209,7 @@ namespace Cassandra
         /// A unique identifier for the created cluster instance.
         /// </summary>
         public Guid ClusterId { get; }
-        
+
         /// <summary>
         /// Gets the options related to graph instance.
         /// </summary>
@@ -237,9 +237,9 @@ namespace Cassandra
         internal IInsightsClientFactory InsightsClientFactory { get; }
 
         internal IRequestOptions DefaultRequestOptions => RequestOptions[Configuration.DefaultExecutionProfileName];
-        
+
         internal static IInsightsSupportVerifier DefaultInsightsSupportVerifier => new InsightsSupportVerifier();
-        
+
         internal static IInsightsClientFactory DefaultInsightsClientFactory =>
             new InsightsClientFactory(
                 Configuration.DefaultInsightsStartupMessageFactory, Configuration.DefaultInsightsStatusMessageFactory);
@@ -359,7 +359,7 @@ namespace Cassandra
             AddressTranslator = addressTranslator ?? throw new ArgumentNullException(nameof(addressTranslator));
             QueryOptions = queryOptions ?? throw new ArgumentNullException(nameof(queryOptions));
             GraphOptions = graphOptions ?? new GraphOptions();
-            
+
             ClusterId = clusterId ?? Guid.NewGuid();
             ApplicationVersion = appVersion ?? Configuration.DefaultApplicationVersion;
             ApplicationName = appName ?? Configuration.FallbackApplicationName;
@@ -391,7 +391,7 @@ namespace Cassandra
             TypeSerializers = typeSerializerDefinitions?.Definitions;
             KeepContactPointsUnresolved = keepContactPointsUnresolved ?? false;
             AllowBetaProtocolVersions = allowBetaProtocolVersions ?? false;
-            
+
             ObserverFactoryBuilder = new CompositeObserverFactoryBuilder(
                 new MetricsObserverFactoryBuilder(MetricsEnabled),
                 new RequestTrackerObserverFactoryBuilder(requestTracker));
@@ -406,7 +406,7 @@ namespace Cassandra
 
             RequestOptions = RequestOptionsMapper.BuildRequestOptionsDictionary(executionProfiles, policies, socketOptions, clientOptions, queryOptions, GraphOptions);
             ExecutionProfiles = BuildExecutionProfilesDictionary(executionProfiles, RequestOptions);
-            
+
             MonitorReportingOptions = monitorReportingOptions ?? new MonitorReportingOptions();
             InsightsSupportVerifier = insightsSupportVerifier ?? Configuration.DefaultInsightsSupportVerifier;
             InsightsClientFactory = insightsClientFactory ?? Configuration.DefaultInsightsClientFactory;

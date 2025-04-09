@@ -152,14 +152,14 @@ namespace Cassandra.Connections.Control
             catch (Exception ex)
             {
                 ControlConnection.Logger.Warning(
-                    "Failed to resolve contact point {0}. Exception: {1}", 
+                    "Failed to resolve contact point {0}. Exception: {1}",
                     contactPoint.StringRepresentation, ex.ToString());
                 return Enumerable.Empty<IConnectionEndPoint>();
             }
         }
 
         private async Task<IEnumerable<IConnectionEndPoint>> ResolveHostContactPointOrConnectionEndpointAsync(
-            ConcurrentDictionary<IContactPoint, object> attemptedContactPoints, Host host, 
+            ConcurrentDictionary<IContactPoint, object> attemptedContactPoints, Host host,
             bool refreshContactPoints, bool refreshEndpoints)
         {
             if (host.ContactPoint != null && attemptedContactPoints.TryAdd(host.ContactPoint, null))
@@ -267,7 +267,7 @@ namespace Cassandra.Connections.Control
             if (isInitializing)
             {
                 ControlConnection.Logger.Verbose("Control Connection {0} connecting.", GetHashCode());
-            } 
+            }
             else
             {
                 ControlConnection.Logger.Verbose("Control Connection {0} reconnecting.", GetHashCode());
@@ -322,7 +322,7 @@ namespace Cassandra.Connections.Control
                 endPointResolutionTasksLazyIterator = endPointResolutionTasksLazyIterator.Concat(
                     AllHostsEndPointResolutionTasksEnumerable(attemptedContactPoints, attemptedHosts, true, _config.KeepContactPointsUnresolved, true));
             }
-            
+
             var oldConnection = _connection;
             var oldHost = _host;
             var oldEndpoint = _currentConnectionEndPoint;
@@ -379,7 +379,7 @@ namespace Cassandra.Connections.Control
                             connection = await _config.ProtocolVersionNegotiator.NegotiateVersionAsync(
                                 _config, _metadata, connection, _serializer).ConfigureAwait(false);
                         }
-                        
+
                         if (!SetCurrentConnection(connection, currentHost, endPoint))
                         {
                             ControlConnection.Logger.Info(
@@ -431,7 +431,7 @@ namespace Cassandra.Connections.Control
         {
             ReconnectFireAndForget(null);
         }
-        
+
         internal void OnConnectionClosing(IConnection connection)
         {
             connection.Closing -= OnConnectionClosing;
@@ -444,7 +444,7 @@ namespace Cassandra.Connections.Control
                 "Connection {0} used by the ControlConnection {1} is closing.", connection.EndPoint.EndpointFriendlyName, GetHashCode());
             ReconnectFireAndForget(connection);
         }
-        
+
         /// <summary>
         /// Handler that gets invoked when if there is a socket exception when making a heartbeat/idle request
         /// </summary>
@@ -464,7 +464,7 @@ namespace Cassandra.Connections.Control
                 c.Close();
             }
         }
-        
+
         private async void ReconnectFireAndForget(IConnection closedConnection)
         {
             try
@@ -485,7 +485,7 @@ namespace Cassandra.Connections.Control
             {
                 // If there is another thread reconnecting, use the same task
                 var oldConnectionInPreviousReconnect = await currentTask.ConfigureAwait(false);
-                
+
                 // if his reconnect was triggered by a connection closed event
                 // and the previous reconnect task was for a different connection
                 // then reconnect again
@@ -572,7 +572,7 @@ namespace Cassandra.Connections.Control
                 var currentEndPoint = _currentConnectionEndPoint;
                 var currentHost = await _topologyRefresher.RefreshNodeListAsync(
                     currentEndPoint, _connection, _serializer.GetCurrentSerializer()).ConfigureAwait(false);
-                
+
                 SetCurrentConnectionEndpoint(currentHost, currentEndPoint);
 
                 await _metadata.RebuildTokenMapAsync(false, _config.MetadataSyncOptions.MetadataSyncEnabled).ConfigureAwait(false);
@@ -625,7 +625,7 @@ namespace Cassandra.Connections.Control
             {
                 h.Down -= OnHostDown;
             }
-            
+
             if (c != null)
             {
                 c.Closing -= OnConnectionClosing;
@@ -766,10 +766,10 @@ namespace Cassandra.Connections.Control
             _currentConnectionEndPoint = endPoint;
             _metadata.SetCassandraVersion(host.CassandraVersion);
         }
-        
+
         private bool SetCurrentConnection(
             IConnection connection,
-            Host host, 
+            Host host,
             IConnectionEndPoint endPoint)
         {
             if (host != null)

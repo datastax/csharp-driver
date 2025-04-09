@@ -32,7 +32,7 @@ namespace Cassandra.DataStax.Auth.Sspi.Buffers
     /// Represents a native SecureBuffer structure, which is used for communicating
     /// buffers to the native APIs.
     /// </summary>
-    [StructLayout( LayoutKind.Sequential )]
+    [StructLayout(LayoutKind.Sequential)]
     internal struct SecureBufferInternal
     {
         /// <summary>
@@ -73,7 +73,7 @@ namespace Cassandra.DataStax.Auth.Sspi.Buffers
         /// <param name="buffer">The buffer to wrap.</param>
         /// <param name="type">The type or purpose of the buffer, for purposes of 
         /// invoking the native API.</param>
-        public SecureBuffer( byte[] buffer, BufferType type )
+        public SecureBuffer(byte[] buffer, BufferType type)
         {
             this.Buffer = buffer;
             this.Type = type;

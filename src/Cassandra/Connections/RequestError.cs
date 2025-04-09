@@ -27,7 +27,7 @@ namespace Cassandra.Connections
             IsServerError = isServerError;
             Unsent = unsent;
         }
-        
+
         /// <summary>
         /// Creates a server side request error based on a server error.
         /// </summary>
@@ -35,7 +35,7 @@ namespace Cassandra.Connections
         {
             return new RequestError(response.Output.CreateException(), true, false);
         }
-        
+
         /// <summary>
         /// Creates a client side request error based on an exception.
         /// </summary>
@@ -43,7 +43,7 @@ namespace Cassandra.Connections
         {
             return new RequestError(ex, true, false);
         }
-        
+
         /// <summary>
         /// Creates a client side request error based on a exception.
         /// </summary>
@@ -51,7 +51,7 @@ namespace Cassandra.Connections
         {
             return new RequestError(ex, false, unsent);
         }
-        
+
         public Exception Exception { get; }
 
         public bool IsServerError { get; }

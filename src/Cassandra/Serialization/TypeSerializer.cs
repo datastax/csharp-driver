@@ -55,9 +55,9 @@ namespace Cassandra.Serialization
         {
             return new[]
             {
-                b[offset + 3], b[offset + 2], b[offset + 1], b[offset + 0], 
-                b[offset + 5], b[offset + 4], 
-                b[offset + 7], b[offset + 6], 
+                b[offset + 3], b[offset + 2], b[offset + 1], b[offset + 0],
+                b[offset + 5], b[offset + 4],
+                b[offset + 7], b[offset + 6],
                 b[offset + 8], b[offset + 9], b[offset + 10], b[offset + 11], b[offset + 12], b[offset + 13], b[offset + 14], b[offset + 15]
             };
         }
@@ -165,7 +165,7 @@ namespace Cassandra.Serialization
         /// </summary>
         public virtual IColumnInfo TypeInfo
         {
-            get { return null;}
+            get { return null; }
         }
 
         /// <summary>
@@ -219,7 +219,7 @@ namespace Cassandra.Serialization
             }
             return _serializer.GetClrType(typeCode, typeInfo);
         }
-        
+
         internal Type GetClrTypeForGraph(ColumnTypeCode typeCode, IColumnInfo typeInfo)
         {
             if (_serializer == null)

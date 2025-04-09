@@ -33,7 +33,7 @@ namespace Cassandra.DataStax.Graph
         /// </summary>
         public ICollection<GraphNode> Objects { get; protected set; }
 
-        ICollection<IGraphNode> IPath.Objects => (ICollection<IGraphNode>) Objects;
+        ICollection<IGraphNode> IPath.Objects => (ICollection<IGraphNode>)Objects;
 
         /// <summary>
         /// Creates a new instance of <see cref="Path"/>.

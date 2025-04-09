@@ -23,7 +23,7 @@ namespace Cassandra.DataStax.Insights.Schema
     {
         [JsonProperty("metadata")]
         public InsightsMetadata Metadata;
-        
+
         [JsonProperty("data")]
         public T Data;
     }

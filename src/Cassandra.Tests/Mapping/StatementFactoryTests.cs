@@ -52,8 +52,8 @@ namespace Cassandra.Tests.Mapping
             var concurrentTasks = 1000;
 
             var semaphore = new SemaphoreSlim(0, concurrentTasks);
-            
-            var tasks = 
+
+            var tasks =
                 Enumerable.Range(0, concurrentTasks)
                           .Select(_ => Task.Run(
                               async () =>
@@ -68,22 +68,22 @@ namespace Cassandra.Tests.Mapping
             await Task.WhenAll(tasks).ConfigureAwait(false);
 
             var boundStatementsSet = new HashSet<BoundStatement>(
-                tasks.Select(t => (BoundStatement)t.Result), 
+                tasks.Select(t => (BoundStatement)t.Result),
                 new ReferenceEqualityComparer<BoundStatement>());
-            
+
             var preparedStatementsSet = new HashSet<PreparedStatement>(
-                tasks.Select(t => ((BoundStatement)t.Result).PreparedStatement), 
+                tasks.Select(t => ((BoundStatement)t.Result).PreparedStatement),
                 new ReferenceEqualityComparer<PreparedStatement>());
-            
+
             var createdPreparedStatementsSet = new HashSet<PreparedStatement>(
-                createdPreparedStatementsBag.Select(t => t.Result), 
+                createdPreparedStatementsBag.Select(t => t.Result),
                 new ReferenceEqualityComparer<PreparedStatement>());
 
             Assert.AreEqual(1, preparedStatementsSet.Count);
             Assert.AreEqual(concurrentTasks, boundStatementsSet.Count);
             Assert.AreEqual(1, createdPreparedStatementsSet.Count);
         }
-        
+
         [Test]
         public async Task GetStatementAsync_Should_PrepareTwiceAndCache_When_FirstPrepareFails()
         {
@@ -99,7 +99,7 @@ namespace Cassandra.Tests.Mapping
                     if (Interlocked.CompareExchange(ref firstTime, 0, 1) == 1)
                     {
                         PreparedStatement Func() => throw new Exception(exceptionMessage);
-                        return Task.Run((Func<PreparedStatement>) Func);
+                        return Task.Run((Func<PreparedStatement>)Func);
                     }
 
                     var task = Task.FromResult(GetPrepared(q));
@@ -112,8 +112,8 @@ namespace Cassandra.Tests.Mapping
             var concurrentTasks = 1000;
 
             var semaphore = new SemaphoreSlim(0, concurrentTasks);
-            
-            var tasks = 
+
+            var tasks =
                 Enumerable.Range(0, concurrentTasks)
                           .Select(_ => Task.Run(
                               async () =>
@@ -140,15 +140,15 @@ namespace Cassandra.Tests.Mapping
             tasks = tasks.Where(t => !t.IsFaulted).ToArray();
 
             var boundStatementsSet = new HashSet<BoundStatement>(
-                tasks.Select(t => (BoundStatement)t.Result), 
+                tasks.Select(t => (BoundStatement)t.Result),
                 new ReferenceEqualityComparer<BoundStatement>());
-            
+
             var preparedStatementsSet = new HashSet<PreparedStatement>(
-                tasks.Select(t => ((BoundStatement)t.Result).PreparedStatement), 
+                tasks.Select(t => ((BoundStatement)t.Result).PreparedStatement),
                 new ReferenceEqualityComparer<PreparedStatement>());
-            
+
             var createdPreparedStatementsSet = new HashSet<PreparedStatement>(
-                createdPreparedStatementsBag.Select(t => t.Result), 
+                createdPreparedStatementsBag.Select(t => t.Result),
                 new ReferenceEqualityComparer<PreparedStatement>());
 
             Assert.AreEqual(1, preparedStatementsSet.Count);
@@ -242,11 +242,11 @@ namespace Cassandra.Tests.Mapping
 
             Assert.IsInstanceOf<BoundStatement>(statement);
 
-            var ps = ((BoundStatement) statement).PreparedStatement;
+            var ps = ((BoundStatement)statement).PreparedStatement;
 
             for (var i = 0; i < 10; i++)
             {
-                var bound = (BoundStatement) await sf.GetStatementAsync(sessionMock.Object, cql).ConfigureAwait(false);
+                var bound = (BoundStatement)await sf.GetStatementAsync(sessionMock.Object, cql).ConfigureAwait(false);
                 Assert.AreSame(ps, bound.PreparedStatement);
             }
         }
@@ -254,7 +254,7 @@ namespace Cassandra.Tests.Mapping
         private static PreparedStatement GetPreparedStatement(Statement statement)
         {
             Assert.IsInstanceOf<BoundStatement>(statement);
-            return ((BoundStatement) statement).PreparedStatement;
+            return ((BoundStatement)statement).PreparedStatement;
         }
     }
 }

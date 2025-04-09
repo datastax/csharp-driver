@@ -37,16 +37,16 @@ namespace Cassandra.Serialization.Graph.GraphSON3.Dse
                 { "nanos", writer.ToDict(d.Nanoseconds) }
             };
             return GraphSONUtil.ToTypedValue(
-                Duration3Serializer.TypeKey, 
-                value, 
+                Duration3Serializer.TypeKey,
+                value,
                 Duration3Serializer.Prefix);
         }
 
         public dynamic Objectify(JToken graphsonObject, IGraphSONReader reader)
         {
-            var months = (int) reader.ToObject(graphsonObject["months"]);
-            var days = (int) reader.ToObject(graphsonObject["days"]);
-            var nanos = (long) reader.ToObject(graphsonObject["nanos"]);
+            var months = (int)reader.ToObject(graphsonObject["months"]);
+            var days = (int)reader.ToObject(graphsonObject["days"]);
+            var nanos = (long)reader.ToObject(graphsonObject["nanos"]);
             return new Duration(months, days, nanos);
         }
     }

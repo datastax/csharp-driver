@@ -27,7 +27,7 @@ namespace Cassandra
     /// </summary>
     public class LoggingRetryPolicy : IExtendedRetryPolicy
     {
-        private readonly Logger _logger = new Logger(typeof (LoggingRetryPolicy));
+        private readonly Logger _logger = new Logger(typeof(LoggingRetryPolicy));
 
         private readonly IExtendedRetryPolicy _extendedPolicy;
 
@@ -122,7 +122,7 @@ namespace Cassandra
             switch (decision.DecisionType)
             {
                 case RetryDecision.RetryDecisionType.Ignore:
-                    _logger.Info("Ignoring on request error(retries: {0}, exception: {1})",  nbRetry, ex);
+                    _logger.Info("Ignoring on request error(retries: {0}, exception: {1})", nbRetry, ex);
                     break;
                 case RetryDecision.RetryDecisionType.Retry:
                     _logger.Info("Retrying on request error (retries: {0}, exception: {1})", nbRetry, ex);

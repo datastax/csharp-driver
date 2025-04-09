@@ -35,7 +35,7 @@ namespace Cassandra.Tests
             CollectionAssert.AreEqual(new byte[] { 0, 0, 0, 5, 1 }, buffer);
             var deserializedValue = serializer.Deserialize(buffer, ColumnTypeCode.Decimal, null);
             Assert.IsInstanceOf<BigDecimal>(deserializedValue);
-            var deserializedDecimal = (BigDecimal) deserializedValue;
+            var deserializedDecimal = (BigDecimal)deserializedValue;
             Assert.AreEqual("0.00001", deserializedDecimal.ToString());
             Assert.AreEqual(value.Scale, deserializedDecimal.Scale);
             Assert.AreEqual(value.UnscaledValue, deserializedDecimal.UnscaledValue);

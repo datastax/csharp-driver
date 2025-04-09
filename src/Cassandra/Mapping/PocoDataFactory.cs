@@ -62,7 +62,7 @@ namespace Cassandra.Mapping
             }
             _cache.GetOrAdd(type, t => CreatePocoData(t, definitionHandler()));
         }
-        
+
         private PocoData CreatePocoData(Type pocoType)
         {
             // Try to get mapping from predefined collection, otherwise fallback to using attributes

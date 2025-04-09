@@ -48,7 +48,7 @@ namespace Cassandra.Serialization.Graph.GraphSON3
             CustomGraphSON3Reader.AddGraphSON3Deserializers(CustomGraphSON3Reader.Deserializers);
             CustomGraphSON3Reader.AddGraphSON3StructureDeserializers(CustomGraphSON3Reader.StructureDeserializers);
         }
-        
+
         protected static void AddGraphSON3Deserializers(IDictionary<string, IGraphSONDeserializer> dictionary)
         {
             foreach (var kv in CustomGraphSON3Reader.CustomGraphSON3SpecificDeserializers)
@@ -56,7 +56,7 @@ namespace Cassandra.Serialization.Graph.GraphSON3
                 dictionary[kv.Key] = kv.Value;
             }
         }
-        
+
         protected static void AddGraphSON3StructureDeserializers(IDictionary<string, IGraphSONStructureDeserializer> dictionary)
         {
             foreach (var kv in CustomGraphSON3Reader.CustomGraphSON3SpecificStructureDeserializers)
@@ -66,21 +66,21 @@ namespace Cassandra.Serialization.Graph.GraphSON3
         }
 
         public CustomGraphSON3Reader(
-            Func<JToken, GraphNode> graphNodeFactory, 
-            IReadOnlyDictionary<string, IGraphSONDeserializer> customDeserializers, 
-            IGraphSONReader reader) 
+            Func<JToken, GraphNode> graphNodeFactory,
+            IReadOnlyDictionary<string, IGraphSONDeserializer> customDeserializers,
+            IGraphSONReader reader)
             : base(
-                CustomGraphSON3Reader.Deserializers, 
-                CustomGraphSON3Reader.StructureDeserializers, 
-                graphNodeFactory, 
-                customDeserializers, 
+                CustomGraphSON3Reader.Deserializers,
+                CustomGraphSON3Reader.StructureDeserializers,
+                graphNodeFactory,
+                customDeserializers,
                 reader)
         {
         }
-        
+
         private static Dictionary<string, IGraphSONDeserializer> Deserializers { get; } =
             new EmptyGraphSON2Reader().GetDeserializers();
-        
+
         private static Dictionary<string, IGraphSONStructureDeserializer> StructureDeserializers { get; } =
             new Dictionary<string, IGraphSONStructureDeserializer>();
     }

@@ -91,13 +91,13 @@ namespace Cassandra.Data
         /// <inheritdoc />
         public override bool GetBoolean(int ordinal)
         {
-            return (bool) GetValue(ordinal);
+            return (bool)GetValue(ordinal);
         }
 
         /// <inheritdoc />
         public override byte GetByte(int ordinal)
         {
-            return (byte) GetValue(ordinal);
+            return (byte)GetValue(ordinal);
         }
 
         /// <inheritdoc />
@@ -109,7 +109,7 @@ namespace Cassandra.Data
         /// <inheritdoc />
         public override char GetChar(int ordinal)
         {
-            return (char) GetValue(ordinal);
+            return (char)GetValue(ordinal);
         }
 
         /// <inheritdoc />
@@ -127,19 +127,19 @@ namespace Cassandra.Data
         /// <inheritdoc />
         public override DateTime GetDateTime(int ordinal)
         {
-            return (DateTime) GetValue(ordinal);
+            return (DateTime)GetValue(ordinal);
         }
 
         /// <inheritdoc />
         public override decimal GetDecimal(int ordinal)
         {
-            return (decimal) GetValue(ordinal);
+            return (decimal)GetValue(ordinal);
         }
 
         /// <inheritdoc />
         public override double GetDouble(int ordinal)
         {
-            return (double) GetValue(ordinal);
+            return (double)GetValue(ordinal);
         }
 
         public override IEnumerator GetEnumerator()
@@ -156,31 +156,31 @@ namespace Cassandra.Data
         /// <inheritdoc />
         public override float GetFloat(int ordinal)
         {
-            return (float) GetValue(ordinal);
+            return (float)GetValue(ordinal);
         }
 
         /// <inheritdoc />
         public override Guid GetGuid(int ordinal)
         {
-            return (Guid) GetValue(ordinal);
+            return (Guid)GetValue(ordinal);
         }
 
         /// <inheritdoc />
         public override short GetInt16(int ordinal)
         {
-            return (Int16) GetValue(ordinal);
+            return (Int16)GetValue(ordinal);
         }
 
         /// <inheritdoc />
         public override int GetInt32(int ordinal)
         {
-            return (Int32) GetValue(ordinal);
+            return (Int32)GetValue(ordinal);
         }
 
         /// <inheritdoc />
         public override long GetInt64(int ordinal)
         {
-            return (Int64) GetValue(ordinal);
+            return (Int64)GetValue(ordinal);
         }
 
         /// <inheritdoc />
@@ -197,7 +197,7 @@ namespace Cassandra.Data
 
         public override string GetString(int ordinal)
         {
-            return (string) GetValue(ordinal);
+            return (string)GetValue(ordinal);
         }
 
         /// <inheritdoc />

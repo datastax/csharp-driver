@@ -63,7 +63,7 @@ namespace Cassandra.DataStax.Graph
             if (object.ReferenceEquals(null, obj)) return false;
             if (object.ReferenceEquals(this, obj)) return true;
             if (obj.GetType() != GetType()) return false;
-            return Equals((Traverser) obj);
+            return Equals((Traverser)obj);
         }
 
         /// <inheritdoc />

@@ -102,7 +102,7 @@ namespace Cassandra
         protected UdtMap(Type netType, string udtName) : this(netType, udtName, null)
         {
         }
-        
+
         protected UdtMap(Type netType, string udtName, string keyspace)
         {
             NetType = netType ?? throw new ArgumentNullException("netType");

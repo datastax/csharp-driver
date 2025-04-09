@@ -54,7 +54,7 @@ namespace Cassandra.Tests.MetadataTests
             await Task.Delay(100).ConfigureAwait(false);
             Assert.AreEqual(1, Interlocked.Read(ref _counter));
         }
-        
+
         [Test]
         public async Task Should_NotInvokeAct_When_CancelIsCalled()
         {
@@ -66,7 +66,7 @@ namespace Cassandra.Tests.MetadataTests
             await Task.Delay(1000).ConfigureAwait(false);
             Assert.AreEqual(0, Interlocked.Read(ref _counter));
         }
-        
+
         [Test]
         public async Task Should_InvokeActOnce_When_ChangeIsCalled()
         {
@@ -77,7 +77,7 @@ namespace Cassandra.Tests.MetadataTests
             await Task.Delay(500).ConfigureAwait(false);
             Assert.AreEqual(1, Interlocked.Read(ref _counter));
         }
-        
+
         [Test]
         [Repeat(5)]
         public void Should_NotLogExceptions_When_CancellationTokenIsCancelledAndDisposed()
@@ -103,7 +103,7 @@ namespace Cassandra.Tests.MetadataTests
                 Diagnostics.CassandraTraceSwitch.Level = logLevel;
             }
         }
-        
+
         [Test]
         public void Should_LogExceptions_When_ExceptionsAreThrownByProvidedAction()
         {

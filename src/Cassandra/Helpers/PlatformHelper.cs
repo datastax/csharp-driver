@@ -80,7 +80,7 @@ namespace Cassandra.Helpers
                 Length = length;
             }
         }
-        
+
         public static CpuInfo GetWmiCpuInfo()
         {
             var count = 0;

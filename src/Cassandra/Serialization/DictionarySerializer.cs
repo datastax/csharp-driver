@@ -29,7 +29,7 @@ namespace Cassandra.Serialization
 
         public override IDictionary Deserialize(ushort protocolVersion, byte[] buffer, int offset, int length, IColumnInfo typeInfo)
         {
-            var mapInfo = (MapColumnInfo) typeInfo;
+            var mapInfo = (MapColumnInfo)typeInfo;
             var keyType = GetClrType(mapInfo.KeyTypeCode, mapInfo.KeyTypeInfo);
             var valueType = GetClrType(mapInfo.ValueTypeCode, mapInfo.ValueTypeInfo);
             var count = DecodeCollectionLength((ProtocolVersion)protocolVersion, buffer, ref offset);

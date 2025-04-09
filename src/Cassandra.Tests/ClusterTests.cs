@@ -205,17 +205,17 @@ namespace Cassandra.Tests
                 ControlConnectionFactory = new FakeControlConnectionFactory(),
                 ConnectionFactory = new FakeConnectionFactory(),
                 Policies = new Cassandra.Policies(
-                    lbps[0], 
-                    new ConstantReconnectionPolicy(50), 
-                    new DefaultRetryPolicy(), 
-                    NoSpeculativeExecutionPolicy.Instance, 
+                    lbps[0],
+                    new ConstantReconnectionPolicy(50),
+                    new DefaultRetryPolicy(),
+                    NoSpeculativeExecutionPolicy.Instance,
                     new AtomicMonotonicTimestampGenerator(),
                     null),
                 ExecutionProfiles = lbps.Skip(1).Select(
-                    (lbp, idx) => new 
-                    { 
-                        idx, 
-                        a = new ExecutionProfile(null, null, null, lbp, null, null, null) 
+                    (lbp, idx) => new
+                    {
+                        idx,
+                        a = new ExecutionProfile(null, null, null, lbp, null, null, null)
                             as IExecutionProfile
                     }).ToDictionary(obj => obj.idx.ToString(), obj => obj.a)
             }.Build();
@@ -226,7 +226,7 @@ namespace Cassandra.Tests
             Mock.Get(initializerMock)
                 .Setup(i => i.GetConfiguration())
                 .Returns(testConfig);
-            
+
             var cluster = Cluster.BuildFrom(initializerMock, new List<string>(), testConfig);
             cluster.Connect();
             cluster.Dispose();

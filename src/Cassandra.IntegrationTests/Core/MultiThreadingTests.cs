@@ -105,8 +105,8 @@ namespace Cassandra.IntegrationTests.Core
 
                             ar[i] = localSession.BeginExecute(string.Format(@"
                                 INSERT INTO {0} (tweet_id, author, isok, body) 
-                                VALUES ({1},'test{2}',{3},'body{2}');", 
-                                tableName, Guid.NewGuid(), i, i%2 == 0 ? "false" : "true"), ConsistencyLevel.One, null, null);
+                                VALUES ({1},'test{2}',{3},'body{2}');",
+                                tableName, Guid.NewGuid(), i, i % 2 == 0 ? "false" : "true"), ConsistencyLevel.One, null, null);
                             Interlocked.MemoryBarrier();
                         }
                         catch
@@ -196,7 +196,7 @@ namespace Cassandra.IntegrationTests.Core
                 var taskList = new List<Task<RowSet>>();
                 for (var i = 0; i < rowLength; i++)
                 {
-                    taskList.Add(localSession.ExecuteAsync(insertStatement.Bind(Guid.NewGuid(), new byte[1024*rnd.Next(10)])));
+                    taskList.Add(localSession.ExecuteAsync(insertStatement.Bind(Guid.NewGuid(), new byte[1024 * rnd.Next(10)])));
                 }
 
                 var taskArray = taskList.ToArray();
@@ -234,7 +234,7 @@ namespace Cassandra.IntegrationTests.Core
             localSession.ChangeKeyspace(keyspaceName);
 
             string tableName = "table" + Randomm.RandomAlphaNum(8);
-            
+
             localSession.Execute(string.Format(@"CREATE TABLE {0}(
                     tweet_id uuid,
                     author text,
@@ -254,7 +254,7 @@ namespace Cassandra.IntegrationTests.Core
                              author,
                              isok,
                              body)
-                            VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid(), i, i%2 == 0 ? "false" : "true")
+                            VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid(), i, i % 2 == 0 ? "false" : "true")
                         , ConsistencyLevel.One, _ =>
                         {
                             ar[tmpi] = true;
@@ -321,8 +321,8 @@ namespace Cassandra.IntegrationTests.Core
                 int tmpi = i;
                 try
                 {
-                    var query = string.Format(@"INSERT INTO {0} (tweet_id, author, isok, body) VALUES ({1},'test{2}',{3},'body{2}');", 
-                        tableName, Guid.NewGuid(), i, i%2 == 0 ? "false" : "true");
+                    var query = string.Format(@"INSERT INTO {0} (tweet_id, author, isok, body) VALUES ({1},'test{2}',{3},'body{2}');",
+                        tableName, Guid.NewGuid(), i, i % 2 == 0 ? "false" : "true");
                     localSession.BeginExecute(query, ConsistencyLevel.Quorum, arx =>
                     {
                         try

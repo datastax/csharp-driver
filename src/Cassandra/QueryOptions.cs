@@ -65,7 +65,7 @@ namespace Cassandra
         /// <see cref="OperationTimedOutException"/> is obtained.
         /// </para>
         /// </summary>
-        public bool RetryOnTimeout { get { return _retryOnTimeout; }}
+        public bool RetryOnTimeout { get { return _retryOnTimeout; } }
 
         /// <summary>
         /// Sets the default consistency level to use for queries.
@@ -112,7 +112,7 @@ namespace Cassandra
             _serialConsistency = serialConsistencyLevel;
             return this;
         }
-        
+
         /// <summary>
         /// The default serial consistency level used by queries.
         /// </summary>

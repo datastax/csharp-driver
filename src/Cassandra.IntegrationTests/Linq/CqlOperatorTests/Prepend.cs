@@ -49,7 +49,7 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
             table.Where(t => t.Id == singleEntity.Id)
                  .Select(t => new EntityWithListType { ListType = CqlOperator.Prepend(listToAdd) })
                  .Update().Execute();
-            
+
             VerifyBoundStatement(
                 $"UPDATE {_tableName} SET ListType = ? + ListType WHERE Id = ?",
                 1,
@@ -78,7 +78,7 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
             table.Where(t => t.Id == singleEntity.Id)
                  .Select(t => new EntityWithListType { ListType = CqlOperator.Prepend(listToAdd) })
                  .Update().Execute();
-            
+
             VerifyBoundStatement(
                 $"UPDATE {_tableName} SET ListType = ? + ListType WHERE Id = ?",
                 1,
@@ -98,7 +98,7 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
             table.Where(t => t.Id == singleEntity.Id)
                  .Select(t => new EntityWithListType { ListType = CqlOperator.Prepend(listToAdd) })
                  .Update().Execute();
-            
+
             VerifyBoundStatement(
                 $"UPDATE {_tableName} SET ListType = ? + ListType WHERE Id = ?",
                 1,
@@ -117,8 +117,8 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
 
             var arrToAdd = new string[]
             {
-                "random_" + Randomm.RandomAlphaNum(10), 
-                "random_" + Randomm.RandomAlphaNum(10), 
+                "random_" + Randomm.RandomAlphaNum(10),
+                "random_" + Randomm.RandomAlphaNum(10),
                 "random_" + Randomm.RandomAlphaNum(10),
             };
             var singleEntity = expectedEntities.First();
@@ -144,8 +144,8 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
 
             var arrToAdd = new string[]
             {
-                "random_" + Randomm.RandomAlphaNum(10), 
-                "random_" + Randomm.RandomAlphaNum(10), 
+                "random_" + Randomm.RandomAlphaNum(10),
+                "random_" + Randomm.RandomAlphaNum(10),
                 "random_" + Randomm.RandomAlphaNum(10),
             };
             var listReversed = arrToAdd.ToList();
@@ -163,7 +163,7 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
             table.Where(t => t.Id == singleEntity.Id)
                  .Select(t => new EntityWithArrayType { ArrayType = CqlOperator.Prepend(arrToAdd) })
                  .Update().Execute();
-            
+
             VerifyBoundStatement(
                 $"UPDATE {_tableName} SET ArrayType = ? + ArrayType WHERE Id = ?",
                 1,
@@ -189,7 +189,7 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
             table.Where(t => t.Id == singleEntity.Id)
                  .Select(t => new EntityWithArrayType { ArrayType = CqlOperator.Prepend(arrToAdd) })
                  .Update().Execute();
-            
+
             VerifyBoundStatement(
                 $"UPDATE {_tableName} SET ArrayType = ? + ArrayType WHERE Id = ?",
                 1,

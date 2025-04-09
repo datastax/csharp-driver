@@ -38,7 +38,7 @@ namespace Cassandra.Mapping
         private string[] _partitionKeyColumns;
         private MemberInfo[] _partitionKeyColumnMembers;
         private readonly List<Tuple<string, SortOrder>> _clusteringKeyColumns = new List<Tuple<string, SortOrder>>(0);
-        private readonly List<Tuple<MemberInfo, SortOrder>> _clusteringKeyColumnMembers = new List<Tuple<MemberInfo,SortOrder>>(0);
+        private readonly List<Tuple<MemberInfo, SortOrder>> _clusteringKeyColumnMembers = new List<Tuple<MemberInfo, SortOrder>>(0);
         private bool _compactStorage;
         private string _keyspaceName;
 
@@ -86,7 +86,7 @@ namespace Cassandra.Mapping
                     return _partitionKeyColumns;
 
                 // If no MemberInfos available either, just bail
-                if (_partitionKeyColumnMembers == null) 
+                if (_partitionKeyColumnMembers == null)
                     return null;
 
                 // Get the column names from the members
@@ -118,7 +118,7 @@ namespace Cassandra.Mapping
         /// </summary>
         public Map()
         {
-            _pocoType = typeof (TPoco);
+            _pocoType = typeof(TPoco);
             _columnMaps = new Dictionary<string, ColumnMap>();
         }
 
@@ -128,7 +128,7 @@ namespace Cassandra.Mapping
         public Map<TPoco> TableName(string tableName)
         {
             if (string.IsNullOrWhiteSpace(tableName)) throw new ArgumentNullException("tableName");
-            
+
             _tableName = tableName;
             return this;
         }
@@ -319,7 +319,7 @@ namespace Cassandra.Mapping
 
             // We'll get a Convert node for the Func<TPoco, object> where the actual property expression is the operand being converted to object
             if (body.NodeType == ExpressionType.Convert)
-                body = ((UnaryExpression) body).Operand;
+                body = ((UnaryExpression)body).Operand;
 
             var memberExpression = body as MemberExpression;
             if (memberExpression == null || IsPropertyOrField(memberExpression.Member) == false)
@@ -331,7 +331,7 @@ namespace Cassandra.Mapping
                                                       string.Format("Expression {0} refers to a property or field that is not from type {1}",
                                                                     expression, _pocoType));
             }
-                
+
             return memberExpression.Member;
         }
 

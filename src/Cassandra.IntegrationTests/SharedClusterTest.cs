@@ -91,7 +91,7 @@ namespace Cassandra.IntegrationTests
         {
             return TestClusterManager.CreateNew(nodeLength, options, startCluster);
         }
-        
+
         [OneTimeSetUp]
         public virtual void OneTimeSetUp()
         {
@@ -105,7 +105,7 @@ namespace Cassandra.IntegrationTests
                 }
             }
         }
-        
+
         protected virtual void CreateCommonSession()
         {
             var builder = ClusterBuilder().AddContactPoint(TestCluster.InitialContactPoint)
@@ -139,12 +139,12 @@ namespace Cassandra.IntegrationTests
             }
             ClusterInstances.Clear();
         }
-        
+
         protected ISession GetNewTemporarySession(string keyspace = null)
         {
             return GetNewTemporaryCluster().Connect(keyspace);
         }
-        
+
         [TearDown]
         public virtual void TearDown()
         {
@@ -164,7 +164,7 @@ namespace Cassandra.IntegrationTests
 
         protected virtual ICluster GetNewTemporaryCluster(Action<Builder> build = null)
         {
-            var builder = 
+            var builder =
                 ClusterBuilder()
                          .AddContactPoint(TestCluster.InitialContactPoint)
                          .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(30000).SetReadTimeoutMillis(22000));

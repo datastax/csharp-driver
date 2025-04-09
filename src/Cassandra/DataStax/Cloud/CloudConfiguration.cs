@@ -29,7 +29,7 @@ namespace Cassandra.DataStax.Cloud
 
         [JsonProperty("port")]
         public int Port { get; private set; }
-        
+
         [JsonProperty("pfxCertPassword")]
         public string CertificatePassword { get; private set; }
 

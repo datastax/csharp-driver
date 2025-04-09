@@ -27,11 +27,11 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.Then
         private readonly string _writeType;
 
         public ThenWriteFailure(
-            int consistencyLevel, 
-            int received, 
-            int blockFor, 
-            string message, 
-            IDictionary<string, int> failureReasons, 
+            int consistencyLevel,
+            int received,
+            int blockFor,
+            string message,
+            IDictionary<string, int> failureReasons,
             string writeType)
         {
             _consistencyLevel = consistencyLevel;

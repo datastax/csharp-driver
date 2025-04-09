@@ -65,7 +65,7 @@ namespace Cassandra
             var map = new SortedDictionary<string, int>();
 
             if (source != "{}")
-            { 
+            {
                 foreach (string elem in elements)
                 {
                     if (int.TryParse(elem.Split(':')[1].Replace("\"", ""), out int value))
@@ -355,7 +355,7 @@ namespace Cassandra
         public static object ToVectorType(Type valueType, Array value)
         {
             var vectorType = typeof(CqlVector<>).MakeGenericType(valueType);
-            var vector = (IInternalCqlVector) Activator.CreateInstance(vectorType);
+            var vector = (IInternalCqlVector)Activator.CreateInstance(vectorType);
             vector.SetArray(value);
             return vector;
         }

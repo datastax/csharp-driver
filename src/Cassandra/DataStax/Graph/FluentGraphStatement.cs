@@ -26,8 +26,8 @@ namespace Cassandra.DataStax.Graph
     public class FluentGraphStatement : GraphStatement
     {
         private FluentGraphStatement(
-            object queryBytecode, 
-            IReadOnlyDictionary<GraphProtocol, IReadOnlyDictionary<Type, IGraphSONSerializer>> customSerializers, 
+            object queryBytecode,
+            IReadOnlyDictionary<GraphProtocol, IReadOnlyDictionary<Type, IGraphSONSerializer>> customSerializers,
             IReadOnlyDictionary<GraphProtocol, IReadOnlyDictionary<string, IGraphSONDeserializer>> customDeserializers,
             bool deserializeGraphNodes)
         {
@@ -36,18 +36,18 @@ namespace Cassandra.DataStax.Graph
             CustomSerializers = customSerializers;
             CustomDeserializers = customDeserializers;
         }
-        
+
         public FluentGraphStatement(
-            object queryBytecode, 
-            IReadOnlyDictionary<GraphProtocol, IReadOnlyDictionary<Type, IGraphSONSerializer>> customSerializers, 
+            object queryBytecode,
+            IReadOnlyDictionary<GraphProtocol, IReadOnlyDictionary<Type, IGraphSONSerializer>> customSerializers,
             IReadOnlyDictionary<GraphProtocol, IReadOnlyDictionary<string, IGraphSONDeserializer>> customDeserializers)
             : this(queryBytecode, customSerializers, customDeserializers, false)
         {
         }
-        
+
         public FluentGraphStatement(
             object queryBytecode,
-            IReadOnlyDictionary<GraphProtocol, IReadOnlyDictionary<Type, IGraphSONSerializer>> customSerializers) 
+            IReadOnlyDictionary<GraphProtocol, IReadOnlyDictionary<Type, IGraphSONSerializer>> customSerializers)
             : this(queryBytecode, customSerializers, null, true)
         {
         }
@@ -56,11 +56,11 @@ namespace Cassandra.DataStax.Graph
         /// Bytecode of the query represented by this statement.
         /// </summary>
         public object QueryBytecode { get; }
-        
+
         internal bool DeserializeGraphNodes { get; }
 
         internal IReadOnlyDictionary<GraphProtocol, IReadOnlyDictionary<Type, IGraphSONSerializer>> CustomSerializers { get; }
-        
+
         internal IReadOnlyDictionary<GraphProtocol, IReadOnlyDictionary<string, IGraphSONDeserializer>> CustomDeserializers { get; }
 
         internal override IStatement GetIStatement(GraphOptions options)

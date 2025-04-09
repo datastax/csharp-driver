@@ -20,7 +20,7 @@ using Cassandra.Data.Linq;
 
 namespace Cassandra.Tests.Mapping.Pocos
 {
-    [Table(CaseSensitive=false, Name="tbl1")]
+    [Table(CaseSensitive = false, Name = "tbl1")]
     public class LinqDecoratedCaseInsensitiveEntity
     {
         [Column("i_id"), PartitionKey]

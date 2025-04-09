@@ -43,7 +43,7 @@ namespace Cassandra.Collections
             {
                 // Use int32 values
                 hash = Utils.CombineHashCode(
-                    new[] { hash, BeConverter.ToInt32(new [] { key[i], key[i+1], key[i+2], key[i+3] }) });
+                    new[] { hash, BeConverter.ToInt32(new[] { key[i], key[i + 1], key[i + 2], key[i + 3] }) });
             }
             if (rest > 0)
             {

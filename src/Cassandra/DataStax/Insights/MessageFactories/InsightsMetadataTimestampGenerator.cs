@@ -25,7 +25,7 @@ namespace Cassandra.DataStax.Insights.MessageFactories
         public long GenerateTimestamp()
         {
             var t = DateTimeOffset.UtcNow - InsightsMetadataTimestampGenerator.UnixEpoch;
-            return (long) t.TotalMilliseconds;
+            return (long)t.TotalMilliseconds;
         }
     }
 }

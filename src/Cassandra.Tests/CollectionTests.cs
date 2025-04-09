@@ -50,7 +50,7 @@ namespace Cassandra.Tests
         [Test]
         public void CopyOnWriteList_Should_Add_And_Remove()
         {
-            var list = new CopyOnWriteList<string> {"one", "two", "three", "four", "five"};
+            var list = new CopyOnWriteList<string> { "one", "two", "three", "four", "five" };
             Assert.AreEqual(5, list.Count);
             list.Remove("three");
             CollectionAssert.AreEqual(new[] { "one", "two", "four", "five" }, list);

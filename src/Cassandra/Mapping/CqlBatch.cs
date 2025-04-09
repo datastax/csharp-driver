@@ -40,7 +40,7 @@ namespace Cassandra.Mapping
         public CqlQueryOptions Options { get; private set; }
 
         public CqlBatch(MapperFactory mapperFactory, CqlGenerator cqlGenerator)
-            :this(mapperFactory, cqlGenerator, BatchType.Logged)
+            : this(mapperFactory, cqlGenerator, BatchType.Logged)
         {
         }
 
@@ -57,7 +57,7 @@ namespace Cassandra.Mapping
         {
             Insert(poco, true, queryOptions);
         }
-        
+
         public void Insert<T>(T poco, bool insertNulls, CqlQueryOptions queryOptions = null)
         {
             Insert(false, insertNulls, poco, queryOptions, null);
@@ -67,7 +67,7 @@ namespace Cassandra.Mapping
         {
             Insert(false, insertNulls, poco, queryOptions, ttl);
         }
-        
+
         public void InsertIfNotExists<T>(T poco, CqlQueryOptions queryOptions = null)
         {
             InsertIfNotExists(poco, true, queryOptions);
@@ -77,12 +77,12 @@ namespace Cassandra.Mapping
         {
             Insert(true, insertNulls, poco, queryOptions);
         }
-        
+
         public void InsertIfNotExists<T>(T poco, bool insertNulls, int? ttl, CqlQueryOptions queryOptions = null)
         {
             Insert(true, insertNulls, poco, queryOptions, ttl);
         }
-        
+
         private void Insert<T>(bool ifNotExists, bool insertNulls, T poco, CqlQueryOptions queryOptions = null, int? ttl = null)
         {
             var pocoData = _mapperFactory.PocoDataFactory.GetPocoData<T>();

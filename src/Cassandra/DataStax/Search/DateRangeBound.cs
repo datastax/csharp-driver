@@ -77,7 +77,7 @@ namespace Cassandra.DataStax.Search
         /// <summary>
         /// Creates a new instance of <see cref="DateRangeBound"/>.
         /// </summary>
-        public DateRangeBound(DateTimeOffset timestamp, DateRangePrecision precision) : 
+        public DateRangeBound(DateTimeOffset timestamp, DateRangePrecision precision) :
             this(precision, timestamp.ToUniversalTime())
         {
         }
@@ -100,7 +100,7 @@ namespace Cassandra.DataStax.Search
             _timestamp = utcTimestamp;
             _precision = precision;
         }
-        
+
         /// <summary>
         /// Private constructor only intended for creating the unbounded instance
         /// </summary>
@@ -109,7 +109,7 @@ namespace Cassandra.DataStax.Search
         {
             // Workaround: we can not declare a parameter-less constructor on a struct
             _timestamp = DateTimeOffset.MinValue;
-            _precision = (DateRangePrecision) byte.MaxValue;
+            _precision = (DateRangePrecision)byte.MaxValue;
         }
 
         /// <summary>
@@ -127,9 +127,9 @@ namespace Cassandra.DataStax.Search
             {
                 return false;
             }
-            return Equals((DateRangeBound) obj);
+            return Equals((DateRangeBound)obj);
         }
-        
+
         /// <inheritdoc />
         public override int GetHashCode()
         {
@@ -151,8 +151,8 @@ namespace Cassandra.DataStax.Search
             {
                 return "*";
             }
-            return string.Format(DateRangeBound.FormatByPrecision[(int) Precision],
-                Timestamp.Year, Timestamp.Month, Timestamp.Day, 
+            return string.Format(DateRangeBound.FormatByPrecision[(int)Precision],
+                Timestamp.Year, Timestamp.Month, Timestamp.Day,
                 Timestamp.Hour, Timestamp.Minute, Timestamp.Second, Timestamp.Millisecond);
 
         }
@@ -288,7 +288,7 @@ namespace Cassandra.DataStax.Search
 
             private void Set(DateRangePrecision precision, int value)
             {
-                _values[(int) precision] = value;
+                _values[(int)precision] = value;
             }
 
             public DateRangeBound Build()
@@ -304,7 +304,7 @@ namespace Cassandra.DataStax.Search
 
             public DateRangeBound BuildUpperBound()
             {
-                var precision = (DateRangePrecision) _index;
+                var precision = (DateRangePrecision)_index;
                 if (precision == DateRangePrecision.Year)
                 {
                     Set(DateRangePrecision.Month, 12);

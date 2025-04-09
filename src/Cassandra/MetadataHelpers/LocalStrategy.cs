@@ -31,7 +31,7 @@ namespace Cassandra.MetadataHelpers
         public static IReplicationStrategy Instance { get; } = new LocalStrategy();
 
         public Dictionary<IToken, ISet<Host>> ComputeTokenToReplicaMap(
-            IReadOnlyList<IToken> ring, 
+            IReadOnlyList<IToken> ring,
             IReadOnlyDictionary<IToken, Host> primaryReplicas,
             int numberOfHostsWithTokens,
             IReadOnlyDictionary<string, DatacenterInfo> datacenters)

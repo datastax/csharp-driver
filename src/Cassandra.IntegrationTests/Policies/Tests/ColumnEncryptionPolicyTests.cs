@@ -116,7 +116,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             var clusterNoEncryption = GetNewTemporaryCluster();
             var sessionNoEncryption = await clusterNoEncryption.ConnectAsync(KeyspaceName).ConfigureAwait(false);
             var insertQuery =
-                _withVector ? 
+                _withVector ?
                     $"INSERT INTO {tableName} (id, name, surname, age, public_notes, vv) VALUES (?, ?, ?, ?, ?, ?)" :
                     $"INSERT INTO {tableName} (id, name, surname, age, public_notes) VALUES (?, ?, ?, ?, ?)";
             var selectQuery = $"SELECT * FROM {tableName} WHERE id = ?";
@@ -143,8 +143,8 @@ namespace Cassandra.IntegrationTests.Policies.Tests
                 newUser.Vv = null;
             }
 
-            var boundInsert = _withVector ? 
-                preparedInsert.Bind(newUser.Id, newUser.Name, newUser.Surname, newUser.Age, newUser.PublicNotes, newUser.Vv) : 
+            var boundInsert = _withVector ?
+                preparedInsert.Bind(newUser.Id, newUser.Name, newUser.Surname, newUser.Age, newUser.PublicNotes, newUser.Vv) :
                 preparedInsert.Bind(newUser.Id, newUser.Name, newUser.Surname, newUser.Age, newUser.PublicNotes);
             var boundSelect = preparedSelect.Bind(newUser.Id);
             await session.ExecuteAsync(boundInsert).ConfigureAwait(false);
@@ -214,10 +214,10 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             }
 
             var boundInsert = _withVector ?
-                preparedInsert.Bind(newUser.Id, newUser.Name, newUser.Surname, newUser.Age, newUser.PublicNotes, newUser.Vv) : 
+                preparedInsert.Bind(newUser.Id, newUser.Name, newUser.Surname, newUser.Age, newUser.PublicNotes, newUser.Vv) :
                 preparedInsert.Bind(newUser.Id, newUser.Name, newUser.Surname, newUser.Age, newUser.PublicNotes);
-            var boundSelect = _withVector ? 
-                preparedSelect.Bind(newUser.Id, newUser.Name, newUser.Surname, newUser.Age, newUser.Vv) : 
+            var boundSelect = _withVector ?
+                preparedSelect.Bind(newUser.Id, newUser.Name, newUser.Surname, newUser.Age, newUser.Vv) :
                 preparedSelect.Bind(newUser.Id, newUser.Name, newUser.Surname, newUser.Age);
             await session.ExecuteAsync(boundInsert).ConfigureAwait(false);
             var rs = await session.ExecuteAsync(boundSelect).ConfigureAwait(false);

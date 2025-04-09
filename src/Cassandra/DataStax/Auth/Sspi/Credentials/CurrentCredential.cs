@@ -40,13 +40,13 @@ namespace Cassandra.DataStax.Auth.Sspi.Credentials
         /// from.</param>
         /// <param name="use">The manner in which the credentials will be used - Inbound typically
         /// represents servers, outbound typically represent clients.</param>
-        public CurrentCredential( string securityPackage, CredentialUse use ) :
-            base( securityPackage )
+        public CurrentCredential(string securityPackage, CredentialUse use) :
+            base(securityPackage)
         {
-            Init( use );
+            Init(use);
         }
 
-        private void Init( CredentialUse use )
+        private void Init(CredentialUse use)
         {
             string packageName;
             TimeStamp rawExpiry = new TimeStamp();
@@ -78,9 +78,9 @@ namespace Cassandra.DataStax.Auth.Sspi.Credentials
                );
             }
 
-            if ( status != SecurityStatus.OK )
+            if (status != SecurityStatus.OK)
             {
-                throw new SspiException( "Failed to call AcquireCredentialHandle", status );
+                throw new SspiException("Failed to call AcquireCredentialHandle", status);
             }
 
             this.Expiry = rawExpiry.ToDateTime();

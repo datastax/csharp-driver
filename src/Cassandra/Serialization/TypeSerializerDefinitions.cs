@@ -71,7 +71,7 @@ namespace Cassandra.Serialization
             _definitions.Add(typeSerializer);
             return this;
         }
-        
+
         /// <summary>
         /// Adds the serializer if there is none defined yet with the same type.
         /// Checks the serializer type (serializer.GetType()) not the CRL or CQL types)

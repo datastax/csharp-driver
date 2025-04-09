@@ -29,7 +29,7 @@ namespace Cassandra.Tests.Mapping.Pocos
         public List<HairColor> List1 { get; set; }
 
         public IList<HairColor> List2 { get; set; }
-        
+
         public HairColor[] Array1 { get; set; }
 
         public SortedSet<HairColor> Set1 { get; set; }
@@ -41,7 +41,7 @@ namespace Cassandra.Tests.Mapping.Pocos
         public Dictionary<HairColor, TimeUuid> Dictionary1 { get; set; }
 
         public IDictionary<HairColor, TimeUuid> Dictionary2 { get; set; }
-        
+
         public SortedDictionary<HairColor, TimeUuid> Dictionary3 { get; set; }
 
         public static Map<PocoWithEnumCollections> DefaultMapping => new Map<PocoWithEnumCollections>()

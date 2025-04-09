@@ -37,9 +37,9 @@ namespace Cassandra.IntegrationTests.Core
         {
             TestCluster.PrimeFluent(
                 b => b.WhenQuery(
-                          "SELECT key FROM system.local WHERE key = ?", 
+                          "SELECT key FROM system.local WHERE key = ?",
                           when => when.WithParam("local"))
-                      .ThenRowsSuccess(new[] {"key"}, r => r.WithRow("local")));
+                      .ThenRowsSuccess(new[] { "key" }, r => r.WithRow("local")));
 
             var statement = Session.Prepare("SELECT key FROM system.local WHERE key = ?");
             var task = Session.ExecuteAsync(statement.Bind("local"));

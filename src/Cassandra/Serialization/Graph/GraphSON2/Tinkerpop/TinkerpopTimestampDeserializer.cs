@@ -31,7 +31,7 @@ namespace Cassandra.Serialization.Graph.GraphSON2.Tinkerpop
     {
         private const string Prefix = "g";
         private const string TypeKey = "Timestamp";
-        
+
         private static readonly DateTimeOffset UnixStart = new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero);
 
         public static string TypeName =>

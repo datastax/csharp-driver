@@ -28,7 +28,7 @@ namespace Cassandra.Mapping.Utils
                                                                                         Func<TValue, TKey> keySelector)
         {
             var keyedCollection = new LookupKeyedCollection<TKey, TValue>(keySelector);
-            foreach(TValue value in values)
+            foreach (TValue value in values)
                 keyedCollection.Add(value);
 
             return keyedCollection;

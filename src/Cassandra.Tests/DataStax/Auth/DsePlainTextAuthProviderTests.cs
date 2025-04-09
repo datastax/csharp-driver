@@ -40,7 +40,7 @@ namespace Cassandra.Tests.DataStax.Auth
             authProvider.SetName("org.other.authenticator");
             var authenticator = authProvider.NewAuthenticator(null);
             CollectionAssert.AreEqual(
-                new byte[] { 0, Encoding.UTF8.GetBytes("u")[0], 0, Encoding.UTF8.GetBytes("p")[0] }, 
+                new byte[] { 0, Encoding.UTF8.GetBytes("u")[0], 0, Encoding.UTF8.GetBytes("p")[0] },
                 authenticator.InitialResponse());
         }
 
@@ -50,7 +50,7 @@ namespace Cassandra.Tests.DataStax.Auth
             var cluster = Cluster.Builder().AddContactPoint("127.0.0.1").WithCredentials("cassandra", "cassandra").Build();
             Assert.AreEqual(typeof(PlainTextAuthProvider), cluster.Configuration.AuthProvider.GetType());
         }
-        
+
         [Test]
         public void Should_SetDsePlainTextAuthProvider_When_WithAuthProviderIsCalled()
         {
