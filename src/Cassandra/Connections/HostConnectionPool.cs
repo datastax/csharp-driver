@@ -1034,11 +1034,14 @@ namespace Cassandra.Connections
             try
             {
                 var c = await CreateOpenConnection(false, false).ConfigureAwait(false);
-                var _shardingInfo = c.ShardingInfo();
-                if (_shardingInfo != null)
+                if (!_poolingOptions.GetDisableShardAwareness())
                 {
-                    shardingInfo = _shardingInfo;
-                    _expectedConnectionLength = _shardingInfo.ScyllaNrShards;
+                    var _shardingInfo = c.ShardingInfo();
+                    if (_shardingInfo != null)
+                    {
+                        shardingInfo = _shardingInfo;
+                        _expectedConnectionLength = _shardingInfo.ScyllaNrShards;
+                    }
                 }
             }
             catch
