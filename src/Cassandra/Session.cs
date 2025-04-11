@@ -359,7 +359,7 @@ namespace Cassandra
             var hostPool = _connectionPool.GetOrAdd(host.Address, address =>
             {
                 var newPool = Configuration.HostConnectionPoolFactory.Create(
-                    host, Configuration, _serializerManager, _observerFactory);
+                    host, Configuration, _serializerManager, _observerFactory, Cluster.Metadata.GetTokenFactory());
                 newPool.AllConnectionClosed += InternalRef.OnAllConnectionClosed;
                 newPool.SetDistance(distance);
                 _metricsManager.GetOrCreateNodeMetrics(host).InitializePoolGauges(newPool);

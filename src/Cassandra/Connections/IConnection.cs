@@ -153,6 +153,6 @@ namespace Cassandra.Connections
         /// </summary>
         ShardingInfo ShardingInfo();
 
-        int ShardId { get; }
+        int ShardID { get; set; }
     }
 }

@@ -166,7 +166,8 @@ namespace Cassandra.Connections
 
         private readonly ISupportedOptionsInitializer _supportedOptionsInitializer;
 
-        public int ShardId { get; }
+        public int ShardID { get; set; }
+        private int _requestedShardID { get; set; }
 
         internal Connection(
             ISerializer serializer,
@@ -473,6 +474,7 @@ namespace Cassandra.Connections
         /// <exception cref="UnsupportedProtocolVersionException"></exception>
         public async Task<Response> Open(int shardID = -1, int shardCount = 0)
         {
+            _requestedShardID = shardID;
             try
             {
                 Connection.Logger.Verbose("Attempting to open Connection #{0} to {1}", GetHashCode(), EndPoint.EndpointFriendlyName);
@@ -534,6 +536,14 @@ namespace Cassandra.Connections
                 throw;
             }
             _supportedOptionsInitializer.ApplySupportedFromResponse(optionsResponse);
+            if (_supportedOptionsInitializer.GetShardingInfo() != null)
+            {
+                ShardID = _supportedOptionsInitializer.GetShardingInfo().ScyllaShard;
+                if (_requestedShardID != -1 && ShardID != _requestedShardID)
+                {
+                    Connection.Logger.Warning("Requested connection to shard {1}, but connected to {2}. Is there a NAT between client and server?", _requestedShardID, ShardID);
+                }
+            }
 
             Response response;
             try
