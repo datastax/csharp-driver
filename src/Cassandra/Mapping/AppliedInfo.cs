@@ -15,6 +15,11 @@
 //
 
 using System.Linq;
+using System.Threading.Tasks;
+
+#if !NET8_0_OR_GREATER
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
+#endif
 
 namespace Cassandra.Mapping
 {
@@ -54,9 +59,13 @@ namespace Cassandra.Mapping
         /// <summary>
         /// Adapts a LWT RowSet and returns a new AppliedInfo
         /// </summary>
-        internal static AppliedInfo<T> FromRowSet(MapperFactory mapperFactory, string cql, RowSet rs)
+        internal static async Task<AppliedInfo<T>> FromRowSetAsync(MapperFactory mapperFactory, string cql, RowSet rs)
         {
+#if NET8_0_OR_GREATER
+            var row = await rs.FirstOrDefaultAsync();
+#else
             var row = rs.FirstOrDefault();
+#endif
             const string appliedColumn = "[applied]";
             if (row == null || row.GetColumn(appliedColumn) == null || row.GetValue<bool>(appliedColumn))
             {

@@ -134,7 +134,12 @@ namespace Cassandra.Data.Linq
             var cql = visitor.GetSelect(Expression, out object[] values);
             var rs = await InternalExecuteWithProfileAsync(executionProfile, cql, values).ConfigureAwait(false);
             var mapper = MapperFactory.GetMapper<TEntity>(cql, rs);
-            return new Page<TEntity>(rs.Select(mapper), PagingState, rs.PagingState);
+#if NET8_0_OR_GREATER
+            var items = await AsyncEnumerable.Select(rs, mapper).ToListAsync();
+#else
+            var items = Enumerable.Select(rs, mapper).ToList();
+#endif
+            return new Page<TEntity>(items, PagingState, rs.PagingState);
         }
 
         /// <summary>

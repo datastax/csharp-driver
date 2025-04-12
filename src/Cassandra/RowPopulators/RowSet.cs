@@ -52,6 +52,9 @@ namespace Cassandra
     /// </remarks>
     /// <remarks>Parallel enumerations are supported and thread-safe.</remarks>
     public class RowSet : IEnumerable<Row>, IDisposable
+#if NET8_0_OR_GREATER
+        , IAsyncEnumerable<Row>
+#endif
     {
         private static readonly CqlColumn[] EmptyColumns = new CqlColumn[0];
         private volatile Func<byte[], Task<RowSet>> _fetchNextPage;
@@ -305,6 +308,27 @@ namespace Cassandra
         {
             return GetEnumerator();
         }
+
+#if NET8_0_OR_GREATER
+        public async IAsyncEnumerator<Row> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+        {
+            if (RowQueue == null)
+            {
+                yield break;
+            }
+
+            var hasMoreData = true;
+            while (hasMoreData)
+            {
+                while (RowQueue.TryDequeue(out var row))
+                {
+                    yield return row;
+                }
+                hasMoreData = AutoPage && _pagingState != null;
+                await FetchMoreResultsAsync();
+            }
+        }
+#endif
 
         /// <summary>
         /// Gets the next results and add the rows to the current <see cref="RowSet"/> queue.
