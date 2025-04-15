@@ -17,10 +17,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-#if !NET8_0_OR_GREATER
-#pragma warning disable CS1574, CS1584, CS1581, CS1580 // Cannot resolve reference in XML comment
-#endif
-
 namespace Cassandra.Mapping
 {
     /// <summary>
@@ -30,23 +26,23 @@ namespace Cassandra.Mapping
     {
         /// <summary>
         /// Gets a list of all T from Cassandra. Loading new pages when enumerating the result may block the thread. For that reason,
-        /// <see cref="FetchAsAsyncEnumerable{T}(CqlQueryOptions)"/> should be preferred.
+        /// FetchAsAsyncEnumerable should be preferred.
         /// </summary>
         Task<IEnumerable<T>> FetchAsync<T>(CqlQueryOptions queryOptions = null);
 
         /// <summary>
         /// Gets a list of T from Cassandra using the CQL statement and parameter values specified. Loading new pages when enumerating the result may
-        /// block the thread. For that reason, <see cref="FetchAsAsyncEnumerable{T}(string, object[])"/> should be preferred.
+        /// block the thread. For that reason, FetchAsAsyncEnumerable should be preferred.
         /// </summary>
         Task<IEnumerable<T>> FetchAsync<T>(string cql, params object[] args);
 
         /// <summary>
         /// Gets a list of T from Cassandra using the CQL statement specified. Loading new pages when enumerating the result may block the thread.
-        /// For that reason, <see cref="FetchAsAsyncEnumerable{T}(Cql)"/> should be preferred.
+        /// For that reason, FetchAsAsyncEnumerable should be preferred.
         /// </summary>
         Task<IEnumerable<T>> FetchAsync<T>(Cql cql);
 
-#if NET8_0_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER
         /// <summary>
         /// Gets an <see cref="IAsyncEnumerable{T}"/> of all T from Cassandra. Unlike <see cref="FetchAsync{T}(CqlQueryOptions)"/>, loading new
         /// pages when enumerating the result does not block the thread.

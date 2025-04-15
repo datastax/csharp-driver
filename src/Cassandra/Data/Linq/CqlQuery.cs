@@ -128,13 +128,13 @@ namespace Cassandra.Data.Linq
             {
                 throw new ArgumentNullException(nameof(executionProfile));
             }
-            
+
             SetAutoPage(false);
             var visitor = new CqlExpressionVisitor(PocoData, Table.Name, Table.KeyspaceName);
             var cql = visitor.GetSelect(Expression, out object[] values);
             var rs = await InternalExecuteWithProfileAsync(executionProfile, cql, values).ConfigureAwait(false);
             var mapper = MapperFactory.GetMapper<TEntity>(cql, rs);
-#if NET8_0_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER
             var items = await AsyncEnumerable.Select(rs, mapper).ToListAsync();
 #else
             var items = Enumerable.Select(rs, mapper).ToList();

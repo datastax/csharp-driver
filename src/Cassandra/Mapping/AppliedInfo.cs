@@ -17,7 +17,7 @@
 using System.Linq;
 using System.Threading.Tasks;
 
-#if !NET8_0_OR_GREATER
+#if !NETSTANDARD2_1_OR_GREATER
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
 #endif
 
@@ -61,7 +61,7 @@ namespace Cassandra.Mapping
         /// </summary>
         internal static async Task<AppliedInfo<T>> FromRowSetAsync(MapperFactory mapperFactory, string cql, RowSet rs)
         {
-#if NET8_0_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER
             var row = await rs.FirstOrDefaultAsync();
 #else
             var row = rs.FirstOrDefault();

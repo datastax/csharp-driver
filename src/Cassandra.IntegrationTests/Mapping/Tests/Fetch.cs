@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Mapping.Structures;
 using Cassandra.IntegrationTests.TestBase;
@@ -96,6 +97,31 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             Assert.AreEqual(2, authors.Count);;
             CollectionAssert.AreEquivalent(ids, authors.Select(a => a.AuthorId));
         }
+
+#if NET6_0_OR_GREATER
+        [Test]
+        public async Task FetchAsAsyncEnumerable_Using_Select_Cql_And_PageSize()
+        {
+            var table = new Table<Author>(_session, new MappingConfiguration());
+            await table.CreateAsync();
+
+            var mapper = new Mapper(_session, new MappingConfiguration().Define(new FluentUserMapping()));
+            var ids = new[] { Guid.NewGuid().ToString(), Guid.NewGuid().ToString() };
+
+            await mapper.InsertAsync(new Author { AuthorId = ids[0] });
+            await mapper.InsertAsync(new Author { AuthorId = ids[1] });
+
+            var authors = new List<Author>();
+            await foreach (var author in mapper.FetchAsAsyncEnumerable<Author>(Cql.New("SELECT * FROM " + table.Name)
+                                                                                  .WithOptions(o => o.SetPageSize(int.MaxValue))))
+            {
+                authors.Add(author);
+            }
+
+            Assert.AreEqual(2, authors.Count);
+            CollectionAssert.AreEquivalent(ids, authors.Select(a => a.AuthorId));
+        }
+#endif
 
         /// <summary>
         /// Successfully Fetch mapped records by passing in a Cql Object

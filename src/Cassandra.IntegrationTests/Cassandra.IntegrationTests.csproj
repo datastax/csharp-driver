@@ -14,7 +14,7 @@
     <SignAssembly>true</SignAssembly>
     <PackageId>Cassandra.IntegrationTests</PackageId>
     <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
-    <LangVersion>7.1</LangVersion>
+    <LangVersion>8.0</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('$(TargetFramework)', '^net4\d'))">
     <DefineConstants>$(DefineConstants);NETFRAMEWORK</DefineConstants>
@@ -63,7 +63,7 @@
       <SetTargetFramework>TargetFramework=net8</SetTargetFramework>
     </ProjectReference>
     <ProjectReference Include="..\Cassandra\Cassandra.csproj">
-      <SetTargetFramework>TargetFramework=netstandard2.0</SetTargetFramework>
+      <SetTargetFramework>TargetFramework=netstandard2.1</SetTargetFramework>
     </ProjectReference>
   </ItemGroup>
 
@@ -75,7 +75,7 @@
       <SetTargetFramework>TargetFramework=net7</SetTargetFramework>
     </ProjectReference>
     <ProjectReference Include="..\Cassandra\Cassandra.csproj">
-      <SetTargetFramework>TargetFramework=netstandard2.0</SetTargetFramework>
+      <SetTargetFramework>TargetFramework=netstandard2.1</SetTargetFramework>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup Condition=" '$(TargetFramework)' == 'net6' ">
@@ -86,7 +86,7 @@
       <SetTargetFramework>TargetFramework=net6</SetTargetFramework>
     </ProjectReference>
     <ProjectReference Include="..\Cassandra\Cassandra.csproj">
-      <SetTargetFramework>TargetFramework=netstandard2.0</SetTargetFramework>
+      <SetTargetFramework>TargetFramework=netstandard2.1</SetTargetFramework>
     </ProjectReference>
   </ItemGroup>
 
@@ -102,19 +102,12 @@
     <PackageReference Include="NUnit" Version="3.14.0" />
     <PackageReference Include="NUnit3TestAdapter" Version="3.17.0" />
     <PackageReference Include="NunitXml.TestLogger" Version="2.1.41" />
-    <PackageReference Include="System.Runtime.InteropServices.RuntimeInformation" Version="4.3.0" />
-    <PackageReference Include="System.Runtime.Serialization.Json" Version="4.0.2" />
-    <PackageReference Include="System.Runtime.Serialization.Primitives" Version="4.1.1" />
-    <PackageReference Include="System.ValueTuple" Version="4.5.0" />
     <PackageReference Include="XunitXml.TestLogger" Version="2.1.26" />
   </ItemGroup>
   <ItemGroup Condition=" '$(TargetFramework)' == 'net462' Or '$(TargetFramework)' == 'net472' Or '$(TargetFramework)' == 'net481' ">
     <Reference Include="System.Data" />
     <Reference Include="System.Numerics" />
     <Reference Include="Microsoft.CSharp" />
-  </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net6' Or '$(TargetFramework)' == 'net7' Or '$(TargetFramework)' == 'net8'">
-    <PackageReference Include="System.Net.NameResolution" Version="4.3.0" />
   </ItemGroup>
   <ItemGroup Condition=" '$(TargetFramework)' == 'net462' Or '$(TargetFramework)' == 'net472' Or '$(TargetFramework)' == 'net481' ">
     <PackageReference Include="JetBrains.DotMemoryUnit" Version="3.2.20220510" />

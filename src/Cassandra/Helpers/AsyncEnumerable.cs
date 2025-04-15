@@ -12,99 +12,100 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-#if NET8_0_OR_GREATER && !NET10_OR_GREATER // These methods are implemented in .NET 10.
+#if NETSTANDARD2_1_OR_GREATER && !NET10_OR_GREATER // These methods are implemented in .NET 10.
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
 // ReSharper disable once CheckNamespace
-namespace System.Linq;
-
-internal static class AsyncEnumerable
+namespace System.Linq
 {
-    public static async ValueTask<TSource> FirstAsync<TSource>(
-        this IAsyncEnumerable<TSource> source,
-        CancellationToken cancellationToken = default)
+    internal static class AsyncEnumerable
     {
-        await using var e = source.GetAsyncEnumerator(cancellationToken);
-
-        if (!await e.MoveNextAsync())
+        public static async ValueTask<TSource> FirstAsync<TSource>(
+            this IAsyncEnumerable<TSource> source,
+            CancellationToken cancellationToken = default)
         {
-            throw new InvalidOperationException("Sequence contains no elements");
+            await using var e = source.GetAsyncEnumerator(cancellationToken);
+
+            if (!await e.MoveNextAsync())
+            {
+                throw new InvalidOperationException("Sequence contains no elements");
+            }
+
+            return e.Current;
         }
 
-        return e.Current;
-    }
-
-    public static async ValueTask<TSource> FirstOrDefaultAsync<TSource>(
-        this IAsyncEnumerable<TSource> source,
-        CancellationToken cancellationToken = default)
-    {
-        await using var e = source.GetAsyncEnumerator(cancellationToken);
-        return await e.MoveNextAsync() ? e.Current : default;
-    }
-
-    public static async ValueTask<TSource> SingleAsync<TSource>(
-        this IAsyncEnumerable<TSource> source,
-        CancellationToken cancellationToken = default)
-    {
-        await using var e = source.GetAsyncEnumerator(cancellationToken);
-
-        if (!await e.MoveNextAsync())
+        public static async ValueTask<TSource> FirstOrDefaultAsync<TSource>(
+            this IAsyncEnumerable<TSource> source,
+            CancellationToken cancellationToken = default)
         {
-            throw new InvalidOperationException("Sequence contains no elements");
+            await using var e = source.GetAsyncEnumerator(cancellationToken);
+            return await e.MoveNextAsync() ? e.Current : default;
         }
 
-        TSource result = e.Current;
-        if (await e.MoveNextAsync())
+        public static async ValueTask<TSource> SingleAsync<TSource>(
+            this IAsyncEnumerable<TSource> source,
+            CancellationToken cancellationToken = default)
         {
-            throw new InvalidOperationException("Sequence contains more than one element");
+            await using var e = source.GetAsyncEnumerator(cancellationToken);
+
+            if (!await e.MoveNextAsync())
+            {
+                throw new InvalidOperationException("Sequence contains no elements");
+            }
+
+            TSource result = e.Current;
+            if (await e.MoveNextAsync())
+            {
+                throw new InvalidOperationException("Sequence contains more than one element");
+            }
+
+            return result;
         }
 
-        return result;
-    }
-
-    public static async ValueTask<TSource> SingleOrDefaultAsync<TSource>(
-        this IAsyncEnumerable<TSource> source,
-        CancellationToken cancellationToken = default)
-    {
-        await using var e = source.GetAsyncEnumerator(cancellationToken);
-
-        if (!await e.MoveNextAsync())
+        public static async ValueTask<TSource> SingleOrDefaultAsync<TSource>(
+            this IAsyncEnumerable<TSource> source,
+            CancellationToken cancellationToken = default)
         {
-            return default;
+            await using var e = source.GetAsyncEnumerator(cancellationToken);
+
+            if (!await e.MoveNextAsync())
+            {
+                return default;
+            }
+
+            TSource result = e.Current;
+            if (await e.MoveNextAsync())
+            {
+                throw new InvalidOperationException("Sequence contains more than one element");
+            }
+
+            return result;
         }
 
-        TSource result = e.Current;
-        if (await e.MoveNextAsync())
+        public static async IAsyncEnumerable<TResult> Select<TSource, TResult>(
+            this IAsyncEnumerable<TSource> source,
+            Func<TSource, TResult> selector)
         {
-            throw new InvalidOperationException("Sequence contains more than one element");
+            await foreach (TSource element in source)
+            {
+                yield return selector(element);
+            }
         }
 
-        return result;
-    }
-
-    public static async IAsyncEnumerable<TResult> Select<TSource, TResult>(
-        this IAsyncEnumerable<TSource> source,
-        Func<TSource, TResult> selector)
-    {
-        await foreach (TSource element in source)
+        public static async ValueTask<List<TSource>> ToListAsync<TSource>(
+            this IAsyncEnumerable<TSource> source,
+            CancellationToken cancellationToken = default)
         {
-            yield return selector(element);
-        }
-    }
+            var list = new List<TSource>();
+            await foreach (TSource element in source.WithCancellation(cancellationToken))
+            {
+                list.Add(element);
+            }
 
-    public static async ValueTask<List<TSource>> ToListAsync<TSource>(
-        this IAsyncEnumerable<TSource> source,
-        CancellationToken cancellationToken = default)
-    {
-        List<TSource> list = [];
-        await foreach (TSource element in source.WithCancellation(cancellationToken))
-        {
-            list.Add(element);
+            return list;
         }
-
-        return list;
     }
 }
 #endif

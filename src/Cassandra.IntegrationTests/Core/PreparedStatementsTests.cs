@@ -606,12 +606,12 @@ namespace Cassandra.IntegrationTests.Core
             Assert.False(rs.AutoPage);
             Assert.NotNull(rs.PagingState);
             //Dequeue all via Linq
-            var ids = rs.Select(r => r.GetValue<Guid>("id")).ToList();
+            var ids = Enumerable.Select(rs, r => r.GetValue<Guid>("id")).ToList();
             Assert.AreEqual(pageSize, ids.Count);
             //Retrieve the next page
             var rs2 = Session.Execute(ps.Bind().SetAutoPage(false).SetPagingState(rs.PagingState));
             Assert.Null(rs2.PagingState);
-            var ids2 = rs2.Select(r => r.GetValue<Guid>("id")).ToList();
+            var ids2 = Enumerable.Select(rs2, r => r.GetValue<Guid>("id")).ToList();
             Assert.AreEqual(totalRowLength - pageSize, ids2.Count);
             Assert.AreEqual(totalRowLength, ids.Union(ids2).Count());
         }
@@ -1047,10 +1047,11 @@ namespace Cassandra.IntegrationTests.Core
                 session.Execute(new BatchStatement()
                     .Add(ps1.Bind(3, "label3_u"))
                     .Add(ps2.Bind("label4_u", 4)));
-                var result = session.Execute("SELECT id, label FROM tbl_unprepared_flow")
-                                    .Select(r => new object[] { r.GetValue<int>(0), r.GetValue<string>(1) })
-                                    .OrderBy(arr => (int)arr[0])
-                                    .ToArray();
+                var result = Enumerable.Select(
+                                           session.Execute("SELECT id, label FROM tbl_unprepared_flow"),
+                                           r => new object[] { r.GetValue<int>(0), r.GetValue<string>(1) })
+                                       .OrderBy(arr => (int)arr[0])
+                                       .ToArray();
                 Assert.AreEqual(Enumerable.Range(1, 4).Select(i => new object[] { i, $"label{i}_u" }), result);
             }
         }

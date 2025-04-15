@@ -17,7 +17,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 
 using Cassandra.Mapping.Statements;
@@ -25,7 +24,7 @@ using Cassandra.Metrics.Internal;
 using Cassandra.SessionManagement;
 using Cassandra.Tasks;
 
-#if !NET8_0_OR_GREATER
+#if !NETSTANDARD2_1_OR_GREATER
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
 #endif
 
@@ -106,12 +105,12 @@ namespace Cassandra.Mapping
                 return Task.FromResult(Enumerable.Select(rs, mapper));
             });
         }
-#if NET8_0_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER
 
         /// <inheritdoc />
         public IAsyncEnumerable<T> FetchAsAsyncEnumerable<T>(CqlQueryOptions options = null)
         {
-            return FetchAsAsyncEnumerable<T>(Cql.New(string.Empty, [], options ?? CqlQueryOptions.None));
+            return FetchAsAsyncEnumerable<T>(Cql.New(string.Empty, Array.Empty<object>(), options ?? CqlQueryOptions.None));
         }
 
         /// <inheritdoc />
@@ -147,7 +146,7 @@ namespace Cassandra.Mapping
             return ExecuteAsyncAndAdapt<IPage<T>>(cql, async (stmt, rs) =>
             {
                 var mapper = _mapperFactory.GetMapper<T>(cql.Statement, rs);
-#if NET8_0_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER
                 var items = await AsyncEnumerable.Select(rs, mapper).ToListAsync();
 #else
                 var items = Enumerable.Select(rs, mapper).ToList();
@@ -180,7 +179,7 @@ namespace Cassandra.Mapping
             _cqlGenerator.AddSelect<T>(cql);
             return ExecuteAsyncAndAdapt(cql, async (s, rs) =>
             {
-#if NET8_0_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER
                 var row = await rs.SingleAsync();
 #else
                 var row = rs.Single();
@@ -202,7 +201,7 @@ namespace Cassandra.Mapping
             _cqlGenerator.AddSelect<T>(cql);
             return ExecuteAsyncAndAdapt(cql, async (s, rs) =>
             {
-#if NET8_0_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER
                 var row = await rs.SingleOrDefaultAsync();
 #else
                 var row = rs.SingleOrDefault();
@@ -229,7 +228,7 @@ namespace Cassandra.Mapping
             _cqlGenerator.AddSelect<T>(cql);
             return ExecuteAsyncAndAdapt(cql, async (s, rs) =>
             {
-#if NET8_0_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER
                 var row = await rs.FirstAsync();
 #else
                 var row = rs.First();
@@ -252,7 +251,7 @@ namespace Cassandra.Mapping
             _cqlGenerator.AddSelect<T>(cql);
             return ExecuteAsyncAndAdapt(cql, async (s, rs) =>
             {
-#if NET8_0_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER
                 var row = await rs.FirstOrDefaultAsync();
 #else
                 var row = rs.FirstOrDefault();

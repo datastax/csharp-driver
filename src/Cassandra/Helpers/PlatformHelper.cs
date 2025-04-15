@@ -41,6 +41,8 @@ namespace Cassandra.Helpers
             return ".NET Framework 4.5.2";
 #elif NETSTANDARD2_0
             return ".NET Standard 2.0";
+#elif NETSTANDARD2_1
+            return ".NET Standard 2.1";
 #else
             return null;
 #endif
