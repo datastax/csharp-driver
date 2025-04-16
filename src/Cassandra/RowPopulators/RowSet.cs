@@ -325,7 +325,7 @@ namespace Cassandra
                     yield return row;
                 }
                 hasMoreData = AutoPage && _pagingState != null;
-                await FetchMoreResultsAsync();
+                await FetchMoreResultsAsync().ConfigureAwait(false);
             }
         }
 #endif

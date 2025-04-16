@@ -79,7 +79,7 @@ namespace Cassandra.Mapping
         {
             var stmt = await _statementFactory.GetStatementAsync(_session, cql).ConfigureAwait(false);
             var rs = await ExecuteStatementAsync(stmt, cql.ExecutionProfile).ConfigureAwait(false);
-            return await adaptation(stmt, rs);
+            return await adaptation(stmt, rs).ConfigureAwait(false);
         }
 
         /// <inheritdoc />
@@ -127,7 +127,7 @@ namespace Cassandra.Mapping
             var stmt = await _statementFactory.GetStatementAsync(_session, cql).ConfigureAwait(false);
             var rs = await ExecuteStatementAsync(stmt, cql.ExecutionProfile).ConfigureAwait(false);
             var mapper = _mapperFactory.GetMapper<T>(cql.Statement, rs);
-            await foreach (var row in rs)
+            await foreach (var row in rs.ConfigureAwait(false))
             {
                 yield return mapper(row);
             }
@@ -147,7 +147,7 @@ namespace Cassandra.Mapping
             {
                 var mapper = _mapperFactory.GetMapper<T>(cql.Statement, rs);
 #if NETSTANDARD2_1_OR_GREATER
-                var items = await AsyncEnumerable.Select(rs, mapper).ToListAsync();
+                var items = await AsyncEnumerable.Select(rs, mapper).ToListAsync().ConfigureAwait(false);
 #else
                 var items = Enumerable.Select(rs, mapper).ToList();
 #endif
@@ -180,7 +180,7 @@ namespace Cassandra.Mapping
             return ExecuteAsyncAndAdapt(cql, async (s, rs) =>
             {
 #if NETSTANDARD2_1_OR_GREATER
-                var row = await rs.SingleAsync();
+                var row = await rs.SingleAsync().ConfigureAwait(false);
 #else
                 var row = rs.Single();
 #endif
@@ -202,7 +202,7 @@ namespace Cassandra.Mapping
             return ExecuteAsyncAndAdapt(cql, async (s, rs) =>
             {
 #if NETSTANDARD2_1_OR_GREATER
-                var row = await rs.SingleOrDefaultAsync();
+                var row = await rs.SingleOrDefaultAsync().ConfigureAwait(false);
 #else
                 var row = rs.SingleOrDefault();
 #endif
@@ -229,7 +229,7 @@ namespace Cassandra.Mapping
             return ExecuteAsyncAndAdapt(cql, async (s, rs) =>
             {
 #if NETSTANDARD2_1_OR_GREATER
-                var row = await rs.FirstAsync();
+                var row = await rs.FirstAsync().ConfigureAwait(false);
 #else
                 var row = rs.First();
 #endif
@@ -252,7 +252,7 @@ namespace Cassandra.Mapping
             return ExecuteAsyncAndAdapt(cql, async (s, rs) =>
             {
 #if NETSTANDARD2_1_OR_GREATER
-                var row = await rs.FirstOrDefaultAsync();
+                var row = await rs.FirstOrDefaultAsync().ConfigureAwait(false);
 #else
                 var row = rs.FirstOrDefault();
 #endif
@@ -842,7 +842,7 @@ namespace Cassandra.Mapping
             //Use the concatenation of cql strings as hash for the mapper
             var cqlString = string.Join(";", batch.Statements.Select(s => s.Statement));
             var rs = await ExecuteStatementAsync(batchStatement, executionProfile).ConfigureAwait(false);
-            return await AppliedInfo<T>.FromRowSetAsync(_mapperFactory, cqlString, rs);
+            return await AppliedInfo<T>.FromRowSetAsync(_mapperFactory, cqlString, rs).ConfigureAwait(false);
         }
 
         /// <inheritdoc />

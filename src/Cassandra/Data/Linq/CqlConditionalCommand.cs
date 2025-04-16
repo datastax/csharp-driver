@@ -76,7 +76,7 @@ namespace Cassandra.Data.Linq
                 Cql.New(cql, values).WithExecutionProfile(executionProfile)).ConfigureAwait(false);
             this.CopyQueryPropertiesTo(stmt);
             var rs = await session.ExecuteAsync(stmt, executionProfile).ConfigureAwait(false);
-            return await AppliedInfo<TEntity>.FromRowSetAsync(_mapperFactory, cql, rs);
+            return await AppliedInfo<TEntity>.FromRowSetAsync(_mapperFactory, cql, rs).ConfigureAwait(false);
         }
 
         /// <summary>

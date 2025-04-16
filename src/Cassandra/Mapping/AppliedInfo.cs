@@ -62,7 +62,7 @@ namespace Cassandra.Mapping
         internal static async Task<AppliedInfo<T>> FromRowSetAsync(MapperFactory mapperFactory, string cql, RowSet rs)
         {
 #if NETSTANDARD2_1_OR_GREATER
-            var row = await rs.FirstOrDefaultAsync();
+            var row = await rs.FirstOrDefaultAsync().ConfigureAwait(false);
 #else
             var row = rs.FirstOrDefault();
 #endif
