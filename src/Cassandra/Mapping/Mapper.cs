@@ -122,7 +122,6 @@ namespace Cassandra.Mapping
         /// <inheritdoc />
         public async IAsyncEnumerable<T> FetchAsAsyncEnumerable<T>(Cql cql)
         {
-            //Use ExecuteAsyncAndAdapt with a delegate to handle the adaptation from RowSet to IEnumerable<T>
             _cqlGenerator.AddSelect<T>(cql);
             var stmt = await _statementFactory.GetStatementAsync(_session, cql).ConfigureAwait(false);
             var rs = await ExecuteStatementAsync(stmt, cql.ExecutionProfile).ConfigureAwait(false);
