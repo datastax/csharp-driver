@@ -17,10 +17,6 @@
 using System.Linq;
 using System.Threading.Tasks;
 
-#if !NETSTANDARD2_1_OR_GREATER
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-#endif
-
 namespace Cassandra.Mapping
 {
     /// <summary>
@@ -59,27 +55,41 @@ namespace Cassandra.Mapping
         /// <summary>
         /// Adapts a LWT RowSet and returns a new AppliedInfo
         /// </summary>
+#if !NETFRAMEWORK
         internal static async Task<AppliedInfo<T>> FromRowSetAsync(MapperFactory mapperFactory, string cql, RowSet rs)
         {
-#if NETSTANDARD2_1_OR_GREATER
             var row = await rs.FirstOrDefaultAsync().ConfigureAwait(false);
 #else
+        internal static Task<AppliedInfo<T>> FromRowSetAsync(MapperFactory mapperFactory, string cql, RowSet rs)
+        {
             var row = rs.FirstOrDefault();
 #endif
             const string appliedColumn = "[applied]";
             if (row == null || row.GetColumn(appliedColumn) == null || row.GetValue<bool>(appliedColumn))
             {
                 //The change was applied correctly
+#if !NETFRAMEWORK
                 return new AppliedInfo<T>(true);
+#else
+                return Task.FromResult(new AppliedInfo<T>(true));
+#endif
             }
             if (rs.Columns.Length == 1)
             {
                 //There isn't more information on why it was not applied
+#if !NETFRAMEWORK
                 return new AppliedInfo<T>(false);
+#else
+                return Task.FromResult(new AppliedInfo<T>(false));
+#endif
             }
             //It was not applied, map the information returned
             var mapper = mapperFactory.GetMapper<T>(cql, rs);
+#if !NETFRAMEWORK
             return new AppliedInfo<T>(mapper(row));
+#else
+            return Task.FromResult(new AppliedInfo<T>(mapper(row)));
+#endif
         }
     }
 }

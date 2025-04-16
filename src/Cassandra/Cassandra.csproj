@@ -8,8 +8,8 @@
     <VersionPrefix>3.22.0</VersionPrefix>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <Authors>DataStax</Authors>
-    <TargetFrameworks Condition="'$(BuildCoreOnly)' != 'True'">net452;netstandard2.0;netstandard2.1</TargetFrameworks>
-    <TargetFrameworks Condition="'$(BuildCoreOnly)' == 'True'">netstandard2.0;netstandard2.1</TargetFrameworks>
+    <TargetFrameworks Condition="'$(BuildCoreOnly)' != 'True'">net452;netstandard2.1</TargetFrameworks>
+    <TargetFramework Condition="'$(BuildCoreOnly)' == 'True'">netstandard2.1</TargetFramework>
     <NoWarn>$(NoWarn);1591</NoWarn>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <WarningsNotAsErrors>NU1901;NU1902;NU1903;NU1904</WarningsNotAsErrors>
@@ -46,7 +46,7 @@
     <PackageReference Include="System.Management" Version="4.7.0" />
     <PackageReference Include="System.Threading.Tasks.Dataflow" Version="4.6.0" />
   </ItemGroup>
-  <ItemGroup Condition="'$(TargetFramework)' != 'netstandard2.1'">
+  <ItemGroup Condition="'$(TargetFramework)' == 'net452'">
     <PackageReference Include="System.Runtime.InteropServices.RuntimeInformation" Version="4.0.0" />
   </ItemGroup>
   <ItemGroup Condition=" '$(TargetFramework)' == 'net452' ">

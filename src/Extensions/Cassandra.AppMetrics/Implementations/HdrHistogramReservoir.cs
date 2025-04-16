@@ -6,7 +6,6 @@
 
 using System;
 using System.Threading;
-using App.Metrics.Concurrency;
 using App.Metrics.ReservoirSampling;
 
 using Cassandra.AppMetrics.HdrHistogram;
@@ -32,10 +31,10 @@ namespace Cassandra.AppMetrics.Implementations
         private HistogramBase _intervalHistogram;
         private string _maxUserValue;
 
-        private AtomicLong _maxValue = new AtomicLong(0);
+        private long _maxValue;
         private string _minUserValue;
 
-        private AtomicLong _minValue = new AtomicLong(long.MaxValue);
+        private long _minValue;
 
         private volatile IReservoirSnapshot _cachedSnapshot;
         private long _lastRefreshTicks;
@@ -116,9 +115,9 @@ namespace Cassandra.AppMetrics.Implementations
 
             return new HdrSnapshot(
                 _intervalHistogram,
-                _minValue.GetValue(),
+                Volatile.Read(ref _minValue),
                 _minUserValue,
-                _maxValue.GetValue(),
+                Volatile.Read(ref _maxValue),
                 _maxUserValue);
         }
 
@@ -178,16 +177,16 @@ namespace Cassandra.AppMetrics.Implementations
         private void SetMaxValue(long value, string userValue)
         {
             long current;
-            while (value > (current = _maxValue.GetValue()))
+            while (value > (current = Volatile.Read(ref _maxValue)))
             {
-                _maxValue.CompareAndSwap(current, value);
+                Interlocked.CompareExchange(ref _maxValue, value, current);
             }
 
             if (value == current)
             {
                 lock (_maxValueLock)
                 {
-                    if (value == _maxValue.GetValue())
+                    if (value == Volatile.Read(ref _maxValue))
                     {
                         _maxUserValue = userValue;
                     }
@@ -198,16 +197,16 @@ namespace Cassandra.AppMetrics.Implementations
         private void SetMinValue(long value, string userValue)
         {
             long current;
-            while (value < (current = _minValue.GetValue()))
+            while (value < (current = Volatile.Read(ref _minValue)))
             {
-                _minValue.CompareAndSwap(current, value);
+                Interlocked.CompareExchange(ref _minValue, value, current);
             }
 
             if (value == current)
             {
                 lock (_minValueLock)
                 {
-                    if (value == _minValue.GetValue())
+                    if (value == Volatile.Read(ref _minValue))
                     {
                         _minUserValue = userValue;
                     }
@@ -217,12 +216,12 @@ namespace Cassandra.AppMetrics.Implementations
 
         private void TrackMinMaxUserValue(long value, string userValue)
         {
-            if (value > _maxValue.NonVolatileGetValue())
+            if (value > _maxValue)
             {
                 SetMaxValue(value, userValue);
             }
 
-            if (value < _minValue.NonVolatileGetValue())
+            if (value < _minValue)
             {
                 SetMinValue(value, userValue);
             }

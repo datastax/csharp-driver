@@ -26,23 +26,23 @@ namespace Cassandra.Mapping
     {
         /// <summary>
         /// Gets a list of all T from Cassandra. Loading new pages when enumerating the result may block the thread. For that reason,
-        /// FetchAsAsyncEnumerable should be preferred.
+        /// FetchAsAsyncEnumerable should be preferred if the .NET version supports it.
         /// </summary>
         Task<IEnumerable<T>> FetchAsync<T>(CqlQueryOptions queryOptions = null);
 
         /// <summary>
         /// Gets a list of T from Cassandra using the CQL statement and parameter values specified. Loading new pages when enumerating the result may
-        /// block the thread. For that reason, FetchAsAsyncEnumerable should be preferred.
+        /// block the thread. For that reason, FetchAsAsyncEnumerable should be preferred if the .NET version supports it.
         /// </summary>
         Task<IEnumerable<T>> FetchAsync<T>(string cql, params object[] args);
 
         /// <summary>
         /// Gets a list of T from Cassandra using the CQL statement specified. Loading new pages when enumerating the result may block the thread.
-        /// For that reason, FetchAsAsyncEnumerable should be preferred.
+        /// For that reason, FetchAsAsyncEnumerable should be preferred if the .NET version supports it.
         /// </summary>
         Task<IEnumerable<T>> FetchAsync<T>(Cql cql);
 
-#if NETSTANDARD2_1_OR_GREATER
+#if !NETFRAMEWORK
         /// <summary>
         /// Gets an <see cref="IAsyncEnumerable{T}"/> of all T from Cassandra. Unlike <see cref="FetchAsync{T}(CqlQueryOptions)"/>, loading new
         /// pages when enumerating the result does not block the thread.

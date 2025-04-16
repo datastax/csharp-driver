@@ -52,7 +52,7 @@ namespace Cassandra
     /// </remarks>
     /// <remarks>Parallel enumerations are supported and thread-safe.</remarks>
     public class RowSet : IEnumerable<Row>, IDisposable
-#if NETSTANDARD2_1_OR_GREATER
+#if !NETFRAMEWORK
         , IAsyncEnumerable<Row>
 #endif
     {
@@ -309,7 +309,7 @@ namespace Cassandra
             return GetEnumerator();
         }
 
-#if NETSTANDARD2_1_OR_GREATER
+#if !NETFRAMEWORK
         public async IAsyncEnumerator<Row> GetAsyncEnumerator(CancellationToken cancellationToken = default)
         {
             if (RowQueue == null)

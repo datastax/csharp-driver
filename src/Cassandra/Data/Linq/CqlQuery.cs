@@ -134,7 +134,7 @@ namespace Cassandra.Data.Linq
             var cql = visitor.GetSelect(Expression, out object[] values);
             var rs = await InternalExecuteWithProfileAsync(executionProfile, cql, values).ConfigureAwait(false);
             var mapper = MapperFactory.GetMapper<TEntity>(cql, rs);
-#if NETSTANDARD2_1_OR_GREATER
+#if !NETFRAMEWORK
             var items = await AsyncEnumerable.Select(rs, mapper).ToListAsync().ConfigureAwait(false);
 #else
             var items = Enumerable.Select(rs, mapper).ToList();

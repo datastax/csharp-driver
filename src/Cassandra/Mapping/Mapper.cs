@@ -24,10 +24,6 @@ using Cassandra.Metrics.Internal;
 using Cassandra.SessionManagement;
 using Cassandra.Tasks;
 
-#if !NETSTANDARD2_1_OR_GREATER
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-#endif
-
 namespace Cassandra.Mapping
 {
     /// <summary>
@@ -105,7 +101,7 @@ namespace Cassandra.Mapping
                 return Task.FromResult(Enumerable.Select(rs, mapper));
             });
         }
-#if NETSTANDARD2_1_OR_GREATER
+#if !NETFRAMEWORK
 
         /// <inheritdoc />
         public IAsyncEnumerable<T> FetchAsAsyncEnumerable<T>(CqlQueryOptions options = null)
@@ -142,15 +138,19 @@ namespace Cassandra.Mapping
             }
             cql.AutoPage = false;
             _cqlGenerator.AddSelect<T>(cql);
+#if !NETFRAMEWORK
             return ExecuteAsyncAndAdapt<IPage<T>>(cql, async (stmt, rs) =>
             {
                 var mapper = _mapperFactory.GetMapper<T>(cql.Statement, rs);
-#if NETSTANDARD2_1_OR_GREATER
                 var items = await AsyncEnumerable.Select(rs, mapper).ToListAsync().ConfigureAwait(false);
-#else
-                var items = Enumerable.Select(rs, mapper).ToList();
-#endif
                 return new Page<T>(items, stmt.PagingState, rs.PagingState);
+#else
+            return ExecuteAsyncAndAdapt(cql, (stmt, rs) =>
+            {
+                var mapper = _mapperFactory.GetMapper<T>(cql.Statement, rs);
+                var items = Enumerable.Select(rs, mapper).ToList();
+                return Task.FromResult<IPage<T>>(new Page<T>(items, stmt.PagingState, rs.PagingState));
+#endif
             });
         }
 
@@ -176,15 +176,19 @@ namespace Cassandra.Mapping
         public Task<T> SingleAsync<T>(Cql cql)
         {
             _cqlGenerator.AddSelect<T>(cql);
+#if !NETFRAMEWORK
             return ExecuteAsyncAndAdapt(cql, async (s, rs) =>
             {
-#if NETSTANDARD2_1_OR_GREATER
                 var row = await rs.SingleAsync().ConfigureAwait(false);
-#else
-                var row = rs.Single();
-#endif
                 var mapper = _mapperFactory.GetMapper<T>(cql.Statement, rs);
                 return mapper(row);
+#else
+            return ExecuteAsyncAndAdapt(cql, (s, rs) =>
+            {
+                var row = rs.Single();
+                var mapper = _mapperFactory.GetMapper<T>(cql.Statement, rs);
+                return Task.FromResult(mapper(row));
+#endif
             });
         }
 
@@ -198,13 +202,10 @@ namespace Cassandra.Mapping
         public Task<T> SingleOrDefaultAsync<T>(Cql cql)
         {
             _cqlGenerator.AddSelect<T>(cql);
+#if !NETFRAMEWORK
             return ExecuteAsyncAndAdapt(cql, async (s, rs) =>
             {
-#if NETSTANDARD2_1_OR_GREATER
                 var row = await rs.SingleOrDefaultAsync().ConfigureAwait(false);
-#else
-                var row = rs.SingleOrDefault();
-#endif
                 // Map to return type
                 if (row == null)
                 {
@@ -212,6 +213,18 @@ namespace Cassandra.Mapping
                 }
                 var mapper = _mapperFactory.GetMapper<T>(cql.Statement, rs);
                 return mapper(row);
+#else
+            return ExecuteAsyncAndAdapt(cql, (s, rs) =>
+            {
+                var row = rs.SingleOrDefault();
+                // Map to return type
+                if (row == null)
+                {
+                    return Task.FromResult(default(T));
+                }
+                var mapper = _mapperFactory.GetMapper<T>(cql.Statement, rs);
+                return Task.FromResult(mapper(row));
+#endif
             });
         }
 
@@ -225,16 +238,21 @@ namespace Cassandra.Mapping
         public Task<T> FirstAsync<T>(Cql cql)
         {
             _cqlGenerator.AddSelect<T>(cql);
+#if !NETFRAMEWORK
             return ExecuteAsyncAndAdapt(cql, async (s, rs) =>
             {
-#if NETSTANDARD2_1_OR_GREATER
                 var row = await rs.FirstAsync().ConfigureAwait(false);
-#else
-                var row = rs.First();
-#endif
                 // Map to return type
                 var mapper = _mapperFactory.GetMapper<T>(cql.Statement, rs);
                 return mapper(row);
+#else
+            return ExecuteAsyncAndAdapt(cql, (s, rs) =>
+            {
+                var row = rs.First();
+                // Map to return type
+                var mapper = _mapperFactory.GetMapper<T>(cql.Statement, rs);
+                return Task.FromResult(mapper(row));
+#endif
             });
         }
 
@@ -248,20 +266,29 @@ namespace Cassandra.Mapping
         public Task<T> FirstOrDefaultAsync<T>(Cql cql)
         {
             _cqlGenerator.AddSelect<T>(cql);
+#if !NETFRAMEWORK
             return ExecuteAsyncAndAdapt(cql, async (s, rs) =>
             {
-#if NETSTANDARD2_1_OR_GREATER
                 var row = await rs.FirstOrDefaultAsync().ConfigureAwait(false);
-#else
-                var row = rs.FirstOrDefault();
-#endif
                 // Map to return type
                 if (row == null)
                 {
-                    return default(T);
+                    return default;
                 }
                 var mapper = _mapperFactory.GetMapper<T>(cql.Statement, rs);
                 return mapper(row);
+#else
+            return ExecuteAsyncAndAdapt(cql, (s, rs) =>
+            {
+                var row = rs.FirstOrDefault();
+                // Map to return type
+                if (row == null)
+                {
+                    return Task.FromResult(default(T));
+                }
+                var mapper = _mapperFactory.GetMapper<T>(cql.Statement, rs);
+                return Task.FromResult(mapper(row));
+#endif
             });
         }
 

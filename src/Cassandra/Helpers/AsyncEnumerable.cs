@@ -12,7 +12,7 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-#if NETSTANDARD2_1_OR_GREATER && !NET10_OR_GREATER // These methods are implemented in .NET 10.
+#if !NETFRAMEWORK && !NET10_OR_GREATER // These methods are implemented in .NET 10.
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;

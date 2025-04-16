@@ -7,8 +7,8 @@
     <FileVersion>3.22.0.0</FileVersion>
     <VersionPrefix>3.22.0</VersionPrefix>
     <Authors>DataStax</Authors>
-    <TargetFrameworks Condition="'$(BuildCoreOnly)' != 'True'">netstandard2.0;net461</TargetFrameworks>
-    <TargetFrameworks Condition="'$(BuildCoreOnly)' == 'True'">netstandard2.0</TargetFrameworks>
+    <TargetFrameworks Condition="'$(BuildCoreOnly)' != 'True'">netstandard2.1;net461</TargetFrameworks>
+    <TargetFramework Condition="'$(BuildCoreOnly)' == 'True'">netstandard2.1</TargetFramework>
     <Authors>DataStax</Authors>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -36,8 +36,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="App.Metrics.Abstractions" Version="3.*" />
-    <PackageReference Include="App.Metrics.Concurrency" Version="2.*" />
+    <PackageReference Include="App.Metrics.Abstractions" Version="4.*" />
   </ItemGroup>
 
   <ItemGroup>
