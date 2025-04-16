@@ -171,7 +171,6 @@ namespace Cassandra.Tests.DataStax.Insights.MessageFactories
         private static void AssertPlatformInfo(Insight<InsightsStartupData> act)
         {
             Assert.Greater(act.Data.PlatformInfo.CentralProcessingUnits.Length, 0);
-
             Assert.IsFalse(
                 (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) || RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
                 && string.IsNullOrWhiteSpace(act.Data.PlatformInfo.CentralProcessingUnits.Model),

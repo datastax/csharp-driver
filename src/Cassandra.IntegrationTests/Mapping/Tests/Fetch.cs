@@ -98,7 +98,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             CollectionAssert.AreEquivalent(ids, authors.Select(a => a.AuthorId));
         }
 
-#if NET6_0_OR_GREATER
+#if !NETFRAMEWORK
         [Test]
         public async Task FetchAsAsyncEnumerable_Using_Select_Cql_And_PageSize()
         {
