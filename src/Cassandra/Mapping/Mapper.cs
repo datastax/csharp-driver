@@ -391,7 +391,11 @@ namespace Cassandra.Mapping
 
             return ExecuteAsyncAndAdapt(
                 cqlInstance,
+#if !NETFRAMEWORK
                 (stmt, rs) => AppliedInfo<T>.FromRowSetAsync(_mapperFactory, cql, rs));
+#else
+                (stmt, rs) => Task.FromResult(AppliedInfo<T>.FromRowSet(_mapperFactory, cql, rs)));
+#endif
         }
 
         /// <inheritdoc />
@@ -440,7 +444,11 @@ namespace Cassandra.Mapping
         public Task<AppliedInfo<T>> UpdateIfAsync<T>(Cql cql)
         {
             _cqlGenerator.PrependUpdate<T>(cql);
+#if !NETFRAMEWORK
             return ExecuteAsyncAndAdapt(cql, (stmt, rs) => AppliedInfo<T>.FromRowSetAsync(_mapperFactory, cql.Statement, rs));
+#else
+            return ExecuteAsyncAndAdapt(cql, (stmt, rs) => Task.FromResult(AppliedInfo<T>.FromRowSet(_mapperFactory, cql.Statement, rs)));
+#endif
         }
 
         /// <inheritdoc />
@@ -572,7 +580,11 @@ namespace Cassandra.Mapping
         public Task<AppliedInfo<T>> DeleteIfAsync<T>(Cql cql)
         {
             _cqlGenerator.PrependDelete<T>(cql);
+#if !NETFRAMEWORK
             return ExecuteAsyncAndAdapt(cql, (stmt, rs) => AppliedInfo<T>.FromRowSetAsync(_mapperFactory, cql.Statement, rs));
+#else
+            return ExecuteAsyncAndAdapt(cql, (stmt, rs) => Task.FromResult(AppliedInfo<T>.FromRowSet(_mapperFactory, cql.Statement, rs)));
+#endif
         }
 
         /// <inheritdoc />
@@ -868,7 +880,11 @@ namespace Cassandra.Mapping
             //Use the concatenation of cql strings as hash for the mapper
             var cqlString = string.Join(";", batch.Statements.Select(s => s.Statement));
             var rs = await ExecuteStatementAsync(batchStatement, executionProfile).ConfigureAwait(false);
+#if !NETFRAMEWORK
             return await AppliedInfo<T>.FromRowSetAsync(_mapperFactory, cqlString, rs).ConfigureAwait(false);
+#else
+            return AppliedInfo<T>.FromRowSet(_mapperFactory, cqlString, rs);
+#endif
         }
 
         /// <inheritdoc />

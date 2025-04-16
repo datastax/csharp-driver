@@ -72,11 +72,15 @@ namespace Cassandra.Data.Linq
             var cql = GetCql(out object[] values);
             var session = GetTable().GetSession();
             var stmt = await InternalRef.StatementFactory.GetStatementAsync(
-                session, 
+                session,
                 Cql.New(cql, values).WithExecutionProfile(executionProfile)).ConfigureAwait(false);
             this.CopyQueryPropertiesTo(stmt);
             var rs = await session.ExecuteAsync(stmt, executionProfile).ConfigureAwait(false);
+#if !NETFRAMEWORK
             return await AppliedInfo<TEntity>.FromRowSetAsync(_mapperFactory, cql, rs).ConfigureAwait(false);
+#else
+            return AppliedInfo<TEntity>.FromRowSet(_mapperFactory, cql, rs);
+#endif
         }
 
         /// <summary>
