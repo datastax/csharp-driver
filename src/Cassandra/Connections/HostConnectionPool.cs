@@ -73,6 +73,9 @@ namespace Cassandra.Connections
         private readonly ISerializerManager _serializerManager;
         private readonly IObserverFactory _observerFactory;
         private readonly CopyOnWriteList<IConnection> _connections = new CopyOnWriteList<IConnection>();
+        private volatile int _connectionsPerShard;
+        private volatile CopyOnWriteList<IConnection>[] _connectionsForShard = new CopyOnWriteList<IConnection>[0];
+        private volatile HostDistance _distance;
         private readonly HashedWheelTimer _timer;
         private readonly SemaphoreSlim _allConnectionClosedEventLock = new SemaphoreSlim(1, 1);
         private readonly Host _host;
@@ -156,21 +159,9 @@ namespace Cassandra.Connections
             return BorrowLeastBusyConnection(connections, routingKey);
         }
 
-        private IConnection ConnectionForShard(IConnection[] connections, int shardID)
-        {
-            for (int i = 0; i < connections.Length; i++)
-            {
-                if (connections[i] != null && connections[i].ShardID == shardID)
-                {
-                    return connections[i];
-                }
-            }
-            return null;
-        }
-
         private IConnection BorrowLeastBusyConnection(IConnection[] connections, RoutingKey routingKey = null)
         {
-            int shardID = 0;
+            int shardID = -1;
             if (shardingInfo != null)
             {
                 if (routingKey != null)
@@ -184,7 +175,21 @@ namespace Cassandra.Connections
                 }
             }
 
-            IConnection c = ConnectionForShard(connections, shardID);
+            IConnection c = null;
+            if (shardID != -1)
+            {
+                var minInFlight = int.MaxValue;
+                var localInFlight = 0;
+                foreach (var connection in _connectionsForShard[shardID])
+                {
+                    localInFlight = connection.InFlight;
+                    if (localInFlight < minInFlight)
+                    {
+                        minInFlight = localInFlight;
+                        c = connection;
+                    }
+                }
+            }
             var inFlight = 0;
             if (c != null)
             {
@@ -308,6 +313,10 @@ namespace Cassandra.Connections
             foreach (var c in connections)
             {
                 c.Dispose();
+            }
+            for (int i = 0; i < _connectionsForShard.Length; i++)
+            {
+                _connectionsForShard[i].Clear();
             }
             _host.Up -= OnHostUp;
             _host.Down -= OnHostDown;
@@ -443,7 +452,12 @@ namespace Cassandra.Connections
             int currentLength;
             if (c != null)
             {
+                var shardID = c.ShardID;
                 var removalInfo = _connections.RemoveAndCount(c);
+                if (shardID != -1 && _connectionsForShard.Length > shardID)
+                {
+                    _connectionsForShard[shardID].Remove(c);
+                }
                 currentLength = removalInfo.Item2;
                 var removed = removalInfo.Item1;
                 if (!removed)
@@ -566,6 +580,10 @@ namespace Cassandra.Connections
                         GetHashCode(), _host.Address, connections.Length, drained ? "successful" : "unsuccessful");
                     foreach (var c in connections)
                     {
+                        if (c.ShardID != -1 && _connectionsForShard.Length > c.ShardID)
+                        {
+                            _connectionsForShard[c.ShardID].Remove(c);
+                        }
                         c.Dispose();
                     }
                     afterDrainHandler?.Invoke();
@@ -782,7 +800,7 @@ namespace Cassandra.Connections
                     for (var i = 1; i <= shardCount; i++)
                     {
                         var _shardID = (lastAttemptedShard + i) % shardCount;
-                        if (ConnectionForShard(connectionsSnapshot, _shardID) == null)
+                        if (_connectionsForShard.Length > _shardID && _connectionsForShard[_shardID].Count < _connectionsPerShard)
                         {
                             lastAttemptedShard = _shardID;
                             shardID = _shardID;
@@ -811,6 +829,10 @@ namespace Cassandra.Connections
             }
 
             var newLength = _connections.AddNew(c);
+            if (c.ShardID != -1 && _connectionsForShard.Length > c.ShardID)
+            {
+                _connectionsForShard[c.ShardID].Add(c);
+            }
             HostConnectionPool.Logger.Info("Connection to {0} opened successfully, pool #{1} length: {2}",
                 _host.Address, GetHashCode(), newLength);
 
@@ -821,6 +843,10 @@ namespace Cassandra.Connections
                 HostConnectionPool.Logger.Info("Connection to {0} opened successfully and added to the pool #{1} but the pool was being closed",
                     _host.Address, GetHashCode());
                 _connections.Remove(c);
+                if (c.ShardID != -1 && _connectionsForShard.Length > c.ShardID)
+                {
+                    _connectionsForShard[c.ShardID].Remove(c);
+                }
                 c.Dispose();
                 return await FinishOpen(tcs, false, HostConnectionPool.GetNotConnectedException()).ConfigureAwait(false);
             }
@@ -831,6 +857,10 @@ namespace Cassandra.Connections
                 HostConnectionPool.Logger.Info("Connection to {0} opened successfully and added to the pool #{1} but it got closed",
                     _host.Address, GetHashCode());
                 _connections.Remove(c);
+                if (c.ShardID != -1 && _connectionsForShard.Length > c.ShardID)
+                {
+                    _connectionsForShard[c.ShardID].Remove(c);
+                }
                 c.Dispose();
                 return await FinishOpen(tcs, true, HostConnectionPool.GetNotConnectedException()).ConfigureAwait(false);
             }
@@ -927,6 +957,7 @@ namespace Cassandra.Connections
 
         public void SetDistance(HostDistance distance)
         {
+            _distance = distance;
             _expectedConnectionLength = _poolingOptions.GetCoreConnectionsPerHost(distance);
             _maxInflightThresholdToConsiderResizing = _poolingOptions.GetMaxSimultaneousRequestsPerConnectionTreshold(distance);
             _maxConnectionLength = _poolingOptions.GetMaxConnectionPerHost(distance);
@@ -1040,8 +1071,22 @@ namespace Cassandra.Connections
                     if (_shardingInfo != null)
                     {
                         shardingInfo = _shardingInfo;
-                        _expectedConnectionLength = _shardingInfo.ScyllaNrShards;
                     }
+
+                    var coreSize = _poolingOptions.GetCoreConnectionsPerHost(_distance);
+                    var shardsCount = shardingInfo == null ? 1 : shardingInfo.ScyllaNrShards;
+
+                    _connectionsPerShard = coreSize / shardsCount + (coreSize % shardsCount > 0 ? 1 : 0);
+                    _connectionsForShard = new CopyOnWriteList<IConnection>[shardsCount];
+                    for (int i = 0; i < shardsCount; i++)
+                    {
+                        _connectionsForShard[i] = new CopyOnWriteList<IConnection>();
+                    }
+                    if (!_connectionsForShard[c.ShardID].Contains(c))
+                    {
+                        _connectionsForShard[c.ShardID].Add(c);
+                    }
+                    _expectedConnectionLength = shardsCount * _connectionsPerShard;
                 }
             }
             catch
