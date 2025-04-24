@@ -195,7 +195,7 @@ namespace Cassandra.IntegrationTests.Core
             Thread.Sleep(2000);
             var pool11 = localSession1.GetOrCreateConnectionPool(hosts1[0], HostDistance.Local);
             var pool12 = localSession1.GetOrCreateConnectionPool(hosts1[1], HostDistance.Local);
-            var expectedConnections1 = useShardAwareness ? 2 : 3;
+            var expectedConnections1 = useShardAwareness ? 4 : 3;
             Assert.That(pool11.OpenConnections, Is.EqualTo(expectedConnections1));
             Assert.That(pool12.OpenConnections, Is.EqualTo(expectedConnections1));
 
