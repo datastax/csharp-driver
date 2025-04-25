@@ -693,6 +693,7 @@ namespace Cassandra.Connections
             try
             {
                 var t = await CreateOpenConnection(false, schedule != null).ConfigureAwait(false);
+                UpdateShardingInfo(t);
                 StartCreatingConnection(null);
                 _host.BringUpIfDown();
             }
@@ -923,6 +924,7 @@ namespace Cassandra.Connections
                 // It's the first time accessing or it has been recently set as UP
                 // CreateOpenConnection() supports concurrent calls
                 c = await CreateOpenConnection(true, false).ConfigureAwait(false);
+                UpdateShardingInfo(c);
             }
             catch (Exception)
             {
@@ -1055,6 +1057,28 @@ namespace Cassandra.Connections
             return c;
         }
 
+        private void UpdateShardingInfo(IConnection c)
+        {
+            if (!_poolingOptions.GetDisableShardAwareness() && shardingInfo == null && c.ShardingInfo() != null)
+            {
+                shardingInfo = c.ShardingInfo();
+                var coreSize = _poolingOptions.GetCoreConnectionsPerHost(_distance);
+                var shardsCount = shardingInfo == null ? 1 : shardingInfo.ScyllaNrShards;
+
+                _connectionsPerShard = coreSize / shardsCount + (coreSize % shardsCount > 0 ? 1 : 0);
+                _connectionsForShard = new CopyOnWriteList<IConnection>[shardsCount];
+                for (int i = 0; i < shardsCount; i++)
+                {
+                    _connectionsForShard[i] = new CopyOnWriteList<IConnection>();
+                }
+                if (!_connectionsForShard[c.ShardID].Contains(c))
+                {
+                    _connectionsForShard[c.ShardID].Add(c);
+                }
+                _expectedConnectionLength = shardsCount * _connectionsPerShard;
+            }
+        }
+
         /// <summary>
         /// Creates the required connections to the hosts and awaits for all connections to be open.
         /// The task is completed when at least 1 of the connections is opened successfully.
@@ -1065,29 +1089,7 @@ namespace Cassandra.Connections
             try
             {
                 var c = await CreateOpenConnection(false, false).ConfigureAwait(false);
-                if (!_poolingOptions.GetDisableShardAwareness())
-                {
-                    var _shardingInfo = c.ShardingInfo();
-                    if (_shardingInfo != null)
-                    {
-                        shardingInfo = _shardingInfo;
-                    }
-
-                    var coreSize = _poolingOptions.GetCoreConnectionsPerHost(_distance);
-                    var shardsCount = shardingInfo == null ? 1 : shardingInfo.ScyllaNrShards;
-
-                    _connectionsPerShard = coreSize / shardsCount + (coreSize % shardsCount > 0 ? 1 : 0);
-                    _connectionsForShard = new CopyOnWriteList<IConnection>[shardsCount];
-                    for (int i = 0; i < shardsCount; i++)
-                    {
-                        _connectionsForShard[i] = new CopyOnWriteList<IConnection>();
-                    }
-                    if (!_connectionsForShard[c.ShardID].Contains(c))
-                    {
-                        _connectionsForShard[c.ShardID].Add(c);
-                    }
-                    _expectedConnectionLength = shardsCount * _connectionsPerShard;
-                }
+                UpdateShardingInfo(c);
             }
             catch
             {
