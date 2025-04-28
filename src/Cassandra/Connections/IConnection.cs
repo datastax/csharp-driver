@@ -18,6 +18,7 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
+using Cassandra.Collections;
 using Cassandra.Requests;
 using Cassandra.Responses;
 using Cassandra.Serialization;
@@ -27,7 +28,7 @@ namespace Cassandra.Connections
     /// <summary>
     /// Represents a TCP connection to a Cassandra Node
     /// </summary>
-    internal interface IConnection : IDisposable
+    internal interface IConnection : IDisposable, IShardable
     {
         /// <summary>
         /// The event that represents a event RESPONSE from a Cassandra node
@@ -153,6 +154,6 @@ namespace Cassandra.Connections
         /// </summary>
         ShardingInfo ShardingInfo();
 
-        int ShardID { get; set; }
+        new int ShardID { get; set; }
     }
 }

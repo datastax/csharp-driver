@@ -21,6 +21,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Cassandra.Collections;
 using Cassandra.Connections;
 using Cassandra.Metrics;
 using Cassandra.Metrics.Internal;
@@ -172,7 +173,7 @@ namespace Cassandra.Tests
                 return TaskHelper.ToTask(c);
             });
             var pool = _mock.Object;
-            var creationTasks = new Task<IConnection[]>[4];
+            var creationTasks = new Task<ShardedList<IConnection>>[4];
             creationTasks[0] = pool.EnsureCreate();
             creationTasks[1] = pool.EnsureCreate();
             creationTasks[2] = pool.EnsureCreate();
@@ -193,7 +194,7 @@ namespace Cassandra.Tests
             var lastByte = 0;
             _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>(), -1, 0, 0)).Returns(() => TestHelper.DelayedTask(CreateConnection((byte)++lastByte), 100 + (lastByte > 1 ? 10000 : 0)));
             var pool = _mock.Object;
-            var creationTasks = new Task<IConnection[]>[10];
+            var creationTasks = new Task<ShardedList<IConnection>>[10];
             var counter = -1;
             var initialCreate = pool.EnsureCreate();
             TestHelper.ParallelInvoke(() =>
@@ -365,14 +366,14 @@ namespace Cassandra.Tests
         [Test]
         public void MinInFlight_Returns_The_Min_Inflight_From_Two_Connections()
         {
-            var connections = new[]
+            var connections = new ShardedList<IConnection>(new[]
             {
                 GetConnectionMock(0),
                 GetConnectionMock(1),
                 GetConnectionMock(1),
                 GetConnectionMock(10),
                 GetConnectionMock(1)
-            };
+            });
             var index = 0;
             var c = HostConnectionPool.MinInFlight(connections, ref index, 100, out int inFlight);
             Assert.AreEqual(index, 1);
@@ -405,14 +406,14 @@ namespace Cassandra.Tests
         [Test]
         public void MinInFlight_Goes_Through_All_The_Connections_When_Over_Threshold()
         {
-            var connections = new[]
+            var connections = new ShardedList<IConnection>(new[]
             {
                 GetConnectionMock(10),
                 GetConnectionMock(1),
                 GetConnectionMock(201),
                 GetConnectionMock(200),
                 GetConnectionMock(210)
-            };
+            });
             var index = 0;
 
             var c = HostConnectionPool.MinInFlight(connections, ref index, 100, out int inFlight);

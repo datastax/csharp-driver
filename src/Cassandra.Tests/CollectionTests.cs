@@ -73,17 +73,16 @@ namespace Cassandra.Tests
             for (var i = 0; i < 100; i++)
             {
                 var item = i;
-                actions.Add(() =>
-                {
-                    list.Add(item);
-                });
+                actions.Add(() => { list.Add(item); });
             }
+
             TestHelper.ParallelInvoke(actions);
             Assert.AreEqual(100, list.Count);
             for (var i = 0; i < 100; i++)
             {
                 Assert.True(list.Contains(i));
             }
+
             var counter = 0;
             CollectionAssert.AreEquivalent(Enumerable.Repeat(0, 100).Select(_ => counter++), list);
         }
@@ -97,15 +96,14 @@ namespace Cassandra.Tests
             {
                 list.Add(i);
             }
+
             Assert.AreEqual(100, list.Count);
             for (var i = 0; i < 100; i++)
             {
                 var item = i;
-                actions.Add(() =>
-                {
-                    list.Remove(item);
-                });
+                actions.Add(() => { list.Remove(item); });
             }
+
             TestHelper.ParallelInvoke(actions);
             Assert.AreEqual(0, list.Count);
         }
@@ -126,10 +124,10 @@ namespace Cassandra.Tests
         {
             var map = new CopyOnWriteDictionary<string, int>
             {
-                {"one", 1},
-                {"two", 2},
-                {"three", 3},
-                {"four", 4}
+                { "one", 1 },
+                { "two", 2 },
+                { "three", 3 },
+                { "four", 4 }
             };
             Assert.AreEqual(4, map.Count);
             CollectionAssert.AreEquivalent(new[] { "one", "two", "three", "four" }, map.Keys);
@@ -154,17 +152,16 @@ namespace Cassandra.Tests
             for (var i = 0; i < 100; i++)
             {
                 var item = i;
-                actions.Add(() =>
-                {
-                    map.Add(item, item * 1000);
-                });
+                actions.Add(() => { map.Add(item, item * 1000); });
             }
+
             TestHelper.ParallelInvoke(actions);
             Assert.AreEqual(100, map.Count);
             for (var i = 0; i < 100; i++)
             {
                 Assert.AreEqual(i * 1000, map[i]);
             }
+
             var counter = 0;
             CollectionAssert.AreEquivalent(Enumerable.Repeat(0, 100).Select(_ => counter++), map.Keys);
         }
@@ -178,16 +175,15 @@ namespace Cassandra.Tests
             {
                 map.Add(i, i * 2000);
             }
+
             Assert.AreEqual(100, map.Count);
             //remove everything except 0 and 1
             for (var i = 2; i < 100; i++)
             {
                 var item = i;
-                actions.Add(() =>
-                {
-                    map.Remove(item);
-                });
+                actions.Add(() => { map.Remove(item); });
             }
+
             TestHelper.ParallelInvoke(actions);
             Assert.AreEqual(2, map.Count);
             Assert.AreEqual(0, map[0]);
@@ -210,6 +206,239 @@ namespace Cassandra.Tests
             Assert.AreEqual(10, value);
             Assert.AreEqual(2, map.Count);
             Assert.AreEqual(10, map["key2"]);
+        }
+
+        internal class ShardableItem : IShardable
+        {
+            public int ShardID { get; }
+
+            public string Value { get; }
+
+            public ShardableItem(int shardId, string value)
+            {
+                ShardID = shardId;
+                Value = value;
+            }
+
+            public override bool Equals(object obj)
+            {
+                if (obj is ShardableItem other)
+                {
+                    return ShardID == other.ShardID && Value == other.Value;
+                }
+
+                return false;
+            }
+
+            public override int GetHashCode()
+            {
+                return (ShardID, Value).GetHashCode();
+            }
+        }
+
+        [TestFixture]
+        public class ShardedListTests
+        {
+            [Test]
+            public void EmptyConstructor_ShouldInitializeEmpty()
+            {
+                var list = new ShardedList<ShardableItem>();
+
+                Assert.AreEqual(0, list.Count);
+                Assert.AreEqual(0, list.Length);
+                Assert.IsTrue(list.IsReadOnly);
+                Assert.IsEmpty(list.GetAllItems());
+                Assert.IsEmpty(list.GetPerShardSnapshot());
+            }
+
+            [Test]
+            public void Constructor_WithArray_ShouldCopyItems()
+            {
+                var items = new[]
+                {
+                    new ShardableItem(1, "A"),
+                    new ShardableItem(2, "B"),
+                    new ShardableItem(1, "C")
+                };
+
+                var list = new ShardedList<ShardableItem>(items);
+
+                Assert.AreEqual(3, list.Count);
+                Assert.That(list.GetAllItems(), Is.EquivalentTo(items));
+            }
+
+            [Test]
+            public void Indexer_ShouldReturnCorrectItem()
+            {
+                var items = new[]
+                {
+                    new ShardableItem(0, "X"),
+                    new ShardableItem(1, "Y")
+                };
+
+                var list = new ShardedList<ShardableItem>(items);
+
+                Assert.AreEqual("X", list[0].Value);
+                Assert.AreEqual("Y", list[1].Value);
+            }
+
+            [Test]
+            public void GetItemsForShard_ShouldReturnCorrectShardItems()
+            {
+                var items = new[]
+                {
+                    new ShardableItem(0, "First"),
+                    new ShardableItem(1, "Second"),
+                    new ShardableItem(0, "Third")
+                };
+
+                var list = new ShardedList<ShardableItem>(items);
+
+                var shard0 = list.GetItemsForShard(0);
+                var shard1 = list.GetItemsForShard(1);
+                var shard2 = list.GetItemsForShard(2); // Should be empty
+
+                Assert.That(shard0.Select(x => x.Value), Is.EquivalentTo(new[] { "First", "Third" }));
+                Assert.That(shard1.Select(x => x.Value), Is.EquivalentTo(new[] { "Second" }));
+                Assert.IsEmpty(shard2);
+            }
+
+            [Test]
+            public void GetEnumerator_ShouldEnumerateItems()
+            {
+                var items = new[]
+                {
+                    new ShardableItem(1, "One"),
+                    new ShardableItem(2, "Two")
+                };
+
+                var list = new ShardedList<ShardableItem>(items);
+
+                CollectionAssert.AreEqual(items, list.ToList());
+            }
+        }
+
+        [TestFixture]
+        public class CopyOnWriteShardedListTests
+        {
+            [Test]
+            public void Add_ShouldAddItem()
+            {
+                var list = new CopyOnWriteShardedList<ShardableItem>();
+
+                list.Add(new ShardableItem(0, "Alpha"));
+
+                Assert.AreEqual(1, list.Count);
+                Assert.AreEqual("Alpha", list.GetSnapshot()[0].Value);
+            }
+
+            [Test]
+            public void AddRange_ShouldAddMultipleItems()
+            {
+                var list = new CopyOnWriteShardedList<ShardableItem>();
+
+                list.AddRange(new[]
+                {
+                    new ShardableItem(1, "Beta"),
+                    new ShardableItem(2, "Gamma")
+                });
+
+                Assert.AreEqual(2, list.Count);
+                Assert.That(list.GetSnapshot().Select(x => x.Value), Is.EquivalentTo(new[] { "Beta", "Gamma" }));
+            }
+
+            [Test]
+            public void Remove_ShouldRemoveItem()
+            {
+                var list = new CopyOnWriteShardedList<ShardableItem>();
+
+                var item = new ShardableItem(0, "Delta");
+                list.Add(item);
+                var removed = list.Remove(item);
+
+                Assert.IsTrue(removed);
+                Assert.AreEqual(0, list.Count);
+            }
+
+            [Test]
+            public void Remove_ShouldReturnFalse_WhenItemNotFound()
+            {
+                var list = new CopyOnWriteShardedList<ShardableItem>();
+
+                var removed = list.Remove(new ShardableItem(1, "Zeta"));
+
+                Assert.IsFalse(removed);
+            }
+
+            [Test]
+            public void Clear_ShouldEmptyTheList()
+            {
+                var list = new CopyOnWriteShardedList<ShardableItem>();
+
+                list.Add(new ShardableItem(0, "Eta"));
+                list.Add(new ShardableItem(1, "Theta"));
+
+                list.Clear();
+
+                Assert.AreEqual(0, list.Count);
+            }
+
+            [Test]
+            public void Contains_ShouldFindItem()
+            {
+                var list = new CopyOnWriteShardedList<ShardableItem>();
+                var item = new ShardableItem(0, "Iota");
+
+                list.Add(item);
+
+                Assert.IsTrue(list.Contains(item));
+            }
+
+            [Test]
+            public void Contains_ShouldReturnFalse_WhenNotPresent()
+            {
+                var list = new CopyOnWriteShardedList<ShardableItem>();
+
+                Assert.IsFalse(list.Contains(new ShardableItem(1, "Kappa")));
+            }
+
+            [Test]
+            public void GetItemsForShard_ShouldReturnShardItems()
+            {
+                var list = new CopyOnWriteShardedList<ShardableItem>();
+
+                var item1 = new ShardableItem(2, "Lambda");
+                var item2 = new ShardableItem(2, "Mu");
+                var item3 = new ShardableItem(3, "Nu");
+
+                list.Add(item1);
+                list.Add(item2);
+                list.Add(item3);
+
+                var shardItems = list.GetItemsForShard(2);
+
+                Assert.That(shardItems.Select(x => x.Value), Is.EquivalentTo(new[] { "Lambda", "Mu" }));
+
+                var shard3 = list.GetItemsForShard(3);
+                Assert.That(shard3.Select(x => x.Value), Is.EquivalentTo(new[] { "Nu" }));
+
+                var nonExistentShard = list.GetItemsForShard(5);
+                Assert.IsEmpty(nonExistentShard);
+            }
+
+            [Test]
+            public void CopyTo_ShouldCopyElements()
+            {
+                var list = new CopyOnWriteShardedList<ShardableItem>();
+
+                list.Add(new ShardableItem(0, "Xi"));
+                list.Add(new ShardableItem(0, "Omicron"));
+
+                var array = new ShardableItem[2];
+                list.CopyTo(array, 0);
+
+                Assert.That(array.Select(x => x.Value), Is.EquivalentTo(new[] { "Xi", "Omicron" }));
+            }
         }
     }
 }
