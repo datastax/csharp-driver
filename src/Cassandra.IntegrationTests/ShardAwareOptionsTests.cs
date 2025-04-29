@@ -3,6 +3,7 @@ using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.SessionManagement;
 using NUnit.Framework;
+using System.Linq;
 
 namespace Cassandra.IntegrationTests
 {
@@ -32,12 +33,15 @@ namespace Cassandra.IntegrationTests
             Assert.IsTrue(controlConnection.IsShardAware());
         }
 
-        [Test]
-        public void Should_Have_NrShards_Connections()
+        [TestCase(1)]
+        [TestCase(4)]
+        public void Should_Have_NrShards_Connections(int connectionsPerHost)
         {
             _realCluster = TestClusterManager.CreateNew();
             var cluster = ClusterBuilder()
                           .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(22000).SetConnectTimeoutMillis(60000))
+                          .WithPoolingOptions(new PoolingOptions()
+                              .SetCoreConnectionsPerHost(HostDistance.Local, connectionsPerHost))
                           .AddContactPoint(_realCluster.InitialContactPoint)
                           .Build();
             var session = cluster.Connect();
@@ -45,7 +49,11 @@ namespace Cassandra.IntegrationTests
             var pools = internalSession.GetPools();
             foreach (var kvp in pools)
             {
-                Assert.AreEqual(2, kvp.Value.OpenConnections);
+                var shardCount = 2;
+                var connectionsPerShard = connectionsPerHost / shardCount + (connectionsPerHost % shardCount > 0 ? 1 : 0);
+                Assert.AreEqual(shardCount * connectionsPerShard, kvp.Value.OpenConnections);
+                var shardGroups = kvp.Value.ConnectionsSnapshot.GroupBy(c => c.ShardID);
+                Assert.IsTrue(shardGroups.All(g => g.Count() == connectionsPerShard));
             }
         }
     }

@@ -111,7 +111,7 @@ namespace Cassandra.Connections
         /// <inheritdoc />
         public IConnection[] ConnectionsSnapshot => _connections.GetSnapshot().GetAllItems();
 
-        public ShardingInfo shardingInfo { get; private set; }
+        private ShardingInfo shardingInfo { get; set; }
 
         private int lastAttemptedShard = 0;
 
