@@ -57,7 +57,7 @@ namespace Cassandra.Connections
         /// Connects asynchronously to the host and starts reading
         /// </summary>
         /// <exception cref="SocketException">Throws a SocketException when the connection could not be established with the host</exception>
-        Task<bool> Connect();
+        Task<bool> Connect(int localPort = -1);
 
         /// <summary>
         /// Sends data asynchronously

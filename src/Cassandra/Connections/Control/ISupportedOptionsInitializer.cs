@@ -1,4 +1,4 @@
-﻿//
+//
 //       Copyright (C) DataStax Inc.
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,12 +14,14 @@
 //    limitations under the License.
 
 using System.Threading.Tasks;
+using Cassandra.Responses;
 
 namespace Cassandra.Connections.Control
 {
     internal interface ISupportedOptionsInitializer
     {
         Task ApplySupportedOptionsAsync(IConnection connection);
+        void ApplySupportedFromResponse(Response response);
         ShardingInfo GetShardingInfo();
     }
 }

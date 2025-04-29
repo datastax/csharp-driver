@@ -14,6 +14,8 @@
 //   limitations under the License.
 //
 
+using System;
+
 namespace Cassandra
 {
     /// <summary>
@@ -36,17 +38,22 @@ namespace Cassandra
         /// </summary>
         public const int DefaultMaxSchemaAgreementWaitSeconds = 10;
 
+        public const int DefaultLocalPortLow = 10000;
+        public const int DefaultLocalPortHigh = 60000;
+
         private readonly int _port;
         private readonly SSLOptions _sslOptions;
         private CompressionType _compression = CompressionType.NoCompression;
         private IFrameCompressor _compressor;
         private int _maxSchemaAgreementWaitSeconds = ProtocolOptions.DefaultMaxSchemaAgreementWaitSeconds;
+        private int _localPortLow = ProtocolOptions.DefaultLocalPortLow;
+        private int _localPortHigh = ProtocolOptions.DefaultLocalPortHigh;
         private ProtocolVersion? _maxProtocolVersion;
 
         /// <summary>
         ///  The port used to connect to the Cassandra hosts.
         /// </summary>
-        /// 
+        ///
         /// <returns>the port used to connect to the Cassandra hosts.</returns>
         public int Port
         {
@@ -56,7 +63,7 @@ namespace Cassandra
         /// <summary>
         /// Specified SSL options used to connect to the Cassandra hosts.
         /// </summary>
-        /// 
+        ///
         /// <returns>SSL options used to connect to the Cassandra hosts.</returns>
         public SSLOptions SslOptions
         {
@@ -87,6 +94,16 @@ namespace Cassandra
         public int MaxSchemaAgreementWaitSeconds
         {
             get { return _maxSchemaAgreementWaitSeconds; }
+        }
+
+        public int LocalPortLow
+        {
+            get { return _localPortLow; }
+        }
+
+        public int LocalPortHigh
+        {
+            get { return _localPortHigh; }
         }
 
         /// <summary>
@@ -137,8 +154,8 @@ namespace Cassandra
         }
 
 
-        /// <summary>       
-        /// Creates a new ProtocolOptions instance using the provided port and SSL context.        
+        /// <summary>
+        /// Creates a new ProtocolOptions instance using the provided port and SSL context.
         /// </summary>
         /// <param name="port">the port to use for the binary protocol.</param>
         /// <param name="sslOptions">sslOptions the SSL options to use. Use null if SSL is not to be used.</param>
@@ -179,6 +196,17 @@ namespace Cassandra
         public ProtocolOptions SetMaxSchemaAgreementWaitSeconds(int value)
         {
             _maxSchemaAgreementWaitSeconds = value;
+            return this;
+        }
+
+        public ProtocolOptions SetLocalPortRange(int low, int high)
+        {
+            if (low < 1 || 65535 < low || high < 1 || 65535 < high)
+            {
+                throw new ArgumentOutOfRangeException("Port numbers must be between 1 and 65535");
+            }
+            _localPortLow = low;
+            _localPortHigh = high;
             return this;
         }
 

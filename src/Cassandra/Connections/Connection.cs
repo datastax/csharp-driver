@@ -24,6 +24,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Cassandra.Connections.Control;
 using Cassandra.Compression;
 using Cassandra.Metrics;
 using Cassandra.Observers.Abstractions;
@@ -163,6 +164,11 @@ namespace Cassandra.Connections
 
         public Configuration Configuration { get; set; }
 
+        private readonly ISupportedOptionsInitializer _supportedOptionsInitializer;
+
+        public int ShardID { get; set; }
+        private int _requestedShardID { get; set; }
+
         internal Connection(
             ISerializer serializer,
             IConnectionEndPoint endPoint,
@@ -183,6 +189,7 @@ namespace Cassandra.Connections
             _freeOperations = new ConcurrentStack<short>(Enumerable.Range(0, GetMaxConcurrentRequests(Serializer)).Select(s => (short)s).Reverse());
             _pendingOperations = new ConcurrentDictionary<short, OperationState>();
             _writeQueue = new ConcurrentQueue<OperationState>();
+            _supportedOptionsInitializer = configuration.SupportedOptionsInitializerFactory.Create(null);
 
             if (Options.CustomCompressor != null)
             {
@@ -454,10 +461,24 @@ namespace Cassandra.Connections
         /// <exception cref="UnsupportedProtocolVersionException"></exception>
         public async Task<Response> Open()
         {
+            return await Open(-1, 0);
+        }
+
+        /// <summary>
+        /// Initializes the connection.
+        /// </summary>
+        /// <param name="shardID">Shard ID</param>
+        /// <param name="shardCount">Shard count</param>
+        /// <exception cref="SocketException">Throws a SocketException when the connection could not be established with the host</exception>
+        /// <exception cref="AuthenticationException" />
+        /// <exception cref="UnsupportedProtocolVersionException"></exception>
+        public async Task<Response> Open(int shardID = -1, int shardCount = 0)
+        {
+            _requestedShardID = shardID;
             try
             {
                 Connection.Logger.Verbose("Attempting to open Connection #{0} to {1}", GetHashCode(), EndPoint.EndpointFriendlyName);
-                var response = await DoOpen().ConfigureAwait(false);
+                var response = await DoOpen(shardID, shardCount).ConfigureAwait(false);
                 Connection.Logger.Verbose("Opened Connection #{0} to {1} with local endpoint {2}.", GetHashCode(), EndPoint.EndpointFriendlyName, _tcpSocket.GetLocalIpEndPoint()?.ToString());
                 return response;
             }
@@ -474,7 +495,7 @@ namespace Cassandra.Connections
         /// <exception cref="SocketException">Throws a SocketException when the connection could not be established with the host</exception>
         /// <exception cref="AuthenticationException" />
         /// <exception cref="UnsupportedProtocolVersionException"></exception>
-        public async Task<Response> DoOpen()
+        public async Task<Response> DoOpen(int shardID = -1, int shardCount = 0)
         {
             //Init TcpSocket
             _tcpSocket.Error += OnSocketError;
@@ -483,7 +504,47 @@ namespace Cassandra.Connections
             _tcpSocket.Read += ReadHandler;
             _tcpSocket.WriteCompleted += WriteCompletedHandler;
             var protocolVersion = Serializer.ProtocolVersion;
-            await _tcpSocket.Connect().ConfigureAwait(false);
+            if (shardID != -1)
+            {
+                var localPort = PortAllocator.GetNextAvailablePort(shardCount, shardID, Options.LocalPortLow, Options.LocalPortHigh);
+                if (localPort == -1)
+                {
+                    throw new SocketException((int)SocketError.NoData);
+                }
+                await _tcpSocket.Connect(localPort).ConfigureAwait(false);
+            }
+            else
+            {
+                await _tcpSocket.Connect().ConfigureAwait(false);
+            }
+
+
+            // Send the OPTIONS message
+            Response optionsResponse;
+            try
+            {
+                optionsResponse = await SendOptions().ConfigureAwait(false);
+            }
+            catch (ProtocolErrorException ex)
+            {
+                // As we are starting up, check for protocol version errors.
+                // There is no other way than checking the error message from Cassandra
+                if (ex.Message.Contains("Invalid or unsupported protocol version"))
+                {
+                    throw new UnsupportedProtocolVersionException(protocolVersion, Serializer.ProtocolVersion, ex);
+                }
+                throw;
+            }
+            _supportedOptionsInitializer.ApplySupportedFromResponse(optionsResponse);
+            if (_supportedOptionsInitializer.GetShardingInfo() != null)
+            {
+                ShardID = _supportedOptionsInitializer.GetShardingInfo().ScyllaShard;
+                if (_requestedShardID != -1 && ShardID != _requestedShardID)
+                {
+                    Connection.Logger.Warning("Requested connection to shard {1}, but connected to {2}. Is there a NAT between client and server?", _requestedShardID, ShardID);
+                }
+            }
+
             Response response;
             try
             {
@@ -509,6 +570,11 @@ namespace Cassandra.Connections
                 return response;
             }
             throw new DriverInternalError("Expected READY or AUTHENTICATE, obtained " + response.GetType().Name);
+        }
+
+        public ShardingInfo ShardingInfo()
+        {
+            return _supportedOptionsInitializer.GetShardingInfo();
         }
 
         private void ReadHandler(byte[] buffer, int bytesReceived)
@@ -771,6 +837,15 @@ namespace Cassandra.Connections
                 stream.Dispose();
             }, CancellationToken.None);
             return true;
+        }
+
+        /// <summary>
+        /// Sends a protocol OPTIONS message
+        /// </summary>
+        private Task<Response> SendOptions()
+        {
+            var request = new OptionsRequest();
+            return Send(request, Configuration.SocketOptions.ConnectTimeoutMillis);
         }
 
         /// <summary>

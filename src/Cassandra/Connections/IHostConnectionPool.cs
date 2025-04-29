@@ -25,12 +25,12 @@ namespace Cassandra.Connections
     internal interface IHostConnectionPool : IDisposable
     {
         /// <summary>
-        /// Gets the total amount of open connections. 
+        /// Gets the total amount of open connections.
         /// </summary>
         int OpenConnections { get; }
 
         /// <summary>
-        /// Gets the total of in-flight requests on all connections. 
+        /// Gets the total of in-flight requests on all connections.
         /// </summary>
         int InFlight { get; }
 
@@ -55,7 +55,7 @@ namespace Cassandra.Connections
         /// <exception cref="UnsupportedProtocolVersionException" />
         /// <exception cref="SocketException" />
         /// <exception cref="AuthenticationException" />
-        Task<IConnection> BorrowConnectionAsync();
+        Task<IConnection> BorrowConnectionAsync(RoutingKey routingKey = null);
 
         /// <summary>
         /// Gets an open connection from the host pool. It does NOT create one if necessary (for that use <see cref="BorrowConnectionAsync"/>.
@@ -63,7 +63,7 @@ namespace Cassandra.Connections
         /// </summary>
         /// <exception cref="BusyPoolException" />
         /// <exception cref="SocketException">Not connected.</exception>
-        IConnection BorrowExistingConnection();
+        IConnection BorrowExistingConnection(RoutingKey routingKey);
 
         void SetDistance(HostDistance distance);
 
@@ -92,9 +92,9 @@ namespace Cassandra.Connections
         void MarkAsDownAndScheduleReconnection();
 
         Task<IConnection> GetConnectionFromHostAsync(
-            IDictionary<IPEndPoint, Exception> triedHosts, Func<string> getKeyspaceFunc);
+            IDictionary<IPEndPoint, Exception> triedHosts, Func<string> getKeyspaceFunc, RoutingKey routingKey);
 
         Task<IConnection> GetExistingConnectionFromHostAsync(
-            IDictionary<IPEndPoint, Exception> triedHosts, Func<string> getKeyspaceFunc);
+            IDictionary<IPEndPoint, Exception> triedHosts, Func<string> getKeyspaceFunc, RoutingKey routingKey);
     }
 }

@@ -1,4 +1,4 @@
-﻿//
+//
 //       Copyright (C) DataStax Inc.
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -48,6 +48,11 @@ namespace Cassandra.Connections.Control
             var request = new OptionsRequest();
             var response = await connection.Send(request).ConfigureAwait(false);
 
+            ApplySupportedFromResponse(response);
+        }
+
+        public void ApplySupportedFromResponse(Response response)
+        {
             if (response == null)
             {
                 throw new NullReferenceException("Response can not be null");

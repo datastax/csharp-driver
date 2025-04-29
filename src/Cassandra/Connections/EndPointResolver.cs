@@ -15,6 +15,7 @@
 //
 
 using System;
+using System.Net;
 using System.Threading.Tasks;
 
 namespace Cassandra.Connections
@@ -26,6 +27,12 @@ namespace Cassandra.Connections
         public EndPointResolver(IServerNameResolver serverNameResolver)
         {
             _serverNameResolver = serverNameResolver ?? throw new ArgumentNullException(nameof(serverNameResolver));
+        }
+
+        /// <inheritdoc />
+        public Task<IConnectionEndPoint> GetConnectionShardAwareEndPointAsync(Host host, bool refreshCache, int shardAwarePort)
+        {
+            return Task.FromResult((IConnectionEndPoint)new ConnectionEndPoint(new IPEndPoint(IPAddress.Parse(host.Address.ToString().Split(':')[0]), shardAwarePort), _serverNameResolver, host.ContactPoint));
         }
 
         /// <inheritdoc />

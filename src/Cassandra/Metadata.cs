@@ -100,6 +100,15 @@ namespace Cassandra
             ShutDown();
         }
 
+        internal TokenFactory GetTokenFactory()
+        {
+            if (_tokenMap == null)
+            {
+                throw new DriverInternalError("Token map is not initialized");
+            }
+            return _tokenMap.Factory;
+        }
+
         internal KeyspaceMetadata GetKeyspaceFromCache(string keyspace)
         {
             _keyspaces.TryGetValue(keyspace, out var ks);

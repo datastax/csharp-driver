@@ -21,12 +21,12 @@ namespace Cassandra
     /// <summary>
     /// <para>Represents the options related to connection pooling.</para>
     /// <para>
-    /// For each host selected by the load balancing policy, the driver keeps a core amount of 
-    /// connections open at all times 
+    /// For each host selected by the load balancing policy, the driver keeps a core amount of
+    /// connections open at all times
     /// (<see cref="PoolingOptions.GetCoreConnectionsPerHost(HostDistance)"/>).
-    /// If the use of those connections reaches a configurable threshold 
-    /// (<see cref="PoolingOptions.GetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance)"/>), 
-    /// more connections are created up to the configurable maximum number of connections 
+    /// If the use of those connections reaches a configurable threshold
+    /// (<see cref="PoolingOptions.GetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance)"/>),
+    /// more connections are created up to the configurable maximum number of connections
     /// (<see cref="PoolingOptions.GetMaxConnectionPerHost(HostDistance)"/>).
     /// </para>
     /// <para>
@@ -92,6 +92,8 @@ namespace Cassandra
         private int _maxRequestsPerConnection = DefaultMaxRequestsPerConnection;
         private bool _warmup = true;
 
+        private bool _disableShardAwareness = false;
+
         /// <summary>
         /// DEPRECATED: It will be removed in future versions. Use <see cref="PoolingOptions.Create"/> instead.
         /// <para>
@@ -135,7 +137,7 @@ namespace Cassandra
         /// <param name="distance"> the <see cref="HostDistance"/> for which to configure this
         ///  threshold. </param>
         /// <param name="minSimultaneousRequests"> the value to set. </param>
-        /// 
+        ///
         /// <returns>this <c>PoolingOptions</c>. </returns>
         public PoolingOptions SetMinSimultaneousRequestsPerConnectionTreshold(HostDistance distance, int minSimultaneousRequests)
         {
@@ -236,6 +238,11 @@ namespace Cassandra
             return _warmup;
         }
 
+        public bool GetDisableShardAwareness()
+        {
+            return _disableShardAwareness;
+        }
+
         /// <summary>
         ///  Sets the core number of connections per host.
         /// </summary>
@@ -266,7 +273,7 @@ namespace Cassandra
         /// </summary>
         /// <param name="distance"> the <c>HostDistance</c> for which to return this threshold.
         ///  </param>
-        /// 
+        ///
         /// <returns>the maximum number of connections per host at distance
         ///  <c>distance</c>.</returns>
         public int GetMaxConnectionPerHost(HostDistance distance)
@@ -288,7 +295,7 @@ namespace Cassandra
         /// <param name="distance"> the <c>HostDistance</c> for which to set this threshold.
         ///  </param>
         /// <param name="maxConnections"> the value to set </param>
-        /// 
+        ///
         /// <returns>this <c>PoolingOptions</c>. </returns>
         public PoolingOptions SetMaxConnectionsPerHost(HostDistance distance, int maxConnections)
         {
@@ -372,6 +379,12 @@ namespace Cassandra
         public PoolingOptions SetWarmup(bool doWarmup)
         {
             _warmup = doWarmup;
+            return this;
+        }
+
+        public PoolingOptions DisableShardAwareness()
+        {
+            _disableShardAwareness = true;
             return this;
         }
 

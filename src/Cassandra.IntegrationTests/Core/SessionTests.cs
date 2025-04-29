@@ -170,14 +170,18 @@ namespace Cassandra.IntegrationTests.Core
             });
         }
 
-        [Test]
-        public void Should_Create_The_Right_Amount_Of_Connections()
+        [TestCase(true)]
+        [TestCase(false)]
+        public void Should_Create_The_Right_Amount_Of_Connections(bool useShardAwareness)
         {
+            var poolingOptions1 = new PoolingOptions().SetCoreConnectionsPerHost(HostDistance.Local, 3);
+            if (!useShardAwareness)
+            {
+                poolingOptions1.DisableShardAwareness();
+            }
             var localCluster1 = GetNewTemporaryCluster(
                 builder => builder
-                    .WithPoolingOptions(
-                        new PoolingOptions()
-                            .SetCoreConnectionsPerHost(HostDistance.Local, 3)));
+                    .WithPoolingOptions(poolingOptions1));
 
             var localSession1 = (IInternalSession)localCluster1.Connect();
             var hosts1 = localCluster1.AllHosts().ToList();
@@ -191,12 +195,18 @@ namespace Cassandra.IntegrationTests.Core
             Thread.Sleep(2000);
             var pool11 = localSession1.GetOrCreateConnectionPool(hosts1[0], HostDistance.Local);
             var pool12 = localSession1.GetOrCreateConnectionPool(hosts1[1], HostDistance.Local);
-            Assert.That(pool11.OpenConnections, Is.EqualTo(3));
-            Assert.That(pool12.OpenConnections, Is.EqualTo(3));
+            var expectedConnections1 = useShardAwareness ? 4 : 3;
+            Assert.That(pool11.OpenConnections, Is.EqualTo(expectedConnections1));
+            Assert.That(pool12.OpenConnections, Is.EqualTo(expectedConnections1));
 
+            var poolingOptions2 = new PoolingOptions().SetCoreConnectionsPerHost(HostDistance.Local, 1);
+            if (!useShardAwareness)
+            {
+                poolingOptions2.DisableShardAwareness();
+            }
             using (var localCluster2 = ClusterBuilder()
                                               .AddContactPoint(TestCluster.InitialContactPoint)
-                                              .WithPoolingOptions(new PoolingOptions().SetCoreConnectionsPerHost(HostDistance.Local, 1))
+                                              .WithPoolingOptions(poolingOptions2)
                                               .Build())
             {
                 var localSession2 = (IInternalSession)localCluster2.Connect();
@@ -211,8 +221,9 @@ namespace Cassandra.IntegrationTests.Core
                 Thread.Sleep(2000);
                 var pool21 = localSession2.GetOrCreateConnectionPool(hosts2[0], HostDistance.Local);
                 var pool22 = localSession2.GetOrCreateConnectionPool(hosts2[1], HostDistance.Local);
-                Assert.That(pool21.OpenConnections, Is.EqualTo(1));
-                Assert.That(pool22.OpenConnections, Is.EqualTo(1));
+                var expectedConnections2 = useShardAwareness ? 2 : 1;
+                Assert.That(pool21.OpenConnections, Is.EqualTo(expectedConnections2));
+                Assert.That(pool22.OpenConnections, Is.EqualTo(expectedConnections2));
             }
         }
 
@@ -232,7 +243,7 @@ namespace Cassandra.IntegrationTests.Core
             var builder = ClusterBuilder()
                 .AddContactPoint(TestCluster.InitialContactPoint)
                 .WithLoadBalancingPolicy(lbp)
-                .WithPoolingOptions(new PoolingOptions().SetCoreConnectionsPerHost(HostDistance.Local, 3))
+                .WithPoolingOptions(new PoolingOptions().SetCoreConnectionsPerHost(HostDistance.Local, 3).DisableShardAwareness())
                 .WithReconnectionPolicy(new ConstantReconnectionPolicy(1000));
             var counter = 0;
             using (var localCluster = builder.Build())
