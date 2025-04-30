@@ -57,6 +57,7 @@ namespace Cassandra.Tests
             CollectionAssert.AreEqual(new[]
             {
                 "Cassandra",
+                "Cassandra.Connections",
                 "Cassandra.Data",
                 "Cassandra.Data.Linq",
                 "Cassandra.DataStax.Auth",

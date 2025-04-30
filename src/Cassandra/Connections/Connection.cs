@@ -461,7 +461,7 @@ namespace Cassandra.Connections
         /// <exception cref="UnsupportedProtocolVersionException"></exception>
         public async Task<Response> Open()
         {
-            return await Open(-1, 0);
+            return await Open(-1, 0).ConfigureAwait(false);
         }
 
         /// <summary>

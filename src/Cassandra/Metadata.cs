@@ -104,7 +104,7 @@ namespace Cassandra
         {
             if (_tokenMap == null)
             {
-                throw new DriverInternalError("Token map is not initialized");
+                return null;
             }
             return _tokenMap.Factory;
         }
