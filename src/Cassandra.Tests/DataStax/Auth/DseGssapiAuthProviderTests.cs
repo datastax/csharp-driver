@@ -45,16 +45,23 @@ namespace Cassandra.Tests.DataStax.Auth
 
 #if NETFRAMEWORK
 
+        [Test]
+        public void When_NetFramework_Should_NotThrowException()
+        {
+            var provider = new DseGssapiAuthProvider();
+        }
+
+#else
         [WinOnly]
         [Test]
-        public void When_NetFrameworkAndWindows_Should_NotThrowException()
+        public void When_NotNetFrameworkAndWindows_Should_NotThrowException()
         {
             var provider = new DseGssapiAuthProvider();
         }
 
         [NotWindows]
         [Test]
-        public void When_NetFrameworkAndNotWindows_Should_NotThrowException()
+        public void When_NotNetFrameworkAndNotWindows_Should_ThrowException()
         {
             Assert.Throws<NotSupportedException>(() =>
             {
