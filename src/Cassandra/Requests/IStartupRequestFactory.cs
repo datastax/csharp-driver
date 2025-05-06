@@ -14,10 +14,12 @@
 //   limitations under the License.
 //
 
+using Cassandra.Connections.Control;
+
 namespace Cassandra.Requests
 {
     internal interface IStartupRequestFactory
     {
-        IRequest CreateStartupRequest(ProtocolOptions protocolOptions);
+        IRequest CreateStartupRequest(ProtocolOptions protocolOptions, ISupportedOptionsInitializer supportedOptionsInitializer);
     }
 }

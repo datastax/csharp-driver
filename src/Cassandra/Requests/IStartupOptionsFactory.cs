@@ -15,11 +15,12 @@
 //
 
 using System.Collections.Generic;
+using Cassandra.Connections.Control;
 
 namespace Cassandra.Requests
 {
     internal interface IStartupOptionsFactory
     {
-        IReadOnlyDictionary<string, string> CreateStartupOptions(ProtocolOptions options);
+        IReadOnlyDictionary<string, string> CreateStartupOptions(ProtocolOptions options, ISupportedOptionsInitializer supportedOptionsInitializer);
     }
 }
