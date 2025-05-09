@@ -23,5 +23,6 @@ namespace Cassandra.Connections.Control
         Task ApplySupportedOptionsAsync(IConnection connection);
         void ApplySupportedFromResponse(Response response);
         ShardingInfo GetShardingInfo();
+        TabletInfo GetTabletInfo();
     }
 }

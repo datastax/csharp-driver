@@ -577,6 +577,11 @@ namespace Cassandra.Connections
             return _supportedOptionsInitializer.GetShardingInfo();
         }
 
+        public TabletInfo TabletInfo()
+        {
+            return _supportedOptionsInitializer.GetTabletInfo();
+        }
+
         private void ReadHandler(byte[] buffer, int bytesReceived)
         {
             if (_isClosed)
@@ -853,7 +858,7 @@ namespace Cassandra.Connections
         /// </summary>
         private Task<Response> Startup()
         {
-            var request = _startupRequestFactory.CreateStartupRequest(Options);
+            var request = _startupRequestFactory.CreateStartupRequest(Options, _supportedOptionsInitializer);
             // Use the Connect timeout for the startup request timeout
             return Send(request, Configuration.SocketOptions.ConnectTimeoutMillis);
         }

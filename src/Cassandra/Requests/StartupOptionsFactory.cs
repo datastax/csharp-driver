@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using Cassandra.Helpers;
+using Cassandra.Connections.Control;
 
 namespace Cassandra.Requests
 {
@@ -31,6 +32,7 @@ namespace Cassandra.Requests
         public const string ApplicationNameOption = "APPLICATION_NAME";
         public const string ApplicationVersionOption = "APPLICATION_VERSION";
         public const string ClientIdOption = "CLIENT_ID";
+        public const string TabletsRoutingV1Option = "TABLETS_ROUTING_V1";
 
         public const string CqlVersion = "3.0.0";
         public const string SnappyCompression = "snappy";
@@ -47,7 +49,7 @@ namespace Cassandra.Requests
             _clusterId = clusterId;
         }
 
-        public IReadOnlyDictionary<string, string> CreateStartupOptions(ProtocolOptions options)
+        public IReadOnlyDictionary<string, string> CreateStartupOptions(ProtocolOptions options, ISupportedOptionsInitializer supportedOptionsInitializer = null)
         {
             var startupOptions = new Dictionary<string, string>
             {
@@ -73,6 +75,11 @@ namespace Cassandra.Requests
             if (options.NoCompact)
             {
                 startupOptions.Add(StartupOptionsFactory.NoCompactOption, "true");
+            }
+
+            if (supportedOptionsInitializer?.GetTabletInfo() != null && supportedOptionsInitializer.GetTabletInfo().IsEnabled())
+            {
+                startupOptions.Add(StartupOptionsFactory.TabletsRoutingV1Option, "true");
             }
 
             startupOptions.Add(StartupOptionsFactory.DriverNameOption, AssemblyHelpers.GetAssemblyTitle(typeof(StartupOptionsFactory)));

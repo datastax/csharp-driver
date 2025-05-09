@@ -43,5 +43,11 @@ namespace Cassandra.Tests.Connections.TestHelpers
         {
             return null;
         }
+
+        public TabletInfo GetTabletInfo()
+        {
+            return null;
+
+        }
     }
 }

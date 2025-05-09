@@ -37,6 +37,7 @@ namespace Cassandra.Connections.Control
         private const string ScyllaShardAwarePortSSL = "SCYLLA_SHARD_AWARE_PORT_SSL";
 
         private ShardingInfo _shardingInfo;
+        private TabletInfo _tabletInfo;
 
         public SupportedOptionsInitializer(Metadata metadata)
         {
@@ -65,11 +66,17 @@ namespace Cassandra.Connections.Control
 
             ApplyProductTypeOption(supportedResponse.Output.Options);
             ApplyScyllaShardingOption(supportedResponse.Output.Options);
+            ApplyScyllaTabletOption(supportedResponse.Output.Options);
         }
 
         public ShardingInfo GetShardingInfo()
         {
             return _shardingInfo;
+        }
+
+        public TabletInfo GetTabletInfo()
+        {
+            return _tabletInfo;
         }
 
         private void ApplyProductTypeOption(IDictionary<string, string[]> options)
@@ -88,6 +95,11 @@ namespace Cassandra.Connections.Control
             {
                 _metadata.SetProductTypeAsDbaas();
             }
+        }
+
+        private void ApplyScyllaTabletOption(IDictionary<string, string[]> options)
+        {
+            _tabletInfo = TabletInfo.ParseTabletInfo(options);
         }
 
         private void ApplyScyllaShardingOption(IDictionary<string, string[]> options)

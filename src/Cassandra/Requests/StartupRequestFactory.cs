@@ -14,6 +14,8 @@
 //   limitations under the License.
 //
 
+using Cassandra.Connections.Control;
+
 namespace Cassandra.Requests
 {
     internal class StartupRequestFactory : IStartupRequestFactory
@@ -25,9 +27,9 @@ namespace Cassandra.Requests
             _optionsFactory = optionsFactory;
         }
 
-        public IRequest CreateStartupRequest(ProtocolOptions protocolOptions)
+        public IRequest CreateStartupRequest(ProtocolOptions protocolOptions, ISupportedOptionsInitializer supportedOptionsInitializer)
         {
-            return new StartupRequest(_optionsFactory.CreateStartupOptions(protocolOptions));
+            return new StartupRequest(_optionsFactory.CreateStartupOptions(protocolOptions, supportedOptionsInitializer));
         }
     }
 }
