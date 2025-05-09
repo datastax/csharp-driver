@@ -103,12 +103,6 @@ namespace Cassandra.IntegrationTests.TestBase
                 return false;
             }
 
-            if (TestClusterManager.IsScylla && requiresOss)
-            {
-                message = "Test designed to run with OSS Cassandra (executing Scylla)";
-                return true;
-            }
-
             if (TestClusterManager.IsDse && requiresOss)
             {
                 message = string.Format("Test designed to run with OSS {0} v{1} (executing DSE {2})",
@@ -123,6 +117,26 @@ namespace Cassandra.IntegrationTests.TestBase
                 message = $"Test designed to run with DSE {TestCassandraVersion.GetComparisonText(comparison)} " +
                           $"v{expectedVersion} (executing {TestClusterManager.CassandraVersion})";
                 return false;
+            }
+
+            if (TestClusterManager.IsScylla)
+            {
+                var scyllaExecutingVersion = TestClusterManager.ScyllaVersion;
+                if (expectedVersion.Major >= 4)
+                {
+                    message =
+                            $"Test designed to run with Cassandra {TestCassandraVersion.GetComparisonText(comparison)} v{expectedVersion} (executing Scylla v{scyllaExecutingVersion})";
+                    return false;
+                }
+                if (!TestCassandraVersion.VersionMatch(expectedVersion, new Version(3, 10), comparison))
+                {
+                    message =
+                        $"Test designed to run with Cassandra {TestCassandraVersion.GetComparisonText(comparison)} v{expectedVersion} (executing Scylla v{scyllaExecutingVersion})";
+                    return false;
+                }
+
+                message = null;
+                return true;
             }
 
             var executingVersion = requiresDse ? TestClusterManager.DseVersion : TestClusterManager.CassandraVersion;

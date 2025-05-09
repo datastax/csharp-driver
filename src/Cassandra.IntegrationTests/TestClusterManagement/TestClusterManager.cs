@@ -87,6 +87,19 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             }
         }
 
+        public static Version ScyllaVersion
+        {
+            get
+            {
+                var scyllaVersion = ScyllaVersionString;
+                if (scyllaVersion == null)
+                {
+                    throw new TestInfrastructureException("SCYLLA_VERSION is not set");
+                }
+                return new Version(TestClusterManager.ScyllaVersionString.Split('-')[0]);
+            }
+        }
+
         /// <summary>
         /// Gets the IP prefix for the DSE instances
         /// </summary>
