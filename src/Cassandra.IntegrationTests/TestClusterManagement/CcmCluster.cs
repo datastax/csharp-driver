@@ -25,7 +25,6 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
     {
         public string Name { get; set; }
         public string Version { get; set; }
-        public string ScyllaVersion { get; set; }
         public Builder Builder { get; set; }
         public Cluster Cluster { get; set; }
         public ISession Session { get; set; }
@@ -38,7 +37,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         private CcmBridge _ccm;
         private int _nodeLength;
 
-        public CcmCluster(string name, string idPrefix, string dsePath, ICcmProcessExecuter executor, string defaultKeyspace, string version, string scyllaVersion = null)
+        public CcmCluster(string name, string idPrefix, string dsePath, ICcmProcessExecuter executor, string defaultKeyspace, string version)
         {
             _executor = executor;
             Name = name;
@@ -48,14 +47,13 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             InitialContactPoint = ClusterIpPrefix + "1";
             DsePath = dsePath;
             Version = version;
-            ScyllaVersion = scyllaVersion;
         }
 
         public void Create(int nodeLength, TestClusterOptions options = null)
         {
             _nodeLength = nodeLength;
             options = options ?? TestClusterOptions.Default;
-            _ccm = new CcmBridge(Name, IdPrefix, DsePath, Version, ScyllaVersion, _executor);
+            _ccm = new CcmBridge(Name, IdPrefix, DsePath, Version, _executor);
             _ccm.Create(options.UseSsl);
             _ccm.Populate(nodeLength, options.Dc2NodeLength, options.UseVNodes);
             _ccm.UpdateConfig(options.CassandraYaml);

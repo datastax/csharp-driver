@@ -107,11 +107,12 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         {
             Hcd,
             Dse,
-            Cassandra
+            Cassandra,
+            Scylla
         }
 
         /// <summary>
-        /// "hcd", "dse", or "cassandra" (default), based on CCM_DISTRIBUTION
+        /// "hcd", "dse", or "cassandra" (default), or "scylla", based on CCM_DISTRIBUTION
         /// if there's env var DSE_VERSION, ignore CCM_DISTRIBUTION
         /// </summary>
         public static BackendType CurrentBackendType
@@ -131,6 +132,8 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                         return BackendType.Dse;
                     case "cassandra":
                         return BackendType.Cassandra;
+                    case "scylla":
+                        return BackendType.Scylla;
                     default:
                         throw new TestInfrastructureException("Unknown CCM_DISTRIBUTION value: " + distribution);
                 }
@@ -169,18 +172,29 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 {
                     return Environment.GetEnvironmentVariable("DSE_VERSION");
                 }
+                if (Environment.GetEnvironmentVariable("SCYLLA_VERSION") != null)
+                {
+                    return "3.10.0";
+                }
                 return Environment.GetEnvironmentVariable("CASSANDRA_VERSION") ?? "3.11.2";
             }
         }
 
         public static string ScyllaVersionString
         {
-            get { return Environment.GetEnvironmentVariable("SCYLLA_VERSION"); }
+            get
+            {
+                if (Environment.GetEnvironmentVariable("SCYLLA_VERSION") == null)
+                {
+                    throw new TestInfrastructureException("SCYLLA_VERSION is not set");
+                }
+                return Environment.GetEnvironmentVariable("SCYLLA_VERSION");
+            }
         }
 
         public static bool IsScylla
         {
-            get { return !string.IsNullOrEmpty(ScyllaVersionString); }
+            get { return CurrentBackendType == BackendType.Scylla; }
         }
 
         public static bool IsDse
@@ -299,8 +313,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 DsePath,
                 Executor,
                 DefaultKeyspaceName,
-                IsDse ? DseVersionString : CassandraVersionString,
-                ScyllaVersionString);
+                IsDse ? DseVersionString : (IsScylla ? ScyllaVersionString : CassandraVersionString));
             testCluster.Create(nodeLength, options);
             if (startCluster)
             {

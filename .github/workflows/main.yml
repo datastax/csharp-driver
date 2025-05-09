@@ -39,6 +39,7 @@ jobs:
         run: |
           pip3 install https://github.com/scylladb/scylla-ccm/archive/5392dd68748ee5e71f7fbad346667038437d2123.zip
           CCM_PATH=$(which ccm)
+          echo "CCM_DISTRIBUTION=scylla" >> $GITHUB_ENV
           sudo mkdir -p /usr/local/bin
           sudo ln -sf ${CCM_PATH} /usr/local/bin/ccm
 

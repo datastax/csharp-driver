@@ -31,13 +31,12 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         public DirectoryInfo CcmDir { get; private set; }
         public string Name { get; private set; }
         public string Version { get; private set; }
-        public string ScyllaVersion { get; private set; }
         public string IdPrefix { get; private set; }
         public string IpPrefix => $"127.0.{IdPrefix}.";
         public ICcmProcessExecuter CcmProcessExecuter { get; set; }
         private readonly string _dseInstallPath;
 
-        public CcmBridge(string name, string idPrefix, string dsePath, string version, string scyllaVersion, ICcmProcessExecuter executor)
+        public CcmBridge(string name, string idPrefix, string dsePath, string version, ICcmProcessExecuter executor)
         {
             Name = name;
             IdPrefix = idPrefix;
@@ -45,7 +44,6 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             CcmProcessExecuter = executor;
             _dseInstallPath = dsePath;
             Version = version;
-            ScyllaVersion = scyllaVersion;
         }
 
         public void Dispose()
@@ -69,9 +67,9 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 sslParams = "--ssl " + sslPath;
             }
 
-            if (!string.IsNullOrEmpty(ScyllaVersion))
+            if (TestClusterManager.IsScylla)
             {
-                ExecuteCcm($"create {Name} --scylla -v release:{ScyllaVersion} {sslParams}");
+                ExecuteCcm($"create {Name} --scylla -v release:{Version} {sslParams}");
             }
             else if (string.IsNullOrEmpty(_dseInstallPath))
             {
