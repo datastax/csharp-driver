@@ -367,7 +367,7 @@ namespace Cassandra.IntegrationTests.TestBase
             ccmConfigDir = TestUtils.EscapePath(ccmConfigDir);
             var args = ccmArgs + " --config-dir=" + ccmConfigDir;
             Trace.TraceInformation("Executing ccm: " + ccmArgs);
-            var processName = "/usr/local/bin/ccm";
+            var processName = "ccm";
             if (TestUtils.IsWin)
             {
                 processName = "cmd.exe";
@@ -683,7 +683,13 @@ namespace Cassandra.IntegrationTests.TestBase
 
         public StringBuilder OutputText { get; set; }
 
-        private string Output { get; set; }
+        private string Output =>
+            StdOut + Environment.NewLine +
+            "STDERR:" + Environment.NewLine +
+            StdErr;
+
+        public string StdOut { get; set; }
+        public string StdErr { get; set; }
 
         public ProcessOutput()
         {
@@ -694,13 +700,8 @@ namespace Cassandra.IntegrationTests.TestBase
         public override string ToString()
         {
             return
-                "Exit Code: " + this.ExitCode + Environment.NewLine +
-                "Output Text: " + (this.Output ?? this.OutputText.ToString()) + Environment.NewLine;
-        }
-
-        public void SetOutput(string output)
-        {
-            Output = output;
+                "Exit Code: " + ExitCode + Environment.NewLine +
+                "Output Text: " + (Output ?? OutputText.ToString()) + Environment.NewLine;
         }
     }
 

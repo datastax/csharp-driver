@@ -69,7 +69,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
             if (TestClusterManager.IsScylla)
             {
-                ExecuteCcm($"create {Name} --scylla -v release:{Version} {sslParams}");
+                ExecuteCcm($"create {Name} --scylla -v {Version} {sslParams}");
             }
             else if (string.IsNullOrEmpty(_dseInstallPath))
             {
@@ -240,6 +240,16 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         public void Stop()
         {
             ExecuteCcm("stop");
+        }
+
+        public string GetVersion(int nodeId)
+        {
+            ProcessOutput output = ExecuteCcm(string.Format("node{0} versionfrombuild", nodeId));
+            if (output.ExitCode != 0)
+            {
+                throw new TestInfrastructureException("Process exited in error " + output.ToString());
+            }
+            return output.StdOut.Trim();
         }
 
         public void StopForce()

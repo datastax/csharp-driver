@@ -116,6 +116,11 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             _ccm.Stop();
         }
 
+        public string GetVersion(int nodeId)
+        {
+            return _ccm.GetVersion(nodeId);
+        }
+
         public void Remove()
         {
             Trace.TraceInformation($"Removing Cluster with Name: '{Name}', InitialContactPoint: {InitialContactPoint}, and CcmDir: {_ccm.CcmDir}");

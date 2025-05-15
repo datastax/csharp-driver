@@ -20,7 +20,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 {
     public class LocalCcmProcessExecuter : CcmProcessExecuter
     {
-        public const string CcmCommandPath = "/usr/local/bin/ccm";
+        public const string CcmCommandPath = "ccm";
         public static readonly LocalCcmProcessExecuter Instance = new LocalCcmProcessExecuter();
 
         private LocalCcmProcessExecuter()

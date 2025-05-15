@@ -110,12 +110,8 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                     processEndTokenSource.Cancel();
                     timeoutTokenSource.Cancel();
                 }
-                var stdOut = tStandardOutput.GetAwaiter().GetResult();
-                var stdErr = tStandardError.GetAwaiter().GetResult();
-
-                output.SetOutput(stdOut + Environment.NewLine +
-                                 "STDERR:" + Environment.NewLine +
-                                 stdErr);
+                output.StdErr = tStandardError.GetAwaiter().GetResult();
+                output.StdOut = tStandardOutput.GetAwaiter().GetResult();
             }
             return output;
         }

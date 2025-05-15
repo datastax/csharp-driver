@@ -17,6 +17,7 @@
 using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using Cassandra.IntegrationTests.TestBase;
 
 namespace Cassandra.IntegrationTests.TestClusterManagement
@@ -87,16 +88,57 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             }
         }
 
+        private static Version _scyllaVersion;
+        private static Mutex _scyllaVersionLock = new Mutex();
+
         public static Version ScyllaVersion
         {
             get
             {
-                var scyllaVersion = ScyllaVersionString;
-                if (scyllaVersion == null)
+                if (_scyllaVersion != null)
                 {
-                    throw new TestInfrastructureException("SCYLLA_VERSION is not set");
+                    return _scyllaVersion;
                 }
-                return new Version(TestClusterManager.ScyllaVersionString.Split('-')[0]);
+                _scyllaVersionLock.WaitOne();
+                try
+                {
+                    if (_scyllaVersion != null)
+                    {
+                        return _scyllaVersion;
+                    }
+                    var scyllaVersion = ScyllaVersionString;
+                    if (scyllaVersion == null)
+                    {
+                        throw new TestInfrastructureException("SCYLLA_VERSION is not set");
+                    }
+
+                    if (scyllaVersion.StartsWith("release:"))
+                    {
+                        scyllaVersion = scyllaVersion.Substring(8);
+                        if (scyllaVersion.Count(c => c == '.') == 2)
+                        {
+                            _scyllaVersion = new Version(scyllaVersion);
+                            return _scyllaVersion;
+                        }
+                    }
+
+                    TryRemove();
+                    var testCluster = new CcmCluster(
+                        "get-scylla-version-" + TestUtils.GetTestClusterNameBasedOnRandomString(),
+                        GetUniqueIdPrefix(),
+                        DsePath,
+                        Executor,
+                        "",
+                        ScyllaVersionString);
+                    testCluster.Create(1, null);
+                    string versionString = testCluster.GetVersion(1);
+                    _scyllaVersion = new Version(versionString);
+                    return _scyllaVersion;
+                }
+                finally
+                {
+                    _scyllaVersionLock.ReleaseMutex();
+                }
             }
         }
 
