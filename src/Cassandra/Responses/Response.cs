@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using Cassandra.Serialization;
+using Cassandra.Connections;
 
 namespace Cassandra.Responses
 {
@@ -37,10 +38,35 @@ namespace Cassandra.Responses
         /// </summary>
         public string[] Warnings { get; }
 
+        public Tablet Tablet { get; }
+
         /// <summary>
         /// Gets the incoming custom payload.
         /// </summary>
         public IDictionary<string, byte[]> CustomPayload { get; }
+
+        private static TupleColumnInfo TabletColumnInfo = new TupleColumnInfo(
+        new List<ColumnDesc>
+        {
+            new ColumnDesc { TypeCode = ColumnTypeCode.Bigint },
+            new ColumnDesc { TypeCode = ColumnTypeCode.Bigint },
+            new ColumnDesc
+            {
+                TypeCode = ColumnTypeCode.List,
+                TypeInfo = new ListColumnInfo
+                {
+                    ValueTypeCode = ColumnTypeCode.Tuple,
+                    ValueTypeInfo = new TupleColumnInfo(
+                        new List<ColumnDesc>
+                        {
+                            new ColumnDesc { TypeCode = ColumnTypeCode.Uuid },
+                            new ColumnDesc { TypeCode = ColumnTypeCode.Int }
+                        }
+                    )
+                }
+            }
+        }
+        );
 
         internal Response(Frame frame)
         {
@@ -71,6 +97,22 @@ namespace Cassandra.Responses
             if (frame.Header.Flags.HasFlag(HeaderFlags.CustomPayload))
             {
                 CustomPayload = Reader.ReadBytesMap();
+
+                if (CustomPayload.ContainsKey(TabletInfo.TABLETS_ROUTING_V1_CUSTOM_PAYLOAD_KEY))
+                {
+                    var tabletInfo = CustomPayload[TabletInfo.TABLETS_ROUTING_V1_CUSTOM_PAYLOAD_KEY];
+
+                    var des = frame.Serializer.Deserialize(tabletInfo, 0, tabletInfo.Length, ColumnTypeCode.Tuple, TabletColumnInfo);
+                    if (des is Tuple<long, long, IEnumerable<Tuple<Guid, int>>> tablet)
+                    {
+                        var replicas = new List<HostShardPair>();
+                        foreach (var replica in tablet.Item3)
+                        {
+                            replicas.Add(new HostShardPair(replica.Item1, replica.Item2));
+                        }
+                        Tablet = new Tablet(tablet.Item1, tablet.Item2, replicas);
+                    }
+                }
             }
         }
 
