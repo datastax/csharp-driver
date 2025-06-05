@@ -34,6 +34,7 @@ namespace Cassandra
         private readonly PreparedStatement _preparedStatement;
         private RoutingKey _routingKey;
         private readonly string _keyspace;
+        private readonly string _table;
 
         /// <summary>
         ///  Gets the prepared statement on which this BoundStatement is based.
@@ -72,6 +73,11 @@ namespace Cassandra
             get { return _keyspace; }
         }
 
+        public string Table
+        {
+            get { return _table; }
+        }
+
         /// <summary>
         /// Initializes a new instance of the Cassandra.BoundStatement class
         /// </summary>
@@ -90,6 +96,7 @@ namespace Cassandra
             _preparedStatement = statement;
             _routingKey = statement.RoutingKey;
             _keyspace = statement.Keyspace ?? statement.Variables?.Keyspace;
+            _table = statement.Variables?.Table;
 
             SetConsistencyLevel(statement.ConsistencyLevel);
             if (statement.IsIdempotent != null)
