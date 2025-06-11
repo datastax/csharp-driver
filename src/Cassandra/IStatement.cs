@@ -140,6 +140,8 @@ namespace Cassandra
         /// </remarks>
         string Keyspace { get; }
 
+        string TableName { get; }
+
         /// <summary>
         /// Allows this statement to be executed as a different user/role than the one 
         /// currently authenticated (a.k.a. proxy execution).

@@ -73,7 +73,7 @@ namespace Cassandra
             get { return _keyspace; }
         }
 
-        public string Table
+        public override string TableName
         {
             get { return _table; }
         }
