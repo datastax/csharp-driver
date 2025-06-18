@@ -99,7 +99,30 @@ namespace Cassandra
 
         public void RemoveTableMappings(Host h)
         {
-            // TODO: Implement logic to remove all tablets for the specified host.
+            foreach (var kvp in _mapping.ToList())
+            {
+                var key = kvp.Key;
+                var tabletSet = kvp.Value;
+                tabletSet.UpdateTablets(currentTablets =>
+                {
+                    // Remove tablets that have a replica with the specified host
+                    var tabletsToRemove = currentTablets
+                        .Where(t => t.Replicas.Any(r => r.HostID == h.HostId))
+                        .ToList();
+                    var updated = currentTablets;
+                    foreach (var tabletToRemove in tabletsToRemove)
+                    {
+                        updated = updated.Remove(tabletToRemove);
+                    }
+                    return updated;
+                });
+
+                // If no tablets remain, remove the whole mapping
+                if (!tabletSet.Tablets.Any())
+                {
+                    _mapping.TryRemove(key, out _);
+                }
+            }
         }
 
         public void RemoveTableMappings(string keyspace, string table) => RemoveTableMappings(new KeyspaceTableNamePair(keyspace, table));
