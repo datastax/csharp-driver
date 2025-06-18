@@ -108,6 +108,11 @@ namespace Cassandra
             get { return null; }
         }
 
+        public virtual string TableName
+        {
+            get { return null; }
+        }
+
         /// <summary>
         /// Gets the host configured on this <see cref="Statement"/>, or <c>null</c> if none is configured.
         /// <para>

@@ -181,6 +181,13 @@ namespace Cassandra.Tests
                                   RegexOptions.Multiline | RegexOptions.Compiled);
             foreach (var fileInfo in directory.GetFiles("*.cs", SearchOption.AllDirectories))
             {
+                // Exclude TabletMap.cs from the check, there is a need to use
+                // await Task.Yield() in ProcessQueueAsync() and it is not
+                // possible to call ConfigureAwait on it
+                if (fileInfo.Name == "TabletMap.cs")
+                {
+                    continue;
+                }
                 var source = File.ReadAllText(fileInfo.FullName);
                 var match = regex.Match(source);
                 if (match.Success)

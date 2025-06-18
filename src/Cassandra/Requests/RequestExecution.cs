@@ -272,6 +272,18 @@ namespace Cassandra.Requests
                 }
                 rs = RowSet.Empty();
             }
+
+            if (response.Tablet != null)
+            {
+                var metadata = _session.Cluster.Metadata;
+                var keyspace = _parent.Statement?.Keyspace ?? _session.Keyspace;
+                var table = _parent.Statement?.TableName;
+                if (table != null)
+                {
+                    metadata.TabletMap.OnTabletMapUpdate?.Invoke(new AddTabletRequest(keyspace, table, response.Tablet));
+                }
+            }
+
             await _parent.SetCompletedAsync(null, FillRowSet(rs, resultResponse)).ConfigureAwait(false);
         }
 

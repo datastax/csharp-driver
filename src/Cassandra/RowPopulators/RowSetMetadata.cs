@@ -281,6 +281,7 @@ namespace Cassandra
         /// Returns the keyspace as defined in the metadata response by global tables spec or the first column.
         /// </summary>
         internal string Keyspace { get; private set; }
+        internal string Table { get; private set; }
 
         public CqlColumn[] Columns { get; internal set; }
 
@@ -366,6 +367,7 @@ namespace Cassandra
                 ColumnIndexes[col.Name] = i;
             }
             Keyspace = gKsname ?? (columnLength > 0 ? Columns[0].Keyspace : null);
+            Table = gTablename ?? (columnLength > 0 ? Columns[0].Table : null);
         }
 
         private IColumnInfo GetColumnInfo(FrameReader reader, ColumnTypeCode code)
