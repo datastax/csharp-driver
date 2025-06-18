@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Cassandra
@@ -16,17 +17,53 @@ namespace Cassandra
         private readonly Metadata _metadata;
 
         public readonly Action<ITabletMapUpdateRequest> OnTabletMapUpdate;
+        private readonly ConcurrentQueue<ITabletMapUpdateRequest> _updateQueue = new ConcurrentQueue<ITabletMapUpdateRequest>();
+        private readonly SemaphoreSlim _updateQueueSignal = new SemaphoreSlim(0);
+        private volatile bool _disposed;
 
         public TabletMap(Metadata metadata, ConcurrentDictionary<KeyspaceTableNamePair, TabletSet> mapping, Hosts hosts)
         {
             _metadata = metadata;
             _metadata.SchemaChangedEvent += SchemaCHangedEventHandler;
             _mapping = mapping;
-            OnTabletMapUpdate = request => request.Apply(this);
+            OnTabletMapUpdate = request =>
+            {
+                _updateQueue.Enqueue(request);
+                _updateQueueSignal.Release();
+            };
             if (hosts != null)
             {
                 hosts.Removed += OnHostRemoved;
             }
+        }
+
+        public async Task Init()
+        {
+            await Task.Yield(); // Ensure the method is asynchronous
+            _ = UpdatesQueueReader();
+        }
+
+        public void Shutdown()
+        {
+            _disposed = true;
+            _metadata.SchemaChangedEvent -= SchemaCHangedEventHandler;
+            if (_metadata.Hosts != null)
+            {
+                _metadata.Hosts.Removed -= OnHostRemoved;
+            }
+        }
+
+        public async Task UpdatesQueueReader()
+        {
+            while (!_disposed)
+            {
+                while (_updateQueue.TryDequeue(out var item))
+                {
+                    item.Apply(this); // Execute action
+                }
+                await _updateQueueSignal.WaitAsync(1000);
+            }
+            _updateQueueSignal.Dispose();
         }
 
         private void SchemaCHangedEventHandler(object sender, SchemaChangedEventArgs e)
