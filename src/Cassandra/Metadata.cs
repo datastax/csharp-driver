@@ -490,6 +490,12 @@ namespace Cassandra
             //it is really not required to be called, left as it is part of the public API
             //dereference the control connection
             ControlConnection = null;
+            TabletMap.Shutdown();
+        }
+
+        public async Task Init()
+        {
+            await TabletMap.Init().ConfigureAwait(false);
         }
 
         /// <summary>

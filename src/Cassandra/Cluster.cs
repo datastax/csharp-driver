@@ -215,6 +215,7 @@ namespace Cassandra
                 Cluster.Logger.Info("Connecting to cluster using {0}", GetAssemblyInfoString());
                 try
                 {
+                    await _metadata.Init().ConfigureAwait(false);
                     // Collect all policies in collections
                     var loadBalancingPolicies = new HashSet<ILoadBalancingPolicy>(new ReferenceEqualityComparer<ILoadBalancingPolicy>());
                     var speculativeExecutionPolicies = new HashSet<ISpeculativeExecutionPolicy>(new ReferenceEqualityComparer<ISpeculativeExecutionPolicy>());
