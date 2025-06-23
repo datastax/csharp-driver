@@ -55,9 +55,9 @@ jobs:
         run: |
           cd get-version
           if [[ "${{ matrix.scylla-version }}" == "ENTERPRISE-RELEASE" ]]; then
-            echo "SCYLLA_VERSION=release:$(./get-version --source dockerhub-imagetag --repo scylladb/scylla-enterprise -filters "2024.2.LAST" | tr -d '\"')" >> $GITHUB_ENV
+            echo "SCYLLA_VERSION=release:$(./get-version --source dockerhub-imagetag --repo scylladb/scylla-enterprise -filters "^[0-9]{4}$.^[0-9]+$.^[0-9]+$ and LAST.LAST.LAST" | tr -d '\"')" >> $GITHUB_ENV
           elif [[ "${{ matrix.scylla-version }}" == "OSS-RELEASE" ]]; then
-            echo "SCYLLA_VERSION=release:$(./get-version --source dockerhub-imagetag --repo scylladb/scylla -filters "6.1.LAST" | tr -d '\"')" >> $GITHUB_ENV
+            echo "SCYLLA_VERSION=release:$(./get-version --source dockerhub-imagetag --repo scylladb/scylla -filters "^[0-9]$.^[0-9]+$.^[0-9]+$ and LAST.LAST.LAST" | tr -d '\"')" >> $GITHUB_ENV
           elif echo "${{ matrix.scylla-version }}" | grep -P '^[0-9\.]+'; then # If you want to run specific version do just that
             echo "SCYLLA_VERSION=release:${{ matrix.scylla-version }}" >> $GITHUB_ENV
           else
