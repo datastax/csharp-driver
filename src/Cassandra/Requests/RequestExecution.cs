@@ -89,7 +89,7 @@ namespace Cassandra.Requests
             try
             {
                 // host needs to be re-validated using the load balancing policy
-                _connection = await _parent.ValidateHostAndGetConnectionAsync(host, _triedHosts).ConfigureAwait(false);
+                _connection = await _parent.ValidateHostAndGetConnectionAsync(new HostShard(host, -1), _triedHosts).ConfigureAwait(false);
                 if (_connection != null)
                 {
                     await SendAsync(_request, host, HandleResponseAsync).ConfigureAwait(false);

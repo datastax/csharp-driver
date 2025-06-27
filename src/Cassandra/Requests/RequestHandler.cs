@@ -317,14 +317,14 @@ namespace Cassandra.Requests
             return Interlocked.Read(ref _state) == RequestHandler.StateCompleted;
         }
 
-        private Host GetNextHost()
+        private HostShard GetNextHost()
         {
             // Lock to handle multiple threads from multiple executions to get a new host
             lock (_queryPlanLock)
             {
                 if (_queryPlan.MoveNext())
                 {
-                    return _queryPlan.Current?.Host;
+                    return _queryPlan.Current;
                 }
             }
             return null;
@@ -333,11 +333,11 @@ namespace Cassandra.Requests
         /// <inheritdoc />
         public ValidHost GetNextValidHost(Dictionary<IPEndPoint, Exception> triedHosts)
         {
-            Host host;
-            while ((host = GetNextHost()) != null && !_session.IsDisposed)
+            HostShard hostShard;
+            while ((hostShard = GetNextHost()) != null && !_session.IsDisposed)
             {
-                triedHosts[host.Address] = null;
-                if (!TryValidateHost(host, out var validHost))
+                triedHosts[hostShard.Host.Address] = null;
+                if (!TryValidateHost(hostShard.Host, out var validHost))
                 {
                     continue;
                 }
@@ -366,11 +366,11 @@ namespace Cassandra.Requests
         /// <inheritdoc />
         public async Task<IConnection> GetNextConnectionAsync(Dictionary<IPEndPoint, Exception> triedHosts)
         {
-            Host host;
+            HostShard hostShard;
             // While there is an available host
-            while ((host = GetNextHost()) != null)
+            while ((hostShard = GetNextHost()) != null)
             {
-                var c = await ValidateHostAndGetConnectionAsync(host, triedHosts).ConfigureAwait(false);
+                var c = await ValidateHostAndGetConnectionAsync(hostShard, triedHosts).ConfigureAwait(false);
                 if (c == null)
                 {
                     continue;
@@ -382,27 +382,27 @@ namespace Cassandra.Requests
         }
 
         /// <inheritdoc />
-        public async Task<IConnection> ValidateHostAndGetConnectionAsync(Host host, Dictionary<IPEndPoint, Exception> triedHosts)
+        public async Task<IConnection> ValidateHostAndGetConnectionAsync(HostShard hostShard, Dictionary<IPEndPoint, Exception> triedHosts)
         {
             if (_session.IsDisposed)
             {
                 throw new NoHostAvailableException(triedHosts);
             }
 
-            triedHosts[host.Address] = null;
-            if (!TryValidateHost(host, out var validHost))
+            triedHosts[hostShard.Host.Address] = null;
+            if (!TryValidateHost(hostShard.Host, out var validHost))
             {
                 return null;
             }
 
-            var c = await GetConnectionToValidHostAsync(validHost, triedHosts).ConfigureAwait(false);
+            var c = await GetConnectionToValidHostAsync(validHost, triedHosts, hostShard.Shard).ConfigureAwait(false);
             return c;
         }
 
         /// <inheritdoc />
-        public Task<IConnection> GetConnectionToValidHostAsync(ValidHost validHost, IDictionary<IPEndPoint, Exception> triedHosts)
+        public Task<IConnection> GetConnectionToValidHostAsync(ValidHost validHost, IDictionary<IPEndPoint, Exception> triedHosts, int shardID = -1)
         {
-            return RequestHandler.GetConnectionFromHostAsync(validHost.Host, validHost.Distance, _session, triedHosts, Statement != null ? Statement.RoutingKey : null);
+            return RequestHandler.GetConnectionFromHostAsync(validHost.Host, validHost.Distance, _session, triedHosts, Statement != null ? Statement.RoutingKey : null, shardID);
         }
 
         /// <summary>
@@ -414,21 +414,22 @@ namespace Cassandra.Requests
         /// <param name="session">Session from where a connection will be obtained (or created).</param>
         /// <param name="triedHosts">Hosts for which there were attempts to connect and send the request.</param>
         /// <param name="routingKey">Routing key to use for the next host.</param>
+        /// <param name="shardID">Shard to use.</param>
         /// <exception cref="InvalidQueryException">When the keyspace is not valid</exception>
         internal static Task<IConnection> GetConnectionFromHostAsync(
-            Host host, HostDistance distance, IInternalSession session, IDictionary<IPEndPoint, Exception> triedHosts, RoutingKey routingKey = null)
+            Host host, HostDistance distance, IInternalSession session, IDictionary<IPEndPoint, Exception> triedHosts, RoutingKey routingKey = null, int shardID = -1)
         {
-            return GetConnectionFromHostInternalAsync(host, distance, session, triedHosts, true, routingKey);
+            return GetConnectionFromHostInternalAsync(host, distance, session, triedHosts, true, routingKey, shardID);
         }
 
         private static async Task<IConnection> GetConnectionFromHostInternalAsync(
-            Host host, HostDistance distance, IInternalSession session, IDictionary<IPEndPoint, Exception> triedHosts, bool retry, RoutingKey routingKey)
+            Host host, HostDistance distance, IInternalSession session, IDictionary<IPEndPoint, Exception> triedHosts, bool retry, RoutingKey routingKey, int shardID = -1)
         {
             var hostPool = session.GetOrCreateConnectionPool(host, distance);
 
             try
             {
-                return await hostPool.GetConnectionFromHostAsync(triedHosts, () => session.Keyspace, routingKey).ConfigureAwait(false);
+                return await hostPool.GetConnectionFromHostAsync(triedHosts, () => session.Keyspace, routingKey, shardID).ConfigureAwait(false);
             }
             catch (SocketException)
             {

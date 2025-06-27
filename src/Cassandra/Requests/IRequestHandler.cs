@@ -74,9 +74,10 @@ namespace Cassandra.Requests
         /// </summary>
         /// <param name="validHost">Host to which a connection will be obtained.</param>
         /// <param name="triedHosts">Hosts for which there were attempts to connect and send the request.</param>
+        /// <param name="shardID">Shard to use.</param>
         /// <exception cref="InvalidQueryException">When the keyspace is not valid</exception>
         /// <exception cref="NoHostAvailableException">If every host from the query plan is unavailable.</exception>
-        Task<IConnection> GetConnectionToValidHostAsync(ValidHost validHost, IDictionary<IPEndPoint, Exception> triedHosts);
+        Task<IConnection> GetConnectionToValidHostAsync(ValidHost validHost, IDictionary<IPEndPoint, Exception> triedHosts, int shardID = -1);
 
         /// <summary>
         /// Obtain a connection to the provided <paramref name="host"/>.
@@ -86,7 +87,7 @@ namespace Cassandra.Requests
         /// <param name="triedHosts">Hosts for which there were attempts to connect and send the request.</param>
         /// <exception cref="InvalidQueryException">When the keyspace is not valid</exception>
         /// <exception cref="NoHostAvailableException">If every host from the query plan is unavailable.</exception>
-        Task<IConnection> ValidateHostAndGetConnectionAsync(Host host, Dictionary<IPEndPoint, Exception> triedHosts);
+        Task<IConnection> ValidateHostAndGetConnectionAsync(HostShard host, Dictionary<IPEndPoint, Exception> triedHosts);
 
         Task<RowSet> SendAsync();
 

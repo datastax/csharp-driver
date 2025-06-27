@@ -69,8 +69,8 @@ namespace Cassandra.IntegrationTests.MetadataTests
                 sessionNotSync.ChangeKeyspace(keyspaceName);
                 sessionSync.ChangeKeyspace(keyspaceName);
 
-                ICollection<Host> replicasSync = null;
-                ICollection<Host> replicasNotSync = null;
+                ICollection<HostShard> replicasSync = null;
+                ICollection<HostShard> replicasNotSync = null;
 
                 TestHelper.RetryAssert(() =>
                 {
