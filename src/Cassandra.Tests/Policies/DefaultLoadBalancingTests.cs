@@ -32,7 +32,7 @@ namespace Cassandra.Tests.Policies
             var hosts = lbp.NewQueryPlan(null, statement);
             CollectionAssert.AreEqual(
                 new[] { "201.0.0.0:9042", "101.0.0.0:9042", "102.0.0.0:9042" },
-                hosts.Select(h => h.Address.ToString()));
+                hosts.Select(h => h.Host.Address.ToString()));
         }
 
         [Test]
@@ -45,7 +45,7 @@ namespace Cassandra.Tests.Policies
             var hosts = lbp.NewQueryPlan(null, statement);
             CollectionAssert.AreEqual(
                 new[] { "101.0.0.0:9042", "102.0.0.0:9042" },
-                hosts.Select(h => h.Address.ToString()));
+                hosts.Select(h => h.Host.Address.ToString()));
         }
 
         [Test]

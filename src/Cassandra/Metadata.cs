@@ -276,17 +276,17 @@ namespace Cassandra
         /// <summary>
         /// Get the replicas for a given partition key and keyspace
         /// </summary>
-        public ICollection<Host> GetReplicas(string keyspaceName, byte[] partitionKey)
+        public ICollection<HostShard> GetReplicas(string keyspaceName, byte[] partitionKey)
         {
             if (_tokenMap == null)
             {
                 Metadata.Logger.Warning("Metadata.GetReplicas was called but there was no token map.");
-                return new Host[0];
+                return new HostShard[0];
             }
             return _tokenMap.GetReplicas(keyspaceName, _tokenMap.Factory.Hash(partitionKey));
         }
 
-        public ICollection<Host> GetReplicas(byte[] partitionKey)
+        public ICollection<HostShard> GetReplicas(byte[] partitionKey)
         {
             return GetReplicas(null, partitionKey);
         }

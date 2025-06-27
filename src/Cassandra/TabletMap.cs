@@ -11,7 +11,7 @@ namespace Cassandra
     internal class TabletMap
     {
         private static readonly Logger Logger = new Logger(typeof(TabletMap));
-        private static readonly IReadOnlyList<Host> EMPTY_LIST = new List<Host>();
+        private static readonly IReadOnlyList<HostShard> EMPTY_LIST = new List<HostShard>();
 
         private readonly ConcurrentDictionary<KeyspaceTableNamePair, TabletSet> _mapping;
         private readonly Metadata _metadata;
@@ -103,7 +103,7 @@ namespace Cassandra
 
         public IDictionary<KeyspaceTableNamePair, TabletSet> GetMapping() => _mapping;
 
-        public IReadOnlyList<Host> GetReplicas(string keyspace, string table, long token)
+        public IReadOnlyList<HostShard> GetReplicas(string keyspace, string table, IToken token)
         {
             var key = new KeyspaceTableNamePair(keyspace, table);
 
@@ -127,7 +127,7 @@ namespace Cassandra
                 if (replica == null)
                     return EMPTY_LIST;
 
-                replicas.Add(replica);
+                replicas.Add(new HostShard(replica, hostShardPair.Shard));
             }
             return replicas.ToList(); // Return as List<HostDummy>, which implements IReadOnlyList<HostDummy>
         }

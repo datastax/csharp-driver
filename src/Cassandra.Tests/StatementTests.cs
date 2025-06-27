@@ -331,7 +331,7 @@ namespace Cassandra.Tests
             var lbp = new TokenAwarePolicy(new ClusterTests.FakeLoadBalancingPolicy());
             var clusterMock = Mock.Of<IInternalCluster>();
             Mock.Get(clusterMock).Setup(c => c.GetReplicas(It.IsAny<string>(), It.IsAny<byte[]>()))
-                .Returns(new List<Host>());
+                .Returns(new List<HostShard>());
             Mock.Get(clusterMock).Setup(c => c.AllHosts())
                 .Returns(new List<Host>());
             lbp.Initialize(clusterMock);

@@ -379,13 +379,13 @@ namespace Cassandra.Tests.ExecutionProfiles
                 return HostDistance.Local;
             }
 
-            public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
+            public IEnumerable<HostShard> NewQueryPlan(string keyspace, IStatement query)
             {
                 Interlocked.Increment(ref Count);
-                return new List<Host>
+                return new List<HostShard>
                 {
-                    new Host(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9042), contactPoint: null),
-                    new Host(new IPEndPoint(IPAddress.Parse("127.0.0.2"), 9042), contactPoint: null) // 2 hosts for speculative execution policy
+                    new HostShard(new Host(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9042), contactPoint: null), -1),
+                    new HostShard(new Host(new IPEndPoint(IPAddress.Parse("127.0.0.2"), 9042), contactPoint: null), -1) // 2 hosts for speculative execution policy
                 };
             }
         }

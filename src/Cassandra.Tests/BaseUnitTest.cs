@@ -79,12 +79,12 @@ namespace Cassandra.Tests
                 return _distance;
             }
 
-            public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
+            public IEnumerable<HostShard> NewQueryPlan(string keyspace, IStatement query)
             {
                 return new[]
                 {
-                    new Host(new IPEndPoint(101L, 9042), ReconnectionPolicy),
-                    new Host(new IPEndPoint(102L, 9042), ReconnectionPolicy)
+                    new HostShard(new Host(new IPEndPoint(101L, 9042), ReconnectionPolicy), -1),
+                    new HostShard(new Host(new IPEndPoint(102L, 9042), ReconnectionPolicy), -1)
                 };
             }
         }

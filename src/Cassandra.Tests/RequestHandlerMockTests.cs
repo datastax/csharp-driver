@@ -70,8 +70,8 @@ namespace Cassandra.Tests
             var sessionMock = GetMockInternalSession();
             var lbpMock = Mock.Of<ILoadBalancingPolicy>();
             Mock.Get(sessionMock).SetupGet(m => m.Cluster.Configuration).Returns(RequestHandlerMockTests.GetConfig(lbpMock));
-            var enumerable = Mock.Of<IEnumerable<Host>>();
-            var enumerator = Mock.Of<IEnumerator<Host>>();
+            var enumerable = Mock.Of<IEnumerable<HostShard>>();
+            var enumerator = Mock.Of<IEnumerator<HostShard>>();
 
             Mock.Get(enumerator).Setup(m => m.MoveNext()).Returns(false);
             Mock.Get(enumerable).Setup(m => m.GetEnumerator()).Returns(enumerator);
@@ -93,11 +93,11 @@ namespace Cassandra.Tests
             var sessionMock = GetMockInternalSession();
             var lbpMock = Mock.Of<ILoadBalancingPolicy>();
             Mock.Get(sessionMock).SetupGet(m => m.Cluster.Configuration).Returns(RequestHandlerMockTests.GetConfig(lbpMock));
-            var enumerable = Mock.Of<IEnumerable<Host>>();
-            var enumerator = Mock.Of<IEnumerator<Host>>();
+            var enumerable = Mock.Of<IEnumerable<HostShard>>();
+            var enumerator = Mock.Of<IEnumerator<HostShard>>();
 
             Mock.Get(enumerator).Setup(m => m.MoveNext()).Returns(true);
-            Mock.Get(enumerator).SetupGet(m => m.Current).Returns((Host)null);
+            Mock.Get(enumerator).SetupGet(m => m.Current).Returns((HostShard)null);
             Mock.Get(enumerable).Setup(m => m.GetEnumerator()).Returns(enumerator);
             Mock.Get(lbpMock)
                 .Setup(m => m.NewQueryPlan(It.IsAny<string>(), It.IsAny<IStatement>()))
@@ -117,23 +117,23 @@ namespace Cassandra.Tests
             var sessionMock = GetMockInternalSession();
             var lbpMock = Mock.Of<ILoadBalancingPolicy>();
             Mock.Get(sessionMock).SetupGet(m => m.Cluster.Configuration).Returns(RequestHandlerMockTests.GetConfig(lbpMock));
-            var enumerable = Mock.Of<IEnumerable<Host>>();
-            var enumerator = Mock.Of<IEnumerator<Host>>();
-            var host = new Host(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9047), contactPoint: null);
+            var enumerable = Mock.Of<IEnumerable<HostShard>>();
+            var enumerator = Mock.Of<IEnumerator<HostShard>>();
+            var hostShard = new HostShard(new Host(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9047), contactPoint: null), -1);
             Mock.Get(enumerator).Setup(m => m.MoveNext()).Returns(true);
-            Mock.Get(enumerator).SetupGet(m => m.Current).Returns(host);
+            Mock.Get(enumerator).SetupGet(m => m.Current).Returns(hostShard);
             Mock.Get(enumerable).Setup(m => m.GetEnumerator()).Returns(enumerator);
             Mock.Get(lbpMock)
                 .Setup(m => m.NewQueryPlan(It.IsAny<string>(), It.IsAny<IStatement>()))
                 .Returns(enumerable);
-            Mock.Get(lbpMock).Setup(m => m.Distance(host)).Returns(HostDistance.Local);
+            Mock.Get(lbpMock).Setup(m => m.Distance(hostShard.Host)).Returns(HostDistance.Local);
             var triedHosts = new Dictionary<IPEndPoint, Exception>();
 
             var requestTrackingInfoAndObserver = RequestHandler.CreateRequestObserver(sessionMock, null).GetAwaiter().GetResult();
             var sut = new RequestHandler(sessionMock, new SerializerManager(ProtocolVersion.V4).GetCurrentSerializer(), requestTrackingInfoAndObserver.Item1, requestTrackingInfoAndObserver.Item2);
             var validHost = sut.GetNextValidHost(triedHosts);
             Assert.NotNull(validHost);
-            Assert.AreEqual(host, validHost.Host);
+            Assert.AreEqual(hostShard.Host, validHost.Host);
         }
     }
 }

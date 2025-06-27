@@ -386,10 +386,10 @@ namespace Cassandra.IntegrationTests.Core
                 return _parent.Distance(host);
             }
 
-            public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
+            public IEnumerable<HostShard> NewQueryPlan(string keyspace, IStatement query)
             {
                 var plan = _parent.NewQueryPlan(keyspace, query);
-                return plan.Where(h => !_disallowed.Contains(h.Address));
+                return plan.Where(h => !_disallowed.Contains(h.Host.Address));
             }
         }
     }

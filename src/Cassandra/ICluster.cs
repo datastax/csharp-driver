@@ -112,7 +112,7 @@ namespace Cassandra
         /// </summary>
         /// <param name="partitionKey">Byte array representing the partition key</param>
         /// <returns></returns>
-        ICollection<Host> GetReplicas(byte[] partitionKey);
+        ICollection<HostShard> GetReplicas(byte[] partitionKey);
 
         /// <summary>
         /// Gets a collection of replicas for a given partitionKey on a given keyspace
@@ -120,7 +120,7 @@ namespace Cassandra
         /// <param name="keyspace">Byte array representing the partition key</param>
         /// <param name="partitionKey">Byte array representing the partition key</param>
         /// <returns></returns>
-        ICollection<Host> GetReplicas(string keyspace, byte[] partitionKey);
+        ICollection<HostShard> GetReplicas(string keyspace, byte[] partitionKey);
 
         /// <summary>
         ///  Shutdown this cluster instance. This closes all connections from all the

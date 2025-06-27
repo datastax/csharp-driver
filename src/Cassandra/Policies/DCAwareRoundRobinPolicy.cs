@@ -202,7 +202,7 @@ namespace Cassandra
         /// <param name="query"> the query for which to build the plan. </param>
         /// <returns>a new query plan, i.e. an iterator indicating which host to try
         ///  first for querying, which one to use as failover, etc...</returns>
-        public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
+        public IEnumerable<HostShard> NewQueryPlan(string keyspace, IStatement query)
         {
             var startIndex = Interlocked.Increment(ref _index);
             //Simplified overflow protection
@@ -216,7 +216,7 @@ namespace Cassandra
             //Round-robin through local nodes
             for (var i = 0; i < localHosts.Count; i++)
             {
-                yield return localHosts[(startIndex + i) % localHosts.Count];
+                yield return new HostShard(localHosts[(startIndex + i) % localHosts.Count], -1);
             }
 
             if (_usedHostsPerRemoteDc == 0)
@@ -234,7 +234,7 @@ namespace Cassandra
                     continue;
                 }
                 dcHosts[dc] = hostYieldedByDc + 1;
-                yield return h;
+                yield return new HostShard(h, -1);
             }
         }
 

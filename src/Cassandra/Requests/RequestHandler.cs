@@ -44,7 +44,7 @@ namespace Cassandra.Requests
         private readonly IInternalSession _session;
         private readonly IRequestResultHandler _requestResultHandler;
         private long _state;
-        private readonly IEnumerator<Host> _queryPlan;
+        private readonly IEnumerator<HostShard> _queryPlan;
         private readonly object _queryPlanLock = new object();
         private readonly ICollection<IRequestExecution> _running = new CopyOnWriteList<IRequestExecution>();
         private ISpeculativeExecutionPlan _executionPlan;
@@ -107,14 +107,14 @@ namespace Cassandra.Requests
         /// In the special case when a Host is provided at Statement level, it will return a query plan with a single
         /// host.
         /// </summary>
-        private static IEnumerable<Host> GetQueryPlan(ISession session, IStatement statement, ILoadBalancingPolicy lbp)
+        private static IEnumerable<HostShard> GetQueryPlan(ISession session, IStatement statement, ILoadBalancingPolicy lbp)
         {
             // Single host iteration
             var host = (statement as Statement)?.Host;
 
             return host == null
                 ? lbp.NewQueryPlan(session.Keyspace, statement)
-                : Enumerable.Repeat(host, 1);
+                : Enumerable.Repeat(new HostShard(host, -1), 1);
         }
 
         /// <inheritdoc />
@@ -324,7 +324,7 @@ namespace Cassandra.Requests
             {
                 if (_queryPlan.MoveNext())
                 {
-                    return _queryPlan.Current;
+                    return _queryPlan.Current?.Host;
                 }
             }
             return null;

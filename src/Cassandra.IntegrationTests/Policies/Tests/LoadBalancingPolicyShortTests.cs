@@ -382,7 +382,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
                 // Get the replicas
                 var replicas = cluster.GetReplicas(ks, routingKey);
                 Assert.AreEqual(metadataSync ? 2 : 1, replicas.Count);
-                CollectionAssert.AreEquivalent(replicas.Select(h => h.Address), coordinators);
+                CollectionAssert.AreEquivalent(replicas.Select(h => h.Host.Address), coordinators);
             }
             finally
             {

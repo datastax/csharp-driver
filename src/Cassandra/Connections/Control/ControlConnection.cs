@@ -216,16 +216,16 @@ namespace Cassandra.Connections.Control
             bool refreshContactPoints,
             bool refreshEndpoints)
         {
-            foreach (var host in _config.DefaultRequestOptions.LoadBalancingPolicy.NewQueryPlan(null, null))
+            foreach (var hostShard in _config.DefaultRequestOptions.LoadBalancingPolicy.NewQueryPlan(null, null))
             {
-                if (attemptedHosts.TryAdd(host, null))
+                if (attemptedHosts.TryAdd(hostShard.Host, null))
                 {
-                    if (!IsHostValid(host, isInitializing))
+                    if (!IsHostValid(hostShard.Host, isInitializing))
                     {
                         continue;
                     }
 
-                    yield return ResolveHostContactPointOrConnectionEndpointAsync(attemptedContactPoints, host, refreshContactPoints, refreshEndpoints);
+                    yield return ResolveHostContactPointOrConnectionEndpointAsync(attemptedContactPoints, hostShard.Host, refreshContactPoints, refreshEndpoints);
                 }
             }
         }

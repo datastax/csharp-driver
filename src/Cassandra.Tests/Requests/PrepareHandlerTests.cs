@@ -77,10 +77,10 @@ namespace Cassandra.Tests.Requests
             };
             var queryPlan = mockResult.Session.InternalCluster
                                       .GetResolvedEndpoints()
-                                      .Select(x => new Host(x.Value.First().GetHostIpEndPointWithFallback(), contactPoint: null))
+                                      .Select(x => new HostShard(new Host(x.Value.First().GetHostIpEndPointWithFallback(), contactPoint: null), -1))
                                       .ToList();
-            await mockResult.Session.GetOrCreateConnectionPool(queryPlan[0], HostDistance.Local).Warmup().ConfigureAwait(false);
-            await mockResult.Session.GetOrCreateConnectionPool(queryPlan[2], HostDistance.Local).Warmup().ConfigureAwait(false);
+            await mockResult.Session.GetOrCreateConnectionPool(queryPlan[0].Host, HostDistance.Local).Warmup().ConfigureAwait(false);
+            await mockResult.Session.GetOrCreateConnectionPool(queryPlan[2].Host, HostDistance.Local).Warmup().ConfigureAwait(false);
             var pools = mockResult.Session.GetPools().ToList();
             Assert.AreEqual(2, pools.Count);
             var distanceCount = Interlocked.Read(ref lbpCluster.DistanceCount);
@@ -99,8 +99,8 @@ namespace Cassandra.Tests.Requests
             Assert.AreEqual(distanceCount + 1, Interlocked.Read(ref lbpCluster.DistanceCount), 1);
             Assert.AreEqual(Interlocked.Read(ref lbpCluster.NewQueryPlanCount), 0);
             Assert.AreEqual(2, mockResult.ConnectionFactory.CreatedConnections.Count);
-            Assert.LessOrEqual(1, mockResult.ConnectionFactory.CreatedConnections[queryPlan[0].Address].Count);
-            Assert.LessOrEqual(1, mockResult.ConnectionFactory.CreatedConnections[queryPlan[2].Address].Count);
+            Assert.LessOrEqual(1, mockResult.ConnectionFactory.CreatedConnections[queryPlan[0].Host.Address].Count);
+            Assert.LessOrEqual(1, mockResult.ConnectionFactory.CreatedConnections[queryPlan[2].Host.Address].Count);
             // Assert that each pool contains only one connection that was called send
             var poolConnections = pools.Select(p => p.Value.ConnectionsSnapshot.Intersect(results.Select(r => r.Connection))).ToList();
             Assert.AreEqual(2, poolConnections.Count);
@@ -148,11 +148,11 @@ namespace Cassandra.Tests.Requests
             };
             var queryPlan = mockResult.Session.InternalCluster
                                       .GetResolvedEndpoints()
-                                      .Select(x => new Host(x.Value.First().GetHostIpEndPointWithFallback(), contactPoint: null))
+                                      .Select(x => new HostShard(new Host(x.Value.First().GetHostIpEndPointWithFallback(), contactPoint: null), -1))
                                       .ToList();
-            await mockResult.Session.GetOrCreateConnectionPool(queryPlan[0], HostDistance.Local).Warmup().ConfigureAwait(false);
-            mockResult.Session.GetOrCreateConnectionPool(queryPlan[1], HostDistance.Local);
-            await mockResult.Session.GetOrCreateConnectionPool(queryPlan[2], HostDistance.Local).Warmup().ConfigureAwait(false);
+            await mockResult.Session.GetOrCreateConnectionPool(queryPlan[0].Host, HostDistance.Local).Warmup().ConfigureAwait(false);
+            mockResult.Session.GetOrCreateConnectionPool(queryPlan[1].Host, HostDistance.Local);
+            await mockResult.Session.GetOrCreateConnectionPool(queryPlan[2].Host, HostDistance.Local).Warmup().ConfigureAwait(false);
             var pools = mockResult.Session.GetPools().ToList();
             Assert.AreEqual(3, pools.Count);
             var distanceCount = Interlocked.Read(ref lbpCluster.DistanceCount);
@@ -171,8 +171,8 @@ namespace Cassandra.Tests.Requests
             Assert.AreEqual(distanceCount + 1, Interlocked.Read(ref lbpCluster.DistanceCount), 1);
             Assert.AreEqual(Interlocked.Read(ref lbpCluster.NewQueryPlanCount), 0);
             Assert.AreEqual(2, mockResult.ConnectionFactory.CreatedConnections.Count);
-            Assert.LessOrEqual(1, mockResult.ConnectionFactory.CreatedConnections[queryPlan[0].Address].Count);
-            Assert.LessOrEqual(1, mockResult.ConnectionFactory.CreatedConnections[queryPlan[2].Address].Count);
+            Assert.LessOrEqual(1, mockResult.ConnectionFactory.CreatedConnections[queryPlan[0].Host.Address].Count);
+            Assert.LessOrEqual(1, mockResult.ConnectionFactory.CreatedConnections[queryPlan[2].Host.Address].Count);
             // Assert that each pool that contains connections contains only one connection that was called send
             var poolConnections = pools.Select(p => p.Value.ConnectionsSnapshot.Intersect(results.Select(r => r.Connection))).Where(p => p.Any()).ToList();
             Assert.AreEqual(2, poolConnections.Count);
@@ -220,11 +220,11 @@ namespace Cassandra.Tests.Requests
             };
             var queryPlan = mockResult.Session.InternalCluster
                                       .GetResolvedEndpoints()
-                                      .Select(x => new Host(x.Value.First().GetHostIpEndPointWithFallback(), contactPoint: null))
+                                      .Select(x => new HostShard(new Host(x.Value.First().GetHostIpEndPointWithFallback(), contactPoint: null), -1))
                                       .ToList();
-            await mockResult.Session.GetOrCreateConnectionPool(queryPlan[0], HostDistance.Local).Warmup().ConfigureAwait(false);
-            await mockResult.Session.GetOrCreateConnectionPool(queryPlan[1], HostDistance.Local).Warmup().ConfigureAwait(false);
-            await mockResult.Session.GetOrCreateConnectionPool(queryPlan[2], HostDistance.Local).Warmup().ConfigureAwait(false);
+            await mockResult.Session.GetOrCreateConnectionPool(queryPlan[0].Host, HostDistance.Local).Warmup().ConfigureAwait(false);
+            await mockResult.Session.GetOrCreateConnectionPool(queryPlan[1].Host, HostDistance.Local).Warmup().ConfigureAwait(false);
+            await mockResult.Session.GetOrCreateConnectionPool(queryPlan[2].Host, HostDistance.Local).Warmup().ConfigureAwait(false);
             var pools = mockResult.Session.GetPools().ToList();
             Assert.AreEqual(3, pools.Count);
 
@@ -244,9 +244,9 @@ namespace Cassandra.Tests.Requests
             Assert.AreEqual(distanceCount + 1, Interlocked.Read(ref lbpCluster.DistanceCount), 1);
             Assert.AreEqual(Interlocked.Read(ref lbpCluster.NewQueryPlanCount), 0);
             Assert.AreEqual(3, mockResult.ConnectionFactory.CreatedConnections.Count);
-            Assert.LessOrEqual(1, mockResult.ConnectionFactory.CreatedConnections[queryPlan[0].Address].Count);
-            Assert.LessOrEqual(1, mockResult.ConnectionFactory.CreatedConnections[queryPlan[1].Address].Count);
-            Assert.LessOrEqual(1, mockResult.ConnectionFactory.CreatedConnections[queryPlan[2].Address].Count);
+            Assert.LessOrEqual(1, mockResult.ConnectionFactory.CreatedConnections[queryPlan[0].Host.Address].Count);
+            Assert.LessOrEqual(1, mockResult.ConnectionFactory.CreatedConnections[queryPlan[1].Host.Address].Count);
+            Assert.LessOrEqual(1, mockResult.ConnectionFactory.CreatedConnections[queryPlan[2].Host.Address].Count);
             // Assert that each pool contains only one connection that was called send
             var poolConnections = pools.Select(p => p.Value.ConnectionsSnapshot.Intersect(results.Select(r => r.Connection))).ToList();
             Assert.AreEqual(3, poolConnections.Count);
@@ -294,10 +294,10 @@ namespace Cassandra.Tests.Requests
             };
             var queryPlan = mockResult.Session.InternalCluster
                                       .GetResolvedEndpoints()
-                                      .Select(x => new Host(x.Value.First().GetHostIpEndPointWithFallback(), contactPoint: null))
+                                      .Select(x => new HostShard(new Host(x.Value.First().GetHostIpEndPointWithFallback(), contactPoint: null), -1))
                                       .ToList();
-            await mockResult.Session.GetOrCreateConnectionPool(queryPlan[1], HostDistance.Local).Warmup().ConfigureAwait(false);
-            await mockResult.Session.GetOrCreateConnectionPool(queryPlan[2], HostDistance.Local).Warmup().ConfigureAwait(false);
+            await mockResult.Session.GetOrCreateConnectionPool(queryPlan[1].Host, HostDistance.Local).Warmup().ConfigureAwait(false);
+            await mockResult.Session.GetOrCreateConnectionPool(queryPlan[2].Host, HostDistance.Local).Warmup().ConfigureAwait(false);
             var pools = mockResult.Session.GetPools().ToList();
             Assert.AreEqual(2, pools.Count);
             var distanceCount = Interlocked.Read(ref lbpCluster.DistanceCount);
@@ -316,9 +316,9 @@ namespace Cassandra.Tests.Requests
             Assert.AreEqual(distanceCount + 1, Interlocked.Read(ref lbpCluster.DistanceCount), 1);
             Assert.AreEqual(Interlocked.Read(ref lbpCluster.NewQueryPlanCount), 0);
             Assert.AreEqual(3, mockResult.ConnectionFactory.CreatedConnections.Count);
-            Assert.LessOrEqual(1, mockResult.ConnectionFactory.CreatedConnections[queryPlan[0].Address].Count);
-            Assert.LessOrEqual(1, mockResult.ConnectionFactory.CreatedConnections[queryPlan[1].Address].Count);
-            Assert.LessOrEqual(1, mockResult.ConnectionFactory.CreatedConnections[queryPlan[2].Address].Count);
+            Assert.LessOrEqual(1, mockResult.ConnectionFactory.CreatedConnections[queryPlan[0].Host.Address].Count);
+            Assert.LessOrEqual(1, mockResult.ConnectionFactory.CreatedConnections[queryPlan[1].Host.Address].Count);
+            Assert.LessOrEqual(1, mockResult.ConnectionFactory.CreatedConnections[queryPlan[2].Host.Address].Count);
             // Assert that each pool contains only one connection that was called send
             var poolConnections = pools.Select(p => p.Value.ConnectionsSnapshot.Intersect(results.Select(r => r.Connection))).ToList();
             Assert.AreEqual(3, poolConnections.Count);
@@ -366,10 +366,10 @@ namespace Cassandra.Tests.Requests
             };
             var queryPlan = mockResult.Session.InternalCluster
                                       .GetResolvedEndpoints()
-                                      .Select(x => new Host(x.Value.First().GetHostIpEndPointWithFallback(), contactPoint: null))
+                                      .Select(x => new HostShard(new Host(x.Value.First().GetHostIpEndPointWithFallback(), contactPoint: null), -1))
                                       .ToList();
-            await mockResult.Session.GetOrCreateConnectionPool(queryPlan[1], HostDistance.Local).Warmup().ConfigureAwait(false);
-            await mockResult.Session.GetOrCreateConnectionPool(queryPlan[2], HostDistance.Local).Warmup().ConfigureAwait(false);
+            await mockResult.Session.GetOrCreateConnectionPool(queryPlan[1].Host, HostDistance.Local).Warmup().ConfigureAwait(false);
+            await mockResult.Session.GetOrCreateConnectionPool(queryPlan[2].Host, HostDistance.Local).Warmup().ConfigureAwait(false);
             var pools = mockResult.Session.GetPools().ToList();
             Assert.AreEqual(2, pools.Count);
             var distanceCount = Interlocked.Read(ref lbpCluster.DistanceCount);
@@ -388,9 +388,9 @@ namespace Cassandra.Tests.Requests
             Assert.AreEqual(distanceCount + 1, Interlocked.Read(ref lbpCluster.DistanceCount), 1);
             Assert.AreEqual(Interlocked.Read(ref lbpCluster.NewQueryPlanCount), 0);
             Assert.AreEqual(3, mockResult.ConnectionFactory.CreatedConnections.Count);
-            Assert.LessOrEqual(1, mockResult.ConnectionFactory.CreatedConnections[queryPlan[0].Address].Count);
-            Assert.LessOrEqual(1, mockResult.ConnectionFactory.CreatedConnections[queryPlan[1].Address].Count);
-            Assert.LessOrEqual(1, mockResult.ConnectionFactory.CreatedConnections[queryPlan[2].Address].Count);
+            Assert.LessOrEqual(1, mockResult.ConnectionFactory.CreatedConnections[queryPlan[0].Host.Address].Count);
+            Assert.LessOrEqual(1, mockResult.ConnectionFactory.CreatedConnections[queryPlan[1].Host.Address].Count);
+            Assert.LessOrEqual(1, mockResult.ConnectionFactory.CreatedConnections[queryPlan[2].Host.Address].Count);
             // Assert that each pool contains only one connection that was called send
             var poolConnections = pools.Select(p => p.Value.ConnectionsSnapshot.Intersect(results.Select(r => r.Connection))).ToList();
             Assert.AreEqual(3, poolConnections.Count);
@@ -439,10 +439,10 @@ namespace Cassandra.Tests.Requests
             };
             var queryPlan = mockResult.Session.InternalCluster
                                       .GetResolvedEndpoints()
-                                      .Select(x => new Host(x.Value.First().GetHostIpEndPointWithFallback(), contactPoint: null))
+                                      .Select(x => new HostShard(new Host(x.Value.First().GetHostIpEndPointWithFallback(), contactPoint: null), -1))
                                       .ToList();
-            await mockResult.Session.GetOrCreateConnectionPool(queryPlan[1], HostDistance.Local).Warmup().ConfigureAwait(false);
-            await mockResult.Session.GetOrCreateConnectionPool(queryPlan[2], HostDistance.Local).Warmup().ConfigureAwait(false);
+            await mockResult.Session.GetOrCreateConnectionPool(queryPlan[1].Host, HostDistance.Local).Warmup().ConfigureAwait(false);
+            await mockResult.Session.GetOrCreateConnectionPool(queryPlan[2].Host, HostDistance.Local).Warmup().ConfigureAwait(false);
             var pools = mockResult.Session.GetPools().ToList();
             Assert.AreEqual(2, pools.Count);
             var distanceCount = Interlocked.Read(ref lbpCluster.DistanceCount);
@@ -461,14 +461,14 @@ namespace Cassandra.Tests.Requests
             Assert.AreEqual(distanceCount + 1, Interlocked.Read(ref lbpCluster.DistanceCount), 1);
             Assert.AreEqual(Interlocked.Read(ref lbpCluster.NewQueryPlanCount), 0);
             Assert.AreEqual(3, mockResult.ConnectionFactory.CreatedConnections.Count);
-            Assert.LessOrEqual(1, mockResult.ConnectionFactory.CreatedConnections[queryPlan[0].Address].Count);
-            Assert.LessOrEqual(1, mockResult.ConnectionFactory.CreatedConnections[queryPlan[1].Address].Count);
-            Assert.LessOrEqual(1, mockResult.ConnectionFactory.CreatedConnections[queryPlan[2].Address].Count);
+            Assert.LessOrEqual(1, mockResult.ConnectionFactory.CreatedConnections[queryPlan[0].Host.Address].Count);
+            Assert.LessOrEqual(1, mockResult.ConnectionFactory.CreatedConnections[queryPlan[1].Host.Address].Count);
+            Assert.LessOrEqual(1, mockResult.ConnectionFactory.CreatedConnections[queryPlan[2].Host.Address].Count);
             // Assert that pool of first host contains only one connection that was called send
             var poolConnections =
                 pools
                     .Select(p => p.Value.ConnectionsSnapshot.Intersect(results.Select(r => r.Connection)))
-                    .Where(p => mockResult.ConnectionFactory.CreatedConnections[queryPlan[0].Address].Contains(p.SingleOrDefault()))
+                    .Where(p => mockResult.ConnectionFactory.CreatedConnections[queryPlan[0].Host.Address].Contains(p.SingleOrDefault()))
                     .ToList();
             Assert.AreEqual(1, poolConnections.Count);
             foreach (var pool in poolConnections)
@@ -568,7 +568,7 @@ namespace Cassandra.Tests.Requests
                 return HostDistance.Local;
             }
 
-            public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
+            public IEnumerable<HostShard> NewQueryPlan(string keyspace, IStatement query)
             {
                 Interlocked.Increment(ref NewQueryPlanCount);
                 throw new NotImplementedException();
