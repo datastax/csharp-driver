@@ -245,9 +245,9 @@ namespace Cassandra.IntegrationTests.Core
                 return HostDistance.Local;
             }
 
-            public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
+            public IEnumerable<HostShard> NewQueryPlan(string keyspace, IStatement query)
             {
-                return _cluster.AllHosts();
+                return _cluster.AllHosts().Select(h => new HostShard(h, -1));
             }
         }
     }

@@ -11,7 +11,7 @@ namespace Cassandra
     internal class TabletMap
     {
         private static readonly Logger Logger = new Logger(typeof(TabletMap));
-        private static readonly IReadOnlyList<Host> EMPTY_LIST = new List<Host>();
+        private static readonly IReadOnlyList<HostShard> EMPTY_LIST = new List<HostShard>();
 
         private readonly ConcurrentDictionary<KeyspaceTableNamePair, TabletSet> _mapping;
         private readonly Metadata _metadata;
@@ -103,31 +103,36 @@ namespace Cassandra
 
         public IDictionary<KeyspaceTableNamePair, TabletSet> GetMapping() => _mapping;
 
-        public IReadOnlyList<Host> GetReplicas(string keyspace, string table, long token)
+        public IReadOnlyList<HostShard> GetReplicas(string keyspace, string table, IToken token)
         {
+            if (token == null)
+            {
+                return EMPTY_LIST;
+            }
+
             var key = new KeyspaceTableNamePair(keyspace, table);
 
             if (!_mapping.TryGetValue(key, out var tabletSet))
             {
-                Logger.Info("No tablets for {keyspace}.{table} in mapping.", keyspace, table);
+                Logger.Info($"No tablets for {keyspace}.{table} in mapping.", keyspace, table);
                 return EMPTY_LIST;
             }
 
-            var row = tabletSet.Tablets.FirstOrDefault(t => t.LastToken >= token);
-            if (row == null || row.FirstToken >= token)
+            var row = tabletSet.Tablets.FirstOrDefault(t => token.CompareTo(new M3PToken(t.LastToken)) <= 0);
+            if (row == null || token.CompareTo(new M3PToken(row.FirstToken)) <= 0)
             {
-                Logger.Info("Could not find tablet for {keyspace}.{table} owning token {token}.", keyspace, table, token);
+                Logger.Info($"Could not find tablet for {keyspace}.{table} owning token {token}.", keyspace, table, token);
                 return EMPTY_LIST;
             }
 
-            var replicas = new List<Host>();
+            var replicas = new List<HostShard>();
             foreach (var hostShardPair in row.Replicas)
             {
                 Host replica = _metadata.Hosts.ToCollection().FirstOrDefault(h => h.HostId == hostShardPair.HostID);
                 if (replica == null)
                     return EMPTY_LIST;
 
-                replicas.Add(replica);
+                replicas.Add(new HostShard(replica, hostShardPair.Shard));
             }
             return replicas.ToList(); // Return as List<HostDummy>, which implements IReadOnlyList<HostDummy>
         }

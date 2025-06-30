@@ -77,7 +77,7 @@ namespace Cassandra
                 sw.Elapsed.TotalMilliseconds);
         }
 
-        public ICollection<Host> GetReplicas(string keyspaceName, IToken token)
+        public ICollection<HostShard> GetReplicas(string keyspaceName, IToken token)
         {
             IReadOnlyList<IToken> readOnlyRing = _ring;
 
@@ -96,12 +96,14 @@ namespace Cassandra
             var closestToken = readOnlyRing[i];
             if (keyspaceName != null && _tokenToHostsByKeyspace.ContainsKey(keyspaceName))
             {
-                return _tokenToHostsByKeyspace[keyspaceName][closestToken];
+                return _tokenToHostsByKeyspace[keyspaceName][closestToken]
+                    .Select(h => new HostShard(h, -1))
+                    .ToList();
             }
 
             TokenMap.Logger.Warning("An attempt to obtain the replicas for a specific token was made but the replicas collection " +
                                     "wasn't computed for this keyspace: {0}. Returning the primary replica for the provided token.", keyspaceName);
-            return new[] { _primaryReplicas[closestToken] };
+            return new[] { new HostShard(_primaryReplicas[closestToken], -1) };
         }
 
         public static TokenMap Build(string partitioner, ICollection<Host> hosts, ICollection<KeyspaceMetadata> keyspaces)

@@ -52,11 +52,11 @@ namespace Cassandra.Tests
             foreach (var host in hostList)
             {
                 //Check that each host appears only once
-                Assert.AreEqual(1, firstRound.Where(h => h.Equals(host)).Count());
+                Assert.AreEqual(1, firstRound.Where(h => h.Host.Equals(host)).Count());
             }
 
             //test the same but in the following times
-            var followingRounds = new List<Host>();
+            var followingRounds = new List<HostShard>();
             for (var i = 0; i < 10; i++)
             {
                 followingRounds.AddRange(policy.NewQueryPlan(null, new SimpleStatement()));
@@ -98,7 +98,7 @@ namespace Cassandra.Tests
                 {
                     //Slow down to try to execute it at the same time
                     Thread.Sleep(50);
-                    resultingHosts.Add(h);
+                    resultingHosts.Add(h.Host);
                 }
                 Assert.AreEqual(hostLength, resultingHosts.Count);
                 Assert.AreEqual(hostLength, resultingHosts.Distinct().Count());
@@ -143,11 +143,11 @@ namespace Cassandra.Tests
             var firstRound = balancedHosts.ToList();
 
             //Returns only local hosts
-            Assert.AreEqual(hostLength - 2, firstRound.Count(h => h.Datacenter == "local"));
-            Assert.AreEqual(0, firstRound.Count(h => h.Datacenter != "local"));
+            Assert.AreEqual(hostLength - 2, firstRound.Count(h => h.Host.Datacenter == "local"));
+            Assert.AreEqual(0, firstRound.Count(h => h.Host.Datacenter != "local"));
 
             //following rounds: test it multiple times
-            var followingRounds = new List<Host>();
+            var followingRounds = new List<HostShard>();
             for (var i = 0; i < 10; i++)
             {
                 followingRounds.AddRange(policy.NewQueryPlan(null, new SimpleStatement()).ToList());
@@ -155,7 +155,7 @@ namespace Cassandra.Tests
             Assert.AreEqual(10 * (hostLength - 2), followingRounds.Count);
 
             //Check that there aren't remote nodes.
-            Assert.AreEqual(0, followingRounds.Count(h => h.Datacenter != "local"));
+            Assert.AreEqual(0, followingRounds.Count(h => h.Host.Datacenter != "local"));
         }
 
         [Test]
@@ -194,11 +194,11 @@ namespace Cassandra.Tests
                     var h = hosts[i];
                     if (i < localHostsLength)
                     {
-                        Assert.AreEqual(localDc, h.Datacenter);
+                        Assert.AreEqual(localDc, h.Host.Datacenter);
                     }
                     else
                     {
-                        Assert.AreNotEqual(localDc, h.Datacenter);
+                        Assert.AreNotEqual(localDc, h.Host.Datacenter);
                     }
                 }
             };
@@ -278,11 +278,11 @@ namespace Cassandra.Tests
                     .Where(g => g.Count() > 1)
                     .Select(y => y.Key)
                     .Count());
-                firstHosts.Add(hosts[0]);
+                firstHosts.Add(hosts[0].Host);
                 //Add to the general list
                 foreach (var h in hosts)
                 {
-                    allHosts.Add(h);
+                    allHosts.Add(h.Host);
                 }
             };
 
@@ -373,7 +373,7 @@ namespace Cassandra.Tests
             policy.Initialize(clusterMock.Object);
 
             var hostYielded = new ConcurrentBag<IEnumerable<Host>>();
-            Action action = () => hostYielded.Add(policy.NewQueryPlan(null, null).ToList());
+            Action action = () => hostYielded.Add(policy.NewQueryPlan(null, null).ToList().Select(h => h.Host));
 
             //Invoke without nodes changing
             TestHelper.ParallelInvoke(action, 100);
@@ -496,7 +496,7 @@ namespace Cassandra.Tests
                         //The host at with address == k || address == k + n
                         var address = TestHelper.GetLastAddressByte(h);
                         return address == i || address == i + n;
-                    }).ToList();
+                    }).Select(h => new HostShard(h, -1)).ToList();
                 })
                 .Verifiable();
 
@@ -509,7 +509,7 @@ namespace Cassandra.Tests
             //5 local hosts + 2 remote hosts
             Assert.AreEqual(7, hosts.Count);
             //local replica first
-            Assert.AreEqual(1, TestHelper.GetLastAddressByte(hosts[0]));
+            Assert.AreEqual(1, TestHelper.GetLastAddressByte(hosts[0].Host));
             clusterMock.Verify();
 
             //key for host :::2 and :::5
@@ -518,11 +518,11 @@ namespace Cassandra.Tests
             hosts = policy.NewQueryPlan(null, new SimpleStatement().SetRoutingKey(k)).ToList();
             Assert.AreEqual(7, hosts.Count);
             //local replicas first
-            CollectionAssert.AreEquivalent(new[] { 2, 5 }, hosts.Take(2).Select(TestHelper.GetLastAddressByte));
+            CollectionAssert.AreEquivalent(new[] { 2, 5 }, hosts.Take(2).Select(h => TestHelper.GetLastAddressByte(h.Host)));
             //next should be local nodes
-            Assert.AreEqual("dc1", hosts[2].Datacenter);
-            Assert.AreEqual("dc1", hosts[3].Datacenter);
-            Assert.AreEqual("dc1", hosts[4].Datacenter);
+            Assert.AreEqual("dc1", hosts[2].Host.Datacenter);
+            Assert.AreEqual("dc1", hosts[3].Host.Datacenter);
+            Assert.AreEqual("dc1", hosts[4].Host.Datacenter);
             clusterMock.Verify();
         }
 
@@ -557,7 +557,7 @@ namespace Cassandra.Tests
                         //The host at with address == k and the next one
                         var address = TestHelper.GetLastAddressByte(h);
                         return address == i || address == i + 1;
-                    }).ToList();
+                    }).Select(h => new HostShard(h, -1)).ToList();
                 })
                 .Verifiable();
 
@@ -571,7 +571,7 @@ namespace Cassandra.Tests
             Action action = () =>
             {
                 var h = policy.NewQueryPlan(null, new SimpleStatement().SetRoutingKey(k)).First();
-                firstHosts.Add(h);
+                firstHosts.Add(h.Host);
             };
             TestHelper.ParallelInvoke(action, times);
             Assert.AreEqual(times, firstHosts.Count);
@@ -605,16 +605,16 @@ namespace Cassandra.Tests
             //No routing key
             var hosts = policy.NewQueryPlan(null, new SimpleStatement()).ToList();
             //2 localhosts
-            Assert.AreEqual(2, hosts.Count(h => policy.Distance(h) == HostDistance.Local));
-            Assert.AreEqual("dc1", hosts[0].Datacenter);
-            Assert.AreEqual("dc1", hosts[1].Datacenter);
+            Assert.AreEqual(2, hosts.Count(h => policy.Distance(h.Host) == HostDistance.Local));
+            Assert.AreEqual("dc1", hosts[0].Host.Datacenter);
+            Assert.AreEqual("dc1", hosts[1].Host.Datacenter);
             clusterMock.Verify();
             //No statement
             hosts = policy.NewQueryPlan(null, null).ToList();
             //2 localhosts
-            Assert.AreEqual(2, hosts.Count(h => policy.Distance(h) == HostDistance.Local));
-            Assert.AreEqual("dc1", hosts[0].Datacenter);
-            Assert.AreEqual("dc1", hosts[1].Datacenter);
+            Assert.AreEqual(2, hosts.Count(h => policy.Distance(h.Host) == HostDistance.Local));
+            Assert.AreEqual("dc1", hosts[0].Host.Datacenter);
+            Assert.AreEqual("dc1", hosts[1].Host.Datacenter);
             clusterMock.Verify();
         }
 

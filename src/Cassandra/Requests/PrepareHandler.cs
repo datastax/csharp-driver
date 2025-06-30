@@ -44,7 +44,7 @@ namespace Cassandra.Requests
         }
 
         public async Task<PreparedStatement> Prepare(
-            InternalPrepareRequest request, IInternalSession session, IEnumerator<Host> queryPlan)
+            InternalPrepareRequest request, IInternalSession session, IEnumerator<HostShard> queryPlan)
         {
             var infoAndObs = await CreateRequestObserverAsync(session, request).ConfigureAwait(false);
             var observer = infoAndObs.Item2;
@@ -77,7 +77,7 @@ namespace Cassandra.Requests
         }
 
         private async Task<PrepareResult> SendRequestToOneNode(
-            IInternalSession session, IEnumerator<Host> queryPlan, InternalPrepareRequest request, IRequestObserver observer, SessionRequestInfo info)
+            IInternalSession session, IEnumerator<HostShard> queryPlan, InternalPrepareRequest request, IRequestObserver observer, SessionRequestInfo info)
         {
             var triedHosts = new Dictionary<IPEndPoint, Exception>();
 
@@ -132,7 +132,7 @@ namespace Cassandra.Requests
         }
 
         private async Task<Tuple<Host, IConnection>> GetNextConnection(
-            IInternalSession session, IEnumerator<Host> queryPlan, Dictionary<IPEndPoint, Exception> triedHosts)
+            IInternalSession session, IEnumerator<HostShard> queryPlan, Dictionary<IPEndPoint, Exception> triedHosts)
         {
             Host host;
             while ((host = GetNextHost(queryPlan, out HostDistance distance)) != null)
@@ -146,12 +146,12 @@ namespace Cassandra.Requests
             throw new NoHostAvailableException(triedHosts);
         }
 
-        private Host GetNextHost(IEnumerator<Host> queryPlan, out HostDistance distance)
+        private Host GetNextHost(IEnumerator<HostShard> queryPlan, out HostDistance distance)
         {
             distance = HostDistance.Ignored;
             while (queryPlan.MoveNext())
             {
-                var host = queryPlan.Current;
+                var host = queryPlan.Current.Host;
                 if (!host.IsUp)
                 {
                     continue;

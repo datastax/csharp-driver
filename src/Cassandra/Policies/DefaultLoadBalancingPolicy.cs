@@ -87,7 +87,7 @@ namespace Cassandra
         /// <summary>
         /// Returns the hosts to used for a query.
         /// </summary>
-        public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement statement)
+        public IEnumerable<HostShard> NewQueryPlan(string keyspace, IStatement statement)
         {
             if (statement is TargettedSimpleStatement targetedStatement && targetedStatement.PreferredHost != null)
             {
@@ -98,9 +98,9 @@ namespace Cassandra
             return ChildPolicy.NewQueryPlan(keyspace, statement);
         }
 
-        private IEnumerable<Host> YieldPreferred(string keyspace, TargettedSimpleStatement statement)
+        private IEnumerable<HostShard> YieldPreferred(string keyspace, TargettedSimpleStatement statement)
         {
-            yield return statement.PreferredHost;
+            yield return new HostShard(statement.PreferredHost, -1);
             foreach (var h in ChildPolicy.NewQueryPlan(keyspace, statement))
             {
                 yield return h;

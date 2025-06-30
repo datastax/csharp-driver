@@ -135,7 +135,7 @@ namespace Cassandra.Connections
         }
 
         /// <inheritdoc />
-        public async Task<IConnection> BorrowConnectionAsync(RoutingKey routingKey = null)
+        public async Task<IConnection> BorrowConnectionAsync(RoutingKey routingKey = null, int shardID = -1)
         {
             var connections = await EnsureCreate().ConfigureAwait(false);
             if (connections.Length == 0)
@@ -143,11 +143,11 @@ namespace Cassandra.Connections
                 throw new DriverInternalError("No connection could be borrowed");
             }
 
-            return BorrowLeastBusyConnection(connections, routingKey);
+            return BorrowLeastBusyConnection(connections, routingKey, shardID);
         }
 
         /// <inheritdoc />
-        public IConnection BorrowExistingConnection(RoutingKey routingKey)
+        public IConnection BorrowExistingConnection(RoutingKey routingKey, int shardID = -1)
         {
             var connections = GetExistingConnections();
             if (connections.Length == 0)
@@ -155,18 +155,20 @@ namespace Cassandra.Connections
                 return null;
             }
 
-            return BorrowLeastBusyConnection(connections, routingKey);
+            return BorrowLeastBusyConnection(connections, routingKey, shardID);
         }
 
-        private IConnection BorrowLeastBusyConnection(ShardedList<IConnection> connections, RoutingKey routingKey = null)
+        private IConnection BorrowLeastBusyConnection(ShardedList<IConnection> connections, RoutingKey routingKey = null, int shardID = -1)
         {
-            int shardID = -1;
             if (shardingInfo != null)
             {
                 if (routingKey != null)
                 {
                     IToken token = _tokenFactory.Hash(routingKey.RawRoutingKey);
-                    shardID = shardingInfo.ShardID(token);
+                    if (shardID == -1)
+                    {
+                        shardID = shardingInfo.ShardID(token);
+                    }
                 }
                 else
                 {
@@ -178,10 +180,9 @@ namespace Cassandra.Connections
             if (shardID != -1)
             {
                 var minInFlight = int.MaxValue;
-                var localInFlight = 0;
                 foreach (var connection in _connections.GetItemsForShard(shardID))
                 {
-                    localInFlight = connection.InFlight;
+                    int localInFlight = connection.InFlight;
                     if (localInFlight < minInFlight)
                     {
                         minInFlight = localInFlight;
@@ -189,7 +190,7 @@ namespace Cassandra.Connections
                     }
                 }
             }
-            var inFlight = 0;
+            int inFlight;
             if (c != null)
             {
                 // if we have a connection for the shard, use it if it is not too busy
@@ -952,31 +953,31 @@ namespace Cassandra.Connections
 
         /// <inheritdoc />
         public Task<IConnection> GetConnectionFromHostAsync(
-            IDictionary<IPEndPoint, Exception> triedHosts, Func<string> getKeyspaceFunc, RoutingKey routingKey)
+            IDictionary<IPEndPoint, Exception> triedHosts, Func<string> getKeyspaceFunc, RoutingKey routingKey, int shardID = -1)
         {
-            return GetConnectionFromHostAsync(triedHosts, getKeyspaceFunc, true, routingKey);
+            return GetConnectionFromHostAsync(triedHosts, getKeyspaceFunc, true, routingKey, shardID);
         }
 
         /// <inheritdoc />
         public Task<IConnection> GetExistingConnectionFromHostAsync(
-            IDictionary<IPEndPoint, Exception> triedHosts, Func<string> getKeyspaceFunc, RoutingKey routingKey)
+            IDictionary<IPEndPoint, Exception> triedHosts, Func<string> getKeyspaceFunc, RoutingKey routingKey, int shardID = -1)
         {
-            return GetConnectionFromHostAsync(triedHosts, getKeyspaceFunc, false, routingKey);
+            return GetConnectionFromHostAsync(triedHosts, getKeyspaceFunc, false, routingKey, shardID);
         }
 
         private async Task<IConnection> GetConnectionFromHostAsync(
-            IDictionary<IPEndPoint, Exception> triedHosts, Func<string> getKeyspaceFunc, bool createIfNeeded, RoutingKey routingKey)
+            IDictionary<IPEndPoint, Exception> triedHosts, Func<string> getKeyspaceFunc, bool createIfNeeded, RoutingKey routingKey, int shardID = -1)
         {
             IConnection c = null;
             try
             {
                 if (createIfNeeded)
                 {
-                    c = await BorrowConnectionAsync(routingKey).ConfigureAwait(false);
+                    c = await BorrowConnectionAsync(routingKey, shardID).ConfigureAwait(false);
                 }
                 else
                 {
-                    c = BorrowExistingConnection(routingKey);
+                    c = BorrowExistingConnection(routingKey, shardID);
                 }
             }
             catch (UnsupportedProtocolVersionException ex)

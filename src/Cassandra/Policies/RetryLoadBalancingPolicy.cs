@@ -44,13 +44,13 @@ namespace Cassandra
             return LoadBalancingPolicy.Distance(host);
         }
 
-        public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
+        public IEnumerable<HostShard> NewQueryPlan(string keyspace, IStatement query)
         {
             IReconnectionSchedule schedule = ReconnectionPolicy.NewSchedule();
             while (true)
             {
-                IEnumerable<Host> childQueryPlan = LoadBalancingPolicy.NewQueryPlan(keyspace, query);
-                foreach (Host host in childQueryPlan)
+                IEnumerable<HostShard> childQueryPlan = LoadBalancingPolicy.NewQueryPlan(keyspace, query);
+                foreach (HostShard host in childQueryPlan)
                     yield return host;
 
                 if (ReconnectionEvent != null)

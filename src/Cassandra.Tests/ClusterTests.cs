@@ -291,9 +291,12 @@ namespace Cassandra.Tests
                 return _distances[host.Address.Address.ToString()];
             }
 
-            public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
+            public IEnumerable<HostShard> NewQueryPlan(string keyspace, IStatement query)
             {
-                return _cluster.AllHosts().OrderBy(h => Guid.NewGuid().GetHashCode()).Take(_distances.Count);
+                return _cluster.AllHosts()
+                    .OrderBy(h => Guid.NewGuid().GetHashCode())
+                    .Take(_distances.Count)
+                    .Select(h => new HostShard(h, -1));
             }
         }
     }

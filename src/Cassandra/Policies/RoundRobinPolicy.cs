@@ -22,7 +22,7 @@ using System.Linq;
 namespace Cassandra
 {
     /// <summary>
-    ///  A Round-robin load balancing policy. 
+    ///  A Round-robin load balancing policy.
     /// <para> This policy queries nodes in a
     ///  round-robin fashion. For a given query, if an host fail, the next one
     ///  (following the round-robin order) is tried, until all hosts have been tried.
@@ -66,7 +66,7 @@ namespace Cassandra
         /// <param name="query"> the query for which to build the plan. </param>
         /// <returns>a new query plan, i.e. an iterator indicating which host to try
         ///  first for querying, which one to use as failover, etc...</returns>
-        public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
+        public IEnumerable<HostShard> NewQueryPlan(string keyspace, IStatement query)
         {
             //shallow copy the all hosts
             var hosts = (from h in _cluster.AllHosts() select h).ToArray();
@@ -80,7 +80,7 @@ namespace Cassandra
 
             for (var i = 0; i < hosts.Length; i++)
             {
-                yield return hosts[(startIndex + i) % hosts.Length];
+                yield return new HostShard(hosts[(startIndex + i) % hosts.Length], -1);
             }
         }
     }

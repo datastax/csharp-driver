@@ -490,13 +490,13 @@ namespace Cassandra
         }
 
         /// <inheritdoc />
-        public ICollection<Host> GetReplicas(byte[] partitionKey)
+        public ICollection<HostShard> GetReplicas(byte[] partitionKey)
         {
             return Metadata.GetReplicas(partitionKey);
         }
 
         /// <inheritdoc />
-        public ICollection<Host> GetReplicas(string keyspace, byte[] partitionKey)
+        public ICollection<HostShard> GetReplicas(string keyspace, byte[] partitionKey)
         {
             return Metadata.GetReplicas(keyspace, partitionKey);
         }

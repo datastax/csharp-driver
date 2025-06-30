@@ -130,7 +130,7 @@ namespace Cassandra.Tests
                 host,
                 HostDistance.Local);
             Mock.Get(mockParent)
-                .Setup(m => m.GetConnectionToValidHostAsync(validHost, It.IsAny<Dictionary<IPEndPoint, Exception>>()))
+                .Setup(m => m.GetConnectionToValidHostAsync(validHost, It.IsAny<Dictionary<IPEndPoint, Exception>>(), It.IsAny<int>()))
                 .ReturnsAsync(connection);
             Mock.Get(mockParent)
                 .Setup(m => m.GetNextValidHost(It.IsAny<Dictionary<IPEndPoint, Exception>>()))
@@ -208,12 +208,12 @@ namespace Cassandra.Tests
 
             // Setup connection failure
             Mock.Get(mockParent)
-                .Setup(m => m.GetConnectionToValidHostAsync(validHost, It.IsAny<Dictionary<IPEndPoint, Exception>>()))
+                .Setup(m => m.GetConnectionToValidHostAsync(validHost, It.IsAny<Dictionary<IPEndPoint, Exception>>(), It.IsAny<int>()))
                 .ThrowsAsync(exception);
 
             // Setup successful second connection on the same host retry (different method call - ValidateHostAndGetConnectionAsync)
             Mock.Get(mockParent)
-                .Setup(m => m.ValidateHostAndGetConnectionAsync(validHost.Host, It.IsAny<Dictionary<IPEndPoint, Exception>>()))
+                .Setup(m => m.ValidateHostAndGetConnectionAsync(new HostShard(validHost.Host, -1), It.IsAny<Dictionary<IPEndPoint, Exception>>()))
                 .ReturnsAsync(connection);
 
             Mock.Get(mockParent)
@@ -234,10 +234,10 @@ namespace Cassandra.Tests
 
             // Validate that there were 2 connection attempts (1 with each method)
             Mock.Get(mockParent).Verify(
-                m => m.GetConnectionToValidHostAsync(validHost, It.IsAny<Dictionary<IPEndPoint, Exception>>()),
+                m => m.GetConnectionToValidHostAsync(validHost, It.IsAny<Dictionary<IPEndPoint, Exception>>(), It.IsAny<int>()),
                 Times.Once);
             Mock.Get(mockParent).Verify(
-                m => m.ValidateHostAndGetConnectionAsync(validHost.Host, It.IsAny<Dictionary<IPEndPoint, Exception>>()),
+                m => m.ValidateHostAndGetConnectionAsync(new HostShard(validHost.Host, -1), It.IsAny<Dictionary<IPEndPoint, Exception>>()),
                 Times.Once);
         }
     }
