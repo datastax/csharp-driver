@@ -33,6 +33,7 @@ namespace Cassandra.Requests
         public const string ApplicationVersionOption = "APPLICATION_VERSION";
         public const string ClientIdOption = "CLIENT_ID";
         public const string TabletsRoutingV1Option = "TABLETS_ROUTING_V1";
+        public const string LwtOption = "SCYLLA_LWT_ADD_METADATA_MARK";
 
         public const string CqlVersion = "3.0.0";
         public const string SnappyCompression = "snappy";
@@ -80,6 +81,12 @@ namespace Cassandra.Requests
             if (supportedOptionsInitializer?.GetTabletInfo() != null && supportedOptionsInitializer.GetTabletInfo().IsEnabled())
             {
                 startupOptions.Add(StartupOptionsFactory.TabletsRoutingV1Option, "true");
+            }
+
+            var lwtInfo = supportedOptionsInitializer?.GetLwtInfo();
+            if (lwtInfo != null)
+            {
+                startupOptions.Add(StartupOptionsFactory.LwtOption, lwtInfo.GetMask().ToString());
             }
 
             startupOptions.Add(StartupOptionsFactory.DriverNameOption, AssemblyHelpers.GetAssemblyTitle(typeof(StartupOptionsFactory)));

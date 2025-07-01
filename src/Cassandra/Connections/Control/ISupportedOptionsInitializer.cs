@@ -24,5 +24,6 @@ namespace Cassandra.Connections.Control
         void ApplySupportedFromResponse(Response response);
         ShardingInfo GetShardingInfo();
         TabletInfo GetTabletInfo();
+        LwtInfo GetLwtInfo();
     }
 }

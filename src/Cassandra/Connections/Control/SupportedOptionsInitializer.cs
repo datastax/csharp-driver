@@ -39,6 +39,8 @@ namespace Cassandra.Connections.Control
         private ShardingInfo _shardingInfo;
         private TabletInfo _tabletInfo;
 
+        private LwtInfo _lwtInfo;
+
         public SupportedOptionsInitializer(Metadata metadata)
         {
             _metadata = metadata;
@@ -67,6 +69,7 @@ namespace Cassandra.Connections.Control
             ApplyProductTypeOption(supportedResponse.Output.Options);
             ApplyScyllaShardingOption(supportedResponse.Output.Options);
             ApplyScyllaTabletOption(supportedResponse.Output.Options);
+            ApplyScyllaLwtOption(supportedResponse.Output.Options);
         }
 
         public ShardingInfo GetShardingInfo()
@@ -77,6 +80,11 @@ namespace Cassandra.Connections.Control
         public TabletInfo GetTabletInfo()
         {
             return _tabletInfo;
+        }
+
+        public LwtInfo GetLwtInfo()
+        {
+            return _lwtInfo;
         }
 
         private void ApplyProductTypeOption(IDictionary<string, string[]> options)
@@ -167,6 +175,11 @@ namespace Cassandra.Connections.Control
                 scyllaShardingIgnoreMSB[0],
                 scyllaShardAwarePort[0],
                 scyllaShardAwarePortSSL[0]);
+        }
+
+        private void ApplyScyllaLwtOption(IDictionary<string, string[]> options)
+        {
+            _lwtInfo = LwtInfo.ParseLwtInfo(options);
         }
     }
 }
