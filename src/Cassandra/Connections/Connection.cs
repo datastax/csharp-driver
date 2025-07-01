@@ -582,6 +582,11 @@ namespace Cassandra.Connections
             return _supportedOptionsInitializer.GetTabletInfo();
         }
 
+        public LwtInfo LwtInfo()
+        {
+            return _supportedOptionsInitializer.GetLwtInfo();
+        }
+
         private void ReadHandler(byte[] buffer, int bytesReceived)
         {
             if (_isClosed)
