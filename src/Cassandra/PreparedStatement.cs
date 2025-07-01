@@ -113,6 +113,8 @@ namespace Cassandra
         /// </summary>
         public bool? IsIdempotent { get; private set; }
 
+        public bool IsLwt => _isLwt;
+
         /// <summary>
         /// Initializes a new instance of the Cassandra.PreparedStatement class
         /// </summary>
