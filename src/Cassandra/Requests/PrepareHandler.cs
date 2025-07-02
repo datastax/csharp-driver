@@ -191,7 +191,7 @@ namespace Cassandra.Requests
                 request.Query,
                 keyspace,
                 _serializerManager,
-                lwtInfo != null && lwtInfo.IsLwt(prepared.ResultRowsMetadata.Flags))
+                lwtInfo != null && lwtInfo.IsLwt(prepared.VariablesRowsMetadata.Flags))
             {
                 IncomingPayload = resultResponse.CustomPayload
             };

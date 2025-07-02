@@ -80,9 +80,9 @@ namespace Cassandra.IntegrationTests.Core
         public void Bound_AllSingleTypesDifferentValues()
         {
             var insertQuery = string.Format(@"
-                INSERT INTO {0} 
-                (id, text_sample, int_sample, bigint_sample, float_sample, double_sample, decimal_sample, 
-                    blob_sample, boolean_sample, timestamp_sample, inet_sample) 
+                INSERT INTO {0}
+                (id, text_sample, int_sample, bigint_sample, float_sample, double_sample, decimal_sample,
+                    blob_sample, boolean_sample, timestamp_sample, inet_sample)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", AllTypesTableName);
 
             var preparedStatement = Session.Prepare(insertQuery);
@@ -110,7 +110,7 @@ namespace Cassandra.IntegrationTests.Core
 
             var selectQuery = string.Format(@"
             SELECT
-                id, text_sample, int_sample, bigint_sample, float_sample, double_sample, decimal_sample, 
+                id, text_sample, int_sample, bigint_sample, float_sample, double_sample, decimal_sample,
                     blob_sample, boolean_sample, timestamp_sample, inet_sample
             FROM {0} WHERE id IN ({1}, {2}, {3})", AllTypesTableName, firstRowValues[0], secondRowValues[0], thirdRowValues[0]);
             var rowList = Session.Execute(selectQuery).ToList();
@@ -143,8 +143,8 @@ namespace Cassandra.IntegrationTests.Core
             const string columns = "id, text_sample, int_sample, bigint_sample, float_sample, double_sample, " +
                                    "decimal_sample, blob_sample, boolean_sample, timestamp_sample, inet_sample";
             var insertQuery = string.Format(@"
-                INSERT INTO {0} 
-                ({1}) 
+                INSERT INTO {0}
+                ({1})
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", AllTypesTableName, columns);
 
             var preparedStatement = Session.Prepare(insertQuery);
@@ -168,8 +168,8 @@ namespace Cassandra.IntegrationTests.Core
         {
             const string columns = "id, text_sample";
             var insertQuery = string.Format(@"
-                INSERT INTO {0} 
-                ({1}) 
+                INSERT INTO {0}
+                ({1})
                 VALUES (?, ?)", AllTypesTableName, columns);
 
             var preparedStatement = Session.Prepare(insertQuery);
@@ -257,8 +257,8 @@ namespace Cassandra.IntegrationTests.Core
         {
             const string columns = "id, text_sample, int_sample";
             var insertQuery = string.Format(@"
-                INSERT INTO {0} 
-                ({1}) 
+                INSERT INTO {0}
+                ({1})
                 VALUES (?, ?, ?)", AllTypesTableName, columns);
 
             var preparedStatement = Session.Prepare(insertQuery);
@@ -276,25 +276,25 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         /// Test for implicit UNSET values
-        /// 
+        ///
         /// Bound_Unset_Not_Specified_Tests tests that implicit UNSET values are properly inserted by the driver when there are
         /// missing parameters in a bound statement. It first creates a prepared statement with three parameters. If run on a Cassandra
         /// version less than 2.2, it verifies that binding only a subset of the parameters with arguments raises an InvalidQueryException.
         /// If run on a Cassandra version greater than or equal to 2.2, it verifies that binding less than the required number of parameters
         /// causes the driver to implicitly insert UNSET values into the missing parameters.
-        /// 
+        ///
         /// @since 3.0.0
         /// @jira_ticket CSHARP-356
         /// @expected_result In Cassandra &lt; 2.2 should throw an error, while in Cassandra >= 2.2 the driver should set UNSET values.
-        /// 
+        ///
         /// @test_category data_types:unset
         [Test]
         public void Bound_Unset_Not_Specified_Tests()
         {
             const string columns = "id, text_sample, int_sample";
             var insertQuery = string.Format(@"
-                INSERT INTO {0} 
-                ({1}) 
+                INSERT INTO {0}
+                ({1})
                 VALUES (?, ?, ?)", AllTypesTableName, columns);
 
             var preparedStatement = Session.Prepare(insertQuery);
@@ -362,8 +362,8 @@ namespace Cassandra.IntegrationTests.Core
         public void Bound_CollectionTypes()
         {
             var insertQuery = string.Format(@"
-                INSERT INTO {0} 
-                (id, map_sample, list_sample, set_sample) 
+                INSERT INTO {0}
+                (id, map_sample, list_sample, set_sample)
                 VALUES (?, ?, ?, ?)", AllTypesTableName);
 
             var preparedStatement = Session.Prepare(insertQuery);
@@ -696,7 +696,7 @@ namespace Cassandra.IntegrationTests.Core
             AssertValid(session, psList, new List<string>(new[] { "one", "two", "three" })); // parameter type = List<string>
             AssertValid(session, psList, new List<string>(new[] { "one", "two" }).Select(s => s)); // parameter type = IEnumerable
             // parameter type = long fails for C* 2.0.x, passes for C* 2.1.x
-            // AssertValid(Session, psList, 123456789L);  
+            // AssertValid(Session, psList, 123456789L);
         }
 
         [Test]
@@ -1037,6 +1037,41 @@ namespace Cassandra.IntegrationTests.Core
             InsertingSingleValuePrepared(typeof(IPAddress));
         }
 
+        [Test]
+        public void Scylla_Should_Recognize_Bound_LWT_Query()
+        {
+            // Ensure the table exists
+            Session.Execute("CREATE TABLE IF NOT EXISTS bound_statement_test (a int PRIMARY KEY, b int)");
+
+            // Prepare a non-LWT statement
+            var statementNonLWT = Session.Prepare("UPDATE bound_statement_test SET b = ? WHERE a = ?");
+            // Prepare an LWT statement
+            var statementLWT = Session.Prepare("UPDATE bound_statement_test SET b = ? WHERE a = ? IF b = ?");
+
+            var boundNonLWT = statementNonLWT.Bind(3, 1);
+            var boundLWT = statementLWT.Bind(3, 1, 5);
+
+            // Check LWT detection
+            Assert.False(boundNonLWT.IsLwt(), "Non-LWT statement should not be detected as LWT");
+            Assert.True(boundLWT.IsLwt(), "LWT statement should be detected as LWT");
+        }
+
+        [Test]
+        public void Scylla_Should_Recognize_Prepared_LWT_Query()
+        {
+            // Ensure the table exists
+            Session.Execute("CREATE TABLE IF NOT EXISTS prepared_statement_test (a int PRIMARY KEY, b int)");
+
+            // Prepare a non-LWT statement
+            var statementNonLWT = Session.Prepare("UPDATE prepared_statement_test SET b = 3 WHERE a = 1");
+            // Prepare an LWT statement
+            var statementLWT = Session.Prepare("UPDATE prepared_statement_test SET b = 3 WHERE a = 1 IF b = 5");
+
+            // Check LWT detection
+            Assert.False(statementNonLWT.IsLwt, "Non-LWT statement should not be detected as LWT");
+            Assert.True(statementLWT.IsLwt, "LWT statement should be detected as LWT");
+        }
+
         //////////////////////////////
         // Test Helpers
         //////////////////////////////
@@ -1058,7 +1093,7 @@ namespace Cassandra.IntegrationTests.Core
         [TestCassandraVersion(2, 0)]
         public void Batch_PreparedStatement_With_Unprepared_Flow()
         {
-            // It should be unprepared on some of the nodes, we use a different table from the rest of the tests 
+            // It should be unprepared on some of the nodes, we use a different table from the rest of the tests
             CreateTable("tbl_unprepared_flow");
 
             // Use a dedicated cluster and table
