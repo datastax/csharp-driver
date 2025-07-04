@@ -96,7 +96,7 @@ namespace Cassandra.Requests
                     responseReceived = true;
                     var prepareResult = new PrepareResult
                     {
-                        PreparedStatement = await GetPreparedStatement(result, request, request.Keyspace ?? connection.Keyspace, session.Cluster).ConfigureAwait(false),
+                        PreparedStatement = await GetPreparedStatement(result, request, request.Keyspace ?? connection.Keyspace, session.Cluster, connection.LwtInfo()).ConfigureAwait(false),
                         TriedHosts = triedHosts,
                         HostAddress = host.Address
                     };
@@ -167,7 +167,7 @@ namespace Cassandra.Requests
         }
 
         private async Task<PreparedStatement> GetPreparedStatement(
-            Response response, InternalPrepareRequest request, string keyspace, ICluster cluster)
+            Response response, InternalPrepareRequest request, string keyspace, ICluster cluster, LwtInfo lwtInfo)
         {
             if (response == null)
             {
@@ -190,7 +190,8 @@ namespace Cassandra.Requests
                 new ResultMetadata(prepared.ResultMetadataId, prepared.ResultRowsMetadata),
                 request.Query,
                 keyspace,
-                _serializerManager)
+                _serializerManager,
+                lwtInfo != null && lwtInfo.IsLwt(prepared.VariablesRowsMetadata.Flags))
             {
                 IncomingPayload = resultResponse.CustomPayload
             };

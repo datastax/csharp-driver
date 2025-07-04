@@ -35,7 +35,7 @@ namespace Cassandra.Tests
         private static PreparedStatement GetPrepared(string query = Query, RowSetMetadata metadata = null, RowSetMetadata resultRowsMetadata = null)
         {
             return new PreparedStatement(metadata, new byte[0], new ResultMetadata(null, resultRowsMetadata), query, null,
-                new SerializerManager(ProtocolVersion.MaxSupported));
+                new SerializerManager(ProtocolVersion.MaxSupported), false);
         }
 
         [Test]

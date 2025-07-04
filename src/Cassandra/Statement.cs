@@ -311,5 +311,10 @@ namespace Cassandra
             _host = host;
             return this;
         }
+
+        public virtual bool IsLwt()
+        {
+            return false;
+        }
     }
 }

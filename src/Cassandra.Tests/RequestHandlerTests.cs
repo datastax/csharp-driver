@@ -62,7 +62,8 @@ namespace Cassandra.Tests
                 new ResultMetadata(new byte[16], rowSetMetadata),
                 "DUMMY QUERY",
                 null,
-                serializerManager ?? RequestHandlerTests.SerializerManager);
+                serializerManager ?? RequestHandlerTests.SerializerManager,
+                false);
         }
 
         [Test]

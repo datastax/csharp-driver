@@ -78,6 +78,11 @@ namespace Cassandra
             get { return _table; }
         }
 
+        public override bool IsLwt()
+        {
+            return _preparedStatement.IsLwt;
+        }
+
         /// <summary>
         /// Initializes a new instance of the Cassandra.BoundStatement class
         /// </summary>

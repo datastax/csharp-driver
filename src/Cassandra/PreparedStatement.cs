@@ -36,6 +36,7 @@ namespace Cassandra
         private string[] _routingNames;
         private volatile int[] _routingIndexes;
         private volatile ResultMetadata _resultMetadata;
+        private readonly bool _isLwt;
 
         /// <summary>
         /// The cql query
@@ -112,6 +113,8 @@ namespace Cassandra
         /// </summary>
         public bool? IsIdempotent { get; private set; }
 
+        public bool IsLwt => _isLwt;
+
         /// <summary>
         /// Initializes a new instance of the Cassandra.PreparedStatement class
         /// </summary>
@@ -121,7 +124,7 @@ namespace Cassandra
         }
 
         internal PreparedStatement(RowSetMetadata variablesRowsMetadata, byte[] id, ResultMetadata resultMetadata, string cql,
-                                   string keyspace, ISerializerManager serializer)
+                                   string keyspace, ISerializerManager serializer, bool isLwt)
         {
             _variablesRowsMetadata = variablesRowsMetadata;
             _resultMetadata = resultMetadata;
@@ -129,6 +132,7 @@ namespace Cassandra
             Cql = cql;
             Keyspace = keyspace;
             _serializerManager = serializer;
+            _isLwt = isLwt;
         }
 
         internal void UpdateResultMetadata(ResultMetadata resultMetadata)

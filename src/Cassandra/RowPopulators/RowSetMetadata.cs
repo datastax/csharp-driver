@@ -291,6 +291,8 @@ namespace Cassandra
         /// </summary>
         internal int[] PartitionKeys { get; private set; }
 
+        internal int Flags { get; private set; }
+
         /// <summary>
         /// Whether the new_metadata_id was set.
         /// </summary>
@@ -308,7 +310,8 @@ namespace Cassandra
                 //Allow to be created for unit tests
                 return;
             }
-            var flags = (RowSetMetadataFlags)reader.ReadInt32();
+            Flags = reader.ReadInt32();
+            var flags = (RowSetMetadataFlags)Flags;
             var columnLength = reader.ReadInt32();
 
             if (parsePartitionKeys)

@@ -155,5 +155,10 @@ namespace Cassandra.Connections
         ShardingInfo ShardingInfo();
 
         new int ShardID { get; set; }
+
+        /// <summary>
+        /// Returns the current lwt info.
+        /// </summary>
+        LwtInfo LwtInfo();
     }
 }

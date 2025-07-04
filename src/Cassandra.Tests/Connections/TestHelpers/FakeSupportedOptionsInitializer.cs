@@ -49,5 +49,10 @@ namespace Cassandra.Tests.Connections.TestHelpers
             return null;
 
         }
+
+        public LwtInfo GetLwtInfo()
+        {
+            return null;
+        }
     }
 }
