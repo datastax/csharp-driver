@@ -142,6 +142,8 @@ namespace Cassandra
 
         string TableName { get; }
 
+        bool IsLwt();
+
         /// <summary>
         /// Allows this statement to be executed as a different user/role than the one 
         /// currently authenticated (a.k.a. proxy execution).
