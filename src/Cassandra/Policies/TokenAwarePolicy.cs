@@ -118,8 +118,12 @@ namespace Cassandra
             // Return the local replicas first
             if (localReplicaList.Count > 0)
             {
-                // Use a pseudo random start index
-                var startIndex = _prng.Value.Next();
+                var startIndex = 0;
+                // Use a pseudo random start index if query is not LWT
+                if (query?.IsLwt() != true)
+                {
+                    startIndex = _prng.Value.Next();
+                }
                 for (var i = 0; i < localReplicaList.Count; i++)
                 {
                     yield return localReplicaList[(startIndex + i) % localReplicaList.Count];

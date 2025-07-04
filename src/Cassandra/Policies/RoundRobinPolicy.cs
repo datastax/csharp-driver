@@ -70,12 +70,16 @@ namespace Cassandra
         {
             //shallow copy the all hosts
             var hosts = (from h in _cluster.AllHosts() select h).ToArray();
-            var startIndex = Interlocked.Increment(ref _index);
-
-            //Simplified overflow protection
-            if (startIndex > int.MaxValue - 10000)
+            var startIndex = 0;
+            if (query?.IsLwt() != true)
             {
-                Interlocked.Exchange(ref _index, 0);
+                startIndex = Interlocked.Increment(ref _index);
+
+                //Simplified overflow protection
+                if (startIndex > int.MaxValue - 10000)
+                {
+                    Interlocked.Exchange(ref _index, 0);
+                }
             }
 
             for (var i = 0; i < hosts.Length; i++)
