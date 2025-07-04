@@ -204,11 +204,15 @@ namespace Cassandra
         ///  first for querying, which one to use as failover, etc...</returns>
         public IEnumerable<HostShard> NewQueryPlan(string keyspace, IStatement query)
         {
-            var startIndex = Interlocked.Increment(ref _index);
-            //Simplified overflow protection
-            if (startIndex > _maxIndex)
+            var startIndex = 0;
+            if (query?.IsLwt() != true)
             {
-                Interlocked.Exchange(ref _index, 0);
+                startIndex = Interlocked.Increment(ref _index);
+                //Simplified overflow protection
+                if (startIndex > _maxIndex)
+                {
+                    Interlocked.Exchange(ref _index, 0);
+                }
             }
             var hosts = GetHosts();
             var localHosts = hosts.Item1;

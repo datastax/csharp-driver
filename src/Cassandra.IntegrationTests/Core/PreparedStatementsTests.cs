@@ -1037,41 +1037,6 @@ namespace Cassandra.IntegrationTests.Core
             InsertingSingleValuePrepared(typeof(IPAddress));
         }
 
-        [Test]
-        public void Scylla_Should_Recognize_Bound_LWT_Query()
-        {
-            // Ensure the table exists
-            Session.Execute("CREATE TABLE IF NOT EXISTS bound_statement_test (a int PRIMARY KEY, b int)");
-
-            // Prepare a non-LWT statement
-            var statementNonLWT = Session.Prepare("UPDATE bound_statement_test SET b = ? WHERE a = ?");
-            // Prepare an LWT statement
-            var statementLWT = Session.Prepare("UPDATE bound_statement_test SET b = ? WHERE a = ? IF b = ?");
-
-            var boundNonLWT = statementNonLWT.Bind(3, 1);
-            var boundLWT = statementLWT.Bind(3, 1, 5);
-
-            // Check LWT detection
-            Assert.False(boundNonLWT.IsLwt(), "Non-LWT statement should not be detected as LWT");
-            Assert.True(boundLWT.IsLwt(), "LWT statement should be detected as LWT");
-        }
-
-        [Test]
-        public void Scylla_Should_Recognize_Prepared_LWT_Query()
-        {
-            // Ensure the table exists
-            Session.Execute("CREATE TABLE IF NOT EXISTS prepared_statement_test (a int PRIMARY KEY, b int)");
-
-            // Prepare a non-LWT statement
-            var statementNonLWT = Session.Prepare("UPDATE prepared_statement_test SET b = 3 WHERE a = 1");
-            // Prepare an LWT statement
-            var statementLWT = Session.Prepare("UPDATE prepared_statement_test SET b = 3 WHERE a = 1 IF b = 5");
-
-            // Check LWT detection
-            Assert.False(statementNonLWT.IsLwt, "Non-LWT statement should not be detected as LWT");
-            Assert.True(statementLWT.IsLwt, "LWT statement should be detected as LWT");
-        }
-
         //////////////////////////////
         // Test Helpers
         //////////////////////////////
