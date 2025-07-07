@@ -36,7 +36,7 @@ namespace Cassandra
         private string[] _routingNames;
         private volatile int[] _routingIndexes;
         private volatile ResultMetadata _resultMetadata;
-        private readonly bool _isLwt;
+        private volatile bool _isLwt;
 
         /// <summary>
         /// The cql query
@@ -295,6 +295,12 @@ namespace Cassandra
         public PreparedStatement SetOutgoingPayload(IDictionary<string, byte[]> payload)
         {
             OutgoingPayload = payload;
+            return this;
+        }
+
+        public PreparedStatement SetLwt(bool isLwt)
+        {
+            _isLwt = isLwt;
             return this;
         }
 

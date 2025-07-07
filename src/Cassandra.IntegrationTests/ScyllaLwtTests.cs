@@ -143,6 +143,57 @@ namespace Cassandra.IntegrationTests
             // Because keyspace RF == 3, non-LWT queries should distribute across all nodes
             Assert.AreEqual(3, coordinatorEndpoints.Count, "Non-LWT queries should use all available coordinators");
         }
+
+        [Test]
+        public void Scylla_Should_Override_Prepared_LWT_Query()
+        {
+            _realCluster = TestClusterManager.CreateNew();
+            var cluster = ClusterBuilder()
+                          .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(22000).SetConnectTimeoutMillis(60000))
+                          .AddContactPoint(_realCluster.InitialContactPoint)
+                          .Build();
+            var _session = cluster.Connect();
+
+            _session.Execute("DROP KEYSPACE IF EXISTS lwt_test");
+            _session.Execute($"CREATE KEYSPACE lwt_test WITH replication = {{'class': 'NetworkTopologyStrategy', 'replication_factor': '1'}}");
+            _session.Execute("CREATE TABLE IF NOT EXISTS lwt_test.prepared_statement_test (a int PRIMARY KEY, b int)");
+
+            // Prepare a non-LWT statement, but override it
+            var statementNonLWT = _session.Prepare("UPDATE lwt_test.prepared_statement_test SET b = 3 WHERE a = 1").SetLwt(true);
+
+            // Prepare an LWT statement, but override it
+            var statementLWT = _session.Prepare("UPDATE lwt_test.prepared_statement_test SET b = 3 WHERE a = 1 IF b = 5").SetLwt(false);
+
+            // Check LWT detection
+            Assert.True(statementNonLWT.IsLwt, "Overridden non-LWT statement should be detected as LWT");
+            Assert.False(statementLWT.IsLwt, "Overridden LWT statement should not be detected as LWT");
+        }
+
+        [Test]
+        public void Scylla_Should_Override_Bound_LWT_Query()
+        {
+            _realCluster = TestClusterManager.CreateNew();
+            var cluster = ClusterBuilder()
+                          .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(22000).SetConnectTimeoutMillis(60000))
+                          .AddContactPoint(_realCluster.InitialContactPoint)
+                          .Build();
+            var _session = cluster.Connect();
+
+            _session.Execute("DROP KEYSPACE IF EXISTS lwt_test");
+            _session.Execute($"CREATE KEYSPACE lwt_test WITH replication = {{'class': 'NetworkTopologyStrategy', 'replication_factor': '1'}}");
+            _session.Execute("CREATE TABLE IF NOT EXISTS lwt_test.bound_statement_test (a int PRIMARY KEY, b int)");
+
+            var statementNonLWT = _session.Prepare("UPDATE lwt_test.bound_statement_test SET b = ? WHERE a = ?");
+            var statementLWT = _session.Prepare("UPDATE lwt_test.bound_statement_test SET b = ? WHERE a = ? IF b = ?");
+
+            // Bind the non-LWT statement but override it to be LWT
+            var boundNonLWT = statementNonLWT.Bind(3, 1).SetLwt(true);
+            // Bind the LWT statement but override it to be non-LWT
+            var boundLWT = statementLWT.Bind(3, 1, 5).SetLwt(false);
+
+            Assert.True(boundNonLWT.IsLwt(), "Override Non-LWT statement should be detected as LWT");
+            Assert.False(boundLWT.IsLwt(), "Override LWT statement should not be detected as LWT");
+        }
     }
 
 }
