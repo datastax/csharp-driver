@@ -17,6 +17,7 @@
     <AssemblyOriginatorKeyFile>../../../build/scylladb.snk</AssemblyOriginatorKeyFile>
     <SignAssembly>true</SignAssembly>
     <PackageId>ScyllaDBCSharpDriver.AppMetrics</PackageId>
+    <Version>3.22.0.0</Version>
     <Title>ScyllaDB C# Drivers App Metrics Extension</Title>
     <PackageTags>scylladb;scylla;driver;client;metrics;appmetricsdatabase;nosql;dotnet;netcore;db</PackageTags>
     <PackageLicenseFile>LICENSE.md</PackageLicenseFile>

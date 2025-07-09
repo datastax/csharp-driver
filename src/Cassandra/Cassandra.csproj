@@ -19,6 +19,7 @@
     <AssemblyOriginatorKeyFile>../../build/scylladb.snk</AssemblyOriginatorKeyFile>
     <SignAssembly>true</SignAssembly>
     <PackageId>ScyllaDBCSharpDriver</PackageId>
+    <Version>3.22.0.0</Version>
     <Title>ScyllaDB C# Driver for Scylla</Title>
     <PackageTags>driver;client;database;nosql;dotnet;netcore;db;scylla;scylladb</PackageTags>
     <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
