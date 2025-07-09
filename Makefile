@@ -112,10 +112,10 @@ install-mono:
 	grep -rl 'PublicKey=${DEV_SNK_PUBLIC_KEY}' . | xargs sed -i "s/PublicKey=${DEV_SNK_PUBLIC_KEY}/PublicKey=$$PROD_SNK_PUBLIC_KEY/g" 2> /dev/null 1>&2;
 
 publish-nuget-dry-run:
-	grep -rl '<PackageId>ScyllaDBCSharpDriver</PackageId>' . | xargs sed -i "s/<PackageId>ScyllaDBCSharpDriver</PackageId>/<PackageId>ScyllaDBCSharpDriver.DRYRUN</PackageId>/g" 2> /dev/null 1>&2;
+	grep -rl --exclude="Makefile" '<PackageId>ScyllaDBCSharpDriver</PackageId>' . | xargs sed -i "s#<PackageId>ScyllaDBCSharpDriver</PackageId>#<PackageId>ScyllaDBCSharpDriver.DRYRUN</PackageId>#g" 2> /dev/null 1>&2;
 	$(MAKE) .publish-proj-nuget PROJECT_PATH=src/Cassandra/Cassandra.csproj
 
-.publish-proj-nuget: .use-production-snk .prepare-mono
+.publish-proj-nuget: .prepare-mono .use-production-snk
 	@echo "Publishing to NuGet with production SNK"
 	dotnet restore $(PROJECT_PATH)
 	dotnet build $(PROJECT_PATH) --configuration Release --no-restore

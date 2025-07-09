@@ -24,7 +24,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
-      ref: ${{ inputs.target_tag || github.ref  }}
+        ref: ${{ inputs.target_tag || github.ref }}
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
@@ -34,11 +34,13 @@ jobs:
     - name: Publish to NuGet (Dry Run)
       if: ${{ inputs.dry-run == true }}
       run: make publish-nuget-dry-run
-      with:
+      env:
         NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        SNK_FILE: ${{ secrets.SNK_KEY }}
 
     - name: Publish to NuGet (Production)
       if: ${{ inputs.dry-run == false }}
       run: make publish-nuget
-      with:
+      env:
         NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        SNK_FILE: ${{ secrets.SNK_KEY }}
