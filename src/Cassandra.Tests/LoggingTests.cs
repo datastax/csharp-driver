@@ -58,7 +58,7 @@ namespace Cassandra.Tests
 
             // The name and version should be logged
             var message = listener.Messages.Values.First(m => m.Contains("Connecting to cluster using"));
-            StringAssert.IsMatch(@"DataStax .*Driver .*v\d+\.\d+\.\d+(-.*)?", message);
+            StringAssert.IsMatch(@"ScyllaDB .*Driver .*v\d+\.\d+\.\d+(-.*)?", message);
         }
 
         [Test]

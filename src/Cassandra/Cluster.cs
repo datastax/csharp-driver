@@ -40,7 +40,7 @@ namespace Cassandra
     public class Cluster : IInternalCluster
     {
         private const string DefaultVersionString = "N/A";
-        private const string DefaultProductString = "DataStax C# Driver";
+        private const string DefaultProductString = "ScyllaDB C# Driver";
 
         private static ProtocolVersion _maxProtocolVersion = ProtocolVersion.MaxSupported;
         internal static readonly Logger Logger = new Logger(typeof(Cluster));

@@ -1,27 +1,27 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Description>This package builds on the DataStax Enterprise C# driver and DataStax C# Driver for Apache Cassandra, adding a metrics provider implementation using App Metrics.</Description>
-    <Copyright>Copyright © by DataStax</Copyright>
+    <Description>This package builds on the ScyllaDB C# Driver for Scylla, adding a metrics provider implementation using App Metrics.</Description>
+    <Copyright>Copyright © by DataStax and ScyllaDB</Copyright>
     <AssemblyVersion>3.99.0.0</AssemblyVersion>
     <FileVersion>3.22.0.0</FileVersion>
     <VersionPrefix>3.22.0</VersionPrefix>
-    <Authors>DataStax</Authors>
+    <Authors>DataStax and ScyllaDB</Authors>
     <TargetFrameworks Condition="'$(BuildCoreOnly)' != 'True'">netstandard2.0;net461</TargetFrameworks>
     <TargetFrameworks Condition="'$(BuildCoreOnly)' == 'True'">netstandard2.0</TargetFrameworks>
-    <Authors>DataStax</Authors>
+    <Authors>DataStax and ScyllaDB</Authors>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <AssemblyName>Cassandra.AppMetrics</AssemblyName>
-    <Product>DataStax C# Drivers App Metrics Extension</Product>
+    <Product>ScyllaDB C# Drivers App Metrics Extension</Product>
     <AssemblyOriginatorKeyFile>../../../build/datastax.snk</AssemblyOriginatorKeyFile>
     <SignAssembly>true</SignAssembly>
-    <PackageId>CassandraCSharpDriver.AppMetrics</PackageId>
-    <Title>DataStax C# Drivers App Metrics Extension</Title>
-    <PackageTags>cassandra;apache;datastax;dse;driver;client;metrics;appmetricsdatabase;nosql;dotnet;netcore;db</PackageTags>
+    <PackageId>ScyllaDBCSharpDriver.AppMetrics</PackageId>
+    <Title>ScyllaDB C# Drivers App Metrics Extension</Title>
+    <PackageTags>scylladb;scylla;driver;client;metrics;appmetricsdatabase;nosql;dotnet;netcore;db</PackageTags>
     <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
-    <RepositoryUrl>https://github.com/datastax/csharp-driver</RepositoryUrl>
-    <PackageProjectUrl>https://github.com/datastax/csharp-driver</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/scylladb/csharp-driver</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/scylladb/csharp-driver</PackageProjectUrl>
     <LangVersion>7.1</LangVersion>
   </PropertyGroup>
 
