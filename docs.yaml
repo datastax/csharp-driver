@@ -1,6 +1,6 @@
-title:    DataStax C# Driver
-summary:  DataStax C# Driver for Apache Cassandra®
-theme:    datastax
+title:    ScyllaDB C# Driver
+summary:  ScyllaDB C# Driver for Scylla®
+theme:    scylladb
 swiftype_drivers: csharpdrivers
 sections:
   - title:    Changelog
@@ -156,7 +156,7 @@ rewrites:
   - search: 'http://datastax.github.io/csharp-driver/features/components/linq/'
     replace: 'https://docs.datastax.com/en/developer/csharp-driver/latest/features/components/linq/'
   - search: 'http://datastax.github.io/csharp-driver/features/components/'
-    replace: 'https://docs.datastax.com/en/developer/csharp-driver/latest/features/components/'  
+    replace: 'https://docs.datastax.com/en/developer/csharp-driver/latest/features/components/'
   - search: 'http://datastax.github.io/csharp-driver/features/'
     replace: 'https://docs.datastax.com/en/developer/csharp-driver/latest/features/'
   - search: 'http://docs.datastax.com/en/glossary/doc/glossary/gloss_tombstone.html'

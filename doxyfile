@@ -4,11 +4,11 @@
 # Project related configuration options
 #---------------------------------------------------------------------------
 DOXYFILE_ENCODING      = UTF-8
-PROJECT_NAME           = "DataStax C# Driver"
-PROJECT_NUMBER         = 
-PROJECT_BRIEF          = 
-PROJECT_LOGO           = 
-OUTPUT_DIRECTORY       = 
+PROJECT_NAME           = "ScyllaDB C# Driver"
+PROJECT_NUMBER         =
+PROJECT_BRIEF          =
+PROJECT_LOGO           =
+OUTPUT_DIRECTORY       =
 CREATE_SUBDIRS         = NO
 ALLOW_UNICODE_NAMES    = NO
 OUTPUT_LANGUAGE        = English
