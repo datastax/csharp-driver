@@ -2,11 +2,15 @@
 
 ## Which versions of Apache Cassandra does the driver support?
 
-The driver supports any Apache Cassandra version from 2.0+.
+The driver should wotk with any Apache Cassandra version from 2.0+, but we do not maintain support for it.
+
+## Which versions of ScyllaDB does the driver support?
+
+The driver supports Scylla 5.x+ and Scylla Enterprise 2021.x+.
 
 ## Which versions of DSE does the driver support?
 
-The driver supports any [DataStax Enterprise][dse] version from 4.8+.
+The driver may work with any [DataStax Enterprise][dse] version from 4.8+, but we do not maintain support for it.
 
 ## How can I upgrade from the DSE driver to the unified DataStax C# driver?
 

@@ -1,6 +1,6 @@
 # Examples
 
-Here's some ways to find examples on how to use the _DataStax C# Driver for Apache Cassandra and DataStax Enterprise_.
+Here's some ways to find examples on how to use the _ScyllaDB C# Driver for Scylla.
 
 Also you might be interested in our developer guide: [Developing applications with DataStax drivers][dev-guide].
 

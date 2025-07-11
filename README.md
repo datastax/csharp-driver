@@ -1,6 +1,6 @@
-# DataStax C# Driver for Apache Cassandra
+# ScyllaDB C# Driver for Scylla
 
-A modern, [feature-rich][features] and highly tunable C# client library for Apache Cassandra (2.0+) using Cassandra's binary protocol and Cassandra Query Language v3.
+ScyllaDB's fork of a modern, [feature-rich][features] and highly tunable C# client library for Scylla using Cassandra's binary protocol and Cassandra Query Language v3.
 
 It also provides additional features for [DataStax Enterprise][dse]:
 
@@ -33,6 +33,12 @@ PM> Install-Package CassandraCSharpDriver
 - Configurable [load balancing][policies] and [retry policies][policies]
 - Works with any cluster size
 - [Linq2Cql][linq] and Ado.Net support
+
+## Scylla features
+
+- Shard awarness
+- Tablet awareness
+- LWT prepared statements metadata mark
 
 ## Documentation
 

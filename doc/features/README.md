@@ -1,6 +1,6 @@
 # Features
 
-The DataStax C# Driver for Apache Cassandra and DataStax Enterprise is a feature-rich and highly tunable C# client library for Apache Cassandra (2.0+) and DataStax Enterprise (4.8+) using Cassandra's binary protocol and Cassandra Query Language v3.
+The ScyllaDB C# Driver for Scylla is a feature-rich and highly tunable C# client library for Scylla using Cassandra's binary protocol and Cassandra Query Language v3.
 
 ## Usage
 
