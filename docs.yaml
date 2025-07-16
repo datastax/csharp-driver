@@ -25,17 +25,11 @@ sections:
     files:    'doc/examples/**/*.md'
 links:
   - title: Code
-    href:  https://github.com/datastax/csharp-driver/
-  - title: API docs
-    href:  http://docs.datastax.com/en/latest-csharp-driver-api/html/N_Cassandra.htm
+    href:  https://github.com/scylladb/csharp-driver/
   - title: Issues
-    href:  https://datastax-oss.atlassian.net/projects/CSHARP/issues
-  - title: Mailing List
-    href:  https://groups.google.com/a/lists.datastax.com/forum/#!forum/csharp-driver-user
-  - title: IRC Channel
-    href:  irc://irc.freenode.net/datastax-drivers
+    href:  https://https://github.com/scylladb/csharp-driver/issues
   - title: Nuget
-    href:  https://www.nuget.org/packages/CassandraCSharpDriver
+    href:  https://www.nuget.org/packages/ScyllaDBCSharpDriver
 api_docs:
   '3.0': http://docs.datastax.com/en/drivers/csharp/3.0
   '3.1': http://docs.datastax.com/en/drivers/csharp/3.1
