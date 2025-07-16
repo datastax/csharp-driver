@@ -53,5 +53,4 @@ doc/api-docs/api
 doc/api-docs/datastax-template
 
 # Ignore active snk file
-
 build/scylladb.snk
