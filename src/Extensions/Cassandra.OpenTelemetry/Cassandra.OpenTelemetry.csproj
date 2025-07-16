@@ -12,7 +12,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <AssemblyName>Cassandra.OpenTelemetry</AssemblyName>
     <Product>ScyllaDB C# Drivers OpenTelemetry Extension</Product>
-    <AssemblyOriginatorKeyFile>../../../build/datastax.snk</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>../../../build/scylladb.snk</AssemblyOriginatorKeyFile>
     <SignAssembly>True</SignAssembly>
     <PackageId>ScyllaDBCSharpDriver.OpenTelemetry</PackageId>
     <Title>ScyllaDB C# Drivers OpenTelemetry Extension</Title>

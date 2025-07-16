@@ -16,7 +16,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <AssemblyName>ScyllaDB</AssemblyName>
     <Product>ScyllaDB C# Driver for Scylla</Product>
-    <AssemblyOriginatorKeyFile>../../build/datastax.snk</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>../../build/scylladb.snk</AssemblyOriginatorKeyFile>
     <SignAssembly>true</SignAssembly>
     <PackageId>ScyllaDBCSharpDriver</PackageId>
     <Title>ScyllaDB C# Driver for Scylla</Title>
