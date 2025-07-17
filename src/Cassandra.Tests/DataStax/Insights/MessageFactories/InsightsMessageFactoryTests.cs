@@ -153,7 +153,7 @@ namespace Cassandra.Tests.DataStax.Insights.MessageFactories
             Assert.AreEqual("appname", act.Data.ApplicationName);
             Assert.AreEqual(false, act.Data.ApplicationNameWasGenerated);
             Assert.AreEqual("appv1", act.Data.ApplicationVersion);
-            Assert.AreEqual("DataStax C# Driver for Apache Cassandra", act.Data.DriverName);
+            Assert.AreEqual("ScyllaDB C# Driver for Scylla", act.Data.DriverName);
             Assert.AreEqual("BECFE098-E462-47E7-B6A7-A21CD316D4C0", act.Data.ClientId.ToUpper());
             Assert.IsFalse(string.IsNullOrWhiteSpace(act.Data.DriverVersion));
         }

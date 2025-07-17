@@ -36,7 +36,7 @@ namespace Cassandra.Tests.Requests
             Assert.AreEqual("snappy", options["COMPRESSION"]);
             Assert.AreEqual("true", options["NO_COMPACT"]);
             var driverName = options["DRIVER_NAME"];
-            Assert.True(driverName.Contains("DataStax") && driverName.Contains("C# Driver"), driverName);
+            Assert.True(driverName.Contains("ScyllaDB") && driverName.Contains("C# Driver"), driverName);
             Assert.AreEqual("3.0.0", options["CQL_VERSION"]);
 
             var assemblyVersion = AssemblyHelpers.GetAssembly(typeof(Cluster)).GetCustomAttribute<AssemblyInformationalVersionAttribute>().InformationalVersion;
@@ -70,7 +70,7 @@ namespace Cassandra.Tests.Requests
             Assert.AreEqual("snappy", options["COMPRESSION"]);
             Assert.AreEqual("true", options["NO_COMPACT"]);
             var driverName = options["DRIVER_NAME"];
-            Assert.True(driverName.Contains("DataStax") && driverName.Contains("C# Driver"), driverName);
+            Assert.True(driverName.Contains("ScyllaDB") && driverName.Contains("C# Driver"), driverName);
             Assert.AreEqual("3.0.0", options["CQL_VERSION"]);
 
             var assemblyVersion = AssemblyHelpers.GetAssembly(typeof(Cluster)).GetCustomAttribute<AssemblyInformationalVersionAttribute>().InformationalVersion;

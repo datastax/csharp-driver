@@ -1,29 +1,29 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Description>A modern, feature-rich and highly tunable C# client library for Apache Cassandra and DataStax Enterprise</Description>
-    <Copyright>Copyright © by DataStax</Copyright>
-    <AssemblyTitle>DataStax C# Driver for Apache Cassandra</AssemblyTitle>
+    <Copyright>Copyright © by DataStax and ScyllaDB</Copyright>
+    <AssemblyTitle>ScyllaDB C# Driver for Scylla</AssemblyTitle>
     <AssemblyVersion>3.99.0.0</AssemblyVersion>
     <FileVersion>3.22.0.0</FileVersion>
     <VersionPrefix>3.22.0</VersionPrefix>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
-    <Authors>DataStax</Authors>
+    <Authors>DataStax and ScyllaDB</Authors>
     <TargetFrameworks Condition="'$(BuildCoreOnly)' != 'True'">net452;netstandard2.0</TargetFrameworks>
     <TargetFramework Condition="'$(BuildCoreOnly)' == 'True'">netstandard2.0</TargetFramework>
     <NoWarn>$(NoWarn);1591</NoWarn>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <WarningsNotAsErrors>NU1901;NU1902;NU1903;NU1904</WarningsNotAsErrors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <AssemblyName>Cassandra</AssemblyName>
-    <Product>DataStax C# Driver for Apache Cassandra</Product>
+    <AssemblyName>ScyllaDB</AssemblyName>
+    <Product>ScyllaDB C# Driver for Scylla</Product>
     <AssemblyOriginatorKeyFile>../../build/datastax.snk</AssemblyOriginatorKeyFile>
     <SignAssembly>true</SignAssembly>
-    <PackageId>CassandraCSharpDriver</PackageId>
-    <Title>DataStax C# Driver for Apache Cassandra</Title>
-    <PackageTags>cassandra;apache;dse;datastax;driver;client;database;nosql;dotnet;netcore;db</PackageTags>
+    <PackageId>ScyllaDBCSharpDriver</PackageId>
+    <Title>ScyllaDB C# Driver for Scylla</Title>
+    <PackageTags>driver;client;database;nosql;dotnet;netcore;db;scylla;scylladb</PackageTags>
     <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
-    <RepositoryUrl>https://github.com/datastax/csharp-driver</RepositoryUrl>
-    <PackageProjectUrl>https://github.com/datastax/csharp-driver</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/scylladb/csharp-driver</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/scylladb/csharp-driver</PackageProjectUrl>
     <LangVersion>7.1</LangVersion>
 	<NuGetAudit>false</NuGetAudit>
   </PropertyGroup>
@@ -33,7 +33,7 @@
   <PropertyGroup Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('$(TargetFramework)', '^net\d$'))">
     <DefineConstants>$(DefineConstants);NETCOREAPP</DefineConstants>
   </PropertyGroup>
-  
+
   <ItemGroup>
     <None Include="..\..\LICENSE.md" Pack="true" PackagePath="LICENSE.md" />
   </ItemGroup>
