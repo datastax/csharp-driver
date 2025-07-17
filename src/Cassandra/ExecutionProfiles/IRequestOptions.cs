@@ -15,7 +15,6 @@
 //
 
 using System;
-using Cassandra.DataStax.Graph;
 
 namespace Cassandra.ExecutionProfiles
 {
@@ -32,8 +31,6 @@ namespace Cassandra.ExecutionProfiles
         ISpeculativeExecutionPolicy SpeculativeExecutionPolicy { get; }
 
         IExtendedRetryPolicy RetryPolicy { get; }
-
-        GraphOptions GraphOptions { get; }
 
         //// next settings don't exist in execution profiles
 

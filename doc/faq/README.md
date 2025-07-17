@@ -8,14 +8,6 @@ The driver should wotk with any Apache Cassandra version from 2.0+, but we do no
 
 The driver supports Scylla 5.x+ and Scylla Enterprise 2021.x+.
 
-## Which versions of DSE does the driver support?
-
-The driver may work with any [DataStax Enterprise][dse] version from 4.8+, but we do not maintain support for it.
-
-## How can I upgrade from the DSE driver to the unified DataStax C# driver?
-
-There is a section in the [Upgrade Guide](../upgrade-guide/upgrade-from-dse-driver) to help you in that process.
-
 ## Should I create multiple `ISession` instances in my client application?
 
 Normally you should use one `ISession` instance per application. You should share that instance between classes within your application. In the case you are using CQL and Graph workloads on a single application, it is recommended that you use different execution profiles on the same session.
@@ -73,4 +65,3 @@ instruct the driver to retrieve fewer rows per request (the default is 5000).
 [logging-api]: https://github.com/aspnet/Logging
 [nlog]: https://github.com/NLog/NLog.Extensions.Logging
 [serilog]: https://github.com/serilog/serilog-extensions-logging
-[dse]: https://www.datastax.com/products/datastax-enterprise

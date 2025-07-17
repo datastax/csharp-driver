@@ -24,35 +24,24 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
 
         public string Version { get; set; }
 
-        public string DseVersion { get; set; }
-
         public string Name { get; set; }
 
         public bool ActivityLog { get; set; }
 
         public int NumberOfTokens { get; set; }
 
-        public bool IsDse { get; set; }
-
         public SimulacronOptions()
         {
             Nodes = "1";
             Version = TestClusterManager.CassandraVersion.ToString();
-            DseVersion = TestClusterManager.IsDse ? TestClusterManager.DseVersion.ToString() : null;
             Name = TestUtils.GetTestClusterNameBasedOnRandomString();
             ActivityLog = true;
             NumberOfTokens = 1;
-            IsDse = TestClusterManager.IsDse;
         }
 
         public string GetCassandraVersion()
         {
             return Version;
-        }
-
-        public string GetDseVersionOrEmpty()
-        {
-            return !IsDse || DseVersion == null ? string.Empty : DseVersion;
         }
     }
 }

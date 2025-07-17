@@ -12,7 +12,7 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-// 
+//
 
 using System.Collections.Generic;
 using System.Linq;
@@ -266,7 +266,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                     null),
                 ExecutionProfiles = new Dictionary<string, IExecutionProfile>
                 {
-                    { Configuration.DefaultExecutionProfileName, new ExecutionProfile(null, null, null, lbp2, sep2, null, null) }
+                    { Configuration.DefaultExecutionProfileName, new ExecutionProfile(null, null, null, lbp2, sep2, null) }
                 }
             }.Build();
             var initializerMock = Mock.Of<IInitializer>();
@@ -305,7 +305,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                     null),
                 ExecutionProfiles = new Dictionary<string, IExecutionProfile>
                 {
-                    { Configuration.DefaultExecutionProfileName, new ExecutionProfile(null, null, null, lbp2, sep2, null, null) }
+                    { Configuration.DefaultExecutionProfileName, new ExecutionProfile(null, null, null, lbp2, sep2, null) }
                 }
             }.Build();
             var initializerMock = Mock.Of<IInitializer>();

@@ -20,7 +20,7 @@ using System.Collections.Generic;
 namespace Cassandra
 {
     /// <summary>
-    /// A load balancing policy designed to run against both DSE and Apache Cassandra clusters.
+    /// A load balancing policy designed to run against Apache Cassandra clusters.
     /// <para>
     ///  For most workloads, the query plan will be determined in a similar way to TokenAwarePolicy(DCAwareRoundRobinPolicy).
     /// </para>

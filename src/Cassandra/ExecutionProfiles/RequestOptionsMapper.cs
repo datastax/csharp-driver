@@ -16,7 +16,6 @@
 
 using System.Collections.Generic;
 using System.Linq;
-using Cassandra.DataStax.Graph;
 
 namespace Cassandra.ExecutionProfiles
 {
@@ -29,8 +28,7 @@ namespace Cassandra.ExecutionProfiles
             Policies policies,
             SocketOptions socketOptions,
             ClientOptions clientOptions,
-            QueryOptions queryOptions,
-            GraphOptions graphOptions)
+            QueryOptions queryOptions)
         {
             executionProfiles.TryGetValue(Configuration.DefaultExecutionProfileName, out var defaultProfile);
             var requestOptions =
@@ -38,11 +36,11 @@ namespace Cassandra.ExecutionProfiles
                     .Where(kvp => kvp.Key != Configuration.DefaultExecutionProfileName)
                     .ToDictionary<KeyValuePair<string, IExecutionProfile>, string, IRequestOptions>(
                         kvp => kvp.Key,
-                        kvp => new RequestOptions(kvp.Value, defaultProfile, policies, socketOptions, queryOptions, clientOptions, graphOptions));
+                        kvp => new RequestOptions(kvp.Value, defaultProfile, policies, socketOptions, queryOptions, clientOptions));
 
             requestOptions.Add(
                 Configuration.DefaultExecutionProfileName,
-                new RequestOptions(null, defaultProfile, policies, socketOptions, queryOptions, clientOptions, graphOptions));
+                new RequestOptions(null, defaultProfile, policies, socketOptions, queryOptions, clientOptions));
             return requestOptions;
         }
     }

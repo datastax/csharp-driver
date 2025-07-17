@@ -23,8 +23,6 @@ using System.Threading.Tasks;
 
 using Cassandra.Collections;
 using Cassandra.Connections;
-using Cassandra.DataStax.Graph;
-using Cassandra.DataStax.Insights;
 using Cassandra.ExecutionProfiles;
 using Cassandra.Metrics;
 using Cassandra.Metrics.Internal;
@@ -48,9 +46,6 @@ namespace Cassandra
         private volatile string _keyspace;
         private readonly IMetricsManager _metricsManager;
         private readonly IObserverFactory _observerFactory;
-        private readonly IInsightsClient _insightsClient;
-        private readonly IGraphTypeSerializerFactory _graphTypeSerializerFactory = new GraphTypeSerializerFactory();
-
         internal IInternalSession InternalRef => this;
 
         public int BinaryProtocolVersion => (int)_serializerManager.GetCurrentSerializer().ProtocolVersion;
@@ -119,7 +114,6 @@ namespace Cassandra
             _cluster.HostRemoved += OnHostRemoved;
             _metricsManager = new MetricsManager(configuration.MetricsProvider, Configuration.MetricsOptions, Configuration.MetricsEnabled, SessionName);
             _observerFactory = configuration.ObserverFactoryBuilder.Build(_metricsManager);
-            _insightsClient = configuration.InsightsClientFactory.Create(cluster, this);
         }
 
         /// <inheritdoc />
@@ -196,22 +190,17 @@ namespace Cassandra
         }
 
         /// <inheritdoc />
-        public async Task ShutdownAsync()
+        public Task ShutdownAsync()
         {
             //Only dispose once
             if (Interlocked.Increment(ref _disposed) != 1)
             {
-                return;
+                return Task.FromResult<object>(null);
             }
 
             if (Interlocked.Read(ref _initialized) == 1)
             {
                 _cluster.RemoveSession(this);
-            }
-
-            if (_insightsClient != null)
-            {
-                await _insightsClient.ShutdownAsync().ConfigureAwait(false);
             }
 
             _metricsManager?.Dispose();
@@ -223,6 +212,8 @@ namespace Cassandra
             {
                 pool.Value.Dispose();
             }
+
+            return Task.FromResult<object>(null);
         }
 
         /// <inheritdoc />
@@ -241,8 +232,6 @@ namespace Cassandra
                 var handler = await Configuration.RequestHandlerFactory.CreateAsync(this, _serializerManager.GetCurrentSerializer()).ConfigureAwait(false);
                 await handler.GetNextConnectionAsync(new Dictionary<IPEndPoint, Exception>()).ConfigureAwait(false);
             }
-
-            _insightsClient.Init();
 
             Interlocked.Exchange(ref _initialized, 1);
         }
@@ -514,32 +503,6 @@ namespace Cassandra
                 pool.OnHostRemoved();
                 pool.Dispose();
             }
-        }
-
-        /// <inheritdoc />
-        public GraphResultSet ExecuteGraph(IGraphStatement statement)
-        {
-            return ExecuteGraph(statement, Configuration.DefaultExecutionProfileName);
-        }
-
-        /// <inheritdoc />
-        public Task<GraphResultSet> ExecuteGraphAsync(IGraphStatement graphStatement)
-        {
-            return ExecuteGraphAsync(graphStatement, Configuration.DefaultExecutionProfileName);
-        }
-
-        /// <inheritdoc />
-        public GraphResultSet ExecuteGraph(IGraphStatement statement, string executionProfileName)
-        {
-            return TaskHelper.WaitToCompleteWithMetrics(_metricsManager, ExecuteGraphAsync(statement, executionProfileName));
-        }
-
-        /// <inheritdoc />
-        public Task<GraphResultSet> ExecuteGraphAsync(IGraphStatement graphStatement, string executionProfileName)
-        {
-            return Configuration.RequestHandlerFactory
-                                .CreateGraphRequestHandler(this, _graphTypeSerializerFactory)
-                                .SendAsync(graphStatement, InternalRef.GetRequestOptions(executionProfileName));
         }
     }
 }

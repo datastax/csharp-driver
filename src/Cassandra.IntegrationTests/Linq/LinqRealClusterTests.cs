@@ -393,7 +393,7 @@ namespace Cassandra.IntegrationTests.Linq
             Assert.Null(recordsArr[0].wt2);
         }
 
-        [Test, TestBothServersVersion(5, 0, 6, 9)]
+        [Test, TestCassandraVersion(5, 0)]
         public void CreateTable_With_Vectors()
         {
             var config = new MappingConfiguration().Define(new Map<VectorPoco>()

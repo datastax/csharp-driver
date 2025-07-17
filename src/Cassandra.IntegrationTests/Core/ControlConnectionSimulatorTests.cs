@@ -69,13 +69,11 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [TestCase(ProtocolVersion.V5, "4.0.0")]
         [TestCase(ProtocolVersion.V4, "3.11.6", "3.0.11", "2.2.9")]
         [TestCase(ProtocolVersion.V4, "3.0.13", "3.0.11", "2.2.9")]
         // Can't downgrade C* 3.0+ nodes to v1 or v2
         [TestCase(ProtocolVersion.V4, "4.0.0", "3.0.13", "2.0.17")]
         [TestCase(ProtocolVersion.V4, "3.0.13", "1.2.19")]
-        [TestCase(ProtocolVersion.V5, "4.0.0", "1.2.19")]
         public void Should_Not_Downgrade_Protocol_Version(ProtocolVersion version, params string[] cassandraVersions)
         {
             using (var testCluster = SimulacronCluster.CreateNewWithPostBody(GetSimulatorBody(cassandraVersions)))

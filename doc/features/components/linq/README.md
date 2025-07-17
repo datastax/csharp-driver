@@ -34,8 +34,8 @@ public class User
    public string Group { get; set; }
 }
 
-// Get a list of users from Cassandra/DSE using a Linq query
-IEnumerable<User> adminUsers = 
+// Get a list of users using a Linq query
+IEnumerable<User> adminUsers =
       (from user in users where user.Group == "admin" select user).Execute();
 ```
 
@@ -50,7 +50,7 @@ IEnumerable<User> adminUsers = users
 The Linq component creates new instances of your classes using its parameter-less constructor.
 
 ## Configuring mappings
- 
+
 In many scenarios, you need more control over how your class maps to a CQL table. You have two ways of configuring with Linq:
 
 - decorate your classes with attributes
@@ -136,7 +136,7 @@ users.Where(u => u.UserId == "john")
       .DeleteIf(u => u.LastAccess == value)
       .Execute();
 
-// Update 
+// Update
 users.Where(u => u.UserId == "john")
       .Select(u => new User { LastAccess = TimeUuid.NewId()})
       .Update()

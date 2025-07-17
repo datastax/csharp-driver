@@ -136,7 +136,6 @@ namespace Cassandra.Tests
 
         [Test]
         [TestCase(ProtocolVersion.V5)]
-        [TestCase(ProtocolVersion.DseV2)]
         [TestCase(ProtocolVersion.V4)]
         [TestCase(ProtocolVersion.V3)]
         [TestCase(ProtocolVersion.V2)]
@@ -153,7 +152,6 @@ namespace Cassandra.Tests
 
         [Test]
         [TestCase(ProtocolVersion.V5, true)]
-        [TestCase(ProtocolVersion.DseV2, true)]
         [TestCase(ProtocolVersion.V4, false)]
         [TestCase(ProtocolVersion.V3, false)]
         [TestCase(ProtocolVersion.V2, false)]
@@ -172,7 +170,6 @@ namespace Cassandra.Tests
 
         [Test]
         [TestCase(ProtocolVersion.V5)]
-        [TestCase(ProtocolVersion.DseV2)]
         [TestCase(ProtocolVersion.V4)]
         [TestCase(ProtocolVersion.V3)]
         [TestCase(ProtocolVersion.V2)]
@@ -474,36 +471,6 @@ namespace Cassandra.Tests
         }
 
         [Test]
-        public void GetRequest_Batch_With_Provided_Keyspace()
-        {
-            const string keyspace = "test_keyspace";
-            var batch = new BatchStatement();
-            batch.Add(new SimpleStatement("QUERY")).SetKeyspace(keyspace);
-
-            var request = RequestHandler.GetRequest(batch, Serializer, new Configuration().DefaultRequestOptions);
-            var bodyBuffer = GetBodyBuffer(request);
-
-            // The batch request is composed by:
-            // <type><n><query_1>...<query_n><consistency><flags>[<serial_consistency>][<timestamp>][<keyspace>]
-            var offset = 1 + 2 + 1;
-            var queryLength = BeConverter.ToInt32(bodyBuffer, offset);
-            Assert.AreEqual(5, queryLength);
-            // skip query, n_params and consistency
-            offset += 4 + queryLength + 2 + 2;
-            var flags = GetQueryFlags(bodyBuffer, ref offset);
-            Assert.True(flags.HasFlag(QueryFlags.WithKeyspace));
-
-            // Skip serial consistency and timestamp
-            offset +=
-                (flags.HasFlag(QueryFlags.WithSerialConsistency) ? 2 : 0) +
-                (flags.HasFlag(QueryFlags.WithDefaultTimestamp) ? 8 : 0);
-
-            var keyspaceLength = BeConverter.ToInt16(bodyBuffer, offset);
-            offset += 2;
-            Assert.AreEqual(keyspace, Encoding.UTF8.GetString(bodyBuffer, offset, keyspaceLength));
-        }
-
-        [Test]
         public void GetRequest_Batch_With_Provided_Keyspace_On_Older_Protocol_Versions_Should_Ignore()
         {
             var batch = new BatchStatement();
@@ -660,30 +627,6 @@ namespace Cassandra.Tests
         }
 
         [Test]
-        public void GetRequest_Query_Should_Use_Provided_Keyspace()
-        {
-            const string keyspace = "my_keyspace";
-            var statement = new SimpleStatement("QUERY").SetKeyspace(keyspace);
-            var request = RequestHandler.GetRequest(statement, Serializer, new Configuration().DefaultRequestOptions);
-            var bodyBuffer = GetBodyBuffer(request);
-
-            // The query request is composed by:
-            // <consistency><flags>[<n>[name_1]<value_1>...[name_n]<value_n>][<result_page_size>][<paging_state>]
-            //    [<serial_consistency>][<timestamp>][<keyspace>][continuous_paging_options]
-            // Skip the query and consistency (2)
-            var offset = 4 + statement.QueryString.Length + 2;
-            var flags = GetQueryFlags(bodyBuffer, ref offset);
-            offset +=
-                (flags.HasFlag(QueryFlags.WithDefaultTimestamp) ? 8 : 0) +
-                (flags.HasFlag(QueryFlags.PageSize) ? 4 : 0) +
-                (flags.HasFlag(QueryFlags.WithSerialConsistency) ? 2 : 0);
-
-            var keyspaceLength = BeConverter.ToInt16(bodyBuffer, offset);
-            offset += 2;
-            Assert.AreEqual(keyspace, Encoding.UTF8.GetString(bodyBuffer, offset, keyspaceLength));
-        }
-
-        [Test]
         public void GetRequest_Query_With_Keyspace_On_Lower_Protocol_Version_Should_Ignore_Keyspace()
         {
             var statement = new SimpleStatement("QUERY").SetKeyspace("my_keyspace");
@@ -726,14 +669,15 @@ namespace Cassandra.Tests
         }
 
         [Test]
-        public void Prepare_With_Keyspace_Should_Send_Keyspace_And_Flag()
+        public void Prepare_With_Keyspace_Should_Send_Keyspace_On_Higher_Protocol_And_Flag()
         {
             const string query = "QUERY1";
             const string keyspace = "ks1";
-            var request = new InternalPrepareRequest(RequestHandlerTests.Serializer, query, keyspace, null);
+            var serializer = new SerializerManager(ProtocolVersion.V5).GetCurrentSerializer();
+            var request = new InternalPrepareRequest(serializer, query, keyspace, null);
 
             // The request is composed by: <query><flags>[<keyspace>]
-            var buffer = GetBodyBuffer(request);
+            var buffer = GetBodyBuffer(request, serializer);
 
             var queryLength = BeConverter.ToInt32(buffer);
             Assert.AreEqual(query.Length, queryLength);

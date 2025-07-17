@@ -517,7 +517,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        [TestBothServersVersion(4, 0, 6, 0)]
+        [TestCassandraVersion(4, 0)]
         public void SimpleStatement_With_Keyspace_Defined_On_Protocol_Greater_Than_4()
         {
             if (Session.Cluster.Metadata.ControlConnection.Serializer.CurrentProtocolVersion < ProtocolVersion.V5)
@@ -535,7 +535,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        [TestBothServersVersion(4, 0, 5, 1, Comparison.LessThan)]
+        [TestCassandraVersion(4, 0, Comparison.LessThan)]
         public void SimpleStatement_With_Keyspace_Defined_On_Lower_Protocol_Versions()
         {
             // It should fail as the keyspace from the session will be used
@@ -547,14 +547,6 @@ namespace Cassandra.IntegrationTests.Core
         [TestCassandraVersion(3, 11)]
         public void SimpleStatement_With_No_Compact_Enabled_Should_Reveal_Non_Schema_Columns()
         {
-            if (TestClusterManager.CheckCassandraVersion(true, new Version(4, 0), Comparison.GreaterThanOrEqualsTo) ||
-                (TestClusterManager.IsDse && TestClusterManager.CheckDseVersion(new Version(6, 0), Comparison.GreaterThanOrEqualsTo)) ||
-                TestClusterManager.IsHcd)
-            {
-                Assert.Ignore("COMPACT STORAGE is not supported by DSE 6.0 / C* 4.0");
-                return;
-            }
-
             var builder = ClusterBuilder().WithNoCompact().AddContactPoint(TestCluster.InitialContactPoint);
             using (ICluster cluster = builder.Build())
             {
@@ -570,14 +562,6 @@ namespace Cassandra.IntegrationTests.Core
         [TestCassandraVersion(3, 11)]
         public void SimpleStatement_With_No_Compact_Disabled_Should_Not_Reveal_Non_Schema_Columns()
         {
-            if (TestClusterManager.CheckCassandraVersion(true, new Version(4, 0), Comparison.GreaterThanOrEqualsTo) ||
-                (TestClusterManager.IsDse && TestClusterManager.CheckDseVersion(new Version(6, 0), Comparison.GreaterThanOrEqualsTo)) ||
-                TestClusterManager.IsHcd)
-            {
-                Assert.Ignore("COMPACT STORAGE is not supported by DSE 6.0 / C* 4.0");
-                return;
-            }
-
             var builder = ClusterBuilder().AddContactPoint(TestCluster.InitialContactPoint);
             using (var cluster = builder.Build())
             {

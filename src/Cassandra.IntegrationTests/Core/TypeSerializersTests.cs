@@ -204,9 +204,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Should_Use_Custom_TypeSerializers()
         {
-            var typeSerializerName = TestClusterManager.CheckDseVersion(new Version(6, 8), Comparison.GreaterThanOrEqualsTo)
-                ? TypeSerializersTests.CustomTypeName2
-                : TypeSerializersTests.CustomTypeName;
+            var typeSerializerName = TypeSerializersTests.CustomTypeName;
 
             var builder = ClusterBuilder()
                                  .AddContactPoint(TestCluster.InitialContactPoint)
@@ -235,7 +233,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [Test, TestBothServersVersion(4, 0, 5, 1, Comparison.LessThan)]
+        [Test, TestCassandraVersion(4, 0, Comparison.LessThan)]
         public void DynamicCompositeTypeTest()
         {
             string uniqueTableName = TestUtils.GetUniqueTableName();
@@ -597,7 +595,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        [TestDseVersion(6, 9)]
+        [TestCassandraVersion(5, 0)]
         public void VectorFloatTest()
         {
             var tableName = TestUtils.GetUniqueTableName();

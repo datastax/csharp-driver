@@ -14,8 +14,6 @@
 //   limitations under the License.
 //
 
-using Cassandra.DataStax.Graph;
-
 namespace Cassandra
 {
     /// <summary>
@@ -41,7 +39,7 @@ namespace Cassandra
         IExecutionProfileBuilder WithRetryPolicy(IExtendedRetryPolicy retryPolicy);
 
         /// <summary>
-        /// Sets the speculative execution policy. 
+        /// Sets the speculative execution policy.
         /// See <see cref="ISpeculativeExecutionPolicy"/> for additional context on this setting.
         /// If no speculative execution policy is set through this method, <see cref="Policies.DefaultSpeculativeExecutionPolicy"/> will be used instead.
         /// </summary>
@@ -72,11 +70,5 @@ namespace Cassandra
         /// </summary>
         /// <returns>This builder.</returns>
         IExecutionProfileBuilder WithReadTimeoutMillis(int readTimeoutMillis);
-
-        /// <summary>
-        /// <para>Sets the DSE Graph options.</para>
-        /// <para>See <see cref="GraphOptions"/> for additional information on the settings within the <see cref="GraphOptions"/> class.</para>
-        /// </summary>
-        IExecutionProfileBuilder WithGraphOptions(GraphOptions graphOptions);
     }
 }

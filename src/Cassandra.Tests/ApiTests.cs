@@ -25,19 +25,6 @@ namespace Cassandra.Tests
     public class ApiTests : BaseUnitTest
     {
         [Test]
-        public void Cassandra_Auth_Namespace_Public_Test()
-        {
-            var types = GetTypesInNamespace("Cassandra.DataStax.Auth", true);
-            CollectionAssert.AreEquivalent(
-                new[]
-                {
-                    typeof(Cassandra.DataStax.Auth.Sspi.SspiException), typeof(DseGssapiAuthProvider),
-                    typeof(DsePlainTextAuthProvider)
-                },
-                types);
-        }
-
-        [Test]
         public void Cassandra_Single_Root_Namespace()
         {
             var assembly = typeof(ISession).GetTypeInfo().Assembly;
@@ -60,12 +47,8 @@ namespace Cassandra.Tests
                 "Cassandra.Connections",
                 "Cassandra.Data",
                 "Cassandra.Data.Linq",
-                "Cassandra.DataStax.Auth",
                 "Cassandra.DataStax.Auth.Sspi",
-                "Cassandra.DataStax.Graph",
-                "Cassandra.DataStax.Graph.Internal",
                 "Cassandra.DataStax.Search",
-                "Cassandra.Geometry",
                 "Cassandra.Mapping",
                 "Cassandra.Mapping.Attributes",
                 "Cassandra.Mapping.TypeConversion",

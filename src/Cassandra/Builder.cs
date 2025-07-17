@@ -24,7 +24,6 @@ using System.Threading.Tasks;
 using Cassandra.Connections;
 using Cassandra.Connections.Control;
 using Cassandra.DataStax.Cloud;
-using Cassandra.DataStax.Graph;
 using Cassandra.ExecutionProfiles;
 using Cassandra.Metrics;
 using Cassandra.Metrics.Abstractions;
@@ -110,11 +109,6 @@ namespace Cassandra
         public Guid? ClusterId { get; private set; }
 
         /// <summary>
-        /// Gets the DSE Graph options.
-        /// </summary>
-        public GraphOptions GraphOptions { get; private set; }
-
-        /// <summary>
         ///  The pooling options used by this builder.
         /// </summary>
         ///
@@ -168,7 +162,6 @@ namespace Cassandra
 
             var typeSerializerDefinitions = _typeSerializerDefinitions ?? new TypeSerializerDefinitions();
             var policies = GetPolicies();
-            var graphOptions = GetGraphOptions();
             SetLegacySettingsFromDefaultProfile();
 
             var protocolOptions =
@@ -197,7 +190,6 @@ namespace Cassandra
                 _driverMetricsProvider,
                 _metricsOptions,
                 _sessionName,
-                graphOptions,
                 ClusterId,
                 ApplicationVersion,
                 ApplicationName,
@@ -235,18 +227,6 @@ namespace Cassandra
             {
                 _queryOptions.SetSerialConsistencyLevel(profile.SerialConsistencyLevel.Value);
             }
-        }
-
-        private GraphOptions GetGraphOptions()
-        {
-            var graphOptions = GraphOptions;
-
-            if (_profiles.TryGetValue(Configuration.DefaultExecutionProfileName, out var profile))
-            {
-                graphOptions = profile.GraphOptions ?? graphOptions;
-            }
-
-            return graphOptions;
         }
 
         private Policies GetPolicies()
@@ -345,16 +325,6 @@ namespace Cassandra
         public Builder WithApplicationVersion(string version)
         {
             ApplicationVersion = version ?? throw new ArgumentNullException(nameof(version));
-            return this;
-        }
-
-        /// <summary>
-        /// Sets the DataStax Graph options.
-        /// </summary>
-        /// <returns>this instance</returns>
-        public Builder WithGraphOptions(GraphOptions options)
-        {
-            GraphOptions = options;
             return this;
         }
 
@@ -897,7 +867,7 @@ namespace Cassandra
         /// </para>
         /// <para>
         /// This option only affects interactions with tables using <c>COMPACT STORAGE</c> and it is only
-        /// supported by C* 3.0.16+, 3.11.2+, 4.0+ and DSE 6.0+.
+        /// supported by C* 3.0.16+, 3.11.2+, 4.0+.
         /// </para>
         /// </summary>
         public Builder WithNoCompact()
@@ -982,14 +952,14 @@ namespace Cassandra
         /// This method enables all individual metrics without a bucket prefix. To customize these settings,
         /// use <see cref="WithMetrics(IDriverMetricsProvider, DriverMetricsOptions)"/>. For explanations on these settings,
         /// see the API docs of the <see cref="DriverMetricsOptions"/> class.
-        /// </para> 
+        /// </para>
         /// <para>
         /// The AppMetrics provider also has some settings that can be customized, check out the API docs of
         /// Cassandra.AppMetrics.DriverAppMetricsOptions.
         /// <para>
         /// Here is an example:
         /// <code>
-        /// var cluster = 
+        /// var cluster =
         ///     Cluster.Builder()
         ///            .WithMetrics(
         ///                metrics.CreateDriverMetricsProvider(new DriverAppMetricsOptions()),
@@ -1133,7 +1103,7 @@ namespace Cassandra
         /// <para>
         /// Configures a Cluster using the Cloud Secure Connection Bundle.
         /// Using this method will configure this builder with specific contact points, SSL options, credentials and load balancing policy.
-        /// When needed, you can specify custom settings by calling other builder methods. 
+        /// When needed, you can specify custom settings by calling other builder methods.
         /// </para>
         /// <para>
         /// In case you need to specify a different set of credentials from the one in the bundle, here is an example:        /// <code>
@@ -1142,7 +1112,7 @@ namespace Cassandra
         ///                   .WithCredentials("username", "password")
         ///                   .Build();
         /// </code>
-        /// </para> 
+        /// </para>
         /// <para>
         /// <see cref="Build"/> will throw <see cref="InvalidOperationException"/> when an error occurs that is not related to
         /// connectivity and <see cref="NoHostAvailableException"/> when an error occurs while trying to obtain the cluster metadata from the remote endpoint.

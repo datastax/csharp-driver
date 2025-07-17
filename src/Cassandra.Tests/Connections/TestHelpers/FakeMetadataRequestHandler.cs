@@ -20,7 +20,7 @@ using Cassandra.Connections;
 using Cassandra.Connections.Control;
 using Cassandra.Responses;
 using Cassandra.Serialization;
-using Cassandra.Tests.DataStax.Insights;
+using Moq;
 
 namespace Cassandra.Tests.Connections.TestHelpers
 {
@@ -35,6 +35,13 @@ namespace Cassandra.Tests.Connections.TestHelpers
         public FakeMetadataRequestHandler(IDictionary<string, IEnumerable<IRow>> rows)
         {
             _rows = rows;
+        }
+
+        internal class FakeResultResponse : ResultResponse
+        {
+            internal FakeResultResponse(ResultResponseKind kind) : base(kind, Mock.Of<IOutput>())
+            {
+            }
         }
 
         private async Task<Response> Send(

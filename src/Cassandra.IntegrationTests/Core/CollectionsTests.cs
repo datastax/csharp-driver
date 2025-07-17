@@ -127,42 +127,6 @@ namespace Cassandra.IntegrationTests.Core
             CollectionAssert.AreEqual(list, rs.GetValue<int[]>("list"));
         }
 
-        [Test]
-        [TestDseVersion(6, 7)] // https://issues.apache.org/jira/browse/CASSANDRA-8877
-        public void Decode_List_With_NullValue_Should_Return_Correct_Results()
-        {
-            var id = Guid.NewGuid();
-            var id2 = Guid.NewGuid();
-            var ttlInsert = 86400;
-            var localSession = GetNewTemporarySession(KeyspaceName);
-            var insertQuery = localSession.Prepare(string.Format("INSERT INTO {0} (id, map_sample, set_sample, list_sample) VALUES (?, ?, ?, ?) USING TTL ?",
-                AllTypesTableName));
-            var list = new List<string> { "apple", "queen" };
-            var set = new List<string> { "fruit", "band" };
-            var map = new Dictionary<string, string> { { "fruit", "apple" }, { "band", "queen" } };
-            var stmt = insertQuery.Bind(id, map, set, list, ttlInsert);
-            localSession.Execute(stmt);
-            insertQuery = localSession.Prepare(string.Format("INSERT INTO {0} (id, map_sample, set_sample, list_sample) VALUES (?, ?, ?, ?)",
-                AllTypesTableName));
-            stmt = insertQuery.Bind(id2, map, set, list);
-            localSession.Execute(stmt);
-
-            var rowSet = localSession.Execute(
-                new SimpleStatement($"select ttl(list_sample), ttl(map_sample), ttl(set_sample) from {AllTypesTableName} where id=?", id2)).ToList();
-
-            CollectionAssert.AreEqual(new int?[] { null, null }, rowSet.Single().GetValue<int?[]>(0));
-            CollectionAssert.AreEqual(new int?[] { null, null }, rowSet.Single().GetValue<IEnumerable<int?>>(1));
-            CollectionAssert.AreEqual(new int?[] { null, null }, rowSet.Single().GetValue<IEnumerable<int?>>(2));
-
-            rowSet = localSession.Execute(
-                new SimpleStatement($"select writetime(list_sample), writetime(map_sample), ttl(list_sample), ttl(map_sample), ttl(set_sample) from {AllTypesTableName} where id=?", id)).ToList();
-            Assert.IsTrue(rowSet.Single().GetValue<long?[]>(0).All(i => i > 0) && rowSet.Single().GetValue<long?[]>(0).Length == 2);
-            Assert.IsTrue(rowSet.Single().GetValue<long?[]>(1).All(i => i > 0) && rowSet.Single().GetValue<long?[]>(1).Length == 2);
-            Assert.IsTrue(rowSet.Single().GetValue<int?[]>(2).All(i => i > 0) && rowSet.Single().GetValue<int?[]>(2).Length == 2);
-            Assert.IsTrue(rowSet.Single().GetValue<IEnumerable<int?>>(3).All(ttl => ttl <= ttlInsert && ttl >= (ttlInsert - 100)) && rowSet.Single().GetValue<IEnumerable<int?>>(3).Count() == 2);
-            Assert.IsTrue(rowSet.Single().GetValue<IEnumerable<int?>>(4).All(ttl => ttl <= ttlInsert && ttl >= (ttlInsert - 100)) && rowSet.Single().GetValue<IEnumerable<int?>>(4).Count() == 2);
-        }
-
         public void CheckingOrderOfCollection(string CassandraCollectionType, Type TypeOfDataToBeInputed, Type TypeOfKeyForMap = null, string pendingMode = "")
         {
             string cassandraDataTypeName = QueryTools.convertTypeNameToCassandraEquivalent(TypeOfDataToBeInputed);

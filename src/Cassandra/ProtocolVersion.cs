@@ -51,15 +51,10 @@ namespace Cassandra
         V5 = 0x05,
 
         /// <summary>
-        /// DSE protocol v2. DSE 6.0+.
-        /// </summary>
-        DseV2 = 0x42,
-
-        /// <summary>
         /// The higher protocol version that is supported by this driver.
         /// <para>When acquiring the first connection, it will use this version to start protocol negotiation.</para>
         /// </summary>
-        MaxSupported = DseV2,
+        MaxSupported = V4,
         /// <summary>
         /// The lower protocol version that is supported by this driver.
         /// </summary>
@@ -92,7 +87,6 @@ namespace Cassandra
                 case ProtocolVersion.V2:
                 case ProtocolVersion.V3:
                 case ProtocolVersion.V4:
-                case ProtocolVersion.DseV2:
                     return true;
                 default:
                     return false;
@@ -137,14 +131,6 @@ namespace Cassandra
 
             foreach (var host in hosts)
             {
-                if (host.DseVersion != null && host.DseVersion >= Version60)
-                {
-                    v3Requirement = true;
-                    maxVersion = Math.Min((byte)ProtocolVersion.DseV2, maxVersion);
-                    maxVersionWith3OrMore = maxVersion;
-                    continue;
-                }
-
                 var cassandraVersion = host.CassandraVersion;
 
                 if (cassandraVersion >= Version40)

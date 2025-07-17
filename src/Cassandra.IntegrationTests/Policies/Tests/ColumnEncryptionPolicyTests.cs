@@ -96,7 +96,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
         public override void OneTimeSetUp()
         {
             base.OneTimeSetUp();
-            var vectorTest = new TestBothServersVersion(5, 0, 6, 9);
+            var vectorTest = new TestCassandraVersion(5, 0);
             if (vectorTest.Applies(out _))
             {
                 _withVector = true;

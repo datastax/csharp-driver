@@ -28,7 +28,5 @@ namespace Cassandra.Requests
         Task<IRequestHandler> CreateAsync(IInternalSession session, ISerializer serializer, IStatement statement, IRequestOptions options);
 
         Task<IRequestHandler> CreateAsync(IInternalSession session, ISerializer serializer);
-
-        IGraphRequestHandler CreateGraphRequestHandler(IInternalSession session, IGraphTypeSerializerFactory graphTypeSerializerFactory);
     }
 }

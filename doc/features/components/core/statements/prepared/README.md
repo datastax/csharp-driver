@@ -60,7 +60,7 @@ Beyond saving a bit of parsing overhead on the server, prepared statements have 
 * which bound variables are part of the partition key. This allows bound statements to automatically compute their [routing key](../../../../routing-queries).
 * more optimizations might get added in the future. For example, [CASSANDRA-10813] suggests adding an `idempotent` flag to the response.
 
-If you have a unique query that is executed only once, a [simple statement](../simple/) will be more efficient. But note that this should be pretty rare: most client applications typically repeat the same queries over and over, and a parameterized version can be extracted and prepared.  
+If you have a unique query that is executed only once, a [simple statement](../simple/) will be more efficient. But note that this should be pretty rare: most client applications typically repeat the same queries over and over, and a parameterized version can be extracted and prepared.
 
 ## Preparing
 
@@ -85,7 +85,7 @@ BoundStatement bound = ps1.Bind("324378", "LCD screen");
 
 ### Unset values
 
-With [native protocol](../../../../native-protocol/) V3, all variables must be bound. With native protocol V4 (Cassandra 2.2+ / DSE 5+) or above, variables can be left unset, in which case they will be ignored (no tombstones will be generated). If you're reusing a bound statement, you can use the `unset` method to unset variables that were previously set:
+With [native protocol](../../../../native-protocol/) V3, all variables must be bound. With native protocol V4, variables can be left unset, in which case they will be ignored (no tombstones will be generated). If you're reusing a bound statement, you can use the `unset` method to unset variables that were previously set:
 
 ```csharp
 BoundStatement bound = ps1.bind("324378", Unset.Value);

@@ -54,17 +54,6 @@ namespace Cassandra.IntegrationTests.Core
                 var queries = new List<string>();
                 queries.Add("CREATE TABLE tbl_default_options (a int PRIMARY KEY, b text)");
 
-                if (TestClusterManager.CheckDseVersion(new Version(6, 0), Comparison.GreaterThanOrEqualsTo))
-                {
-                    queries.Add("CREATE TABLE tbl_nodesync_true (a int PRIMARY KEY, b text) " +
-                                "WITH nodesync={'enabled': 'true', 'deadline_target_sec': '86400'}");
-                    queries.Add("CREATE TABLE tbl_nodesync_false (a int PRIMARY KEY, b text) " +
-                                "WITH nodesync={'enabled': 'false'}");
-                    queries.Add("CREATE MATERIALIZED VIEW view_nodesync AS SELECT a, b FROM tbl_nodesync_true " +
-                                "WHERE a > 0 AND b IS NOT NULL PRIMARY KEY (b, a) " +
-                                "WITH nodesync = { 'enabled': 'true', 'deadline_target_sec': '86400'}");
-                }
-
                 return queries.ToArray();
             }
         }
@@ -149,9 +138,6 @@ namespace Cassandra.IntegrationTests.Core
                                      "org.apache.cassandra.db.marshal.UTF8Type," +
                                      "org.apache.cassandra.db.marshal.Int32Type)";
 
-            const string typeName3 = "org.apache.cassandra.db.marshal.DynamicCompositeType(" +
-                                     "i=>org.apache.cassandra.db.marshal.Int32Type," +
-                                     "s=>org.apache.cassandra.db.marshal.UTF8Type)";
             session.Execute("CREATE TABLE tbl_custom (id int PRIMARY KEY, " +
                             "c1 'DynamicCompositeType(s => UTF8Type, i => Int32Type)', " +
                             "c2 'CompositeType(UTF8Type, Int32Type)')");
@@ -165,14 +151,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(keyspaceName, c1.Keyspace);
             Assert.IsFalse(c1.IsFrozen);
             Assert.IsFalse(c1.IsReversed);
-            if (TestClusterManager.CheckDseVersion(new Version(6, 8), Comparison.GreaterThanOrEqualsTo))
-            {
-                Assert.AreEqual(typeName3, typeInfo1.CustomTypeName);
-            }
-            else
-            {
-                Assert.AreEqual(typeName1, typeInfo1.CustomTypeName);
-            }
+            Assert.AreEqual(typeName1, typeInfo1.CustomTypeName);
             var c2 = table.TableColumns.First(c => c.Name == "c2");
             Assert.AreEqual(ColumnTypeCode.Custom, c2.TypeCode);
             Assert.AreEqual("tbl_custom", c2.Table);
@@ -438,16 +417,16 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         /// Tests that materialized view metadata is being updated
-        /// 
+        ///
         /// GetMaterializedView_Should_Refresh_View_Metadata_Via_Events tests that materialized view metadata is being properly updated by the driver
-        /// after a change to the view, via schema change events. It first creates a base table with some sample columns, and a materialized view based on 
+        /// after a change to the view, via schema change events. It first creates a base table with some sample columns, and a materialized view based on
         /// those columns. It then verifies verifies that the original compaction strategy was "STCS". It then changes the compaction strategy for the view
         /// to "LCS" and verifies that the view metadata was updated correctly.
-        /// 
+        ///
         /// @since 3.0.0
         /// @jira_ticket CSHARP-348
         /// @expected_result Materialized view metadata is updated correctly
-        /// 
+        ///
         /// @test_category metadata
         [Test, TestCase(true), TestCase(false), TestCassandraVersion(3, 0)]
         public void GetMaterializedView_Should_Refresh_View_Metadata_Via_Events(bool metadataSync)
@@ -490,17 +469,17 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         /// Tests that materialized view metadata is updated from base table addition changes
-        /// 
+        ///
         /// MaterializedView_Base_Table_Column_Addition tests that materialized view metadata is being updated when there is a table alteration in the base
-        /// table for the view, where a new column is added. It first creates a base table with some sample columns, and two materialized views based on 
-        /// those columns: one which targets specific columns and the other which targets all columns. It then alters the base table to add a new column 
-        /// "fouls". It then verifies that the update is propagated to the table metadata and the view metadata which targets all columns. It finally 
+        /// table for the view, where a new column is added. It first creates a base table with some sample columns, and two materialized views based on
+        /// those columns: one which targets specific columns and the other which targets all columns. It then alters the base table to add a new column
+        /// "fouls". It then verifies that the update is propagated to the table metadata and the view metadata which targets all columns. It finally
         /// verfies that the view which does not target all the base columns is not affected by this table change.
-        /// 
+        ///
         /// @since 3.0.0
         /// @jira_ticket CSHARP-348
         /// @expected_result Materialized view metadata is updated due to base table changes
-        /// 
+        ///
         /// @test_category metadata
         [Test, TestCase(true), TestCase(false), TestCassandraVersion(3, 0)]
         public void MaterializedView_Base_Table_Column_Addition(bool metadataSync)
@@ -550,17 +529,17 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         /// Tests that multiple secondary indexes are supported per column
-        /// 
+        ///
         /// MultipleSecondaryIndexTest tests that multiple secondary indexes can be created on the same column, and the driver
         /// metadata is updated appropriately. It first creates a table with a map column to be used by the secondary index.
         /// It then proceeds to create two secondary indexes on the same column: one for the keys of the map and another for
         /// the values of the map. Finally, it queries the various metadata associated with each index and verifies the information
         /// is correct.
-        /// 
+        ///
         /// @since 3.0.0
         /// @jira_ticket CSHARP-286
         /// @expected_result Multiple secondary indexes should be created on the same column
-        /// 
+        ///
         /// @test_category metadata
         [Test, TestCase(true), TestCase(false), TestCassandraVersion(3, 0)]
         public void MultipleSecondaryIndexTest(bool metadataSync)
@@ -598,20 +577,20 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         /// Tests that multiple secondary indexes are not supported per duplicate column
-        /// 
+        ///
         /// RaiseErrorOnInvalidMultipleSecondaryIndexTest tests that multiple secondary indexes cannot be created on the same duplicate column.
-        /// It first creates a table with a simple text column to be used by the secondary index. It then proceeds to create a secondary index 
+        /// It first creates a table with a simple text column to be used by the secondary index. It then proceeds to create a secondary index
         /// on this text column, and verifies that the driver metadata is updated. It then attempts to re-create the same secondary index on the
         /// exact same column, and verifies that an exception is raised. It then attempts once again to re-create the same secondary index on the
-        /// same column, but this time giving an explicit index name, verifying an exception is raised. Finally, it queries the driver metadata 
+        /// same column, but this time giving an explicit index name, verifying an exception is raised. Finally, it queries the driver metadata
         /// and verifies that only one index was actually created.
-        /// 
+        ///
         /// @expected_error RequestInvalidException If a secondary index is re-attempted to be created on the same column
-        /// 
+        ///
         /// @since 3.0.0
         /// @jira_ticket CSHARP-286
         /// @expected_result Multiple secondary indexes should not be created on the same column in each case
-        /// 
+        ///
         /// @test_category metadata
         [Test, TestCase(true), TestCase(false), TestCassandraVersion(3, 0)]
         public void RaiseErrorOnInvalidMultipleSecondaryIndexTest(bool metadataSync)
@@ -648,26 +627,24 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         /// Tests that clustering order metadata is set properly
-        /// 
+        ///
         /// ColumnClusteringOrderReversedTest tests that clustering order metadata for a clustering key is properly recalled in the driver
         /// metadata under the "ClusteringKeys" metadata. It first creates a simple table with a primary key, one column ascending, and another
         /// column descending. It checks the metadata for each clustering key to make sure that the proper value is recalled in the driver metadata.
-        /// 
+        ///
         /// @since 3.0.0
         /// @jira_ticket CSHARP-359
         /// @expected_result Clustering order metadata is properly set
-        /// 
+        ///
         /// @test_category metadata
         [Test, TestCase(true), TestCase(false), TestCassandraVersion(3, 0)]
         public void ColumnClusteringOrderReversedTest(bool metadataSync)
         {
-            if (TestClusterManager.CheckCassandraVersion(true, new Version(4, 0), Comparison.GreaterThanOrEqualsTo) ||
-                (TestClusterManager.IsDse && TestClusterManager.CheckDseVersion(new Version(6, 0), Comparison.GreaterThanOrEqualsTo)))
+            if (TestClusterManager.CheckCassandraVersion(true, new Version(4, 0), Comparison.GreaterThanOrEqualsTo))
             {
-                Assert.Ignore("COMPACT STORAGE is not supported by DSE 6.0 / C* 4.0");
+                Assert.Ignore("COMPACT STORAGE is not supported by C* 4.0");
                 return;
             }
-
             var keyspaceName = TestUtils.GetUniqueKeyspaceName();
             var tableName = TestUtils.GetUniqueTableName().ToLower();
             var cluster = GetNewTemporaryCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
@@ -689,57 +666,6 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(new[] { SortOrder.Ascending, SortOrder.Descending }, tableMeta.ClusteringKeys.Select(c => c.Item2));
         }
 
-        [Test, TestCase(true), TestCase(false)]
-        [TestDseVersion(6, 0)]
-        public void Should_Retrieve_The_Nodesync_Information_Of_A_Table_Metadata(bool metadataSync)
-        {
-            var cluster = GetNewTemporaryCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
-            var _ = cluster.Connect();
-            var items = new List<Tuple<string, Dictionary<string, string>>>
-            {
-                Tuple.Create("tbl_nodesync_true", new Dictionary<string, string>
-                {
-                    { "enabled", "true" },
-                    { "deadline_target_sec", "86400" }
-                }),
-                Tuple.Create("tbl_nodesync_false", new Dictionary<string, string> { { "enabled", "false" } })
-            };
-
-            if (TestClusterManager.CheckDseVersion(new Version(6, 8), Comparison.GreaterThanOrEqualsTo))
-            {
-                items.Add(Tuple.Create("tbl_default_options", new Dictionary<string, string>
-                {
-                    { "enabled", "true" },
-                    { "incremental", "true" }
-                }));
-            }
-            else
-            {
-                items.Add(Tuple.Create("tbl_default_options", (Dictionary<string, string>)null));
-            }
-
-            foreach (var tuple in items)
-            {
-                var table = cluster.Metadata.GetTable(KeyspaceName, tuple.Item1);
-                Assert.AreEqual(tuple.Item2, table.Options.NodeSync);
-            }
-        }
-
-        [Test, TestCase(true), TestCase(false)]
-        [TestDseVersion(6, 0)]
-        public void Should_Retrieve_The_Nodesync_Information_Of_A_Materialized_View(bool metadataSync)
-        {
-            var cluster = GetNewTemporaryCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
-            var _ = cluster.Connect();
-
-            var mv = cluster.Metadata.GetMaterializedView(KeyspaceName, "view_nodesync");
-            Assert.AreEqual(new Dictionary<string, string>
-            {
-                { "enabled", "true" },
-                { "deadline_target_sec", "86400" }
-            }, mv.Options.NodeSync);
-        }
-
         [Test, TestCassandraVersion(2, 1), TestCase(true), TestCase(false)]
         public void CassandraVersion_Should_Be_Obtained_From_Host_Metadata(bool metadataSync)
         {
@@ -753,7 +679,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [Test, TestBothServersVersion(4, 0, 6, 7), TestCase(true), TestCase(false)]
+        [Test, TestCassandraVersion(4, 0), TestCase(true), TestCase(false)]
         public void Virtual_Table_Metadata_Test(bool metadataSync)
         {
             var cluster = GetNewTemporaryCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
@@ -764,7 +690,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(table.ClusteringKeys.Select(t => t.Item1.Name), new[] { "table_name", "task_id" });
         }
 
-        [Test, TestCase(true), TestCase(false), TestBothServersVersion(4, 0, 6, 7)]
+        [Test, TestCase(true), TestCase(false), TestCassandraVersion(4, 0)]
         public void Virtual_Keyspaces_Are_Included(bool metadataSync)
         {
             var cluster = GetNewTemporaryCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));

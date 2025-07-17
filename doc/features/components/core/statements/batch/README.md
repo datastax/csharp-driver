@@ -29,6 +29,5 @@ A given batch can contain at most 65536 statements. Past this limit, addition me
 
 In addition, simple statements with named parameters are currently not supported in batches (this is due to a [protocol limitation][CASSANDRA-10246] that will be fixed in a future version).
 
-[batch_dse]: http://docs.datastax.com/en/dse/6.7/cql/cql/cql_using/useBatch.html
 [CASSANDRA-10246]: https://issues.apache.org/jira/browse/CASSANDRA-10246
 [dsbulk]: https://docs.datastax.com/en/dsbulk/doc/

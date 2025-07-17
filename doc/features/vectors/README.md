@@ -4,7 +4,7 @@
 
 Introduced in Cassandra 5.0, DSE 6.9 and Datastax Astra, a `vector` is represented as a [CqlVector&lt;T&gt;][cqlvector-api].
 
-The `vector` type is handled by the driver the same way as any other CQL type. You can use 
+The `vector` type is handled by the driver the same way as any other CQL type. You can use
 
 ## The `CqlVector<T>` C# type
 
@@ -17,7 +17,7 @@ The [API documentation][cqlvector-api] for this class contains useful informatio
 var vector = new CqlVector<int>(1, 2, 3);
 var vector = CqlVector<int>.New(new int[] { 1, 2, 3 });
 
-// CqlVector<int>.New requires an array but you prefer using other types such as List 
+// CqlVector<int>.New requires an array but you prefer using other types such as List
 // you can call the IEnumerable extension method .ToArray() - note that it performs a copy
 var vector = CqlVector<int>.New(new List<int> { 1, 2, 3 }.ToArray());
 
@@ -37,7 +37,7 @@ var vector = new int[] { 1, 2, 3 }.ToCqlVector();
 var vector = CqlVector<int>.New(3);
 
 // you can use the index operator just as if you were dealing with an array or list
-vector[0] = 1; 
+vector[0] = 1;
 vector[1] = 2;
 vector[2] = 3;
 ```
@@ -60,7 +60,7 @@ The following examples use this schema. In this case, `j` is a 3 dimensional `ve
 
 ```sql
 CREATE TABLE IF NOT EXISTS table1 (
-     i int PRIMARY KEY, 
+     i int PRIMARY KEY,
      j vector<float, 3>
 );
 
@@ -73,12 +73,12 @@ CREATE CUSTOM INDEX IF NOT EXISTS ann_table1_index ON table1(j) USING 'StorageAt
 ```csharp
 await session.ExecuteAsync(
     new SimpleStatement(
-        "INSERT INTO table1 (i, j) VALUES (?, ?)", 
-        1, 
+        "INSERT INTO table1 (i, j) VALUES (?, ?)",
+        1,
         new CqlVector<float>(1.0f, 2.0f, 3.0f)));
 var rowSet = await session.ExecuteAsync(
     new SimpleStatement(
-        "SELECT * FROM table1 ORDER BY j ANN OF ? LIMIT ?", 
+        "SELECT * FROM table1 ORDER BY j ANN OF ? LIMIT ?",
         new CqlVector<float>(0.6f, 0.5f, 0.9f),
         1));
 var row = rowSet.Single();
@@ -108,7 +108,7 @@ var j = row.GetValue<CqlVector<float>>("j");
 The LINQ component of the driver doesn't support the `ANN` operator so it's probably best to avoid using LINQ when working with vectors. If a particular workload doesn't require the `ANN` operator then LINQ can be used without issues.
 
 ```csharp
-// you can also provide a MappingConfiguration object to the Table/Mapper constructors 
+// you can also provide a MappingConfiguration object to the Table/Mapper constructors
 // (or use MappingConfiguration.Global) programatically instead of these attributes
 [Cassandra.Mapping.Attributes.Table("table1")]
 public class Table1
@@ -128,15 +128,15 @@ await table
     .Insert(new TestTable1 { I = 3, J = new CqlVector<float>(10.1f, 10.2f, 10.3f) })
     .ExecuteAsync();
 
-// Using AllowFiltering is not recommended due to unpredictable performance. 
+// Using AllowFiltering is not recommended due to unpredictable performance.
 // Here we use AllowFiltering because the example schema is meant to showcase vector search
 // but the ANN operator is not supported in LINQ yet.
-var entity = (await table.Where(t => t.I == 3 && t.J == CqlVector<float>.New(new [] {10.1f, 10.2f, 10.3f})).AllowFiltering().ExecuteAsync()).SingleOrDefault(); 
+var entity = (await table.Where(t => t.I == 3 && t.J == CqlVector<float>.New(new [] {10.1f, 10.2f, 10.3f})).AllowFiltering().ExecuteAsync()).SingleOrDefault();
 
 // Alternative select using Query syntax instead of Method syntax
 var entity = (await (
-    from t in table 
-    where t.J == CqlVector<float>.New(new [] {10.1f, 10.2f, 10.3f}) 
+    from t in table
+    where t.J == CqlVector<float>.New(new [] {10.1f, 10.2f, 10.3f})
     select t
     ).AllowFiltering().ExecuteAsync()).SingleOrDefault();
 
@@ -146,8 +146,8 @@ var mapper = new Mapper(session);
 await mapper.InsertAsync(
     new TestTable1 { I = 4, J = new CqlVector<float>(11.1f, 11.2f, 11.3f) });
 var vectorSearchData = await mapper.FetchAsync<TestTable1>(
-    "ORDER BY j ANN OF ? LIMIT ?", 
-    new CqlVector<float>(10.9f, 10.9f, 10.9f), 
+    "ORDER BY j ANN OF ? LIMIT ?",
+    new CqlVector<float>(10.9f, 10.9f, 10.9f),
     1);
 var entity = vectorSearchData.SingleOrDefault();
 ```

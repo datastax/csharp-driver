@@ -4,11 +4,6 @@ The purpose of this guide is to detail the changes made by the successive versio
 
 If you have any question or comment, you can [post it on the mailing list][mailing-list].
 
-## Upgrade guide for DSE driver users
-
-There's a dedicated [guide for DSE driver users that plan to migrate to the
-`CassandraCSharpDriver`](upgrade-from-dse-driver).
-
 ## Our policy regarding API changes and release versioning
 
 The driver versions follow semantic versioning.
@@ -61,8 +56,6 @@ These releases only contain bug fixes so they will never contain changes to the 
 A new load balancing policy has been added: `DefaultLoadBalancingPolicy`. This is the new default load balancing policy in the driver. The behavior is the same as the previous default policy except for some DSE specific workloads so there is no impact for existing applications.
 
 This driver now supports all DataStax products and features, such as Unified Authentication, Kerberos, geo types and graph traversal executions, allowing you to use a single driver for Apache Cassandra, DSE or other DataStax products.
-
-If you're upgrading from the DSE driver, checkout [this guide](upgrade-from-dse-driver)
 
 ## 3.10
 
@@ -152,7 +145,7 @@ A good write up on DC failover describing some of these considerations can be fo
 
 ## 3.6
 
-The `DowngradingConsistencyRetryPolicy` is now deprecated. It will be removed in the following major version of the 
+The `DowngradingConsistencyRetryPolicy` is now deprecated. It will be removed in the following major version of the
 driver.
 
 The main motivation is the agreement that this policy's behavior should be the application's concern, not the driver's.
@@ -200,7 +193,7 @@ Additionally, you can now share the same mapping configuration between the new M
 
 #### Case sensitivity
 
-Prior to version 2.5, Linq component used case-sensitive identifiers when generating CQL code. Now, the case 
+Prior to version 2.5, Linq component used case-sensitive identifiers when generating CQL code. Now, the case
 sensitivity can be specified on the mapping information.
 
 Using fluent configuration:
@@ -263,7 +256,7 @@ The main `Session.Execute` and `Session.ExecuteAsync` methods use `IStatement` a
 
     This behaviour enables to have a stable memory use when paging through a large result.
 
-    If you still want to consume the `RowSet` as a list, you can use [.NET Enumerable.ToList][enum-tolist] extension 
+    If you still want to consume the `RowSet` as a list, you can use [.NET Enumerable.ToList][enum-tolist] extension
     method, for example: `var rowList = rs.ToList();`.
 
 1. `Session` implements `ISession` interface, to make unit test and mocking easier. `Cluster.Connect` now returns a

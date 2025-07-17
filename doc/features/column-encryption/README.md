@@ -5,7 +5,7 @@
 Support for client-side encryption of data was added in version 3.20.0 of the C# driver. When using this feature data will be encrypted on-the-fly according to a provided implementation of `IColumnEncryptionPolicy`. This policy is also used to decrypt data in returned rows.  If a prepared statement is used, this decryption is transparent to the user; retrieved data will be decrypted and converted into the original
 type according to definitions in the encryption policy. Support for simple (i.e. non-prepared) statements is also available, although in this case values must be wrapped using the `EncryptedValue` type.
 
-Client-side encryption and decryption should work against all versions of Cassandra, DSE, and Astra. It does not utilize any server-side functionality to do its work.
+Client-side encryption and decryption should work against all versions of Cassandra, and Astra. It does not utilize any server-side functionality to do its work.
 
 ## Configuration
 
@@ -53,7 +53,7 @@ Our two encrypted columns are `id` and `address` (note the `blob` types, the ser
 var base64key = "__BASE64_ENCODED_KEY__";
 var base64IV = "__BASE64_ENCODED_IV__";
 
-// key for the id column which is the primary key (static IV) 
+// key for the id column which is the primary key (static IV)
 var idKey = new AesColumnEncryptionPolicy.AesKeyAndIV(Convert.FromBase64String(base64key), Convert.FromBase64String(base64IV));
 
 // key for the address column which is not used in any WHERE clause, primary key or index (no IV is provided - more secure)
@@ -108,9 +108,9 @@ var publicNotes = "Public notes 1.";
 
 // using encrypted columns with SimpleStatements require the parameters to be wrapped with the EncryptedValue type
 var insert = new SimpleStatement(
-    "INSERT INTO ks.table (id, address, public_notes) VALUES (?, ?, ?)", 
-    new EncryptedValue(userId, idKey), 
-    new EncryptedValue(address, addressKey), 
+    "INSERT INTO ks.table (id, address, public_notes) VALUES (?, ?, ?)",
+    new EncryptedValue(userId, idKey),
+    new EncryptedValue(address, addressKey),
     publicNotes);
 await _session.ExecuteAsync(insert).ConfigureAwait(false);
 ```
@@ -176,7 +176,7 @@ If the provided `AesColumnEncryptionPolicy` does not suit your needs, use a cust
 1. Sub class `BaseColumnEncryptionPolicy`
 2. Implement `IColumnEncryptionPolicy` directly
 
-`BaseColumnEncryptionPolicy` is an abstract class that provides some out of the box utility code to manage the encrypted column metadata (e.g. `AddColumn` method). It implements `IColumnEncryptionPolicy.GetColumnEncryptionMetadata(string ks, string table, string col)` so you only have to implement the actual encryption and decryption logic by overriding the `EncryptWithKey` and `DecryptWithKey` methods. 
+`BaseColumnEncryptionPolicy` is an abstract class that provides some out of the box utility code to manage the encrypted column metadata (e.g. `AddColumn` method). It implements `IColumnEncryptionPolicy.GetColumnEncryptionMetadata(string ks, string table, string col)` so you only have to implement the actual encryption and decryption logic by overriding the `EncryptWithKey` and `DecryptWithKey` methods.
 
 Note that `BaseColumnEncryptionPolicy` has a type parameter. This will be the type of the key that has to be provided when adding columns with the `AddColumn` method. It is also the type of the key that is provided in `EncryptWithKey` and `DecryptWithKey`. This provides some type safety on top of the base `IColumnEncryptionPolicy` interface which declares the key type to be just `object`. For example, the `AesColumnEncryptionPolicy` uses the custom type `AesKeyAndIV` as the key type.
 

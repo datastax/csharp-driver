@@ -115,7 +115,7 @@ namespace Cassandra
         /// </para>
         /// <para>
         /// This option only affects interactions with tables using <c>COMPACT STORAGE</c> and it is only
-        /// supported by C* 3.0.16+, 3.11.2+, 4.0+ and DSE 6.0+.
+        /// supported by C* 3.0.16+, 3.11.2+, 4.0+.
         /// </para>
         /// </summary>
         public bool NoCompact { get; private set; }
@@ -241,7 +241,7 @@ namespace Cassandra
         /// </para>
         /// <para>
         /// This option only affects interactions with tables using <c>COMPACT STORAGE</c> and it is only
-        /// supported by C* 3.0.16+, 3.11.2+, 4.0+ and DSE 6.0+.
+        /// supported by C* 3.0.16+, 3.11.2+, 4.0+.
         /// </para>
         /// </summary>
         public ProtocolOptions SetNoCompact(bool value)

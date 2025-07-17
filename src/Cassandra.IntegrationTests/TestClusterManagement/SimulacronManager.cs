@@ -31,8 +31,8 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 {
     public class SimulacronManager
     {
-        private const string CreateClusterPathFormat = "/cluster?data_centers={0}&cassandra_version={1}&dse_version={2}&name={3}" +
-                                                       "&activity_log={4}&num_tokens={5}";
+        private const string CreateClusterPathFormat = "/cluster?data_centers={0}&cassandra_version={1}&name={2}" +
+                                                       "&activity_log={3}&num_tokens={4}";
 
         private const string CreateClusterPath = "/cluster";
 
@@ -206,7 +206,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         {
             Start();
             var path = string.Format(CreateClusterPathFormat, options.Nodes, options.GetCassandraVersion(),
-                options.GetDseVersionOrEmpty(), options.Name, options.ActivityLog, options.NumberOfTokens);
+                options.Name, options.ActivityLog, options.NumberOfTokens);
             var data = await Post(path, null).ConfigureAwait(false);
             return CreateFromData(data);
         }

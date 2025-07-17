@@ -58,7 +58,7 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         internal static IDictionary<IPAddress, int> GetReasonsDictionary(FrameReader reader, int length)
         {

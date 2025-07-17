@@ -17,7 +17,6 @@
 using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
-using Cassandra.DataStax.Graph;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
@@ -198,64 +197,6 @@ namespace Cassandra.IntegrationTests
 
         protected const string MakeStrict = "schema.config().option(\"graph.schema_mode\").set(\"production\");";
         protected const string AllowScans = "schema.config().option(\"graph.allow_scan\").set(\"true\");";
-
-        /// <summary>
-        /// Creates a graph using the current session
-        /// </summary>
-        public void CreateClassicGraph(ISession session, string name)
-        {
-            try
-            {
-                session.ExecuteGraph(new SimpleGraphStatement($"system.graph('{name}').drop()"));
-            }
-            catch
-            {
-                // ignored
-            }
-
-            session.ExecuteGraph(!TestClusterManager.SupportsNextGenGraph()
-                ? new SimpleGraphStatement($"system.graph('{name}').ifNotExists().create()")
-                : new SimpleGraphStatement($"system.graph('{name}').ifNotExists().engine(Classic).create()"));
-            session.ExecuteGraph(new SimpleGraphStatement(AllowScans).SetGraphName(name));
-            session.ExecuteGraph(new SimpleGraphStatement(ClassicSchemaGremlinQuery).SetGraphName(name));
-            session.ExecuteGraph(new SimpleGraphStatement(ClassicLoadGremlinQuery).SetGraphName(name));
-        }
-
-        /// <summary>
-        /// Creates the classic graph using a specific connection
-        /// </summary>
-        public void CreateClassicGraph(string contactPoint, string name)
-        {
-            using (var cluster = ClusterBuilder().AddContactPoint(TestClusterManager.InitialContactPoint).Build())
-            {
-                CreateClassicGraph(cluster.Connect(), name);
-            }
-        }
-
-        /// <summary>
-        /// Creates a core graph using the current session
-        /// </summary>
-        public void CreateCoreGraph(ISession session, string name)
-        {
-            session.ExecuteGraph(new SimpleGraphStatement($"system.graph('{name}').ifExists().drop()").SetSystemQuery());
-            WaitUntilKeyspaceMetadataRefresh(session, name, false);
-            session.ExecuteGraph(new SimpleGraphStatement($"system.graph('{name}').ifNotExists().create()").SetSystemQuery());
-            WaitUntilKeyspaceMetadataRefresh(session, name, true);
-            //session.ExecuteGraph(new SimpleGraphStatement(AllowScans).SetGraphName(name));
-            session.ExecuteGraph(new SimpleGraphStatement(CoreSchemaGremlinQuery).SetGraphName(name));
-            session.ExecuteGraph(new SimpleGraphStatement(CoreLoadGremlinQuery).SetGraphName(name));
-        }
-
-        /// <summary>
-        /// Creates the core graph using a specific connection
-        /// </summary>
-        public void CreateCoreGraph(string contactPoint, string name)
-        {
-            using (var cluster = ClusterBuilder().AddContactPoint(contactPoint).Build())
-            {
-                CreateCoreGraph(cluster.Connect(), name);
-            }
-        }
 
         private void WaitUntilKeyspaceMetadataRefresh(ISession session, string graphName, bool exists)
         {

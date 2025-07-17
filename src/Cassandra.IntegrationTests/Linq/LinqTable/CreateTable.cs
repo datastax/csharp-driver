@@ -108,7 +108,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
 
         /// <summary>
         /// Create a table using the method CreateIfNotExists
-        /// 
+        ///
         /// @Jira CSHARP-42  https://datastax-oss.atlassian.net/browse/CSHARP-42
         ///  - Jira detail: CreateIfNotExists causes InvalidOperationException
         /// </summary>
@@ -182,7 +182,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         }
 
         /// <summary>
-        /// Successfully create a table using the method Create, 
+        /// Successfully create a table using the method Create,
         /// overriding the default table name given via the class' "name" meta-tag
         /// </summary>
         [Test, TestCassandraVersion(2, 0)]
@@ -265,7 +265,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         }
 
         /// <summary>
-        /// Attempt to create two tables of different types but with the same name using the Create method. 
+        /// Attempt to create two tables of different types but with the same name using the Create method.
         /// Validate expected failure message
         /// </summary>
         [Test, TestCassandraVersion(2, 0)]
@@ -337,28 +337,12 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         {
             var uniqueTableName = TestUtils.GetUniqueTableName();
             var uniqueKsName = TestUtils.GetUniqueKeyspaceName();
-            if (!TestClusterManager.SchemaManipulatingQueriesThrowInvalidQueryException())
-            {
-                TestCluster.PrimeFluent(
-                    b => b.WhenQuery(string.Format(CreateTable.CreateCqlFormatStr, $"\"{uniqueKsName}\".\"{uniqueTableName}\""))
-                          .ThenServerError(ServerError.ConfigError, "msg"));
-            }
-            else
-            {
-                TestCluster.PrimeFluent(
-                    b => b.WhenQuery(string.Format(CreateTable.CreateCqlFormatStr, $"\"{uniqueKsName}\".\"{uniqueTableName}\""))
-                          .ThenServerError(ServerError.Invalid, "msg"));
-            }
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery(string.Format(CreateTable.CreateCqlFormatStr, $"\"{uniqueKsName}\".\"{uniqueTableName}\""))
+                    .ThenServerError(ServerError.ConfigError, "msg"));
 
             var table = new Table<AllDataTypesEntity>(Session, new MappingConfiguration(), uniqueTableName, uniqueKsName);
-            if (!TestClusterManager.SchemaManipulatingQueriesThrowInvalidQueryException())
-            {
-                Assert.Throws<InvalidConfigurationInQueryException>(() => table.Create());
-            }
-            else
-            {
-                Assert.Throws<InvalidQueryException>(() => table.Create());
-            }
+            Assert.Throws<InvalidConfigurationInQueryException>(() => table.Create());
         }
 
         [Test, TestCassandraVersion(2, 0)]
@@ -366,28 +350,12 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         {
             var uniqueTableName = TestUtils.GetUniqueTableName();
             var uniqueKsName = TestUtils.GetUniqueKeyspaceName();
-            if (!TestClusterManager.SchemaManipulatingQueriesThrowInvalidQueryException())
-            {
-                TestCluster.PrimeFluent(
-                    b => b.WhenQuery(string.Format(CreateTable.CreateCqlFormatStr, $"\"{uniqueKsName}\".\"{uniqueTableName}\""))
-                          .ThenServerError(ServerError.ConfigError, "msg"));
-            }
-            else
-            {
-                TestCluster.PrimeFluent(
-                    b => b.WhenQuery(string.Format(CreateTable.CreateCqlFormatStr, $"\"{uniqueKsName}\".\"{uniqueTableName}\""))
-                          .ThenServerError(ServerError.Invalid, "msg"));
-            }
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery(string.Format(CreateTable.CreateCqlFormatStr, $"\"{uniqueKsName}\".\"{uniqueTableName}\""))
+                    .ThenServerError(ServerError.ConfigError, "msg"));
 
             var table = new Table<AllDataTypesEntity>(Session, new MappingConfiguration(), uniqueTableName, uniqueKsName);
-            if (!TestClusterManager.SchemaManipulatingQueriesThrowInvalidQueryException())
-            {
-                Assert.ThrowsAsync<InvalidConfigurationInQueryException>(() => table.CreateAsync());
-            }
-            else
-            {
-                Assert.ThrowsAsync<InvalidQueryException>(() => table.CreateAsync());
-            }
+            Assert.ThrowsAsync<InvalidConfigurationInQueryException>(() => table.CreateAsync());
         }
 
         /// <summary>

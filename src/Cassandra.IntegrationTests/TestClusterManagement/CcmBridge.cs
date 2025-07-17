@@ -34,15 +34,12 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         public string IdPrefix { get; private set; }
         public string IpPrefix => $"127.0.{IdPrefix}.";
         public ICcmProcessExecuter CcmProcessExecuter { get; set; }
-        private readonly string _dseInstallPath;
-
-        public CcmBridge(string name, string idPrefix, string dsePath, string version, ICcmProcessExecuter executor)
+        public CcmBridge(string name, string idPrefix, string version, ICcmProcessExecuter executor)
         {
             Name = name;
             IdPrefix = idPrefix;
             CcmDir = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), Path.GetRandomFileName()));
             CcmProcessExecuter = executor;
-            _dseInstallPath = dsePath;
             Version = version;
         }
 
@@ -71,14 +68,9 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             {
                 ExecuteCcm($"create {Name} --scylla -v {Version} {sslParams}");
             }
-            else if (string.IsNullOrEmpty(_dseInstallPath))
+            else
             {
-                if (TestClusterManager.IsDse)
-                {
-                    ExecuteCcm(string.Format(
-                        "create {0} --dse -v {1} {2}", Name, Version, sslParams));
-                }
-                else if (TestClusterManager.CurrentBackendType == TestClusterManager.BackendType.Hcd)
+                if (TestClusterManager.CurrentBackendType == TestClusterManager.BackendType.Hcd)
                 {
                     ExecuteCcm(string.Format(
                         "create {0} --hcd -v {1} {2}", Name, Version, sslParams));
@@ -88,11 +80,6 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                     ExecuteCcm(string.Format(
                         "create {0} -v {1} {2}", Name, Version, sslParams));
                 }
-            }
-            else
-            {
-                ExecuteCcm(string.Format(
-                    "create {0} --install-dir={1} {2}", Name, _dseInstallPath, sslParams));
             }
         }
 
@@ -285,11 +272,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         public ProcessOutput BootstrapNode(int n, string dc, bool start = true)
         {
             var cmd = "add node{0} -i {1}{2} -j {3} -b -s {4}";
-            if (TestClusterManager.IsDse)
-            {
-                cmd += " --dse";
-            }
-            else if (TestClusterManager.CurrentBackendType == TestClusterManager.BackendType.Hcd)
+            if (TestClusterManager.CurrentBackendType == TestClusterManager.BackendType.Hcd)
             {
                 cmd += " --hcd";
             }
@@ -327,22 +310,6 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             FixYaml(configs);
             var joinedConfigs = string.Join(" ", configs.Select(s => $"\"{s}\""));
             ExecuteCcm($"updateconf {joinedConfigs}");
-        }
-
-        public void UpdateDseConfig(params string[] configs)
-        {
-            if (!TestClusterManager.IsDse)
-            {
-                throw new InvalidOperationException("Cant update dse config on an oss cluster.");
-            }
-
-            if (configs == null)
-            {
-                return;
-            }
-            FixYaml(configs);
-            var joinedConfigs = string.Join(" ", configs.Select(s => $"\"{s}\""));
-            ExecuteCcm($"updatedseconf {joinedConfigs}");
         }
 
         public void UpdateConfig(int nodeId, params string[] yamlChanges)
@@ -385,37 +352,6 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                         yamlToFix[i] = $"{matchEnable.Groups[1].Value}_enabled:{value}";
                     }
                 }
-            }
-        }
-
-
-        public void SetNodeWorkloads(int nodeId, string[] workloads)
-        {
-            if (!TestClusterManager.IsDse)
-            {
-                throw new InvalidOperationException("Cant set workloads on an oss cluster.");
-            }
-
-            ExecuteCcm(string.Format("node{0} setworkload {1}", nodeId, string.Join(",", workloads)));
-        }
-
-        /// <summary>
-        /// Sets the workloads for all nodes.
-        /// </summary>
-        public void SetWorkloads(int nodeLength, string[] workloads)
-        {
-            if (!TestClusterManager.IsDse)
-            {
-                throw new InvalidOperationException("Cant set workloads on an oss cluster.");
-            }
-
-            if (workloads == null || workloads.Length == 0)
-            {
-                return;
-            }
-            for (var nodeId = 1; nodeId <= nodeLength; nodeId++)
-            {
-                SetNodeWorkloads(nodeId, workloads);
             }
         }
     }

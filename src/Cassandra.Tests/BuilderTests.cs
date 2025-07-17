@@ -18,7 +18,6 @@ using System;
 using System.Linq;
 using System.Net;
 using Cassandra.Connections;
-using Cassandra.DataStax.Graph;
 using NUnit.Framework;
 
 namespace Cassandra.Tests
@@ -396,25 +395,12 @@ namespace Cassandra.Tests
         }
 
         [Test]
-        public void Should_Build_A_Cluster_With_Graph_Options()
-        {
-            var graphOptions = new GraphOptions();
-            ICluster cluster = Cluster.Builder()
-                .WithGraphOptions(graphOptions)
-                .AddContactPoint("192.168.1.159")
-                .Build();
-            Assert.NotNull(cluster.Configuration);
-            Assert.AreSame(graphOptions, cluster.Configuration.GraphOptions);
-        }
-
-        [Test]
         public void Should_Build_A_Cluster_With_Default_Graph_Options()
         {
             //without specifying graph options
             ICluster cluster = Cluster.Builder().AddContactPoint("192.168.1.159").Build();
             Assert.NotNull(cluster.Configuration);
             Assert.NotNull(cluster.Configuration);
-            Assert.NotNull(cluster.Configuration.GraphOptions);
         }
 
         [Test]

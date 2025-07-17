@@ -854,7 +854,7 @@ namespace Cassandra.IntegrationTests.Core
 
         [TestCase(true)]
         [TestCase(false)]
-        [TestBothServersVersion(4, 0, 5, 1)]
+        [TestCassandraVersion(4, 0)]
         public void Session_Prepare_With_Keyspace_Defined_On_Protocol_Greater_Than_4(bool usePayload)
         {
             if (Session.Cluster.Metadata.ControlConnection.Serializer.CurrentProtocolVersion < ProtocolVersion.V5)
@@ -887,7 +887,7 @@ namespace Cassandra.IntegrationTests.Core
 
         [TestCase(true)]
         [TestCase(false)]
-        [TestBothServersVersion(4, 0, 5, 1)]
+        [TestCassandraVersion(4, 0)]
         public async Task Session_PrepareAsync_With_Keyspace_Defined_On_Protocol_Greater_Than_4(bool usePayload)
         {
             if (Session.Cluster.Metadata.ControlConnection.Serializer.CurrentProtocolVersion < ProtocolVersion.V5)
@@ -920,14 +920,14 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        [TestBothServersVersion(4, 0, 5, 1)]
+        [TestCassandraVersion(4, 0)]
         public void Session_Prepare_With_Keyspace_Defined_On_Protocol_V4()
         {
             TestKeyspaceInPrepareNotSupported(true);
         }
 
         [Test]
-        [TestBothServersVersion(4, 0, 5, 1, Comparison.LessThan)]
+        [TestCassandraVersion(4, 0, Comparison.LessThan)]
         public void Session_Prepare_With_Keyspace_Defined_On_Previuos_Cassandra_Versions()
         {
             TestKeyspaceInPrepareNotSupported(false);
@@ -1114,7 +1114,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        [TestBothServersVersion(4, 0, 5, 1)]
+        [TestCassandraVersion(4, 0)]
         public void BatchStatement_With_Keyspace_Defined_On_Protocol_Greater_Than_4()
         {
             using (var cluster = ClusterBuilder().AddContactPoint(TestClusterManager.InitialContactPoint).Build())
@@ -1140,7 +1140,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        [TestBothServersVersion(4, 0, 5, 1, Comparison.LessThan)]
+        [TestCassandraVersion(4, 0, Comparison.LessThan)]
         public void BatchStatement_With_Keyspace_Defined_On_Lower_Protocol_Versions()
         {
             using (var cluster = GetNewTemporaryCluster())
