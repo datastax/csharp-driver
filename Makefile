@@ -25,14 +25,16 @@ export SCYLLA_VERSION
 export SNK_FILE
 
 check: .prepare-mono
-	dotnet format --verify-no-changes --severity warn --verbosity diagnostic src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj
-	dotnet format --verify-no-changes --severity warn --verbosity diagnostic src/Cassandra/Cassandra.csproj
-	dotnet format --verify-no-changes --severity warn --verbosity diagnostic src/Cassandra.Tests/Cassandra.Tests.csproj
+	dotnet format --verify-no-changes --severity warn --verbosity diagnostic src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj & \
+	dotnet format --verify-no-changes --severity warn --verbosity diagnostic src/Cassandra/Cassandra.csproj & \
+	dotnet format --verify-no-changes --severity warn --verbosity diagnostic src/Cassandra.Tests/Cassandra.Tests.csproj & \
+	wait
 
 fix: .prepare-mono
-	dotnet format --severity warn --verbosity diagnostic src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj
-	dotnet format --severity warn --verbosity diagnostic src/Cassandra/Cassandra.csproj
-	dotnet format --severity warn --verbosity diagnostic src/Cassandra.Tests/Cassandra.Tests.csproj
+	dotnet format --severity warn --verbosity diagnostic src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj & \
+	dotnet format --severity warn --verbosity diagnostic src/Cassandra/Cassandra.csproj & \
+	dotnet format --severity warn --verbosity diagnostic src/Cassandra.Tests/Cassandra.Tests.csproj & \
+	wait
 
 test-unit: .use-development-snk .prepare-mono
 	dotnet test src/Cassandra.Tests/Cassandra.Tests.csproj
