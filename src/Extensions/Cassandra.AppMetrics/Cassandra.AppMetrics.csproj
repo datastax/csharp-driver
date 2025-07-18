@@ -14,7 +14,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <AssemblyName>Cassandra.AppMetrics</AssemblyName>
     <Product>ScyllaDB C# Drivers App Metrics Extension</Product>
-    <AssemblyOriginatorKeyFile>../../../build/datastax.snk</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>../../../build/scylladb.snk</AssemblyOriginatorKeyFile>
     <SignAssembly>true</SignAssembly>
     <PackageId>ScyllaDBCSharpDriver.AppMetrics</PackageId>
     <Title>ScyllaDB C# Drivers App Metrics Extension</Title>
@@ -31,7 +31,7 @@
 
   <ItemGroup>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-      <_Parameter1>Cassandra.Tests, PublicKey=00240000048000009400000006020000002400005253413100040000010001002367a0d2a0b22d308ce0139f644baa0e17ea09bd0d951b5c85f9e6440302d3e0e45f59676a4f31c970ff534c65ff7746184a95d538933d10115bfaf2eaa89332f0ab72bb9d5d1828501c580a3ade6c91d258159701b7317ee5d57f914e8cd28df32f83ad190169c4427c62da85d173aa7ab5d1870e19140bb1275d7620bebab4</_Parameter1>
+      <_Parameter1>Cassandra.Tests, PublicKey=0024000004800000940000000602000000240000525341310004000001000100fb083dc01ba81b96b526327f232e7f4c1301c8ec177a2c66adecc315a9c2308f33ecd9dc70d6d1435107578b4dd04658c8f92a51a60d50c528ca6fba3955fa844fe79c884452024b0ba67d19a70140818aa61a1faeb23d5dcfe0bd9820d587829caf36d0ac7e0dc450d3654d5f5bee009dda3d11fd4066d4640b935c2ca048a4</_Parameter1>
     </AssemblyAttribute>
   </ItemGroup>
 
