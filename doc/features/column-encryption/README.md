@@ -5,7 +5,7 @@
 Support for client-side encryption of data was added in version 3.20.0 of the C# driver. When using this feature data will be encrypted on-the-fly according to a provided implementation of `IColumnEncryptionPolicy`. This policy is also used to decrypt data in returned rows.  If a prepared statement is used, this decryption is transparent to the user; retrieved data will be decrypted and converted into the original
 type according to definitions in the encryption policy. Support for simple (i.e. non-prepared) statements is also available, although in this case values must be wrapped using the `EncryptedValue` type.
 
-Client-side encryption and decryption should work against all versions of Cassandra, and Astra. It does not utilize any server-side functionality to do its work.
+Client-side encryption and decryption should work against all versions of Cassandra. It does not utilize any server-side functionality to do its work.
 
 ## Configuration
 

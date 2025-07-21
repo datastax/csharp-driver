@@ -73,16 +73,6 @@ foreach (var row in rs)
 }
 ```
 
-**If you are using [DataStax Astra][astra]** you can configure your cluster instance by setting the secure bundle and the user credentials:
-
-```csharp
-// Configure the builder with your cluster's cloud secure connection bundle and credentials
-var cluster = Cluster.Builder()
-                     .WithCloudSecureConnectionBundle("path/to/secure-connect-DATABASE_NAME.zip")
-                     .WithCredentials("user_name", "p@ssword1")
-                     .Build();
-```
-
 ### Prepared statements
 
 Prepare your query **once** and bind different parameters to obtain best performance.
