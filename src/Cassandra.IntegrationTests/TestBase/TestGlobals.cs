@@ -40,11 +40,6 @@ namespace Cassandra.IntegrationTests.TestBase
         /// </summary>
         public ProtocolVersion GetProtocolVersion()
         {
-            if (TestClusterManager.CheckDseVersion(Version.Parse("6.0"), Comparison.GreaterThanOrEqualsTo))
-            {
-                return ProtocolVersion.DseV2;
-            }
-
             var cassandraVersion = TestClusterManager.CassandraVersion;
             var protocolVersion = ProtocolVersion.V1;
             if (cassandraVersion >= Version.Parse("2.2"))

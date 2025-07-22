@@ -187,8 +187,4 @@ See [Freezing collection types] for more information about frozen collections.
 
 See [Creating a user-defined type] for more information about frozen UDTs.
 
-[Creating a user-defined type]: https://docs.datastax.com/en/dse/6.7/cql/cql/cql_using/useCreateUDT.html
-
-[Freezing collection types]: https://docs.datastax.com/en/dse/6.7/cql/cql/cql_using/refCollectionType.html
-
 [cql-udt]: https://docs.datastax.com/en/cql/3.3/cql/cql_reference/cqlRefUDType.html

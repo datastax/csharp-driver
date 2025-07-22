@@ -12,7 +12,6 @@ The ScyllaDB C# Driver for Scylla is a feature-rich and highly tunable C# client
   - [Linq](components/linq)
   - [Mapper](components/mapper)
   - [ADO.NET](components/adonet)
-- [Connecting to DataStax Astra](cloud)
 - [Connection heartbeat](connection-heartbeat)
 - [Connection pooling](connection-pooling)
 - [CQL data types to C# types](datatypes)

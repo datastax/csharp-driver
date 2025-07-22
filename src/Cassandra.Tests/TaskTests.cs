@@ -171,8 +171,7 @@ namespace Cassandra.Tests
             {
                 Assert.Fail("src folder could not be determined");
             }
-            directory = directory.GetDirectories("Cassandra").FirstOrDefault() ??
-                        directory.GetDirectories("Dse").FirstOrDefault();
+            directory = directory.GetDirectories("Cassandra").FirstOrDefault();
             if (directory == null)
             {
                 Assert.Fail("Library source folder could not be determined");

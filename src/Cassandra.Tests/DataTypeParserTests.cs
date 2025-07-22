@@ -361,7 +361,6 @@ namespace Cassandra.Tests
             var typeNames = new[]
             {
               "org.apache.cassandra.db.marshal.MyCustomType",
-              "com.datastax.dse.whatever.TypeName"
             };
             foreach (var typeName in typeNames)
             {
@@ -377,8 +376,7 @@ namespace Cassandra.Tests
         {
             var typeNames = new[]
             {
-              "org.apache.cassandra.db.marshal.MyCustomType",
-              "com.datastax.dse.whatever.TypeName"
+              "org.apache.cassandra.db.marshal.MyCustomType"
             };
             foreach (var typeName in typeNames)
             {

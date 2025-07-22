@@ -52,11 +52,6 @@ namespace Cassandra.Tests.Requests
             return CreateMockHandler();
         }
 
-        public IGraphRequestHandler CreateGraphRequestHandler(IInternalSession session, IGraphTypeSerializerFactory resolver)
-        {
-            return new GraphRequestHandler(session, resolver);
-        }
-
         private Task<IRequestHandler> CreateMockHandler(IStatement statement = null)
         {
             var handler = Mock.Of<IRequestHandler>();

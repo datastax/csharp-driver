@@ -215,7 +215,7 @@ namespace Cassandra.Tests
                     (lbp, idx) => new
                     {
                         idx,
-                        a = new ExecutionProfile(null, null, null, lbp, null, null, null)
+                        a = new ExecutionProfile(null, null, null, lbp, null, null)
                             as IExecutionProfile
                     }).ToDictionary(obj => obj.idx.ToString(), obj => obj.a)
             }.Build();

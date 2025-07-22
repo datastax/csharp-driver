@@ -15,7 +15,6 @@
 //
 
 using System;
-using Cassandra.DataStax.Graph;
 
 namespace Cassandra.ExecutionProfiles
 {
@@ -27,8 +26,6 @@ namespace Cassandra.ExecutionProfiles
         private ILoadBalancingPolicy _loadBalancingPolicy;
         private ISpeculativeExecutionPolicy _speculativeExecutionPolicy;
         private IExtendedRetryPolicy _retryPolicy;
-
-        private GraphOptions _graphOptions;
 
         public IExecutionProfileBuilder WithLoadBalancingPolicy(ILoadBalancingPolicy loadBalancingPolicy)
         {
@@ -66,13 +63,6 @@ namespace Cassandra.ExecutionProfiles
             return this;
         }
 
-        /// <inheritdoc />
-        public IExecutionProfileBuilder WithGraphOptions(GraphOptions graphOptions)
-        {
-            _graphOptions = graphOptions;
-            return this;
-        }
-
         public IExecutionProfile Build()
         {
             return new ExecutionProfile(
@@ -81,8 +71,7 @@ namespace Cassandra.ExecutionProfiles
                 _readTimeoutMillis,
                 _loadBalancingPolicy,
                 _speculativeExecutionPolicy,
-                _retryPolicy,
-                _graphOptions);
+                _retryPolicy);
         }
     }
 }

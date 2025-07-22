@@ -95,11 +95,14 @@ namespace Cassandra.Tests
             Assert.AreEqual(2, ex.ReceivedAcknowledgements);
             Assert.AreEqual(3, ex.RequiredAcknowledgements);
             Assert.AreEqual(1, ex.Failures);
-            Assert.False(ex.WasDataRetrieved);
-            Assert.That(ex.Reasons, Is.EquivalentTo(new Dictionary<IPAddress, int>
+            if (Version.SupportsFailureReasons())
             {
-                { IPAddress.Parse("10.10.0.1"), 5 }
-            }));
+                Assert.False(ex.WasDataRetrieved);
+                Assert.That(ex.Reasons, Is.EquivalentTo(new Dictionary<IPAddress, int>
+                {
+                    { IPAddress.Parse("10.10.0.1"), 5 }
+                }));
+            }
         }
 
         [Test]
@@ -144,11 +147,14 @@ namespace Cassandra.Tests
             Assert.AreEqual(2, ex.ReceivedAcknowledgements);
             Assert.AreEqual(3, ex.RequiredAcknowledgements);
             Assert.AreEqual(1, ex.Failures);
-            Assert.AreEqual("COUNTER", ex.WriteType);
-            Assert.That(ex.Reasons, Is.EquivalentTo(new Dictionary<IPAddress, int>
+            if (Version.SupportsFailureReasons())
             {
-                { IPAddress.Parse("12.10.0.1"), 4 }
-            }));
+                Assert.AreEqual("COUNTER", ex.WriteType);
+                Assert.That(ex.Reasons, Is.EquivalentTo(new Dictionary<IPAddress, int>
+                {
+                    { IPAddress.Parse("12.10.0.1"), 4 }
+                }));
+            }
         }
 
         private static byte[] GetHeaderBuffer(int length, HeaderFlags flags = 0)

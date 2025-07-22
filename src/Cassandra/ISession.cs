@@ -18,7 +18,6 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
-using Cassandra.DataStax.Graph;
 using Cassandra.Metrics;
 
 namespace Cassandra
@@ -55,7 +54,7 @@ namespace Cassandra
         bool IsDisposed { get; }
 
         /// <summary>
-        /// Gets name of currently used keyspace. 
+        /// Gets name of currently used keyspace.
         /// </summary>
         string Keyspace { get; }
 
@@ -93,13 +92,13 @@ namespace Cassandra
         void ChangeKeyspace(string keyspaceName);
 
         /// <summary>
-        ///  Creates new keyspace in current cluster.        
+        ///  Creates new keyspace in current cluster.
         /// </summary>
         /// <param name="keyspaceName">Case-sensitive name of keyspace to be created.</param>
         /// <param name="replication">
         /// Replication property for this keyspace.
-        /// To set it, refer to the <see cref="ReplicationStrategies"/> class methods. 
-        /// It is a dictionary of replication property sub-options where key is a sub-option name and value is a value for that sub-option. 
+        /// To set it, refer to the <see cref="ReplicationStrategies"/> class methods.
+        /// It is a dictionary of replication property sub-options where key is a sub-option name and value is a value for that sub-option.
         /// <para>Default value is <c>SimpleStrategy</c> with <c>replication_factor = 1</c></para>
         /// </param>
         /// <param name="durableWrites">Whether to use the commit log for updates on this keyspace. Default is set to <c>true</c>.</param>
@@ -112,7 +111,7 @@ namespace Cassandra
         /// <param name="keyspaceName">Case-sensitive name of keyspace to be created.</param>
         /// <param name="replication">
         /// Replication property for this keyspace.
-        /// To set it, refer to the <see cref="ReplicationStrategies"/> class methods. 
+        /// To set it, refer to the <see cref="ReplicationStrategies"/> class methods.
         /// It is a dictionary of replication property sub-options where key is a sub-option name and value is a value for that sub-option.
         /// <para>Default value is <c>'SimpleStrategy'</c> with <c>'replication_factor' = 2</c></para>
         /// </param>
@@ -215,7 +214,7 @@ namespace Cassandra
         /// </summary>
         /// <param name="cqlQuery">Cql query to prepare</param>
         /// <param name="keyspace">The keyspace to prepare this query with</param>
-        /// <remarks>Setting the keyspace parameter is only available with protocol v5 (not supported by the driver yet) or DSE 6.0+.</remarks>
+        /// <remarks>Setting the keyspace parameter is only available with protocol v5 (not supported by the driver yet).</remarks>
         PreparedStatement Prepare(string cqlQuery, string keyspace);
 
         /// <summary>
@@ -225,7 +224,7 @@ namespace Cassandra
         /// <param name="cqlQuery">Cql query to prepare</param>
         /// <param name="keyspace">The keyspace to prepare this query with</param>
         /// <param name="customPayload">Custom outgoing payload to send with the prepare request</param>
-        /// <remarks>Setting the keyspace parameter is only available with protocol v5 (not supported by the driver yet) or DSE 6.0+.</remarks>
+        /// <remarks>Setting the keyspace parameter is only available with protocol v5 (not supported by the driver yet).</remarks>
         PreparedStatement Prepare(string cqlQuery, string keyspace, IDictionary<string, byte[]> customPayload);
 
         /// <summary>
@@ -246,7 +245,7 @@ namespace Cassandra
         /// </summary>
         /// <param name="cqlQuery">Cql query to prepare</param>
         /// <param name="keyspace">The keyspace to prepare this query with</param>
-        /// <remarks>Setting the keyspace parameter is only available with protocol v5 (not supported by the driver yet) or DSE 6.0+.</remarks>
+        /// <remarks>Setting the keyspace parameter is only available with protocol v5 (not supported by the driver yet).</remarks>
         Task<PreparedStatement> PrepareAsync(string cqlQuery, string keyspace);
 
         /// <summary>
@@ -256,63 +255,13 @@ namespace Cassandra
         /// <param name="cqlQuery">Cql query to prepare</param>
         /// <param name="keyspace">The keyspace to prepare this query with</param>
         /// <param name="customPayload">Custom outgoing payload to send with the prepare request</param>
-        /// <remarks>Setting the keyspace parameter is only available with protocol v5 (not supported by the driver yet) or DSE 6.0+.</remarks>
+        /// <remarks>Setting the keyspace parameter is only available with protocol v5 (not supported by the driver yet).</remarks>
         Task<PreparedStatement> PrepareAsync(string cqlQuery, string keyspace, IDictionary<string, byte[]> customPayload);
 
         /// <summary>
         /// Retrieves the driver metrics for this session.
         /// </summary>
         IDriverMetrics GetMetrics();
-
-        /// <summary>
-        /// Executes a graph statement.
-        /// </summary>
-        /// <param name="statement">The graph statement containing the query</param>
-        /// <example>
-        /// <code>
-        /// GraphResultSet rs = session.ExecuteGraph(new SimpleGraphStatement("g.V()"));
-        /// </code>
-        /// </example>
-        GraphResultSet ExecuteGraph(IGraphStatement statement);
-
-        /// <summary>
-        /// Executes a graph statement.
-        /// </summary>
-        /// <param name="statement">The graph statement containing the query</param>
-        /// <example>
-        /// <code>
-        /// Task&lt;GraphResultSet$gt; task = session.ExecuteGraphAsync(new SimpleGraphStatement("g.V()"));
-        /// </code>
-        /// </example>
-        Task<GraphResultSet> ExecuteGraphAsync(IGraphStatement statement);
-
-        /// <summary>
-        /// Executes a graph statement with the provided execution profile.
-        /// The execution profile must have been added previously to the Cluster
-        /// using <see cref="Builder.WithExecutionProfiles"/>.
-        /// </summary>
-        /// <param name="statement">The graph statement containing the query</param>
-        /// <param name="executionProfileName">The graph execution profile name to use while executing this statement.</param>
-        /// <example>
-        /// <code>
-        /// GraphResultSet rs = session.ExecuteGraph(new SimpleGraphStatement("g.V()"), "graphProfile");
-        /// </code>
-        /// </example>
-        GraphResultSet ExecuteGraph(IGraphStatement statement, string executionProfileName);
-
-        /// <summary>
-        /// Executes a graph statement asynchronously with the provided graph execution profile.
-        /// The graph execution profile must have been added previously to the Cluster
-        /// using <see cref="Builder.WithExecutionProfiles"/>.
-        /// </summary>
-        /// <param name="statement">The graph statement containing the query</param>
-        /// <param name="executionProfileName">The graph execution profile name to use while executing this statement.</param>
-        /// <example>
-        /// <code>
-        /// Task&lt;GraphResultSet$gt; task = session.ExecuteGraphAsync(new SimpleGraphStatement("g.V()"), "graphProfile");
-        /// </code>
-        /// </example>
-        Task<GraphResultSet> ExecuteGraphAsync(IGraphStatement statement, string executionProfileName);
 
         /// <summary>
         /// Disposes the session asynchronously.

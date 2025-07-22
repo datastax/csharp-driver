@@ -18,8 +18,6 @@ using System;
 using System.Collections.Generic;
 using Cassandra.Connections;
 using Cassandra.Connections.Control;
-using Cassandra.DataStax.Graph;
-using Cassandra.DataStax.Insights;
 using Cassandra.ExecutionProfiles;
 using Cassandra.MetadataHelpers;
 using Cassandra.Metrics;
@@ -89,8 +87,6 @@ namespace Cassandra.Tests
 
         public Guid ClusterId { get; set; } = Guid.NewGuid();
 
-        public GraphOptions GraphOptions { get; set; } = new GraphOptions();
-
         public bool? KeepContactPointsUnresolved { get; set; }
 
         public bool? AllowBetaProtocolVersions { get; set; }
@@ -115,12 +111,6 @@ namespace Cassandra.Tests
 
         public MonitorReportingOptions MonitorReportingOptions { get; set; } = new MonitorReportingOptions();
 
-        public IInsightsSupportVerifier InsightsSupportVerifier { get; set; } = new InsightsSupportVerifier();
-
-        public IInsightsClientFactory InsightsClientFactory { get; set; } =
-            new InsightsClientFactory(
-                Configuration.DefaultInsightsStartupMessageFactory, Configuration.DefaultInsightsStatusMessageFactory);
-
         public TypeSerializerDefinitions TypeSerializerDefinitions { get; set; } = new TypeSerializerDefinitions();
 
         public Configuration Build()
@@ -141,7 +131,6 @@ namespace Cassandra.Tests
                 new NullDriverMetricsProvider(),
                 MetricsOptions,
                 SessionName,
-                GraphOptions,
                 ClusterId,
                 ApplicationVersion,
                 ApplicationName,
@@ -152,7 +141,6 @@ namespace Cassandra.Tests
                 SessionFactory,
                 RequestOptionsMapper,
                 StartupOptionsFactory,
-                InsightsSupportVerifier,
                 RequestHandlerFactory,
                 HostConnectionPoolFactory,
                 RequestExecutionFactory,
@@ -160,7 +148,6 @@ namespace Cassandra.Tests
                 ControlConnectionFactory,
                 PrepareHandlerFactory,
                 TimerFactory,
-                InsightsClientFactory,
                 ContactPointParser,
                 ServerNameResolver,
                 DnsResolver,

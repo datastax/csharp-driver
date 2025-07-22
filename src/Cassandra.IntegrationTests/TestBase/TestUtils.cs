@@ -411,7 +411,7 @@ namespace Cassandra.IntegrationTests.TestBase
             //  3.- Fill the config files
             //  4.- Starting each node.
 
-            //Considerations: 
+            //Considerations:
             //  As steps 1 and 2 can take a while, try to fail fast (2 sec) by doing a "ccm list"
             //  Also, the process can exit before the nodes are actually up: Execute ccm status until they are up
 
@@ -656,21 +656,6 @@ namespace Cassandra.IntegrationTests.TestBase
         public static void WaitForSchemaAgreement(CcmClusterInfo clusterInfo)
         {
             TestUtils.WaitForSchemaAgreement(clusterInfo.Cluster);
-        }
-
-        public static void VerifyCurrentClusterWorkloads(string[] expectedWorkloads)
-        {
-            using (var cluster = TestUtils.NewBuilder()
-                .AddContactPoint(TestClusterManager.InitialContactPoint)
-                .Build())
-            {
-                cluster.Connect();
-                foreach (var host in cluster.Metadata.AllHosts())
-                {
-
-                    CollectionAssert.AreEquivalent(expectedWorkloads, host.Workloads);
-                }
-            }
         }
     }
 

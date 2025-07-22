@@ -14,31 +14,11 @@ schedules:
       # on linux with netcoreapp2.1 target 2.2, 3.0 and 3.11
         - os: 'ubuntu/bionic64/csharp-driver'
           dotnet: ['netcoreapp2.1']
-          cassandra: ['2.1', '4.0', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.7', 'dse-6.8.0']
+          cassandra: ['2.1', '4.0']
       # on linux with mono target 3.11
         - os: 'ubuntu/bionic64/csharp-driver'
           dotnet: ['mono']
-          cassandra: ['2.1', '2.2', '3.0', '4.0', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.7', 'dse-6.8.0']
-  commit-dse:
-    # Run short suite on commit
-    schedule: adhoc
-    notify:
-      slack: csharp-driver-dev-bots
-    matrix:
-      exclude:
-      # dont build on windows (DSE is very slow on WSL, run only on nightly and weekly schedules)
-        - os: 'win/cs'
-      # on linux dont build net452 and net461
-        - os: 'ubuntu/bionic64/csharp-driver'
-          dotnet: ['net452', 'net461']
-      # on linux with netcoreapp2.1 target dse-5.1, dse-6.8.0 and dse-6.7
-        - os: 'ubuntu/bionic64/csharp-driver'
-          dotnet: ['netcoreapp2.1']
-          cassandra: ['2.1', '2.2', '3.0', '3.11', '4.0', 'dse-5.0', 'dse-6.0']
-      # on linux with mono target dse-6.7
-        - os: 'ubuntu/bionic64/csharp-driver'
-          dotnet: ['mono']
-          cassandra: ['2.1', '2.2', '3.0', '3.11', '4.0', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.8.0']
+          cassandra: ['2.1', '2.2', '3.0', '4.0']
   nightly-oss-ubuntu:
     # nightly job for primary branches to run almost all configs on ubuntu.
     schedule: adhoc
@@ -53,36 +33,11 @@ schedules:
       # on linux dont build net452 and net461
         - os: 'ubuntu/bionic64/csharp-driver'
           dotnet: ['net452', 'net461']
-      # on linux dont build dse
-        - os: 'ubuntu/bionic64/csharp-driver'
-          cassandra: ['dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.7', 'dse-6.8.0']
       # on linux with netcoreapp2.1 target all oss
       # on linux with mono target 2.2 and 3.11
         - os: 'ubuntu/bionic64/csharp-driver'
           dotnet: ['mono']
           cassandra: ['2.1', '3.0']
-  nightly-dse-ubuntu:
-    # nightly job for primary branches to run almost all configs on ubuntu.
-    schedule: adhoc
-    notify:
-      slack: csharp-driver-dev-bots
-    branches:
-      # regex matches primary branch format (2.1, 3.x, 3.0.x, 3.1.x, master, etc).
-      include: ["/((\\d+(\\.[\\dx]+)+)|master)/"]
-    matrix:
-      exclude:
-        - os: 'win/cs'
-      # on linux dont build net452 and net461
-        - os: 'ubuntu/bionic64/csharp-driver'
-          dotnet: ['net452', 'net461']
-      # on linux dont build oss
-        - os: 'ubuntu/bionic64/csharp-driver'
-          cassandra: ['2.1', '2.2', '3.0', '3.11', '4.0']
-      # on linux with netcoreapp2.1 target all dse
-      # on linux with mono target dse-5.1 and dse-6.7
-        - os: 'ubuntu/bionic64/csharp-driver'
-          dotnet: ['mono']
-          cassandra: ['dse-5.0', 'dse-6.0', 'dse-6.8.0']
   nightly-oss-windows:
     # nightly job for primary branches to run several configs on windows (windows builds are slow so it's less configs than the nightly ubuntu schedule).
     schedule: adhoc
@@ -100,15 +55,15 @@ schedules:
       # on windows target 3.11 with netcoreapp2.1
         - os: 'win/cs'
           dotnet: ['netcoreapp2.1']
-          cassandra: ['2.1', '2.2', '3.0', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.7', 'dse-6.8.0']
+          cassandra: ['2.1', '2.2', '3.0']
       # on windows target 2.1, 2.2 and 3.11
         - os: 'win/cs'
           dotnet: ['net452']
-          cassandra: ['3.0', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.7', 'dse-6.8.0']
+          cassandra: ['3.0']
       # on windows target 2.2 and 3.11 with net461
         - os: 'win/cs'
           dotnet: ['net461']
-          cassandra: ['2.1', '3.0', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.7', 'dse-6.8.0']
+          cassandra: ['2.1', '3.0']
   adhoc:
     # adhoc job for non-primary braches that doesn't have the nightly and weekly schedules so this may be used to run same configs as the weekly schedule.
     schedule: adhoc
@@ -121,9 +76,6 @@ schedules:
       # on windows dont build mono
         - os: 'win/cs'
           dotnet: ['mono']
-      # on windows dont build DSE
-        - os: 'win/cs'
-          cassandra: ['dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.7', 'dse-6.8.0']
       # on linux dont build net452 and net461
         - os: 'ubuntu/bionic64/csharp-driver'
           dotnet: ['net452', 'net461']
@@ -139,9 +91,6 @@ schedules:
       # on windows dont build mono
         - os: 'win/cs'
           dotnet: ['mono']
-      # on windows dont build DSE
-        - os: 'win/cs'
-          cassandra: ['dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.7', 'dse-6.8.0']
       # on linux dont build net452 and net461
         - os: 'ubuntu/bionic64/csharp-driver'
           dotnet: ['net452', 'net461']
@@ -155,11 +104,6 @@ cassandra:
   - '3.0'
   - '3.11'
   - '4.0'
-  - 'dse-5.0'
-  - 'dse-5.1'
-  - 'dse-6.0'
-  - 'dse-6.7'
-  - 'dse-6.8.0'
 dotnet:
   - 'mono'
   - 'netcoreapp2.1'
@@ -176,32 +120,14 @@ build:
       )
       
   - script: |
-      export CASS_VERSION_SNI='dse-6.7'
-      
+      export CASS_VERSION_SNI='4.0'
+
       # Set the Java paths (for CCM)
       export JAVA_HOME=$CCM_JAVA_HOME
       export PATH=$JAVA_HOME/bin:$PATH
       export SIMULACRON_PATH=$HOME/simulacron.jar
 
-      if [[ $CASSANDRA_VERSION == dse-* ]] ;
-      then
-          export CCM_PATH=$HOME/ccm
-          export DSE_BRANCH=$CCM_BRANCH
-          export DSE_VERSION=$CCM_VERSION
-          export DSE_INITIAL_IPPREFIX="127.0.0."
-          export DSE_IN_REMOTE_SERVER="false"
-                
-          if [ $DSE_VERSION = '6.0' ]; then
-              echo "Setting DSE 6.0 install-dir"
-              export DSE_PATH=$CCM_INSTALL_DIR
-          fi
-          
-          echo $DSE_VERSION
-          echo $DSE_PATH
-          echo $DSE_INITIAL_IPPREFIX
-          echo $DSE_IN_REMOTE_SERVER
-          echo $DSE_INITIAL_IPPREFIX
-      fi
+      export CCM_PATH=$HOME/ccm
 
       echo $CSHARP_VERSION
 

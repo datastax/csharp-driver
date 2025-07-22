@@ -36,7 +36,7 @@ public class User
    public string Name { get; set; }
 }
 
-// Get a list of users from Cassandra/DSE
+// Get a list of users from Cassandra
 IEnumerable<User> users = mapper.Fetch<User>("SELECT userid, name FROM users");
 IEnumerable<User> users = mapper.Fetch<User>("SELECT * FROM users WHERE name = ?", someName);
 ```
@@ -109,7 +109,7 @@ var user = mapper.First<User>("SELECT * FROM users");
 var user = mapper.FirstOrDefault<User>("SELECT * FROM users");
 
 // All query methods also support "flattening" to just the column's value type when
-// selecting a single column 
+// selecting a single column
 Guid userId = mapper.First<Guid>("SELECT userid FROM users");
 IEnumerable<string> names = mapper.Fetch<string>("SELECT name FROM users");
 
@@ -122,7 +122,7 @@ mapper.Update(someUser);
 // Update with CQL (will prepend table name to CQL)
 mapper.Update<User>("SET name = ? WHERE id = ?", someNewName, userId);
 
-// Delete with POCO 
+// Delete with POCO
 mapper.Delete(someUser);
 
 // Delete with CQL (will prepend table name to CQL)

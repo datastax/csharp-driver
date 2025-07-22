@@ -31,13 +31,12 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         public string InitialContactPoint { get; set; }
         public string ClusterIpPrefix { get; set; }
         public string IdPrefix { get; private set; }
-        public string DsePath { get; set; }
         public string DefaultKeyspace { get; set; }
         private readonly ICcmProcessExecuter _executor;
         private CcmBridge _ccm;
         private int _nodeLength;
 
-        public CcmCluster(string name, string idPrefix, string dsePath, ICcmProcessExecuter executor, string defaultKeyspace, string version)
+        public CcmCluster(string name, string idPrefix, ICcmProcessExecuter executor, string defaultKeyspace, string version)
         {
             _executor = executor;
             Name = name;
@@ -45,7 +44,6 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             IdPrefix = idPrefix;
             ClusterIpPrefix = $"127.0.{IdPrefix}.";
             InitialContactPoint = ClusterIpPrefix + "1";
-            DsePath = dsePath;
             Version = version;
         }
 
@@ -53,16 +51,10 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         {
             _nodeLength = nodeLength;
             options = options ?? TestClusterOptions.Default;
-            _ccm = new CcmBridge(Name, IdPrefix, DsePath, Version, _executor);
+            _ccm = new CcmBridge(Name, IdPrefix, Version, _executor);
             _ccm.Create(options.UseSsl);
             _ccm.Populate(nodeLength, options.Dc2NodeLength, options.UseVNodes);
             _ccm.UpdateConfig(options.CassandraYaml);
-
-            if (TestClusterManager.IsDse)
-            {
-                _ccm.UpdateDseConfig(options.DseYaml);
-                _ccm.SetWorkloads(nodeLength, options.Workloads);
-            }
 
             if (TestClusterManager.Executor is WslCcmProcessExecuter)
             {
@@ -74,23 +66,6 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                     "request_timeout_in_ms: 20000",
                     "range_request_timeout_in_ms: 30000"
                 });
-                if (TestClusterManager.IsDse)
-                {
-                    if (TestClusterManager.CheckDseVersion(new Version(6, 7), Comparison.LessThan))
-                    {
-                        _ccm.UpdateConfig(new[]
-                        {
-                            "user_defined_function_fail_timeout: 20000"
-                        });
-                    }
-                    else
-                    {
-                        _ccm.UpdateConfig(new[]
-                        {
-                            "user_defined_function_fail_micros: 20000"
-                        });
-                    }
-                }
             }
         }
 
@@ -194,16 +169,6 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             _ccm.BootstrapNode(nodeIdToStart, start);
         }
 
-        public void SetNodeWorkloads(int nodeId, string[] workloads)
-        {
-            if (!TestClusterManager.IsDse)
-            {
-                throw new InvalidOperationException("Cant set workloads on an oss cluster.");
-            }
-
-            _ccm.SetNodeWorkloads(nodeId, workloads);
-        }
-
         public void BootstrapNode(int nodeIdToStart, string dataCenterName, bool start = true)
         {
             var originalStart = start;
@@ -217,11 +182,6 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             {
                 _ccm.CheckNativePortOpen(output, TestClusterManager.IpPrefix + nodeIdToStart);
             }
-        }
-
-        public void UpdateDseConfig(params string[] yamlChanges)
-        {
-            _ccm.UpdateDseConfig(yamlChanges);
         }
 
         public void UpdateConfig(params string[] yamlChanges)

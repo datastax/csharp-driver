@@ -2,12 +2,6 @@
 
 ScyllaDB's fork of a modern, [feature-rich][features] and highly tunable C# client library for Scylla using Cassandra's binary protocol and Cassandra Query Language v3.
 
-It also provides additional features for [DataStax Enterprise][dse]:
-
-- `IAuthenticator` implementations that use the authentication scheme negotiation in the server-side `DseAuthenticator`.
-- [DSE graph][dse-graph] integration.
-- Serializers for geospatial types which integrate seamlessly with the driver.
-
 The driver targets .NET Framework 4.5.2 and .NET Standard 2.0. For more detailed information about platform compatibility, check [this section](#compatibility).
 
 ## Installation
@@ -15,12 +9,12 @@ The driver targets .NET Framework 4.5.2 and .NET Standard 2.0. For more detailed
 [Get it on Nuget][nuget]
 
 ```bash
-PM> Install-Package CassandraCSharpDriver
+PM> Install-Package ScyllaDBCSharpDriver
 ```
 
 [![Build status](https://travis-ci.org/datastax/csharp-driver.svg?branch=master)](https://travis-ci.org/datastax/csharp-driver)
 [![Windows Build status](https://ci.appveyor.com/api/projects/status/ri1olv8bl7b7yk7y/branch/master?svg=true)](https://ci.appveyor.com/project/DataStax/csharp-driver/branch/master)
-[![Latest stable](https://img.shields.io/nuget/v/CassandraCSharpDriver.svg)](https://www.nuget.org/packages/CassandraCSharpDriver)
+[![Latest stable](https://img.shields.io/nuget/v/ScyllaDBCSharpDriver.svg)](https://www.nuget.org/packages/ScyllaDBCSharpDriver)
 
 ## Features
 
@@ -52,11 +46,9 @@ PM> Install-Package CassandraCSharpDriver
 
 You can use the project [Mailing list][mailinglist] or create a ticket on the [Jira issue tracker][jira]. Additionally, you can ask questions on [DataStax Community][community].
 
-## Upgrading from previous versions or from the DSE C# driver
+## Upgrading from previous versions
 
 If you are upgrading from previous versions of the driver, [visit the Upgrade Guide][upgrade-guide].
-
-If you are upgrading from the [DSE C# driver][dse-driver] (which has been unified with this driver), there's also a section related to this on the [Upgrade Guide][upgrade-guide-dse].
 
 ## Basic Usage
 
@@ -79,16 +71,6 @@ foreach (var row in rs)
 
     // Do something with the value
 }
-```
-
-**If you are using [DataStax Astra][astra]** you can configure your cluster instance by setting the secure bundle and the user credentials:
-
-```csharp
-// Configure the builder with your cluster's cloud secure connection bundle and credentials
-var cluster = Cluster.Builder()
-                     .WithCloudSecureConnectionBundle("path/to/secure-connect-DATABASE_NAME.zip")
-                     .WithCredentials("user_name", "p@ssword1")
-                     .Build();
 ```
 
 ### Prepared statements
@@ -238,11 +220,6 @@ var statement = new SimpleStatement(query)
 
 If you are using the `PasswordAuthenticator` which is included in the default distribution of Apache Cassandra, you can use the `Builder.WithCredentials` method or you can explicitly create a `PlainTextAuthProvider` instance.
 
-For clients connecting to a DSE cluster secured with `DseAuthenticator`, two authentication providers are included (on the `Cassandra.DataStax.Auth` namespace):
-
-- `DsePlainTextAuthProvider`: plain-text authentication;
-- `DseGssapiAuthProvider`: GSSAPI authentication.
-
 To configure a provider, pass it when initializing the cluster:
 
 ```csharp
@@ -253,7 +230,7 @@ using Cassandra.DataStax.Auth;
 ```csharp
 ICluster cluster = Cluster.Builder()
     .AddContactPoint("127.0.0.1")
-    .WithAuthProvider(new DseGssapiAuthProvider())
+    .WithAuthProvider(new PlainTextAuthProvider())
     .Build();
 ```
 
@@ -360,40 +337,11 @@ session.ExecuteGraph("g.addV(label, vertexLabel)", new { vertexLabel = "test_ver
 
 Note that, unlike in CQL, Gremlin placeholders are not prefixed with ":".
 
-### Prepared statements with DSE Graph
-
-Prepared graph statements are not supported by DSE Graph.
-
-## Geospatial types
-
-DSE 5 comes with a set of additional types to represent geospatial data: `PointType`, `LineStringType` and
-`PolygonType`:
-
-```
-cqlsh> CREATE TABLE points_of_interest(name text PRIMARY KEY, coords 'PointType');
-cqlsh> INSERT INTO points_of_interest (name, coords) VALUES ('Eiffel Tower', 'POINT(48.8582 2.2945)');
-```
-
-The DSE driver includes C# representations of these types, that can be used directly in queries:
-
-```csharp
-using Cassandra.Geometry;
-```
-
-```csharp
-Row row = session.Execute("SELECT coords FROM points_of_interest WHERE name = 'Eiffel Tower'").First();
-Point coords = row.GetValue<Point>("coords");
-
-var statement = new SimpleStatement("INSERT INTO points_of_interest (name, coords) VALUES (?, ?)",
-    "Washington Monument",
-    new Point(38.8895, 77.0352));
-session.Execute(statement);
-```
-
 ## Compatibility
 
 - Apache Cassandra versions 2.0 and above.
-- DataStax Enterprise versions 4.8 and above.
+- Scylla 5.x and above.
+- Scylla Enterprise 2021.x and above.
 - The driver targets .NET Framework 4.5.2 and .NET Standard 2.0
 
 Here is a list of platforms and .NET targets that Datastax uses when testing this driver:

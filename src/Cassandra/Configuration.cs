@@ -20,14 +20,6 @@ using System.Linq;
 
 using Cassandra.Connections;
 using Cassandra.Connections.Control;
-using Cassandra.DataStax.Graph;
-using Cassandra.DataStax.Insights;
-using Cassandra.DataStax.Insights.InfoProviders;
-using Cassandra.DataStax.Insights.InfoProviders.StartupMessage;
-using Cassandra.DataStax.Insights.InfoProviders.StatusMessage;
-using Cassandra.DataStax.Insights.MessageFactories;
-using Cassandra.DataStax.Insights.Schema.StartupMessage;
-using Cassandra.DataStax.Insights.Schema.StatusMessage;
 using Cassandra.ExecutionProfiles;
 using Cassandra.Helpers;
 using Cassandra.MetadataHelpers;
@@ -211,11 +203,6 @@ namespace Cassandra
         public Guid ClusterId { get; }
 
         /// <summary>
-        /// Gets the options related to graph instance.
-        /// </summary>
-        public GraphOptions GraphOptions { get; protected set; }
-
-        /// <summary>
         /// Whether beta protocol versions will be considered by the driver during
         /// the protocol version negotiation.
         /// </summary>
@@ -232,48 +219,8 @@ namespace Cassandra
         /// </summary>
         public MonitorReportingOptions MonitorReportingOptions { get; }
 
-        internal IInsightsSupportVerifier InsightsSupportVerifier { get; }
-
-        internal IInsightsClientFactory InsightsClientFactory { get; }
-
         internal IRequestOptions DefaultRequestOptions => RequestOptions[Configuration.DefaultExecutionProfileName];
 
-        internal static IInsightsSupportVerifier DefaultInsightsSupportVerifier => new InsightsSupportVerifier();
-
-        internal static IInsightsClientFactory DefaultInsightsClientFactory =>
-            new InsightsClientFactory(
-                Configuration.DefaultInsightsStartupMessageFactory, Configuration.DefaultInsightsStatusMessageFactory);
-
-        internal static IInsightsMessageFactory<InsightsStartupData> DefaultInsightsStartupMessageFactory =>
-            new InsightsStartupMessageFactory(
-                Configuration.DefaultInsightsMetadataFactory,
-                Configuration.DefaultInsightsInfoProvidersCollection
-            );
-
-        internal static IInsightsMessageFactory<InsightsStatusData> DefaultInsightsStatusMessageFactory =>
-            new InsightsStatusMessageFactory(
-                Configuration.DefaultInsightsMetadataFactory,
-                new NodeStatusInfoProvider()
-            );
-
-        internal static IInsightsMetadataFactory DefaultInsightsMetadataFactory =>
-            new InsightsMetadataFactory(new InsightsMetadataTimestampGenerator());
-
-        internal static InsightsInfoProvidersCollection DefaultInsightsInfoProvidersCollection =>
-            new InsightsInfoProvidersCollection(
-                new PlatformInfoProvider(),
-                new ExecutionProfileInfoProvider(
-                    new LoadBalancingPolicyInfoProvider(new ReconnectionPolicyInfoProvider()),
-                    new SpeculativeExecutionPolicyInfoProvider(),
-                    new RetryPolicyInfoProvider()),
-                new PoolSizeByHostDistanceInfoProvider(),
-                new AuthProviderInfoProvider(),
-                new DataCentersInfoProvider(),
-                new OtherOptionsInfoProvider(),
-                new ConfigAntiPatternsInfoProvider(),
-                new ReconnectionPolicyInfoProvider(),
-                new DriverInfoProvider(),
-                new HostnameInfoProvider());
 
         internal IContactPointParser ContactPointParser { get; }
 
@@ -302,7 +249,8 @@ namespace Cassandra
                  null,
                  null,
                  null,
-                 null)
+                 null, // keepContactPointsUnresolved
+                 null) // allowBetaProtocolVersions
         {
         }
 
@@ -325,7 +273,6 @@ namespace Cassandra
                                IDriverMetricsProvider driverMetricsProvider,
                                DriverMetricsOptions metricsOptions,
                                string sessionName,
-                               GraphOptions graphOptions,
                                Guid? clusterId,
                                string appVersion,
                                string appName,
@@ -336,7 +283,6 @@ namespace Cassandra
                                ISessionFactory sessionFactory = null,
                                IRequestOptionsMapper requestOptionsMapper = null,
                                IStartupOptionsFactory startupOptionsFactory = null,
-                               IInsightsSupportVerifier insightsSupportVerifier = null,
                                IRequestHandlerFactory requestHandlerFactory = null,
                                IHostConnectionPoolFactory hostConnectionPoolFactory = null,
                                IRequestExecutionFactory requestExecutionFactory = null,
@@ -344,7 +290,6 @@ namespace Cassandra
                                IControlConnectionFactory controlConnectionFactory = null,
                                IPrepareHandlerFactory prepareHandlerFactory = null,
                                ITimerFactory timerFactory = null,
-                               IInsightsClientFactory insightsClientFactory = null,
                                IContactPointParser contactPointParser = null,
                                IServerNameResolver serverNameResolver = null,
                                IDnsResolver dnsResolver = null,
@@ -358,7 +303,6 @@ namespace Cassandra
         {
             AddressTranslator = addressTranslator ?? throw new ArgumentNullException(nameof(addressTranslator));
             QueryOptions = queryOptions ?? throw new ArgumentNullException(nameof(queryOptions));
-            GraphOptions = graphOptions ?? new GraphOptions();
 
             ClusterId = clusterId ?? Guid.NewGuid();
             ApplicationVersion = appVersion ?? Configuration.DefaultApplicationVersion;
@@ -404,12 +348,10 @@ namespace Cassandra
             PrepareHandlerFactory = prepareHandlerFactory ?? new PrepareHandlerFactory();
             TimerFactory = timerFactory ?? new TaskBasedTimerFactory();
 
-            RequestOptions = RequestOptionsMapper.BuildRequestOptionsDictionary(executionProfiles, policies, socketOptions, clientOptions, queryOptions, GraphOptions);
+            RequestOptions = RequestOptionsMapper.BuildRequestOptionsDictionary(executionProfiles, policies, socketOptions, clientOptions, queryOptions);
             ExecutionProfiles = BuildExecutionProfilesDictionary(executionProfiles, RequestOptions);
 
             MonitorReportingOptions = monitorReportingOptions ?? new MonitorReportingOptions();
-            InsightsSupportVerifier = insightsSupportVerifier ?? Configuration.DefaultInsightsSupportVerifier;
-            InsightsClientFactory = insightsClientFactory ?? Configuration.DefaultInsightsClientFactory;
             ServerNameResolver = serverNameResolver ?? new ServerNameResolver(ProtocolOptions);
             EndPointResolver = endPointResolver ?? new EndPointResolver(ServerNameResolver);
             ContactPointParser = contactPointParser ?? new ContactPointParser(DnsResolver, ProtocolOptions, ServerNameResolver, KeepContactPointsUnresolved);

@@ -42,10 +42,5 @@ namespace Cassandra.Requests
             var infoAndObserver = await RequestHandler.CreateRequestObserver(session, null).ConfigureAwait(false);
             return new RequestHandler(session, serializer, infoAndObserver.Item1, infoAndObserver.Item2);
         }
-
-        public IGraphRequestHandler CreateGraphRequestHandler(IInternalSession session, IGraphTypeSerializerFactory graphTypeSerializerFactory)
-        {
-            return new GraphRequestHandler(session, graphTypeSerializerFactory);
-        }
     }
 }

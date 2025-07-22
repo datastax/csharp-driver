@@ -72,11 +72,6 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         void Start(string[] jvmArgs = null);
 
         /// <summary>
-        /// Updates the dse yaml config
-        /// </summary>
-        void UpdateDseConfig(params string[] yamlChanges);
-
-        /// <summary>
         /// Updates the yaml config
         /// </summary>
         void UpdateConfig(params string[] yamlChanges);
@@ -97,13 +92,6 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         /// <param name="nodeIdToStart">The node ID to be added to the cluster</param>
         /// <param name="start">If the node should be started</param>
         void BootstrapNode(int nodeIdToStart, bool start = true);
-
-        /// <summary>
-        /// Set workload of a single node
-        /// </summary>
-        /// <param name="nodeId">The node ID to be added to the cluster</param>
-        /// <param name="workloads">The node workloads</param>
-        void SetNodeWorkloads(int nodeId, string[] workloads);
 
         /// <summary>
         /// Bootstraps and adds a node to the cluster
@@ -152,16 +140,6 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         public string[] JvmArgs { get; set; }
 
-        /// <summary>
-        /// DSE yaml options
-        /// </summary>
-        public string[] DseYaml { get; set; }
-
-        /// <summary>
-        /// DSE Nodes workloads
-        /// </summary>
-        public string[] Workloads { get; set; }
-
         public override bool Equals(object obj)
         {
             return Equals(obj as TestClusterOptions);
@@ -174,9 +152,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                    UseSsl == other.UseSsl &&
                    CassandraYaml.OrderBy(i => i).SequenceEqual(other.CassandraYaml.OrderBy(i => i)) &&
                    Dc2NodeLength == other.Dc2NodeLength &&
-                   JvmArgs.OrderBy(i => i).SequenceEqual(other.JvmArgs.OrderBy(i => i)) &&
-                   DseYaml.OrderBy(i => i).SequenceEqual(other.DseYaml.OrderBy(i => i)) &&
-                   Workloads.OrderBy(i => i).SequenceEqual(other.Workloads.OrderBy(i => i));
+                   JvmArgs.OrderBy(i => i).SequenceEqual(other.JvmArgs.OrderBy(i => i));
         }
 
         public override int GetHashCode()
@@ -187,8 +163,6 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             hashCode = hashCode * -1521134295 + EqualityComparer<string[]>.Default.GetHashCode(CassandraYaml);
             hashCode = hashCode * -1521134295 + Dc2NodeLength.GetHashCode();
             hashCode = hashCode * -1521134295 + EqualityComparer<string[]>.Default.GetHashCode(JvmArgs);
-            hashCode = hashCode * -1521134295 + EqualityComparer<string[]>.Default.GetHashCode(DseYaml);
-            hashCode = hashCode * -1521134295 + EqualityComparer<string[]>.Default.GetHashCode(Workloads);
             return hashCode;
         }
     }

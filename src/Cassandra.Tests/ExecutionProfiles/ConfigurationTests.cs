@@ -14,7 +14,6 @@
 //   limitations under the License.
 //
 
-using Cassandra.DataStax.Graph;
 using NUnit.Framework;
 
 namespace Cassandra.Tests.ExecutionProfiles
@@ -25,7 +24,6 @@ namespace Cassandra.Tests.ExecutionProfiles
         [Test]
         public void Should_MapProfileToOptionsCorrectly_When_AllSettingsAreProvided()
         {
-            var go = new GraphOptions();
             var lbp = new RoundRobinPolicy();
             var sep = new ConstantSpeculativeExecutionPolicy(1000, 1);
             var rp = new LoggingRetryPolicy(new DefaultRetryPolicy());
@@ -51,8 +49,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                                 .WithReadTimeoutMillis(5555)
                                 .WithLoadBalancingPolicy(lbpGraph)
                                 .WithSpeculativeExecutionPolicy(sepGraph)
-                                .WithRetryPolicy(rpGraph)
-                                .WithGraphOptions(go));
+                                .WithRetryPolicy(rpGraph));
                     })
                     .Build();
 
@@ -72,13 +69,11 @@ namespace Cassandra.Tests.ExecutionProfiles
             Assert.AreSame(lbpGraph, graphOptions.LoadBalancingPolicy);
             Assert.AreSame(sepGraph, graphOptions.SpeculativeExecutionPolicy);
             Assert.AreSame(rpGraph, graphOptions.RetryPolicy);
-            Assert.AreSame(go, graphOptions.GraphOptions);
         }
 
         [Test]
         public void Should_MapDefaultProfileToDefaultOptionsCorrectly_When_AllSettingsAreProvided()
         {
-            var go = new GraphOptions();
             var lbp = new RoundRobinPolicy();
             var sep = new ConstantSpeculativeExecutionPolicy(1000, 1);
             var rp = new LoggingRetryPolicy(new DefaultRetryPolicy());
@@ -95,8 +90,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                                 .WithReadTimeoutMillis(9999)
                                 .WithLoadBalancingPolicy(lbp)
                                 .WithSpeculativeExecutionPolicy(sep)
-                                .WithRetryPolicy(rp)
-                                .WithGraphOptions(go));
+                                .WithRetryPolicy(rp));
                     })
                     .Build();
 
@@ -108,13 +102,11 @@ namespace Cassandra.Tests.ExecutionProfiles
             Assert.AreSame(lbp, options.LoadBalancingPolicy);
             Assert.AreSame(sep, options.SpeculativeExecutionPolicy);
             Assert.AreSame(rp, options.RetryPolicy);
-            Assert.AreSame(go, options.GraphOptions);
         }
 
         [Test]
         public void Should_MapProfileToOptionsWithAllSettingsFromCluster_When_NoSettingIsProvided()
         {
-            var go = new GraphOptions();
             var lbp = new RoundRobinPolicy();
             var sep = new ConstantSpeculativeExecutionPolicy(1000, 1);
             var rp = new LoggingRetryPolicy(new DefaultRetryPolicy());
@@ -141,7 +133,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                           })
                           .WithQueryTimeout(30)
                           .WithTimestampGenerator(tg)
-                          .WithGraphOptions(go)
+
                           .Build();
 
             Assert.AreEqual(3, cluster.Configuration.RequestOptions.Count);
@@ -156,7 +148,6 @@ namespace Cassandra.Tests.ExecutionProfiles
             Assert.AreEqual(5, options.PageSize);
             Assert.AreEqual(30, options.QueryAbortTimeout);
             Assert.AreSame(tg, options.TimestampGenerator);
-            Assert.AreSame(go, options.GraphOptions);
 
             var graphOptions = cluster.Configuration.RequestOptions["test1Graph"];
             Assert.AreEqual(ConsistencyLevel.EachQuorum, graphOptions.ConsistencyLevel);
@@ -169,19 +160,16 @@ namespace Cassandra.Tests.ExecutionProfiles
             Assert.AreEqual(5, graphOptions.PageSize);
             Assert.AreEqual(30, graphOptions.QueryAbortTimeout);
             Assert.AreSame(tg, graphOptions.TimestampGenerator);
-            Assert.AreSame(go, graphOptions.GraphOptions);
         }
 
         [Test]
         public void Should_MapProfileToOptionsWithSomeSettingsFromCluster_When_SomeSettingAreNotProvided()
         {
-            var go = new GraphOptions();
             var lbp = new RoundRobinPolicy();
             var sep = new ConstantSpeculativeExecutionPolicy(1000, 1);
             var sepProfile = new ConstantSpeculativeExecutionPolicy(200, 50);
             var rp = new LoggingRetryPolicy(new DefaultRetryPolicy());
             var rpProfile = new LoggingRetryPolicy(new IdempotenceAwareRetryPolicy(new DefaultRetryPolicy()));
-            var goProfile = new GraphOptions();
             var tg = new AtomicMonotonicTimestampGenerator();
             var cluster = Cluster
                           .Builder()
@@ -202,14 +190,13 @@ namespace Cassandra.Tests.ExecutionProfiles
                               .WithProfile("test1", profile => profile
                                     .WithConsistencyLevel(ConsistencyLevel.Quorum)
                                     .WithSpeculativeExecutionPolicy(sepProfile)
-                                    .WithRetryPolicy(rpProfile)
-                                    .WithGraphOptions(goProfile))
+                                    .WithRetryPolicy(rpProfile))
                               .WithProfile("test1Graph", profile => profile
                                   .WithReadTimeoutMillis(5000)
                                   .WithConsistencyLevel(ConsistencyLevel.LocalQuorum)))
                           .WithQueryTimeout(30)
                           .WithTimestampGenerator(tg)
-                          .WithGraphOptions(go)
+
                           .Build();
 
             Assert.AreEqual(3, cluster.Configuration.RequestOptions.Count);
@@ -224,7 +211,6 @@ namespace Cassandra.Tests.ExecutionProfiles
             Assert.AreEqual(5, options.PageSize);
             Assert.AreEqual(30, options.QueryAbortTimeout);
             Assert.AreSame(tg, options.TimestampGenerator);
-            Assert.AreSame(goProfile, options.GraphOptions);
 
             var graphOptions = cluster.Configuration.RequestOptions["test1Graph"];
             Assert.AreEqual(ConsistencyLevel.LocalQuorum, graphOptions.ConsistencyLevel);
@@ -237,13 +223,11 @@ namespace Cassandra.Tests.ExecutionProfiles
             Assert.AreEqual(5, graphOptions.PageSize);
             Assert.AreEqual(30, graphOptions.QueryAbortTimeout);
             Assert.AreSame(tg, graphOptions.TimestampGenerator);
-            Assert.AreSame(go, graphOptions.GraphOptions);
         }
 
         [Test]
         public void Should_MapProfileToOptionsWithSomeSettingsFromBaseProfile_When_ADerivedProfileIsProvided()
         {
-            var go = new GraphOptions();
             var lbp = new RoundRobinPolicy();
             var sep = new ConstantSpeculativeExecutionPolicy(1000, 1);
             var sepProfile = new ConstantSpeculativeExecutionPolicy(200, 50);
@@ -280,13 +264,12 @@ namespace Cassandra.Tests.ExecutionProfiles
                                       .WithConsistencyLevel(ConsistencyLevel.LocalQuorum)
                                       .WithSpeculativeExecutionPolicy(sepProfile)
                                       .WithRetryPolicy(rpProfile)
-                                      .WithGraphOptions(go))
+                                      )
                               .WithDerivedProfile("test1Graph", "baseProfileGraph", profileBuilder => profileBuilder
                                       .WithConsistencyLevel(ConsistencyLevel.Two)
                                       .WithRetryPolicy(rpGraph)))
                           .WithQueryTimeout(30)
                           .WithTimestampGenerator(tg)
-                          .WithGraphOptions(new GraphOptions())
                           .Build();
 
             Assert.AreEqual(5, cluster.Configuration.RequestOptions.Count);
@@ -313,15 +296,11 @@ namespace Cassandra.Tests.ExecutionProfiles
             Assert.AreEqual(5, graphOptions.PageSize);
             Assert.AreEqual(30, graphOptions.QueryAbortTimeout);
             Assert.AreSame(tg, graphOptions.TimestampGenerator);
-            Assert.AreSame(go, graphOptions.GraphOptions);
-            Assert.IsNotNull(cluster.Configuration.GraphOptions);
-            Assert.AreNotSame(graphOptions.GraphOptions, cluster.Configuration.GraphOptions);
         }
 
         [Test]
         public void Should_MapDefaultProfileToOptionsWithAllSettingsFromCluster_When_NoSettingIsProvided()
         {
-            var go = new GraphOptions();
             var lbp = new RoundRobinPolicy();
             var sep = new ConstantSpeculativeExecutionPolicy(1000, 1);
             var rp = new LoggingRetryPolicy(new DefaultRetryPolicy());
@@ -344,7 +323,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                           .WithExecutionProfiles(opts => { opts.WithProfile("default", profile => { }); })
                           .WithQueryTimeout(30)
                           .WithTimestampGenerator(tg)
-                          .WithGraphOptions(go)
+
                           .Build();
 
             Assert.AreEqual(1, cluster.Configuration.RequestOptions.Count);
@@ -359,13 +338,11 @@ namespace Cassandra.Tests.ExecutionProfiles
             Assert.AreEqual(5, options.PageSize);
             Assert.AreEqual(30, options.QueryAbortTimeout);
             Assert.AreSame(tg, options.TimestampGenerator);
-            Assert.AreSame(go, options.GraphOptions);
         }
 
         [Test]
         public void Should_MapDefaultProfileToOptionsWithAllSettingsFromCluster_When_NoProfileIsChangedOrAdded()
         {
-            var go = new GraphOptions();
             var lbp = new RoundRobinPolicy();
             var sep = new ConstantSpeculativeExecutionPolicy(1000, 1);
             var rp = new LoggingRetryPolicy(new DefaultRetryPolicy());
@@ -387,7 +364,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                           .WithRetryPolicy(rp)
                           .WithQueryTimeout(30)
                           .WithTimestampGenerator(tg)
-                          .WithGraphOptions(go)
+
                           .Build();
 
             Assert.AreEqual(1, cluster.Configuration.RequestOptions.Count);
@@ -407,7 +384,6 @@ namespace Cassandra.Tests.ExecutionProfiles
         [Test]
         public void Should_MapOptionsToProfileCorrectly_When_AllSettingsAreProvided()
         {
-            var go = new GraphOptions().SetName("te");
             var lbp = new RoundRobinPolicy();
             var sep = new ConstantSpeculativeExecutionPolicy(1000, 1);
             var rp = new LoggingRetryPolicy(new DefaultRetryPolicy());
@@ -427,7 +403,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                                                      .WithLoadBalancingPolicy(lbp)
                                                      .WithSpeculativeExecutionPolicy(sep)
                                                      .WithRetryPolicy(rp)
-                                                     .WithGraphOptions(go));
+                                                     );
             }).Build();
 
             var execProfile = cluster.Configuration.ExecutionProfiles["test1"];
@@ -437,7 +413,6 @@ namespace Cassandra.Tests.ExecutionProfiles
             Assert.AreSame(lbp, execProfile.LoadBalancingPolicy);
             Assert.AreSame(sep, execProfile.SpeculativeExecutionPolicy);
             Assert.AreSame(rp, execProfile.RetryPolicy);
-            Assert.IsNull(execProfile.GraphOptions);
 
             var graphExecProfile = cluster.Configuration.ExecutionProfiles["test1Graph"];
             Assert.AreEqual(ConsistencyLevel.EachQuorum, graphExecProfile.ConsistencyLevel);
@@ -446,13 +421,11 @@ namespace Cassandra.Tests.ExecutionProfiles
             Assert.AreSame(lbp, graphExecProfile.LoadBalancingPolicy);
             Assert.AreSame(sep, graphExecProfile.SpeculativeExecutionPolicy);
             Assert.AreSame(rp, graphExecProfile.RetryPolicy);
-            Assert.AreSame(go, graphExecProfile.GraphOptions);
         }
 
         [Test]
         public void Should_MapDefaultOptionsToDefaultProfileCorrectly_When_AllSettingsAreProvided()
         {
-            var go = new GraphOptions().SetName("te");
             var lbp = new RoundRobinPolicy();
             var sep = new ConstantSpeculativeExecutionPolicy(1000, 1);
             var rp = new LoggingRetryPolicy(new DefaultRetryPolicy());
@@ -465,7 +438,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                                                      .WithLoadBalancingPolicy(lbp)
                                                      .WithSpeculativeExecutionPolicy(sep)
                                                      .WithRetryPolicy(rp)
-                                                     .WithGraphOptions(go));
+                                                     );
             }).Build();
 
             var execProfile = cluster.Configuration.ExecutionProfiles["default"];
@@ -475,13 +448,11 @@ namespace Cassandra.Tests.ExecutionProfiles
             Assert.AreSame(lbp, execProfile.LoadBalancingPolicy);
             Assert.AreSame(sep, execProfile.SpeculativeExecutionPolicy);
             Assert.AreSame(rp, execProfile.RetryPolicy);
-            Assert.AreSame(go, execProfile.GraphOptions);
         }
 
         [Test]
         public void Should_MapOptionsToProfileWithAllSettingsFromCluster_When_NoProfileIsChangedOrAdded()
         {
-            var go = new GraphOptions().SetName("te");
             var lbp = new RoundRobinPolicy();
             var sep = new ConstantSpeculativeExecutionPolicy(1000, 1);
             var rp = new LoggingRetryPolicy(new DefaultRetryPolicy());
@@ -503,7 +474,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                           .WithRetryPolicy(rp)
                           .WithQueryTimeout(30)
                           .WithTimestampGenerator(tg)
-                          .WithGraphOptions(go)
+
                           .Build();
 
             Assert.AreEqual(1, cluster.Configuration.RequestOptions.Count);
@@ -514,7 +485,6 @@ namespace Cassandra.Tests.ExecutionProfiles
             Assert.AreSame(lbp, profile.LoadBalancingPolicy);
             Assert.AreSame(sep, profile.SpeculativeExecutionPolicy);
             Assert.AreSame(rp, profile.RetryPolicy);
-            Assert.AreSame(go, profile.GraphOptions);
         }
 
         [Test]

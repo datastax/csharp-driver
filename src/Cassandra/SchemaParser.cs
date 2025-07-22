@@ -891,14 +891,6 @@ namespace Cassandra
                             ArgumentTypes = tasks.Skip(1).Select(t => t.Result).ToArray()
                         };
 
-                        if (row.GetColumn("deterministic") != null)
-                        {
-                            // DSE 6.0+
-                            result.Deterministic = row.GetValue<bool>("deterministic");
-                            result.Monotonic = row.GetValue<bool>("monotonic");
-                            result.MonotonicOn = row.GetValue<string[]>("monotonic_on");
-                        }
-
                         return result;
                     });
                 });

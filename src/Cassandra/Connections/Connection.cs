@@ -238,7 +238,7 @@ namespace Cassandra.Connections
         private async Task<Response> StartAuthenticationFlow(string name)
         {
             //Determine which authentication flow to use.
-            //Check if its using a C* 1.2 with authentication patched version (like DSE 3.1)
+            //Check if its using a C* 1.2 with authentication patched version
             var protocolVersion = Serializer.ProtocolVersion;
             var isPatchedVersion = protocolVersion == ProtocolVersion.V1 &&
                 !(Configuration.AuthProvider is NoneAuthProvider) && Configuration.AuthInfoProvider == null;

@@ -24,7 +24,6 @@ using System.Text;
 using Cassandra.Data.Linq.ExpressionParsing;
 using Cassandra.Mapping;
 using Cassandra.Mapping.Utils;
-using Cassandra.Serialization.Graph;
 
 namespace Cassandra.Data.Linq
 {
@@ -844,7 +843,7 @@ namespace Cassandra.Data.Linq
                     // It's the AND of the WHERE/IF clause
                     Visit(node.Left);
 
-                    // Add the new condition for the right portion 
+                    // Add the new condition for the right portion
                     _conditions.Add(new BinaryConditionItem());
                     Visit(node.Right);
                     return node;
@@ -989,7 +988,7 @@ namespace Cassandra.Data.Linq
                 if (column.ColumnType == typeof(bool))
                 {
                     condition.SetOperator(ExpressionType.Equal);
-                    // We are evaluating a boolean expression parameter, the value we are trying to match is true 
+                    // We are evaluating a boolean expression parameter, the value we are trying to match is true
                     condition.SetParameter(true);
                 }
                 return node;

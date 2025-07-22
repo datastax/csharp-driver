@@ -24,7 +24,7 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests
 {
     [Category(TestCategory.Short), Category(TestCategory.RealCluster), Category(TestCategory.ServerApi)]
-    [TestBothServersVersion(4, 0, 5, 1)]
+    [TestCassandraVersion(4, 0)]
     public class DurationTests : SharedClusterTest
     {
         public static readonly string[] Values =

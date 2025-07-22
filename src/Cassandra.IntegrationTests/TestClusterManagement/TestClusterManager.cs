@@ -54,32 +54,6 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         {
             get
             {
-                if (IsDse)
-                {
-                    var dseVersion = DseVersion;
-                    if (dseVersion < Version4Dot7)
-                    {
-                        // C* 2.0
-                        return Version2Dot0;
-                    }
-                    if (dseVersion < Version5Dot0)
-                    {
-                        // C* 2.1
-                        return Version2Dot1;
-                    }
-                    if (dseVersion < Version5Dot1)
-                    {
-                        // C* 3.0
-                        return Version3Dot0;
-                    }
-                    if (dseVersion < Version6Dot10)
-                    {
-                        // C* 3.11
-                        return Version3Dot11;
-                    }
-                    // C* 4.0
-                    return Version4Dot0;
-                }
                 if (IsHcd)
                 {
                     return Version4Dot0;
@@ -126,7 +100,6 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                     var testCluster = new CcmCluster(
                         "get-scylla-version-" + TestUtils.GetTestClusterNameBasedOnRandomString(),
                         GetUniqueIdPrefix(),
-                        DsePath,
                         Executor,
                         "",
                         ScyllaVersionString);
@@ -143,48 +116,32 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         }
 
         /// <summary>
-        /// Gets the IP prefix for the DSE instances
+        /// Gets the IP prefix
         /// </summary>
         public static string IpPrefix
         {
-            get { return Environment.GetEnvironmentVariable("DSE_INITIAL_IPPREFIX") ?? "127.0.0."; }
-        }
-
-        /// <summary>
-        /// Gets the path to DSE source code
-        /// </summary>
-        public static string DsePath
-        {
-            get { return Environment.GetEnvironmentVariable("DSE_PATH"); }
+            get { return "127.0.0."; }
         }
 
         public enum BackendType
         {
             Hcd,
-            Dse,
             Cassandra,
             Scylla
         }
 
         /// <summary>
-        /// "hcd", "dse", or "cassandra" (default), or "scylla", based on CCM_DISTRIBUTION
-        /// if there's env var DSE_VERSION, ignore CCM_DISTRIBUTION
+        /// "hcd", or "cassandra" (default), or "scylla", based on CCM_DISTRIBUTION
         /// </summary>
         public static BackendType CurrentBackendType
         {
             get
             {
-                if (Environment.GetEnvironmentVariable("DSE_VERSION") != null)
-                {
-                    return BackendType.Dse;
-                }
                 string distribution = Environment.GetEnvironmentVariable("CCM_DISTRIBUTION") ?? "cassandra";
                 switch (distribution)
                 {
                     case "hcd":
                         return BackendType.Hcd;
-                    case "dse":
-                        return BackendType.Dse;
                     case "cassandra":
                         return BackendType.Cassandra;
                     case "scylla":
@@ -200,33 +157,13 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             get { return IpPrefix + "1"; }
         }
 
-        public static string DseVersionString
-        {
-            get
-            {
-                if (!IsDse)
-                {
-                    throw new TestInfrastructureException("DSE_VERSION is only available when using DSE backend");
-                }
-                if (Environment.GetEnvironmentVariable("DSE_VERSION") != null)
-                {
-                    return Environment.GetEnvironmentVariable("DSE_VERSION");
-                }
-                return Environment.GetEnvironmentVariable("CASSANDRA_VERSION") ?? "6.7.7";
-            }
-        }
-
         /// <summary>
-        /// Use DSE_VERSION if it's set, otherwise use CASSANDRA_VERSION
+        /// Use SCYLLA_VERSION if it's set, otherwise use CASSANDRA_VERSION
         /// </summary>
         public static string CassandraVersionString
         {
             get
             {
-                if (Environment.GetEnvironmentVariable("DSE_VERSION") != null)
-                {
-                    return Environment.GetEnvironmentVariable("DSE_VERSION");
-                }
                 if (Environment.GetEnvironmentVariable("SCYLLA_VERSION") != null)
                 {
                     return "3.10.0";
@@ -252,26 +189,9 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             get { return CurrentBackendType == BackendType.Scylla; }
         }
 
-        public static bool IsDse
-        {
-            get { return CurrentBackendType == BackendType.Dse; }
-        }
-
         public static bool IsHcd
         {
             get { return CurrentBackendType == BackendType.Hcd; }
-        }
-
-        public static Version DseVersion
-        {
-            get
-            {
-                if (!IsDse)
-                {
-                    throw new TestInfrastructureException("DseVersion is only available when using DSE backend");
-                }
-                return new Version(DseVersionString.Split('-')[0]);
-            }
         }
 
         public static bool CcmUseWsl => bool.Parse(Environment.GetEnvironmentVariable("CCM_USE_WSL") ?? "false");
@@ -285,28 +205,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         public static bool SupportsDecommissionForcefully()
         {
-            return TestClusterManager.CheckDseVersion(new Version(5, 1), Comparison.GreaterThanOrEqualsTo)
-                   || TestClusterManager.CheckCassandraVersion(true, new Version(4, 0), Comparison.GreaterThanOrEqualsTo);
-        }
-
-        public static bool SupportsNextGenGraph()
-        {
-            return TestClusterManager.CheckDseVersion(new Version(6, 8), Comparison.GreaterThanOrEqualsTo);
-        }
-
-        public static bool SchemaManipulatingQueriesThrowInvalidQueryException()
-        {
-            return TestClusterManager.CheckDseVersion(new Version(6, 8), Comparison.GreaterThanOrEqualsTo);
-        }
-
-        public static bool CheckDseVersion(Version version, Comparison comparison)
-        {
-            if (!TestClusterManager.IsDse)
-            {
-                return false;
-            }
-
-            return TestDseVersion.VersionMatch(version, TestClusterManager.DseVersion, comparison);
+            return TestClusterManager.CheckCassandraVersion(true, new Version(4, 0), Comparison.GreaterThanOrEqualsTo);
         }
 
         public static bool CheckCassandraVersion(bool requiresOss, Version version, Comparison comparison)
@@ -333,19 +232,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                     return TestClusterManager._executor;
                 }
 
-                if (bool.Parse(Environment.GetEnvironmentVariable("DSE_IN_REMOTE_SERVER") ?? "false"))
-                {
-                    var remoteDseServer = Environment.GetEnvironmentVariable("DSE_SERVER_IP") ?? "127.0.0.1";
-                    var remoteDseServerUser = Environment.GetEnvironmentVariable("DSE_SERVER_USER") ?? "vagrant";
-                    var remoteDseServerPassword = Environment.GetEnvironmentVariable("DSE_SERVER_PWD") ?? "vagrant";
-                    var remoteDseServerPort = int.Parse(Environment.GetEnvironmentVariable("DSE_SERVER_PORT") ?? "2222");
-                    var remoteDseServerUserPrivateKey = Environment.GetEnvironmentVariable("DSE_SERVER_PRIVATE_KEY");
-                    TestClusterManager._executor =
-                        new RemoteCcmProcessExecuter(
-                            remoteDseServer, remoteDseServerUser, remoteDseServerPassword,
-                            remoteDseServerPort, remoteDseServerUserPrivateKey);
-                }
-                else if (TestClusterManager.CcmUseWsl)
+                if (TestClusterManager.CcmUseWsl)
                 {
                     TestClusterManager._executor = WslCcmProcessExecuter.Instance;
                 }
@@ -365,10 +252,9 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             var testCluster = new CcmCluster(
                 TestUtils.GetTestClusterNameBasedOnRandomString(),
                 GetUniqueIdPrefix(),
-                DsePath,
                 Executor,
                 DefaultKeyspaceName,
-                IsDse ? DseVersionString : (IsScylla ? ScyllaVersionString : CassandraVersionString));
+                IsScylla ? ScyllaVersionString : CassandraVersionString);
             testCluster.Create(nodeLength, options);
             if (startCluster)
             {

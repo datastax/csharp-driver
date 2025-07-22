@@ -114,7 +114,7 @@ namespace Cassandra
         IDictionary<string, byte[]> OutgoingPayload { get; }
 
         /// <summary>
-        /// Determines if this statement is idempotent, i.e. whether it can be applied multiple times without 
+        /// Determines if this statement is idempotent, i.e. whether it can be applied multiple times without
         /// changing the result beyond the initial application.
         /// <para>
         /// Idempotence of the statement plays a role in <see cref="ISpeculativeExecutionPolicy"/>.
@@ -135,7 +135,7 @@ namespace Cassandra
         /// </para>
         /// </summary>
         /// <remarks>
-        /// Consider using a <see cref="ISession"/> connected to single keyspace using 
+        /// Consider using a <see cref="ISession"/> connected to single keyspace using
         /// <see cref="ICluster.Connect(string)"/>.
         /// </remarks>
         string Keyspace { get; }
@@ -143,15 +143,6 @@ namespace Cassandra
         string TableName { get; }
 
         bool IsLwt();
-
-        /// <summary>
-        /// Allows this statement to be executed as a different user/role than the one 
-        /// currently authenticated (a.k.a. proxy execution).
-        /// </summary>
-        /// <param name="userOrRole">The user or role name to act as when executing this statement.</param>
-        /// <returns>This statement</returns>
-        /// <remarks>This feature is only available in DSE 5.1+.</remarks>
-        IStatement ExecutingAs(string userOrRole);
 
         /// <summary>
         /// Sets the paging behavior.
@@ -200,7 +191,7 @@ namespace Cassandra
         /// Overrides the default per-host read timeout <see cref="SocketOptions.ReadTimeoutMillis"/> for this statement.
         /// </summary>
         /// <param name="timeout">
-        /// Timeout in milliseconds. If the value is not greater than zero, the default value 
+        /// Timeout in milliseconds. If the value is not greater than zero, the default value
         /// from the socket options will be used.
         /// </param>
         IStatement SetReadTimeoutMillis(int timeout);
@@ -208,7 +199,7 @@ namespace Cassandra
         /// <summary>
         /// Sets the retry policy to use for this query.
         /// <para>
-        /// Calling this method is only required when you want to override the default 
+        /// Calling this method is only required when you want to override the default
         /// <see cref="Policies.RetryPolicy"/> set in the cluster configuration for this request or the one set
         /// in the execution profile (see <see cref="IExecutionProfile.RetryPolicy"/>) for this request.
         /// </para>
@@ -232,15 +223,15 @@ namespace Cassandra
         /// write is ANY, then only a read with a consistency of SERIAL is guaranteed to see it
         /// (even a read with consistency ALL is not guaranteed to be enough).
         /// </summary>
-        /// <param name="serialConsistency">Can be set only to ConsistencyLevel.Serial or 
-        /// ConsistencyLevel.LocalSerial. Setting it to ConsistencyLevel.Serial guarantees full 
+        /// <param name="serialConsistency">Can be set only to ConsistencyLevel.Serial or
+        /// ConsistencyLevel.LocalSerial. Setting it to ConsistencyLevel.Serial guarantees full
         /// linearizability while ConsistencyLevel.LocalSerial guarantees it only in the local datacenter. </param>
         /// <returns>this <c>IStatement</c> object.</returns>
         IStatement SetSerialConsistencyLevel(ConsistencyLevel serialConsistency);
 
         /// <summary>
         /// Sets the timestamp associated with this statement execution.
-        /// If provided, this will replace the server side assigned 
+        /// If provided, this will replace the server side assigned
         /// timestamp as default timestamp. Note that a timestamp in the query itself will still override this timestamp.
         /// </summary>
         IStatement SetTimestamp(DateTimeOffset value);
