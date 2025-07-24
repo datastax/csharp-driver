@@ -110,3 +110,19 @@ install-mono:
  	export PROD_SNK_PUBLIC_KEY=`hexdump -v -e '/1 "%02x"' /tmp/scylladb.pub`; \
  	echo "Switching to production SNK public key: $$PROD_SNK_PUBLIC_KEY"; \
 	grep -rl 'PublicKey=${DEV_SNK_PUBLIC_KEY}' . | xargs sed -i "s/PublicKey=${DEV_SNK_PUBLIC_KEY}/PublicKey=$$PROD_SNK_PUBLIC_KEY/g" 2> /dev/null 1>&2;
+
+publish-nuget-dry-run:
+	grep -rl '<PackageId>ScyllaDBCSharpDriver</PackageId>' . | xargs sed -i "s/<PackageId>ScyllaDBCSharpDriver</PackageId>/<PackageId>ScyllaDBCSharpDriver.DRYRUN</PackageId>/g" 2> /dev/null 1>&2;
+	$(MAKE) .publish-proj-nuget PROJECT_PATH=src/Cassandra/Cassandra.csproj
+
+.publish-proj-nuget: .use-production-snk .prepare-mono
+	@echo "Publishing to NuGet with production SNK"
+	dotnet restore $(PROJECT_PATH)
+	dotnet build $(PROJECT_PATH) --configuration Release --no-restore
+	dotnet pack $(PROJECT_PATH) --configuration Release --no-build --output ./nupkgs
+	dotnet nuget push "./nupkgs/*.nupkg" --api-key ${NUGET_API_KEY} --source https://api.nuget.org/v3/index.json
+
+publish-nuget:
+	$(MAKE) .publish-proj-nuget PROJECT_PATH=src/Cassandra/Cassandra.csproj
+	$(MAKE) .publish-proj-nuget PROJECT_PATH=src/Extensions/Cassandra.AppMetrics.csproj
+	$(MAKE) .publish-proj-nuget PROJECT_PATH=src/Extensions/Cassandra.OpenTelemetry.csproj

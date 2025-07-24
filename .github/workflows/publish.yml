@@ -1,0 +1,44 @@
+name: Publish NuGet Package
+
+on:
+  push:
+    tags:
+      - 'v*.*.*.*'  # Trigger only on version tags like v1.2.3.4
+  workflow_dispatch:
+    inputs:
+      target_tag:
+        description: "Publish particular tag"
+        type: string
+        required: false
+        default: "master"
+      dry-run:
+        description: "Publish to a dry-run package"
+        type: boolean
+        required: true
+        default: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+      ref: ${{ inputs.target_tag || github.ref  }}
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Publish to NuGet (Dry Run)
+      if: ${{ inputs.dry-run == true }}
+      run: make publish-nuget-dry-run
+      with:
+        NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+
+    - name: Publish to NuGet (Production)
+      if: ${{ inputs.dry-run == false }}
+      run: make publish-nuget
+      with:
+        NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
