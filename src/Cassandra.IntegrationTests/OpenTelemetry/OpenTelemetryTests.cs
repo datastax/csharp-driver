@@ -31,6 +31,7 @@ using Cassandra.Tests;
 using Cassandra.Tests.Mapping.Pocos;
 using NUnit.Framework;
 using OpenTelemetry;
+using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
 
 namespace Cassandra.IntegrationTests.OpenTelemetry
@@ -45,12 +46,15 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
         private const string NodeActivityName = "Node_Request";
 
         private readonly CopyOnReadList<Activity> _exportedActivities = new CopyOnReadList<Activity>();
+        private readonly CopyOnReadList<Metric> _exportedMetrics = new CopyOnReadList<Metric>();
 
         private readonly ActivitySource _internalActivitySource = new ActivitySource("testeActivitySource");
         
         private DateTime _testStartDateTime;
 
-        private TracerProvider _sdk;
+        private MeterProvider _metricsSdk;
+
+        private TracerProvider _tracesSdk;
 
         public OpenTelemetryTests() : base(3)
         {
@@ -60,7 +64,12 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
         [SetUp]
         public void SetUp()
         {
-            _sdk = Sdk.CreateTracerProviderBuilder()
+            _metricsSdk = Sdk.CreateMeterProviderBuilder()
+                     .AddMeter(OpenTelemetrySourceName)
+                     .AddMeter(_internalActivitySource.Name)
+                     .AddInMemoryExporter(_exportedMetrics)
+                     .Build();
+            _tracesSdk = Sdk.CreateTracerProviderBuilder()
                      .AddSource(OpenTelemetrySourceName)
                      .AddSource(_internalActivitySource.Name)
                      .AddInMemoryExporter(_exportedActivities)
@@ -71,8 +80,10 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
         [TearDown]
         public void Teardown()
         {
-            _sdk.Dispose();
+            _metricsSdk.Dispose();
+            _tracesSdk.Dispose();
             _exportedActivities.Clear();
+            _exportedMetrics.Clear();
         }
 
         [Category(TestCategory.RealCluster)]
@@ -82,7 +93,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             var keyspace = "system";
             var expectedActivityName = $"{SessionActivityName}({nameof(SimpleStatement)}) {keyspace}";
             var expectedDbNameAttribute = keyspace;
-            var cluster = GetNewTemporaryCluster(b => b.WithOpenTelemetryInstrumentation());
+            var cluster = GetNewTemporaryCluster(b => b.WithOpenTelemetryInstrumentation().WithOpenTelemetryMetrics());
             var session = cluster.Connect();
 
             var statement = new SimpleStatement("SELECT key FROM system.local");
@@ -91,19 +102,21 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
             RetryUntilActivities(_testStartDateTime, expectedActivityName, 1);
 
-           var activity = GetActivities(_testStartDateTime).First(x => x.DisplayName == expectedActivityName);
+            var activity = GetActivities(_testStartDateTime).First(x => x.DisplayName == expectedActivityName);
 
             ValidateSessionActivityAttributes(activity, typeof(SimpleStatement));
 
             Assert.AreEqual(expectedActivityName, activity.DisplayName);
             Assert.AreEqual(expectedDbNameAttribute, activity.Tags.First(kvp => kvp.Key == "db.namespace").Value);
+
+            ValidateMetrics();
         }
 
         [Category(TestCategory.RealCluster)]
         [Test]
         public void AddOpenTelemetry_WithoutKeyspace_DbNameIsNotIncluded()
         {
-            var cluster = GetNewTemporaryCluster(b => b.WithOpenTelemetryInstrumentation());
+            var cluster = GetNewTemporaryCluster(b => b.WithOpenTelemetryInstrumentation().WithOpenTelemetryMetrics());
             var session = cluster.Connect();
 
             var statement = new SimpleStatement("SELECT key FROM system.local");
@@ -117,13 +130,15 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
             Assert.AreEqual($"{SessionActivityName}({nameof(SimpleStatement)})", activity.DisplayName);
             Assert.IsNull(activity.Tags.FirstOrDefault(kvp => kvp.Key == "db.namespace").Value);
+
+            ValidateMetrics();
         }
 
         [Category(TestCategory.RealCluster)]
         [Test]
         public void AddOpenTelemetry_WithDefaultOptions_DbStatementIsNotIncludedAsAttribute()
         {
-            var cluster = GetNewTemporaryCluster(b => b.WithOpenTelemetryInstrumentation());
+            var cluster = GetNewTemporaryCluster(b => b.WithOpenTelemetryInstrumentation().WithOpenTelemetryMetrics());
             var session = cluster.Connect();
 
             var statement = new SimpleStatement("SELECT key FROM system.local");
@@ -136,6 +151,8 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             ValidateSessionActivityAttributes(activity, typeof(SimpleStatement));
 
             Assert.IsNull(activity.Tags.FirstOrDefault(kvp => kvp.Key == "db.query.text").Value);
+
+            ValidateMetrics();
         }
 
         [Category(TestCategory.RealCluster)]
@@ -144,7 +161,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
         {
             var expectedDbStatement = "SELECT key FROM system.local";
 
-            var cluster = GetNewTemporaryCluster(b => b.WithOpenTelemetryInstrumentation(options => options.IncludeDatabaseStatement = true));
+            var cluster = GetNewTemporaryCluster(b => b.WithOpenTelemetryInstrumentation(options => options.IncludeDatabaseStatement = true).WithOpenTelemetryMetrics());
             var session = cluster.Connect();
 
             var statement = new SimpleStatement("SELECT key FROM system.local");
@@ -157,6 +174,8 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             ValidateSessionActivityAttributes(activity, typeof(SimpleStatement));
 
             Assert.AreEqual(expectedDbStatement, activity.Tags.First(kvp => kvp.Key == "db.query.text").Value);
+
+            ValidateMetrics();
         }
 
         [Category(TestCategory.RealCluster)]
@@ -164,7 +183,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
         public async Task AddOpenTelemetry_ExecuteAndExecuteAsync_SessionRequestIsParentOfNodeRequest()
         {
             var localDateTime = DateTime.UtcNow;
-            var cluster = GetNewTemporaryCluster(b => b.WithOpenTelemetryInstrumentation(opt => opt.IncludeDatabaseStatement = true));
+            var cluster = GetNewTemporaryCluster(b => b.WithOpenTelemetryInstrumentation(opt => opt.IncludeDatabaseStatement = true).WithOpenTelemetryMetrics());
             var session = cluster.Connect();
 
             var statement = new SimpleStatement("SELECT key FROM system.local");
@@ -204,6 +223,8 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             ValidateNodeActivityAttributes(syncNodeActivity, typeof(SimpleStatement));
             Assert.Contains(new KeyValuePair<string, string>("db.query.text", "SELECT key FROM system.local"), syncSessionActivity.Tags.ToArray());
             Assert.Contains(new KeyValuePair<string, string>("db.query.text", "SELECT key FROM system.local"), syncNodeActivity.Tags.ToArray());
+
+            ValidateMetrics();
         }
 
         [Category(TestCategory.RealCluster)]
@@ -215,6 +236,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
             var cluster = GetNewTemporaryCluster(b => b
                 .WithOpenTelemetryInstrumentation(opt => opt.IncludeDatabaseStatement = true)
+                .WithOpenTelemetryMetrics()
                 .WithExecutionProfiles(opts => opts
                                   .WithProfile(testProfile, profile => profile
                                       .WithConsistencyLevel(ConsistencyLevel.One))));
@@ -283,6 +305,8 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
                 "db.query.text", $"INSERT INTO {keyspace}.song (Artist, Id, ReleaseDate, Title) VALUES (?, ?, ?, ?) IF NOT EXISTS"), syncSessionActivity.Tags.ToArray());
             Assert.Contains(new KeyValuePair<string, string>(
                 "db.query.text", $"INSERT INTO {keyspace}.song (Artist, Id, ReleaseDate, Title) VALUES (?, ?, ?, ?) IF NOT EXISTS"), syncNodeActivity.Tags.ToArray());
+
+            ValidateMetrics();
         }
 
         [Category(TestCategory.RealCluster)]
@@ -292,7 +316,8 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             var keyspace = TestUtils.GetUniqueKeyspaceName().ToLowerInvariant();
 
             var cluster = GetNewTemporaryCluster(b => b
-                .WithOpenTelemetryInstrumentation());
+                .WithOpenTelemetryInstrumentation()
+                .WithOpenTelemetryMetrics());
 
             var session = cluster.Connect();
 
@@ -331,6 +356,8 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
             ValidateSessionActivityAttributes(syncSessionActivity, typeof(BoundStatement));
             ValidateNodeActivityAttributes(syncNodeActivity, typeof(BoundStatement));
+
+            ValidateMetrics();
         }
 
         [Test]
@@ -343,7 +370,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
             using (var _ = _internalActivitySource.StartActivity(firstMethodName, ActivityKind.Internal))
             {
-                var cluster = GetNewTemporaryCluster(b => b.WithOpenTelemetryInstrumentation());
+                var cluster = GetNewTemporaryCluster(b => b.WithOpenTelemetryInstrumentation().WithOpenTelemetryMetrics());
                 var session = cluster.Connect();
 
                 session.CreateKeyspaceIfNotExists(keyspace);
@@ -354,6 +381,8 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
                 MapperMethod(session);
 
                 SecondMethod(secondMethodName);
+
+                ValidateMetrics();
             }
 
             Assert_WhenMethodIsInvokedAfterQuery_TraceIdIsTheSameThroughRequest(keyspace);
@@ -369,7 +398,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             var keyspace = TestUtils.GetUniqueKeyspaceName().ToLowerInvariant();
             using (var _ = _internalActivitySource.StartActivity(firstMethodName, ActivityKind.Internal))
             {
-                var cluster = GetNewTemporaryCluster(b => b.WithOpenTelemetryInstrumentation());
+                var cluster = GetNewTemporaryCluster(b => b.WithOpenTelemetryInstrumentation().WithOpenTelemetryMetrics());
                 var session = await cluster.ConnectAsync().ConfigureAwait(false);
 
                 session.CreateKeyspaceIfNotExists(keyspace);
@@ -380,6 +409,8 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
                 await MapperMethodAsync(session).ConfigureAwait(false);
 
                 SecondMethod(secondMethodName);
+
+                ValidateMetrics();
             }
 
             Assert_WhenMethodIsInvokedAfterQuery_TraceIdIsTheSameThroughRequest(keyspace);
@@ -404,7 +435,8 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
                                                         .SetReadTimeoutMillis(5000))
                                      .WithLoadBalancingPolicy(loadBalancingPolicy)
                                      .WithRetryPolicy(TryNextHostRetryPolicy.Instance)
-                                     .WithOpenTelemetryInstrumentation();
+                                     .WithOpenTelemetryInstrumentation()
+                                     .WithOpenTelemetryMetrics();
 
                 using (var cluster = builder.Build())
                 {
@@ -434,6 +466,8 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
                     Assert.AreEqual(sessionActivity.SpanId, errorNodeActivity.ParentSpanId);
                     Assert.AreEqual(expectedErrorDescription, errorNodeActivity.StatusDescription);
                     Assert.True(validNodeActivity.StartTimeUtc > errorNodeActivity.StartTimeUtc);
+
+                    ValidateMetrics();
                 }
             }
         }
@@ -454,7 +488,8 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
                                                         .SetReadTimeoutMillis(5000))
                                      .WithLoadBalancingPolicy(loadBalancingPolicy)
                                      .WithSpeculativeExecutionPolicy(new ConstantSpeculativeExecutionPolicy(500, 2))
-                                     .WithOpenTelemetryInstrumentation();
+                                     .WithOpenTelemetryInstrumentation()
+                                     .WithOpenTelemetryMetrics();
 
                 using (var cluster = builder.Build())
                 {
@@ -495,6 +530,8 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
                     Assert.AreEqual(2, abortedActivities.Count());
                     Assert.True(successActivities.First().StartTimeUtc > abortedActivities.ElementAt(0).StartTimeUtc);
                     Assert.True(successActivities.First().StartTimeUtc > abortedActivities.ElementAt(1).StartTimeUtc);
+
+                    ValidateMetrics();
                 }
             }
         }
@@ -505,7 +542,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
         {
             using (var activity = _internalActivitySource.StartActivity("Paging", ActivityKind.Internal))
             {
-                var session = GetNewTemporaryCluster(b => b.WithOpenTelemetryInstrumentation()).Connect();
+                var session = GetNewTemporaryCluster(b => b.WithOpenTelemetryInstrumentation().WithOpenTelemetryMetrics()).Connect();
 
                 session.CreateKeyspaceIfNotExists(KeyspaceName, null, false);
 
@@ -537,6 +574,8 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
                 Assert.AreEqual(firstActivity.TraceId, lastActivity.TraceId);
                 Assert.AreNotEqual(firstActivity.SpanId, lastActivity.SpanId);
+
+                ValidateMetrics();
             }
         }
 
@@ -547,7 +586,8 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             var keyspace = TestUtils.GetUniqueKeyspaceName().ToLowerInvariant();
 
             var cluster = GetNewTemporaryCluster(b => b
-                .WithOpenTelemetryInstrumentation(opt => opt.IncludeDatabaseStatement = true));
+                .WithOpenTelemetryInstrumentation(opt => opt.IncludeDatabaseStatement = true)
+                .WithOpenTelemetryMetrics());
 
             var session = cluster.Connect();
 
@@ -603,6 +643,8 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
                 $"INSERT INTO {keyspace}.song (Artist, Id, ReleaseDate, Title) VALUES (?, ?, ?, ?)";
             Assert.Contains(new KeyValuePair<string, string>("db.query.text", expectedStatement), syncSessionActivity.Tags.ToArray());
             Assert.Contains(new KeyValuePair<string, string>("db.query.text", expectedStatement), syncNodeActivity.Tags.ToArray());
+
+            ValidateMetrics();
         }
 
         [Category(TestCategory.RealCluster)]
@@ -615,6 +657,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
             var cluster = GetNewTemporaryCluster(b => b
                 .WithOpenTelemetryInstrumentation(opt => opt.IncludeDatabaseStatement = true)
+                .WithOpenTelemetryMetrics()
                 .WithQueryOptions(new QueryOptions().SetPrepareOnAllHosts(prepareOnAllHosts)));
 
             var session = cluster.Connect();
@@ -714,6 +757,8 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
                             : typeof(BoundStatement));
                 }
             }
+
+            ValidateMetrics();
         }
 
         private void Assert_WhenMethodIsInvokedAfterQuery_TraceIdIsTheSameThroughRequest(string keyspace)
@@ -857,6 +902,12 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             )";
 
             session.Execute(createTableQuery);
+        }
+
+        private void ValidateMetrics()
+        {
+            var metrics = _exportedMetrics.Where(m => m.Name.StartsWith("cassandra.")).ToList();
+            Assert.True(metrics.Count > 0, "Count = {0}", metrics.Count);
         }
 
         private IEnumerable<Activity> GetActivities(DateTime from)

@@ -15,6 +15,8 @@
 //
 
 using System;
+using Cassandra.Metrics;
+using Cassandra.OpenTelemetry.Metrics;
 
 namespace Cassandra.OpenTelemetry
 {
@@ -47,6 +49,35 @@ namespace Cassandra.OpenTelemetry
             options?.Invoke(instrumentationOptions);
 
             return builder.WithRequestTracker(new OpenTelemetryRequestTracker(instrumentationOptions));
+        }
+
+        /// <summary>
+        /// Adds OpenTelemetry metrics to the <see cref="Builder"/>.
+        /// </summary>
+        /// <param name="builder">The <see cref="Builder"/>.</param>
+        /// <returns>Returning Cassandra builder.</returns>
+        public static Builder WithOpenTelemetryMetrics(this Builder builder)
+        {
+            return builder.WithOpenTelemetryMetrics(null);
+        }
+
+        /// <summary>
+        /// Adds OpenTelemetry instrumentation to the <see cref="Builder"/>.
+        /// </summary>
+        /// <param name="builder">The <see cref="Builder"/>.</param>
+        /// <param name="options">An action with <see cref="CassandraInstrumentationOptions"/> to be 
+        /// included in the instrumentation.</param>
+        /// <returns></returns>
+        public static Builder WithOpenTelemetryMetrics(this Builder builder, Action<DriverMetricsOptions> options)
+        {
+            var metricsOptions = new DriverMetricsOptions();
+
+            metricsOptions.SetEnabledNodeMetrics(NodeMetric.AllNodeMetrics);
+            metricsOptions.SetEnabledSessionMetrics(SessionMetric.AllSessionMetrics);
+
+            options?.Invoke(metricsOptions);
+
+            return builder.WithMetrics(new CassandraDriverMetricsProvider(), metricsOptions);
         }
     }
 }
