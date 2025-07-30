@@ -37,8 +37,6 @@ src/samples/packages
 src/other/**/packages
 src/packages/*/
 
-/docs
-
 # OS X
 .DS_Store
 
@@ -48,9 +46,12 @@ src/packages/*/
 # Visual Studio for Mac
 *.userprefs
 
-doc/api-docs/api-docs
-doc/api-docs/api
-doc/api-docs/datastax-template
+docs/_build/
+docs/source/.doctrees
+docs/source/api-docs/api-docs
+docs/source/api-docs/api
+docs/source/api-docs/datastax-template
 
 # Ignore active snk file
 build/scylladb.snk
+
