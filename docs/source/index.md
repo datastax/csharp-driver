@@ -7,8 +7,10 @@ ScyllaDB's fork of a modern, feature-rich and highly tunable C# client library f
 :hidden:
 :maxdepth: 1
 
+
 features/index
 faq/index
 upgrade-guide/index
 examples/index
+datastax-api-reference.md
 :::
