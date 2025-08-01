@@ -293,8 +293,10 @@ Unless required by applicable law or agreed to in writing, software distributed 
 :hidden:
 :maxdepth: 1
 
+
 features/index
 faq/index
 upgrade-guide/index
 examples/index
+datastax-api-reference.md
 :::
