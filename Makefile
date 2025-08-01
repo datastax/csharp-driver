@@ -109,14 +109,22 @@ install-mono:
  	sn -p build/scylladb.snk /tmp/scylladb.pub; \
  	export PROD_SNK_PUBLIC_KEY=`hexdump -v -e '/1 "%02x"' /tmp/scylladb.pub`; \
  	echo "Switching to production SNK public key: $$PROD_SNK_PUBLIC_KEY"; \
-	grep -rl 'PublicKey=${DEV_SNK_PUBLIC_KEY}' . | xargs sed -i "s/PublicKey=${DEV_SNK_PUBLIC_KEY}/PublicKey=$$PROD_SNK_PUBLIC_KEY/g" 2> /dev/null 1>&2;
+ 	for file in `grep --exclude=Makefile -rIl 'PublicKey=' .`; do \
+ 	  echo "Processing file: $$file"; \
+ 	  grep 'PublicKey=$$PROD_SNK_PUBLIC_KEY' "$$file" || sed -i "s/PublicKey=${DEV_SNK_PUBLIC_KEY}/PublicKey=$$PROD_SNK_PUBLIC_KEY/g" "$$file" 2> /dev/null 1>&2; \
+ 	done;
 
-publish-nuget-dry-run:
-	grep -rl --exclude="Makefile" '<PackageId>ScyllaDBCSharpDriver</PackageId>' . | xargs sed -i "s#<PackageId>ScyllaDBCSharpDriver</PackageId>#<PackageId>ScyllaDBCSharpDriver.DRYRUN</PackageId>#g" 2> /dev/null 1>&2;
-	$(MAKE) .publish-proj-nuget PROJECT_PATH=src/Cassandra/Cassandra.csproj
+.target-to-dry-run-package:
+	grep '<PackageId>ScyllaDBCSharpDriver.DRYRUN' $(PROJECT_PATH) || \
+	sed -Ei "s#<PackageId>ScyllaDBCSharpDriver(.*)</PackageId>#<PackageId>ScyllaDBCSharpDriver.DRYRUN\1</PackageId>#g" $(PROJECT_PATH)
 
 .publish-proj-nuget: .prepare-mono .use-production-snk
+ifndef DRY_RUN
 	@echo "Publishing to NuGet with production SNK"
+else
+	@echo "Dry run publishing to NuGet with production SNK"
+	$(MAKE) .target-to-dry-run-package
+endif
 	dotnet restore $(PROJECT_PATH)
 	dotnet build $(PROJECT_PATH) --configuration Release --no-restore
 	dotnet pack $(PROJECT_PATH) --configuration Release --no-build --output ./nupkgs
@@ -128,5 +136,10 @@ endif
 
 publish-nuget:
 	$(MAKE) .publish-proj-nuget PROJECT_PATH=src/Cassandra/Cassandra.csproj
-	$(MAKE) .publish-proj-nuget PROJECT_PATH=src/Extensions/Cassandra.AppMetrics.csproj
-	$(MAKE) .publish-proj-nuget PROJECT_PATH=src/Extensions/Cassandra.OpenTelemetry.csproj
+	$(MAKE) .publish-proj-nuget PROJECT_PATH=src/Extensions/Cassandra.AppMetrics/Cassandra.AppMetrics.csproj
+	$(MAKE) .publish-proj-nuget PROJECT_PATH=src/Extensions/Cassandra.OpenTelemetry/Cassandra.OpenTelemetry.csproj
+
+publish-nuget-dry-run:
+	$(MAKE) .publish-proj-nuget PROJECT_PATH=src/Cassandra/Cassandra.csproj DRY_RUN=1
+	$(MAKE) .publish-proj-nuget PROJECT_PATH=src/Extensions/Cassandra.AppMetrics/Cassandra.AppMetrics.csproj DRY_RUN=1
+	$(MAKE) .publish-proj-nuget PROJECT_PATH=src/Extensions/Cassandra.OpenTelemetry/Cassandra.OpenTelemetry.csproj DRY_RUN=1
