@@ -123,7 +123,7 @@ Decryption of values returned from the server is always transparent.  Whether we
 
 ## Example
 
-The examples directory at the driver's Github repository [has an example for column encryption](https://github.com/datastax/csharp-driver/blob/master/examples/ColumnEncryption/ColumnEncryptionExample/Program.cs).
+The examples directory at the driver's Github repository [has an example for column encryption](https://github.com/scylladb/csharp-driver/blob/master/examples/ColumnEncryption/ColumnEncryptionExample/Program.cs).
 
 ## Limitations
 

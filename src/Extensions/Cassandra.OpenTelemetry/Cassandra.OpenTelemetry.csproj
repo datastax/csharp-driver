@@ -18,8 +18,8 @@
     <Title>ScyllaDB C# Drivers OpenTelemetry Extension</Title>
     <PackageTags>scylladb;scylla;driver;client;opentelemetry;tracing;instrumentation;nosql;dotnet;netcore;db</PackageTags>
     <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
-    <RepositoryUrl>https://github.com/datastax/csharp-driver</RepositoryUrl>
-    <PackageProjectUrl>https://github.com/datastax/csharp-driver</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/scylladb/csharp-driver</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/scylladb/csharp-driver</PackageProjectUrl>
   </PropertyGroup>
 
   <ItemGroup>

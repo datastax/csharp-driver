@@ -55,3 +55,6 @@ docs/source/api-docs/datastax-template
 # Ignore active snk file
 build/scylladb.snk
 
+# Ignore python virtual environments
+docs/.venv
+.venv

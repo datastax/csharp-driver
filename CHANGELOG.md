@@ -1,4 +1,4 @@
-# ChangeLog - DataStax C# Driver
+# ChangeLog - ScyllaDB C# Driver
 
 ## 3.22.0
 
