@@ -58,3 +58,6 @@ build/scylladb.snk
 # Ignore python virtual environments
 docs/.venv
 .venv
+
+# Ignore release leftovers
+nupkgs/
