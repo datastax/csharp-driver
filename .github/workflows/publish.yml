@@ -16,6 +16,10 @@ on:
         type: boolean
         required: true
         default: true
+      skip-duplicate:
+        description: "Skip publishing if the package already exists"
+        type: boolean
+        default: false
 
 jobs:
   publish:
@@ -30,6 +34,10 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '8.0.x'
+        
+    - name: Set SKIP_DUPLICATE environment variable
+      if: ${{ inputs.skip-duplicate == true }}
+      run: echo "SKIP_DUPLICATE=true" >> $GITHUB_ENV
 
     - name: Publish to NuGet (Dry Run)
       if: ${{ inputs.dry-run == true }}

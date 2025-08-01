@@ -120,7 +120,11 @@ publish-nuget-dry-run:
 	dotnet restore $(PROJECT_PATH)
 	dotnet build $(PROJECT_PATH) --configuration Release --no-restore
 	dotnet pack $(PROJECT_PATH) --configuration Release --no-build --output ./nupkgs
+ifndef SKIP_DUPLICATE
 	dotnet nuget push "./nupkgs/*.nupkg" --api-key ${NUGET_API_KEY} --source https://api.nuget.org/v3/index.json
+else
+	dotnet nuget push --skip-duplicate "./nupkgs/*.nupkg" --api-key ${NUGET_API_KEY} --source https://api.nuget.org/v3/index.json
+endif
 
 publish-nuget:
 	$(MAKE) .publish-proj-nuget PROJECT_PATH=src/Cassandra/Cassandra.csproj
