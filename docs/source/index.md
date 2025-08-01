@@ -12,8 +12,6 @@ The driver targets .NET Framework 4.5.2 and .NET Standard 2.0. For more detailed
 PM> Install-Package ScyllaDBCSharpDriver
 ```
 
-[![Build status](https://travis-ci.org/datastax/csharp-driver.svg?branch=master)](https://travis-ci.org/datastax/csharp-driver)
-[![Windows Build status](https://ci.appveyor.com/api/projects/status/ri1olv8bl7b7yk7y/branch/master?svg=true)](https://ci.appveyor.com/project/DataStax/csharp-driver/branch/master)
 [![Latest stable](https://img.shields.io/nuget/v/ScyllaDBCSharpDriver.svg)](https://www.nuget.org/packages/ScyllaDBCSharpDriver)
 
 ## Features
@@ -39,7 +37,6 @@ PM> Install-Package ScyllaDBCSharpDriver
 - [Documentation index][docindex]
 - [API docs][apidocs]
 - [FAQ][faq]
-- [Version compatibility matrix][driver-matrix]
 - [Developing applications with ScyllaDB drivers][dev-guide]
 
 ## Getting Help
@@ -234,109 +231,6 @@ ICluster cluster = Cluster.Builder()
     .Build();
 ```
 
-## DataStax Graph
-
-`ISession` has dedicated methods to execute graph queries:
-
-```csharp
-using Cassandra.DataStax.Graph;
-```
-
-```csharp
-session.ExecuteGraph("system.createGraph('demo').ifNotExist().build()");
-
-GraphStatement s1 = new SimpleGraphStatement("g.addV(label, 'test_vertex')").SetGraphName("demo");
-session.ExecuteGraph(s1);
-
-GraphStatement s2 = new SimpleGraphStatement("g.V()").SetGraphName("demo");
-GraphResultSet rs = session.ExecuteGraph(s2);
-
-IVertex vertex = rs.First().To<IVertex>();
-Console.WriteLine(vertex.Label);
-```
-
-### Graph options
-
-You can set default graph options when initializing the cluster. They will be used for all graph statements. For example, to avoid repeating `SetGraphName("demo")` on each statement:
-
-```csharp
-ICluster cluster = Cluster.Builder()
-    .AddContactPoint("127.0.0.1")
-    .WithGraphOptions(new GraphOptions().SetName("demo"))
-    .Build();
-```
-
-If an option is set manually on a `GraphStatement`, it always takes precedence; otherwise the default option is used.
-This might be a problem if a default graph name is set, but you explicitly want to execute a statement targeting `system`, for which no graph name must be set. In that situation, use `GraphStatement.SetSystemQuery()`:
-
-```csharp
-GraphStatement s = new SimpleGraphStatement("system.createGraph('demo').ifNotExist().build()")
-    .SetSystemQuery();
-session.ExecuteGraph(s);
-```
-
-### Query execution
-
-As explained, graph statements can be executed with the session's `ExecuteGraph` method. There is also an asynchronous equivalent called `ExecuteGraphAsync` that returns a `Task` that can be awaited upon.
-
-### Handling results
-
-Graph queries return a `GraphResultSet`, which is a sequence of `GraphNode` elements:
-
-```csharp
-GraphResultSet rs = session.ExecuteGraph(new SimpleGraphStatement("g.V()"));
-
-// Iterating as IGraphNode
-foreach (IGraphNode r in rs)
-{
-    Console.WriteLine(r);
-}
-```
-
-`IGraphNode` represents a response item returned by the server. Each item can be converted to the expected type:
-
-```csharp
-GraphResultSet rs = session.ExecuteGraph(new SimpleGraphStatement("g.V()"));
-IVertex vertex = rs.First().To<IVertex>();
-Console.WriteLine(vertex.Label);
-```
-
-Additionally, you can apply the conversion to all the sequence by using `GraphResultSet.To<T>()` method:
-
-```csharp
-foreach (IVertex vertex in rs.To<IVertex>())
-{
-    Console.WriteLine(vertex.Label);
-}
-```
-
-`GraphNode` provides [implicit conversion operators][implicit] to `string`, `int`, `long` and others in order to improve code readability, allowing the following C# syntax:
-
-```csharp
-var rs = session.ExecuteGraph(new SimpleGraphStatement("g.V().has('name', 'marko').values('location')"));
-foreach (string location in rs)
-{
-    Console.WriteLine(location);
-}
-```
-
-`GraphNode` inherits from [`DynamicObject`][dynamic], allowing you to consume it using the `dynamic` keyword and/or as a dictionary.
-
-```csharp
-dynamic r = session.ExecuteGraph(new SimpleGraphStatement("g.V()")).First();
-```
-
-### Parameters
-
-Graph query parameters are always named. Parameter bindings are passed as an anonymous type or as a
-`IDictionary<string, object>` alongside the query:
-
-```csharp
-session.ExecuteGraph("g.addV(label, vertexLabel)", new { vertexLabel = "test_vertex_2" });
-```
-
-Note that, unlike in CQL, Gremlin placeholders are not prefixed with ":".
-
 ## Compatibility
 
 - ScyllaDB 2025.1 and above.
@@ -377,7 +271,6 @@ Licensed under the Apache License, Version 2.0 (the “License”); you may not 
 
 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an “AS IS” BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-[astra]: https://www.datastax.com/products/datastax-astra
 [apidocs]: https://docs.datastax.com/en/latest-csharp-driver-api/
 [docindex]: https://csharp-driver.docs.scylladb.com/stable/
 [features]: https://csharp-driver.docs.scylladb.com/stable/features/index.html
@@ -392,11 +285,9 @@ Unless required by applicable law or agreed to in writing, software distributed 
 [policies]: https://csharp-driver.docs.scylladb.com/stable/features/tuning-policies/index.html
 [upgrade-guide]: https://csharp-driver.docs.scylladb.com/stable/upgrade-guide/index.html
 [community]: https://forum.scylladb.com/
-[dse]: https://www.datastax.com/products/datastax-enterprise
 [implicit]: https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/keywords/implicit
 [dynamic]: https://msdn.microsoft.com/en-us/library/dd264736.aspx
 [dev-guide]: https://docs.scylladb.com/stable/get-started/develop-with-scylladb/index.html
-[driver-matrix]: https://docs.datastax.com/en/driver-matrix/doc/index.html
 
 :::{toctree}
 :hidden:
