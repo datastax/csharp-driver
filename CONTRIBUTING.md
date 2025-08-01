@@ -1,10 +1,10 @@
 # Contributing
 
-When contributing to this repository, please first discuss the changes you wish to make via [JIRA issues][jira] or [mailing list threads][ml].
+When contributing to this repository, please first discuss the changes you wish to make via [Scylla Slack channel][scylla-slack]
 
 ## Automated checks - Code Analyzers
 
-The CI builds run a couple of code analyzers: [FxCop][fxcop] and [StyleCop][stylecop]. At this time, the severity for a lot of warnings and errors is set to `suggestion` because we are still in the process of fixing them in the entire codebase. Progress on this is tracked on [CSHARP-909][CSHARP909].
+The CI builds run a couple of code analyzers: [FxCop][fxcop] and [StyleCop][stylecop]. At this time, the severity for a lot of warnings and errors is set to `suggestion` because we are still in the process of fixing them in the entire codebase. Progress on this is tracked on [linting issue][linting-issue].
 
 The setting that controls whether code analysis runs during the build process is set on the [Directory.Build.props](./src/Directory.Build.props) file:
 
@@ -243,9 +243,7 @@ If you have to address feedback, avoid rewriting the history (e.g. squashing or 
 
 If you need new stuff from the base branch, it's fine to rebase and force-push, as long as you don't rewrite the history. Just give a heads up to the reviewers beforehand. Avoid pushing merge commits to a pull request.
 
-[ml]: https://groups.google.com/a/lists.datastax.com/forum/#!forum/csharp-driver-user
-[jira]: https://datastax-oss.atlassian.net/browse/CSHARP
-[CSHARP909]: https://datastax-oss.atlassian.net/browse/CSHARP-909
+[linting-issue]: https://github.com/scylladb/csharp-driver/issues/73
 [fxcop]: https://github.com/dotnet/roslyn-analyzers#microsoftcodeanalysisfxcopanalyzers
 [stylecop]: https://github.com/DotNetAnalyzers/StyleCopAnalyzers#stylecop-analyzers-for-the-net-compiler-platform
 [SX1309]: https://github.com/DotNetAnalyzers/StyleCopAnalyzers/blob/master/documentation/SX1309.md
@@ -258,3 +256,4 @@ If you need new stuff from the base branch, it's fine to rebase and force-push, 
 [simulacronrepo]: https://github.com/datastax/simulacron
 [simulacronreleases]: https://github.com/datastax/simulacron/releases
 [dotnetcoresdk]: https://www.microsoft.com/net/download/core
+[scylla-slack]: https://scylladb-users.slack.com

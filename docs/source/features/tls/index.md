@@ -109,4 +109,4 @@ var cluster = Cluster.Builder()
 [certstore]: #certificate-store
 [client-to-node-dse]: https://docs.datastax.com/en/security/6.7/security/encryptClientNodeSSL.html
 [client-to-node]: https://docs.datastax.com/en/cassandra/3.0/cassandra/configuration/secureSSLClientToNode.html
-[Github repository]: https://github.com/datastax/csharp-driver/tree/master/examples/Ssl
+[Github repository]: https://github.com/scylladb/csharp-driver/tree/master/examples/Ssl

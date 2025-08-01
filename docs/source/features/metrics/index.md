@@ -122,7 +122,7 @@ The instances returned by the `IDriverMetricsProvider` methods will be exposed b
 [App.Metrics provider]: app-metrics/index
 [App.Metrics based implementation on a separate extension nuget package]: app-metrics/index
 [the manual section related to this provider]: app-metrics/index
-[provider's code]: https://github.com/datastax/csharp-driver/tree/master/src/Extensions/Cassandra.AppMetrics
+[provider's code]: https://github.com/scylladb/csharp-driver/tree/master/src/Extensions/Cassandra.AppMetrics
 
 
 :::{toctree}

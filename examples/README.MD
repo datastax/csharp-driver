@@ -31,6 +31,6 @@ While this is suitable for example console applications, you should reuse the `S
 If you have any questions regarding these examples, feel free to post your questions in the [mailing list][mailing-list].
 
 [cassandra]: https://cassandra.apache.org/
-[doc-index]: https://docs.datastax.com/en/developer/csharp-driver/latest/
+[doc-index]: https://csharp-driver.docs.scylladb.com/stable/
 [mailing-list]: https://groups.google.com/a/lists.datastax.com/forum/#!forum/csharp-driver-user
-[faq]: https://docs.datastax.com/en/developer/csharp-driver/latest/faq/
+[faq]: https://csharp-driver.docs.scylladb.com/stable/faq/

@@ -12,8 +12,6 @@ The driver targets .NET Framework 4.5.2 and .NET Standard 2.0. For more detailed
 PM> Install-Package ScyllaDBCSharpDriver
 ```
 
-[![Build status](https://travis-ci.org/datastax/csharp-driver.svg?branch=master)](https://travis-ci.org/datastax/csharp-driver)
-[![Windows Build status](https://ci.appveyor.com/api/projects/status/ri1olv8bl7b7yk7y/branch/master?svg=true)](https://ci.appveyor.com/project/DataStax/csharp-driver/branch/master)
 [![Latest stable](https://img.shields.io/nuget/v/ScyllaDBCSharpDriver.svg)](https://www.nuget.org/packages/ScyllaDBCSharpDriver)
 
 ## Features
@@ -39,12 +37,13 @@ PM> Install-Package ScyllaDBCSharpDriver
 - [Documentation index][docindex]
 - [API docs][apidocs]
 - [FAQ][faq]
-- [Version compatibility matrix][driver-matrix]
-- [Developing applications with DataStax drivers][dev-guide]
+- [Developing applications with ScyllaDB drivers][dev-guide]
 
 ## Getting Help
 
-You can use the project [Mailing list][mailinglist] or create a ticket on the [Jira issue tracker][jira]. Additionally, you can ask questions on [DataStax Community][community].
+You can ask questions on [ScyllaDB Community Forum][scylla-forum] 
+or the Scylla Users [Slack channel][scylla-slack] 
+or you can open an issue on the [GitHub repository][driver-github-repo].
 
 ## Upgrading from previous versions
 
@@ -234,109 +233,6 @@ ICluster cluster = Cluster.Builder()
     .Build();
 ```
 
-## DataStax Graph
-
-`ISession` has dedicated methods to execute graph queries:
-
-```csharp
-using Cassandra.DataStax.Graph;
-```
-
-```csharp
-session.ExecuteGraph("system.createGraph('demo').ifNotExist().build()");
-
-GraphStatement s1 = new SimpleGraphStatement("g.addV(label, 'test_vertex')").SetGraphName("demo");
-session.ExecuteGraph(s1);
-
-GraphStatement s2 = new SimpleGraphStatement("g.V()").SetGraphName("demo");
-GraphResultSet rs = session.ExecuteGraph(s2);
-
-IVertex vertex = rs.First().To<IVertex>();
-Console.WriteLine(vertex.Label);
-```
-
-### Graph options
-
-You can set default graph options when initializing the cluster. They will be used for all graph statements. For example, to avoid repeating `SetGraphName("demo")` on each statement:
-
-```csharp
-ICluster cluster = Cluster.Builder()
-    .AddContactPoint("127.0.0.1")
-    .WithGraphOptions(new GraphOptions().SetName("demo"))
-    .Build();
-```
-
-If an option is set manually on a `GraphStatement`, it always takes precedence; otherwise the default option is used.
-This might be a problem if a default graph name is set, but you explicitly want to execute a statement targeting `system`, for which no graph name must be set. In that situation, use `GraphStatement.SetSystemQuery()`:
-
-```csharp
-GraphStatement s = new SimpleGraphStatement("system.createGraph('demo').ifNotExist().build()")
-    .SetSystemQuery();
-session.ExecuteGraph(s);
-```
-
-### Query execution
-
-As explained, graph statements can be executed with the session's `ExecuteGraph` method. There is also an asynchronous equivalent called `ExecuteGraphAsync` that returns a `Task` that can be awaited upon.
-
-### Handling results
-
-Graph queries return a `GraphResultSet`, which is a sequence of `GraphNode` elements:
-
-```csharp
-GraphResultSet rs = session.ExecuteGraph(new SimpleGraphStatement("g.V()"));
-
-// Iterating as IGraphNode
-foreach (IGraphNode r in rs)
-{
-    Console.WriteLine(r);
-}
-```
-
-`IGraphNode` represents a response item returned by the server. Each item can be converted to the expected type:
-
-```csharp
-GraphResultSet rs = session.ExecuteGraph(new SimpleGraphStatement("g.V()"));
-IVertex vertex = rs.First().To<IVertex>();
-Console.WriteLine(vertex.Label);
-```
-
-Additionally, you can apply the conversion to all the sequence by using `GraphResultSet.To<T>()` method:
-
-```csharp
-foreach (IVertex vertex in rs.To<IVertex>())
-{
-    Console.WriteLine(vertex.Label);
-}
-```
-
-`GraphNode` provides [implicit conversion operators][implicit] to `string`, `int`, `long` and others in order to improve code readability, allowing the following C# syntax:
-
-```csharp
-var rs = session.ExecuteGraph(new SimpleGraphStatement("g.V().has('name', 'marko').values('location')"));
-foreach (string location in rs)
-{
-    Console.WriteLine(location);
-}
-```
-
-`GraphNode` inherits from [`DynamicObject`][dynamic], allowing you to consume it using the `dynamic` keyword and/or as a dictionary.
-
-```csharp
-dynamic r = session.ExecuteGraph(new SimpleGraphStatement("g.V()")).First();
-```
-
-### Parameters
-
-Graph query parameters are always named. Parameter bindings are passed as an anonymous type or as a
-`IDictionary<string, object>` alongside the query:
-
-```csharp
-session.ExecuteGraph("g.addV(label, vertexLabel)", new { vertexLabel = "test_vertex_2" });
-```
-
-Note that, unlike in CQL, Gremlin placeholders are not prefixed with ":".
-
 ## Compatibility
 
 - Apache Cassandra versions 2.0 and above.
@@ -369,35 +265,28 @@ You can use Visual Studio or msbuild to build the solution.
 
 ## License
 
-© DataStax, Inc.
-
-Licensed under the Apache License, Version 2.0 (the “License”); you may not use this file except in compliance with the License. You may obtain a copy of the License at
+ScyllaDB C# Driver is licensed under the Apache License, Version 2.0 (the “License”); you may not use this file except in compliance with the License. You may obtain a copy of the License at
 
 <http://www.apache.org/licenses/LICENSE-2.0>
 
 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an “AS IS” BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-[astra]: https://www.datastax.com/products/datastax-astra
 [apidocs]: https://docs.datastax.com/en/latest-csharp-driver-api/
-[docindex]: https://docs.datastax.com/en/developer/csharp-driver/latest/
-[features]: https://docs.datastax.com/en/developer/csharp-driver/latest/features/
-[faq]: https://docs.datastax.com/en/developer/csharp-driver/latest/faq/
-[nuget]: https://nuget.org/packages/CassandraCSharpDriver/
-[mailinglist]: https://groups.google.com/a/lists.datastax.com/forum/#!forum/csharp-driver-user
-[jira]: https://datastax-oss.atlassian.net/projects/CSHARP/issues
-[udt]: https://docs.datastax.com/en/dse/6.0/cql/cql/cql_using/useInsertUDT.html
+[docindex]: https://csharp-driver.docs.scylladb.com/stable/
+[features]: https://csharp-driver.docs.scylladb.com/stable/features/
+[faq]: https://csharp-driver.docs.scylladb.com/stable/faq/
+[nuget]: https://nuget.org/packages/ScyllaDBCSharpDriver/
+[udt]: https://java-driver.docs.scylladb.com/stable/manual/core/udts/
 [poco]: http://en.wikipedia.org/wiki/Plain_Old_CLR_Object
-[linq]: https://docs.datastax.com/en/developer/csharp-driver/latest/features/components/linq/
-[mapper]: https://docs.datastax.com/en/developer/csharp-driver/latest/features/components/mapper/
-[components]: https://docs.datastax.com/en/developer/csharp-driver/latest/features/components/
-[policies]: https://docs.datastax.com/en/developer/csharp-driver/latest/features/tuning-policies/
-[upgrade-guide]: https://docs.datastax.com/en/developer/csharp-driver/latest/upgrade-guide/
-[upgrade-guide-dse]: https://docs.datastax.com/en/developer/csharp-driver/latest/upgrade-guide/upgrade-from-dse-driver/
-[dse-driver]: https://docs.datastax.com/en/developer/csharp-driver-dse/latest/
-[community]: https://community.datastax.com
-[dse]: https://www.datastax.com/products/datastax-enterprise
+[linq]: https://csharp-driver.docs.scylladb.com/stable/features/components/linq/
+[mapper]: https://csharp-driver.docs.scylladb.com/stable/features/components/mapper/
+[components]: https://csharp-driver.docs.scylladb.com/stable/features/components/
+[policies]: https://csharp-driver.docs.scylladb.com/stable/features/tuning-policies/
+[upgrade-guide]: https://csharp-driver.docs.scylladb.com/stable/upgrade-guide/
+[csharp-driver]: https://csharp-driver.docs.scylladb.com/stable/
 [implicit]: https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/keywords/implicit
 [dynamic]: https://msdn.microsoft.com/en-us/library/dd264736.aspx
-[dse-graph]: https://www.datastax.com/products/datastax-enterprise-graph
-[dev-guide]: https://docs.datastax.com/en/devapp/doc/devapp/aboutDrivers.html
-[driver-matrix]: https://docs.datastax.com/en/driver-matrix/doc/index.html
+[dev-guide]: https://docs.scylladb.com/stable/get-started/develop-with-scylladb/index.html
+[scylla-forum]: https://forum.scylladb.com/
+[scylla-slack]: https://scylladb-users.slack.com
+[driver-github-repo]: https://github.com/scylladb/csharp-driver

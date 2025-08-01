@@ -19,7 +19,7 @@ namespace Cassandra
     /// <summary>
     /// <para>
     /// This policy is used by the driver to provide client side encryption capabilities. The only requirement is that the encrypted columns have the 'blob' type at schema level.
-    /// Check https://docs.datastax.com/en/developer/csharp-driver/latest/features/column-encryption/ for more information about this feature.
+    /// Check https://csharp-driver.docs.scylladb.com/stable/features/column-encryption/ for more information about this feature.
     /// </para>
     /// <para>
     /// The driver provides an AES based implementation of this policy <see cref="AesColumnEncryptionPolicy"/>.
