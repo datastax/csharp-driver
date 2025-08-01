@@ -28,7 +28,7 @@ PM> Install-Package ScyllaDBCSharpDriver
 - Works with any cluster size
 - [Linq2Cql][linq] and Ado.Net support
 
-## Scylla features
+## ScyllaDB features
 
 - Shard awarness
 - Tablet awareness
@@ -40,11 +40,11 @@ PM> Install-Package ScyllaDBCSharpDriver
 - [API docs][apidocs]
 - [FAQ][faq]
 - [Version compatibility matrix][driver-matrix]
-- [Developing applications with DataStax drivers][dev-guide]
+- [Developing applications with ScyllaDB drivers][dev-guide]
 
 ## Getting Help
 
-You can use the project [Mailing list][mailinglist] or create a ticket on the [Jira issue tracker][jira]. Additionally, you can ask questions on [DataStax Community][community].
+You can create a ticket on the [Github Issues][github-issues]. Additionally, you can ask questions on [ScyllaDB Community][community].
 
 ## Upgrading from previous versions
 
@@ -339,9 +339,9 @@ Note that, unlike in CQL, Gremlin placeholders are not prefixed with ":".
 
 ## Compatibility
 
-- Apache Cassandra versions 2.0 and above.
-- Scylla 5.x and above.
-- Scylla Enterprise 2021.x and above.
+- ScyllaDB 2025.1 and above.
+- ScyllaDB 5.x and above.
+- ScyllaDB Enterprise 2021.x and above.
 - The driver targets .NET Framework 4.5.2 and .NET Standard 2.0
 
 Here is a list of platforms and .NET targets that Datastax uses when testing this driver:
@@ -379,27 +379,23 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 [astra]: https://www.datastax.com/products/datastax-astra
 [apidocs]: https://docs.datastax.com/en/latest-csharp-driver-api/
-[docindex]: https://docs.datastax.com/en/developer/csharp-driver/latest/
-[features]: https://docs.datastax.com/en/developer/csharp-driver/latest/features/
-[faq]: https://docs.datastax.com/en/developer/csharp-driver/latest/faq/
-[nuget]: https://nuget.org/packages/CassandraCSharpDriver/
-[mailinglist]: https://groups.google.com/a/lists.datastax.com/forum/#!forum/csharp-driver-user
-[jira]: https://datastax-oss.atlassian.net/projects/CSHARP/issues
-[udt]: https://docs.datastax.com/en/dse/6.0/cql/cql/cql_using/useInsertUDT.html
+[docindex]: https://csharp-driver.docs.scylladb.com/stable/
+[features]: https://csharp-driver.docs.scylladb.com/stable/features/index.html
+[faq]: https://csharp-driver.docs.scylladb.com/stable/faq/index.html
+[nuget]: https://nuget.org/packages/ScyllaDBCSharpDriver/
+[github-issues]: https://github.com/scylladb/csharp-driver/issues
+[udt]: https://docs.datastax.com/en/cql-oss/3.x/cql/cql_using/useCreateUDT.html
 [poco]: http://en.wikipedia.org/wiki/Plain_Old_CLR_Object
-[linq]: https://docs.datastax.com/en/developer/csharp-driver/latest/features/components/linq/
-[mapper]: https://docs.datastax.com/en/developer/csharp-driver/latest/features/components/mapper/
-[components]: https://docs.datastax.com/en/developer/csharp-driver/latest/features/components/
-[policies]: https://docs.datastax.com/en/developer/csharp-driver/latest/features/tuning-policies/
-[upgrade-guide]: https://docs.datastax.com/en/developer/csharp-driver/latest/upgrade-guide/
-[upgrade-guide-dse]: https://docs.datastax.com/en/developer/csharp-driver/latest/upgrade-guide/upgrade-from-dse-driver/
-[dse-driver]: https://docs.datastax.com/en/developer/csharp-driver-dse/latest/
-[community]: https://community.datastax.com
+[linq]: https://csharp-driver.docs.scylladb.com/stable/features/components/linq/index.html
+[mapper]: https://csharp-driver.docs.scylladb.com/stable/features/components/mapper/index.html
+[components]: https://csharp-driver.docs.scylladb.com/stable/features/components/index.html
+[policies]: https://csharp-driver.docs.scylladb.com/stable/features/tuning-policies/index.html
+[upgrade-guide]: https://csharp-driver.docs.scylladb.com/stable/upgrade-guide/index.html
+[community]: https://forum.scylladb.com/
 [dse]: https://www.datastax.com/products/datastax-enterprise
 [implicit]: https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/keywords/implicit
 [dynamic]: https://msdn.microsoft.com/en-us/library/dd264736.aspx
-[dse-graph]: https://www.datastax.com/products/datastax-enterprise-graph
-[dev-guide]: https://docs.datastax.com/en/devapp/doc/devapp/aboutDrivers.html
+[dev-guide]: https://docs.scylladb.com/stable/get-started/develop-with-scylladb/index.html
 [driver-matrix]: https://docs.datastax.com/en/driver-matrix/doc/index.html
 
 :::{toctree}
