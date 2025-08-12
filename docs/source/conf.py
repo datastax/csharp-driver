@@ -9,12 +9,12 @@ from sphinx_scylladb_theme.utils import multiversion_regex_builder
 # -- Global variables
 
 # Builds documentation for the following tags and branches.
-TAGS = ["3.22.0.1"]
+TAGS = ["v3.22.0.1"]
 BRANCHES = [
     "master",
 ]
 # Sets the latest version.
-LATEST_VERSION = "3.22.0.1"
+LATEST_VERSION = "v3.22.0.1"
 # Set which versions are not released yet.
 UNSTABLE_VERSIONS = ["master"]
 # Set which versions are deprecated
