@@ -117,7 +117,7 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.DoesNotThrow(() =>
                 {
                     var session = cluster.Connect();
-                    session.Execute("select * from system.local");
+                    session.Execute("SELECT * FROM system.local WHERE key='local'");
                 });
             }
         }
@@ -131,7 +131,7 @@ namespace Cassandra.IntegrationTests.Core
                                         .Build())
             {
                 var session = cluster.Connect();
-                session.Execute("select * from system.local");
+                session.Execute("SELECT * FROM system.local WHERE key='local'");
                 Assert.That(cluster.AllHosts().Count, Is.EqualTo(3));
             }
         }

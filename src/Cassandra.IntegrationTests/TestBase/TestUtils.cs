@@ -145,7 +145,7 @@ namespace Cassandra.IntegrationTests.TestBase
             DateTime timeInTheFuture = DateTime.Now.AddSeconds(120);
             while (testCluster.Cluster.Metadata.AllHosts().ToList().Count() < expectedTotalNodeCount && DateTime.Now < timeInTheFuture)
             {
-                var rs = testCluster.Session.Execute("SELECT key FROM system.local");
+                var rs = testCluster.Session.Execute("SELECT key FROM system.local WHERE key='local'");
                 hostsQueried.Add(rs.Info.QueriedHost.Address.ToString());
                 Thread.Sleep(500);
             }
@@ -153,7 +153,7 @@ namespace Cassandra.IntegrationTests.TestBase
             timeInTheFuture = DateTime.Now.AddSeconds(120);
             while (!hostsQueried.Contains(newlyBootstrappedHost) && DateTime.Now < timeInTheFuture)
             {
-                var rs = testCluster.Session.Execute("SELECT key FROM system.local");
+                var rs = testCluster.Session.Execute("SELECT key FROM system.local WHERE key='local'");
                 hostsQueried.Add(rs.Info.QueriedHost.Address.ToString());
                 Thread.Sleep(500);
             }
@@ -637,7 +637,7 @@ namespace Cassandra.IntegrationTests.TestBase
                 //peers
                 schemaVersions.AddRange(cc.Query("SELECT peer, schema_version FROM system.peers").Select(r => r.GetValue<Guid>("schema_version")));
                 //local
-                schemaVersions.Add(cc.Query("SELECT schema_version FROM system.local").Select(r => r.GetValue<Guid>("schema_version")).First());
+                schemaVersions.Add(cc.Query("SELECT schema_version FROM system.local WHERE key='local'").Select(r => r.GetValue<Guid>("schema_version")).First());
 
                 var differentSchemas = schemaVersions.Distinct().Count();
                 if (differentSchemas <= 1 + nodesDown)

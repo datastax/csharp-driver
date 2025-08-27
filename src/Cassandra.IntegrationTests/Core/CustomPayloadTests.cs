@@ -54,7 +54,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Query_Payload_Test()
         {
             var outgoing = new Dictionary<string, byte[]> { { "k1", Encoding.UTF8.GetBytes("value1") }, { "k2", Encoding.UTF8.GetBytes("value2") } };
-            var stmt = new SimpleStatement("SELECT * FROM system.local");
+            var stmt = new SimpleStatement("SELECT * FROM system.local WHERE key='local'");
             stmt.SetOutgoingPayload(outgoing);
             var rs = Session.Execute(stmt);
             Assert.NotNull(rs.Info.IncomingPayload);

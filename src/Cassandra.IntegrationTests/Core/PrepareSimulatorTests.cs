@@ -121,7 +121,7 @@ namespace Cassandra.IntegrationTests.Core
                 var ps = session.Prepare(Query);
                 Assert.NotNull(ps);
                 Assert.AreSame(ps, session.Prepare(Query));
-                Assert.AreNotSame(ps, session.Prepare("SELECT * FROM system.local"));
+                Assert.AreNotSame(ps, session.Prepare("SELECT * FROM system.local WHERE key='local'"));
             }
         }
 

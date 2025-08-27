@@ -66,7 +66,7 @@ namespace Cassandra.IntegrationTests.Core
                 DateTime futureDateTime = DateTime.Now.AddSeconds(120);
                 while ((from singleHost in queriedHosts select singleHost).Distinct().Count() < 4 && DateTime.Now < futureDateTime)
                 {
-                    var rs = session.Execute("SELECT * FROM system.local");
+                    var rs = session.Execute("SELECT * FROM system.local WHERE key='local'");
                     queriedHosts.Add(rs.Info.QueriedHost.ToString());
                     Thread.Sleep(50);
                 }
@@ -75,7 +75,7 @@ namespace Cassandra.IntegrationTests.Core
                 // Create List of actions
                 Action selectAction = () =>
                 {
-                    var rs = session.Execute("SELECT * FROM system.local");
+                    var rs = session.Execute("SELECT * FROM system.local WHERE key='local'");
                     Assert.Greater(rs.Count(), 0);
                 };
                 var actions = new List<Action>();
@@ -100,7 +100,7 @@ namespace Cassandra.IntegrationTests.Core
                 // Execute some more SELECTs
                 for (var i = 0; i < 250; i++)
                 {
-                    var rowSet2 = session.Execute("SELECT * FROM system.local");
+                    var rowSet2 = session.Execute("SELECT * FROM system.local WHERE key='local'");
                     Assert.Greater(rowSet2.Count(), 0);
                     StringAssert.StartsWith(nonShareableTestCluster.ClusterIpPrefix + "4", rowSet2.Info.QueriedHost.ToString());
                 }
@@ -129,7 +129,7 @@ namespace Cassandra.IntegrationTests.Core
                 DateTime futureDateTime = DateTime.Now.AddSeconds(120);
                 while ((from singleHost in queriedHosts select singleHost).Distinct().Count() < 4 && DateTime.Now < futureDateTime)
                 {
-                    var rs = session.Execute("SELECT * FROM system.local");
+                    var rs = session.Execute("SELECT * FROM system.local WHERE key='local'");
                     queriedHosts.Add(rs.Info.QueriedHost.ToString());
                     Thread.Sleep(50);
                 }
@@ -138,7 +138,7 @@ namespace Cassandra.IntegrationTests.Core
                 // Create list of actions
                 Action selectAction = () =>
                 {
-                    var rs = session.Execute("SELECT * FROM system.local");
+                    var rs = session.Execute("SELECT * FROM system.local WHERE key='local'");
                     Assert.Greater(rs.Count(), 0);
                 };
                 var actions = new List<Action>();
@@ -188,7 +188,7 @@ namespace Cassandra.IntegrationTests.Core
                     futureDateTime = DateTime.Now.AddSeconds(120);
                     while ((from singleHost in queriedHosts select singleHost).Distinct().Count() < 4 && DateTime.Now < futureDateTime)
                     {
-                        var rs = session.Execute("SELECT * FROM system.local");
+                        var rs = session.Execute("SELECT * FROM system.local WHERE key='local'");
                         queriedHosts.Add(rs.Info.QueriedHost.ToString());
                         Thread.Sleep(50);
                     }
@@ -226,7 +226,7 @@ namespace Cassandra.IntegrationTests.Core
             };
             nonShareableTestCluster.Stop(2);
             var session = cluster.Connect();
-            TestHelper.Invoke(() => session.Execute("SELECT * FROM system.local"), 10);
+            TestHelper.Invoke(() => session.Execute("SELECT * FROM system.local WHERE key='local'"), 10);
             Assert.AreEqual(1, connectionAttempts);
             var watch = new Stopwatch();
             watch.Start();
@@ -234,7 +234,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 if (watch.ElapsedMilliseconds < waitTime)
                 {
-                    session.ExecuteAsync(new SimpleStatement("SELECT * FROM system.local"));
+                    session.ExecuteAsync(new SimpleStatement("SELECT * FROM system.local WHERE key='local'"));
                 }
             };
             var waitHandle = new AutoResetEvent(false);

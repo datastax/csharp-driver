@@ -36,7 +36,7 @@ namespace Cassandra.IntegrationTests.Core
     [TestTimeout(60000)]
     public class SpeculativeExecutionShortTests : SimulacronTest
     {
-        private const string QueryLocal = "SELECT key FROM system.local";
+        private const string QueryLocal = "SELECT key FROM system.local WHERE key='local'";
         private readonly List<ICluster> _clusters = new List<ICluster>();
         private IPAddress _addressNode2;
 

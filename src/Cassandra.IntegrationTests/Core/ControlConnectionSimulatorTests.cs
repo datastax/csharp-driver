@@ -53,7 +53,7 @@ namespace Cassandra.IntegrationTests.Core
                 if (version > ProtocolVersion.V2)
                 {
                     var session = cluster.Connect();
-                    Parallel.For(0, 10, _ => session.Execute("SELECT * FROM system.local"));
+                    Parallel.For(0, 10, _ => session.Execute("SELECT * FROM system.local WHERE key='local'"));
                     Assert.AreEqual(version, cluster.InternalRef.GetControlConnection().ProtocolVersion);
                 }
                 else
@@ -80,7 +80,7 @@ namespace Cassandra.IntegrationTests.Core
             using (var cluster = ClusterBuilder().WithBetaProtocolVersions().AddContactPoint(testCluster.InitialContactPoint).Build())
             {
                 var session = cluster.Connect();
-                Parallel.For(0, 10, _ => session.Execute("SELECT * FROM system.local"));
+                Parallel.For(0, 10, _ => session.Execute("SELECT * FROM system.local WHERE key='local'"));
                 Assert.AreEqual(version, cluster.InternalRef.GetControlConnection().ProtocolVersion);
             }
         }

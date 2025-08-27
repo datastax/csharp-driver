@@ -105,7 +105,7 @@ namespace Cassandra.Connections
         /// </summary>
         public event Action<IConnection> Closing;
 
-        private const string IdleQuery = "SELECT key from system.local";
+        private const string IdleQuery = "SELECT key FROM system.local WHERE key='local'";
         private const long CoalescingThreshold = 8000;
 
         public ISerializer Serializer => Volatile.Read(ref _serializer);

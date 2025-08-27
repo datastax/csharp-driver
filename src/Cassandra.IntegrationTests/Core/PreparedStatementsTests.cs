@@ -730,7 +730,7 @@ namespace Cassandra.IntegrationTests.Core
                 var session = localCluster.Connect("system");
                 session.Execute("CREATE KEYSPACE bound_changeks_test WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 3}");
                 TestUtils.WaitForSchemaAgreement(localCluster);
-                var ps = session.Prepare("SELECT * FROM system.local");
+                var ps = session.Prepare("SELECT * FROM system.local WHERE key='local'");
                 session.ChangeKeyspace("bound_changeks_test");
                 Assert.DoesNotThrow(() => TestHelper.Invoke(() => session.Execute(ps.Bind()), 10));
             }

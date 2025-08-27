@@ -26,7 +26,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void SessionExecuteAsyncCQLQueryToSync()
         {
-            var task = Session.ExecuteAsync(new SimpleStatement("SELECT * FROM system.local"));
+            var task = Session.ExecuteAsync(new SimpleStatement("SELECT * FROM system.local WHERE key='local'"));
             //forcing it to execute sync for testing purposes
             var rowset = task.Result;
             Assert.True(rowset.Any(), "Returned result should contain rows.");
@@ -84,9 +84,9 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void SessionExecuteAsyncCQLQueriesParallel()
         {
-            var task1 = Session.ExecuteAsync(new SimpleStatement("select * FROM system.local"));
-            var task2 = Session.ExecuteAsync(new SimpleStatement("select key from system.local"));
-            var task3 = Session.ExecuteAsync(new SimpleStatement("select tokens from system.local"));
+            var task1 = Session.ExecuteAsync(new SimpleStatement("SELECT * FROM system.local WHERE key='local'"));
+            var task2 = Session.ExecuteAsync(new SimpleStatement("SELECT key FROM system.local WHERE key='local'"));
+            var task3 = Session.ExecuteAsync(new SimpleStatement("SELECT tokens FROM system.local WHERE key='local'"));
             //forcing the calling thread to wait for all the parallel task to finish
             Task.WaitAll(task1, task2, task3);
             Assert.NotNull(task1.Result.First().GetValue<string>("key"));

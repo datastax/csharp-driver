@@ -162,7 +162,7 @@ namespace Cassandra.IntegrationTests.Core
                 for (var i = 0; i < 200; i++)
                 {
                     var session = cluster.Connect();
-                    TestHelper.ParallelInvoke(() => session.Execute("select * from system.local"), 20);
+                    TestHelper.ParallelInvoke(() => session.Execute("SELECT * FROM system.local WHERE key='local'"), 20);
                 }
                 Trace.TraceInformation("--Before disposing: {0}", GC.GetTotalMemory(false) / 1024);
                 cluster.Dispose();

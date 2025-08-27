@@ -73,7 +73,7 @@ namespace Cassandra.IntegrationTests.Core
                     {
                         using (var session = cluster.Connect())
                         {
-                            var rowSet = session.Execute("SELECT * FROM system.local");
+                            var rowSet = session.Execute("SELECT * FROM system.local WHERE key='local'");
                             if (rowSet.Count() > 0)
                             {
                                 return testCluster;
@@ -121,7 +121,7 @@ namespace Cassandra.IntegrationTests.Core
                                  .Build())
             {
                 var session = cluster.Connect();
-                var rowSet = session.Execute("SELECT * FROM system.local");
+                var rowSet = session.Execute("SELECT * FROM system.local WHERE key='local'");
                 Assert.Greater(rowSet.Count(), 0);
             }
         }
@@ -139,7 +139,7 @@ namespace Cassandra.IntegrationTests.Core
                 var session = cluster.Connect();
                 Assert.True(testAuthProvider.NameBeforeNewAuthenticator);
                 Assert.AreEqual("org.apache.cassandra.auth.PasswordAuthenticator", testAuthProvider.Name);
-                var rowSet = session.Execute("SELECT * FROM system.local");
+                var rowSet = session.Execute("SELECT * FROM system.local WHERE key='local'");
                 Assert.Greater(rowSet.Count(), 0);
             }
         }
@@ -153,7 +153,7 @@ namespace Cassandra.IntegrationTests.Core
             using (var cluster = builder.Build())
             {
                 var session = cluster.Connect();
-                var rs = session.Execute("SELECT * FROM system.local");
+                var rs = session.Execute("SELECT * FROM system.local WHERE key='local'");
                 Assert.Greater(rs.Count(), 0);
             }
         }

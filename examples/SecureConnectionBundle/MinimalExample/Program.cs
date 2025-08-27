@@ -40,7 +40,7 @@ namespace MinimalExample
                     .Build()
                     .Connect();
 
-            var rowSet = session.Execute("select * from system.local");
+            var rowSet = session.Execute("SELECT * FROM system.local WHERE key='local'");
             Console.WriteLine(rowSet.First().GetValue<string>("cluster_name"));
 
             Console.WriteLine("Press enter to exit.");

@@ -65,7 +65,7 @@ namespace Cassandra.IntegrationTests.FoundBugs
             string keyspaceName = "excelsior";
             session.CreateKeyspaceIfNotExists(keyspaceName);
             session.ChangeKeyspace(keyspaceName);
-            const string cqlQuery = "SELECT * from system.local";
+            const string cqlQuery = "SELECT * FROM system.local WHERE key='local'";
             var query = new SimpleStatement(cqlQuery).EnableTracing();
             {
                 var result = session.Execute(query);

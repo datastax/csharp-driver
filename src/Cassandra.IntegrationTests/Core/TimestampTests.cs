@@ -41,7 +41,7 @@ namespace Cassandra.IntegrationTests.Core
                                         .Build())
             {
                 var session = cluster.Connect();
-                TestHelper.ParallelInvoke(() => session.Execute("SELECT * FROM system.local"), 10);
+                TestHelper.ParallelInvoke(() => session.Execute("SELECT * FROM system.local WHERE key='local'"), 10);
                 // The driver should use the generator against C* 2.1+
                 Assert.AreEqual(GetProtocolVersion() < ProtocolVersion.V3 ? 0 : 10, generator.GetCounter());
             }
@@ -57,7 +57,7 @@ namespace Cassandra.IntegrationTests.Core
                                         .Build())
             {
                 var session = cluster.Connect();
-                var stmt = new SimpleStatement("SELECT * FROM system.local");
+                var stmt = new SimpleStatement("SELECT * FROM system.local WHERE key='local'");
                 stmt.SetTimestamp(DateTimeOffset.Now);
                 if (GetProtocolVersion() < ProtocolVersion.V3)
                 {

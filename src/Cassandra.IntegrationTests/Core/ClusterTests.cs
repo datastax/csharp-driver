@@ -178,7 +178,7 @@ namespace Cassandra.IntegrationTests.Core
 
                 TestHelper.RetryAssert(() =>
                     {
-                        var rs = session.Execute("SELECT key FROM system.local");
+                        var rs = session.Execute("SELECT key FROM system.local WHERE key='local'");
                         Assert.True(rs.Info.QueriedHost.Address.ToString() == newNodeAddress, "Newly bootstrapped node should be queried");
                     },
                     1,
@@ -218,7 +218,7 @@ namespace Cassandra.IntegrationTests.Core
                 var queried = false;
                 for (var i = 0; i < 10; i++)
                 {
-                    var rs = session.Execute("SELECT key FROM system.local");
+                    var rs = session.Execute("SELECT key FROM system.local WHERE key='local'");
                     if (rs.Info.QueriedHost.Address.ToString() == decommisionedNode)
                     {
                         queried = true;

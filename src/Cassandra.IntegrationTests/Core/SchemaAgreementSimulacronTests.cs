@@ -35,7 +35,7 @@ namespace Cassandra.IntegrationTests.Core
         private Cluster _cluster;
         private const int MaxSchemaAgreementWaitSeconds = 10;
 
-        private const string LocalSchemaVersionQuery = "SELECT schema_version FROM system.local";
+        private const string LocalSchemaVersionQuery = "SELECT schema_version FROM system.local WHERE key='local'";
         private const string PeersSchemaVersionQuery = "SELECT schema_version FROM system.peers";
 
         private static IPrimeRequest LocalSchemaVersionQueryPrime(Guid version) =>

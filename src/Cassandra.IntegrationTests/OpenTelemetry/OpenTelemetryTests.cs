@@ -52,6 +52,8 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
         private TracerProvider _sdk;
 
+        private const string IdleQuery = "SELECT key FROM system.local WHERE key='local'";
+
         public OpenTelemetryTests() : base(3)
         {
             //A 3 node cluster
@@ -85,7 +87,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             var cluster = GetNewTemporaryCluster(b => b.WithOpenTelemetryInstrumentation());
             var session = cluster.Connect();
 
-            var statement = new SimpleStatement("SELECT key FROM system.local");
+            var statement = new SimpleStatement(IdleQuery);
             statement.SetKeyspace(keyspace);
             session.Execute(statement);
 
@@ -106,7 +108,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             var cluster = GetNewTemporaryCluster(b => b.WithOpenTelemetryInstrumentation());
             var session = cluster.Connect();
 
-            var statement = new SimpleStatement("SELECT key FROM system.local");
+            var statement = new SimpleStatement(IdleQuery);
             session.Execute(statement);
 
             RetryUntilActivities(_testStartDateTime, $"{SessionActivityName}({nameof(SimpleStatement)})", 1);
@@ -126,7 +128,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             var cluster = GetNewTemporaryCluster(b => b.WithOpenTelemetryInstrumentation());
             var session = cluster.Connect();
 
-            var statement = new SimpleStatement("SELECT key FROM system.local");
+            var statement = new SimpleStatement(IdleQuery);
             session.Execute(statement);
 
             RetryUntilActivities(_testStartDateTime, $"{SessionActivityName}({nameof(SimpleStatement)})", 1);
@@ -142,12 +144,12 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
         [Test]
         public void AddOpenTelemetry_WithIncludeDatabaseStatementOption_DbStatementIsIncludedAsAttribute()
         {
-            var expectedDbStatement = "SELECT key FROM system.local";
+            var expectedDbStatement = IdleQuery;
 
             var cluster = GetNewTemporaryCluster(b => b.WithOpenTelemetryInstrumentation(options => options.IncludeDatabaseStatement = true));
             var session = cluster.Connect();
 
-            var statement = new SimpleStatement("SELECT key FROM system.local");
+            var statement = new SimpleStatement(IdleQuery);
             session.Execute(statement);
 
             RetryUntilActivities(_testStartDateTime, $"{SessionActivityName}({nameof(SimpleStatement)})", 1);
@@ -167,7 +169,7 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
             var cluster = GetNewTemporaryCluster(b => b.WithOpenTelemetryInstrumentation(opt => opt.IncludeDatabaseStatement = true));
             var session = cluster.Connect();
 
-            var statement = new SimpleStatement("SELECT key FROM system.local");
+            var statement = new SimpleStatement(IdleQuery);
             await session.ExecuteAsync(statement).ContinueWith(t =>
             {
                 RetryUntilActivities(localDateTime, $"{SessionActivityName}({nameof(SimpleStatement)})", 1);
@@ -202,8 +204,8 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
             ValidateSessionActivityAttributes(syncSessionActivity, typeof(SimpleStatement));
             ValidateNodeActivityAttributes(syncNodeActivity, typeof(SimpleStatement));
-            Assert.Contains(new KeyValuePair<string, string>("db.query.text", "SELECT key FROM system.local"), syncSessionActivity.Tags.ToArray());
-            Assert.Contains(new KeyValuePair<string, string>("db.query.text", "SELECT key FROM system.local"), syncNodeActivity.Tags.ToArray());
+            Assert.Contains(new KeyValuePair<string, string>("db.query.text", IdleQuery), syncSessionActivity.Tags.ToArray());
+            Assert.Contains(new KeyValuePair<string, string>("db.query.text", IdleQuery), syncNodeActivity.Tags.ToArray());
         }
 
         [Category(TestCategory.RealCluster)]
@@ -767,13 +769,13 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
 
         private async Task SimpleStatementMethodAsync(ISession session)
         {
-            var statement = new SimpleStatement("SELECT key FROM system.local");
+            var statement = new SimpleStatement(IdleQuery);
             await session.ExecuteAsync(statement).ConfigureAwait(false);
         }
 
         private void SimpleStatementMethod(ISession session)
         {
-            var statement = new SimpleStatement("SELECT key FROM system.local");
+            var statement = new SimpleStatement(IdleQuery);
             session.Execute(statement);
         }
 

@@ -120,7 +120,7 @@ namespace Cassandra.IntegrationTests.DataStax.Cloud
 
                                 try
                                 {
-                                    await session.ExecuteAsync(new SimpleStatement("SELECT key FROM system.local")).ConfigureAwait(false);
+                                    await session.ExecuteAsync(new SimpleStatement("SELECT key FROM system.local WHERE key='local'")).ConfigureAwait(false);
                                 }
                                 catch (QueryTimeoutException) { }
                             }
@@ -169,7 +169,7 @@ namespace Cassandra.IntegrationTests.DataStax.Cloud
             var queriedHosts = new HashSet<IPAddress>();
             foreach (var i in Enumerable.Range(0, 3))
             {
-                var rs = await session.ExecuteAsync(new SimpleStatement("SELECT * FROM system.local")).ConfigureAwait(false);
+                var rs = await session.ExecuteAsync(new SimpleStatement("SELECT * FROM system.local WHERE key='local'")).ConfigureAwait(false);
                 var row = rs.First();
                 var host = session.Cluster.GetHost(new IPEndPoint(rs.Info.QueriedHost.Address, rs.Info.QueriedHost.Port));
                 Assert.IsNotNull(host);

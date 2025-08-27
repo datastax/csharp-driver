@@ -59,7 +59,7 @@ namespace ConsoleExporter
                 {
                     try
                     {
-                        var x = await session.ExecuteAsync(new SimpleStatement("SELECT * FROM system.local"));
+                        var x = await session.ExecuteAsync(new SimpleStatement("SELECT key FROM system.local WHERE key='local'"));
                     }
                     catch (Exception ex)
                     {
