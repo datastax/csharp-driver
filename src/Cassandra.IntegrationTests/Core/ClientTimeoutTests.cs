@@ -34,6 +34,7 @@ namespace Cassandra.IntegrationTests.Core
     public class ClientTimeoutTests : TestGlobals
     {
         private SimulacronCluster _testCluster;
+        private const string IdleQuery = "SELECT key FROM system.local WHERE key='local'";
 
         [TearDown]
         public void TearDown()
@@ -53,16 +54,16 @@ namespace Cassandra.IntegrationTests.Core
             {
                 var session = cluster.Connect();
                 //warmup
-                TestHelper.Invoke(() => session.Execute("SELECT key FROM system.local"), 10);
+                TestHelper.Invoke(() => session.Execute(IdleQuery), 10);
                 var nodes = _testCluster.GetNodes().ToList();
                 var node = nodes[0];
                 node.PrimeFluent(b => b
-                    .WhenQuery("SELECT key FROM system.local")
+                    .WhenQuery(IdleQuery)
                     .ThenRowsSuccess(new[] { ("key", DataType.Ascii) }, rows => rows.WithRow("123"))
                     .WithDelayInMs(2000));
                 TestHelper.Invoke(() =>
                 {
-                    var rs = session.Execute("SELECT key FROM system.local");
+                    var rs = session.Execute(IdleQuery);
                     Assert.AreEqual(nodes[1].ContactPoint, rs.Info.QueriedHost.ToString());
                 }, 10);
             }
@@ -78,13 +79,13 @@ namespace Cassandra.IntegrationTests.Core
             using (var cluster = builder.Build())
             {
                 var session = cluster.Connect();
-                var ps = session.Prepare("SELECT key FROM system.local");
+                var ps = session.Prepare(IdleQuery);
                 //warmup
-                TestHelper.Invoke(() => session.Execute("SELECT key FROM system.local"), 10);
+                TestHelper.Invoke(() => session.Execute(IdleQuery), 10);
                 var nodes = _testCluster.GetNodes().ToList();
                 var node = nodes[0];
                 node.PrimeFluent(
-                    b => b.WhenQuery("SELECT key FROM system.local")
+                    b => b.WhenQuery(IdleQuery)
                           .ThenRowsSuccess(new[] { ("key", DataType.Ascii) }, rows => rows.WithRow("123"))
                           .WithDelayInMs(2000));
                 TestHelper.Invoke(() =>
@@ -106,12 +107,12 @@ namespace Cassandra.IntegrationTests.Core
             {
                 var session = cluster.Connect();
                 //warmup
-                TestHelper.Invoke(() => session.Execute("SELECT key FROM system.local"), 10);
+                TestHelper.Invoke(() => session.Execute(IdleQuery), 10);
                 var node = _testCluster.GetNodes().Skip(1).First();
                 node.Stop().GetAwaiter().GetResult();
                 TestHelper.Invoke(() =>
                 {
-                    session.Prepare("SELECT key FROM system.local");
+                    session.Prepare(IdleQuery);
                 }, 10);
                 node.Start().GetAwaiter().GetResult();
             }
@@ -130,11 +131,11 @@ namespace Cassandra.IntegrationTests.Core
             {
                 var session = cluster.Connect();
                 //warmup
-                TestHelper.Invoke(() => session.Execute("SELECT key FROM system.local"), 10);
+                TestHelper.Invoke(() => session.Execute(IdleQuery), 10);
                 var nodes = _testCluster.GetNodes().ToList();
                 var node = nodes[1];
                 node.PrimeFluent(
-                    b => b.WhenQuery("SELECT key FROM system.local")
+                    b => b.WhenQuery(IdleQuery)
                           .ThenRowsSuccess(new[] { ("key", DataType.Ascii) }, rows => rows.WithRow("123"))
                           .WithDelayInMs(2000));
                 var coordinators = new HashSet<string>();
@@ -143,7 +144,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     try
                     {
-                        var rs = session.Execute("SELECT key FROM system.local");
+                        var rs = session.Execute(IdleQuery);
                         coordinators.Add(rs.Info.QueriedHost.ToString());
                     }
                     catch (OperationTimedOutException ex)
@@ -163,7 +164,7 @@ namespace Cassandra.IntegrationTests.Core
             var socketOptions = new SocketOptions().SetReadTimeoutMillis(0);
             using (var simulacronCluster = SimulacronCluster.CreateNew(3))
             {
-                const string cql = "SELECT key FROM system.local";
+                const string cql = IdleQuery;
                 simulacronCluster.PrimeFluent(
                     b => b.WhenQuery(cql)
                           .ThenRowsSuccess(new[] { ("key", DataType.Ascii) }, rows => rows.WithRow("123"))
@@ -208,23 +209,23 @@ namespace Cassandra.IntegrationTests.Core
             {
                 var session = cluster.Connect();
                 //warmup
-                TestHelper.Invoke(() => session.Execute("SELECT key FROM system.local"), 10);
+                TestHelper.Invoke(() => session.Execute(IdleQuery), 10);
                 var nodes = _testCluster.GetNodes().ToList();
                 var node = nodes[0];
                 node.PrimeFluent(
-                    b => b.WhenQuery("SELECT key FROM system.local")
+                    b => b.WhenQuery(IdleQuery)
                           .ThenRowsSuccess(new[] { ("key", DataType.Ascii) }, rows => rows.WithRow("123"))
                           .WithDelayInMs(30000));
                 var stopWatch = new Stopwatch();
                 stopWatch.Start();
-                Assert.Throws<OperationTimedOutException>(() => session.Execute("SELECT key FROM system.local"));
+                Assert.Throws<OperationTimedOutException>(() => session.Execute(IdleQuery));
                 stopWatch.Stop();
                 //precision of the timer is not guaranteed
                 Assert.Greater(stopWatch.ElapsedMilliseconds, generalReadTimeout - 500);
                 Assert.Less(stopWatch.ElapsedMilliseconds, generalReadTimeout + 3000);
 
                 //Try with an specified timeout at Statement level
-                var stmt = new SimpleStatement("SELECT key FROM system.local")
+                var stmt = new SimpleStatement(IdleQuery)
                     .SetReadTimeoutMillis(statementReadTimeout);
                 stopWatch.Restart();
                 Assert.Throws<OperationTimedOutException>(() => session.Execute(stmt));
@@ -256,12 +257,12 @@ namespace Cassandra.IntegrationTests.Core
             {
                 var session = cluster.Connect();
                 //warmup
-                TestHelper.Invoke(() => session.Execute("SELECT key FROM system.local"), 10);
+                TestHelper.Invoke(() => session.Execute(IdleQuery), 10);
                 _testCluster.PrimeFluent(
-                    b => b.WhenQuery("SELECT key FROM system.local")
+                    b => b.WhenQuery(IdleQuery)
                           .ThenRowsSuccess(new[] { ("key", DataType.Ascii) }, rows => rows.WithRow("123"))
                           .WithDelayInMs(10000));
-                var ex = Assert.Throws<NoHostAvailableException>(() => session.Execute("SELECT key FROM system.local"));
+                var ex = Assert.Throws<NoHostAvailableException>(() => session.Execute(IdleQuery));
                 Assert.AreEqual(2, ex.Errors.Count);
                 foreach (var innerException in ex.Errors.Values)
                 {

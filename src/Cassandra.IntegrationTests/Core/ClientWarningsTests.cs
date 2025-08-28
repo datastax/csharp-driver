@@ -78,7 +78,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Should_QueryTrace_When_Enabled()
         {
-            var rs = Session.Execute(new SimpleStatement("SELECT * from system.local").EnableTracing());
+            var rs = Session.Execute(new SimpleStatement("SELECT * FROM system.local WHERE key='local'").EnableTracing());
             Assert.NotNull(rs.Info.QueryTrace);
             var hosts = Session.Cluster.AllHosts();
             Assert.NotNull(hosts);
@@ -99,14 +99,14 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Should_NotGetQueryTrace_When_NotEnabledXDefaultX()
         {
-            var rs = Session.Execute(new SimpleStatement("SELECT * from system.local"));
+            var rs = Session.Execute(new SimpleStatement("SELECT * FROM system.local WHERE key='local'"));
             Assert.Null(rs.Info.QueryTrace);
         }
 
         [Test, TestCassandraVersion(2, 2)]
         public void Should_NotGenerateWarning_When_RegularBehavior()
         {
-            var rs = Session.Execute("SELECT * FROM system.local");
+            var rs = Session.Execute("SELECT * FROM system.local WHERE key='local'");
             //It should be null for queries that do not generate warnings
             Assert.Null(rs.Info.Warnings);
         }

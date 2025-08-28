@@ -32,7 +32,7 @@ namespace Cassandra.IntegrationTests.Core
     [TestFixture, Category(TestCategory.Long), Ignore("tests that are not marked with 'short' need to be refactored/deleted")]
     public class SpeculativeExecutionLongTests : TestGlobals
     {
-        private const string QueryLocal = "SELECT key FROM system.local";
+        private const string QueryLocal = "SELECT key FROM system.local WHERE key='local'";
         private readonly List<ICluster> _clusters = new List<ICluster>();
         private IPAddress _addressNode1;
         private ITestCluster _testCluster;

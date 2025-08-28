@@ -82,10 +82,10 @@ namespace Cassandra.IntegrationTests.Core
                                         .Build())
             {
                 var session = (Session)cluster.Connect();
-                TestHelper.Invoke(() => session.Execute("SELECT * FROM system.local"), 10);
+                TestHelper.Invoke(() => session.Execute("SELECT * FROM system.local WHERE key='local'"), 10);
                 //Another session to have multiple pools
                 var dummySession = cluster.Connect();
-                TestHelper.Invoke(() => dummySession.Execute("SELECT * FROM system.local"), 10);
+                TestHelper.Invoke(() => dummySession.Execute("SELECT * FROM system.local WHERE key='local'"), 10);
                 var host = cluster.AllHosts().First();
                 var upCounter = 0;
                 var downCounter = 0;
@@ -105,7 +105,7 @@ namespace Cassandra.IntegrationTests.Core
                 // Make sure the node is considered down
                 TestHelper.RetryAssert(() =>
                 {
-                    Assert.Throws<NoHostAvailableException>(() => session.Execute("SELECT * FROM system.local"));
+                    Assert.Throws<NoHostAvailableException>(() => session.Execute("SELECT * FROM system.local WHERE key='local'"));
                     Assert.False(host.IsUp);
                     Assert.AreEqual(1, Volatile.Read(ref downCounter));
                     Assert.AreEqual(0, Volatile.Read(ref upCounter));
@@ -153,10 +153,10 @@ namespace Cassandra.IntegrationTests.Core
                                         .Build())
             {
                 var session = cluster.Connect();
-                TestHelper.Invoke(() => session.Execute("SELECT * FROM system.local"), 10);
+                TestHelper.Invoke(() => session.Execute("SELECT * FROM system.local WHERE key='local'"), 10);
                 //Another session to have multiple pools
                 var dummySession = cluster.Connect();
-                TestHelper.Invoke(() => dummySession.Execute("SELECT * FROM system.local"), 10);
+                TestHelper.Invoke(() => dummySession.Execute("SELECT * FROM system.local WHERE key='local'"), 10);
                 var hosts = cluster.AllHosts().ToList();
                 var host1 = hosts[0];
                 var host2 = hosts[1];
@@ -178,7 +178,7 @@ namespace Cassandra.IntegrationTests.Core
                 // Make sure the node is considered down
                 TestHelper.RetryAssert(() =>
                 {
-                    Assert.DoesNotThrow(() => TestHelper.Invoke(() => session.Execute("SELECT * FROM system.local"), 6));
+                    Assert.DoesNotThrow(() => TestHelper.Invoke(() => session.Execute("SELECT * FROM system.local WHERE key='local'"), 6));
                     Assert.False(host1.IsUp);
                     Assert.AreEqual(1, downCounter.GetOrAdd(nodes[0].ContactPoint, 0));
                     Assert.AreEqual(0, upCounter.GetOrAdd(nodes[0].ContactPoint, 0));
@@ -188,7 +188,7 @@ namespace Cassandra.IntegrationTests.Core
 
                 TestHelper.RetryAssert(() =>
                 {
-                    Assert.Throws<NoHostAvailableException>(() => TestHelper.Invoke(() => session.Execute("SELECT * FROM system.local"), 6));
+                    Assert.Throws<NoHostAvailableException>(() => TestHelper.Invoke(() => session.Execute("SELECT * FROM system.local WHERE key='local'"), 6));
                     Assert.False(host2.IsUp);
                     Assert.AreEqual(1, downCounter.GetOrAdd(nodes[0].ContactPoint, 0));
                     Assert.AreEqual(0, upCounter.GetOrAdd(nodes[0].ContactPoint, 0));
@@ -233,8 +233,8 @@ namespace Cassandra.IntegrationTests.Core
             {
                 var session1 = (IInternalSession)cluster.Connect();
                 var session2 = (IInternalSession)cluster.Connect();
-                TestHelper.Invoke(() => session1.Execute("SELECT * FROM system.local"), 10);
-                TestHelper.Invoke(() => session2.Execute("SELECT * FROM system.local"), 10);
+                TestHelper.Invoke(() => session1.Execute("SELECT * FROM system.local WHERE key='local'"), 10);
+                TestHelper.Invoke(() => session2.Execute("SELECT * FROM system.local WHERE key='local'"), 10);
                 var hosts = cluster.AllHosts().ToList();
                 var host1 = hosts[0];
                 var host2 = hosts[1];
@@ -259,7 +259,7 @@ namespace Cassandra.IntegrationTests.Core
                 //Force to be considered down
                 TestHelper.RetryAssert(() =>
                 {
-                    Assert.Throws<NoHostAvailableException>(() => session1.Execute("SELECT * FROM system.local"));
+                    Assert.Throws<NoHostAvailableException>(() => session1.Execute("SELECT * FROM system.local WHERE key='local'"));
                     Assert.AreEqual(1, downCounter.GetOrAdd(nodes[0].ContactPoint, 0));
                     Assert.AreEqual(0, upCounter.GetOrAdd(nodes[0].ContactPoint, 0));
                     Assert.AreEqual(1, downCounter.GetOrAdd(nodes[1].ContactPoint, 0));
@@ -279,8 +279,8 @@ namespace Cassandra.IntegrationTests.Core
                     Assert.AreEqual(1, downCounter.GetOrAdd(nodes[1].ContactPoint, 0));
                     Assert.AreEqual(1, upCounter.GetOrAdd(nodes[1].ContactPoint, 0));
                 }, 100, 200);
-                TestHelper.Invoke(() => session1.Execute("SELECT * FROM system.local"), 10);
-                TestHelper.Invoke(() => session2.Execute("SELECT * FROM system.local"), 10);
+                TestHelper.Invoke(() => session1.Execute("SELECT * FROM system.local WHERE key='local'"), 10);
+                TestHelper.Invoke(() => session2.Execute("SELECT * FROM system.local WHERE key='local'"), 10);
                 var pool1 = session1.GetOrCreateConnectionPool(host1, HostDistance.Local);
                 Assert.AreEqual(2, pool1.OpenConnections);
                 var pool2 = session1.GetOrCreateConnectionPool(host2, HostDistance.Local);
@@ -445,7 +445,7 @@ namespace Cassandra.IntegrationTests.Core
                 // force session to open connection to the new node
                 foreach (var i in Enumerable.Range(0, 5))
                 {
-                    session.Execute("SELECT * FROM system.local");
+                    session.Execute("SELECT * FROM system.local WHERE key='local'");
                 }
 
                 Assert.AreEqual(3, session.GetPools().Count());

@@ -244,7 +244,7 @@ namespace Cassandra.IntegrationTests.Core
                     Assert.DoesNotThrow(() =>
                     {
                         var session = cluster.Connect();
-                        TestHelper.Invoke(() => session.Execute("select * from system.local"), 10);
+                        TestHelper.Invoke(() => session.Execute("SELECT * FROM system.local WHERE key='local'"), 10);
                     });
                 }
 #pragma warning restore SYSLIB0039 // Type or member is obsolete
@@ -326,7 +326,7 @@ namespace Cassandra.IntegrationTests.Core
                 var allHosts = cluster.AllHosts();
                 Assert.AreEqual(3, allHosts.Count);
                 await TestHelper.TimesLimit(() =>
-                    session.ExecuteAsync(new SimpleStatement("SELECT * FROM system.local")), 100, 16).ConfigureAwait(false);
+                    session.ExecuteAsync(new SimpleStatement("SELECT * FROM system.local WHERE key='local'")), 100, 16).ConfigureAwait(false);
 
                 // 1 per hosts + control connection
                 await TestHelper.RetryAssertAsync(async () =>
@@ -380,7 +380,7 @@ namespace Cassandra.IntegrationTests.Core
                     var allHosts = cluster.AllHosts();
                     Assert.AreEqual(3, allHosts.Count);
                     await TestHelper.TimesLimit(() =>
-                        session.ExecuteAsync(new SimpleStatement("SELECT * FROM system.local")), 100, 16).ConfigureAwait(false);
+                        session.ExecuteAsync(new SimpleStatement("SELECT * FROM system.local WHERE key='local'")), 100, 16).ConfigureAwait(false);
 
                     var serverConnections = await testCluster.GetConnectedPortsAsync().ConfigureAwait(false);
                     // 1 per hosts + control connection
@@ -427,7 +427,7 @@ namespace Cassandra.IntegrationTests.Core
 
                     TestHelper.RetryAssert(() =>
                     {
-                        Assert.DoesNotThrowAsync(() => cluster.InternalRef.GetControlConnection().QueryAsync("SELECT * FROM system.local"));
+                        Assert.DoesNotThrowAsync(() => cluster.InternalRef.GetControlConnection().QueryAsync("SELECT * FROM system.local WHERE key='local'"));
                     }, 100, 100);
                 }
 
@@ -513,7 +513,7 @@ namespace Cassandra.IntegrationTests.Core
                 var hosts = cluster.AllHosts().ToArray();
 
                 await TestHelper.TimesLimit(() =>
-                    session.ExecuteAsync(new SimpleStatement("SELECT key FROM system.local")), 100, 16).ConfigureAwait(false);
+                    session.ExecuteAsync(new SimpleStatement("SELECT key FROM system.local WHERE key='local'")), 100, 16).ConfigureAwait(false);
 
                 // Wait until all connections to all host are created
                 await TestHelper.WaitUntilAsync(() =>
@@ -570,7 +570,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public async Task Should_Use_Single_Host_When_Configured_At_Statement_Level()
         {
-            const string query = "SELECT * FROM system.local";
+            const string query = "SELECT * FROM system.local WHERE key='local'";
             var builder = ClusterBuilder().WithLoadBalancingPolicy(new TestHelper.OrderedLoadBalancingPolicy());
 
             using (var testCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" }))
@@ -603,7 +603,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Should_Throw_NoHostAvailableException_When_Targeting_Single_Ignored_Host()
         {
-            const string query = "SELECT * FROM system.local";
+            const string query = "SELECT * FROM system.local WHERE key='local'";
             // Mark the last host as ignored
             var lbp = new TestHelper.CustomLoadBalancingPolicy(
                 (cluster, ks, stmt) => cluster.AllHosts(),
@@ -678,7 +678,7 @@ namespace Cassandra.IntegrationTests.Core
 
                 Parallel.For(0, 10, _ =>
                 {
-                    var statement = new SimpleStatement("SELECT * FROM system.local").SetHost(lastHost)
+                    var statement = new SimpleStatement("SELECT * FROM system.local WHERE key='local'").SetHost(lastHost)
                                                                                      .SetIdempotence(true);
 
                     var ex = Assert.ThrowsAsync<NoHostAvailableException>(() => session.ExecuteAsync(statement));
@@ -734,7 +734,7 @@ namespace Cassandra.IntegrationTests.Core
 
                 await TestHelper.TimesLimit(() =>
                 {
-                    var statement = new SimpleStatement("SELECT * FROM system.local").SetHost(host);
+                    var statement = new SimpleStatement("SELECT * FROM system.local WHERE key='local'").SetHost(host);
                     return session.ExecuteAsync(statement);
                 }, 1, 1).ConfigureAwait(false);
 

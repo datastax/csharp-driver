@@ -37,7 +37,7 @@ namespace Cassandra
     public class Metadata : IDisposable
     {
         private const string SelectSchemaVersionPeers = "SELECT schema_version FROM system.peers";
-        private const string SelectSchemaVersionLocal = "SELECT schema_version FROM system.local";
+        private const string SelectSchemaVersionLocal = "SELECT schema_version FROM system.local WHERE key='local'";
         private static readonly Logger Logger = new Logger(typeof(ControlConnection));
         private volatile TokenMap _tokenMap;
         private volatile ConcurrentDictionary<string, KeyspaceMetadata> _keyspaces = new ConcurrentDictionary<string, KeyspaceMetadata>();

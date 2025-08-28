@@ -152,7 +152,7 @@ namespace Cassandra.IntegrationTests.Metrics
             // when new host is chosen by LBP, connection pool is created
             foreach (var _ in Enumerable.Range(0, 5))
             {
-                session.Execute("SELECT * FROM system.local");
+                session.Execute("SELECT * FROM system.local WHERE key='local'");
             }
 
             TestHelper.RetryAssert(() => { Assert.AreEqual(3, metrics.NodeMetrics.Count, "Node metrics count after bootstrap failed"); }, 10,
@@ -187,7 +187,7 @@ namespace Cassandra.IntegrationTests.Metrics
 
             foreach (var i in Enumerable.Range(0, 1000))
             {
-                session.Execute("SELECT * FROM system.local");
+                session.Execute("SELECT * FROM system.local WHERE key='local'");
             }
 
             var waitedForRefresh = false;
@@ -244,7 +244,7 @@ namespace Cassandra.IntegrationTests.Metrics
 
             foreach (var i in Enumerable.Range(0, 1000))
             {
-                session.Execute("SELECT * FROM system.local");
+                session.Execute("SELECT * FROM system.local WHERE key='local'");
             }
 
             var metrics = session.GetMetrics();
@@ -289,7 +289,7 @@ namespace Cassandra.IntegrationTests.Metrics
 
                 foreach (var i in Enumerable.Range(0, 1000))
                 {
-                    session.Execute("SELECT * FROM system.local");
+                    session.Execute("SELECT * FROM system.local WHERE key='local'");
                 }
 
                 var metrics = session.GetMetrics();

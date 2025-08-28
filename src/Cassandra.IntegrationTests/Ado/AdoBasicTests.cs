@@ -117,14 +117,14 @@ namespace Cassandra.IntegrationTests.Data
             var cmd3 = _connection.CreateCommand();
 
             TestCluster.PrimeFluent(
-                b => b.WhenQuery("SELECT key FROM system.local")
+                b => b.WhenQuery("SELECT key FROM system.local WHERE key='local'")
                       .ThenRowsSuccess(new[] { "key" }, r => r.WithRow("local")));
 
             TestCluster.PrimeFluent(
                 b => b.WhenQuery("SELECT * FROM system.local WHERE key = 'does not exist'")
                       .ThenVoidSuccess());
 
-            cmd1.CommandText = "SELECT key FROM system.local";
+            cmd1.CommandText = "SELECT key FROM system.local WHERE key='local'";
             cmd3.CommandText = "SELECT * FROM system.local WHERE key = 'does not exist'";
             Assert.IsInstanceOf<string>(cmd1.ExecuteScalar());
             Assert.IsNull(cmd3.ExecuteScalar());

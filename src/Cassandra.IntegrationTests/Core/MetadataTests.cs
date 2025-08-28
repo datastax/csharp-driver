@@ -158,12 +158,12 @@ namespace Cassandra.IntegrationTests.Core
             }
             testCluster.Stop(hostToKill);
             Thread.Sleep(10000);
-            TestHelper.Invoke(() => session.Execute("SELECT key from system.local"), 10);
+            TestHelper.Invoke(() => session.Execute("SELECT key FROM system.local WHERE key='local'"), 10);
             Assert.True(cluster.AllHosts().Any(h => TestHelper.GetLastAddressByte(h) == hostToKill && !h.IsUp));
             Assert.True(downEventFired);
             testCluster.Start(hostToKill);
             Thread.Sleep(20000);
-            TestHelper.Invoke(() => session.Execute("SELECT key from system.local"), 10);
+            TestHelper.Invoke(() => session.Execute("SELECT key FROM system.local WHERE key='local'"), 10);
             Assert.True(cluster.AllHosts().All(h => h.IsConsiderablyUp));
             //When the host of the control connection is used
             //It can result that event UP is not fired as it is not received by the control connection (it reconnected but missed the event) 
@@ -522,7 +522,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 var session = cluster.Connect();
                 //warm up the pool
-                TestHelper.Invoke(() => session.Execute("SELECT key from system.local"), 10);
+                TestHelper.Invoke(() => session.Execute("SELECT key FROM system.local WHERE key='local'"), 10);
                 foreach (var q in queries)
                 {
                     Assert.DoesNotThrow(() => session.Execute(q));

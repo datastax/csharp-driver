@@ -82,7 +82,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.DoesNotThrow(() =>
             {
                 var localSession = localCluster.Connect("");
-                localSession.Execute("SELECT * FROM system.local");
+                localSession.Execute("SELECT * FROM system.local WHERE key='local'");
             });
         }
 
@@ -189,7 +189,7 @@ namespace Cassandra.IntegrationTests.Core
             //Execute multiple times a query on the newly created keyspace
             for (var i = 0; i < 12; i++)
             {
-                localSession1.Execute("SELECT * FROM system.local");
+                localSession1.Execute("SELECT * FROM system.local WHERE key='local'");
             }
 
             Thread.Sleep(2000);
@@ -215,7 +215,7 @@ namespace Cassandra.IntegrationTests.Core
                 //Execute multiple times a query on the newly created keyspace
                 for (var i = 0; i < 6; i++)
                 {
-                    localSession2.Execute("SELECT * FROM system.local");
+                    localSession2.Execute("SELECT * FROM system.local WHERE key='local'");
                 }
 
                 Thread.Sleep(2000);
@@ -252,7 +252,7 @@ namespace Cassandra.IntegrationTests.Core
                 var remoteHost = localCluster.AllHosts().First(h => TestHelper.GetLastAddressByte(h) == 2);
                 var stopWatch = new Stopwatch();
                 var distanceReset = 0;
-                TestHelper.Invoke(() => localSession.Execute("SELECT key FROM system.local"), 10);
+                TestHelper.Invoke(() => localSession.Execute("SELECT key FROM system.local WHERE key='local'"), 10);
                 var hosts = localCluster.AllHosts().ToArray();
                 var pool1 = localSession.GetOrCreateConnectionPool(hosts[0], HostDistance.Local);
                 var pool2 = localSession.GetOrCreateConnectionPool(hosts[1], HostDistance.Local);
@@ -288,7 +288,7 @@ namespace Cassandra.IntegrationTests.Core
                         // The pool is looking good, there is no point in continue executing queries
                         return completedTask;
                     }
-                    return localSession.ExecuteAsync(new SimpleStatement("SELECT key FROM system.local"));
+                    return localSession.ExecuteAsync(new SimpleStatement("SELECT key FROM system.local WHERE key='local'"));
                 };
                 await TestHelper.TimesLimit(execute, 200000, 32).ConfigureAwait(false);
                 TestHelper.RetryAssert(
@@ -351,7 +351,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 host.Down += _ => Interlocked.Increment(ref isDown);
             }
-            const string query = "SELECT * from system.local";
+            const string query = "SELECT * FROM system.local WHERE key='local'";
             await TestHelper.TimesLimit(() => session1.ExecuteAsync(new SimpleStatement(query)), 100, 32).ConfigureAwait(false);
             await TestHelper.TimesLimit(() => session2.ExecuteAsync(new SimpleStatement(query)), 100, 32).ConfigureAwait(false);
             // Dispose the first session
@@ -376,7 +376,7 @@ namespace Cassandra.IntegrationTests.Core
                 using (var localCluster = ClusterBuilder().AddContactPoint(TestCluster.InitialContactPoint).Build())
                 {
                     var localSession = localCluster.Connect();
-                    var ps = localSession.Prepare("SELECT * FROM system.local");
+                    var ps = localSession.Prepare("SELECT * FROM system.local WHERE key='local'");
                     TestHelper.Invoke(() => localSession.Execute(ps.Bind()), 10);
                 }
             });
@@ -506,7 +506,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 ISession session = await cluster.ConnectAsync().ConfigureAwait(false);
                 Assert.DoesNotThrowAsync(async () =>
-                    await session.ExecuteAsync(new SimpleStatement("SELECT * FROM system.local"))
+                    await session.ExecuteAsync(new SimpleStatement("SELECT * FROM system.local WHERE key='local'"))
                                  .ConfigureAwait(false));
                 await cluster.ShutdownAsync().ConfigureAwait(false);
             }

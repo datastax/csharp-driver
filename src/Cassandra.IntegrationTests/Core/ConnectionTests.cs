@@ -45,7 +45,7 @@ namespace Cassandra.IntegrationTests.Core
     [TestTimeout(600000), Category(TestCategory.Short), Category(TestCategory.RealCluster)]
     public class ConnectionTests : TestGlobals
     {
-        private const string BasicQuery = "SELECT key FROM system.local";
+        private const string BasicQuery = "SELECT key FROM system.local WHERE key='local'";
         private ITestCluster _testCluster;
 
         [OneTimeSetUp]
@@ -184,7 +184,7 @@ namespace Cassandra.IntegrationTests.Core
                 connection.Open().Wait();
 
                 //Start a query
-                var task = Query(connection, "SELECT * FROM system.local", QueryProtocolOptions.Default);
+                var task = Query(connection, "SELECT * FROM system.local WHERE key='local'", QueryProtocolOptions.Default);
                 task.Wait(360000);
                 Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
                 var output = ValidateResult<OutputRows>(task.Result);
@@ -208,7 +208,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     //schema_columns
                     // ReSharper disable once AccessToDisposedClosure
-                    tasks[i] = Task.Factory.StartNew(() => Query(connection, "SELECT * FROM system.local", QueryProtocolOptions.Default)).Unwrap();
+                    tasks[i] = Task.Factory.StartNew(() => Query(connection, "SELECT * FROM system.local WHERE key='local'", QueryProtocolOptions.Default)).Unwrap();
                 }
                 // ReSharper disable once CoVariantArrayConversion
                 Task.WaitAll(tasks);
@@ -329,7 +329,7 @@ namespace Cassandra.IntegrationTests.Core
                 //Run a query multiple times
                 for (var i = 0; i < 8; i++)
                 {
-                    var task = Query(connection, "SELECT * FROM system.local", QueryProtocolOptions.Default);
+                    var task = Query(connection, "SELECT * FROM system.local WHERE key='local'", QueryProtocolOptions.Default);
                     task.Wait(1000);
                     Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
                     Assert.NotNull(task.Result);
@@ -409,7 +409,7 @@ namespace Cassandra.IntegrationTests.Core
             using (var connection = CreateConnection())
             {
                 connection.Open().Wait();
-                const string query = "SELECT * FROM system.local";
+                const string query = "SELECT * FROM system.local WHERE key='local'";
                 Query(connection, query).
                     ContinueWith((t) =>
                     {
@@ -430,13 +430,13 @@ namespace Cassandra.IntegrationTests.Core
                 //Run the query multiple times
                 for (var i = 0; i < 129; i++)
                 {
-                    taskList.Add(Query(connection, "SELECT * FROM system.local", QueryProtocolOptions.Default));
+                    taskList.Add(Query(connection, "SELECT * FROM system.local WHERE key='local'", QueryProtocolOptions.Default));
                 }
                 Task.WaitAll(taskList.ToArray());
                 Assert.True(taskList.All(t => t.Status == TaskStatus.RanToCompletion), "Not all task completed");
 
                 //One last time
-                var task = Query(connection, "SELECT * FROM system.local");
+                var task = Query(connection, "SELECT * FROM system.local WHERE key='local'");
                 Assert.True(task.Result != null);
             }
         }
@@ -506,7 +506,7 @@ namespace Cassandra.IntegrationTests.Core
                 //The keyspace should still be null
                 Assert.Null(connection.Keyspace);
                 //Execute a query WITH the keyspace prefix still works
-                TaskHelper.WaitToComplete(Query(connection, "SELECT * FROM system.local", QueryProtocolOptions.Default));
+                TaskHelper.WaitToComplete(Query(connection, "SELECT * FROM system.local WHERE key='local'", QueryProtocolOptions.Default));
             }
         }
 
@@ -683,7 +683,7 @@ namespace Cassandra.IntegrationTests.Core
                 var taskList = new List<Task<Response>>();
                 for (var i = 0; i < 1024; i++)
                 {
-                    taskList.Add(Query(connection, "SELECT * FROM system.local"));
+                    taskList.Add(Query(connection, "SELECT * FROM system.local WHERE key='local'"));
                 }
                 for (var i = 0; i < 1000; i++)
                 {
@@ -711,7 +711,7 @@ namespace Cassandra.IntegrationTests.Core
                 await Task.Delay(1000).ConfigureAwait(false);
 
                 //A new call to write will be called back immediately with an exception
-                Assert.ThrowsAsync<SocketException>(async () => await Query(connection, "SELECT * FROM system.local").ConfigureAwait(false));
+                Assert.ThrowsAsync<SocketException>(async () => await Query(connection, "SELECT * FROM system.local WHERE key='local'").ConfigureAwait(false));
             }
         }
 
@@ -738,7 +738,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 await connection.Open().ConfigureAwait(false);
                 // Execute a dummy query
-                await Query(connection, "SELECT * FROM system.local", QueryProtocolOptions.Default)
+                await Query(connection, "SELECT * FROM system.local WHERE key='local'", QueryProtocolOptions.Default)
                     .ConfigureAwait(false);
 
                 var writeCounter = 0;
@@ -755,7 +755,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 await connection.Open().ConfigureAwait(false);
                 //execute a dummy query
-                await Query(connection, "SELECT * FROM system.local", QueryProtocolOptions.Default)
+                await Query(connection, "SELECT * FROM system.local WHERE key='local'", QueryProtocolOptions.Default)
                     .ConfigureAwait(false);
                 await Task.Delay(500).ConfigureAwait(false);
                 var writeCounter = 0;
@@ -789,7 +789,7 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.AreEqual(defaultHeartbeatInterval, connection.Configuration.PoolingOptions.GetHeartBeatInterval());
 
                 //execute a dummy query
-                await Query(connection, "SELECT * FROM system.local", QueryProtocolOptions.Default).ConfigureAwait(false);
+                await Query(connection, "SELECT * FROM system.local WHERE key='local'", QueryProtocolOptions.Default).ConfigureAwait(false);
 
                 await TestHelper.RetryAssertAsync(async () =>
                 {

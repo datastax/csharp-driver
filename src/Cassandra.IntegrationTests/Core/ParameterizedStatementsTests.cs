@@ -527,7 +527,7 @@ namespace Cassandra.IntegrationTests.Core
             }
 
             // It defaults to null
-            Assert.Null(new SimpleStatement("SELECT key FROM system.local").Keyspace);
+            Assert.Null(new SimpleStatement("SELECT key FROM system.local WHERE key='local'").Keyspace);
 
             var statement = new SimpleStatement("SELECT key FROM local").SetKeyspace("system");
             Assert.AreEqual("system", statement.Keyspace);
