@@ -43,6 +43,9 @@ src/packages/*/
 # Rider
 **/.idea/
 
+# VSCode
+.vscode/
+
 # Visual Studio for Mac
 *.userprefs
 
