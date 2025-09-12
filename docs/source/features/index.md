@@ -17,7 +17,6 @@ The ScyllaDB C# Driver for Scylla is a feature-rich and highly tunable C# client
 - [CQL data types to C# types](datatypes/index)
 - [Execution Profiles](execution-profiles/index)
 - [Cluster and schema metadata](metadata/index)
-- [Graph support](graph-support/index)
 - [Metrics](metrics/index)
   - [App.Metrics Provider](metrics/app-metrics/index)
   - [List of metrics](metrics/metrics-list/index)
@@ -48,7 +47,6 @@ connection-heartbeat/index
 connection-pooling/index
 datatypes/index
 execution-profiles/index
-graph-support/index
 metadata/index
 metrics/index
 native-protocol/index

@@ -1,8 +1,6 @@
 # Upgrade Guide
 
-The purpose of this guide is to detail the changes made by the successive versions of the DataStax C# Driver that are relevant to for an upgrade from prior versions.
-
-If you have any question or comment, you can [post it on the mailing list][mailing-list].
+The purpose of this guide is to detail the changes made by the successive versions of the ScyllaDB C# Driver that are relevant to for an upgrade from prior versions.
 
 ## Our policy regarding API changes and release versioning
 
@@ -280,7 +278,6 @@ only an initial amount of rows will be fetched (according to the page size), the
 "on-demand" as you iterate through it.
 
 
-[mailing-list]: https://groups.google.com/a/lists.datastax.com/forum/#!forum/csharp-driver-user
 [context]: https://msdn.microsoft.com/en-us/library/system.data.objects.objectcontext(v=vs.110).aspx
 [entitynuget]: https://www.nuget.org/packages/CassandraEntityContext/
 [enum-tolist]: https://msdn.microsoft.com/en-us/library/bb342261(v=vs.110).aspx

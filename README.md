@@ -223,7 +223,6 @@ To configure a provider, pass it when initializing the cluster:
 
 ```csharp
 using Cassandra;
-using Cassandra.DataStax.Auth;
 ```
 
 ```csharp
@@ -255,7 +254,7 @@ Here is a list of platforms and .NET targets that Datastax uses when testing thi
 
 Mono `6.12.0` is also used to run `net462` tests on `Ubuntu 18.04` but Datastax can't guarantee that the driver fully supports Mono in a production environment. Datastax recommends the modern cross platform .NET platform instead.
 
-Note: DataStax products do not support big-endian systems.
+Note: Big-endian systems are not supported.
 
 ## Building and running the tests
 

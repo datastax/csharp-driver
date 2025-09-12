@@ -17,7 +17,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Cassandra.DataStax.Auth;
 using NUnit.Framework;
 
 namespace Cassandra.Tests
@@ -47,8 +46,6 @@ namespace Cassandra.Tests
                 "Cassandra.Connections",
                 "Cassandra.Data",
                 "Cassandra.Data.Linq",
-                "Cassandra.DataStax.Auth.Sspi",
-                "Cassandra.DataStax.Search",
                 "Cassandra.Mapping",
                 "Cassandra.Mapping.Attributes",
                 "Cassandra.Mapping.TypeConversion",
