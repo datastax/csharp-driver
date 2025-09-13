@@ -1,4 +1,4 @@
-# ScyllaDB C# Driver for Scylla
+# ScyllaDB C# Driver
 
 ScyllaDB's fork of a modern, [feature-rich][features] and highly tunable C# client library for Scylla using Cassandra's binary protocol and Cassandra Query Language v3.
 
@@ -42,7 +42,7 @@ PM> Install-Package ScyllaDBCSharpDriver
 ## Getting Help
 
 You can ask questions on [ScyllaDB Community Forum][scylla-forum] 
-or the Scylla Users [Slack channel][scylla-slack] 
+or the ScyllaDB Users [Slack channel][scylla-slack] 
 or you can open an issue on the [GitHub repository][driver-github-repo].
 
 ## Upgrading from previous versions
@@ -236,8 +236,8 @@ ICluster cluster = Cluster.Builder()
 ## Compatibility
 
 - Apache Cassandra versions 2.0 and above.
-- Scylla 5.x and above.
-- Scylla Enterprise 2021.x and above.
+- ScyllaDB 5.x and above.
+- ScyllaDB Enterprise 2021.x and above.
 - The driver targets .NET Framework 4.5.2 and .NET Standard 2.0
 
 Here is a list of platforms and .NET targets that Datastax uses when testing this driver:
