@@ -13,7 +13,7 @@ processed in a different order server-side, and end up with out-of-order timesta
 
 ### Using a timestamp generator
 
-When using Apache Cassandra 2.1+ or DataStax Enterprise 4.7+, it's possible to send the operation timestamp in the
+When using Apache Cassandra 2.1+ or ScyllaDB, it's possible to send the operation timestamp in the
 request. Starting from version 3.3 of the C# driver, the driver uses `AtomicMonotonicTimestampGenerator` 
 by default to generate the request timestamps.
 

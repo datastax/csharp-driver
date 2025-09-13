@@ -55,7 +55,7 @@ client                            driver                Cassandra
 
 Beyond saving a bit of parsing overhead on the server, prepared statements have other advantages; the `PREPARED` response also contains useful metadata about the CQL query:
 
-* information about the result set that will be produced when the statement gets executed. The driver caches this, so that the server doesn't need to include it with every response. This saves a bit of bandwidth, and the resources it would take to decode it every time. This is only enabled for protocol v5+, i.e., Apache Cassandra 4.0+ and DataStax Enterprise 6.0+.
+* information about the result set that will be produced when the statement gets executed. The driver caches this, so that the server doesn't need to include it with every response. This saves a bit of bandwidth, and the resources it would take to decode it every time. This is only enabled for protocol v5+, i.e., Apache Cassandra 4.0+. ScyllaDB uses protocol v4 with custom extensions, and the extension that will enable the said optimisation is in progress.
 * the CQL types of the bound variables. This allows the `PreparedStatement.Bind` method to perform better checks, and fail fast (without a server round-trip) if the types are wrong.
 * which bound variables are part of the partition key. This allows bound statements to automatically compute their [routing key](../../../../routing-queries/index).
 * more optimizations might get added in the future. For example, [CASSANDRA-10813] suggests adding an `idempotent` flag to the response.
