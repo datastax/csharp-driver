@@ -13,14 +13,11 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-#if NETCOREAPP
-using System.Net.Http;
-#endif
-
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
+using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -46,16 +43,9 @@ namespace Cassandra.IntegrationTests.TestBase
 
         public Task<string> SendAsync(string method, string url)
         {
-#if NETCOREAPP
             return SendAsync(method, url, null);
-#endif
-
-#if NETFRAMEWORK
-            return SendAsync(method, url, null, null);
-#endif
         }
 
-#if NETCOREAPP
         public async Task<T> SendWithJsonAsync<T>(string method, string url, object body)
         {
             HttpContent content = null;
@@ -114,62 +104,6 @@ namespace Cassandra.IntegrationTests.TestBase
                 return dataStr;
             }
         }
-#endif
-
-#if NETFRAMEWORK
-
-        public async Task<T> SendWithJsonAsync<T>(string method, string url, object body)
-        {
-            byte[] content = null;
-            if (body != null)
-            {
-                var bodyStr = GetJsonFromObject(body);
-                content = Encoding.UTF8.GetBytes(bodyStr);
-            }
-
-            var data = await SendAsync(method, url, "application/json", content).ConfigureAwait(false);
-            return string.IsNullOrEmpty(data)
-                ? default(T)
-                : JsonConvert.DeserializeObject<T>(data);
-        }
-
-        public async Task<string> SendAsync(string method, string url, string contentType, byte[] content)
-        {
-            var request = (HttpWebRequest)WebRequest.Create(_baseAddress + "/" + url);
-
-            request.KeepAlive = false;
-            request.Method = method;
-
-            if (content != null)
-            {
-                request.ContentType = contentType;
-                request.ContentLength = content.Length;
-                using (var dataStream = request.GetRequestStream())
-                {
-                    dataStream.Write(content, 0, content.Length);
-                    dataStream.Close();
-                }
-            }
-
-            using (var response = (HttpWebResponse)request.GetResponse())
-            {
-                using (var dataStream = response.GetResponseStream())
-                {
-                    var reader = new StreamReader(dataStream);
-                    var responseFromServer = await reader.ReadToEndAsync().ConfigureAwait(false);
-                    var statusCode = (int)response.StatusCode;
-                    if (statusCode < 200 || statusCode >= 300)
-                    {
-                        throw new Exception($"Invalid status code received {statusCode}.{Environment.NewLine}" +
-                                            $"{responseFromServer}");
-                    }
-
-                    return responseFromServer;
-                }
-            }
-        }
-
-#endif
 
         private static string GetJsonFromObject(object body)
         {

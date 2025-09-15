@@ -1,11 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks Condition="'$(BuildAllTargets)' == 'True' And '$(BuildMonoOnly)' != 'True'">net8;net7;net6;net481;net462;net472</TargetFrameworks>
-    <TargetFrameworks Condition="'$(BuildAllTargets)' != 'True' And '$(BuildCoreOnly)' != 'True' And '$(BuildMonoOnly)' != 'True'">net481;net8</TargetFrameworks>
+    <TargetFrameworks Condition="'$(BuildAllTargets)' == 'True'">net8;net7;net6</TargetFrameworks>
+    <TargetFrameworks Condition="'$(BuildAllTargets)' != 'True' And '$(BuildCoreOnly)' != 'True'">net8</TargetFrameworks>
     <TargetFrameworks Condition="'$(BuildCoreOnly)' == 'True' And '$(CASSANDRA_NETCORE_RUNTIME)' == '6'">net6</TargetFrameworks>
     <TargetFrameworks Condition="'$(BuildCoreOnly)' == 'True' And '$(CASSANDRA_NETCORE_RUNTIME)' == '7'">net7</TargetFrameworks>
-    <TargetFramework Condition="'$(BuildCoreOnly)' == 'True' And '$(CASSANDRA_NETCORE_RUNTIME)' == '8'">net8</TargetFramework>
-    <TargetFramework Condition="'$(BuildMonoOnly)' == 'True'">net462</TargetFramework>
+    <TargetFramework Condition="'$(BuildCoreOnly)' == 'True'">net8</TargetFramework>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <WarningsNotAsErrors>NU1901;NU1902;NU1903;NU1904</WarningsNotAsErrors>
     <PublicSign>false</PublicSign>
@@ -16,45 +15,9 @@
     <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
     <LangVersion>7.1</LangVersion>
   </PropertyGroup>
-  <PropertyGroup Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('$(TargetFramework)', '^net4\d'))">
-    <DefineConstants>$(DefineConstants);NETFRAMEWORK</DefineConstants>
-  </PropertyGroup>
   <PropertyGroup Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('$(TargetFramework)', '^net\d$'))">
     <DefineConstants>$(DefineConstants);NETCOREAPP</DefineConstants>
   </PropertyGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net462' ">
-    <ProjectReference Include="..\Extensions\Cassandra.AppMetrics\Cassandra.AppMetrics.csproj">
-      <SetTargetFramework>TargetFramework=net461</SetTargetFramework>
-    </ProjectReference>
-    <ProjectReference Include="..\Cassandra.Tests\Cassandra.Tests.csproj">
-      <SetTargetFramework>TargetFramework=net462</SetTargetFramework>
-    </ProjectReference>
-    <ProjectReference Include="..\Cassandra\Cassandra.csproj">
-      <SetTargetFramework>TargetFramework=net452</SetTargetFramework>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net472' ">
-    <ProjectReference Include="..\Extensions\Cassandra.AppMetrics\Cassandra.AppMetrics.csproj">
-      <SetTargetFramework>TargetFramework=net461</SetTargetFramework>
-    </ProjectReference>
-    <ProjectReference Include="..\Cassandra.Tests\Cassandra.Tests.csproj">
-      <SetTargetFramework>TargetFramework=net472</SetTargetFramework>
-    </ProjectReference>
-    <ProjectReference Include="..\Cassandra\Cassandra.csproj">
-      <SetTargetFramework>TargetFramework=net452</SetTargetFramework>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net481' ">
-    <ProjectReference Include="..\Extensions\Cassandra.AppMetrics\Cassandra.AppMetrics.csproj">
-      <SetTargetFramework>TargetFramework=net461</SetTargetFramework>
-    </ProjectReference>
-    <ProjectReference Include="..\Cassandra.Tests\Cassandra.Tests.csproj">
-      <SetTargetFramework>TargetFramework=net481</SetTargetFramework>
-    </ProjectReference>
-    <ProjectReference Include="..\Cassandra\Cassandra.csproj">
-      <SetTargetFramework>TargetFramework=net452</SetTargetFramework>
-    </ProjectReference>
-  </ItemGroup>
   <ItemGroup Condition=" '$(TargetFramework)' == 'net8' ">
     <ProjectReference Include="..\Extensions\Cassandra.AppMetrics\Cassandra.AppMetrics.csproj">
       <SetTargetFramework>TargetFramework=netstandard2.0</SetTargetFramework>
@@ -108,17 +71,8 @@
     <PackageReference Include="System.ValueTuple" Version="4.6.1" />
     <PackageReference Include="XunitXml.TestLogger" Version="6.1.0" />
   </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net462' Or '$(TargetFramework)' == 'net472' Or '$(TargetFramework)' == 'net481' ">
-    <Reference Include="System.Data" />
-    <Reference Include="System.Numerics" />
-    <Reference Include="Microsoft.CSharp" />
-  </ItemGroup>
   <ItemGroup Condition=" '$(TargetFramework)' == 'net6' Or '$(TargetFramework)' == 'net7' Or '$(TargetFramework)' == 'net8'">
     <PackageReference Include="System.Net.NameResolution" Version="4.3.0" />
-  </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net462' Or '$(TargetFramework)' == 'net472' Or '$(TargetFramework)' == 'net481' ">
-    <PackageReference Include="JetBrains.DotMemoryUnit" Version="3.2.20220510" />
-    <Reference Include="System" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Extensions\Cassandra.OpenTelemetry\Cassandra.OpenTelemetry.csproj" />

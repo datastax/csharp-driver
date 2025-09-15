@@ -466,7 +466,6 @@ namespace Cassandra.IntegrationTests.Core
                     StringAssert.IsMatch("SSL", ex.InnerException.Message);
                 }
                 else if (ex.InnerException is IOException ||
-                         ex.InnerException.GetType().Name.Contains("Mono") ||
                          ex.InnerException is System.Security.Authentication.AuthenticationException)
                 {
                     // Under Mono, it throws a IOException

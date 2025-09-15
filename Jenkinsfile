@@ -150,7 +150,7 @@ ENVIRONMENT_EOF
         '''
     }
 
-    if (env.SERVER_VERSION == env.SERVER_VERSION_SNI && env.DOTNET_VERSION != 'mono') {
+    if (env.SERVER_VERSION == env.SERVER_VERSION_SNI) {
       sh label: 'Update environment for SNI proxy tests', script: '''#!/bin/bash -le
         # Load CCM and driver configuration environment variables
         set -o allexport
@@ -172,11 +172,7 @@ ENVIRONMENT_EOF
       . ${HOME}/environment.txt
       set +o allexport
 
-      if [ ${DOTNET_VERSION} = 'mono' ]; then
-        mono --version
-      else
-        dotnet --version
-      fi
+      dotnet --version
       printenv | sort
     '''
   }
@@ -201,18 +197,6 @@ def installDependencies() {
       mkdir saxon
       curl -L -o saxon/saxon9he.jar https://repo1.maven.org/maven2/net/sf/saxon/Saxon-HE/9.8.0-12/Saxon-HE-9.8.0-12.jar
     '''
-
-    if (env.DOTNET_VERSION == 'mono') {
-      sh label: 'Install required packages for mono builds', script: '''#!/bin/bash -le
-        # Define alias for Nuget
-        nuget() {
-          mono /usr/local/bin/nuget.exe "$@"
-        }
-        export -f nuget
-
-        nuget install NUnit.Runners -Version 3.6.1 -OutputDirectory testrunner
-      '''
-    }
   }
 }
 
@@ -223,26 +207,14 @@ def buildDriver() {
         dotnet restore src
       '''
   } else {
-    if (env.DOTNET_VERSION == 'mono') {
-      sh label: 'Build the driver for mono', script: '''#!/bin/bash -le
-        export BuildMonoOnly=True
-        export RunCodeAnalyzers=False
-        export MSBuildSDKsPath=/home/jenkins/dotnetcli/sdk/$(dotnet --version)/Sdks
-        msbuild /t:restore /v:m /p:RestoreDisableParallel=true src/Cassandra.sln || true
-        msbuild /t:restore /v:m /p:RestoreDisableParallel=true src/Cassandra.sln
-        msbuild /p:Configuration=Release /v:m /p:RestoreDisableParallel=true /p:DynamicConstants=LINUX src/Cassandra.sln || true
-        msbuild /p:Configuration=Release /v:m /p:RestoreDisableParallel=true /p:DynamicConstants=LINUX src/Cassandra.sln
-      '''
-    } else {
-      sh label: "Work around nuget issue", script: '''#!/bin/bash -le
-        mkdir -p /tmp/NuGetScratch
-        chmod -R ugo+rwx /tmp/NuGetScratch
-      '''
-      sh label: "Install required packages and build the driver for ${env.DOTNET_VERSION}", script: '''#!/bin/bash -le
-        dotnet restore src || true
-        dotnet restore src
-      '''
-    }
+    sh label: "Work around nuget issue", script: '''#!/bin/bash -le
+      mkdir -p /tmp/NuGetScratch
+      chmod -R ugo+rwx /tmp/NuGetScratch
+    '''
+    sh label: "Install required packages and build the driver for ${env.DOTNET_VERSION}", script: '''#!/bin/bash -le
+      dotnet restore src || true
+      dotnet restore src
+    '''
   }
 }
 
@@ -250,10 +222,8 @@ def executeTests(perCommitSchedule) {
   
   if (perCommitSchedule) {
     env.DOTNET_TEST_FILTER = "(TestCategory!=long)&(TestCategory!=memory)&(TestCategory!=realclusterlong)"
-    env.MONO_TEST_FILTER = "cat != long && cat != memory && cat != realclusterlong"
   } else {
     env.DOTNET_TEST_FILTER = "(TestCategory!=long)&(TestCategory!=memory)"
-    env.MONO_TEST_FILTER = "cat != long && cat != memory"    
   }  
   
   if (env.OS_VERSION.split('/')[0] == 'win') {
@@ -268,50 +238,28 @@ def executeTests(perCommitSchedule) {
       java -jar saxon/saxon9he.jar -o:TestResult.xml TestResult_xunit.xml tools/JUnitXml.xslt
     '''
   } else {
-    if (env.DOTNET_VERSION == 'mono') {
-      catchError {
-        sh label: 'Execute tests for mono', script: '''#!/bin/bash -le
-          # Load CCM and driver configuration environment variables
-          set -o allexport
-          . ${HOME}/environment.txt
-          set +o allexport
+    catchError {
+      sh label: "Execute tests for ${env.DOTNET_VERSION}", script: '''#!/bin/bash -le
+        # Load CCM and driver configuration environment variables
+        set -o allexport
+        . ${HOME}/environment.txt
+        set +o allexport
 
-          # Fix Java version at Java8 for now because of dependencies in DSE.
-          # TODO: This should last us through testing against Cassandra 4.1.x at least but
-          # will eventually need to be made more generic.
-          . ${JABBA_SHELL}
-          jabba use 1.8
+        # Fix Java version at Java8 for now because of dependencies in DSE.
+        # TODO: This should last us through testing against Cassandra 4.1.x at least but
+        # will eventually need to be made more generic.
+        . ${JABBA_SHELL}
+        jabba use 1.8
 
-          mono ./testrunner/NUnit.ConsoleRunner.3.6.1/tools/nunit3-console.exe src/Cassandra.IntegrationTests/bin/Release/net462/Cassandra.IntegrationTests.dll --where "$MONO_TEST_FILTER" --labels=All --result:"TestResult_nunit.xml"
-        '''
-      }
-      sh label: 'Convert the test results using saxon', script: '''#!/bin/bash -le
-        java -jar saxon/saxon9he.jar -o:TestResult.xml TestResult_nunit.xml tools/nunit3-junit.xslt
+        export OPENSSL_CONF=/home/jenkins/openssl.cnf
+        
+        dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -v n -f ${DOTNET_VERSION} -c Release --filter $DOTNET_TEST_FILTER --logger "xunit;LogFilePath=../../TestResult_xunit.xml"
       '''
-    } else {
-      catchError {
-        sh label: "Execute tests for ${env.DOTNET_VERSION}", script: '''#!/bin/bash -le
-          # Load CCM and driver configuration environment variables
-          set -o allexport
-          . ${HOME}/environment.txt
-          set +o allexport
-
-          # Fix Java version at Java8 for now because of dependencies in DSE.
-          # TODO: This should last us through testing against Cassandra 4.1.x at least but
-          # will eventually need to be made more generic.
-          . ${JABBA_SHELL}
-          jabba use 1.8
-
-          export OPENSSL_CONF=/home/jenkins/openssl.cnf
-          
-          dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -v n -f ${DOTNET_VERSION} -c Release --filter $DOTNET_TEST_FILTER --logger "xunit;LogFilePath=../../TestResult_xunit.xml"
-        '''
-      }
-      sh label: 'Convert the test results using saxon', script: '''#!/bin/bash -le
-        java -jar saxon/saxon9he.jar -o:TestResult.xml TestResult_xunit.xml tools/JUnitXml.xslt
-      '''
-    } 
-  }
+    }
+    sh label: 'Convert the test results using saxon', script: '''#!/bin/bash -le
+      java -jar saxon/saxon9he.jar -o:TestResult.xml TestResult_xunit.xml tools/JUnitXml.xslt
+    '''
+  } 
 }
 
 def notifySlack(status = 'started') {
@@ -448,27 +396,13 @@ pipeline {
             values '3.11',    // latest 3.11.x Apache Cassandra�
                   '4.1',  // latest 4.x Apache Cassandra�
                   '5.0', // Development Apache Cassandra�
-                  'dse-5.1.35', // latest 5.1.x DataStax Enterprise
-                  'dse-6.8.30', // latest 6.7.x DataStax Enterprise
-                  'dse-6.9.3',  // latest DataStax Enterprise
-                  'hcd-1.0.0'  // Hyper-Converged Database
           }
           axis {
             name 'DOTNET_VERSION'
-            values 'mono', 'net8', 'net6'
+            values 'net8', 'net6'
           }
         }
         excludes {
-          exclude {
-            axis {
-              name 'DOTNET_VERSION'
-              values 'mono'
-            }
-            axis {
-              name 'SERVER_VERSION'
-              values '3.11', '4.1', 'dse-5.1.35', 'dse-6.8.30'
-            }
-          }
           exclude {
             axis {
               name 'DOTNET_VERSION'
@@ -476,7 +410,7 @@ pipeline {
             }
             axis {
               name 'SERVER_VERSION'
-              values '3.11', '5.0', 'dse-6.9.3', 'hcd-1.0.0'
+              values '3.11', '5.0'
             }
           }
         }

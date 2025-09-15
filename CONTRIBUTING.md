@@ -94,7 +94,7 @@ In both cases, the `CASSANDRA_VERSION` environment variable determines which ser
 
 ## Building the driver and running tests
 
-DataStax C# drivers target .NET Framework 4.5.2 and .NET Standard 2.0. The test projects target .NET Framework 4.6.2, 4.7.2, 4.8.1 and .NET 6, 7 and 8. To run the code analyzers you need the .NET 8 SDK.
+DataStax C# drivers target .NET Standard 2.0. The test projects target .NET 6, 7 and 8. To run the code analyzers you need the .NET 8 SDK.
 
 ### Prerequisites
 
@@ -115,7 +115,7 @@ dotnet restore src
 dotnet build src/Cassandra.sln
 ```
 
-On Windows, the command `dotnet build src/Cassandra.sln` should succeed while on macOS / Linux it may fail due to the lack of support for .NET Framework builds on non-Windows platforms. In these environments you need to specify a .NET target framework in order to successfully build the project.
+The command `dotnet build src/Cassandra.sln` should succeed. Otherwise, you need to specify a .NET target framework in order to successfully build the project.
 
 You can build specific projects against specific target frameworks on any platform like this:
 
@@ -133,11 +133,8 @@ Alternatively you can set the `BuildCoreOnly` environment variable which will ca
 dotnet test src/Cassandra.Tests/Cassandra.Tests.csproj -f net8
 ```
 
-The target frameworks supported by the test projects are `net8` and `net481` (by default). If you set the `BuildAllTargets` environment variable, the test projects will support these targets:
+The target framework supported by the test projects is `net8` (by default). If you set the `BuildAllTargets` environment variable, the test projects will support these targets:
 
-- `net462`
-- `net472`
-- `net481`
 - `net6` 
 - `net7`(not LTS, might be removed at some point)
 - `net8`

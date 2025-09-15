@@ -2,7 +2,7 @@
 
 ScyllaDB's fork of a modern, [feature-rich][features] and highly tunable C# client library for Scylla using Cassandra's binary protocol and Cassandra Query Language v3.
 
-The driver targets .NET Framework 4.5.2 and .NET Standard 2.0. For more detailed information about platform compatibility, check [this section](#compatibility).
+The driver targets .NET Standard 2.0. For more detailed information about platform compatibility, check [this section](#compatibility).
 
 ## Installation
 
@@ -237,22 +237,20 @@ ICluster cluster = Cluster.Builder()
 - Apache Cassandra versions 2.0 and above.
 - ScyllaDB 5.x and above.
 - ScyllaDB Enterprise 2021.x and above.
-- The driver targets .NET Framework 4.5.2 and .NET Standard 2.0
+- The driver targets .NET Standard 2.0
 
 Here is a list of platforms and .NET targets that Datastax uses when testing this driver:
 
-|  Platform             | net462 | net472 | net481 | net6 | net7 | net8  |
-|-----------------------|--------|--------|--------|------|------|-------|
-| Windows Server 2019³  |  ✓    |  ✓     |  ✓     |  ✓²  |  ✓¹ |  ✓   |
-| Ubuntu 18.04          |  -     |  -     |   -    |  ✓   | ✓   | ✓    |
+|  Platform             | net6 | net7 | net8  |
+|-----------------------|------|------|-------|
+| Windows Server 2019³  |  ✓²  |  ✓¹ |  ✓   |
+| Ubuntu 18.04          |  ✓   | ✓   | ✓    |
 
 ¹ No tests are run for the `net7` target on the Windows platform but `net7` is still considered fully supported.
 
 ² Only unit tests are ran for the `net6` target on the windows platform but `net6` is still considered fully supported.
 
 ³ Appveyor's `Visual Studio 2022` image is used for these tests.
-
-Mono `6.12.0` is also used to run `net462` tests on `Ubuntu 18.04` but Datastax can't guarantee that the driver fully supports Mono in a production environment. Datastax recommends the modern cross platform .NET platform instead.
 
 Note: Big-endian systems are not supported.
 

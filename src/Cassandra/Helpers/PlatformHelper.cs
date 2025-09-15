@@ -28,18 +28,12 @@ namespace Cassandra.Helpers
 
         public static bool IsKerberosSupported()
         {
-#if NETFRAMEWORK
-            return true;
-#else
             return RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
-#endif
         }
 
         public static string GetTargetFramework()
         {
-#if NET452
-            return ".NET Framework 4.5.2";
-#elif NETSTANDARD2_0
+#if NETSTANDARD2_0
             return ".NET Standard 2.0";
 #else
             return null;
@@ -118,7 +112,6 @@ namespace Cassandra.Helpers
             return new CpuInfo(null, Environment.ProcessorCount);
         }
 
-#if !NETFRAMEWORK
         public static bool RuntimeSupportsCloudTlsSettings()
         {
             var netCoreVersion = PlatformHelper.GetNetCoreVersion();
@@ -158,6 +151,5 @@ namespace Cassandra.Helpers
             }
             return null;
         }
-#endif
     }
 }

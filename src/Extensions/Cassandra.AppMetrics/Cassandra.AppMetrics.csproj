@@ -6,8 +6,7 @@
     <AssemblyVersion>3.99.0.0</AssemblyVersion>
     <FileVersion>3.22.0.1</FileVersion>
     <Authors>DataStax and ScyllaDB</Authors>
-    <TargetFrameworks Condition="'$(BuildCoreOnly)' != 'True'">netstandard2.0;net461</TargetFrameworks>
-    <TargetFrameworks Condition="'$(BuildCoreOnly)' == 'True'">netstandard2.0</TargetFrameworks>
+    <TargetFramework>netstandard2.0</TargetFramework>
     <Authors>DataStax and ScyllaDB</Authors>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
