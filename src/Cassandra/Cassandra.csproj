@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>A modern, feature-rich and highly tunable C# client library for Apache Cassandra and DataStax Enterprise</Description>
+    <Description>A modern, feature-rich and highly tunable C# client library for ScyllaDB and Apache Cassandra</Description>
     <Copyright>Copyright © by DataStax and ScyllaDB</Copyright>
-    <AssemblyTitle>ScyllaDB C# Driver for Scylla</AssemblyTitle>
+    <AssemblyTitle>ScyllaDB C# Driver for ScyllaDB</AssemblyTitle>
     <AssemblyVersion>3.99.0.0</AssemblyVersion>
     <FileVersion>3.22.0.1</FileVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
@@ -19,13 +19,13 @@
     <SignAssembly>true</SignAssembly>
     <PackageId>ScyllaDBCSharpDriver</PackageId>
     <Version>3.22.0.1</Version>
-    <Title>ScyllaDB C# Driver for Scylla</Title>
+    <Title>ScyllaDB C# Driver</Title>
     <PackageTags>driver;client;database;nosql;dotnet;netcore;db;scylla;scylladb</PackageTags>
     <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
     <RepositoryUrl>https://github.com/scylladb/csharp-driver</RepositoryUrl>
     <PackageProjectUrl>https://github.com/scylladb/csharp-driver</PackageProjectUrl>
     <LangVersion>7.1</LangVersion>
-	<NuGetAudit>false</NuGetAudit>
+    <NuGetAudit>false</NuGetAudit>
   </PropertyGroup>
   <PropertyGroup Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('$(TargetFramework)', '^net4\d'))">
     <DefineConstants>$(DefineConstants);NETFRAMEWORK</DefineConstants>

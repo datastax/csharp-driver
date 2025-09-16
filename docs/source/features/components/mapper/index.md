@@ -2,7 +2,7 @@
 
 The Mapper component handles the mapping of CQL table columns to fields in your classes.
 
-The Mapper component (previously known as [cqlpoco][cqlpoco]) is a lightweight object mapper for Apache Cassandra and DataStax Enterprise. It lets you write queries with CQL, while it takes care of mapping rows returned from the server to your classes. It was inspired by [PetaPoco][petapoco], NPoco, [Dapper.NET][dapper] and the [cqlengine][cqlengine] project.
+The Mapper component (previously known as [cqlpoco][cqlpoco]) is a lightweight object mapper for ScyllaDB and Apache Cassandra. It lets you write queries with CQL, while it takes care of mapping rows returned from the server to your classes. It was inspired by [PetaPoco][petapoco], NPoco, [Dapper.NET][dapper] and the [cqlengine][cqlengine] project.
 
 To use the Mapper:
 
