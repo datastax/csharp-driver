@@ -64,3 +64,7 @@ docs/.venv
 
 # Ignore release leftovers
 nupkgs/
+
+# Claude / AI assistant metadata
+CLAUDE.md
+.claude/ 
