@@ -24,6 +24,7 @@ using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.Tests;
 
 using NUnit.Framework;
+using Assert = NUnit.Framework.Legacy.ClassicAssert;
 
 namespace Cassandra.IntegrationTests.MetadataTests
 {

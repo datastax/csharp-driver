@@ -22,6 +22,7 @@ using Cassandra.SessionManagement;
 using Cassandra.Tests.Connections.TestHelpers;
 using Moq;
 using NUnit.Framework;
+using Assert = NUnit.Framework.Legacy.ClassicAssert;
 
 namespace Cassandra.Tests
 {

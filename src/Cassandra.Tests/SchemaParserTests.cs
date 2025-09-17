@@ -23,6 +23,9 @@ using Cassandra.Connections.Control;
 using Cassandra.Tasks;
 using Moq;
 using NUnit.Framework;
+using Assert = NUnit.Framework.Legacy.ClassicAssert;
+using CollectionAssert = NUnit.Framework.Legacy.CollectionAssert;
+using StringAssert = NUnit.Framework.Legacy.StringAssert;
 using SortOrder = Cassandra.DataCollectionMetadata.SortOrder;
 
 namespace Cassandra.Tests

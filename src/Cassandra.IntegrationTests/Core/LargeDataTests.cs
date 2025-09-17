@@ -16,6 +16,7 @@
 
 using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
+using Assert = NUnit.Framework.Legacy.ClassicAssert;
 using System;
 using System.Collections.Generic;
 using System.IO;

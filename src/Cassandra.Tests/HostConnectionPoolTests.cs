@@ -35,6 +35,8 @@ using Cassandra.Tasks;
 using Moq;
 
 using NUnit.Framework;
+using Assert = NUnit.Framework.Legacy.ClassicAssert;
+using CollectionAssert = NUnit.Framework.Legacy.CollectionAssert;
 
 // ReSharper disable AccessToModifiedClosure
 

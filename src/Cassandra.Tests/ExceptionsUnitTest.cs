@@ -18,6 +18,8 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using NUnit.Framework;
+using Assert = NUnit.Framework.Legacy.ClassicAssert;
+using StringAssert = NUnit.Framework.Legacy.StringAssert;
 
 namespace Cassandra.Tests
 {

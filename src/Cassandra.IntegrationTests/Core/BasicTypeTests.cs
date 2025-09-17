@@ -23,6 +23,7 @@ using System.Reflection;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.SimulacronAPI.Models.Logs;
 using NUnit.Framework;
+using Assert = NUnit.Framework.Legacy.ClassicAssert;
 
 namespace Cassandra.IntegrationTests.Core
 {

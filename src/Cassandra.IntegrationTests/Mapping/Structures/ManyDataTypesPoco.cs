@@ -25,6 +25,7 @@ using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
 
 using NUnit.Framework;
+using Assert = NUnit.Framework.Legacy.ClassicAssert;
 using NUnit.Framework.Internal;
 
 #pragma warning disable 618

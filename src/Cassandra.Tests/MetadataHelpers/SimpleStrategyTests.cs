@@ -17,6 +17,7 @@
 using Cassandra.MetadataHelpers;
 
 using NUnit.Framework;
+using Assert = NUnit.Framework.Legacy.ClassicAssert;
 
 namespace Cassandra.Tests.MetadataHelpers
 {

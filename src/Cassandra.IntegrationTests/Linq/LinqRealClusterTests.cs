@@ -28,6 +28,7 @@ using Cassandra.Tests.Mapping.Pocos;
 using Newtonsoft.Json.Linq;
 
 using NUnit.Framework;
+using Assert = NUnit.Framework.Legacy.ClassicAssert;
 
 namespace Cassandra.IntegrationTests.Linq
 {

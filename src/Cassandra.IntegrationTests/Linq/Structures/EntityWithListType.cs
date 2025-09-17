@@ -20,6 +20,8 @@ using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
 using NUnit.Framework;
+using Assert = NUnit.Framework.Legacy.ClassicAssert;
+using CollectionAssert = NUnit.Framework.Legacy.CollectionAssert;
 
 namespace Cassandra.IntegrationTests.Linq.Structures
 {

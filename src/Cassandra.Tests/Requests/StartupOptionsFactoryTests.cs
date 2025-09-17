@@ -19,6 +19,7 @@ using System.Reflection;
 using Cassandra.Helpers;
 using Cassandra.Requests;
 using NUnit.Framework;
+using Assert = NUnit.Framework.Legacy.ClassicAssert;
 
 namespace Cassandra.Tests.Requests
 {

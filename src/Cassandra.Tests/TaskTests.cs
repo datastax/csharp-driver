@@ -24,6 +24,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Tasks;
 using NUnit.Framework;
+using Assert = NUnit.Framework.Legacy.ClassicAssert;
 
 namespace Cassandra.Tests
 {
@@ -191,8 +192,7 @@ namespace Cassandra.Tests
                 var match = regex.Match(source);
                 if (match.Success)
                 {
-                    Assert.Fail("Awaited Task without ConfigureAwait() call in file {0}: {1}",
-                                fileInfo.FullName, match.Value);
+                    Assert.Fail($"Awaited Task without ConfigureAwait() call in file {fileInfo.FullName}: {match.Value}");
                 }
             }
         }

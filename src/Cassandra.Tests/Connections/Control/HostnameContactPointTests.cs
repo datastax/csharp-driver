@@ -21,6 +21,7 @@ using System.Threading.Tasks;
 using Cassandra.Connections;
 using Moq;
 using NUnit.Framework;
+using Assert = NUnit.Framework.Legacy.ClassicAssert;
 
 namespace Cassandra.Tests.Connections.Control
 {

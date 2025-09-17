@@ -23,6 +23,9 @@ using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.Tasks;
 using Cassandra.Tests;
 using NUnit.Framework;
+using Assert = NUnit.Framework.Legacy.ClassicAssert;
+using StringAssert = NUnit.Framework.Legacy.StringAssert;
+using CollectionAssert = NUnit.Framework.Legacy.CollectionAssert;
 using SortOrder = Cassandra.DataCollectionMetadata.SortOrder;
 
 namespace Cassandra.IntegrationTests.Core

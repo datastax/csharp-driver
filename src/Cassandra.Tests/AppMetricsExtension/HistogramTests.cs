@@ -23,6 +23,7 @@ using App.Metrics.ReservoirSampling;
 using Cassandra.AppMetrics.Implementations;
 
 using NUnit.Framework;
+using Assert = NUnit.Framework.Legacy.ClassicAssert;
 
 namespace Cassandra.Tests.AppMetricsExtension
 {

@@ -22,6 +22,7 @@ using Cassandra.Connections.Control;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.ProtocolEvents;
 using NUnit.Framework;
+using Assert = NUnit.Framework.Legacy.ClassicAssert;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.SessionManagement;
 using Cassandra.Tests;

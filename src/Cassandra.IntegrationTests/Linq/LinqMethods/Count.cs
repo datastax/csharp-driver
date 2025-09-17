@@ -22,6 +22,7 @@ using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
 
 using NUnit.Framework;
+using Assert = NUnit.Framework.Legacy.ClassicAssert;
 
 namespace Cassandra.IntegrationTests.Linq.LinqMethods
 {
