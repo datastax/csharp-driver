@@ -23,7 +23,6 @@ using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using Cassandra.Connections;
 using Cassandra.Connections.Control;
-using Cassandra.DataStax.Cloud;
 using Cassandra.ExecutionProfiles;
 using Cassandra.Metrics;
 using Cassandra.Metrics.Abstractions;
@@ -74,11 +73,6 @@ namespace Cassandra
         private DriverMetricsOptions _metricsOptions;
         private MonitorReportingOptions _monitorReportingOptions = new MonitorReportingOptions();
         private string _sessionName;
-        private string _bundlePath;
-        private bool _addedSsl;
-        private bool _addedContactPoints;
-        private bool _addedAuth;
-        private bool _addedLbp;
         private bool? _keepContactPointsUnresolved;
         private bool? _allowBetaProtocolVersions;
 
@@ -155,11 +149,6 @@ namespace Cassandra
         /// <returns>the configuration to use for the new cluster.</returns>
         public Configuration GetConfiguration()
         {
-            if (_bundlePath != null)
-            {
-                ConfigureCloudCluster(_bundlePath);
-            }
-
             var typeSerializerDefinitions = _typeSerializerDefinitions ?? new TypeSerializerDefinitions();
             var policies = GetPolicies();
             SetLegacySettingsFromDefaultProfile();
@@ -510,7 +499,6 @@ namespace Cassandra
                 throw new ArgumentNullException(nameof(contactPoints));
             }
 
-            _addedContactPoints = true;
             _contactPoints.AddRange(contactPoints);
             return this;
         }
@@ -522,7 +510,6 @@ namespace Cassandra
                 throw new ArgumentNullException(nameof(contactPoint));
             }
 
-            _addedContactPoints = true;
             _contactPoints.Add(contactPoint);
             return this;
         }
@@ -573,7 +560,6 @@ namespace Cassandra
         /// <returns>this Builder</returns>
         public Builder WithLoadBalancingPolicy(ILoadBalancingPolicy policy)
         {
-            _addedLbp = true;
             _loadBalancingPolicy = policy;
             return this;
         }
@@ -680,7 +666,6 @@ namespace Cassandra
         /// <returns>this Builder</returns>
         public Builder WithCredentials(String username, String password)
         {
-            _addedAuth = true;
             _authInfoProvider = new SimpleAuthInfoProvider().Add("username", username).Add("password", password);
             _authProvider = new PlainTextAuthProvider(username, password);
             return this;
@@ -697,7 +682,6 @@ namespace Cassandra
         public Builder WithAuthProvider(IAuthProvider authProvider)
         {
             _authProvider = authProvider ?? throw new ArgumentNullException(nameof(authProvider));
-            _addedAuth = true;
             return this;
         }
 
@@ -770,7 +754,6 @@ namespace Cassandra
         /// <returns>this builder</returns>
         public Builder WithSSL()
         {
-            _addedSsl = true;
             _sslOptions = new SSLOptions();
             return this;
         }
@@ -788,7 +771,6 @@ namespace Cassandra
         /// <returns>this builder</returns>
         public Builder WithSSL(SSLOptions sslOptions)
         {
-            _addedSsl = true;
             _sslOptions = sslOptions;
             return this;
         }
@@ -1100,33 +1082,6 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// <para>
-        /// Configures a Cluster using the Cloud Secure Connection Bundle.
-        /// Using this method will configure this builder with specific contact points, SSL options, credentials and load balancing policy.
-        /// When needed, you can specify custom settings by calling other builder methods.
-        /// </para>
-        /// <para>
-        /// In case you need to specify a different set of credentials from the one in the bundle, here is an example:        /// <code>
-        ///         Cluster.Builder()
-        ///                   .WithCloudSecureConnectionBundle("/path/to/bundle.zip")
-        ///                   .WithCredentials("username", "password")
-        ///                   .Build();
-        /// </code>
-        /// </para>
-        /// <para>
-        /// <see cref="Build"/> will throw <see cref="InvalidOperationException"/> when an error occurs that is not related to
-        /// connectivity and <see cref="NoHostAvailableException"/> when an error occurs while trying to obtain the cluster metadata from the remote endpoint.
-        /// </para>
-        /// </summary>
-        /// <param name="bundlePath">Path of the secure connection bundle.</param>
-        /// <returns>A preconfigured builder ready for use.</returns>
-        public Builder WithCloudSecureConnectionBundle(string bundlePath)
-        {
-            _bundlePath = bundlePath;
-            return this;
-        }
-
-        /// <summary>
         /// Configures options related to Monitor Reporting for the new cluster.
         /// By default, Monitor Reporting is enabled for server types and versions that support it.
         /// </summary>
@@ -1168,81 +1123,6 @@ namespace Cassandra
         {
             _contactPoints.Clear();
             return AddMultipleContactPointsInternal(contactPoints);
-        }
-
-        private Builder ConfigureCloudCluster(string bundlePath)
-        {
-            if (_addedSsl)
-            {
-                throw new ArgumentException("SSL options can not be set when a secure connection bundle is provided.");
-            }
-
-            if (_addedContactPoints)
-            {
-                throw new ArgumentException("Contact points can not be set when a secure connection bundle is provided.");
-            }
-
-            if (!_addedAuth)
-            {
-                throw new ArgumentException(
-                    "No credentials were provided. When using the secure connection bundle, " +
-                    "your cluster's credentials must be provided via the Builder.WithCredentials() method.");
-            }
-
-            SecureConnectionBundle bundle;
-            try
-            {
-                bundle = new SecureConnectionBundleParser().ParseBundle(bundlePath);
-            }
-            catch (Exception ex2)
-            {
-                throw new InvalidOperationException(
-                    "Failed to load or parse the secure connection bundle. See inner exception for more details.", ex2);
-            }
-
-            return ConfigureCloudCluster(bundle);
-        }
-
-        private Builder ConfigureCloudCluster(SecureConnectionBundle bundle)
-        {
-            var certificateValidator = new CustomCaCertificateValidator(bundle.CaCert, bundle.Config.Host);
-            var sslOptions = new SSLOptions(
-                SslProtocols.Tls12 | SslProtocols.Tls11 | SslProtocols.Tls,
-                false,
-                (sender, certificate, chain, errors) => certificateValidator.Validate(certificate, chain, errors));
-
-            if (bundle.ClientCert != null)
-            {
-                sslOptions = sslOptions.SetCertificateCollection(new X509Certificate2Collection(new[] { bundle.ClientCert }));
-            }
-
-            var sniOptionsProvider = new CloudSniOptionsProvider(this.SocketOptions, sslOptions, bundle, new CloudMetadataService());
-            var cloudMetadata = Task.Run(() => sniOptionsProvider.InitializeAsync()).GetAwaiter().GetResult();
-            var sniEndPointResolver = new SniEndPointResolver(sniOptionsProvider, new DnsResolver());
-            var builder = this.SetContactPoints(new List<object>
-            {
-                new SniContactPoint(sniEndPointResolver)
-            });
-
-            builder = builder.WithEndPointResolver(sniEndPointResolver);
-
-            if (!_addedLbp)
-            {
-                if (cloudMetadata.ContactInfo.LocalDc == null)
-                {
-                    Builder.Logger.Warning("Not setting localDc property of DCAwareRoundRobinPolicy because the driver could not" +
-                                                     "obtain it from the cluster metadata.");
-                    builder = builder.WithLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy()));
-                }
-                else
-                {
-                    builder = builder.WithLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy(cloudMetadata.ContactInfo.LocalDc)));
-                }
-            }
-
-            builder = builder.WithSSL(sslOptions);
-
-            return builder;
         }
     }
 }

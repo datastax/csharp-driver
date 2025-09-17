@@ -2,7 +2,7 @@
 
 The driver exposes measurements of its internal behavior through an API composed by abstractions. The client application must provide an implementation of these abstractions (`IDriverMetricsProvider`) in order to enable metrics.
 
-DataStax offers an [Extension package] based on the [App.Metrics] library. Application developers can use [App.Metrics] to export metrics to a monitoring tool.
+An [Extension package] is offered that is based on the [App.Metrics] library. Application developers can use [App.Metrics] to export metrics to a monitoring tool.
 
 ## Structure
 
@@ -55,7 +55,7 @@ builder.WithMetrics(provider, new DriverMetricsOptions()
 
 `DriverMetricsOptions.SetBucketPrefix` can be used to specify a custom prefix to be added to the bucket name of every metric. See the [previous section](#structure) for information about his.
 
-The `provider` parameter must be an implementation of `IDriverMetricsProvider`. As was mentioned previouly, DataStax offers an [App.Metrics based implementation on a separate extension nuget package].
+The `provider` parameter must be an implementation of `IDriverMetricsProvider`. As was mentioned previouly, an [App.Metrics based implementation on a separate extension nuget package] is offered.
 
 ## Exporting metrics
 
