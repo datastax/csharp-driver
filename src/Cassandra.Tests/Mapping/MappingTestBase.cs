@@ -67,12 +67,12 @@ namespace Cassandra.Tests.Mapping
             sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
                 .Returns(getRowSetFunc)
-                .Callback<BoundStatement>(s => queryCallback(s.PreparedStatement.Cql, s.QueryValues))
+                .Callback<IStatement>(stmt => { var s = (BoundStatement)stmt; queryCallback(s.PreparedStatement.Cql, s.QueryValues); })
                 .Verifiable();
             sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>(), It.IsAny<string>()))
                 .Returns(getRowSetFunc)
-                .Callback<BoundStatement, string>((s, profile) => queryCallback(s.PreparedStatement.Cql, s.QueryValues))
+                .Callback<IStatement, string>((stmt, profile) => { var s = (BoundStatement)stmt; queryCallback(s.PreparedStatement.Cql, s.QueryValues); })
                 .Verifiable();
             sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
@@ -117,7 +117,7 @@ namespace Cassandra.Tests.Mapping
             sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<IStatement>()))
                 .Returns(() => TaskHelper.ToTask(rs))
-                .Callback(callback)
+                .Callback<IStatement>(stmt => callback((TStatement)stmt))
                 .Verifiable();
             sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<IStatement>(), It.IsAny<string>()))
