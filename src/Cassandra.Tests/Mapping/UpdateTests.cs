@@ -211,8 +211,9 @@ namespace Cassandra.Tests.Mapping
             sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
                 .Returns(TestHelper.DelayedTask(TestDataHelper.CreateMultipleValuesRowSet(new[] { "[applied]" }, new[] { true })))
-                .Callback<BoundStatement>(b =>
+                .Callback<IStatement>(stmt =>
                 {
+                    var b = (BoundStatement)stmt;
                     parameters = b.QueryValues;
                     query = b.PreparedStatement.Cql;
                 })
@@ -246,8 +247,9 @@ namespace Cassandra.Tests.Mapping
             sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
                 .Returns(TestHelper.DelayedTask(TestDataHelper.CreateMultipleValuesRowSet(new[] { "[applied]", "id", "artist" }, new object[] { false, id, "Jimmy Page" })))
-                .Callback<BoundStatement>(b =>
+                .Callback<IStatement>(stmt =>
                 {
+                    var b = (BoundStatement)stmt;
                     parameters = b.QueryValues;
                     query = b.PreparedStatement.Cql;
                 })
@@ -278,12 +280,12 @@ namespace Cassandra.Tests.Mapping
             sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>(), It.IsAny<string>()))
                 .Returns(() => TestHelper.DelayedTask(RowSet.Empty()))
-                .Callback<BoundStatement, string>((stmt, profile) => statement = stmt)
+                .Callback<IStatement, string>((stmt, profile) => statement = (BoundStatement)stmt)
                 .Verifiable();
             sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
                 .Returns(() => TestHelper.DelayedTask(RowSet.Empty()))
-                .Callback<BoundStatement>(stmt => statement = stmt)
+                .Callback<IStatement>(stmt => statement = (BoundStatement)stmt)
                 .Verifiable();
             sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
