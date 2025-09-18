@@ -79,6 +79,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 _sshClient.Connect();
 
             var result = _sshClient.RunCommand(string.Format(@"{0} {1}", executable, args));
+
             output.ExitCode = result.ExitStatus;
             if (result.Error != null)
             {

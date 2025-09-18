@@ -21,7 +21,7 @@ namespace Cassandra.Tests
 {
     [AttributeUsage(AttributeTargets.Assembly | AttributeTargets.Class | AttributeTargets.Method, Inherited = false)]
     public class TestTimeoutAttribute :
-        Attribute 
+        Attribute
     {
         /// <summary>
         /// Construct a TimeoutAttribute given a time in milliseconds
