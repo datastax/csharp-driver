@@ -41,15 +41,13 @@ namespace Cassandra
         public const int IVLength = 16;
 
         // ReSharper disable once UseArrayEmptyMethod
-        // Array.Empty is not available in net452
-        private static readonly byte[] EmptyArray = new byte[0];
 
         /// <inheritdoc/>
         public override byte[] EncryptWithKey(AesKeyAndIV key, byte[] objBytes)
         {
             if (objBytes == null)
             {
-                return EmptyArray;
+                return Array.Empty<byte>();
             }
             using (var aes = Aes.Create())
             {

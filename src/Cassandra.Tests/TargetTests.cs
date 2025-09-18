@@ -34,17 +34,6 @@ namespace Cassandra.Tests
 
             Assert.AreEqual(".NETStandard,Version=v2.0", framework);
         }
-#elif NETFRAMEWORK
-        [Test]
-        public void Should_TargetNet45_When_TestsTargetNetFramework()
-        {
-            var framework = Assembly
-                            .GetAssembly(typeof(ISession))?
-                            .GetCustomAttribute<TargetFrameworkAttribute>()?
-                            .FrameworkName;
-
-            Assert.AreEqual(".NETFramework,Version=v4.5.2", framework);
-        }
 #else
         [Test]
         public void Should_FailTest_When_TestsTargetDifferentTarget()

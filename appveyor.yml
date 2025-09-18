@@ -13,34 +13,13 @@ environment:
   BuildAllTargets: "True"
   RunCodeAnalyzers: "True"
   matrix:
-    - TARGET: net462
-      CI_TYPE: UNIT
-      PROJECT: Cassandra.Tests
-    - TARGET: net472
-      CI_TYPE: UNIT
-      PROJECT: Cassandra.Tests
-    - TARGET: net481
-      CI_TYPE: UNIT
-      PROJECT: Cassandra.Tests
     - TARGET: net6
       CI_TYPE: UNIT
       PROJECT: Cassandra.Tests
     - TARGET: net8
       CI_TYPE: UNIT
       PROJECT: Cassandra.Tests
-    - TARGET: net472
-      CASSANDRA_VERSION: 3.11.6
-      CI_TYPE: INTEGRATION
-      PROJECT: Cassandra.IntegrationTests      
-    - TARGET: net462
-      CASSANDRA_VERSION: 3.11.6
-      CI_TYPE: INTEGRATION_FULL
-      PROJECT: Cassandra.IntegrationTests
     - TARGET: net8
-      CASSANDRA_VERSION: 3.11.6
-      CI_TYPE: INTEGRATION
-      PROJECT: Cassandra.IntegrationTests
-    - TARGET: net481
       CASSANDRA_VERSION: 3.11.6
       CI_TYPE: INTEGRATION
       PROJECT: Cassandra.IntegrationTests

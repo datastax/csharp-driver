@@ -6,9 +6,6 @@ def initializeEnvironment() {
   if (env.GIT_URL.contains('riptano/csharp-driver')) {
     env.DRIVER_DISPLAY_NAME = 'private ' + env.DRIVER_DISPLAY_NAME
     env.DRIVER_METRIC_TYPE = 'oss-private'
-  } else if (env.GIT_URL.contains('csharp-dse-driver')) {
-    env.DRIVER_DISPLAY_NAME = 'DSE C# Driver'
-    env.DRIVER_METRIC_TYPE = 'dse'
   }
 
   env.GIT_SHA = "${env.GIT_COMMIT.take(7)}"
@@ -42,19 +39,6 @@ def initializeEnvironment() {
       $newData += "`r`n`$Env:CASSANDRA_VERSION=`$Env:CCM_CASSANDRA_VERSION"
       "$newData" | Out-File -filepath $Env:HOME\\driver-environment.ps1
     '''
-    
-    if (env.SERVER_VERSION.split('-')[0] == 'dse') {
-      powershell label: 'Update environment for DataStax Enterprise', script: '''
-          . $Env:HOME\\driver-environment.ps1
-
-          $newData = "`r`n`$Env:DSE_BRANCH=`"$Env:CCM_BRANCH`""
-          $newData += "`r`n`$Env:DSE_VERSION=`"$Env:CCM_VERSION`""
-          $newData += "`r`n`$Env:DSE_INITIAL_IPPREFIX=`"127.0.0.`""
-          $newData += "`r`n`$Env:DSE_IN_REMOTE_SERVER=`"false`""
-
-          "$newData" | Out-File -filepath $Env:HOME\\driver-environment.ps1 -append
-      '''
-    }
     
     if (env.SERVER_VERSION == env.SERVER_VERSION_SNI_WINDOWS) {
       powershell label: 'Update environment for SNI proxy tests', script: '''
@@ -109,47 +93,8 @@ Ciphersuites = TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_G
 OPENSSL_EOF
       echo "OPENSSL_CONF=/home/jenkins/openssl.cnf" >> ${HOME}/environment.txt
     '''
-    if (env.SERVER_VERSION.split('-')[0] == 'dse') {
-      env.DSE_FIXED_VERSION = env.SERVER_VERSION.split('-')[1]
-      sh label: 'Update environment for DataStax Enterprise', script: '''#!/bin/bash -le
-        rm ${HOME}/.ccm/config
-        cat > ${HOME}/.ccm/config << CONF_EOL
-[repositories]
-cassandra = https://repo.aws.dsinternal.org/artifactory/apache-mirror/cassandra
-dse = http://repo-public.aws.dsinternal.org/tar/enterprise/dse-%s-bin.tar.gz
-ddac = http://repo-public.aws.dsinternal.org/tar/enterprise/ddac-%s-bin.tar.gz
-CONF_EOL
 
-        cat >> ${HOME}/environment.txt << ENVIRONMENT_EOF
-CCM_PATH=${HOME}/ccm
-DSE_INITIAL_IPPREFIX=127.0.0.
-DSE_IN_REMOTE_SERVER=false
-CCM_CASSANDRA_VERSION=${DSE_FIXED_VERSION} # maintain for backwards compatibility
-CCM_VERSION=${DSE_FIXED_VERSION}
-CCM_SERVER_TYPE=dse
-DSE_VERSION=${DSE_FIXED_VERSION}
-CCM_DISTRIBUTION=dse
-CASSANDRA_VERSION=${DSE_FIXED_VERSION}
-CCM_BRANCH=${DSE_FIXED_VERSION}
-DSE_BRANCH=${DSE_FIXED_VERSION}
-JDK=1.8
-ENVIRONMENT_EOF
-      '''
-    }
-    
-    if (env.SERVER_VERSION.split('-')[0] == 'hcd') {
-      env.HCD_FIXED_VERSION = env.SERVER_VERSION.split('-')[1]
-      sh label: 'Update environment for HCD', script: '''#!/bin/bash -le
-        cat >> ${HOME}/environment.txt << ENVIRONMENT_EOF
-CCM_PATH=${HOME}/ccm
-CCM_CASSANDRA_VERSION=${HCD_FIXED_VERSION} # maintain for backwards compatibility
-CASSANDRA_VERSION=${HCD_FIXED_VERSION}
-CCM_DISTRIBUTION=hcd
-ENVIRONMENT_EOF
-        '''
-    }
-
-    if (env.SERVER_VERSION == env.SERVER_VERSION_SNI && env.DOTNET_VERSION != 'mono') {
+    if (env.SERVER_VERSION == env.SERVER_VERSION_SNI) {
       sh label: 'Update environment for SNI proxy tests', script: '''#!/bin/bash -le
         # Load CCM and driver configuration environment variables
         set -o allexport
@@ -171,11 +116,7 @@ ENVIRONMENT_EOF
       . ${HOME}/environment.txt
       set +o allexport
 
-      if [ ${DOTNET_VERSION} = 'mono' ]; then
-        mono --version
-      else
-        dotnet --version
-      fi
+      dotnet --version
       printenv | sort
     '''
   }
@@ -200,18 +141,6 @@ def installDependencies() {
       mkdir saxon
       curl -L -o saxon/saxon9he.jar https://repo1.maven.org/maven2/net/sf/saxon/Saxon-HE/9.8.0-12/Saxon-HE-9.8.0-12.jar
     '''
-
-    if (env.DOTNET_VERSION == 'mono') {
-      sh label: 'Install required packages for mono builds', script: '''#!/bin/bash -le
-        # Define alias for Nuget
-        nuget() {
-          mono /usr/local/bin/nuget.exe "$@"
-        }
-        export -f nuget
-
-        nuget install NUnit.Runners -Version 3.6.1 -OutputDirectory testrunner
-      '''
-    }
   }
 }
 
@@ -222,26 +151,14 @@ def buildDriver() {
         dotnet restore src
       '''
   } else {
-    if (env.DOTNET_VERSION == 'mono') {
-      sh label: 'Build the driver for mono', script: '''#!/bin/bash -le
-        export BuildMonoOnly=True
-        export RunCodeAnalyzers=False
-        export MSBuildSDKsPath=/home/jenkins/dotnetcli/sdk/$(dotnet --version)/Sdks
-        msbuild /t:restore /v:m /p:RestoreDisableParallel=true src/Cassandra.sln || true
-        msbuild /t:restore /v:m /p:RestoreDisableParallel=true src/Cassandra.sln
-        msbuild /p:Configuration=Release /v:m /p:RestoreDisableParallel=true /p:DynamicConstants=LINUX src/Cassandra.sln || true
-        msbuild /p:Configuration=Release /v:m /p:RestoreDisableParallel=true /p:DynamicConstants=LINUX src/Cassandra.sln
-      '''
-    } else {
-      sh label: "Work around nuget issue", script: '''#!/bin/bash -le
-        mkdir -p /tmp/NuGetScratch
-        chmod -R ugo+rwx /tmp/NuGetScratch
-      '''
-      sh label: "Install required packages and build the driver for ${env.DOTNET_VERSION}", script: '''#!/bin/bash -le
-        dotnet restore src || true
-        dotnet restore src
-      '''
-    }
+    sh label: "Work around nuget issue", script: '''#!/bin/bash -le
+      mkdir -p /tmp/NuGetScratch
+      chmod -R ugo+rwx /tmp/NuGetScratch
+    '''
+    sh label: "Install required packages and build the driver for ${env.DOTNET_VERSION}", script: '''#!/bin/bash -le
+      dotnet restore src || true
+      dotnet restore src
+    '''
   }
 }
 
@@ -249,10 +166,8 @@ def executeTests(perCommitSchedule) {
   
   if (perCommitSchedule) {
     env.DOTNET_TEST_FILTER = "(TestCategory!=long)&(TestCategory!=memory)&(TestCategory!=realclusterlong)"
-    env.MONO_TEST_FILTER = "cat != long && cat != memory && cat != realclusterlong"
   } else {
     env.DOTNET_TEST_FILTER = "(TestCategory!=long)&(TestCategory!=memory)"
-    env.MONO_TEST_FILTER = "cat != long && cat != memory"    
   }  
   
   if (env.OS_VERSION.split('/')[0] == 'win') {
@@ -267,49 +182,27 @@ def executeTests(perCommitSchedule) {
       java -jar saxon/saxon9he.jar -o:TestResult.xml TestResult_xunit.xml tools/JUnitXml.xslt
     '''
   } else {
-    if (env.DOTNET_VERSION == 'mono') {
-      catchError {
-        sh label: 'Execute tests for mono', script: '''#!/bin/bash -le
-          # Load CCM and driver configuration environment variables
-          set -o allexport
-          . ${HOME}/environment.txt
-          set +o allexport
+    catchError {
+      sh label: "Execute tests for ${env.DOTNET_VERSION}", script: '''#!/bin/bash -le
+        # Load CCM and driver configuration environment variables
+        set -o allexport
+        . ${HOME}/environment.txt
+        set +o allexport
 
-          # Fix Java version at Java8 for now because of dependencies in DSE.
-          # TODO: This should last us through testing against Cassandra 4.1.x at least but
-          # will eventually need to be made more generic.
-          . ${JABBA_SHELL}
-          jabba use 1.8
+        # Fix Java version at Java8 for now because of dependencies in DSE.
+        # TODO: This should last us through testing against Cassandra 4.1.x at least but
+        # will eventually need to be made more generic.
+        . ${JABBA_SHELL}
+        jabba use 1.8
 
-          mono ./testrunner/NUnit.ConsoleRunner.3.6.1/tools/nunit3-console.exe src/Cassandra.IntegrationTests/bin/Release/net462/Cassandra.IntegrationTests.dll --where "$MONO_TEST_FILTER" --labels=All --result:"TestResult_nunit.xml"
-        '''
-      }
-      sh label: 'Convert the test results using saxon', script: '''#!/bin/bash -le
-        java -jar saxon/saxon9he.jar -o:TestResult.xml TestResult_nunit.xml tools/nunit3-junit.xslt
+        export OPENSSL_CONF=/home/jenkins/openssl.cnf
+
+        dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -v n -f ${DOTNET_VERSION} -c Release --filter $DOTNET_TEST_FILTER --logger "xunit;LogFilePath=../../TestResult_xunit.xml"
       '''
-    } else {
-      catchError {
-        sh label: "Execute tests for ${env.DOTNET_VERSION}", script: '''#!/bin/bash -le
-          # Load CCM and driver configuration environment variables
-          set -o allexport
-          . ${HOME}/environment.txt
-          set +o allexport
-
-          # Fix Java version at Java8 for now because of dependencies in DSE.
-          # TODO: This should last us through testing against Cassandra 4.1.x at least but
-          # will eventually need to be made more generic.
-          . ${JABBA_SHELL}
-          jabba use 1.8
-
-          export OPENSSL_CONF=/home/jenkins/openssl.cnf
-
-          dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -v n -f ${DOTNET_VERSION} -c Release --filter $DOTNET_TEST_FILTER --logger "xunit;LogFilePath=../../TestResult_xunit.xml"
-        '''
-      }
-      sh label: 'Convert the test results using saxon', script: '''#!/bin/bash -le
-        java -jar saxon/saxon9he.jar -o:TestResult.xml TestResult_xunit.xml tools/JUnitXml.xslt
-      '''
-    } 
+    }
+    sh label: 'Convert the test results using saxon', script: '''#!/bin/bash -le
+      java -jar saxon/saxon9he.jar -o:TestResult.xml TestResult_xunit.xml tools/JUnitXml.xslt
+    '''
   }
 }
 
@@ -481,29 +374,13 @@ pipeline {
                   '4.0',    // Previous 4.0.x Apache Cassandra�
                   '4.1',    // Latest 4.1.x Apache Cassandra�
                   '5.0', // Development Apache Cassandra�
-                  'dse-5.1.35', // Legacy DataStax Enterprise
-                  'dse-6.0.18', // Previous DataStax Enterprise
-                  'dse-6.7.17', // Previous DataStax Enterprise
-                  'dse-6.8.30',  // Previous DataStax Enterprise
-                  'dse-6.9.3',  // Latest DataStax Enterprise
-                  'hcd-1.0.0'  // Hyper-Converged Database
           }
           axis {
             name 'DOTNET_VERSION'
-            values 'mono', 'net6', 'net7', 'net8'
+            values 'net6', 'net7', 'net8'
           }
         }
         excludes {
-          exclude {
-            axis {
-              name 'DOTNET_VERSION'
-              values 'mono'
-            }
-            axis {
-              name 'SERVER_VERSION'
-              values '2.1', '3.0', 'dse-6.0.18'
-            }
-          }
           exclude {
             axis {
               name 'DOTNET_VERSION'
@@ -511,17 +388,7 @@ pipeline {
             }
             axis {
               name 'SERVER_VERSION'
-              values '2.1', '2.2', '3.0', '5.0', 'dse-5.1.35', 'dse-6.0.18'
-            }
-          }
-          exclude {
-            axis {
-              name 'DOTNET_VERSION'
-              values 'net7'
-            }
-            axis {
-              name 'SERVER_VERSION'
-              values 'dse-6.7.17'
+              values '2.1', '2.2', '3.0', '5.0'
             }
           }
         }
@@ -594,14 +461,9 @@ pipeline {
       }
       
       // # Building on Windows
-      // #   - Do not build using mono
-      // #   - Target Apache Cassandra� v3.11.x for net8 and net481
-      // #   - Target Apache Cassandra� v2.1.x, v2.2.x, v3.11.x for net462
-      // #   - Target Apache Cassandra� v2.2.x, v3.11.x for net472
+      // #   - Target Apache Cassandra� v3.11.x for net8
       // ##
       // H 2 * * 1-5 %CI_SCHEDULE=NIGHTLY;CI_SCHEDULE_DOTNET_VERSION=netcoreapp2.1;CI_SCHEDULE_SERVER_VERSION=3.11;CI_SCHEDULE_OS_VERSION=win/cs
-      // H 2 * * 1-5 %CI_SCHEDULE=NIGHTLY;CI_SCHEDULE_DOTNET_VERSION=net452;CI_SCHEDULE_SERVER_VERSION=2.1 2.2 3.11;CI_SCHEDULE_OS_VERSION=win/cs
-      // H 2 * * 1-5 %CI_SCHEDULE=NIGHTLY;CI_SCHEDULE_DOTNET_VERSION=net461;CI_SCHEDULE_SERVER_VERSION=2.2 3.11;CI_SCHEDULE_OS_VERSION=win/cs
       matrix {
         axes {
           axis {
@@ -615,20 +477,10 @@ pipeline {
           }
           axis {
             name 'DOTNET_VERSION'
-            values 'net8', 'net462', 'net472', 'net481'
+            values 'net8'
           }
         }
         excludes {
-          exclude {
-            axis {
-              name 'DOTNET_VERSION'
-              values 'net472'
-            }
-            axis {
-              name 'SERVER_VERSION'
-              values '2.1', '3.11'
-            }
-          }
           exclude {
             axis {
               name 'DOTNET_VERSION'
@@ -637,16 +489,6 @@ pipeline {
             axis {
               name 'SERVER_VERSION'
               values '2.1', '2.2'
-            }
-          }
-          exclude {
-            axis {
-              name 'DOTNET_VERSION'
-              values 'net481'
-            }
-            axis {
-              name 'SERVER_VERSION'
-              values '2.1', '2.2', '5.0'
             }
           }
         }
@@ -729,16 +571,10 @@ pipeline {
                   '4.0',    // Previous 4.0.x Apache Cassandra�
                   '4.1',    // Latest 4.1.x Apache Cassandra�
                   '5.0', // Development Apache Cassandra�
-                  'dse-5.1.35', // Legacy DataStax Enterprise
-                  'dse-6.0.18', // Previous DataStax Enterprise
-                  'dse-6.7.17', // Previous DataStax Enterprise
-                  'dse-6.8.30',  // Previous DataStax Enterprise
-                  'dse-6.9.3',  // Latest DataStax Enterprise
-                  'hcd-1.0.0'  // Hyper-Converged Database
           }
           axis {
             name 'DOTNET_VERSION'
-            values 'mono', 'net6', 'net7', 'net8'
+            values 'net6', 'net7', 'net8'
           }
         }
         excludes {
@@ -749,7 +585,7 @@ pipeline {
             }
             axis {
               name 'SERVER_VERSION'
-              values '2.1', '2.2', 'dse-6.0.18', 'dse-5.1.35', '5.0'
+              values '2.1', '2.2', '5.0'
             }
           }
           exclude {
@@ -759,7 +595,7 @@ pipeline {
             }
             axis {
               name 'SERVER_VERSION'
-              values '3.11', 'dse-6.7.17'
+              values '3.11'
             }
           }
         }
@@ -844,14 +680,14 @@ pipeline {
           }
           axis {
             name 'DOTNET_VERSION'
-            values 'net6', 'net7', 'net8', 'net462', 'net472', 'net481'
+            values 'net6', 'net7', 'net8'
           }
         }
         excludes {
           exclude {
             axis {
               name 'DOTNET_VERSION'
-              values 'net472', 'net481', 'net6', 'net7'
+              values 'net6', 'net7'
             }
             axis {
               name 'SERVER_VERSION'
@@ -861,7 +697,7 @@ pipeline {
           exclude {
             axis {
               name 'DOTNET_VERSION'
-              values 'net472', 'net481', 'net7'
+              values 'net7'
             }
             axis {
               name 'SERVER_VERSION'

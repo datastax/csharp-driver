@@ -235,10 +235,6 @@ namespace Cassandra.IntegrationTests.Core
         [Test, TestTimeout(5 * 60 * 1000), Repeat(10)]
         public async Task Session_With_Host_Changing_Distance()
         {
-            if (TestHelper.IsMono)
-            {
-                Assert.Ignore("The test should not run under the Mono runtime");
-            }
             var lbp = new DistanceChangingLbp();
             var builder = ClusterBuilder()
                 .AddContactPoint(TestCluster.InitialContactPoint)
@@ -365,24 +361,6 @@ namespace Cassandra.IntegrationTests.Core
             cluster.Dispose();
             Assert.AreEqual(0, Volatile.Read(ref isDown));
         }
-
-#if NETFRAMEWORK
-
-        [Test, Apartment(ApartmentState.STA)]
-        public void Session_Connect_And_ShutDown_SupportsSTA()
-        {
-            Assert.DoesNotThrow(() =>
-            {
-                using (var localCluster = ClusterBuilder().AddContactPoint(TestCluster.InitialContactPoint).Build())
-                {
-                    var localSession = localCluster.Connect();
-                    var ps = localSession.Prepare("SELECT * FROM system.local WHERE key='local'");
-                    TestHelper.Invoke(() => localSession.Execute(ps.Bind()), 10);
-                }
-            });
-        }
-
-#endif
 
         [Test]
         public void Session_Execute_Logging_With_Verbose_Level_Test()

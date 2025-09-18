@@ -8,17 +8,10 @@ schedules:
       exclude:
       # dont build on windows (windows provisioning takes too long, run only on nightly and weekly schedules)
         - os: 'win/cs' 
-      # on linux dont build net452 and net461
-        - os: 'ubuntu/bionic64/csharp-driver'
-          dotnet: ['net452', 'net461']
       # on linux with netcoreapp2.1 target 2.2, 3.0 and 3.11
         - os: 'ubuntu/bionic64/csharp-driver'
           dotnet: ['netcoreapp2.1']
           cassandra: ['2.1', '4.0']
-      # on linux with mono target 3.11
-        - os: 'ubuntu/bionic64/csharp-driver'
-          dotnet: ['mono']
-          cassandra: ['2.1', '2.2', '3.0', '4.0']
   nightly-oss-ubuntu:
     # nightly job for primary branches to run almost all configs on ubuntu.
     schedule: adhoc
@@ -30,14 +23,7 @@ schedules:
     matrix:
       exclude:
         - os: 'win/cs'
-      # on linux dont build net452 and net461
-        - os: 'ubuntu/bionic64/csharp-driver'
-          dotnet: ['net452', 'net461']
       # on linux with netcoreapp2.1 target all oss
-      # on linux with mono target 2.2 and 3.11
-        - os: 'ubuntu/bionic64/csharp-driver'
-          dotnet: ['mono']
-          cassandra: ['2.1', '3.0']
   nightly-oss-windows:
     # nightly job for primary branches to run several configs on windows (windows builds are slow so it's less configs than the nightly ubuntu schedule).
     schedule: adhoc
@@ -49,21 +35,10 @@ schedules:
     matrix:
       exclude:
         - os: 'ubuntu/bionic64/csharp-driver'
-      # on windows dont build mono
-        - os: 'win/cs'
-          dotnet: ['mono']
       # on windows target 3.11 with netcoreapp2.1
         - os: 'win/cs'
           dotnet: ['netcoreapp2.1']
           cassandra: ['2.1', '2.2', '3.0']
-      # on windows target 2.1, 2.2 and 3.11
-        - os: 'win/cs'
-          dotnet: ['net452']
-          cassandra: ['3.0']
-      # on windows target 2.2 and 3.11 with net461
-        - os: 'win/cs'
-          dotnet: ['net461']
-          cassandra: ['2.1', '3.0']
   adhoc:
     # adhoc job for non-primary braches that doesn't have the nightly and weekly schedules so this may be used to run same configs as the weekly schedule.
     schedule: adhoc
@@ -71,30 +46,12 @@ schedules:
       slack: csharp-driver-dev-bots
     branches:
       exclude: ["/((\\d+(\\.[\\dx]+)+)|master)/"]
-    matrix:
-      exclude:
-      # on windows dont build mono
-        - os: 'win/cs'
-          dotnet: ['mono']
-      # on linux dont build net452 and net461
-        - os: 'ubuntu/bionic64/csharp-driver'
-          dotnet: ['net452', 'net461']
-      # on linux target all
   weekly:
     schedule: adhoc
     notify:
       slack: csharp-driver-dev-bots
     branches:
       include: ["/((\\d+(\\.[\\dx]+)+)|master)/"]
-    matrix:
-      exclude:
-      # on windows dont build mono
-        - os: 'win/cs'
-          dotnet: ['mono']
-      # on linux dont build net452 and net461
-        - os: 'ubuntu/bionic64/csharp-driver'
-          dotnet: ['net452', 'net461']
-      # on linux target all
 os:
   - ubuntu/bionic64/csharp-driver
   - win/cs
@@ -105,10 +62,7 @@ cassandra:
   - '3.11'
   - '4.0'
 dotnet:
-  - 'mono'
   - 'netcoreapp2.1'
-  - 'net461'
-  - 'net452'
 build:
   - batch:
     script: |
@@ -157,54 +111,27 @@ build:
       mkdir saxon
       curl -L -o saxon/saxon9he.jar https://repo1.maven.org/maven2/net/sf/saxon/Saxon-HE/9.8.0-12/Saxon-HE-9.8.0-12.jar
  
-      if [ $DOTNET_VERSION = 'mono' ]; then      
-          echo "========== Starting Mono Build =========="
-          mono --version
-          # Define alias for Nuget
-          nuget() {
-                mono /usr/local/bin/nuget.exe "$@"
-          }
-          export -f nuget
+      echo "========== Starting .NET Core Build =========="
+      export DOTNET_CLI_TELEMETRY_OPTOUT=1
+      dotnet --version
 
-          # Install the required packages
-          nuget install NUnit.Runners -Version 3.6.1 -OutputDirectory testrunner
+      # work around nuget issue
+      mkdir -p /tmp/NuGetScratch
+      chmod -R ugo+rwx /tmp/NuGetScratch
 
-          # Compile the driver and test code
-          msbuild /t:restore /v:m src/Cassandra.sln
-          msbuild /p:Configuration=Release /v:m /p:DynamicConstants=LINUX src/Cassandra.sln
+      # Install the required packages
+      dotnet restore src
 
-          # Run the tests
-          mono ./testrunner/NUnit.ConsoleRunner.3.6.1/tools/nunit3-console.exe src/Cassandra.IntegrationTests/bin/Release/net452/Cassandra.IntegrationTests.dll --where "cat != long && cat != memory" --labels=All --result:"TestResult_nunit.xml" || error=true
-          java -jar saxon/saxon9he.jar -o:TestResult.xml TestResult_nunit.xml tools/nunit3-junit.xslt
-          
-          #Fail the build if there was an error
-          if [ $error ]
-          then 
-              exit -1
-          fi
-      else
-          echo "========== Starting .NET Core Build =========="
-          export DOTNET_CLI_TELEMETRY_OPTOUT=1
-          dotnet --version
-
-          # work around nuget issue
-          mkdir -p /tmp/NuGetScratch
-          chmod -R ugo+rwx /tmp/NuGetScratch
-
-          # Install the required packages
-          dotnet restore src
-
-          # Run the tests
-          dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -v n -f $DOTNET_VERSION -c Release --filter "(TestCategory!=long)&(TestCategory!=memory)" --logger "xunit;LogFilePath=../../TestResult_xunit.xml" || error=true
-          java -jar saxon/saxon9he.jar -o:TestResult.xml TestResult_xunit.xml tools/JUnitXml.xslt
-          
-          #Fail the build if there was an error
-          if [ $error ]
-          then 
-              exit -1
-          fi
-      fi
+      # Run the tests
+      dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -v n -f $DOTNET_VERSION -c Release --filter "(TestCategory!=long)&(TestCategory!=memory)" --logger "xunit;LogFilePath=../../TestResult_xunit.xml" || error=true
+      java -jar saxon/saxon9he.jar -o:TestResult.xml TestResult_xunit.xml tools/JUnitXml.xslt
       
+      #Fail the build if there was an error
+      if [ $error ]
+      then 
+          exit -1
+      fi
+
 
   - xunit:
     - "**/TestResult.xml"

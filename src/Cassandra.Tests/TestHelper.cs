@@ -453,17 +453,6 @@ namespace Cassandra.Tests
         }
 
         /// <summary>
-        /// Determines if we are running under mono.
-        /// </summary>
-        public static bool IsMono
-        {
-            get
-            {
-                return Type.GetType("Mono.Runtime") != null;
-            }
-        }
-
-        /// <summary>
         /// Executes the <see cref="Func{T}"/> provided n times, awaiting for the task to be completed, limiting the
         /// concurrency.
         /// </summary>

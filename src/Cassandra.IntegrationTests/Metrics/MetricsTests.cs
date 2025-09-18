@@ -14,8 +14,6 @@
 //   limitations under the License.
 //
 
-#if !NET452
-
 using System;
 using System.Linq;
 using System.Net;
@@ -370,5 +368,3 @@ namespace Cassandra.IntegrationTests.Metrics
         }
     }
 }
-
-#endif

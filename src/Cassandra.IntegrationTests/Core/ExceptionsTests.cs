@@ -233,10 +233,8 @@ namespace Cassandra.IntegrationTests.Core
         {
             _simulacronCluster.PrimeFluent(b => b.WhenQuery("SELECT WILL FAIL").ThenSyntaxError("syntax_error"));
             var ex = Assert.Throws<SyntaxError>(() => _session.Execute("SELECT WILL FAIL"));
-#if !NETFRAMEWORK
             StringAssert.Contains(nameof(PreserveStackTraceTest), ex.StackTrace);
             StringAssert.Contains(nameof(ExceptionsTests), ex.StackTrace);
-#endif
             StringAssert.Contains("Cassandra.Session.Execute", ex.StackTrace);
         }
 
