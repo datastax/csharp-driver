@@ -665,7 +665,7 @@ namespace Cassandra.IntegrationTests.TestBase
     /// </summary>
     public class ProcessOutput
     {
-        public int ExitCode { get; set; }
+        public int? ExitCode { get; set; }
 
         public StringBuilder OutputText { get; set; }
 
