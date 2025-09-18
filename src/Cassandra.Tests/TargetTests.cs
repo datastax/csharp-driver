@@ -17,6 +17,7 @@
 using System.Reflection;
 using System.Runtime.Versioning;
 using NUnit.Framework;
+using Assert = NUnit.Framework.Legacy.ClassicAssert;
 
 namespace Cassandra.Tests
 {

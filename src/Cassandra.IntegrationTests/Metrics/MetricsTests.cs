@@ -26,6 +26,7 @@ using Cassandra.Metrics;
 using Cassandra.Tests;
 
 using NUnit.Framework;
+using Assert = NUnit.Framework.Legacy.ClassicAssert;
 
 namespace Cassandra.IntegrationTests.Metrics
 {

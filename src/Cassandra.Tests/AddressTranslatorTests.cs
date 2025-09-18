@@ -18,6 +18,7 @@ using System.Linq;
 using System.Net;
 using Cassandra.Tasks;
 using NUnit.Framework;
+using Assert = NUnit.Framework.Legacy.ClassicAssert;
 
 namespace Cassandra.Tests
 {

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Cassandra.Tests.TestHelpers;
 using Moq;
 using NUnit.Framework;
+using Assert = NUnit.Framework.Legacy.ClassicAssert;
 
 namespace Cassandra.Tests
 {

@@ -15,6 +15,7 @@
 //
 
 using NUnit.Framework;
+using Assert = NUnit.Framework.Legacy.ClassicAssert;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using Cassandra.IntegrationTests.TestBase;

@@ -28,6 +28,7 @@ using Cassandra.Tasks;
 using Cassandra.Tests;
 
 using NUnit.Framework;
+using Assert = NUnit.Framework.Legacy.ClassicAssert;
 
 namespace Cassandra.IntegrationTests.Core
 {

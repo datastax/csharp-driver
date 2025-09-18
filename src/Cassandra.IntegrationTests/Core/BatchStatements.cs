@@ -24,6 +24,7 @@ using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using Cassandra.Serialization;
 
 using NUnit.Framework;
+using Assert = NUnit.Framework.Legacy.ClassicAssert;
 
 namespace Cassandra.IntegrationTests.Core
 {

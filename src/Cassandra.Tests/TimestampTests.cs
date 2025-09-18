@@ -22,6 +22,7 @@ using System.Threading;
 using Cassandra.Tests.TestAttributes;
 
 using NUnit.Framework;
+using Assert = NUnit.Framework.Legacy.ClassicAssert;
 
 namespace Cassandra.Tests
 {

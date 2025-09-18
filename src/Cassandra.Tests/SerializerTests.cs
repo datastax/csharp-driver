@@ -16,6 +16,9 @@
 
 using System.Collections;
 using NUnit.Framework;
+using Assert = NUnit.Framework.Legacy.ClassicAssert;
+using CollectionAssert = NUnit.Framework.Legacy.CollectionAssert;
+using StringAssert = NUnit.Framework.Legacy.StringAssert;
 using System;
 using System.Collections.Generic;
 using System.Linq;

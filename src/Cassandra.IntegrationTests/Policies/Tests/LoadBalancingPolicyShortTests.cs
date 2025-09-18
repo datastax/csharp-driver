@@ -26,6 +26,8 @@ using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.Serialization;
 using Cassandra.Tests;
 using NUnit.Framework;
+using Assert = NUnit.Framework.Legacy.ClassicAssert;
+using CollectionAssert = NUnit.Framework.Legacy.CollectionAssert;
 
 namespace Cassandra.IntegrationTests.Policies.Tests
 {

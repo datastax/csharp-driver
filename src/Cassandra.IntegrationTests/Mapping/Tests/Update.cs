@@ -24,6 +24,9 @@ using Cassandra.Mapping;
 using Cassandra.Tests;
 using Cassandra.Tests.Mapping.Pocos;
 using NUnit.Framework;
+using Assert = NUnit.Framework.Legacy.ClassicAssert;
+using StringAssert = NUnit.Framework.Legacy.StringAssert;
+using CollectionAssert = NUnit.Framework.Legacy.CollectionAssert;
 
 namespace Cassandra.IntegrationTests.Mapping.Tests
 {

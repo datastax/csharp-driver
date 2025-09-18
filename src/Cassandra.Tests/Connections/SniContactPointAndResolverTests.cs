@@ -26,6 +26,8 @@ using Cassandra.Connections.Control;
 using Cassandra.Helpers;
 using Moq;
 using NUnit.Framework;
+using Assert = NUnit.Framework.Legacy.ClassicAssert;
+using CollectionAssert = NUnit.Framework.Legacy.CollectionAssert;
 
 namespace Cassandra.Tests.Connections
 {

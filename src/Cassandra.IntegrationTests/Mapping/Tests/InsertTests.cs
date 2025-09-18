@@ -27,6 +27,8 @@ using Cassandra.Serialization;
 using Cassandra.Tests;
 using Cassandra.Tests.Mapping.Pocos;
 using NUnit.Framework;
+using Assert = NUnit.Framework.Legacy.ClassicAssert;
+using StringAssert = NUnit.Framework.Legacy.StringAssert;
 using HairColor = Cassandra.Tests.Mapping.Pocos.HairColor;
 #pragma warning disable 169
 

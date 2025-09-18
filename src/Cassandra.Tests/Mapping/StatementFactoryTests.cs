@@ -26,6 +26,7 @@ using Cassandra.Mapping.Statements;
 using Cassandra.Tasks;
 using Moq;
 using NUnit.Framework;
+using Assert = NUnit.Framework.Legacy.ClassicAssert;
 
 namespace Cassandra.Tests.Mapping
 {

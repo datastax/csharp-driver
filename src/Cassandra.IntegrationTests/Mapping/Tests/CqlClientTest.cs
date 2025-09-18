@@ -21,6 +21,7 @@ using Cassandra.Data.Linq;
 using Cassandra.Mapping;
 
 using NUnit.Framework;
+using Assert = NUnit.Framework.Legacy.ClassicAssert;
 
 #pragma warning disable 618
 #pragma warning disable 612

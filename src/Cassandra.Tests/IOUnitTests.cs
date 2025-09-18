@@ -17,6 +17,8 @@
 using System;
 using System.IO;
 using NUnit.Framework;
+using Assert = NUnit.Framework.Legacy.ClassicAssert;
+using CollectionAssert = NUnit.Framework.Legacy.CollectionAssert;
 using System.Linq;
 using System.Net;
 using System.Threading;

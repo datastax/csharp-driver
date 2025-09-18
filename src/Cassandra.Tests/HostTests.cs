@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Threading;
 using NUnit.Framework;
+using Assert = NUnit.Framework.Legacy.ClassicAssert;
 
 namespace Cassandra.Tests
 {

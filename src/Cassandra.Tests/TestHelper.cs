@@ -29,6 +29,8 @@ using Cassandra.Tasks;
 using Moq;
 
 using NUnit.Framework;
+using Assert = NUnit.Framework.Legacy.ClassicAssert;
+using CollectionAssert = NUnit.Framework.Legacy.CollectionAssert;
 using NUnit.Framework.Internal;
 using IgnoreAttribute = Cassandra.Mapping.Attributes.IgnoreAttribute;
 
