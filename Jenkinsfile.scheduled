@@ -371,7 +371,7 @@ def describeScheduledTestingStage() {
 }
 
 // branch pattern for cron
-branchPatternCron = ~"(fix-scheduled)"
+branchPatternCron = ~"(master)"
 
 pipeline {
   agent none
