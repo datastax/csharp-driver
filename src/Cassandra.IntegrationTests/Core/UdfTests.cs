@@ -50,13 +50,14 @@ namespace Cassandra.IntegrationTests.Core
             {
                 return;
             }
-            _testCluster = TestClusterManager.GetTestCluster(1, 0, false, DefaultMaxClusterCreateRetries, false, false);
-            var cassandraYaml = "enable_user_defined_functions: true";
-            if (TestClusterManager.CheckCassandraVersion(true, Version.Parse("5.0"), Comparison.GreaterThanOrEqualsTo))
+
+            if (TestClusterManager.IsHcd)
             {
-                cassandraYaml = "user_defined_functions_enabled: true";
+                Assert.Ignore("Skipping UDF tests on HCD due to DSP-24606. See CSHARP-1020.");
+                return;
             }
-            _testCluster.UpdateConfig(cassandraYaml);
+            _testCluster = TestClusterManager.GetTestCluster(1, 0, false, DefaultMaxClusterCreateRetries, false, false);
+            _testCluster.UpdateConfig("enable_user_defined_functions:true");
             _testCluster.Start(1);
             using (var cluster = ClusterBuilder().AddContactPoint(_testCluster.InitialContactPoint).Build())
             {
@@ -159,7 +160,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(false, func.CalledOnNullInput);
             Assert.False(func.Monotonic);
             Assert.False(func.Deterministic);
-            Assert.AreEqual(func.MonotonicOn, new string[0]);
+            Assert.AreEqual(new string[0], func.MonotonicOn);
         }
 
         [Test, TestCase(true), TestCase(false), TestCassandraVersion(2, 2)]

@@ -126,7 +126,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        [TestCassandraVersion(4, 0)]
+        [TestBothServersVersion(4, 0, 6, 0)]
         public void Should_PagingOnBoundStatement_When_NewResultMetadataIsSet()
         {
             if (Session.Cluster.Metadata.ControlConnection.Serializer.CurrentProtocolVersion < ProtocolVersion.V5)

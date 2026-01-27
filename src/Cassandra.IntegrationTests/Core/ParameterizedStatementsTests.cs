@@ -50,7 +50,9 @@ namespace Cassandra.IntegrationTests.Core
                     }
                 };
 
-                if (TestClusterManager.CheckCassandraVersion(false, new Version(4, 0), Comparison.LessThan))
+                // COMPACT STORAGE is not supported by DSE 6.0 / C* 4.0.
+                if (TestClusterManager.CheckCassandraVersion(true, new Version(4, 0), Comparison.LessThan) || 
+                    (TestClusterManager.IsDse && TestClusterManager.CheckDseVersion(new Version(6, 0), Comparison.LessThan)))
                 {
                     setupQueries.Add($"CREATE TABLE {TableCompactStorage} (key blob PRIMARY KEY, bar int, baz uuid)" +
                                      $" WITH COMPACT STORAGE");
@@ -517,7 +519,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        [TestCassandraVersion(4, 0)]
+        [TestBothServersVersion(4, 0, 6, 0)]
         public void SimpleStatement_With_Keyspace_Defined_On_Protocol_Greater_Than_4()
         {
             if (Session.Cluster.Metadata.ControlConnection.Serializer.CurrentProtocolVersion < ProtocolVersion.V5)
@@ -535,7 +537,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        [TestCassandraVersion(4, 0, Comparison.LessThan)]
+        [TestBothServersVersion(4, 0, 5,1, Comparison.LessThan)]
         public void SimpleStatement_With_Keyspace_Defined_On_Lower_Protocol_Versions()
         {
             // It should fail as the keyspace from the session will be used
@@ -547,9 +549,11 @@ namespace Cassandra.IntegrationTests.Core
         [TestCassandraVersion(3, 11)]
         public void SimpleStatement_With_No_Compact_Enabled_Should_Reveal_Non_Schema_Columns()
         {
-            if (TestClusterManager.CheckCassandraVersion(false, new Version(4, 0), Comparison.GreaterThanOrEqualsTo))
+            if (TestClusterManager.CheckCassandraVersion(true, new Version(4, 0), Comparison.GreaterThanOrEqualsTo) || 
+                (TestClusterManager.IsDse && TestClusterManager.CheckDseVersion(new Version(6, 0), Comparison.GreaterThanOrEqualsTo)) ||
+                TestClusterManager.IsHcd)
             {
-                Assert.Ignore("COMPACT STORAGE is only supported by C* versions prior to 4.0");
+                Assert.Ignore("COMPACT STORAGE is not supported by DSE 6.0 / C* 4.0");
                 return;
             }
 
@@ -568,9 +572,11 @@ namespace Cassandra.IntegrationTests.Core
         [TestCassandraVersion(3, 11)]
         public void SimpleStatement_With_No_Compact_Disabled_Should_Not_Reveal_Non_Schema_Columns()
         {
-            if (TestClusterManager.CheckCassandraVersion(false, new Version(4, 0), Comparison.GreaterThanOrEqualsTo))
+            if (TestClusterManager.CheckCassandraVersion(true, new Version(4, 0), Comparison.GreaterThanOrEqualsTo) || 
+                (TestClusterManager.IsDse && TestClusterManager.CheckDseVersion(new Version(6, 0), Comparison.GreaterThanOrEqualsTo)) ||
+                TestClusterManager.IsHcd)
             {
-                Assert.Ignore("COMPACT STORAGE is only supported by C* versions prior to 4.0");
+                Assert.Ignore("COMPACT STORAGE is not supported by DSE 6.0 / C* 4.0");
                 return;
             }
 

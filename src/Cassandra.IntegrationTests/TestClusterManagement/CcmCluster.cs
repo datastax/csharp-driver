@@ -214,23 +214,17 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         
         public void UpdateDseConfig(params string[] yamlChanges)
         {
-            if (yamlChanges == null) return;
-            var joinedChanges = string.Join(" ", yamlChanges.Select(s => $"\"{s}\""));
-            _ccm.ExecuteCcm($"updatedseconf {joinedChanges}");
+            _ccm.UpdateDseConfig(yamlChanges);
         }
 
         public void UpdateConfig(params string[] yamlChanges)
         {
-            if (yamlChanges == null) return;
-            var joinedChanges = string.Join(" ", yamlChanges.Select(s => $"\"{s}\""));
-            _ccm.ExecuteCcm($"updateconf {joinedChanges}");
+            _ccm.UpdateConfig(yamlChanges);
         }
 
         public void UpdateConfig(int nodeId, params string[] yamlChanges)
         {
-            if (yamlChanges == null) return;
-            var joinedChanges = string.Join(" ", yamlChanges.Select(s => $"\"{s}\""));
-            _ccm.ExecuteCcm($"node{nodeId} updateconf {joinedChanges}");
+            _ccm.UpdateConfig(nodeId, yamlChanges);
         }
     }
 }

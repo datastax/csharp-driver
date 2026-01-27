@@ -17,7 +17,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Sockets;
+using System.Text.RegularExpressions;
 using System.Threading;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Tests;
@@ -70,6 +72,11 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 {
                     ExecuteCcm(string.Format(
                         "create {0} --dse -v {1} {2}", Name, Version, sslParams));
+                }
+                else if(TestClusterManager.CurrentBackendType == TestClusterManager.BackendType.Hcd)
+                {
+                    ExecuteCcm(string.Format(
+                        "create {0} --hcd -v {1} {2}", Name, Version, sslParams));
                 }
                 else
                 {
@@ -266,6 +273,9 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             if (TestClusterManager.IsDse)
             {
                 cmd += " --dse";
+            }else if (TestClusterManager.CurrentBackendType == TestClusterManager.BackendType.Hcd)
+            {
+                cmd += " --hcd";
             }
 
             var output = ExecuteCcm(string.Format(cmd, n, IpPrefix, n, 7000 + 100 * n, dc != null ? "-d " + dc : null));
@@ -294,10 +304,9 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             {
                 return;
             }
-            foreach (var c in configs)
-            {
-                ExecuteCcm(string.Format("updateconf \"{0}\"", c));
-            }
+            FixYaml(configs);
+            var joinedConfigs = string.Join(" ", configs.Select(s => $"\"{s}\""));
+            ExecuteCcm($"updateconf {joinedConfigs}");
         }
 
         public void UpdateDseConfig(params string[] configs)
@@ -311,12 +320,55 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             {
                 return;
             }
-            foreach (var c in configs)
-            {
-                ExecuteCcm(string.Format("updatedseconf \"{0}\"", c));
-            }
+            FixYaml(configs);
+            var joinedConfigs = string.Join(" ", configs.Select(s => $"\"{s}\""));
+            ExecuteCcm($"updatedseconf {joinedConfigs}");
         }
 
+        public void UpdateConfig(int nodeId, params string[] yamlChanges)
+        {
+            if (yamlChanges == null) return;
+            FixYaml(yamlChanges);
+            var joinedChanges = string.Join(" ", yamlChanges.Select(s => $"\"{s}\""));
+            ExecuteCcm($"node{nodeId} updateconf {joinedChanges}");
+        }
+        
+        private static void FixYaml(string[] yamlToFix)
+        {
+            // in-place fix
+            if (TestClusterManager.CheckCassandraVersion(false, System.Version.Parse("4.1"), Comparison.GreaterThanOrEqualsTo))
+            {
+                // Fix the yaml options that turned obsolete since 4.1.0
+                for (int i = 0; i < yamlToFix.Length; i++)
+                {
+                    string line = yamlToFix[i];
+                    var keyValueParts = line.Split(':');
+
+                    var key = keyValueParts[0];
+                    var value = keyValueParts[1];
+
+                    var matchMs = Regex.Match(key, @"^(\w+)_in_ms$");
+                    if (matchMs.Success)
+                    {
+                        yamlToFix[i] = $"{matchMs.Groups[1].Value}:{value}ms";
+                    }
+
+                    var matchKb = Regex.Match(key, @"^(\w+)_in_kb$");
+                    if (matchKb.Success)
+                    {
+                        yamlToFix[i] = $"{matchKb.Groups[1].Value}:{value}KiB";
+                    }
+
+                    var matchEnable = Regex.Match(key, @"enable_(\w+)$");
+                    if (matchEnable.Success)
+                    {
+                        yamlToFix[i] = $"{matchEnable.Groups[1].Value}_enabled:{value}";
+                    }
+                }
+            }
+        }
+        
+        
         public void SetNodeWorkloads(int nodeId, string[] workloads)
         {
             if (!TestClusterManager.IsDse)

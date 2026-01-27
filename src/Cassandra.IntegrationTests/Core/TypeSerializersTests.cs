@@ -235,7 +235,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [Test, TestCassandraVersion(4, 0, Comparison.LessThan)]
+        [Test, TestBothServersVersion(4, 0, 5,1, Comparison.LessThan)]
         public void DynamicCompositeTypeTest()
         {
             string uniqueTableName = TestUtils.GetUniqueTableName();
@@ -371,7 +371,7 @@ namespace Cassandra.IntegrationTests.Core
                 };
         }
 
-        [Test, TestBothServersVersion(5, 0, 6, 9), TestCaseSource(nameof(VectorTestCaseData))]
+        [Test, TestCassandraVersion(5, 0), TestCaseSource(nameof(VectorTestCaseData))]
         public void VectorSimpleStatementTest<T>(string cqlSubType, Func<T> elementGeneratorFn, Action<object, object> assertFn)
         {
             SetupVectorUdtSchema();
@@ -392,7 +392,7 @@ namespace Cassandra.IntegrationTests.Core
             vectorSimpleStmtTestFn((i, v) => new SimpleStatement(new Dictionary<string, object> { { "idx", i }, { "vec", v } }, $"INSERT INTO {tableName} (i, j) VALUES (:idx, :vec)"));
         }
 
-        [Test, TestBothServersVersion(5, 0, 6, 9), TestCaseSource(nameof(VectorTestCaseData))]
+        [Test, TestCassandraVersion(5, 0), TestCaseSource(nameof(VectorTestCaseData))]
         public void VectorSimpleStatementTestComplex<T>(string cqlSubType, Func<T> elementGeneratorFn, Action<object, object> assertFn)
         {
             SetupVectorUdtSchema();
@@ -429,7 +429,7 @@ namespace Cassandra.IntegrationTests.Core
                 $"INSERT INTO {tableNameComplex} (i, k, l) VALUES (:idx, :vec, :vecc)"));
         }
 
-        [Test, TestBothServersVersion(5, 0, 6, 9), TestCaseSource(nameof(VectorTestCaseData))]
+        [Test, TestCassandraVersion(5, 0), TestCaseSource(nameof(VectorTestCaseData))]
         public void VectorPreparedStatementTest<T>(string cqlSubType, Func<T> elementGeneratorFn, Action<object, object> assertFn)
         {
             SetupVectorUdtSchema();
@@ -453,7 +453,7 @@ namespace Cassandra.IntegrationTests.Core
             vectorPreparedStmtTestFn($"INSERT INTO {tableName} (i, j) VALUES (:idx, :vec)", (i, v, ps) => ps.Bind(new { idx = i, vec = v }));
         }
 
-        [Test, TestBothServersVersion(5, 0, 6, 9), TestCaseSource(nameof(VectorTestCaseData))]
+        [Test, TestCassandraVersion(5, 0), TestCaseSource(nameof(VectorTestCaseData))]
         public void VectorPreparedStatementTestComplex<T>(string cqlSubType, Func<T> elementGeneratorFn, Action<object, object> assertFn)
         {
             SetupVectorUdtSchema();
@@ -498,7 +498,7 @@ namespace Cassandra.IntegrationTests.Core
                 ));
         }
 
-        [Test, TestBothServersVersion(5, 0, 6, 9), TestCaseSource(nameof(VectorTestCaseData))]
+        [Test, TestCassandraVersion(5, 0), TestCaseSource(nameof(VectorTestCaseData))]
         public void VectorTestCollectionConversion<T>(string cqlSubType, Func<T> elementGeneratorFn, Action<object, object> assertFn)
         {
             SetupVectorUdtSchema();
@@ -534,7 +534,7 @@ namespace Cassandra.IntegrationTests.Core
             vectorPreparedStmtTestFn($"INSERT INTO {tableName} (i, j) VALUES (:idx, :vec)", (i, v, ps) => ps.Bind(new { idx = i, vec = v }));
         }
 
-        [Test, TestBothServersVersion(5, 0, 6, 9), TestCaseSource(nameof(VectorTestCaseData))]
+        [Test, TestCassandraVersion(5, 0), TestCaseSource(nameof(VectorTestCaseData))]
         public void VectorTestCollectionConversionComplex<T>(string cqlSubType, Func<T> elementGeneratorFn, Action<object, object> assertFn)
         {
             SetupVectorUdtSchema();
@@ -596,6 +596,34 @@ namespace Cassandra.IntegrationTests.Core
                 ));
         }
 
+        [Test]
+        [TestDseVersion(6, 9)]
+        public void VectorFloatTest()
+        {
+            var tableName = TestUtils.GetUniqueTableName();
+            Session.Execute($"CREATE TABLE {tableName} (i int PRIMARY KEY, j vector<float, 3>)");
+        
+            var vector = new CqlVector<float>(1.1f, 2.2f, 3.3f);
+        
+            // Simple insert and select
+            Session.Execute(new SimpleStatement($"INSERT INTO {tableName} (i, j) VALUES (1, ?)", vector));
+            var rs = Session.Execute($"SELECT * FROM {tableName} WHERE i = 1");
+            AssertSimpleVectorTest(vector, rs, Assert.AreEqual);
+            
+            // Prepared insert and select
+            var ps = Session.Prepare($"INSERT INTO {tableName} (i, j) VALUES (?, ?)");
+            Session.Execute(ps.Bind(2, vector));
+            rs = Session.Execute($"SELECT * FROM {tableName} WHERE i = 2");
+            AssertSimpleVectorTest(vector, rs, Assert.AreEqual);
+            
+            // throw when length is not 3
+            Assert.Throws<InvalidQueryException>(() =>
+            {
+                var shortVector = new CqlVector<float>(1.1f, 2.2f);
+                Session.Execute(new SimpleStatement($"INSERT INTO {tableName} (i, j) VALUES (3, ?)", shortVector));
+            });
+        }
+        
         private void AssertSimpleVectorTest<T>(CqlVector<T> expected, RowSet rs, Action<object, object> assertFn)
         {
             var rowList = rs.ToList();
