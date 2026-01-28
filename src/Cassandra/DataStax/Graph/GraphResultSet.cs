@@ -75,7 +75,7 @@ namespace Cassandra.DataStax.Graph
         /// </summary>
         private IEnumerable<GraphNode> YieldNodes()
         {
-            foreach (var node in _rs.Select(_factory))
+            foreach (var node in Enumerable.Select(_rs, _factory))
             {
                 for (var i = 0; i < node.Bulk; i++)
                 {

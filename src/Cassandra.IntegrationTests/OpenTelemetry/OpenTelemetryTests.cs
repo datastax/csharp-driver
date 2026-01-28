@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 
+#if !NETFRAMEWORK
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -1016,3 +1017,4 @@ namespace Cassandra.IntegrationTests.OpenTelemetry
         }
     }
 }
+#endif

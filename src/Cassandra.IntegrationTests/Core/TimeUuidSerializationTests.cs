@@ -128,7 +128,7 @@ namespace Cassandra.IntegrationTests.Core
 
             var selectQuery = $"SELECT id, timeuuid_sample, {GetToDateFunction()}(timeuuid_sample) FROM {AllTypesTableName} LIMIT 10000";
             Assert.DoesNotThrow(() =>
-                Session.Execute(selectQuery).Select(r => r.GetValue<TimeUuid>("timeuuid_sample")).ToArray());
+                Enumerable.Select(Session.Execute(selectQuery), r => r.GetValue<TimeUuid>("timeuuid_sample")).ToArray());
         }
 
         [Test]
