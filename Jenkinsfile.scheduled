@@ -412,14 +412,10 @@ pipeline {
                           <td><strong>ubuntu/bionic64/csharp-driver</strong></td>
                           <td>Ubuntu 18.04 LTS x86_64</td>
                         </tr>
-                        <tr>
-                          <td><strong>win/cs</strong></td>
-                          <td>Windows 10</td>
-                        </tr>
                       </table>''')
     choice(
       name: 'CI_SCHEDULE_OS_VERSION',
-      choices: ['ubuntu/bionic64/csharp-driver', 'win/cs'],
+      choices: ['ubuntu/bionic64/csharp-driver'],
       description: 'CI testing operating system version to utilize')
   }
 
@@ -427,11 +423,9 @@ pipeline {
     parameterizedCron(branchPatternCron.matcher(env.BRANCH_NAME).matches() ? """
       # Every weeknight (Monday - Friday) around 20:00 and 22:00 Pacific / 05:00 and 07:00 Central Europe
       H 22 * * 1-5 %CI_SCHEDULE=NIGHTLY;CI_SCHEDULE_OS_VERSION=ubuntu/bionic64/csharp-driver
-      #H 20 * * 1-5 %CI_SCHEDULE=NIGHTLY;CI_SCHEDULE_OS_VERSION=win/cs
 
       # Every Saturday around 01:00 and 05:00 Pacific / 10:00 and 14:00 Central Europe
       H 5 * * 6 %CI_SCHEDULE=WEEKLY;CI_SCHEDULE_OS_VERSION=ubuntu/bionic64/csharp-driver
-      #H 1 * * 6 %CI_SCHEDULE=WEEKLY;CI_SCHEDULE_OS_VERSION=win/cs
     """ : "")
   }
 
@@ -578,131 +572,6 @@ pipeline {
         }
       }
     }
-
-    stage('Nightly-Windows') {
-      when {
-        beforeAgent true
-        allOf {
-          expression { params.CI_SCHEDULE == 'NIGHTLY' }
-          expression { params.CI_SCHEDULE_OS_VERSION == 'win/cs' }
-          not { buildingTag() }
-        }
-      }
-
-      environment {
-        OS_VERSION = "${params.CI_SCHEDULE_OS_VERSION}"
-      }
-      
-      // # Building on Windows
-      // #   - Do not build using mono
-      // #   - Target Apache Cassandra� v3.11.x for net8 and net481
-      // #   - Target Apache Cassandra� v2.1.x, v2.2.x, v3.11.x for net462
-      // #   - Target Apache Cassandra� v2.2.x, v3.11.x for net472
-      // ##
-      // H 2 * * 1-5 %CI_SCHEDULE=NIGHTLY;CI_SCHEDULE_DOTNET_VERSION=netcoreapp2.1;CI_SCHEDULE_SERVER_VERSION=3.11;CI_SCHEDULE_OS_VERSION=win/cs
-      // H 2 * * 1-5 %CI_SCHEDULE=NIGHTLY;CI_SCHEDULE_DOTNET_VERSION=net452;CI_SCHEDULE_SERVER_VERSION=2.1 2.2 3.11;CI_SCHEDULE_OS_VERSION=win/cs
-      // H 2 * * 1-5 %CI_SCHEDULE=NIGHTLY;CI_SCHEDULE_DOTNET_VERSION=net461;CI_SCHEDULE_SERVER_VERSION=2.2 3.11;CI_SCHEDULE_OS_VERSION=win/cs
-      matrix {
-        axes {
-          axis {
-            name 'SERVER_VERSION'
-            values '2.1',     // Legacy Apache Cassandra�
-                  '2.2',     // Legacy Apache Cassandra�
-                  '3.11',    // latest 3.11.x Apache Cassandra�
-                  '4.0',     // latest 4.0.x Apache Cassandra�
-                  '4.1',     // latest 4.1.x Apache Cassandra�
-                  '5.0'     // Development Apache Cassandra�
-          }
-          axis {
-            name 'DOTNET_VERSION'
-            values 'net8', 'net462', 'net472', 'net481'
-          }
-        }
-        excludes {
-          exclude {
-            axis {
-              name 'DOTNET_VERSION'
-              values 'net472'
-            }
-            axis {
-              name 'SERVER_VERSION'
-              values '2.1', '3.11'
-            }
-          }
-          exclude {
-            axis {
-              name 'DOTNET_VERSION'
-              values 'net8'
-            }
-            axis {
-              name 'SERVER_VERSION'
-              values '2.1', '2.2'
-            }
-          }
-          exclude {
-            axis {
-              name 'DOTNET_VERSION'
-              values 'net481'
-            }
-            axis {
-              name 'SERVER_VERSION'
-              values '2.1', '2.2', '5.0'
-            }
-          }
-        }
-
-        agent {
-          label "${OS_VERSION}"
-        }
-
-        stages {
-          stage('Initialize-Environment') {
-            steps {
-              initializeEnvironmentStep()
-            }
-          }
-          stage('Describe-Build') {
-            steps {
-              describeScheduledTestingStage()
-            }
-          }
-          stage('Install-Dependencies') {
-            steps {
-              installDependencies()
-            }
-          }
-          stage('Build-Driver') {
-            steps {
-              buildDriver()
-            }
-          }
-          stage('Execute-Tests') {
-            steps {
-              executeTests(false)
-            }
-            post {
-              always {
-                junit testResults: '**/TestResult.xml'
-              }
-            }
-          }
-        }
-      }
-      post {
-        aborted {
-          notifySlack('aborted')
-        }
-        success {
-          notifySlack('completed')
-        }
-        unstable {
-          notifySlack('unstable')
-        }
-        failure {
-          notifySlack('FAILED')
-        }
-      }
-    }
     
     stage('Weekly-Ubuntu') {
       when {
@@ -764,112 +633,6 @@ pipeline {
           }
         }
 
-        agent {
-          label "${OS_VERSION}"
-        }
-
-        stages {
-          stage('Initialize-Environment') {
-            steps {
-              initializeEnvironmentStep()
-            }
-          }
-          stage('Describe-Build') {
-            steps {
-              describeScheduledTestingStage()
-            }
-          }
-          stage('Install-Dependencies') {
-            steps {
-              installDependencies()
-            }
-          }
-          stage('Build-Driver') {
-            steps {
-              buildDriver()
-            }
-          }
-          stage('Execute-Tests') {
-            steps {
-              executeTests(false)
-            }
-            post {
-              always {
-                junit testResults: '**/TestResult.xml'
-              }
-            }
-          }
-        }
-      }
-      post {
-        aborted {
-          notifySlack('aborted')
-        }
-        success {
-          notifySlack('completed')
-        }
-        unstable {
-          notifySlack('unstable')
-        }
-        failure {
-          notifySlack('FAILED')
-        }
-      }
-    }
-    
-    stage('Weekly-Windows') {
-      when {
-        beforeAgent true
-        allOf {
-          expression { params.CI_SCHEDULE == 'WEEKLY' }
-          expression { params.CI_SCHEDULE_OS_VERSION == 'win/cs' }
-          not { buildingTag() }
-        }
-      }
-
-      environment {
-        OS_VERSION = "${params.CI_SCHEDULE_OS_VERSION}"
-      }
-
-      matrix {
-        axes {
-          axis {
-            name 'SERVER_VERSION'
-            values '2.1',     // Legacy Apache Cassandra�
-                  '2.2',     // Legacy Apache Cassandra�
-                  '3.11',    // latest 3.11.x Apache Cassandra�
-                  '4.0',     // latest 4.0.x Apache Cassandra�
-                  '4.1',     // latest 4.1.x Apache Cassandra�
-                  '5.0'     // Development Apache Cassandra�
-          }
-          axis {
-            name 'DOTNET_VERSION'
-            values 'net6', 'net7', 'net8', 'net462', 'net472', 'net481'
-          }
-        }
-        excludes {
-          exclude {
-            axis {
-              name 'DOTNET_VERSION'
-              values 'net472', 'net481', 'net6', 'net7'
-            }
-            axis {
-              name 'SERVER_VERSION'
-              values '2.1', '5.0'
-            }
-          }
-          exclude {
-            axis {
-              name 'DOTNET_VERSION'
-              values 'net472', 'net481', 'net7'
-            }
-            axis {
-              name 'SERVER_VERSION'
-              values '2.2'
-            }
-          }
-        }
-        
         agent {
           label "${OS_VERSION}"
         }
