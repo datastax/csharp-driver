@@ -20,7 +20,7 @@ namespace Cassandra
     public class InitFatalErrorException : Exception
     {
         private const string ExceptionMessage = 
-            "An error occured during the initialization of the cluster instance. Further initialization attempts " +
+            "An error occurred during the initialization of the cluster instance. Further initialization attempts " +
             "for this cluster instance will never succeed and will return this exception instead. The InnerException property holds " +
             "a reference to the exception that originally caused the initialization error.";
 
