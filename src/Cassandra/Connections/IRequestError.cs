@@ -19,7 +19,7 @@ using System;
 namespace Cassandra.Connections
 {
     /// <summary>
-    /// Represents an error that occured during a request.
+    /// Represents an error that occurred during a request.
     /// </summary>
     internal interface IRequestError
     {
