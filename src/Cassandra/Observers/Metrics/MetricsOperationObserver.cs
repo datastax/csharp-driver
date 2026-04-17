@@ -83,7 +83,7 @@ namespace Cassandra.Observers.Metrics
 
         private static void LogError(Exception ex)
         {
-            Logger.Warning("An error occured while recording metrics for a connection operation. Exception = {0}", ex.ToString());
+            Logger.Warning("An error occurred while recording metrics for a connection operation. Exception = {0}", ex.ToString());
         }
     }
 }
