@@ -232,7 +232,7 @@ namespace Cassandra.IntegrationTests.Core
                                  " between the client driver instance and the cluster. You can increase this timeout via " +
                                  "the SocketOptions.ConnectTimeoutMillis config setting. This can also be related to deadlocks " +
                                  "caused by mixing synchronous and asynchronous code.";
-            var cachedError = "An error occured during the initialization of the cluster instance. Further initialization attempts " +
+            var cachedError = "An error occurred during the initialization of the cluster instance. Further initialization attempts " +
                               "for this cluster instance will never succeed and will return this exception instead. The InnerException property holds " +
                               "a reference to the exception that originally caused the initialization error.";
             using (var cluster = CreateClusterAndWaitUntilConnectException(
