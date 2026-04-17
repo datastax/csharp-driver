@@ -74,7 +74,7 @@ namespace Cassandra
         /// <item><term>0x0004</term><description>Some failures (one or more) were reported to the replica "leading"
         /// a counter write. The actual error didn't occur on the node that sent this failure, it is is simply the
         /// node reporting it due to how counter writes work; the initial reason for the failure should have been
-        /// logged on the actual replica on which the problem occured).</description></item>
+        /// logged on the actual replica on which the problem occurred).</description></item>
         /// <item><term>0x0005</term><description>The table used by the query was not found on at least one of the
         /// replica. This strongly suggest a query was done on either a newly created or newly dropped table with
         /// having waited for schema agreement first.</description></item>
