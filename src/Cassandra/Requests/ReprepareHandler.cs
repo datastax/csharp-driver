@@ -58,7 +58,7 @@ namespace Cassandra.Requests
                     if (prepareResult.TriedHosts.ContainsKey(poolKvp.Key.Address))
                     {
                         PrepareHandler.Logger.Warning(
-                            $"An error occured while attempting to prepare query on {{0}}:{Environment.NewLine}{{1}}", 
+                            $"An error occurred while attempting to prepare query on {{0}}:{Environment.NewLine}{{1}}", 
                             poolKvp.Key.Address, 
                             prepareResult.TriedHosts[poolKvp.Key.Address]);
                         continue;
@@ -140,7 +140,7 @@ namespace Cassandra.Requests
                     LogOrThrow(
                         throwException,
                         ex,
-                        $"An error occured while attempting to prepare query on {{0}}:{Environment.NewLine}{{1}}",
+                        $"An error occurred while attempting to prepare query on {{0}}:{Environment.NewLine}{{1}}",
                         poolKvp.Key,
                         ex);
                     if (observer != null)
@@ -178,7 +178,7 @@ namespace Cassandra.Requests
                 LogOrThrow(
                     throwException,
                     ex,
-                    $"An error occured while attempting to prepare query on {{0}}:{Environment.NewLine}{{1}}",
+                    $"An error occurred while attempting to prepare query on {{0}}:{Environment.NewLine}{{1}}",
                     poolKvp.Key,
                     ex);
             }
