@@ -198,7 +198,7 @@ namespace Cassandra.Observers.Metrics
 
         private static void LogError(Exception ex)
         {
-            Logger.Warning("An error occured while recording metrics for a request. Exception = {0}", ex.ToString());
+            Logger.Warning("An error occurred while recording metrics for a request. Exception = {0}", ex.ToString());
         }
 
         public Task OnNodeStartAsync(SessionRequestInfo sessionRequestInfo, NodeRequestInfo nodeRequestInfo)
