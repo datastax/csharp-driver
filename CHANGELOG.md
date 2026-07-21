@@ -1,5 +1,13 @@
 # ChangeLog - DataStax C# Driver
 
+## 3.23.0
+
+TBD
+
+### New Features
+
+*   [[PR 622](https://github.com/datastax/csharp-driver/pull/622)] Fix some freezes caused by the application running slowly after a request execution
+
 ## 3.22.0
 
 2024-09-30

@@ -30,7 +30,11 @@ namespace Cassandra.Requests
         public TcsMetricsRequestResultHandler(IRequestObserver requestObserver)
         {
             _requestObserver = requestObserver;
+#if NET452
             _taskCompletionSource = new TaskCompletionSource<RowSet>();
+#else
+            _taskCompletionSource = new TaskCompletionSource<RowSet>(TaskCreationOptions.RunContinuationsAsynchronously);
+#endif
         }
 
         public async Task TrySetResultAsync(RowSet result, SessionRequestInfo sessionRequestInfo)

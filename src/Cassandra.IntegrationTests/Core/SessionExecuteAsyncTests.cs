@@ -14,7 +14,9 @@
 //   limitations under the License.
 //
 using System;
+using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 using NUnit.Framework;
@@ -23,6 +25,18 @@ namespace Cassandra.IntegrationTests.Core
 {
     public class SessionExecuteAsyncTests : SimulacronTest
     {
+        public override void OneTimeSetUp()
+        {
+            base.OneTimeSetUp();
+
+            // https://github.com/mono/mono/issues/7988
+            ThreadPool.GetMaxThreads(out _, out _);
+            
+            const int minThreads = 32;
+            if (!ThreadPool.SetMinThreads(minThreads, minThreads))
+                throw new Exception("Failed to set min threads for thread pool");
+        }
+
         [Test]
         public void SessionExecuteAsyncCQLQueryToSync()
         {
@@ -92,6 +106,31 @@ namespace Cassandra.IntegrationTests.Core
             Assert.NotNull(task1.Result.First().GetValue<string>("key"));
             Assert.NotNull(task2.Result.First().GetValue<string>("key"));
             Assert.NotNull(task3.Result.First().GetValue<string[]>("tokens"));
+        }
+
+        [Test]
+        public async Task SessionExecuteAsyncCQLQueriesParallelAndSlowResponseProcessingInUserThread()
+        {
+            const int sleepTimeMs = 3_000;
+            const int maxExpectedWaitingTimeMs = 5_000;
+            for (var i = 0; i < 3; i++)
+            {
+                var sw = Stopwatch.StartNew();
+                
+                var tasks = Enumerable.Range(0, 10)
+                                      .Select(_ => Task.Run(async () =>
+                                      {
+                                          var statement = new SimpleStatement("SELECT * FROM system.local");
+                                          await Session.ExecuteAsync(statement).ConfigureAwait(false);
+                                          Thread.Sleep(sleepTimeMs);
+                                      }))
+                                      .ToArray();
+                await Task.WhenAll(tasks).ConfigureAwait(false);
+                
+                sw.Stop();  
+                    
+                Assert.Less(sw.ElapsedMilliseconds, maxExpectedWaitingTimeMs);
+            }
         }
     }
 }
