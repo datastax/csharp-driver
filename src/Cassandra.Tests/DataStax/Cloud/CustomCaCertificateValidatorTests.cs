@@ -1,4 +1,4 @@
-﻿//
+//
 //      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,10 +12,11 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-// 
+//
 
 using System;
 using System.Net.Security;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 
 using Cassandra.DataStax.Cloud;
@@ -27,6 +28,14 @@ namespace Cassandra.Tests.DataStax.Cloud
     [TestFixture]
     public class CustomCaCertificateValidatorTests
     {
+        // rootcacsharp.crt — self-signed CA used across multiple tests
+        private const string RootCaB64 =
+            "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUMvakNDQWVZQ0NRQ01JNHlFM0J5WnpUQU5CZ2txaGtpRzl3MEJBUXNGQURCQU1Rc3dDUVlEVlFRR0V3SlYKVXpFUk1BOEdBMVVFQ2d3SVJHRjBZVk4wWVhneERqQU1CZ05WQkFzTUJVTnNiM1ZrTVE0d0RBWURWUVFEREFWRApiRzkxWkRBZ0Z3MHlNakExTXpBeE1qTTJNRGhhR0E4ek1ESXhNRGt6TURFeU16WXdPRm93UURFTE1Ba0dBMVVFCkJoTUNWVk14RVRBUEJnTlZCQW9NQ0VSaGRHRlRkR0Y0TVE0d0RBWURWUVFMREFWRGJHOTFaREVPTUF3R0ExVUUKQXd3RlEyeHZkV1F3Z2dFaU1BMEdDU3FHU0liM0RRRUJBUVVBQTRJQkR3QXdnZ0VLQW9JQkFRRGFZTjVBcm5VOQo5b2Q5cXdPMzVaRlBwdFpCc0psc29CQWl5b0V1WEpCbFFwdnlveHY2ckFXYkJaMkxpWEFvZkZWdzVjWThxTlNxCmUzRytjWmJzUm0xbk9Yc0lTRnVYekhGSWFJWWEzZi9OblIzc25SRG1uZUwwS3lhUVI5VnFvMCt5V0RUMmFlZWsKSDNrNFdrUlJrMEZtOUhIUWlKTWFTdU05WC9nQnhyUTdiMkxBOFRjM2FjTForbmYxdGpSa01ZN0hDNnJ6TW9rRwp0QmhCN3lxL1dtMzFOVk1ucVk2UnZhOWpBV1lIcW1YWXZkOG9uMmRsTDlzVzEybFRUNHd4Qkp1VTV6Mzd5bDhXClZOY0RkY3lhdWJzQUtDU3NwZmord2pVL0ZEL00zZUdYNEdZQVlDdjdQbStNL2NMNG1wMDRtR3dEakhVOE1RS28KUi91QmRRbllRN2lYQWdNQkFBRXdEUVlKS29aSWh2Y05BUUVMQlFBRGdnRUJBTFhvL01UUUVYY29vQ3dTSVczaAovemhaSFNrUko1SmYyd2pjTTlPTmxEaVI1K01NU2pYVFVTMHF6amlhZFNvSzlZeGdWN1ByVHpjMWR0cVNzTjdXCllQNHM0VG9zbWRzRVRTdmVwRXFRSklLRHZyVFJaTDlPV2hLb1BVRTd3NzJVVnVYcERaWHIraTNNQ3p3U05zZGwKNzFXbHpVcXJqcGJCSkZnU21xZmZkNmJuVXExWVhKU3orcy9KSnV4SmlrNGVqTGlIbTh3MWhIckUvYWRvYUtMbQo1elYxaHpPT3Y0d0VnSTQ3VnNvMUxYenQzQmROeXVVMnZPR1R4Wmwwa0E1bUVSRUwxR3J0TEova251SkF6aWZ5ClFKMnVlU2JMTVZadXBsNy84MW5Ib3k3eVNaKzNYM1VUUkdQNzNNYWM5cTdvK0ZJeTV2M0laL3NJM0FEaWM4NXUKWGVvPQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==";
+
+        // localhostcsharp.crt — leaf cert signed by RootCaB64
+        private const string LocalhostCertB64 =
+            "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURBakNDQWVvQ0NRQ2ZCNGxlaUM0ZGl6QU5CZ2txaGtpRzl3MEJBUXNGQURCQU1Rc3dDUVlEVlFRR0V3SlYKVXpFUk1BOEdBMVVFQ2d3SVJHRjBZVk4wWVhneERqQU1CZ05WQkFzTUJVTnNiM1ZrTVE0d0RBWURWUVFEREFWRApiRzkxWkRBZ0Z3MHlNakExTXpBeE1qUXpOVE5hR0E4ek1ESXhNRGt6TURFeU5ETTFNMW93UkRFTE1Ba0dBMVVFCkJoTUNWVk14RVRBUEJnTlZCQW9UQ0VSaGRHRlRkR0Y0TVE0d0RBWURWUVFMRXdWRGJHOTFaREVTTUJBR0ExVUUKQXhNSmJHOWpZV3hvYjNOME1JSUJJakFOQmdrcWhraUc5dzBCQVFFRkFBT0NBUThBTUlJQkNnS0NBUUVBb2Z3TwpSNW5CQW9PaWhsengrTSt3enhCdzg2OHU5L3FxZlVyRlIycXlySFBYZkNjSm14ZUFXVE5UMXllbWcyd2pZSUZmClZoU2VmOXZNSWlQbWh1eXd2R1RkVFlCcFdsZTNKRlY3ejdvb1JYb1d4SGwwNFJTNVY3Q0p6Sk1vNEdNRWZYamgKL2VyNVk2NU9ibnY3Z2hiN0IzNEh5NDVzZFMyWWpPRklZVFFzZXgwMDhIMnpDSmVoT3J0OWFZWlFOVEp1Zk9BMwovNnJRaG9hZVhjKy9DdWdKUWlkOEQyRlJvUENmM1NsQlkzeHFZbmhJNGJmQWJvUTJqYmJINitzYjlYRDFsdTVCCiswTWl5NGcwL00yQTA0NWZpYnJjQVAvRG9YWnpSdkd5SWlmYU55RHltQjZERWhtUFNNUkNZRWdpWlFlMmpkRVQKSUVEMkk5NnJBZjhpb3B2ZG13SURBUUFCTUEwR0NTcUdTSWIzRFFFQkN3VUFBNElCQVFBM2V3MVhlaG9WMHpBZAo2SkJuS1FzMkdkVjl5WFVFRVhEQTQ3M0xJZ05JWWFrVEpWbVZTVGdQUlNEbW1LRzkyNlUwUUgzREtwbitsTDNxCnQ4V1IyM3gwRzJSeXFtaGJ5MTFlUXFkWUZrRzNIOGxVMVVIZTM3LzI3Q29EeE80cnpNUFNJd0JWRVN3aTVsbHoKc1FHWXY2K1dnZUFXUHpRYzlCOVV5UFYyenFSbitCQTNOdDBPSnJOdG1UcFJsRE5XU2NoZ1VhV1BCdXhRVk1kNgo2OEM5dkczNk9hYnJFZDBmakdJUWVaYlJjcHFPQVVEbEpMaUY3SElEU0NkNFo0MUxOM3pNdmMxTnhMN1orUDdhCm5jU2RTcjlkR0tIOXRvRm4ydk5Nd0JOZWgvbm5Xc3BRd3djSm85Yk9pZjNmeXlGOWZYWGF0TjVxM2dJcUhVd08KVXlFK1l1UjEKLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=";
+
         /// <summary>
         /// Simulate classic Astra
         /// </summary>
@@ -48,6 +57,77 @@ namespace Cassandra.Tests.DataStax.Cloud
             chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
             chain.Build(cert);
             Assert.True(new CustomCaCertificateValidator(ca, "localhost").Validate(cert, chain, SslPolicyErrors.RemoteCertificateChainErrors | SslPolicyErrors.RemoteCertificateNameMismatch));
+        }
+
+        /// <summary>
+        /// When the OS reports SslPolicyErrors.None (server cert is trusted by the OS
+        /// store) and the chain root thumbprint matches the bundle CA, the connection must be accepted.
+        /// </summary>
+        [Test]
+        public void SslPolicyErrors_None_WithMatchingBundleCa_ShouldAccept()
+        {
+            var ca   = new X509Certificate2(Convert.FromBase64String(RootCaB64));
+            var cert = new X509Certificate2(Convert.FromBase64String(LocalhostCertB64));
+            var chain = new X509Chain();
+            chain.ChainPolicy.ExtraStore.Add(ca);
+            chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+            chain.Build(cert);
+
+            Assert.True(
+                new CustomCaCertificateValidator(ca, "localhost")
+                    .Validate(cert, chain, SslPolicyErrors.None),
+                "Should accept: OS says None and root thumbprint matches the bundle CA.");
+        }
+
+        /// <summary>
+        /// When the OS reports SslPolicyErrors.None but the chain root does NOT match
+        /// the bundle CA (rogue OS-trusted CA), the connection must be rejected.
+        /// </summary>
+        [Test]
+        public void SslPolicyErrors_None_WithMismatchedBundleCa_ShouldReject()
+        {
+            var cert = new X509Certificate2(Convert.FromBase64String(LocalhostCertB64));
+
+            // A second self-signed CA — represents a rogue CA trusted by the OS but not in the bundle.
+            var rogueCa = CreateSelfSignedCa("CN=RogueCA");
+
+            // Chain was built against the real bundle CA (OS accepted it), but the validator
+            // is seeded with rogueCa — thumbprint will not match.
+            var bundleCa = new X509Certificate2(Convert.FromBase64String(RootCaB64));
+            var chain = new X509Chain();
+            chain.ChainPolicy.ExtraStore.Add(bundleCa);
+            chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+            chain.Build(cert);
+
+            Assert.False(
+                new CustomCaCertificateValidator(rogueCa, "localhost")
+                    .Validate(cert, chain, SslPolicyErrors.None),
+                "Should reject: OS says None but root thumbprint does NOT match the bundle CA.");
+        }
+
+        /// <summary>
+        /// When chain.Build() returns true (no chain errors) but the root thumbprint
+        /// does not match the bundle CA, the connection must be rejected.
+        /// </summary>
+        [Test]
+        public void ChainBuildSucceeds_WithMismatchedBundleCa_ShouldReject()
+        {
+            var cert = new X509Certificate2(Convert.FromBase64String(LocalhostCertB64));
+            var rogueCa = CreateSelfSignedCa("CN=RogueCA");
+
+            var bundleCa = new X509Certificate2(Convert.FromBase64String(RootCaB64));
+            var chain = new X509Chain();
+            chain.ChainPolicy.ExtraStore.Add(bundleCa);
+            chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+            chain.Build(cert);
+
+            // Pass RemoteCertificateChainErrors so the chain block is entered;
+            // rogueCa thumbprint won't match the chain root regardless of which
+            // branch chain.Build() takes internally.
+            Assert.False(
+                new CustomCaCertificateValidator(rogueCa, "localhost")
+                    .Validate(cert, chain, SslPolicyErrors.RemoteCertificateChainErrors),
+                "Should reject: chain root thumbprint does not match the bundle CA even when Build() returns true.");
         }
 
         /// <summary>
@@ -164,6 +244,28 @@ namespace Cassandra.Tests.DataStax.Cloud
             chain.Build(cert);
             Assert.AreEqual("*.example.com", cert.GetNameInfo(X509NameType.SimpleName, false));
             Assert.False(new CustomCaCertificateValidator(cert, "test123.customdomain.com").Validate(cert, chain, SslPolicyErrors.RemoteCertificateChainErrors | SslPolicyErrors.RemoteCertificateNameMismatch));
+        }
+        // ── Helper ────────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Creates an in-memory self-signed CA certificate. Used to synthesise a rogue CA
+        /// whose thumbprint differs from the bundle CA.
+        /// </summary>
+        private static X509Certificate2 CreateSelfSignedCa(string subjectDn)
+        {
+            using (var rsa = RSA.Create(2048))
+            {
+                var req = new CertificateRequest(
+                    subjectDn, rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+                req.CertificateExtensions.Add(
+                    new X509BasicConstraintsExtension(
+                        certificateAuthority: true, hasPathLengthConstraint: false,
+                        pathLengthConstraint: 0, critical: true));
+                var cert = req.CreateSelfSigned(
+                    DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(10));
+                // Export/re-import to detach the private key
+                return new X509Certificate2(cert.Export(X509ContentType.Cert));
+            }
         }
     }
 }
