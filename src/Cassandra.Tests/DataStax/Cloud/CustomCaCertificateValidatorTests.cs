@@ -79,6 +79,7 @@ namespace Cassandra.Tests.DataStax.Cloud
                 "Should accept: OS says None and root thumbprint matches the bundle CA.");
         }
 
+#if !NET462
         /// <summary>
         /// When the OS reports SslPolicyErrors.None but the chain root does NOT match
         /// the bundle CA (rogue OS-trusted CA), the connection must be rejected.
@@ -129,6 +130,7 @@ namespace Cassandra.Tests.DataStax.Cloud
                     .Validate(cert, chain, SslPolicyErrors.RemoteCertificateChainErrors),
                 "Should reject: chain root thumbprint does not match the bundle CA even when Build() returns true.");
         }
+#endif // !NET462
 
         /// <summary>
         /// Simulate serverless Astra
@@ -247,6 +249,7 @@ namespace Cassandra.Tests.DataStax.Cloud
         }
         // ── Helper ────────────────────────────────────────────────────────────────
 
+#if !NET462
         /// <summary>
         /// Creates an in-memory self-signed CA certificate. Used to synthesise a rogue CA
         /// whose thumbprint differs from the bundle CA.
@@ -267,5 +270,6 @@ namespace Cassandra.Tests.DataStax.Cloud
                 return new X509Certificate2(cert.Export(X509ContentType.Cert));
             }
         }
+#endif // !NET462
     }
 }
