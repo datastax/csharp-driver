@@ -1,5 +1,13 @@
 # ChangeLog - DataStax C# Driver
 
+## 3.22.1
+
+2026-08-26
+
+### Improvements
+
+*   [[#634](https://github.com/datastax/csharp-driver/pull/634)] Improvements to Astra cert validator
+
 ## 3.22.0
 
 2024-09-30

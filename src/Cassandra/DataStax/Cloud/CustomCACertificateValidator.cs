@@ -86,10 +86,9 @@ namespace Cassandra.DataStax.Cloud
 
         public bool Validate(X509Certificate cert, X509Chain chain, SslPolicyErrors errors)
         {
-            if (errors == SslPolicyErrors.None)
-            {
-                return true;
-            }
+            // Do NOT short-circuit on SslPolicyErrors.None.
+            // Always rebuild the chain using the bundle CA and verify the root
+            // thumbprint regardless of what the OS-level validation decided.
 
             X509Certificate2 cert2 = null;
             var valid = true;
@@ -128,7 +127,11 @@ namespace Cassandra.DataStax.Cloud
 
                 valid = validName;
             }
-            if (valid && (errors & SslPolicyErrors.RemoteCertificateChainErrors) != 0)
+
+            // Always rebuild the chain against the bundle CA and verify the root thumbprint,
+            // regardless of whether the OS reported chain errors or None.  This ensures the
+            // OS trust store is never the sole authority for accepting a connection.
+            if (valid)
             {
                 var oldChain = chain;
                 chain = new X509Chain();
@@ -149,29 +152,56 @@ namespace Cassandra.DataStax.Cloud
                 // clone CA object because on Mono it gets reset for some reason after using it to build a new chain
                 var clonedCa = new X509Certificate2(_trustedRootCertificateAuthority);
                 chain.ChainPolicy.ExtraStore.Add(clonedCa);
-                
+
                 GetOrCreateCert2(ref cert2, cert);
                 if (!chain.Build(cert2))
                 {
-                    // verify if the chain is correct
-                    foreach (var status in chain.ChainStatus)
+                    // chain.Build() returned false — inspect each status flag.
+                    // UntrustedRoot is acceptable: the bundle CA is self-signed and will not be
+                    // in the OS trust store on most machines.
+                    if (chain.ChainStatus.Length == 0)
                     {
-                        if (status.Status == X509ChainStatusFlags.NoError || status.Status == X509ChainStatusFlags.UntrustedRoot)
+                        // No status information means we cannot determine why the build failed.
+                        // Treat as a hard failure rather than silently falling through to the
+                        // thumbprint check with an unknown chain state.
+                        CustomCaCertificateValidator.Logger.Error(
+                            "SSL validation failed: chain.Build() returned false with no status information.");
+                        valid = false;
+                    }
+                    else
+                    {
+                        foreach (var status in chain.ChainStatus)
                         {
-                            //Acceptable Status
-                        }
-                        else
-                        {
-                            CustomCaCertificateValidator.Logger.Error(
-                                "Certificate chain validation failed. Found chain status {0} ({1}).", status.Status, status.StatusInformation);
-                            valid = false;
-                            break;
+                            if (status.Status == X509ChainStatusFlags.NoError || status.Status == X509ChainStatusFlags.UntrustedRoot)
+                            {
+                                //Acceptable Status
+                            }
+                            else
+                            {
+                                CustomCaCertificateValidator.Logger.Error(
+                                    "Certificate chain validation failed. Found chain status {0} ({1}).", status.Status, status.StatusInformation);
+                                valid = false;
+                                break;
+                            }
                         }
                     }
+                }
 
-                    if (valid)
+                // Always verify the root thumbprint regardless of whether chain.Build() succeeded
+                // or failed with only UntrustedRoot.
+                if (valid)
+                {
+                    if (chain.ChainElements.Count == 0)
                     {
-                        //Now that we have tested to see if the cert builds properly, we now will check if the thumbprint of the root ca matches our trusted one
+                        // Should not happen after a successful or UntrustedRoot-only build, but
+                        // guard against it explicitly to avoid an unhandled exception on the
+                        // indexer that would produce an opaque SSL error with no log message.
+                        CustomCaCertificateValidator.Logger.Error(
+                            "SSL validation failed: certificate chain contains no elements.");
+                        valid = false;
+                    }
+                    else
+                    {
                         var rootCertThumbprint = chain.ChainElements[chain.ChainElements.Count - 1].Certificate.Thumbprint;
                         if (rootCertThumbprint != _trustedRootCertificateAuthority.Thumbprint)
                         {
@@ -180,8 +210,8 @@ namespace Cassandra.DataStax.Cloud
                             valid = false;
                         }
                     }
-
                 }
+
                 DisposeCert2(clonedCa);
             }
 
