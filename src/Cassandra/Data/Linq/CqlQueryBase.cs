@@ -123,7 +123,7 @@ namespace Cassandra.Data.Linq
         internal virtual IEnumerable<TEntity> AdaptResult(string cql, RowSet rs)
         {
             var mapper = MapperFactory.GetMapper<TEntity>(cql, rs);
-            return rs.Select(mapper);
+            return Enumerable.Select(rs ,mapper);
         }
 
         /// <summary>

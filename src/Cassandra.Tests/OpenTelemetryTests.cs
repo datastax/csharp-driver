@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 
+#if !NETFRAMEWORK
 using System;
 using System.Diagnostics;
 using System.Linq;
@@ -149,3 +150,4 @@ namespace Cassandra.Tests
         }
     }
 }
+#endif

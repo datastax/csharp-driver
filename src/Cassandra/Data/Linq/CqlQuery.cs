@@ -128,13 +128,18 @@ namespace Cassandra.Data.Linq
             {
                 throw new ArgumentNullException(nameof(executionProfile));
             }
-            
+
             SetAutoPage(false);
             var visitor = new CqlExpressionVisitor(PocoData, Table.Name, Table.KeyspaceName);
             var cql = visitor.GetSelect(Expression, out object[] values);
             var rs = await InternalExecuteWithProfileAsync(executionProfile, cql, values).ConfigureAwait(false);
             var mapper = MapperFactory.GetMapper<TEntity>(cql, rs);
-            return new Page<TEntity>(rs.Select(mapper), PagingState, rs.PagingState);
+#if !NETFRAMEWORK
+            var items = await AsyncEnumerable.Select(rs, mapper).ToListAsync().ConfigureAwait(false);
+#else
+            var items = Enumerable.Select(rs, mapper).ToList();
+#endif
+            return new Page<TEntity>(items, PagingState, rs.PagingState);
         }
 
         /// <summary>

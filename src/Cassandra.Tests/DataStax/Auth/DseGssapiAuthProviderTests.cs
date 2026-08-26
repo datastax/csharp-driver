@@ -27,14 +27,14 @@ namespace Cassandra.Tests.DataStax.Auth
 #if NETCOREAPP
         [WinOnly]
         [Test]
-        public void When_NetStandard20AndWindows_Should_NotThrowException()
+        public void When_NetStandard21AndWindows_Should_NotThrowException()
         {
             var provider = new DseGssapiAuthProvider();
         }
 
         [NotWindows]
         [Test]
-        public void When_NetStandard20AndNotWindows_Should_ThrowException()
+        public void When_NetStandard21AndNotWindows_Should_ThrowException()
         {
             Assert.Throws<NotSupportedException>(() =>
             {

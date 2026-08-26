@@ -15,6 +15,7 @@
 //
 
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Cassandra.Mapping
 {
@@ -54,6 +55,26 @@ namespace Cassandra.Mapping
         /// <summary>
         /// Adapts a LWT RowSet and returns a new AppliedInfo
         /// </summary>
+#if !NETFRAMEWORK
+        internal static async Task<AppliedInfo<T>> FromRowSetAsync(MapperFactory mapperFactory, string cql, RowSet rs)
+        {
+            var row = await rs.FirstOrDefaultAsync().ConfigureAwait(false);
+            const string appliedColumn = "[applied]";
+            if (row == null || row.GetColumn(appliedColumn) == null || row.GetValue<bool>(appliedColumn))
+            {
+                //The change was applied correctly
+                return new AppliedInfo<T>(true);
+            }
+            if (rs.Columns.Length == 1)
+            {
+                //There isn't more information on why it was not applied
+                return new AppliedInfo<T>(false);
+            }
+            //It was not applied, map the information returned
+            var mapper = mapperFactory.GetMapper<T>(cql, rs);
+            return new AppliedInfo<T>(mapper(row));
+        }
+#else
         internal static AppliedInfo<T> FromRowSet(MapperFactory mapperFactory, string cql, RowSet rs)
         {
             var row = rs.FirstOrDefault();
@@ -72,5 +93,6 @@ namespace Cassandra.Mapping
             var mapper = mapperFactory.GetMapper<T>(cql, rs);
             return new AppliedInfo<T>(mapper(row));
         }
+#endif
     }
 }
