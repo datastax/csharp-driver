@@ -28,6 +28,7 @@ namespace Cassandra.Serialization.Primitive
         internal static DateTimeOffset Deserialize(byte[] buffer, int offset)
         {
             var milliseconds = BeConverter.ToInt64(buffer, offset);
+            if (milliseconds < MinValueOfDateTimeOffsetAsUnixTimeMilliseconds) milliseconds = MinValueOfDateTimeOffsetAsUnixTimeMilliseconds;
             return UnixStart.AddTicks(TimeSpan.TicksPerMillisecond * milliseconds);
         }
 
