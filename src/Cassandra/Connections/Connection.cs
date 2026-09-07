@@ -438,7 +438,7 @@ namespace Cassandra.Connections
                     return TaskHelper.Completed;
                 }
                 Connection.Logger.Warning("Received heartbeat request exception " + error.Exception.ToString());
-                if (error.Exception is SocketException)
+                if (error.Exception is SocketException || error.Exception is OperationTimedOutException)
                 {
                     OnIdleRequestException?.Invoke(error.Exception);
                 }
