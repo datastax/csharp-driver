@@ -19,6 +19,7 @@ using System.Threading.Tasks;
 using Cassandra.IntegrationTests.SimulacronAPI.Models.Logs;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
+using Cassandra.SessionManagement;
 using Cassandra.Tests;
 using NUnit.Framework;
 
@@ -71,9 +72,54 @@ namespace Cassandra.IntegrationTests.Core
                         logs = await _testCluster.GetNodes().First()
                                                  .GetQueriesAsync(null, OptionsQueryType).ConfigureAwait(false);
                         Assert.That(logs.Count, Is.GreaterThan(initialCount));
-                    }, 
+                    },
                     500,
                     20).ConfigureAwait(false);
+            }
+        }
+
+        [Test]
+        public async Task Connection_Should_Be_Closed_When_Heartbeat_Times_Out_With_Socket_Still_Open()
+        {
+            var builder = ClusterBuilder()
+                                 .WithPoolingOptions(PoolingOptions.Create()
+                                                                    .SetHeartBeatInterval(2000)
+                                                                    .SetCoreConnectionsPerHost(HostDistance.Local, 1)
+                                                                    .SetMaxConnectionsPerHost(HostDistance.Local, 1))
+                                 .WithSocketOptions(new SocketOptions()
+                                                     .SetReadTimeoutMillis(2000)
+                                                     .SetDefunctReadTimeoutThreshold(int.MaxValue))
+                                 .AddContactPoint(_testCluster.InitialContactPoint);
+
+            using (var cluster = builder.Build())
+            {
+                var session = await cluster.ConnectAsync().ConfigureAwait(false);
+                await session.ExecuteAsync(new SimpleStatement(HeartbeatTests.Query)).ConfigureAwait(false);
+
+                var pool = ((IInternalSession)session).GetPools().Single().Value;
+                var connection = pool.ConnectionsSnapshot.Single();
+                Assert.IsFalse(connection.IsDisposed);
+
+                // Simulacron keeps the TCP connection ESTABLISHED and just stops reading, so the
+                // heartbeat fails with OperationTimedOutException rather than SocketException. No
+                // application requests are sent after this point, so only the heartbeat itself can
+                // detect the unresponsive host and close the connection.
+                await _testCluster.PauseReadsAsync().ConfigureAwait(false);
+                try
+                {
+                    await TestHelper.RetryAssertAsync(
+                        () =>
+                        {
+                            Assert.IsTrue(connection.IsDisposed);
+                            return Task.CompletedTask;
+                        },
+                        500,
+                        20).ConfigureAwait(false);
+                }
+                finally
+                {
+                    await _testCluster.ResumeReadsAsync().ConfigureAwait(false);
+                }
             }
         }
     }
