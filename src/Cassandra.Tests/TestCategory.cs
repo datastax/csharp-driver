@@ -1,4 +1,4 @@
-﻿// 
+// 
 //       Copyright (C) DataStax Inc.
 // 
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -42,7 +42,8 @@ namespace Cassandra.Tests
         public const string RealClusterLong = "realclusterlong";
         
         /// <summary>
-        /// These tests run once in Jenkins per commit (not for the entire matrix).
+        /// Currently these tests are skipped in all CI schedules.
+        /// Cloud integration tests are no longer supported on CI.
         /// </summary>
         public const string Cloud = "cloud";
         

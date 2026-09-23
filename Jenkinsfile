@@ -56,17 +56,6 @@ def initializeEnvironment() {
       '''
     }
     
-    if (env.SERVER_VERSION == env.SERVER_VERSION_SNI_WINDOWS) {
-      powershell label: 'Update environment for SNI proxy tests', script: '''
-        $newData = "`r`n`$Env:SNI_ENABLED=`"true`""
-        $newData += "`r`n`$Env:SINGLE_ENDPOINT_PATH=`"$Env:HOME/proxy/run.ps1`""
-        $newData += "`r`n`$Env:SNI_CERTIFICATE_PATH=`"$Env:HOME/proxy/certs/client_key.pfx`""
-        $newData += "`r`n`$Env:SNI_CA_PATH=`"$Env:HOME/proxy/certs/root.crt`""
-
-        "$newData" | Out-File -filepath $Env:HOME\\driver-environment.ps1 -append
-      '''
-    }
-
     powershell label: 'Set additional environment variables for windows tests', script: '''
       $newData = "`r`n`$Env:PATH+=`";$env:JAVA_HOME\\bin`""
       $newData += "`r`n`$Env:SIMULACRON_PATH=`"$Env:SIMULACRON_PATH_WINDOWS`""
@@ -148,22 +137,6 @@ CASSANDRA_VERSION=${HCD_FIXED_VERSION}
 CCM_DISTRIBUTION=hcd
 ENVIRONMENT_EOF
         '''
-    }
-
-    if (env.SERVER_VERSION == env.SERVER_VERSION_SNI && env.DOTNET_VERSION != 'mono') {
-      sh label: 'Update environment for SNI proxy tests', script: '''#!/bin/bash -le
-        # Load CCM and driver configuration environment variables
-        set -o allexport
-        . ${HOME}/environment.txt
-        set +o allexport
-
-        cat >> ${HOME}/environment.txt << ENVIRONMENT_EOF
-SNI_ENABLED=true
-SINGLE_ENDPOINT_PATH=${HOME}/proxy/run.sh
-SNI_CERTIFICATE_PATH=${HOME}/proxy/certs/client_key.pfx
-SNI_CA_PATH=${HOME}/proxy/certs/root.crt
-ENVIRONMENT_EOF
-      '''
     }
 
     sh label: 'Display .NET and environment information', script: '''#!/bin/bash -le
@@ -249,12 +222,12 @@ def buildDriver() {
 def executeTests(perCommitSchedule) {
   
   if (perCommitSchedule) {
-    env.DOTNET_TEST_FILTER = "(TestCategory!=long)&(TestCategory!=memory)&(TestCategory!=realclusterlong)"
-    env.MONO_TEST_FILTER = "cat != long && cat != memory && cat != realclusterlong"
+    env.DOTNET_TEST_FILTER = "(TestCategory!=long)&(TestCategory!=memory)&(TestCategory!=realclusterlong)&(TestCategory!=cloud)"
+    env.MONO_TEST_FILTER = "cat != long && cat != memory && cat != realclusterlong && cat != cloud"
   } else {
-    env.DOTNET_TEST_FILTER = "(TestCategory!=long)&(TestCategory!=memory)"
-    env.MONO_TEST_FILTER = "cat != long && cat != memory"    
-  }  
+    env.DOTNET_TEST_FILTER = "(TestCategory!=long)&(TestCategory!=memory)&(TestCategory!=cloud)"
+    env.MONO_TEST_FILTER = "cat != long && cat != memory && cat != cloud"
+  }
   
   if (env.OS_VERSION.split('/')[0] == 'win') {
     catchError {
@@ -416,8 +389,6 @@ pipeline {
 
   environment {
     DOTNET_CLI_TELEMETRY_OPTOUT = '1'
-    SERVER_VERSION_SNI = 'dse-6.7.17'
-    SERVER_VERSION_SNI_WINDOWS = '3.11'
     SIMULACRON_PATH = '/home/jenkins/simulacron.jar'
     SIMULACRON_PATH_WINDOWS = 'C:\\Users\\Admin\\simulacron.jar'
     CCM_ENVIRONMENT_SHELL = '/usr/local/bin/ccm_environment.sh'
