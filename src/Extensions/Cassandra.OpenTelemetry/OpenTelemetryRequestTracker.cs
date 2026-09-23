@@ -134,7 +134,7 @@ namespace Cassandra.OpenTelemetry
             }
 
             activity.SetStatus(ActivityStatusCode.Error, ex.Message);
-            activity.RecordException(ex);
+            activity.AddException(ex);
 
             activity.Dispose();
 
@@ -183,7 +183,7 @@ namespace Cassandra.OpenTelemetry
             }
 
             activity.SetStatus(ActivityStatusCode.Error, ex.Message);
-            activity.RecordException(ex);
+            activity.AddException(ex);
 
             activity.Dispose();
 
