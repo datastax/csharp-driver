@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Runtime.InteropServices;
 using Cassandra.Connections;
 using Cassandra.Connections.Control;
 using Cassandra.DataStax.Graph;
@@ -171,7 +172,8 @@ namespace Cassandra.Tests.DataStax.Insights.MessageFactories
         {
             Assert.Greater(act.Data.PlatformInfo.CentralProcessingUnits.Length, 0);
             Assert.IsFalse(
-                string.IsNullOrWhiteSpace(act.Data.PlatformInfo.CentralProcessingUnits.Model),
+                (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) || RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                && string.IsNullOrWhiteSpace(act.Data.PlatformInfo.CentralProcessingUnits.Model),
                 act.Data.PlatformInfo.CentralProcessingUnits.Model);
             Assert.IsFalse(
                 string.IsNullOrWhiteSpace(act.Data.PlatformInfo.OperatingSystem.Version),
@@ -186,7 +188,7 @@ namespace Cassandra.Tests.DataStax.Insights.MessageFactories
                 string.IsNullOrWhiteSpace(act.Data.PlatformInfo.Runtime.RuntimeFramework),
                 act.Data.PlatformInfo.Runtime.RuntimeFramework);
 #if NETCOREAPP
-            Assert.AreEqual(".NET Standard 2.0", act.Data.PlatformInfo.Runtime.TargetFramework);
+            Assert.AreEqual(".NET Standard 2.1", act.Data.PlatformInfo.Runtime.TargetFramework);
 #else
             Assert.AreEqual(".NET Framework 4.5.2", act.Data.PlatformInfo.Runtime.TargetFramework);
 #endif

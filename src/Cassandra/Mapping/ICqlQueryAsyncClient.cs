@@ -25,19 +25,42 @@ namespace Cassandra.Mapping
     public interface ICqlQueryAsyncClient
     {
         /// <summary>
-        /// Gets a list of all T from Cassandra.
+        /// Gets a list of all T from Cassandra. Loading new pages when enumerating the result may block the thread. For that reason,
+        /// FetchAsAsyncEnumerable should be preferred if the .NET version supports it.
         /// </summary>
         Task<IEnumerable<T>> FetchAsync<T>(CqlQueryOptions queryOptions = null);
-        
+
         /// <summary>
-        /// Gets a list of T from Cassandra using the CQL statement and parameter values specified.
+        /// Gets a list of T from Cassandra using the CQL statement and parameter values specified. Loading new pages when enumerating the result may
+        /// block the thread. For that reason, FetchAsAsyncEnumerable should be preferred if the .NET version supports it.
         /// </summary>
         Task<IEnumerable<T>> FetchAsync<T>(string cql, params object[] args);
 
         /// <summary>
-        /// Gets a list of T from Cassandra using the CQL statement specified.
+        /// Gets a list of T from Cassandra using the CQL statement specified. Loading new pages when enumerating the result may block the thread.
+        /// For that reason, FetchAsAsyncEnumerable should be preferred if the .NET version supports it.
         /// </summary>
         Task<IEnumerable<T>> FetchAsync<T>(Cql cql);
+
+#if !NETFRAMEWORK
+        /// <summary>
+        /// Gets an <see cref="IAsyncEnumerable{T}"/> of all T from Cassandra. Unlike <see cref="FetchAsync{T}(CqlQueryOptions)"/>, loading new
+        /// pages when enumerating the result does not block the thread.
+        /// </summary>
+        IAsyncEnumerable<T> FetchAsAsyncEnumerable<T>(CqlQueryOptions options = null);
+
+        /// <summary>
+        /// Gets an <see cref="IAsyncEnumerable{T}"/> of all T from Cassandra using the CQL statement and parameter values specified. Unlike
+        /// <see cref="FetchAsync{T}(string, object[])"/>, loading new pages when enumerating the result does not block the thread.
+        /// </summary>
+        IAsyncEnumerable<T> FetchAsAsyncEnumerable<T>(string cql, params object[] args);
+
+        /// <summary>
+        /// Gets an <see cref="IAsyncEnumerable{T}"/> of all T from Cassandra using the CQL statement specified. Unlike
+        /// <see cref="FetchAsync{T}(Cql)"/>, loading new pages when enumerating the result does not block the thread.
+        /// </summary>
+        IAsyncEnumerable<T> FetchAsAsyncEnumerable<T>(Cql cql);
+#endif
 
         /// <summary>
         /// Gets a paged list of T results from Cassandra.
