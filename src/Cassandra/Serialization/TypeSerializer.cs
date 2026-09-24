@@ -50,6 +50,7 @@ namespace Cassandra.Serialization
         public static readonly TypeSerializer<TimeUuid> PrimitiveTimeUuidSerializer = new TimeUuidSerializer();
 
         internal static readonly DateTimeOffset UnixStart = new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero);
+        internal static readonly long MinValueOfDateTimeOffsetAsUnixTimeMilliseconds = -62135596800000;
 
         internal static byte[] GuidShuffle(byte[] b, int offset = 0)
         {
