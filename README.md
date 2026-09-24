@@ -1,5 +1,8 @@
 # DataStax C# Driver for Apache Cassandra
 
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![NuGet version](https://badge.fury.io/nu/CassandraCSharpDriver.svg)](https://badge.fury.io/nu/CassandraCSharpDriver)
+
 A modern, [feature-rich][features] and highly tunable C# client library for Apache Cassandra (2.0+) using Cassandra's binary protocol and Cassandra Query Language v3.
 
 It also provides additional features for [DataStax Enterprise][dse]:
