@@ -1,4 +1,4 @@
-﻿//
+//
 //      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -114,6 +114,73 @@ namespace Cassandra.Tests
                 Assert.NotNull(activity);
                 Assert.Null(activity.Tags.FirstOrDefault(x => x.Key == DbNamespaceTag).Value);
                 Assert.Null(activity.Tags.FirstOrDefault(x => x.Key == DbQueryTextTag).Value);
+            }
+        }
+
+        [Test]
+        public async Task OpenTelemetryRequestTrackerOnErrorAsync_ExceptionIsRecordedOnActivity()
+        {
+            Activity completedActivity = null;
+
+            using (var listener = new ActivityListener
+            {
+                ShouldListenTo = source => source.Name == CassandraActivitySourceHelper.ActivitySourceName,
+                Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllDataAndRecorded,
+                ActivityStopped = activity => completedActivity = activity
+            })
+            {
+                ActivitySource.AddActivityListener(listener);
+
+                var requestTracker = new OpenTelemetryRequestTracker(new CassandraInstrumentationOptions());
+                IStatement statement = null;
+                var requestTrackingInfo = new SessionRequestInfo(statement, null);
+
+                await requestTracker.OnStartAsync(requestTrackingInfo).ConfigureAwait(false);
+
+                var ex = new InvalidOperationException("test error");
+                await requestTracker.OnErrorAsync(requestTrackingInfo, ex).ConfigureAwait(false);
+
+                Assert.NotNull(completedActivity);
+                Assert.AreEqual(ActivityStatusCode.Error, completedActivity.Status);
+                var exceptionEvent = completedActivity.Events.FirstOrDefault(e => e.Name == "exception");
+                Assert.NotNull(exceptionEvent.Name, "Expected an 'exception' event to be recorded on the activity");
+                Assert.AreEqual(typeof(InvalidOperationException).FullName, exceptionEvent.Tags.FirstOrDefault(t => t.Key == "exception.type").Value);
+                Assert.AreEqual("test error", exceptionEvent.Tags.FirstOrDefault(t => t.Key == "exception.message").Value);
+            }
+        }
+
+        [Test]
+        public async Task OpenTelemetryRequestTrackerOnNodeErrorAsync_ExceptionIsRecordedOnActivity()
+        {
+            Activity completedActivity = null;
+
+            using (var listener = new ActivityListener
+            {
+                ShouldListenTo = source => source.Name == CassandraActivitySourceHelper.ActivitySourceName,
+                Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllDataAndRecorded,
+                ActivityStopped = activity => completedActivity = activity
+            })
+            {
+                ActivitySource.AddActivityListener(listener);
+
+                var requestTracker = new OpenTelemetryRequestTracker(new CassandraInstrumentationOptions());
+                IStatement statement = null;
+                var requestTrackingInfo = new SessionRequestInfo(statement, null);
+                var host = new Host(new System.Net.IPEndPoint(1, 9042), new ConstantReconnectionPolicy(1));
+                var hostTrackingInfo = new NodeRequestInfo(host, null);
+
+                await requestTracker.OnStartAsync(requestTrackingInfo).ConfigureAwait(false);
+                await requestTracker.OnNodeStartAsync(requestTrackingInfo, hostTrackingInfo).ConfigureAwait(false);
+
+                var ex = new InvalidOperationException("test node error");
+                await requestTracker.OnNodeErrorAsync(requestTrackingInfo, hostTrackingInfo, ex).ConfigureAwait(false);
+
+                Assert.NotNull(completedActivity);
+                Assert.AreEqual(ActivityStatusCode.Error, completedActivity.Status);
+                var exceptionEvent = completedActivity.Events.FirstOrDefault(e => e.Name == "exception");
+                Assert.NotNull(exceptionEvent.Name, "Expected an 'exception' event to be recorded on the activity");
+                Assert.AreEqual(typeof(InvalidOperationException).FullName, exceptionEvent.Tags.FirstOrDefault(t => t.Key == "exception.type").Value);
+                Assert.AreEqual("test node error", exceptionEvent.Tags.FirstOrDefault(t => t.Key == "exception.message").Value);
             }
         }
 

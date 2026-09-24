@@ -1,5 +1,15 @@
 # ChangeLog - DataStax C# Driver
 
+## 3.23.0
+
+2026-09-24
+
+### Improvements
+
+*   [[#630](https://github.com/datastax/csharp-driver/issues/630)] Close the connection on heartbeat timeouts (`OperationTimedOutException`) in addition to `SocketException`
+*   [[#636](https://github.com/datastax/csharp-driver/issues/636)] Upgrade `Newtonsoft.Json` from 9.0.1 to 13.0.1 to address CVE-2024-21907
+*   [[#636](https://github.com/datastax/csharp-driver/issues/636)] Upgrade `OpenTelemetry.Api` from 1.7.0 to 1.15.3 to address CVE-2026-40894
+
 ## 3.22.1
 
 2026-08-26
@@ -714,7 +724,6 @@ supports it.
 - [CSHARP-351] - Linq CreateTable(): support frozen keyword
 - [CSHARP-366] - ControlConnection: reconnection attempt after Cluster.Shutdown() may cause ObjectDisposedException
 - [CSHARP-376] - HashedWheelTimer should remove cancelled timeouts on each tick to allow GC
-
 
 ## 3.0.0-beta2
 

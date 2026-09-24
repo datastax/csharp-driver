@@ -18,8 +18,6 @@ The driver targets .NET Framework 4.5.2 and .NET Standard 2.0. For more detailed
 PM> Install-Package CassandraCSharpDriver
 ```
 
-[![Build status](https://travis-ci.org/datastax/csharp-driver.svg?branch=master)](https://travis-ci.org/datastax/csharp-driver)
-[![Windows Build status](https://ci.appveyor.com/api/projects/status/ri1olv8bl7b7yk7y/branch/master?svg=true)](https://ci.appveyor.com/project/DataStax/csharp-driver/branch/master)
 [![Latest stable](https://img.shields.io/nuget/v/CassandraCSharpDriver.svg)](https://www.nuget.org/packages/CassandraCSharpDriver)
 
 ## Features
@@ -392,16 +390,11 @@ session.Execute(statement);
 
 Here is a list of platforms and .NET targets that Datastax uses when testing this driver:
 
-|  Platform             | net462 | net472 | net481 | net6 | net7 | net8  |
-|-----------------------|--------|--------|--------|------|------|-------|
-| Windows Server 2019³  |  ✓    |  ✓     |  ✓     |  ✓²  |  ✓¹ |  ✓   |
-| Ubuntu 18.04          |  -     |  -     |   -    |  ✓   | ✓   | ✓    |
+|  Platform    | net8  |
+|--------------|-------|
+| Ubuntu 18.04 |  ✓   |
 
-¹ No tests are run for the `net7` target on the Windows platform but `net7` is still considered fully supported.
-
-² Only unit tests are ran for the `net6` target on the windows platform but `net6` is still considered fully supported.
-
-³ Appveyor's `Visual Studio 2022` image is used for these tests.
+The Windows platform is fully supported but does not currently have automated test runs in CI.
 
 Mono `6.12.0` is also used to run `net462` tests on `Ubuntu 18.04` but Datastax can't guarantee that the driver fully supports Mono in a production environment. Datastax recommends the modern cross platform .NET platform instead.
 

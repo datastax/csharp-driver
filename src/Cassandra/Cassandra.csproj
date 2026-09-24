@@ -1,11 +1,11 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Description>A modern, feature-rich and highly tunable C# client library for Apache Cassandra and DataStax Enterprise</Description>
     <Copyright>Copyright © by DataStax</Copyright>
     <AssemblyTitle>DataStax C# Driver for Apache Cassandra</AssemblyTitle>
     <AssemblyVersion>3.99.0.0</AssemblyVersion>
-    <FileVersion>3.22.1.0</FileVersion>
-    <VersionPrefix>3.22.1</VersionPrefix>
+    <FileVersion>3.23.0.0</FileVersion>
+    <VersionPrefix>3.23.0</VersionPrefix>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <Authors>DataStax</Authors>
     <TargetFrameworks Condition="'$(BuildCoreOnly)' != 'True'">net452;netstandard2.0</TargetFrameworks>
@@ -42,10 +42,13 @@
     <PackageReference Include="K4os.Compression.LZ4" Version="1.1.11" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="1.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="1.0.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="9.0.1" NoWarn="NU1903" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="System.Management" Version="4.7.0" />
     <PackageReference Include="System.Runtime.InteropServices.RuntimeInformation" Version="4.0.0" />
     <PackageReference Include="System.Threading.Tasks.Dataflow" Version="4.6.0" />
+  </ItemGroup>
+  <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' ">
+    <PackageReference Include="Microsoft.CSharp" Version="4.0.1" />
   </ItemGroup>
   <ItemGroup Condition=" '$(TargetFramework)' == 'net452' ">
     <Reference Include="System.Data" />
