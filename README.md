@@ -390,12 +390,11 @@ session.Execute(statement);
 
 Here is a list of platforms and .NET targets that Datastax uses when testing this driver:
 
-|  Platform             | net462 | net472 | net481 | net8  |
-|-----------------------|--------|--------|--------|-------|
-| Windows Server 2019²  |  ✓    |  ✓     |  ✓     |  ✓   |
-| Ubuntu 18.04          |  -     |  -     |   -    |  ✓   |
+|  Platform    | net8  |
+|--------------|-------|
+| Ubuntu 18.04 |  ✓   |
 
-² Windows Server 2019 tests run on Jenkins.
+The Windows platform is fully supported but does not currently have automated test runs in CI.
 
 Mono `6.12.0` is also used to run `net462` tests on `Ubuntu 18.04` but Datastax can't guarantee that the driver fully supports Mono in a production environment. Datastax recommends the modern cross platform .NET platform instead.
 
