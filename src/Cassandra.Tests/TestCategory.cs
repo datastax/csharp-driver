@@ -27,12 +27,12 @@ namespace Cassandra.Tests
         public const string Long = "long";
 
         /// <summary>
-        /// These tests run in all CI schedules (both Appveyor and Jenkins) except if they are marked with the categories below.
+        /// These tests run in all CI schedules except if they are marked with the categories below.
         /// </summary>
         public const string Short = "short";
         
         /// <summary>
-        /// These tests run once in Appveyor per commit (not for the entire matrix) and in all Jenkins schedules.
+        /// These tests run in all Jenkins schedules.
         /// </summary>
         public const string RealCluster = "realcluster";
 

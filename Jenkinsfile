@@ -426,7 +426,7 @@ pipeline {
           }
           axis {
             name 'DOTNET_VERSION'
-            values 'mono', 'net8', 'net6'
+            values 'mono', 'net8'
           }
         }
         excludes {

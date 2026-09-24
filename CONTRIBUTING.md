@@ -94,7 +94,7 @@ In both cases, the `CASSANDRA_VERSION` environment variable determines which ser
 
 ## Building the driver and running tests
 
-DataStax C# drivers target .NET Framework 4.5.2 and .NET Standard 2.0. The test projects target .NET Framework 4.6.2, 4.7.2, 4.8.1 and .NET 6, 7 and 8. To run the code analyzers you need the .NET 8 SDK.
+DataStax C# drivers target .NET Framework 4.5.2 and .NET Standard 2.0. The test projects target .NET Framework 4.6.2, 4.7.2, 4.8.1 and .NET 8. To run the code analyzers you need the .NET 8 SDK.
 
 ### Prerequisites
 
@@ -125,7 +125,7 @@ dotnet build src/Cassandra.Tests/Cassandra.Tests.csproj -f net8
 dotnet build src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -f net8
 ```
 
-Alternatively you can set the `BuildCoreOnly` environment variable which will cause the projects to support .NET Core / .NET Standard targets only (you can see the conditions on the `.csproj` files).
+On non-Windows platforms, use `-f net8` to skip .NET Framework targets which are not supported outside of Windows.
 
 ### Running Unit Tests
 
@@ -133,13 +133,11 @@ Alternatively you can set the `BuildCoreOnly` environment variable which will ca
 dotnet test src/Cassandra.Tests/Cassandra.Tests.csproj -f net8
 ```
 
-The target frameworks supported by the test projects are `net8` and `net481` (by default). If you set the `BuildAllTargets` environment variable, the test projects will support these targets:
+The target frameworks supported by the test projects are:
 
 - `net462`
 - `net472`
 - `net481`
-- `net6` 
-- `net7`(not LTS, might be removed at some point)
 - `net8`
 
 Running the unit tests for a single target should take no more than 5 minutes (usually less):
@@ -193,7 +191,7 @@ This currently takes less than 10 minutes.
 
 If you get this error: `Simulacron start error: java.net.BindException: Address already in use: bind` then you need to manually kill the `java` process. This happens when the test runner is interrupted (it doesn't terminate the simulacron process).
 
-To run the integration tests suite that the **per commit** schedule builds use on Appveyor and Jenkins, do this:
+To run the integration tests suite that the **per commit** schedule builds use on Jenkins, do this:
 
 ```bash
 dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -c Release -f net8 --filter "(TestCategory!=realclusterlong)" -l "console;verbosity=detailed"
