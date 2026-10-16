@@ -74,7 +74,7 @@ public class MyMappings : Mappings
        For<User>()
           .TableName("users")
           .PartitionKey(u => u.UserId)
-          .Column(u => u.UserId, cm => cm.WithName("id")));
+          .Column(u => u.UserId, cm => cm.WithName("id"));
        For<Comment>()
           .TableName("comments");
    }
@@ -113,17 +113,19 @@ var user = mapper.FirstOrDefault<User>("SELECT * FROM users");
 Guid userId = mapper.First<Guid>("SELECT userid FROM users");
 IEnumerable<string> names = mapper.Fetch<string>("SELECT name FROM users");
 
-// Insert a POCO var newUser = new User { UserId = Guid.NewGuid(), Name = "SomeNewUser" };
+// Insert a POCO
+var newUser = new User { UserId = Guid.NewGuid(), Name = "SomeNewUser" };
 mapper.Insert(newUser);
 
-// Update with POCO someUser.Name = "A new name!";
-mapper.Update(someUser);
+// Update with POCO
+newUser.Name = "A new name!";
+mapper.Update(newUser);
 
 // Update with CQL (will prepend table name to CQL)
 mapper.Update<User>("SET name = ? WHERE id = ?", someNewName, userId);
 
 // Delete with POCO 
-mapper.Delete(someUser);
+mapper.Delete(newUser);
 
 // Delete with CQL (will prepend table name to CQL)
 mapper.Delete<User>("WHERE id = ?", userId);

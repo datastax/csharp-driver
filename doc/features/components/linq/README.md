@@ -32,6 +32,7 @@ public class User
    public Guid UserId { get; set; }
    public string Name { get; set; }
    public string Group { get; set; }
+   public TimeUuid LastAccess { get; set; }
 }
 
 // Get a list of users from Cassandra/DSE using a Linq query
@@ -78,7 +79,7 @@ public class MyMappings : Mappings
        For<User>()
           .TableName("users")
           .PartitionKey(u => u.UserId)
-          .Column(u => u.UserId, cm => cm.WithName("id")));
+          .Column(u => u.UserId, cm => cm.WithName("id"));
        For<Comment>()
           .TableName("comments");
    }
@@ -103,16 +104,16 @@ For example, the following query only retrieves the username from the cluster to
 IEnumerable<string> userNames = ( from user in users where user.Group == "admin" select user.Name).Execute();
 ```
 
-Some other examples:
+Some other examples, with a `Guid userId` and a `TimeUuid value`:
 
 ```csharp
 // First row or null using a query
-User user = (
+User firstAdmin = (
    from user in users where user.Group == "admin"
-   select user.Name).FirstOrDefault().Execute();
+   select user).FirstOrDefault().Execute();
 
 // First row or null using lambda syntax
-User user = users.Where(u => u.UserId == "john")
+User userById = users.Where(u => u.UserId == userId)
       .FirstOrDefault()
       .Execute();
 
@@ -122,22 +123,22 @@ var userAdmins = (
    select user.Name).Take(100).Execute();
 
 // Use Select() to project to a new form server side
-var userCoordinates = (
+var userDetails = (
    from user in users where user.Group == "admin"
-   select new Tuple(user.X, user.Y)).Execute();
+   select new Tuple<Guid, string>(user.UserId, user.Name)).Execute();
 
 // Delete
-users.Where(u => u.UserId == "john")
+users.Where(u => u.UserId == userId)
       .Delete()
       .Execute();
 
 // Delete If (Cassandra 2.1+)
-users.Where(u => u.UserId == "john")
+users.Where(u => u.UserId == userId)
       .DeleteIf(u => u.LastAccess == value)
       .Execute();
 
 // Update 
-users.Where(u => u.UserId == "john")
+users.Where(u => u.UserId == userId)
       .Select(u => new User { LastAccess = TimeUuid.NewId()})
       .Update()
       .Execute();
